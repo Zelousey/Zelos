@@ -1,41 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-Y4B3ZC5XRX');
-</script>
 <meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Zelos</title>
-<link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="favicon.svg">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0f1310">
-<meta name="description" content="Zelos watches your account for one specific pattern — a healthy stock pausing after a run — and only alerts you when a setup earns it. Nothing trades without your Accept.">
-<link rel="canonical" href="https://agentictrading.info/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos — Agentic Swing Trading">
-<meta property="og:description" content="Zelos watches your account for one specific pattern — a healthy stock pausing after a run — and only alerts you when a setup earns it. Nothing trades without your Accept.">
-<meta property="og:url" content="https://agentictrading.info/">
-<meta property="og:image" content="https://agentictrading.info/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos — Agentic Swing Trading">
-<meta name="twitter:description" content="Zelos watches your account for one specific pattern — a healthy stock pausing after a run — and only alerts you when a setup earns it. Nothing trades without your Accept.">
-<meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <style>
   :root{ color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -43,6 +15,7 @@
   [hidden]:not([hidden="until-found"]){ display:none !important; }
 </style>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
   :root{
     --paper:#eef0ec;
@@ -142,39 +115,22 @@
   }
   nav a.nav-play{
     font-family:var(--mono);
-    font-weight:600;
     font-size:0.8rem;
-    color:var(--accent);
+    color:var(--muted);
     text-decoration:none;
     letter-spacing:0.01em;
-    background:var(--accent-soft);
-    padding:8px 14px;
+  }
+  nav a.nav-play:hover{ color:var(--accent); }
+  nav a.nav-cta{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    color:var(--ink);
+    text-decoration:none;
+    border:1px solid var(--line);
+    padding:8px 16px;
     border-radius:8px;
-    white-space:nowrap;
   }
-  nav a.nav-play:hover{ background:var(--accent); color:#08130d; }
-
-  /* ---- nav dropdown menu ---- */
-  .nav-menu{ position:relative; }
-  .nav-menu-btn{
-    font-family:var(--mono); font-size:0.82rem; font-weight:600; color:var(--muted);
-    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px;
-    cursor:pointer; display:inline-flex; align-items:center; gap:5px;
-  }
-  .nav-menu-btn:hover{ color:var(--ink); border-color:var(--accent); }
-  .nav-menu-caret{ font-size:0.7rem; transition:transform 0.15s ease; }
-  .nav-menu-btn[aria-expanded="true"] .nav-menu-caret{ transform:rotate(180deg); }
-  .nav-menu-list{
-    position:absolute; top:calc(100% + 8px); right:0; min-width:170px;
-    background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:8px; display:flex; flex-direction:column; gap:2px; z-index:20;
-    box-shadow:0 12px 28px rgba(0,0,0,0.18);
-  }
-  .nav-menu-list a{
-    font-family:var(--sans); font-size:0.88rem; color:var(--ink); text-decoration:none;
-    padding:8px 10px; border-radius:7px;
-  }
-  .nav-menu-list a:hover{ background:var(--accent-soft); color:var(--accent); }
+  nav a.nav-cta:hover{ border-color:var(--accent); color:var(--accent); }
 
   /* ---- hero ---- */
   .hero{ padding-block:56px 40px; }
@@ -596,28 +552,9 @@
   @media (max-width:520px){
     .proof-grid{ grid-template-columns:1fr; }
     .pattern-grid{ grid-template-columns:1fr; }
-    nav a.nav-play{ padding:7px 12px; }
+    nav a.nav-cta{ padding:7px 12px; }
   }
 </style>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Zelos",
-  "url": "https://agentictrading.info/",
-  "image": "https://agentictrading.info/og-image.png",
-  "description": "Zelos watches your account for one specific pattern — a healthy stock pausing after a run — and only alerts you when a setup earns it. Nothing trades without your Accept.",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "Any",
-  "offers": {
-    "@type": "Offer",
-    "price": "50",
-    "priceCurrency": "USD",
-    "url": "https://groccia.gumroad.com/l/AgenticTrading?wanted=true",
-    "availability": "https://schema.org/InStock"
-  }
-}
-</script>
 </head>
 <body>
 <div class="wrap">
@@ -625,17 +562,8 @@
   <nav>
     <div class="wordmark"><span class="dot"></span>Zelos</div>
     <div class="nav-links">
-      <div class="nav-menu">
-        <button class="nav-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="nav-menu-caret">&#9662;</span></button>
-        <div class="nav-menu-list" hidden>
-          <a href="index.html">Home</a>
-          <a href="setup.html">Setup guide</a>
-          <a href="demo.html">Try the demo</a>
-          <a href="arcade.html">Arcade</a>
-          <a href="terms.html">Terms</a>
-        </div>
-      </div>
       <a class="nav-play" href="arcade.html">Play Zelos games &mdash; free</a>
+      <a class="nav-cta" href="#access">Get started</a>
     </div>
   </nav>
 
@@ -794,6 +722,48 @@
   </section>
 
   <section>
+    <div class="eyebrow">Why "Zelos"</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">It's not envy. It's knowing you're capable.</h2>
+    <div class="why-card">
+      <div>
+      <blockquote>
+        &ldquo;Emulation is pain caused by seeing the presence, in persons whose nature is like our own, of good things that are highly valued and are possible for ourselves to acquire; but it is felt not because others have these goods, but because we have not got them ourselves.&rdquo;
+        <cite>&mdash; Aristotle, Rhetoric, Book II, Ch. 11 (on ζῆλος / zelos, &ldquo;emulation&rdquo;)</cite>
+      </blockquote>
+      <div class="why-body">
+        <p>Aristotle drew a sharp line between two feelings that look similar from the outside. <b>Envy</b> wants the other person to lose what they have. <b>Zelos</b> &mdash; emulation &mdash; wants what a capable peer has because you can see, clearly, that it's within reach for you too. He called it a feeling good people have.</p>
+        <p>That's the distinction this is named after. Not chasing a stock because someone else is up on it &mdash; that's the trade this strategy explicitly refuses to make. Going after the same kind of opportunity, on your own terms, when the setup is actually there for you. The pain isn't watching someone else win. It's sitting on the sidelines when the door was genuinely open.</p>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">What's next</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">Built for more than this, if the licensing lines up.</h2>
+    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">What you see today is deliberately narrow on purpose: one strategy, the same rules for every subscriber, and a specific Accept from you before anything trades. That's what lets Zelos run as a straightforward, rules-based signal service right now. It's the foundation, not the ceiling.</p>
+    <div class="roadmap-list">
+      <div class="roadmap-item">
+        <div class="lock">&#128274;</div>
+        <p><b>Fully automatic execution.</b> A qualifying setup gets placed the moment it clears, without needing your Accept on each one.</p>
+      </div>
+      <div class="roadmap-item">
+        <div class="lock">&#128274;</div>
+        <p><b>Sizing based on your full picture, not just a formula.</b> Position sizing that accounts for your broader goals and risk tolerance, not a flat share of your balance.</p>
+      </div>
+      <div class="roadmap-item">
+        <div class="lock">&#128274;</div>
+        <p><b>More than one strategy running for you.</b> Multiple approaches allocated across your account instead of a single scan.</p>
+      </div>
+      <div class="roadmap-item">
+        <div class="lock">&#128274;</div>
+        <p><b>An actual advisory relationship.</b> The accountability, disclosure, and fiduciary duty that come with being a licensed adviser &mdash; not just a signal in your pocket.</p>
+      </div>
+    </div>
+    <div class="roadmap-note">None of this is available today, and it won't be until it's actually done properly &mdash; not before. If Zelos becomes a registered investment adviser, this is the direction it's headed. Until then, every trade still needs your Accept.</div>
+  </section>
+
+  <section>
     <div class="eyebrow">Questions people actually ask</div>
     <div class="faq">
       <div class="faq-item">
@@ -862,52 +832,10 @@
           <div>Every trade requires your Accept before it's placed</div>
           <div>Every future refinement to the strategy</div>
         </div>
-        <a class="btn-buy" href="going-to-gumroad.html">Get Zelos &mdash; $50</a>
+        <a class="btn-buy" href="https://groccia.gumroad.com/l/AgenticTrading?wanted=true" target="_blank" rel="noopener">Get Zelos &mdash; $50</a>
         <div class="buy-fine">One payment, yours to keep &mdash; not a subscription. Have an access code? Enter it at checkout on Gumroad. Not personalized advice.</div>
       </div>
     </div>
-  </section>
-
-  <section>
-    <div class="eyebrow">Why "Zelos"</div>
-    <h2 style="font-size:1.7rem; margin-top:8px;">It's not envy. It's knowing you're capable.</h2>
-    <div class="why-card">
-      <div>
-      <blockquote>
-        &ldquo;Emulation is pain caused by seeing the presence, in persons whose nature is like our own, of good things that are highly valued and are possible for ourselves to acquire; but it is felt not because others have these goods, but because we have not got them ourselves.&rdquo;
-        <cite>&mdash; Aristotle, Rhetoric, Book II, Ch. 11 (on ζῆλος / zelos, &ldquo;emulation&rdquo;)</cite>
-      </blockquote>
-      <div class="why-body">
-        <p>Aristotle drew a sharp line between two feelings that look similar from the outside. <b>Envy</b> wants the other person to lose what they have. <b>Zelos</b> &mdash; emulation &mdash; wants what a capable peer has because you can see, clearly, that it's within reach for you too. He called it a feeling good people have.</p>
-        <p>That's the distinction this is named after. Not chasing a stock because someone else is up on it &mdash; that's the trade this strategy explicitly refuses to make. Going after the same kind of opportunity, on your own terms, when the setup is actually there for you. The pain isn't watching someone else win. It's sitting on the sidelines when the door was genuinely open.</p>
-      </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="eyebrow">What's next</div>
-    <h2 style="font-size:1.7rem; margin-top:8px;">Built for more than this, if the licensing lines up.</h2>
-    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">What you see today is deliberately narrow on purpose: one strategy, the same rules for every subscriber, and a specific Accept from you before anything trades. That's what lets Zelos run as a straightforward, rules-based signal service right now. It's the foundation, not the ceiling.</p>
-    <div class="roadmap-list">
-      <div class="roadmap-item">
-        <div class="lock">&#128274;</div>
-        <p><b>Fully automatic execution.</b> A qualifying setup gets placed the moment it clears, without needing your Accept on each one.</p>
-      </div>
-      <div class="roadmap-item">
-        <div class="lock">&#128274;</div>
-        <p><b>Sizing based on your full picture, not just a formula.</b> Position sizing that accounts for your broader goals and risk tolerance, not a flat share of your balance.</p>
-      </div>
-      <div class="roadmap-item">
-        <div class="lock">&#128274;</div>
-        <p><b>More than one strategy running for you.</b> Multiple approaches allocated across your account instead of a single scan.</p>
-      </div>
-      <div class="roadmap-item">
-        <div class="lock">&#128274;</div>
-        <p><b>An actual advisory relationship.</b> The accountability, disclosure, and fiduciary duty that come with being a licensed adviser &mdash; not just a signal in your pocket.</p>
-      </div>
-    </div>
-    <div class="roadmap-note">None of this is available today, and it won't be until it's actually done properly &mdash; not before. If Zelos becomes a registered investment adviser, this is the direction it's headed. Until then, every trade still needs your Accept.</div>
   </section>
 
   <section style="padding-block:32px 24px;">
@@ -1048,43 +976,6 @@
     var oy = Math.sin(angle) * dist;
     iris.setAttribute('transform', 'translate(' + ox.toFixed(2) + ',' + oy.toFixed(2) + ')');
   }, { passive: true });
-})();
-
-(function(){
-  // Track clicks on the Gumroad buy button so Analytics can show how many
-  // visitors click through to purchase — the sale itself happens off-site
-  // on Gumroad, so this click is the only signal we have on this end.
-  var buyBtn = document.querySelector('.btn-buy');
-  if(!buyBtn || typeof gtag !== 'function') return;
-  buyBtn.addEventListener('click', function(){
-    gtag('event', 'click_buy_gumroad', {
-      event_category: 'engagement',
-      event_label: 'Get Zelos — $50'
-    });
-  });
-})();
-</script>
-<script>
-(function(){
-  // Site-wide "Menu" dropdown — lets visitors jump between pages without
-  // going back to the home page first.
-  document.querySelectorAll('.nav-menu').forEach(function(menu){
-    var btn = menu.querySelector('.nav-menu-btn');
-    var list = menu.querySelector('.nav-menu-list');
-    if(!btn || !list) return;
-    function close(){ list.hidden = true; btn.setAttribute('aria-expanded','false'); }
-    function open(){ list.hidden = false; btn.setAttribute('aria-expanded','true'); }
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(list.hidden){ open(); } else { close(); }
-    });
-    document.addEventListener('click', function(e){
-      if(!menu.contains(e.target)) close();
-    });
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape') close();
-    });
-  });
 })();
 </script>
 </body>
