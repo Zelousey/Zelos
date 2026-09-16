@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zelos Arcade</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="favicon.svg">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#0f1310">
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]:not([hidden="until-found"]){ display:none !important; }
+</style>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper:#eef0ec; --card:#ffffff; --ink:#16201a; --muted:#5b6660; --line:#d5dbd2;
+    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
+      --line:#2a322b; --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
+    --line:#2a322b; --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70;
+  }
+
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.5; }
+  .wrap{ max-width:560px; margin:0 auto; padding:0 20px 60px; }
+  h1,h2{ text-wrap:balance; margin:0; }
+  p{ margin:0; }
+
+  nav{ display:flex; align-items:center; justify-content:space-between; padding-block:20px; }
+  .wordmark{ font-family:var(--mono); font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
+  .wordmark .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .wordmark .tag{ font-weight:500; color:var(--muted); }
+  nav a.back{ font-family:var(--mono); font-size:0.82rem; color:var(--muted); text-decoration:none; }
+  nav a.back:hover{ color:var(--accent); }
+
+  header{ padding-block:8px 30px; }
+  .eyebrow{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
+  h1{ font-size:clamp(1.9rem,7vw,2.4rem); font-weight:700; margin-top:8px; }
+  .lede{ margin-top:10px; color:var(--muted); font-size:0.96rem; max-width:48ch; }
+
+  .games{ display:flex; flex-direction:column; gap:14px; }
+  .game-row{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:18px 20px;
+  }
+  .game-head{ display:flex; align-items:center; gap:14px; }
+  .game-icon{
+    flex:none; width:48px; height:48px; border-radius:12px;
+    background:var(--accent-soft); display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem;
+  }
+  .game-tag{
+    font-family:var(--mono); font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--muted);
+  }
+  .game-head h3{ font-size:1.08rem; font-weight:700; margin-top:2px; }
+  .game-row p{ margin-top:12px; color:var(--muted); font-size:0.88rem; max-width:46ch; }
+  .game-play{
+    display:inline-block; margin-top:14px;
+    font-family:var(--sans); font-weight:700; font-size:0.88rem;
+    color:#08130d; background:var(--accent); text-decoration:none;
+    padding:10px 20px; border-radius:9px; white-space:nowrap;
+  }
+
+  .note{
+    margin-top:26px; padding:14px 16px; border:1px solid var(--line); border-radius:10px;
+    font-size:0.84rem; color:var(--muted);
+  }
+
+  footer{
+    margin-top:44px; padding-top:20px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:0.7rem; color:var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="wordmark" href="index.html"><span class="dot"></span>Zelos <span class="tag">/ arcade</span></a>
+    <a class="back" href="index.html">&larr; Site</a>
+  </nav>
+
+  <header>
+    <div class="eyebrow">Free to play</div>
+    <h1>Zelos Arcade</h1>
+    <p class="lede">Three quick games, no account and no cost. One sharpens your eye for real setups, two are just here to be fun.</p>
+  </header>
+
+  <div class="games">
+    <div class="game-row">
+      <div class="game-head">
+        <div class="game-icon">🐂</div>
+        <div>
+          <div class="game-tag">Practice</div>
+          <h3>Setup Spotter</h3>
+        </div>
+      </div>
+      <p>A chart flashes up &mdash; real setup or noise? Call it before the clock runs out.</p>
+      <a class="game-play" href="games/setup-spotter.html">Play &rarr;</a>
+    </div>
+
+    <div class="game-row">
+      <div class="game-head">
+        <div class="game-icon">🐃</div>
+        <div>
+          <div class="game-tag">Just for fun</div>
+          <h3>Bull Run</h3>
+        </div>
+      </div>
+      <p>Jump the red candles, grab the green ones. Gets faster the longer you survive.</p>
+      <a class="game-play" href="games/bull-run.html">Play &rarr;</a>
+    </div>
+
+    <div class="game-row">
+      <div class="game-head">
+        <div class="game-icon">💵</div>
+        <div>
+          <div class="game-tag">Just for fun</div>
+          <h3>Buy the Dip</h3>
+        </div>
+      </div>
+      <p>The tape's jumpy and you're all-in or all-out. Buy low, sell high, 45 seconds.</p>
+      <a class="game-play" href="games/buy-the-dip.html">Play &rarr;</a>
+    </div>
+  </div>
+
+  <div class="note">
+    These are games with simulated or illustrative data &mdash; none of it is real market data or a real account. Zelos itself is a rule-based scan, not personalized investment advice.
+  </div>
+
+  <footer>
+    Zelos Arcade &middot; part of <a href="index.html" style="color:inherit;">Zelos</a>
+  </footer>
+</div>
+</body>
+</html>

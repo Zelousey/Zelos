@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zelos Demo Alert</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="favicon.svg">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#0f1310">
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]:not([hidden="until-found"]){ display:none !important; }
+</style>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#eef0ec;
+    --card:#ffffff;
+    --ink:#1a2420;
+    --muted:#5b6660;
+    --line:#d5dbd2;
+    --accent:#1f7a4d;
+    --accent-soft:#dcefe2;
+    --risk:#a3352c;
+    --risk-soft:#f6e2df;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#111512;
+      --card:#181d19;
+      --ink:#e7ece7;
+      --muted:#8b968e;
+      --line:#2a322b;
+      --accent:#4fd897;
+      --accent-soft:#163625;
+      --risk:#ff7d70;
+      --risk-soft:#3a201d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#111512;
+    --card:#181d19;
+    --ink:#e7ece7;
+    --muted:#8b968e;
+    --line:#2a322b;
+    --accent:#4fd897;
+    --accent-soft:#163625;
+    --risk:#ff7d70;
+    --risk-soft:#3a201d;
+  }
+
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 16px;
+  }
+
+  .ticket{
+    width:100%;
+    max-width:420px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .head{
+    padding:22px 24px 18px;
+    border-bottom:1px dashed var(--line);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .head-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .ticker{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:2rem;
+    letter-spacing:0.01em;
+  }
+  .score{
+    font-family:var(--mono);
+    font-size:0.8rem;
+    font-weight:500;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .score b{ color:var(--ink); font-weight:600; }
+  .setup{
+    font-size:0.95rem;
+    color:var(--muted);
+  }
+  .status{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:var(--mono);
+    font-size:0.7rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--accent);
+    width:fit-content;
+  }
+  .status::before{
+    content:"";
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--accent);
+  }
+
+  .ledger{
+    padding:18px 24px;
+    display:flex;
+    flex-direction:column;
+  }
+  .row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+    gap:16px;
+  }
+  .row:last-child{ border-bottom:none; }
+  .label{
+    font-size:0.82rem;
+    color:var(--muted);
+  }
+  .value{
+    font-family:var(--mono);
+    font-variant-numeric:tabular-nums;
+    font-size:0.98rem;
+    font-weight:600;
+    text-align:right;
+  }
+  .value.risk{ color:var(--risk); }
+  .value.accent{ color:var(--accent); }
+
+  .rr{
+    margin:6px 24px 20px;
+    padding:14px 16px;
+    background:var(--accent-soft);
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .rr .label{
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  .rr .value{
+    font-size:1.3rem;
+    color:var(--accent);
+  }
+
+  .cap{
+    margin:0 24px 20px;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    font-size:0.82rem;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    font-family:var(--mono);
+    font-variant-numeric:tabular-nums;
+  }
+  .cap .value{ color:var(--ink); font-size:0.82rem; }
+
+  .foot{
+    padding:16px 24px 22px;
+    border-top:1px dashed var(--line);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .reply{
+    font-size:0.84rem;
+    line-height:1.5;
+  }
+  .reply code{
+    font-family:var(--mono);
+    background:var(--accent-soft);
+    color:var(--accent);
+    padding:1px 6px;
+    border-radius:4px;
+    font-size:0.82rem;
+  }
+  .fine{
+    font-size:0.72rem;
+    color:var(--muted);
+    line-height:1.5;
+  }
+  .stamp{
+    font-family:var(--mono);
+    font-size:0.68rem;
+    color:var(--muted);
+    letter-spacing:0.03em;
+  }
+
+  .actions{
+    display:flex;
+    gap:10px;
+    padding:0 24px 18px;
+  }
+  .actions button{
+    flex:1;
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:0.92rem;
+    padding:13px 16px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .actions button.place{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#08130d;
+  }
+  .actions button:disabled{ opacity:0.55; cursor:default; }
+  .action-status{
+    display:none;
+    margin:0 24px 18px;
+    padding:12px 14px;
+    border-radius:10px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-size:0.86rem;
+    font-family:var(--mono);
+  }
+  .action-status.is-visible{ display:block; }
+
+  @media (max-width:420px){
+    .ticker{ font-size:1.7rem; }
+  }
+
+  .page-wrap{ display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:420px; }
+  .back-link{
+    font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted);
+    text-decoration:none; display:flex; align-items:center; gap:7px;
+  }
+  .back-link .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
+  .back-link:hover{ color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+<a class="back-link" href="index.html"><span class="dot"></span>Zelos &middot; back to site</a>
+<div class="ticket" id="zelosTicket" data-actionable="true" data-ticker="TEST">
+  <div class="head">
+    <div class="head-row">
+      <span class="ticker">TEST</span>
+      <span class="score">score <b>66</b>/80</span>
+    </div>
+    <div class="setup">Demo card — not a real signal</div>
+    <span class="status">Tap to test · nothing real happens</span>
+  </div>
+
+  <div class="ledger">
+    <div class="row">
+      <span class="label">Entry</span>
+      <span class="value">$100.00</span>
+    </div>
+    <div class="row">
+      <span class="label">Stop</span>
+      <span class="value risk">$95.00</span>
+    </div>
+    <div class="row">
+      <span class="label">Target 1</span>
+      <span class="value accent">$121.50</span>
+    </div>
+    <div class="row">
+      <span class="label">Target 2</span>
+      <span class="value">$133.00</span>
+    </div>
+    <div class="row">
+      <span class="label">Risk / share</span>
+      <span class="value risk">&minus;$5.00</span>
+    </div>
+    <div class="row">
+      <span class="label">Reward / share (T1)</span>
+      <span class="value accent">+$21.50</span>
+    </div>
+  </div>
+
+  <div class="rr">
+    <span class="label">Reward : Risk</span>
+    <span class="value">4.3 : 1</span>
+  </div>
+
+  <div class="cap">
+    <span>Suggested size</span>
+    <span class="value">$4.98 <span style="color:var(--muted); font-weight:400;">of $10.55 avail.</span></span>
+  </div>
+
+  <div class="actions" id="zelosActions">
+    <button type="button" class="skip" id="zelosSkipBtn">Skip</button>
+    <button type="button" class="place" id="zelosPlaceBtn">Place it</button>
+  </div>
+  <div class="action-status" id="zelosActionStatus"></div>
+
+  <div class="foot">
+    <div class="reply">This is a demo card — tap either button to see how it works. It writes a test record, not a real order.</div>
+    <div class="fine">Market regime: TEST. Rule-based scan only, not personalized advice.</div>
+    <div class="fine">Zelos runs on your own account using your own credentials — we never access, view, or store your account information, positions, or trade history. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
+    <div class="stamp">Generated test card, not tied to a real run</div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+  var ticket = document.getElementById('zelosTicket');
+  var actions = document.getElementById('zelosActions');
+  var status = document.getElementById('zelosActionStatus');
+  var placeBtn = document.getElementById('zelosPlaceBtn');
+  var skipBtn = document.getElementById('zelosSkipBtn');
+  if (!ticket || ticket.dataset.actionable !== 'true') {
+    if (actions) actions.style.display = 'none';
+    return;
+  }
+
+  function showStatus(text){
+    status.textContent = text;
+    status.classList.add('is-visible');
+    actions.style.display = 'none';
+  }
+
+  async function sendCommand(action){
+    placeBtn.disabled = true;
+    skipBtn.disabled = true;
+    showStatus(
+      action === 'place'
+        ? 'Sent. (Demo only — this static copy has nowhere real to send it.)'
+        : 'Sent — this setup will be skipped. (Demo only.)'
+    );
+  }
+
+  placeBtn.addEventListener('click', function(){ sendCommand('place'); });
+  skipBtn.addEventListener('click', function(){ sendCommand('skip'); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zelos Terms</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="favicon.svg">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#0f1310">
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]:not([hidden="until-found"]){ display:none !important; }
+</style>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper:#eef0ec;
+    --card:#ffffff;
+    --ink:#16201a;
+    --muted:#5b6660;
+    --line:#d5dbd2;
+    --accent:#1f7a4d;
+    --accent-soft:#dcefe2;
+    --risk:#a3352c;
+    --risk-soft:#f6e2df;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
+      --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
+      --risk:#ff7d70; --risk-soft:#3a201d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
+    --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
+    --risk:#ff7d70; --risk-soft:#3a201d;
+  }
+
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.6; }
+  .wrap{ max-width:680px; margin:0 auto; padding:0 24px 80px; }
+  h1,h2{ text-wrap:balance; margin:0; }
+  p{ margin:0; }
+
+  nav{ display:flex; align-items:center; justify-content:space-between; padding-block:20px; }
+  .wordmark{ font-family:var(--mono); font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
+  .wordmark .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .wordmark .tag{ font-weight:500; color:var(--muted); }
+
+  header.hero{ padding-block:20px 36px; }
+  .eyebrow{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
+  h1{ font-size:clamp(1.9rem,4.5vw,2.3rem); font-weight:700; margin-top:8px; }
+  .lede{ margin-top:14px; color:var(--muted); font-size:0.95rem; max-width:58ch; }
+  .updated{ margin-top:10px; font-family:var(--mono); font-size:0.75rem; color:var(--muted); }
+
+  .callout{
+    margin-top:22px; padding:14px 16px; border-left:3px solid var(--risk);
+    background:var(--risk-soft); border-radius:4px 10px 10px 4px; font-size:0.86rem; color:var(--ink);
+  }
+
+  .tos-section{ padding-block:26px; border-top:1px solid var(--line); }
+  .tos-section:last-of-type{ border-bottom:1px solid var(--line); }
+  .tos-section h2{ font-size:1.1rem; font-weight:600; display:flex; gap:10px; align-items:baseline; }
+  .tos-section h2 .n{ font-family:var(--mono); color:var(--accent); font-size:0.9rem; }
+  .tos-section .body{ margin-top:10px; color:var(--ink); font-size:0.92rem; }
+  .tos-section .body p + p{ margin-top:10px; }
+  .tos-section .body ul{ margin:10px 0 0; padding-left:20px; }
+  .tos-section .body li{ margin-top:6px; }
+  .tos-section .body b{ color:var(--ink); }
+  code.inline{
+    font-family:var(--mono); background:var(--accent-soft); color:var(--accent);
+    padding:1px 6px; border-radius:4px; font-size:0.86rem;
+  }
+
+  .final{
+    margin-top:40px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px 24px;
+  }
+  .final h2{ font-size:1.1rem; }
+  .final p{ margin-top:8px; color:var(--muted); font-size:0.9rem; }
+  .btn{
+    display:inline-block; margin-top:14px; font-family:var(--sans); font-weight:600; font-size:0.9rem;
+    padding:11px 18px; border-radius:10px; text-decoration:none; background:var(--accent); color:#08130d;
+  }
+
+  footer{
+    margin-top:56px; padding-top:24px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:0.7rem; color:var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="wordmark" href="index.html"><span class="dot"></span>Zelos <span class="tag">/ terms</span></a>
+  </nav>
+
+  <header class="hero">
+    <div class="eyebrow">Legal</div>
+    <h1>Terms of Service</h1>
+    <p class="lede">These terms govern your use of Zelos &mdash; the software, the alert pages, and this site. By purchasing or using Zelos, you agree to them.</p>
+    <div class="updated">Last updated September 16, 2026</div>
+    <div class="callout"><b>Working draft.</b> This page is a starting template, not a substitute for review by a licensed attorney &mdash; especially before relying on it with paying customers whose money is actually at risk.</div>
+  </header>
+
+  <div class="tos-section">
+    <h2><span class="n">01</span> What Zelos is</h2>
+    <div class="body">
+      <p>Zelos is software you install and run yourself under your own Claude account. It scans the market using a fixed, rule-based strategy, scores candidate setups, and &mdash; when a setup qualifies &mdash; presents you with an entry, stop, target, and suggested position size as an alert with <b>Accept</b> and <b>Decline</b>. Zelos always waits for you to approve a specific trade before it is placed; nothing is bought unless you tap Accept on that specific setup, and tapping Decline (or not responding) simply skips it.</p>
+      <p>Zelos connects to your brokerage account through your own credentials via your own account connection. Nobody at Zelos places trades on your behalf using a separate account of theirs &mdash; every order is submitted from your account, under your authorization, using the mode you selected.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">02</span> License and ownership</h2>
+    <div class="body">
+      <p>Zelos &mdash; including the skill file you receive, its source, prompts, scoring logic, position-sizing formulas, alert-page templates, and all other underlying material &mdash; is owned by us and is <b>licensed to you, not sold</b>. Receiving a copy of the skill file does not transfer any ownership or intellectual property rights in it to you.</p>
+      <p>Subject to your compliance with these terms, we grant you a limited, non-exclusive, non-transferable, non-sublicensable license to install and run the Zelos skill on your own Claude account, for your own personal trading on your own brokerage account. If you purchased Zelos, this license runs for as long as you comply with these terms. If you received a complimentary access code instead, see Section 07 &mdash; that access is time-limited by design.</p>
+      <p>You may <b>not</b>, whether or not modified and whether or not for payment:</p>
+      <ul>
+        <li>copy, distribute, publish, share, rent, lease, sell, resell, or sublicense the skill file, its source, or any substantial part of it to any third party;</li>
+        <li>use it to provide a trading, alert, or advisory service to anyone else, including friends, family, or clients;</li>
+        <li>reverse engineer, decompile, or otherwise attempt to extract the underlying strategy logic in order to build or offer a competing product or service;</li>
+        <li>remove or obscure any notice of ownership included with the skill or its outputs.</li>
+      </ul>
+      <p>You may adapt your own local copy for your own personal use. Doing so does not change any of the restrictions above &mdash; a modified copy is still our material under this license, and you still may not distribute, publish, or resell it.</p>
+      <p>This license ends automatically if you violate these terms, or, for complimentary access granted under a code, at the end of that code's stated access period. Once it ends, you must stop using the skill and delete any copies of it in your possession.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">03</span> Eligibility</h2>
+    <div class="body">
+      <p>You must be at least 18 years old, able to form a binding contract, and hold a brokerage account eligible for the trading Zelos performs. Zelos is intended for personal use on your own account only; you may not use it to trade on behalf of others or resell access without our written permission.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">04</span> Not investment advice, not an adviser</h2>
+    <div class="body">
+      <p>Zelos runs the same rule-based strategy for every user. Nothing it produces is personalized investment advice, and Zelos is not a registered investment adviser or broker-dealer. No communication from Zelos &mdash; an alert, a placed trade, this site, or anything else &mdash; creates an advisory or fiduciary relationship between you and Zelos. You are solely responsible for every decision to enable a confirmation mode, approve a trade, or leave Zelos running, and for evaluating whether this strategy is appropriate for your own financial situation.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">05</span> Risk disclosure</h2>
+    <div class="body">
+      <p>Trading involves risk, including the risk of losing your entire investment. Past performance of this or any strategy does not guarantee future results, and most scan runs are expected to find no qualifying trade at all. Software, market data, and brokerage connections can fail, lag, or behave unexpectedly; a trade you accept can execute at a different price than shown, fail to execute, or otherwise not go the way you expected.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">06</span> Your brokerage account and data</h2>
+    <div class="body">
+      <p>Zelos connects to your brokerage account through a connection you authorize yourself. We do not store your brokerage login credentials, and we do not persist your account balance, positions, or trade history on our own servers. To calculate position sizing and place trades, the software reads current account data &mdash; such as your balance and positions &mdash; at the moment it runs, and uses it only for that purpose. That data passes through the infrastructure that powers Zelos (including Claude, the platform Zelos runs on) in order for the software to function; it is not stored by us beyond that use. Your brokerage's own privacy policy and Claude's own privacy policy separately govern how each of those platforms handles your data.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">07</span> Payment and access</h2>
+    <div class="body">
+      <p>Zelos is sold as a one-time payment of $50 through Gumroad. This is not a recurring subscription &mdash; there is nothing that renews and nothing to cancel. Your payment covers the current strategy and its future refinements for as long as you comply with these terms.</p>
+      <p>From time to time, we may issue complimentary access codes that unlock full functionality free of charge for a limited period, currently <b>3 weeks from the day you redeem the code</b>. Access granted this way is intentionally temporary: once that period ends, the skill stops updating and the alert page stops producing new setups until you complete a full $50 purchase. Complimentary codes are offered entirely at our discretion, are non-transferable, may not be combined with other offers, and may be limited, modified, or discontinued at any time without notice.</p>
+      <p>Except where required by law, payments already made are non-refundable.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">08</span> Your responsibilities</h2>
+    <div class="body">
+      <ul>
+        <li>Reviewing each alert and deciding whether to Accept or Decline it is entirely up to you.</li>
+        <li>You are responsible for monitoring your own account, positions, and any trade Zelos places or proposes, including after a trade you've accepted executes.</li>
+        <li>You are responsible for keeping your brokerage connection, account permissions, and any account-level settings (like which specific account is enabled for agentic trading) accurate and up to date.</li>
+        <li>You will not use Zelos in a way that violates your brokerage's terms, applicable law, or the rights of any third party.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">09</span> No warranty</h2>
+    <div class="body">
+      <p>Zelos is provided <b>"as is"</b> and <b>"as available,"</b> without warranties of any kind, express or implied, including any warranty of accuracy, merchantability, fitness for a particular purpose, or uninterrupted or error-free operation. We do not warrant that any scan will identify a profitable setup, that any trade will execute at the price shown, or that the service will be available at any particular time.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">10</span> Limitation of liability</h2>
+    <div class="body">
+      <p>To the fullest extent permitted by law, Zelos and its operator will not be liable for any indirect, incidental, special, consequential, or punitive damages, or for any trading losses, lost profits, or lost opportunity, arising from your use of Zelos, including trades you accept. To the fullest extent permitted by law, our total liability for any claim relating to Zelos will not exceed the amount you paid us to purchase Zelos.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">11</span> Changes to these terms</h2>
+    <div class="body">
+      <p>We may update these terms from time to time. If we make a material change, we'll update the date at the top of this page. Continuing to use Zelos after a change means you accept the updated terms.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">12</span> Termination</h2>
+    <div class="body">
+      <p>You may stop using Zelos at any time. We may suspend or terminate your access &mdash; including access granted through a complimentary code &mdash; if we believe you've violated these terms or used the service in a way that creates risk for us or other users, including violating the license and ownership terms above.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">13</span> Governing law</h2>
+    <div class="body">
+      <p>These terms are governed by the laws of the <b>Commonwealth of Massachusetts</b>, without regard to its conflict-of-laws rules, and any dispute will be resolved in the state or federal courts located in Massachusetts unless we agree otherwise in writing.</p>
+    </div>
+  </div>
+
+  <div class="tos-section">
+    <h2><span class="n">14</span> Contact</h2>
+    <div class="body">
+      <p>Questions about these terms can go to <a href="mailto:p8md8s7rj4@privaterelay.appleid.com?subject=Zelos%20terms%20question">Zelos Support</a>.</p>
+    </div>
+  </div>
+
+  <div class="final">
+    <h2>Related pages</h2>
+    <p>See also the <a href="index.html">Zelos site</a> for how the strategy works, and the <a href="setup.html">setup guide</a> to get started.</p>
+  </div>
+
+  <footer>
+    Zelos is a rule-based scan, not a licensed financial advisor. Nothing here is personalized investment advice, and no strategy is guaranteed to be profitable.
+  </footer>
+</div>
+</body>
+</html>
