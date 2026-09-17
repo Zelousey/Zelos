@@ -22,19 +22,19 @@
 <link rel="manifest" href="../manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0f1310">
-<meta name="description" content="Spot real trade setups vs. noise before the clock runs out.">
+<meta name="description" content="Spot real trade setups vs. noise, and name real candlestick patterns, before the clock runs out.">
 <link rel="canonical" href="https://agentictrading.info/games/setup-spotter.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
 <meta property="og:title" content="Setup Spotter — Zelos Arcade">
-<meta property="og:description" content="Spot real trade setups vs. noise before the clock runs out.">
+<meta property="og:description" content="Spot real trade setups vs. noise, and name real candlestick patterns, before the clock runs out.">
 <meta property="og:url" content="https://agentictrading.info/games/setup-spotter.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Setup Spotter — Zelos Arcade">
-<meta name="twitter:description" content="Spot real trade setups vs. noise before the clock runs out.">
+<meta name="twitter:description" content="Spot real trade setups vs. noise, and name real candlestick patterns, before the clock runs out.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <style>
   :root{ color-scheme: light dark; }
@@ -123,6 +123,20 @@
     color:var(--muted); letter-spacing:0.04em; text-transform:uppercase;
   }
 
+  .round-prompt{
+    margin-top:16px; text-align:center; font-family:var(--sans); font-weight:600;
+    font-size:1rem; color:var(--ink);
+  }
+  .round-prompt b{ color:var(--accent); }
+  .shape-row{ display:flex; gap:10px; margin-top:16px; }
+  .shape-option{
+    flex:1; background:var(--paper); border:1px solid var(--line); border-radius:12px;
+    padding:10px 6px 8px; cursor:pointer; transition:border-color 0.15s ease;
+  }
+  .shape-option:hover{ border-color:var(--accent); }
+  .shape-option:disabled{ cursor:default; opacity:0.6; }
+  .shape-option svg{ width:100%; height:auto; display:block; }
+
   .game-actions{ display:flex; gap:10px; margin-top:18px; }
   .game-actions button{
     flex:1; font-family:var(--sans); font-weight:700; font-size:0.95rem;
@@ -148,6 +162,11 @@
   .overlay h2{ font-size:1.3rem; font-weight:700; }
   .overlay p{ color:var(--muted); font-size:0.9rem; max-width:32ch; }
   .overlay .score-line{ font-family:var(--mono); font-size:0.85rem; color:var(--ink); margin-top:2px; }
+  .overlay .over-reason{
+    margin-top:10px; padding:10px 14px; border-radius:10px;
+    background:var(--risk-soft); color:var(--risk); font-size:0.85rem; max-width:34ch; display:none;
+  }
+  .overlay .over-reason.show{ display:block; }
   .overlay button.start{
     margin-top:6px; font-family:var(--sans); font-weight:700; font-size:0.95rem;
     padding:13px 26px; border-radius:10px; border:none;
@@ -189,7 +208,7 @@
   <header>
     <div class="eyebrow">Mini game</div>
     <h1>Setup Spotter</h1>
-    <p class="lede">A chart flashes up. Is it a real setup, or noise? Tap Accept or Decline before the clock runs out &mdash; it gets faster the better you do.</p>
+    <p class="lede">A chart flashes up &mdash; sometimes it's asking if it's a real setup, sometimes it's asking you to name the candle. Answer before the clock runs out &mdash; it gets faster the better you do.</p>
   </header>
 
   <div class="game-card" id="gameCard">
@@ -198,14 +217,16 @@
       <div class="stat" style="text-align:right;">Best<b id="bestVal">0</b></div>
     </div>
     <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
-    <div class="chart-box">
+    <div class="round-prompt" id="roundPrompt" hidden></div>
+    <div class="chart-box" id="chartBox">
       <svg viewBox="0 0 260 90" id="chartSvg">
         <line x1="0" y1="86" x2="260" y2="86" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 4"/>
         <g id="chartBars"></g>
       </svg>
     </div>
     <div class="chart-label" id="chartLabel">&nbsp;</div>
-    <div class="game-actions">
+    <div class="shape-row" id="shapeRow" hidden></div>
+    <div class="game-actions" id="gameActions">
       <button type="button" id="declineBtn">Decline</button>
       <button type="button" class="accept" id="acceptBtn">Accept</button>
     </div>
@@ -214,7 +235,8 @@
     <div class="overlay" id="startOverlay">
       <div class="eyebrow">Setup Spotter</div>
       <h2>Got an eye for it?</h2>
-      <p>Tap Accept if it's a real setup &mdash; a pullback, a bull flag, a breakout retest, a higher low. Tap Decline if it's just noise, a downtrend, or already too extended.</p>
+      <p>Some rounds show a chart &mdash; tap Accept for a real setup (a pullback, a bull flag, a breakout retest, a higher low), Decline for noise, a downtrend, or something already too extended.</p>
+      <p>Other rounds show three candles and ask you to tap a specific one &mdash; Doji, Hammer, Shooting Star, Marubozu, Spinning Top. Get it right and we'll tell you why it's shaped that way.</p>
       <button type="button" class="start" id="startBtn">Start</button>
     </div>
 
@@ -222,13 +244,14 @@
       <div class="eyebrow" id="overEyebrow">Game over</div>
       <h2 id="overTitle">Nice run</h2>
       <div class="score-line" id="overScore">Score: 0 &middot; Best: 0</div>
+      <div class="over-reason" id="overReason"></div>
       <button type="button" class="start" id="restartBtn">Play again</button>
       <a class="cta" href="../index.html#how">Zelos does this for real, every session &rarr;</a>
     </div>
   </div>
 
   <div class="rules">
-    <b>How scoring works:</b> each correct call speeds up the next round. One wrong call (or running out of time) ends the run. Your best score is remembered on this device.
+    <b>How scoring works:</b> rounds alternate between spotting a real setup and naming a candlestick shape (Doji, Hammer, Shooting Star, Marubozu, Spinning Top) &mdash; each correct call speeds up the next round. One wrong call (or running out of time) ends the run. Your best score is remembered on this device.
   </div>
 
   <footer>
@@ -250,12 +273,37 @@
   ];
   var BAR_XS = [10,30,50,70,90,110,130,150,170,190,210,230,250];
 
+  // Real candlestick shapes, drawn on the same Y-pixel scale as the trend charts above
+  // (smaller Y = higher price). Each is defined once, then jittered per round so it never
+  // looks pixel-identical twice while staying recognizable as that shape.
+  var CANDLE_PATTERNS = [
+    { key:'doji', name:'Doji',
+      blurb:"open and close land almost on top of each other, with wicks sticking out both ways &mdash; buyers and sellers fought to a draw.",
+      open:44, close:46, high:18, low:70 },
+    { key:'hammer', name:'Hammer',
+      blurb:"a small body sits up near the top of the range with a long lower wick and almost no upper wick &mdash; sellers pushed price down, buyers dragged it back up.",
+      open:24, close:30, high:18, low:74 },
+    { key:'shootingstar', name:'Shooting Star',
+      blurb:"a small body sits down near the bottom of the range with a long upper wick and almost no lower wick &mdash; buyers pushed price up, sellers slammed it back down.",
+      open:58, close:64, high:16, low:70 },
+    { key:'marubozu', name:'Marubozu',
+      blurb:"one long solid body with barely any wicks at all &mdash; whichever side was in control, buyers or sellers, had the entire period to themselves.",
+      open:76, close:16, high:14, low:78 },
+    { key:'spinningtop', name:'Spinning Top',
+      blurb:"a small-but-real body with wicks of roughly the same length on both sides &mdash; a tug-of-war that neither side clearly won.",
+      open:38, close:48, high:20, low:68 }
+  ];
+
   var STORAGE_KEY = "zelosSetupSpotterBest";
   var scoreVal = document.getElementById('scoreVal');
   var bestVal = document.getElementById('bestVal');
   var timerFill = document.getElementById('timerFill');
   var chartBars = document.getElementById('chartBars');
+  var chartBox = document.getElementById('chartBox');
   var chartLabel = document.getElementById('chartLabel');
+  var roundPrompt = document.getElementById('roundPrompt');
+  var shapeRow = document.getElementById('shapeRow');
+  var gameActions = document.getElementById('gameActions');
   var acceptBtn = document.getElementById('acceptBtn');
   var declineBtn = document.getElementById('declineBtn');
   var feedback = document.getElementById('feedback');
@@ -263,10 +311,12 @@
   var overOverlay = document.getElementById('overOverlay');
   var overTitle = document.getElementById('overTitle');
   var overScore = document.getElementById('overScore');
+  var overReason = document.getElementById('overReason');
   var startBtn = document.getElementById('startBtn');
   var restartBtn = document.getElementById('restartBtn');
 
   var score = 0, best = 0, roundTime = 3200, minTime = 1100, timerRAF = null, roundStart = 0, current = null, playing = false, answered = false;
+  var roundKind = 'trend', currentShape = null, lastMissReason = '';
 
   function getBest(){
     try { return parseInt(localStorage.getItem(STORAGE_KEY), 10) || 0; } catch(e){ return 0; }
@@ -323,13 +373,86 @@
     }
   }
 
+  function jitterCandle(p){
+    function j(v){ return v + (Math.random() * 4 - 2); }
+    var open = j(p.open), close = j(p.close), high = j(p.high), low = j(p.low);
+    var top = Math.min(open, close), bottom = Math.max(open, close);
+    high = Math.max(3, Math.min(high, top - 1.5));
+    low = Math.min(87, Math.max(low, bottom + 1.5));
+    return { open: open, close: close, high: high, low: low };
+  }
+
+  function renderCandleInto(svgEl, pattern){
+    var p = jitterCandle(pattern);
+    var top = Math.min(p.open, p.close);
+    var bottom = Math.max(p.open, p.close);
+    var bodyH = Math.max(2, bottom - top);
+    var bullish = p.close <= p.open;
+    var color = bullish ? 'var(--accent)' : 'var(--risk)';
+    var x = 40, bodyW = 18;
+    svgEl.innerHTML =
+      '<line x1="' + x + '" y1="' + p.high + '" x2="' + x + '" y2="' + p.low + '" stroke="' + color + '" stroke-width="2"/>' +
+      '<rect x="' + (x - bodyW / 2) + '" y="' + top + '" width="' + bodyW + '" height="' + bodyH + '" rx="2" fill="' + color + '"/>';
+  }
+
+  function buildShapeOptions(targetPattern){
+    var others = CANDLE_PATTERNS.filter(function(p){ return p.key !== targetPattern.key; });
+    for (var i = others.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = others[i]; others[i] = others[j]; others[j] = tmp;
+    }
+    var options = [targetPattern, others[0], others[1]];
+    for (var i2 = options.length - 1; i2 > 0; i2--){
+      var j2 = Math.floor(Math.random() * (i2 + 1));
+      var tmp2 = options[i2]; options[i2] = options[j2]; options[j2] = tmp2;
+    }
+    return options;
+  }
+
+  function renderShapeRound(targetPattern){
+    while (shapeRow.firstChild) shapeRow.removeChild(shapeRow.firstChild);
+    var options = buildShapeOptions(targetPattern);
+    options.forEach(function(p){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'shape-option';
+      btn.setAttribute('data-key', p.key);
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 80 90');
+      renderCandleInto(svg, p);
+      btn.appendChild(svg);
+      btn.addEventListener('click', function(){
+        if (playing && !answered) resolveShapeChoice(this.getAttribute('data-key'), targetPattern);
+      });
+      shapeRow.appendChild(btn);
+    });
+  }
+
   function newRound(){
     answered = false;
-    current = pickPattern();
-    renderCandles(jitterValues(current.values));
-    chartLabel.innerHTML = '&nbsp;';
     feedback.className = 'feedback';
     feedback.textContent = '';
+    roundKind = (Math.random() < 0.5) ? 'trend' : 'shape';
+
+    if (roundKind === 'trend'){
+      current = pickPattern();
+      renderCandles(jitterValues(current.values));
+      chartLabel.innerHTML = '&nbsp;';
+      roundPrompt.hidden = true;
+      shapeRow.hidden = true;
+      chartBox.hidden = false;
+      chartLabel.hidden = false;
+      gameActions.hidden = false;
+    } else {
+      currentShape = CANDLE_PATTERNS[Math.floor(Math.random() * CANDLE_PATTERNS.length)];
+      renderShapeRound(currentShape);
+      roundPrompt.innerHTML = 'Tap the <b>' + currentShape.name + '</b>';
+      roundPrompt.hidden = false;
+      shapeRow.hidden = false;
+      chartBox.hidden = true;
+      chartLabel.hidden = true;
+      gameActions.hidden = true;
+    }
     startTimer();
   }
 
@@ -342,7 +465,10 @@
       var pct = Math.max(0, 1 - elapsed / duration);
       timerFill.style.width = (pct * 100) + '%';
       if (pct <= 0){
-        if (!answered) resolveRound(null);
+        if (!answered){
+          if (roundKind === 'trend') resolveRound(null);
+          else resolveShapeChoice(null, currentShape);
+        }
         return;
       }
       timerRAF = requestAnimationFrame(tick);
@@ -368,6 +494,30 @@
       feedback.className = 'feedback show wrong';
       var missed = (choice === null);
       feedback.innerHTML = (missed ? "Too slow &mdash; " : "Not quite &mdash; ") + current.name;
+      lastMissReason = feedback.innerHTML;
+      endGame();
+    }
+  }
+
+  function resolveShapeChoice(key, targetPattern){
+    if (answered || !playing) return;
+    answered = true;
+    if (timerRAF) cancelAnimationFrame(timerRAF);
+    Array.prototype.forEach.call(shapeRow.querySelectorAll('.shape-option'), function(btn){ btn.disabled = true; });
+    var isCorrect = (key === targetPattern.key);
+
+    if (isCorrect){
+      score += 1;
+      scoreVal.textContent = score;
+      feedback.className = 'feedback show correct';
+      feedback.innerHTML = 'Right &mdash; that\'s a <b>' + targetPattern.name + '</b>: ' + targetPattern.blurb;
+      roundTime = Math.max(minTime, roundTime - 120);
+      setTimeout(function(){ if (playing) newRound(); }, 900);
+    } else {
+      feedback.className = 'feedback show wrong';
+      var missed = (key === null);
+      feedback.innerHTML = (missed ? "Too slow &mdash; that was a " : "Not quite &mdash; that was a ") + '<b>' + targetPattern.name + '</b>: ' + targetPattern.blurb;
+      lastMissReason = feedback.innerHTML;
       endGame();
     }
   }
@@ -382,8 +532,15 @@
     setTimeout(function(){
       overTitle.textContent = (score >= 8) ? "Sharp eye" : (score >= 3 ? "Nice run" : "Game over");
       overScore.textContent = "Score: " + score + " · Best: " + best;
+      if (lastMissReason){
+        overReason.innerHTML = lastMissReason;
+        overReason.className = 'over-reason show';
+      } else {
+        overReason.className = 'over-reason';
+        overReason.innerHTML = '';
+      }
       overOverlay.hidden = false;
-    }, 700);
+    }, 1300);
   }
 
   function startGame(){
@@ -391,6 +548,9 @@
     roundTime = 3200;
     scoreVal.textContent = 0;
     playing = true;
+    lastMissReason = '';
+    overReason.className = 'over-reason';
+    overReason.innerHTML = '';
     startOverlay.hidden = true;
     overOverlay.hidden = true;
     newRound();
@@ -402,7 +562,7 @@
   restartBtn.addEventListener('click', startGame);
 
   document.addEventListener('keydown', function(e){
-    if (!playing) return;
+    if (!playing || roundKind !== 'trend') return;
     if (e.key === 'ArrowRight' || e.key === 'a' || e.key === 'A') resolveRound('accept');
     if (e.key === 'ArrowLeft'  || e.key === 'd' || e.key === 'D') resolveRound('decline');
   });
