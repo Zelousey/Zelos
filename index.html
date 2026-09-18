@@ -256,8 +256,48 @@
     color:#08130d; background:var(--accent); padding:9px 16px; border-radius:9px;
     text-decoration:none;
   }
+  .bot-addon{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:var(--mono);
+    font-size:0.68rem;
+    letter-spacing:0.03em;
+    color:var(--muted);
+    border:1px dashed var(--line);
+    border-radius:999px;
+    padding:4px 10px;
+    width:fit-content;
+    margin-top:8px;
+  }
+  .bot-addon .dot{ width:5px; height:5px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+  .options-banner{
+    grid-column:1 / -1;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--accent-soft);
+    border:1px dashed var(--accent);
+    border-radius:12px;
+    padding:14px 18px;
+    font-size:0.85rem;
+    line-height:1.5;
+  }
+  .options-banner strong{ color:var(--ink); }
+  .options-banner-tag{
+    font-family:var(--mono);
+    font-size:0.66rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--accent);
+    background:var(--card);
+    border-radius:999px;
+    padding:4px 10px;
+    flex-shrink:0;
+  }
   @media (max-width:640px){
     .bot-grid{ grid-template-columns:1fr; }
+    .options-banner{ flex-direction:column; align-items:flex-start; gap:8px; }
   }
 
   footer{
@@ -443,6 +483,7 @@
         <div>
           <h2>Swing Trader</h2>
           <p class="bot-desc">Pullbacks in a healthy uptrend &mdash; enters only when selling pressure looks like it's fading and risk/reward earns it.</p>
+          <div class="bot-addon"><span class="dot"></span>+ Options mode &middot; coming soon</div>
         </div>
         <svg viewBox="0 0 260 64" role="img" aria-label="Candlestick chart rallying, pulling back into support, then breaking out to a new high">
           <line x1="17.3" y1="43" x2="17.3" y2="55" stroke="var(--accent)" stroke-width="1.4"/>
@@ -484,6 +525,7 @@
         <div>
           <h2>Breakout Rider</h2>
           <p class="bot-desc">Waits for a stock to clear resistance and hold above it &mdash; not just spike &mdash; before it ever gets interested.</p>
+          <div class="bot-addon"><span class="dot"></span>+ Options mode &middot; coming soon</div>
         </div>
         <svg viewBox="0 0 260 64" role="img" aria-label="Candlestick chart coiling in a tight base, then an explosive breakout that holds and keeps climbing">
           <line x1="4" y1="45" x2="256" y2="45" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
@@ -515,6 +557,12 @@
         <div class="bot-card-bottom">
           <a href="breakout-rider.html" class="bot-cta" id="viewBreakoutRider">View strategy &rarr;</a>
         </div>
+      </div>
+
+      <!-- Options mode — cross-strategy alert, not a full card -->
+      <div class="options-banner">
+        <span class="options-banner-tag">Coming soon</span>
+        <span><strong>Options mode</strong> for Swing Trader and Breakout Rider &mdash; the same signals you already trust, traded as calls &amp; puts instead of shares.</span>
       </div>
 
       <!-- Earnings Drift — coming soon -->
