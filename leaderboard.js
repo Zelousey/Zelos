@@ -74,6 +74,10 @@
     database.ref('scores/' + gameId).push({ name: name, score: n, ts: Date.now() })
       .then(function () { if (cb) cb(true); })
       .catch(function () { if (cb) cb(false); });
+    // Small, once-per-day XP for playing — separate system (zelos-xp.js, Firestore),
+    // entirely optional, and never blocks the leaderboard score submit above even
+    // if it's not loaded on a given page or the visitor isn't signed in.
+    if (window.ZelosXP) ZelosXP.award('arcade-play');
   }
 
   function topScores(gameId, limit, cb) {

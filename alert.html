@@ -15,26 +15,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Alert (sample)</title>
+<title>Zelos Alert</title>
 <link rel="icon" href="favicon-demo.ico" sizes="any">
 <link rel="icon" href="favicon-demo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#12161a">
-<meta name="description" content="An example Zelos trade alert ticket — entry, stop, target, and reward:risk at a glance.">
+<meta name="description" content="A Zelos trade alert — full analysis: setup, entry, stop, target, technicals, and risk.">
 <link rel="canonical" href="https://agentictrading.info/alert.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
 <meta property="og:title" content="Zelos Alert">
-<meta property="og:description" content="An example Zelos trade alert ticket — entry, stop, target, and reward:risk at a glance.">
+<meta property="og:description" content="A Zelos trade alert — full analysis: setup, entry, stop, target, technicals, and risk.">
 <meta property="og:url" content="https://agentictrading.info/alert.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Zelos Alert">
-<meta name="twitter:description" content="An example Zelos trade alert ticket — entry, stop, target, and reward:risk at a glance.">
+<meta name="twitter:description" content="A Zelos trade alert — full analysis: setup, entry, stop, target, technicals, and risk.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -57,6 +57,8 @@
     --accent-soft:#dcefe2;
     --risk:#a3352c;
     --risk-soft:#f6e2df;
+    --amber:#9a6a10;
+    --amber-soft:#f5ead2;
     --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
     --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
@@ -71,6 +73,8 @@
       --accent-soft:#163625;
       --risk:#ff7d70;
       --risk-soft:#3a201d;
+      --amber:#f2a93b;
+      --amber-soft:#3a2c12;
     }
   }
   :root[data-theme="dark"]{
@@ -83,6 +87,8 @@
     --accent-soft:#163625;
     --risk:#ff7d70;
     --risk-soft:#3a201d;
+    --amber:#f2a93b;
+    --amber-soft:#3a2c12;
   }
 
   body{
@@ -91,14 +97,20 @@
     font-family:var(--sans);
     min-height:100vh;
     display:flex;
-    align-items:center;
     justify-content:center;
-    padding:32px 16px;
+    padding:32px 16px 64px;
   }
+
+  .page-wrap{ display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:460px; }
+  .back-link{
+    font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted);
+    text-decoration:none; display:flex; align-items:center; gap:7px; align-self:flex-start;
+  }
+  .back-link .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
+  .back-link:hover{ color:var(--accent); }
 
   .ticket{
     width:100%;
-    max-width:420px;
     background:var(--card);
     border:1px solid var(--line);
     border-radius:14px;
@@ -155,6 +167,8 @@
     border-radius:50%;
     background:var(--accent);
   }
+  .status.is-watching{ color:var(--amber); }
+  .status.is-watching::before{ background:var(--amber); }
 
   .ledger{
     padding:18px 24px;
@@ -220,6 +234,58 @@
   }
   .cap .value{ color:var(--ink); font-size:0.82rem; }
 
+  /* ---- full analysis ---- */
+  .analysis{
+    margin:0 24px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .analysis-block{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+  }
+  .analysis-block h3{
+    margin:0 0 8px;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    font-weight:600;
+  }
+  .analysis-block p{
+    margin:0;
+    font-size:0.9rem;
+    line-height:1.55;
+    color:var(--ink);
+  }
+  .tech-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
+    gap:10px;
+  }
+  .tech-item{ display:flex; flex-direction:column; gap:2px; }
+  .tech-item .k{ font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .tech-item .v{ font-family:var(--mono); font-weight:600; font-size:0.92rem; }
+
+  .outcome{
+    margin:0 24px 20px;
+    padding:12px 16px;
+    border-radius:10px;
+    font-size:0.85rem;
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+  }
+  .outcome.result-open{ background:var(--amber-soft); color:var(--amber); }
+  .outcome.result-hit-target{ background:var(--accent-soft); color:var(--accent); }
+  .outcome.result-stopped-out{ background:var(--risk-soft); color:var(--risk); }
+  .outcome.result-expired, .outcome.result-no-trade{ background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .outcome .tag{ font-family:var(--mono); font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; }
+
   .foot{
     padding:16px 24px 22px;
     border-top:1px dashed var(--line);
@@ -230,14 +296,6 @@
   .reply{
     font-size:0.84rem;
     line-height:1.5;
-  }
-  .reply code{
-    font-family:var(--mono);
-    background:var(--accent-soft);
-    color:var(--accent);
-    padding:1px 6px;
-    border-radius:4px;
-    font-size:0.82rem;
   }
   .fine{
     font-size:0.72rem;
@@ -251,163 +309,224 @@
     letter-spacing:0.03em;
   }
 
-  .actions{
-    display:flex;
-    gap:10px;
-    padding:0 24px 18px;
-  }
-  .actions button{
-    flex:1;
-    font-family:var(--sans);
-    font-weight:600;
-    font-size:0.92rem;
-    padding:13px 16px;
-    border-radius:10px;
-    border:1px solid var(--line);
-    background:var(--card);
-    color:var(--ink);
-    cursor:pointer;
-  }
-  .actions button.place{
-    background:var(--accent);
-    border-color:var(--accent);
-    color:#08130d;
-  }
-  .actions button:disabled{ opacity:0.55; cursor:default; }
-  .action-status{
-    display:none;
-    margin:0 24px 18px;
-    padding:12px 14px;
-    border-radius:10px;
-    background:var(--accent-soft);
-    color:var(--accent);
-    font-size:0.86rem;
-    font-family:var(--mono);
-  }
-  .action-status.is-visible{ display:block; }
-
   @media (max-width:420px){
     .ticker{ font-size:1.7rem; }
   }
 
-  .page-wrap{ display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:420px; }
-  .back-link{
-    font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted);
-    text-decoration:none; display:flex; align-items:center; gap:7px;
+  .load-state{
+    padding:60px 24px;
+    text-align:center;
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:0.85rem;
   }
-  .back-link .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
-  .back-link:hover{ color:var(--accent); }
 </style>
 </head>
 <body>
 <div class="page-wrap">
-<a class="back-link" href="swing-trader.html"><span class="dot"></span>Zelos &middot; back to Swing Trader</a>
-<div class="ticket" id="zelosTicket" data-actionable="false" data-ticker="PFE">
+<a class="back-link" href="index.html"><span class="dot"></span>Zelos &middot; home</a>
+
+<div class="ticket" id="zelosLoading">
+  <div class="load-state">Loading alert…</div>
+</div>
+
+<div class="ticket" id="zelosTicket" hidden>
   <div class="head">
     <div class="head-row">
-      <span class="ticker">PFE</span>
-      <span class="score">score <b>59</b>/80</span>
+      <span class="ticker" id="fTicker">&mdash;</span>
+      <span class="score" id="fScoreWrap" hidden>score <b id="fScore">&mdash;</b>/<span id="fScoreMax">80</span></span>
     </div>
-    <div class="setup">Best candidate &mdash; Pullback in an uptrend (did not qualify, need 60+)</div>
-    <span class="status">No qualifying setup today</span>
+    <div class="setup" id="fSetup"></div>
+    <span class="status" id="fStatus"></span>
   </div>
 
-  <div class="ledger">
-    <div class="row">
-      <span class="label">Entry (reference)</span>
-      <span class="value">$27.72</span>
-    </div>
-    <div class="row">
-      <span class="label">Stop</span>
-      <span class="value risk">$27.35</span>
-    </div>
-    <div class="row">
-      <span class="label">Target 1</span>
-      <span class="value accent">$29.21</span>
-    </div>
-    <div class="row">
-      <span class="label">Target 2</span>
-      <span class="value">$30.00</span>
-    </div>
-    <div class="row">
-      <span class="label">Risk / share</span>
-      <span class="value risk">&minus;$0.37</span>
-    </div>
-    <div class="row">
-      <span class="label">Reward / share (T1)</span>
-      <span class="value accent">+$1.49</span>
-    </div>
-  </div>
+  <div class="ledger" id="fLedger"></div>
 
-  <div class="rr">
+  <div class="rr" id="fRR" hidden>
     <span class="label">Reward : Risk</span>
-    <span class="value">4.0 : 1</span>
+    <span class="value" id="fRRValue">&mdash;</span>
   </div>
 
-  <div class="cap">
+  <div class="cap" id="fCap" hidden>
     <span>Suggested size</span>
-    <span class="value">&mdash; <span style="color:var(--muted); font-weight:400;">no trade proposed, cap n/a</span></span>
+    <span class="value" id="fCapValue">&mdash;</span>
   </div>
 
-  <div class="actions" id="zelosActions">
-    <button type="button" class="skip" id="zelosSkipBtn">Skip</button>
-    <button type="button" class="place" id="zelosPlaceBtn">Place it</button>
+  <div class="outcome" id="fOutcome" hidden>
+    <span class="tag" id="fOutcomeTag"></span>
+    <span id="fOutcomeNote"></span>
   </div>
-  <div class="action-status" id="zelosActionStatus"></div>
+
+  <div class="analysis">
+    <div class="analysis-block" id="fReasoningBlock" hidden>
+      <h3>Reasoning</h3>
+      <p id="fReasoning"></p>
+    </div>
+    <div class="analysis-block" id="fTechBlock" hidden>
+      <h3>Technicals</h3>
+      <div class="tech-grid" id="fTechGrid"></div>
+    </div>
+    <div class="analysis-block" id="fRiskBlock" hidden>
+      <h3>Risk notes</h3>
+      <p id="fRiskNotes"></p>
+    </div>
+  </div>
 
   <div class="foot">
-    <div class="reply">No trade proposed today. Check back next session.</div>
-    <div class="fine">Market regime: Neutral (SPY mixed &mdash; above 50sma, below 20sma; QQQ below both). Rule-based scan only, not personalized advice.</div>
-    <div class="fine">Zelos runs on your own account using your own credentials — we never access, view, or store your account information, positions, or trade history. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
-    <div class="stamp">Generated 2026-09-15 09:08 ET</div>
+    <div class="reply" id="fMarketRegime"></div>
+    <div class="fine">Rule-based scan only — general information, the same for every subscriber, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
+    <div class="fine">Zelos runs on your own account using your own credentials — this page never places, cancels, or modifies any order. Any go-ahead on a trade happens only in your own conversation with Zelos, never here.</div>
+    <div class="stamp" id="fStamp"></div>
   </div>
 </div>
+
+<div class="ticket" id="zelosNotFound" hidden>
+  <div class="load-state">Couldn't find that alert. It may have expired, or the link is off — <a href="index.html" style="color:var(--accent);">head back to Zelos</a>.</div>
 </div>
 
+</div>
+
+<!-- Firebase (compat build, matches leaderboard.js's pattern) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="zelos-xp.js"></script>
 <script>
 (function(){
-  var ticket = document.getElementById('zelosTicket');
-  var actions = document.getElementById('zelosActions');
-  var status = document.getElementById('zelosActionStatus');
-  var placeBtn = document.getElementById('zelosPlaceBtn');
-  var skipBtn = document.getElementById('zelosSkipBtn');
-  if (!ticket || ticket.dataset.actionable !== 'true') {
-    if (actions) actions.style.display = 'none';
+  var SAMPLE = {
+    strategy: "swing-trader",
+    ticker: "PFE",
+    status: "no-qualifying-setup",
+    direction: "long",
+    score: 59, scoreMax: 80,
+    setupLabel: "Best candidate — Pullback in an uptrend (did not qualify, need 60+)",
+    marketRegime: "Market regime: Neutral (SPY mixed — above 50sma, below 20sma; QQQ below both). Rule-based scan only, not personalized advice.",
+    entry: 27.72, stop: 27.35, target1: 29.21, target2: 30.00,
+    riskPerShare: -0.37, rewardPerShare: 1.49, rewardRiskRatio: "4.0 : 1",
+    suggestedSizeNote: "no trade proposed, cap n/a",
+    reasoning: "No trade proposed today. Check back next session. PFE was the closest candidate but didn't clear the 60-point qualification bar.",
+    createdAt: new Date("2026-09-15T13:08:00Z")
+  };
+
+  function fmtMoney(n){
+    if (n === undefined || n === null) return '—';
+    var sign = n < 0 ? '−' : (arguments[1] ? '+' : '');
+    return sign + '$' + Math.abs(n).toFixed(2);
+  }
+  function fmtStamp(ts){
+    try {
+      var d = ts && ts.toDate ? ts.toDate() : new Date(ts);
+      return 'Generated ' + d.toLocaleString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) + ' ET';
+    } catch(e){ return ''; }
+  }
+
+  function render(a){
+    document.getElementById('zelosLoading').hidden = true;
+    var t = document.getElementById('zelosTicket');
+    t.hidden = false;
+
+    document.getElementById('fTicker').textContent = a.ticker || '—';
+    document.title = 'Zelos Alert — ' + (a.ticker || '');
+
+    if (a.score !== undefined && a.score !== null) {
+      document.getElementById('fScoreWrap').hidden = false;
+      document.getElementById('fScore').textContent = a.score;
+      document.getElementById('fScoreMax').textContent = a.scoreMax || 80;
+    }
+    document.getElementById('fSetup').textContent = a.setupLabel || '';
+
+    var statusEl = document.getElementById('fStatus');
+    if (a.status === 'qualified') { statusEl.textContent = 'Qualifying setup'; statusEl.className = 'status'; }
+    else if (a.status === 'watching') { statusEl.textContent = 'Watching — not yet qualified'; statusEl.className = 'status is-watching'; }
+    else { statusEl.textContent = 'No qualifying setup today'; statusEl.className = 'status is-watching'; }
+
+    var ledger = document.getElementById('fLedger');
+    var rows = [];
+    if (a.entry !== undefined) rows.push(['Entry (reference)', fmtMoney(a.entry), '']);
+    if (a.stop !== undefined) rows.push(['Stop', fmtMoney(a.stop), 'risk']);
+    if (a.target1 !== undefined) rows.push(['Target 1', fmtMoney(a.target1), 'accent']);
+    if (a.target2 !== undefined) rows.push(['Target 2', fmtMoney(a.target2), '']);
+    if (a.riskPerShare !== undefined) rows.push(['Risk / share', fmtMoney(a.riskPerShare), 'risk']);
+    if (a.rewardPerShare !== undefined) rows.push(['Reward / share (T1)', fmtMoney(a.rewardPerShare, true), 'accent']);
+    if (a.optionsRule) rows.push(['Strike / expiration rule', a.optionsRule, '']);
+    ledger.innerHTML = rows.map(function(r){
+      return '<div class="row"><span class="label">'+r[0]+'</span><span class="value '+r[2]+'">'+r[1]+'</span></div>';
+    }).join('');
+
+    if (a.rewardRiskRatio) {
+      document.getElementById('fRR').hidden = false;
+      document.getElementById('fRRValue').textContent = a.rewardRiskRatio;
+    }
+    if (a.suggestedSizeNote) {
+      document.getElementById('fCap').hidden = false;
+      document.getElementById('fCapValue').innerHTML = '&mdash; <span style="color:var(--muted); font-weight:400;">' + a.suggestedSizeNote + '</span>';
+    }
+
+    if (a.outcome && a.outcome.result) {
+      var o = document.getElementById('fOutcome');
+      o.hidden = false;
+      o.className = 'outcome result-' + a.outcome.result;
+      var labels = { 'hit-target':'Hit target', 'stopped-out':'Stopped out', 'open':'Still open', 'expired':'Expired', 'no-trade':'No trade taken' };
+      document.getElementById('fOutcomeTag').textContent = labels[a.outcome.result] || a.outcome.result;
+      document.getElementById('fOutcomeNote').textContent = a.outcome.notes || '';
+    }
+
+    if (a.reasoning) {
+      document.getElementById('fReasoningBlock').hidden = false;
+      document.getElementById('fReasoning').textContent = a.reasoning;
+    }
+    if (a.technicals && Object.keys(a.technicals).length) {
+      document.getElementById('fTechBlock').hidden = false;
+      document.getElementById('fTechGrid').innerHTML = Object.keys(a.technicals).map(function(k){
+        return '<div class="tech-item"><span class="k">'+k+'</span><span class="v">'+a.technicals[k]+'</span></div>';
+      }).join('');
+    }
+    if (a.riskNotes) {
+      document.getElementById('fRiskBlock').hidden = false;
+      document.getElementById('fRiskNotes').textContent = a.riskNotes;
+    }
+
+    document.getElementById('fMarketRegime').textContent = a.marketRegime || '';
+    document.getElementById('fStamp').textContent = fmtStamp(a.createdAt);
+  }
+
+  function showNotFound(){
+    document.getElementById('zelosLoading').hidden = true;
+    document.getElementById('zelosNotFound').hidden = false;
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id');
+
+  if (!id) {
+    // No id in the link — show the labeled sample so existing marketing links still work.
+    render(SAMPLE);
     return;
   }
 
-  function showStatus(text){
-    status.textContent = text;
-    status.classList.add('is-visible');
-    actions.style.display = 'none';
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  if (!cfg || !cfg.projectId || !window.firebase) {
+    showNotFound();
+    return;
   }
-
-  async function sendCommand(action){
-    placeBtn.disabled = true;
-    skipBtn.disabled = true;
-    var db = window.claude ? await window.claude.use('db') : null;
-    if (!db) {
-      showStatus('Can’t reach the account from here — reply in the conversation instead.');
-      return;
-    }
-    try {
-      await db.doc('commands/latest').set({
-        action: action,
-        ticker: ticket.dataset.ticker,
-        requestedAt: Date.now()
-      });
-      showStatus(
-        action === 'place'
-          ? 'Sent. Zelos will re-check the price and place it on the next check-in.'
-          : 'Sent — this setup will be skipped.'
-      );
-    } catch (e) {
-      showStatus('Couldn’t send that — reply in the conversation instead.');
-    }
+  try {
+    if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+    var db = firebase.firestore();
+    db.collection('alerts').doc(id).get().then(function(doc){
+      if (!doc.exists) { showNotFound(); return; }
+      render(doc.data());
+      // XP is a silent side effect of opening a real alert — never blocks or
+      // delays anything above, and a signed-out visitor just earns nothing.
+      if (window.ZelosXP) {
+        ZelosXP.onChange(function(user){
+          if (user) ZelosXP.award('alert-open', id);
+        });
+      }
+    }).catch(function(){ showNotFound(); });
+  } catch (e) {
+    showNotFound();
   }
-
-  placeBtn.addEventListener('click', function(){ sendCommand('place'); });
-  skipBtn.addEventListener('click', function(){ sendCommand('skip'); });
 })();
 </script>
 </body>

@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// Zelos — Firestore security rules.
+//
+// How to install these: Firebase console → your project (leaderboard-agentictrading)
+// → Build → Firestore Database → Rules tab → paste this whole file in → Publish.
+//
+// Design intent (matches the "never gate an alert" product rule):
+//   - alerts are readable by ANYONE, no login required — a shared alert link must
+//     always open straight to the full analysis.
+//   - alerts are never writable from the browser. The scan pipeline writes them
+//     server-side with a service-account key, which authenticates via Google's
+//     Admin SDK / OAuth2 and bypasses these rules entirely — so "allow write: if false"
+//     here is really "no client can write this," not "nothing can."
+//   - everything about a specific person (profile, watchlist, xp, owned skills) is
+//     readable and writable only by that signed-in person.
+//   - the skills catalog (what's for sale) is public read, admin-only write.
+//
+// Known trade-off: XP/streaks are awarded client-side (zelos-xp.js), not by a
+// server function, so a signed-in person could technically edit their own xp
+// field via devtools if they really wanted to. There's no money or real
+// account access riding on it, so this is an accepted limitation, not an
+// oversight — revisit only if XP ever gates something that matters.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Alerts: the core "ALERT -> OPEN ZELOS -> SEE FULL ANALYSIS" record.
+    // Public, read-only, no gating of any kind.
+    match /alerts/{alertId} {
+      allow read: if true;
+      allow write: if false; // written only by the scan pipeline via the Admin SDK
+    }
+
+    // Skills catalog: Swing Trader / Breakout Rider / Options Scanner listings.
+    // Public read so the Arsenal page and Gumroad links work for signed-out visitors.
+    match /skills/{skillId} {
+      allow read: if true;
+      allow write: if false; // maintained by hand / future admin tooling, not from the browser
+    }
+
+    // A user's own profile: owned skills, watchlist, xp, streaks, settings.
+    // Only that person can read or write their own doc — never anyone else's.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // XP/streak event ledger — also doubles as the dedup record that stops the
+      // same alert (or the same day's check-in/arcade play) from paying out twice.
+      // Written by zelos-xp.js client-side, only ever to your own subcollection.
+      match /activity/{activityId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Y4B3ZC5XRX');
+</script>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zelos Alert History</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12161a">
+<meta name="description" content="Every Zelos alert, shown the same way whether it worked out or not.">
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]{ display:none !important; }
+  :root{
+    --paper:#eef0ec; --card:#ffffff; --ink:#1a2420; --muted:#5b6660; --line:#d5dbd2;
+    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c; --risk-soft:#f6e2df;
+    --amber:#9a6a10; --amber-soft:#f5ead2;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#111512; --card:#181d19; --ink:#e7ece7; --muted:#8b968e; --line:#2a322b;
+      --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70; --risk-soft:#3a201d;
+      --amber:#f2a93b; --amber-soft:#3a2c12;
+    }
+  }
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); min-height:100vh; }
+  .topbar{ display:flex; align-items:center; gap:16px; padding:16px 20px; border-bottom:1px solid var(--line); }
+  .brand{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .wrap{ max-width:720px; margin:0 auto; padding:24px 20px 64px; }
+  .eyebrow{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
+  h1{ font-size:1.5rem; margin:0 0 4px; }
+  .sub{ color:var(--muted); font-size:0.9rem; margin:0 0 20px; }
+
+  .filters{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .filters button{
+    font-family:var(--mono); font-size:0.76rem; padding:7px 12px; border-radius:20px;
+    border:1px solid var(--line); background:var(--card); color:var(--muted); cursor:pointer;
+  }
+  .filters button.is-active{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent-soft); }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .alert-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:13px 18px; border-bottom:1px solid var(--line); text-decoration:none; color:var(--ink);
+  }
+  .alert-row:last-child{ border-bottom:none; }
+  .alert-left{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .alert-ticker{ font-family:var(--mono); font-weight:700; font-size:1rem; }
+  .alert-meta{ font-size:0.78rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .badges{ display:flex; gap:6px; flex-shrink:0; }
+  .badge{
+    font-family:var(--mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em;
+    padding:3px 8px; border-radius:6px; white-space:nowrap;
+  }
+  .badge.qualified{ background:var(--accent-soft); color:var(--accent); }
+  .badge.watching{ background:var(--amber-soft); color:var(--amber); }
+  .badge.no-setup{ background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .badge.hit-target{ background:var(--accent-soft); color:var(--accent); }
+  .badge.stopped-out{ background:var(--risk-soft); color:var(--risk); }
+  .badge.open{ background:var(--amber-soft); color:var(--amber); }
+  .badge.expired, .badge.no-trade{ background:transparent; border:1px solid var(--line); color:var(--muted); }
+
+  .empty{ color:var(--muted); font-size:0.88rem; padding:20px 18px; }
+  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; margin-top:16px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Zelos</a>
+  <a class="brand" style="font-weight:500;" href="dashboard.html">Dashboard</a>
+</div>
+<div class="wrap">
+  <p class="eyebrow">Alert history</p>
+  <h1>Every alert, shown the same way</h1>
+  <p class="sub">Whether it hit target, got stopped out, or nothing happened — nothing here is cherry-picked.</p>
+
+  <div class="filters" id="filters">
+    <button data-strategy="" class="is-active" type="button">All</button>
+    <button data-strategy="swing-trader" type="button">Swing Trader</button>
+    <button data-strategy="breakout-rider" type="button">Breakout Rider</button>
+    <button data-strategy="options-scanner" type="button">Options Scanner</button>
+  </div>
+
+  <div class="card"><div id="list"><div class="empty">Loading…</div></div></div>
+  <div class="fine">Past alerts are informational only and not a guarantee of future results. Rule-based scans, the same for every subscriber — not personalized advice. Not a registered investment adviser.</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+(function(){
+  var STRATEGY_LABEL = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+  var OUTCOME_LABEL = { 'hit-target':'Hit target', 'stopped-out':'Stopped out', 'open':'Still open', 'expired':'Expired', 'no-trade':'No trade' };
+
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+
+  function fmtStamp(ts){
+    try {
+      var d = ts && ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit', year:'2-digit' });
+    } catch(e){ return ''; }
+  }
+  function statusClass(status){ return status === 'qualified' ? 'qualified' : (status === 'watching' ? 'watching' : 'no-setup'); }
+  function statusLabel(status){ return status === 'qualified' ? 'Qualified' : (status === 'watching' ? 'Watching' : 'No setup'); }
+
+  var allDocs = [];
+
+  function render(strategyFilter){
+    var list = document.getElementById('list');
+    var filtered = strategyFilter ? allDocs.filter(function(d){ return d.data.strategy === strategyFilter; }) : allDocs;
+    if (!filtered.length) { list.innerHTML = '<div class="empty">No alerts here yet.</div>'; return; }
+    list.innerHTML = filtered.map(function(item){
+      var a = item.data;
+      var badges = '<span class="badge ' + statusClass(a.status) + '">' + statusLabel(a.status) + '</span>';
+      if (a.outcome && a.outcome.result) {
+        badges += '<span class="badge ' + a.outcome.result + '">' + (OUTCOME_LABEL[a.outcome.result] || a.outcome.result) + '</span>';
+      }
+      return (
+        '<a class="alert-row" href="alert.html?id=' + encodeURIComponent(item.id) + '">' +
+          '<div class="alert-left">' +
+            '<span class="alert-ticker">' + (a.ticker || '—') + '</span>' +
+            '<span class="alert-meta">' + (STRATEGY_LABEL[a.strategy] || a.strategy || '') + ' · ' + fmtStamp(a.createdAt) + '</span>' +
+          '</div>' +
+          '<div class="badges">' + badges + '</div>' +
+        '</a>'
+      );
+    }).join('');
+  }
+
+  document.getElementById('filters').addEventListener('click', function(e){
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#filters button').forEach(function(b){ b.classList.remove('is-active'); });
+    btn.classList.add('is-active');
+    render(btn.dataset.strategy);
+  });
+
+  if (!ready) {
+    document.getElementById('list').innerHTML = '<div class="empty">Can\'t reach Zelos data right now — check back shortly.</div>';
+    return;
+  }
+  db.collection('alerts').orderBy('createdAt', 'desc').limit(100).get().then(function(snap){
+    snap.forEach(function(doc){ allDocs.push({ id: doc.id, data: doc.data() }); });
+    render('');
+  }).catch(function(){
+    document.getElementById('list').innerHTML = '<div class="empty">Couldn\'t load alert history right now.</div>';
+  });
+})();
+</script>
+</body>
+</html>

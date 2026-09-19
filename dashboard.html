@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Y4B3ZC5XRX');
+</script>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zelos Dashboard</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#12161a">
+<meta name="robots" content="noindex">
+<meta name="description" content="What Zelos is seeing today — latest alerts, market status, your watchlist and skills.">
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]{ display:none !important; }
+  :root{
+    --paper:#eef0ec; --card:#ffffff; --ink:#1a2420; --muted:#5b6660; --line:#d5dbd2;
+    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c; --risk-soft:#f6e2df;
+    --amber:#9a6a10; --amber-soft:#f5ead2;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#111512; --card:#181d19; --ink:#e7ece7; --muted:#8b968e; --line:#2a322b;
+      --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70; --risk-soft:#3a201d;
+      --amber:#f2a93b; --amber-soft:#3a2c12;
+    }
+  }
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); min-height:100vh; }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--paper); z-index:10;
+  }
+  .brand{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .auth-area{ display:flex; align-items:center; gap:10px; }
+  .btn{
+    font-family:var(--sans); font-weight:600; font-size:0.85rem; padding:9px 14px;
+    border-radius:9px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer;
+  }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#08130d; }
+  .btn.ghost{ background:transparent; }
+  .user-chip{ font-family:var(--mono); font-size:0.78rem; color:var(--muted); }
+
+  .wrap{ max-width:720px; margin:0 auto; padding:24px 20px 64px; display:flex; flex-direction:column; gap:22px; }
+  .eyebrow{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
+  h1{ font-size:1.5rem; margin:0 0 4px; }
+  h2{ font-size:1rem; margin:0; }
+  .sub{ color:var(--muted); font-size:0.9rem; margin:0; }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .card-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; gap:12px; }
+  .card-head a{ font-family:var(--mono); font-size:0.78rem; color:var(--accent); text-decoration:none; }
+
+  .status-line{ font-size:0.92rem; line-height:1.5; }
+  .status-stamp{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-top:8px; }
+
+  .alert-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:11px 0; border-bottom:1px solid var(--line); text-decoration:none; color:var(--ink);
+  }
+  .alert-row:last-child{ border-bottom:none; }
+  .alert-left{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .alert-ticker{ font-family:var(--mono); font-weight:700; font-size:1rem; }
+  .alert-meta{ font-size:0.78rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .alert-badge{
+    font-family:var(--mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em;
+    padding:3px 8px; border-radius:6px; white-space:nowrap;
+  }
+  .alert-badge.qualified{ background:var(--accent-soft); color:var(--accent); }
+  .alert-badge.watching{ background:var(--amber-soft); color:var(--amber); }
+  .alert-badge.no-setup{ background:transparent; border:1px solid var(--line); color:var(--muted); }
+
+  .empty{ color:var(--muted); font-size:0.88rem; padding:6px 0; }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:0.8rem;
+    background:var(--accent-soft); color:var(--accent); padding:6px 10px; border-radius:8px;
+  }
+  .chip button{ border:none; background:none; color:inherit; cursor:pointer; font-size:0.85rem; line-height:1; padding:0; }
+  .add-row{ display:flex; gap:8px; margin-top:12px; }
+  .add-row input{
+    flex:1; font-family:var(--mono); font-size:0.85rem; padding:9px 10px; border-radius:8px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink);
+  }
+
+  .progress-stats{ display:flex; gap:24px; }
+  .stat{ display:flex; flex-direction:column; gap:2px; }
+  .stat .num{ font-family:var(--mono); font-weight:700; font-size:1.6rem; color:var(--accent); }
+  .stat .lbl{ font-size:0.76rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .progress-note{ font-size:0.78rem; color:var(--muted); margin-top:10px; }
+
+  .skill-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .skill-row:last-child{ border-bottom:none; }
+  .skill-name{ font-weight:600; font-size:0.92rem; }
+  .skill-sub{ font-size:0.76rem; color:var(--muted); }
+
+  .signin-card{ display:flex; flex-direction:column; gap:10px; max-width:340px; }
+  .signin-card input{
+    font-family:var(--sans); font-size:0.9rem; padding:10px 12px; border-radius:9px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink);
+  }
+  .signin-row{ display:flex; gap:8px; }
+  .signin-row .btn{ flex:1; }
+  .divider{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:0.75rem; margin:2px 0; }
+  .divider::before, .divider::after{ content:""; flex:1; height:1px; background:var(--line); }
+  .auth-msg{ font-size:0.8rem; color:var(--muted); min-height:1.2em; }
+  .auth-msg.is-error{ color:var(--risk); }
+
+  .lock{ display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+  .lock p{ margin:0; color:var(--muted); font-size:0.88rem; }
+
+  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Zelos</a>
+  <div class="auth-area" id="authArea">
+    <button class="btn primary" id="showSignInBtn" type="button">Sign in</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div>
+    <p class="eyebrow">Dashboard</p>
+    <h1>What Zelos is seeing today</h1>
+    <p class="sub">Market status, the latest alerts, and quick access to what's yours.</p>
+  </div>
+
+  <!-- Sign-in card (shown when signed out and "Sign in" is clicked) -->
+  <div class="card signin-card" id="signInCard" hidden>
+    <h2>Sign in to Zelos</h2>
+    <div class="auth-msg" id="authMsg"></div>
+    <input type="email" id="authEmail" placeholder="Email" autocomplete="email">
+    <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+    <div class="signin-row">
+      <button class="btn" id="signInBtn" type="button">Sign in</button>
+      <button class="btn" id="signUpBtn" type="button">Create account</button>
+    </div>
+    <div class="divider">or</div>
+    <button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>
+  </div>
+
+  <!-- Market status -->
+  <div class="card">
+    <div class="card-head"><h2>Market status</h2></div>
+    <div class="status-line" id="marketStatus">Loading…</div>
+    <div class="status-stamp" id="marketStamp"></div>
+  </div>
+
+  <!-- Latest alerts -->
+  <div class="card">
+    <div class="card-head">
+      <h2>Latest alerts</h2>
+      <a href="alert-history.html">See all →</a>
+    </div>
+    <div id="alertsList"><div class="empty">Loading…</div></div>
+  </div>
+
+  <!-- Progress (XP/streak) -->
+  <div class="card" id="progressCard" hidden>
+    <div class="card-head"><h2>Your progress</h2></div>
+    <div id="progressBlock"></div>
+  </div>
+
+  <!-- Watchlist -->
+  <div class="card">
+    <div class="card-head"><h2>Stocks you're watching</h2></div>
+    <div id="watchlistBlock">
+      <div class="lock">
+        <p>Sign in to save a watchlist.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- My skills -->
+  <div class="card">
+    <div class="card-head"><h2>Your skills</h2></div>
+    <div id="skillsBlock">
+      <div class="lock">
+        <p>Sign in to see which Zelos skills you own and jump straight to them.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fine">Rule-based scans only — general information, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="zelos-xp.js"></script>
+<script>
+(function(){
+  var SKILLS = {
+    'swing-trader':   { name: 'Swing Trader',   href: 'swing-trader.html' },
+    'breakout-rider': { name: 'Breakout Rider', href: 'breakout-rider.html' },
+    'options-scanner':{ name: 'Options Scanner', href: 'index.html#arsenal' }
+  };
+  var STRATEGY_LABEL = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null, currentUser = null;
+
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth();
+      db = firebase.firestore();
+    } catch (e) { ready = false; }
+  }
+
+  function fmtStamp(ts){
+    try {
+      var d = ts && ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' ET';
+    } catch(e){ return ''; }
+  }
+  function statusClass(status){
+    if (status === 'qualified') return 'qualified';
+    if (status === 'watching') return 'watching';
+    return 'no-setup';
+  }
+  function statusLabel(status){
+    if (status === 'qualified') return 'Qualified';
+    if (status === 'watching') return 'Watching';
+    return 'No setup';
+  }
+
+  // ---- market status + latest alerts (public, no auth needed) ----
+  function loadAlerts(){
+    if (!ready) {
+      document.getElementById('alertsList').innerHTML = '<div class="empty">Can\'t reach Zelos data right now — check back shortly.</div>';
+      document.getElementById('marketStatus').textContent = 'Unavailable right now.';
+      return;
+    }
+    db.collection('alerts').orderBy('createdAt', 'desc').limit(6).get().then(function(snap){
+      if (snap.empty) {
+        document.getElementById('alertsList').innerHTML = '<div class="empty">No alerts yet.</div>';
+        document.getElementById('marketStatus').textContent = 'No scans recorded yet.';
+        return;
+      }
+      var rows = [];
+      var first = null;
+      snap.forEach(function(doc){
+        var a = doc.data();
+        if (!first) first = a;
+        rows.push(
+          '<a class="alert-row" href="alert.html?id=' + encodeURIComponent(doc.id) + '">' +
+            '<div class="alert-left">' +
+              '<span class="alert-ticker">' + (a.ticker || '—') + '</span>' +
+              '<span class="alert-meta">' + (STRATEGY_LABEL[a.strategy] || a.strategy || '') + ' · ' + fmtStamp(a.createdAt) + '</span>' +
+            '</div>' +
+            '<span class="alert-badge ' + statusClass(a.status) + '">' + statusLabel(a.status) + '</span>' +
+          '</a>'
+        );
+      });
+      document.getElementById('alertsList').innerHTML = rows.join('');
+      document.getElementById('marketStatus').textContent = first.marketRegime || 'No market-regime note on the latest alert.';
+      document.getElementById('marketStamp').textContent = 'As of ' + fmtStamp(first.createdAt);
+    }).catch(function(){
+      document.getElementById('alertsList').innerHTML = '<div class="empty">Couldn\'t load alerts right now.</div>';
+      document.getElementById('marketStatus').textContent = 'Unavailable right now.';
+    });
+  }
+
+  // ---- auth UI ----
+  var authArea = document.getElementById('authArea');
+  var signInCard = document.getElementById('signInCard');
+  var authMsg = document.getElementById('authMsg');
+
+  function setMsg(text, isError){
+    authMsg.textContent = text || '';
+    authMsg.className = 'auth-msg' + (isError ? ' is-error' : '');
+  }
+
+  document.getElementById('showSignInBtn').addEventListener('click', function(){
+    signInCard.hidden = !signInCard.hidden;
+  });
+  document.getElementById('signInBtn').addEventListener('click', function(){
+    if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+    var email = document.getElementById('authEmail').value.trim();
+    var pw = document.getElementById('authPassword').value;
+    setMsg('Signing in…');
+    auth.signInWithEmailAndPassword(email, pw).catch(function(e){ setMsg(e.message, true); });
+  });
+  document.getElementById('signUpBtn').addEventListener('click', function(){
+    if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+    var email = document.getElementById('authEmail').value.trim();
+    var pw = document.getElementById('authPassword').value;
+    setMsg('Creating account…');
+    auth.createUserWithEmailAndPassword(email, pw).catch(function(e){ setMsg(e.message, true); });
+  });
+  document.getElementById('googleSignInBtn').addEventListener('click', function(){
+    if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+    var provider = new firebase.auth.GoogleAuthProvider();
+    setMsg('Opening Google sign-in…');
+    auth.signInWithPopup(provider).catch(function(e){ setMsg(e.message, true); });
+  });
+
+  function renderSignedIn(user){
+    authArea.innerHTML =
+      '<span class="user-chip">' + (user.email || 'Signed in') + '</span>' +
+      '<button class="btn ghost" id="signOutBtn" type="button">Sign out</button>';
+    document.getElementById('signOutBtn').addEventListener('click', function(){ auth.signOut(); });
+    signInCard.hidden = true;
+  }
+  function renderSignedOut(){
+    authArea.innerHTML = '<button class="btn primary" id="showSignInBtn" type="button">Sign in</button>';
+    document.getElementById('showSignInBtn').addEventListener('click', function(){ signInCard.hidden = !signInCard.hidden; });
+  }
+
+  // ---- per-user: watchlist + owned skills ----
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+
+  function ensureUserDoc(user){
+    var ref = userDocRef(user.uid);
+    return ref.get().then(function(doc){
+      if (!doc.exists) {
+        return ref.set({
+          email: user.email || null,
+          displayName: user.displayName || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+        }).then(function(){ return ref.get(); });
+      }
+      return doc;
+    });
+  }
+
+  function renderProgress(user, data){
+    document.getElementById('progressCard').hidden = false;
+    var xp = data.xp || 0;
+    var streak = data.streakDays || 0;
+    document.getElementById('progressBlock').innerHTML =
+      '<div class="progress-stats">' +
+        '<div class="stat"><span class="num">' + xp + '</span><span class="lbl">XP</span></div>' +
+        '<div class="stat"><span class="num">' + streak + '</span><span class="lbl">Day streak</span></div>' +
+      '</div>' +
+      '<div class="progress-note">Streaks track opening at least one alert each day. XP also comes from checking in and playing Arcade games — small amounts, never required.</div>';
+  }
+
+  function renderWatchlist(user, data){
+    var list = data.watchlist || [];
+    var html = '';
+    if (list.length) {
+      html += '<div class="chip-row" id="watchChips">' + list.map(function(t){
+        return '<span class="chip">' + t + '<button data-ticker="' + t + '" class="wl-remove" type="button">&times;</button></span>';
+      }).join('') + '</div>';
+    } else {
+      html += '<div class="empty">Nothing on your watchlist yet.</div>';
+    }
+    html += '<div class="add-row"><input id="wlInput" placeholder="Add a ticker, e.g. NVDA" maxlength="8"><button class="btn" id="wlAddBtn" type="button">Add</button></div>';
+    document.getElementById('watchlistBlock').innerHTML = html;
+
+    document.querySelectorAll('.wl-remove').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        userDocRef(user.uid).update({ watchlist: firebase.firestore.FieldValue.arrayRemove(btn.dataset.ticker) });
+      });
+    });
+    document.getElementById('wlAddBtn').addEventListener('click', function(){
+      var input = document.getElementById('wlInput');
+      var t = input.value.trim().toUpperCase();
+      if (!t) return;
+      userDocRef(user.uid).update({ watchlist: firebase.firestore.FieldValue.arrayUnion(t) });
+      input.value = '';
+    });
+  }
+
+  function renderSkills(user, data){
+    var owned = data.ownedSkills || [];
+    var html = Object.keys(SKILLS).map(function(id){
+      var s = SKILLS[id];
+      var isOwned = owned.indexOf(id) !== -1;
+      return (
+        '<div class="skill-row">' +
+          '<div><div class="skill-name">' + s.name + '</div><div class="skill-sub">' + (isOwned ? 'Owned' : 'Not marked as owned yet') + '</div></div>' +
+          (isOwned
+            ? '<a class="btn primary" href="' + s.href + '">Open</a>'
+            : '<button class="btn skill-toggle" data-skill="' + id + '" type="button">Mark as owned</button>') +
+        '</div>'
+      );
+    }).join('');
+    document.getElementById('skillsBlock').innerHTML = html;
+    document.querySelectorAll('.skill-toggle').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        userDocRef(user.uid).update({ ownedSkills: firebase.firestore.FieldValue.arrayUnion(btn.dataset.skill) });
+      });
+    });
+  }
+
+  function watchUserDoc(user){
+    ensureUserDoc(user).then(function(){
+      userDocRef(user.uid).onSnapshot(function(doc){
+        var data = doc.data() || {};
+        renderProgress(user, data);
+        renderWatchlist(user, data);
+        renderSkills(user, data);
+      });
+      // Silent, once-per-day XP for showing up — never blocks anything above.
+      if (window.ZelosXP) ZelosXP.award('daily-checkin');
+    });
+  }
+
+  function renderSignedOutBlocks(){
+    document.getElementById('progressCard').hidden = true;
+    document.getElementById('watchlistBlock').innerHTML = '<div class="lock"><p>Sign in to save a watchlist.</p></div>';
+    document.getElementById('skillsBlock').innerHTML = '<div class="lock"><p>Sign in to see which Zelos skills you own and jump straight to them.</p></div>';
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      currentUser = user;
+      if (user) { renderSignedIn(user); watchUserDoc(user); }
+      else { renderSignedOut(); renderSignedOutBlocks(); }
+    });
+  }
+
+  loadAlerts();
+})();
+</script>
+</body>
+</html>
