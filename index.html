@@ -372,6 +372,55 @@
     color:var(--muted);
   }
 
+  /* ---- mascot ---- */
+  .mascot-wrap{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:-6px;
+  }
+  .mascot-btn{
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    line-height:0;
+    border-radius:22px;
+  }
+  .mascot-img{
+    width:108px;
+    height:auto;
+    display:block;
+    border-radius:22px;
+    border:1px solid var(--line);
+    box-shadow:0 14px 32px rgba(0,0,0,0.28);
+    transition:transform 0.2s ease, box-shadow 0.2s ease;
+    transform-origin:50% 90%;
+  }
+  .mascot-btn:hover .mascot-img{
+    transform:translateY(-3px);
+    box-shadow:0 18px 38px rgba(0,0,0,0.32);
+  }
+  .mascot-img.is-dancing{
+    animation:mascotDance 1.1s ease;
+  }
+  @keyframes mascotDance{
+    0%{ transform:rotate(0deg) translateY(0) scale(1); }
+    12%{ transform:rotate(-10deg) translateY(-7px) scale(1.03); }
+    24%{ transform:rotate(9deg) translateY(0) scale(1); }
+    36%{ transform:rotate(-8deg) translateY(-9px) scale(1.03); }
+    48%{ transform:rotate(8deg) translateY(0) scale(1); }
+    60%{ transform:rotate(-6deg) translateY(-6px) scale(1.02); }
+    72%{ transform:rotate(5deg) translateY(0) scale(1); }
+    84%{ transform:rotate(-3deg) translateY(-3px) scale(1.01); }
+    100%{ transform:rotate(0deg) translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .mascot-img.is-dancing{ animation:none; }
+  }
+  @media (max-width:640px){
+    .mascot-img{ width:84px; }
+  }
+
   /* ---- floating eye ---- */
   .floating-eye{
     position:absolute;
@@ -464,6 +513,12 @@
       <a class="nav-play" href="arcade.html">Play Zelos games &mdash; free</a>
     </div>
   </nav>
+
+  <div class="mascot-wrap">
+    <button class="mascot-btn" id="zelosMascotBtn" type="button" aria-label="Zelos mascot &mdash; click for a little dance">
+      <img src="images/zelos-mascot.jpg" alt="The Zelos mascot, a friendly green monster giving a thumbs up" class="mascot-img" id="zelosMascotImg">
+    </button>
+  </div>
 
   <section class="hero">
     <div class="eyebrow">Agentic trading &middot; rule-based alerts</div>
@@ -927,6 +982,21 @@
     var oy = Math.sin(angle) * dist;
     iris.setAttribute('transform', 'translate(' + ox.toFixed(2) + ',' + oy.toFixed(2) + ')');
   }, { passive: true });
+})();
+
+(function(){
+  // Mascot — click gives it a little dance.
+  var btn = document.getElementById('zelosMascotBtn');
+  var img = document.getElementById('zelosMascotImg');
+  if(!btn || !img) return;
+  btn.addEventListener('click', function(){
+    img.classList.remove('is-dancing');
+    void img.offsetWidth; // restart animation if clicked again mid-dance
+    img.classList.add('is-dancing');
+  });
+  img.addEventListener('animationend', function(){
+    img.classList.remove('is-dancing');
+  });
 })();
 
 (function(){
