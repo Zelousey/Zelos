@@ -174,6 +174,27 @@
   }
   .overlay .cta:hover{ color:var(--accent); }
 
+  .lb-panel{ margin-top:4px; width:100%; max-width:280px; text-align:left; }
+  .lb-name-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .lb-name-row input{
+    flex:1; min-width:0; font-family:var(--sans); font-size:0.86rem; padding:9px 10px;
+    border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink);
+  }
+  .lb-name-row button{
+    font-family:var(--sans); font-weight:700; font-size:0.82rem; white-space:nowrap;
+    padding:9px 14px; border-radius:8px; border:none; background:var(--accent); color:#08130d; cursor:pointer;
+  }
+  .lb-status{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-bottom:8px; }
+  .lb-title{ font-family:var(--mono); font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .lb-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+  .lb-list li{
+    display:flex; justify-content:space-between; gap:10px; font-family:var(--mono); font-size:0.82rem;
+    padding:6px 10px; border-radius:7px; background:var(--paper);
+  }
+  .lb-list li.me{ background:var(--accent-soft); color:var(--accent); font-weight:700; }
+  .lb-list .rank{ color:var(--muted); width:1.4em; display:inline-block; }
+  .lb-empty{ color:var(--muted); font-size:0.8rem; padding:6px 10px; background:none; }
+
   .rules{
     margin-top:22px; padding:14px 16px; border:1px solid var(--line); border-radius:10px;
     font-size:0.84rem; color:var(--muted);
@@ -198,6 +219,7 @@
           <a href="../setup.html">Setup guide</a>
           <a href="../demo.html">Try the demo</a>
           <a href="../arcade.html">Arcade</a>
+          <a href="../leaderboard.html">Leaderboard</a>
           <a href="../terms.html">Terms</a>
         </div>
       </div>
@@ -242,6 +264,17 @@
       <div class="eyebrow" id="overEyebrow">Time's up</div>
       <h2 id="overTitle">Session closed</h2>
       <div class="score-line" id="overScore">Final: $500 &middot; Best: $500</div>
+
+      <div class="lb-panel" id="lbPanel">
+        <div class="lb-name-row" id="lbNameRow" hidden>
+          <input type="text" id="lbNameInput" maxlength="20" placeholder="Name for the board">
+          <button type="button" id="lbSaveBtn">Save score</button>
+        </div>
+        <div class="lb-status" id="lbStatus" hidden></div>
+        <div class="lb-title">Buy the Dip &middot; Top 5 live</div>
+        <ol class="lb-list" id="lbList"><li class="lb-empty">&mdash;</li></ol>
+      </div>
+
       <button type="button" class="start" id="restartBtn">Trade again</button>
       <a class="cta" href="../index.html#access">Zelos plans real entries and exits &rarr;</a>
     </div>
@@ -256,6 +289,10 @@
   </footer>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script src="../leaderboard.js"></script>
 <script>
 (function(){
   var canvas = document.getElementById('stage');
@@ -275,6 +312,69 @@
   var overScore = document.getElementById('overScore');
   var startBtn = document.getElementById('startBtn');
   var restartBtn = document.getElementById('restartBtn');
+
+  // --- Live leaderboard (Firebase) ---
+  var GAME_ID = 'buy-the-dip';
+  var lbPanel = document.getElementById('lbPanel');
+  var lbNameRow = document.getElementById('lbNameRow');
+  var lbNameInput = document.getElementById('lbNameInput');
+  var lbSaveBtn = document.getElementById('lbSaveBtn');
+  var lbStatus = document.getElementById('lbStatus');
+  var lbList = document.getElementById('lbList');
+  var lbSubscribed = false;
+  var lbPendingScore = 0;
+
+  function renderLbList(rows){
+    if (!rows.length){
+      lbList.innerHTML = '<li class="lb-empty">Be the first on the board</li>';
+      return;
+    }
+    var myName = window.ZelosLeaderboard ? ZelosLeaderboard.getName() : '';
+    lbList.innerHTML = rows.map(function(r, i){
+      var mine = myName && r.name === myName && r.score === lbPendingScore;
+      var shown = ZelosLeaderboard.formatScore(GAME_ID, r.score);
+      return '<li' + (mine ? ' class="me"' : '') + '><span><span class="rank">' + (i + 1) + '</span>' +
+        String(r.name || 'Anon').replace(/</g, '&lt;') + '</span><span>' + shown + '</span></li>';
+    }).join('');
+  }
+
+  function subscribeLb(){
+    if (lbSubscribed || !window.ZelosLeaderboard || !ZelosLeaderboard.isConfigured()) return;
+    lbSubscribed = true;
+    ZelosLeaderboard.topScores(GAME_ID, 5, renderLbList);
+  }
+
+  function handleLeaderboard(finalScore){
+    if (!window.ZelosLeaderboard || !ZelosLeaderboard.isConfigured()){
+      lbPanel.hidden = true;
+      return;
+    }
+    lbPanel.hidden = false;
+    lbPendingScore = Math.round(finalScore);
+    subscribeLb();
+    lbStatus.hidden = true;
+    var savedName = ZelosLeaderboard.getName();
+    if (savedName){
+      lbNameRow.hidden = true;
+      ZelosLeaderboard.submitScore(GAME_ID, finalScore, function(ok){
+        lbStatus.hidden = false;
+        lbStatus.textContent = ok ? 'Saved to the board as ' + savedName + '.' : 'Could not save just now.';
+      });
+    } else {
+      lbNameRow.hidden = false;
+    }
+  }
+
+  lbSaveBtn.addEventListener('click', function(){
+    if (!window.ZelosLeaderboard) return;
+    var name = (lbNameInput.value || '').trim().slice(0, 20) || 'Anon';
+    ZelosLeaderboard.setName(name);
+    lbNameRow.hidden = true;
+    ZelosLeaderboard.submitScore(GAME_ID, lbPendingScore, function(ok){
+      lbStatus.hidden = false;
+      lbStatus.textContent = ok ? 'Saved to the board as ' + name + '.' : 'Could not save just now.';
+    });
+  });
 
   var STORAGE_KEY = 'zelosBuyTheDipBest';
   var W = 640, H = 220;
@@ -449,6 +549,7 @@
       var gain = finalValue - START_CASH;
       overTitle.textContent = gain > 50 ? 'Nice tape read' : (gain >= 0 ? 'Broke even' : 'Rough session');
       overScore.textContent = 'Final: ' + fmt(finalValue).replace(/\.00$/,'') + ' · Best: ' + fmt(best).replace(/\.00$/,'');
+      handleLeaderboard(finalValue);
       overOverlay.hidden = false;
     }, 200);
   }

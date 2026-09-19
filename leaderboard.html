@@ -15,26 +15,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Arcade</title>
+<title>Live Leaderboard — Zelos Arcade</title>
 <link rel="icon" href="favicon-arcade.ico" sizes="any">
 <link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0f1310">
-<meta name="description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
-<link rel="canonical" href="https://agentictrading.info/arcade.html">
+<meta name="description" content="Live top scores for the three Zelos Arcade games — updates in real time as people play.">
+<link rel="canonical" href="https://agentictrading.info/leaderboard.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Arcade">
-<meta property="og:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
-<meta property="og:url" content="https://agentictrading.info/arcade.html">
+<meta property="og:title" content="Live Leaderboard — Zelos Arcade">
+<meta property="og:description" content="Live top scores for the three Zelos Arcade games — updates in real time as people play.">
+<meta property="og:url" content="https://agentictrading.info/leaderboard.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Arcade">
-<meta name="twitter:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
+<meta name="twitter:title" content="Live Leaderboard — Zelos Arcade">
+<meta name="twitter:description" content="Live top scores for the three Zelos Arcade games — updates in real time as people play.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <style>
   :root{ color-scheme: light dark; }
@@ -95,53 +95,46 @@
   }
   .nav-menu-list a:hover{ background:var(--accent-soft); color:var(--accent); }
 
-  header{ padding-block:8px 30px; }
-  .eyebrow{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
+  header{ padding-block:8px 26px; }
+  .eyebrow{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:7px; }
+  .eyebrow .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); animation:lb-live-pulse 1.8s ease-in-out infinite; }
+  @keyframes lb-live-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+  @media (prefers-reduced-motion: reduce){ .eyebrow .live-dot{ animation:none; } }
   h1{ font-size:clamp(1.9rem,7vw,2.4rem); font-weight:700; margin-top:8px; }
   .lede{ margin-top:10px; color:var(--muted); font-size:0.96rem; max-width:48ch; }
 
-  .games{ display:flex; flex-direction:column; gap:14px; }
-  .game-row{
-    background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:18px 20px;
+  .tabs{ display:flex; gap:8px; margin-top:22px; flex-wrap:wrap; }
+  .tab{
+    font-family:var(--sans); font-weight:600; font-size:0.86rem; color:var(--muted);
+    background:var(--card); border:1px solid var(--line); border-radius:9px;
+    padding:9px 14px; cursor:pointer;
   }
-  .game-head{ display:flex; align-items:center; gap:14px; }
-  .game-icon{
-    flex:none; width:48px; height:48px; border-radius:12px;
-    background:var(--accent-soft); display:flex; align-items:center; justify-content:center;
-    font-size:1.4rem;
-  }
-  .game-tag{
-    font-family:var(--mono); font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase;
-    color:var(--muted);
-  }
-  .game-head h3{ font-size:1.08rem; font-weight:700; margin-top:2px; }
-  .game-row p{ margin-top:12px; color:var(--muted); font-size:0.88rem; max-width:46ch; }
-  .game-play{
-    display:inline-block; margin-top:14px;
-    font-family:var(--sans); font-weight:700; font-size:0.88rem;
-    color:#08130d; background:var(--accent); text-decoration:none;
-    padding:10px 20px; border-radius:9px; white-space:nowrap;
-  }
+  .tab[aria-selected="true"]{ color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
 
-  .board-link{
-    margin-top:16px; display:flex; align-items:center; gap:10px;
-    background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:14px 16px; text-decoration:none; color:var(--ink); font-weight:600; font-size:0.9rem;
+  .board{
+    margin-top:16px; background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:8px;
   }
-  .board-link:hover{ border-color:var(--accent); }
-  .board-link-dot{
-    width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none;
-    animation:board-link-pulse 1.8s ease-in-out infinite;
+  .board-row{
+    display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px;
   }
-  @keyframes board-link-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  @media (prefers-reduced-motion: reduce){ .board-link-dot{ animation:none; } }
-  .board-link-arrow{ margin-left:auto; color:var(--muted); }
+  .board-row + .board-row{ border-top:1px solid var(--line); }
+  .board-rank{
+    font-family:var(--mono); font-weight:700; font-size:0.92rem; color:var(--muted);
+    width:1.8em; flex:none; text-align:center;
+  }
+  .board-row:nth-child(1) .board-rank{ color:#c9971f; }
+  .board-row:nth-child(2) .board-rank{ color:#8b96a3; }
+  .board-row:nth-child(3) .board-rank{ color:#b0703f; }
+  .board-name{ flex:1; font-weight:600; font-size:0.94rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .board-score{ font-family:var(--mono); font-weight:700; font-size:0.96rem; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .board-empty{ padding:26px 16px; text-align:center; color:var(--muted); font-size:0.88rem; }
 
-  .note{
+  .setup-note{
     margin-top:26px; padding:14px 16px; border:1px solid var(--line); border-radius:10px;
     font-size:0.84rem; color:var(--muted);
   }
+  .setup-note a{ color:var(--accent); }
 
   footer{
     margin-top:44px; padding-top:20px; border-top:1px solid var(--line);
@@ -152,7 +145,7 @@
 <body>
 <div class="wrap">
   <nav>
-    <a class="wordmark" href="index.html"><span class="dot"></span>Zelos <span class="tag">/ arcade</span></a>
+    <a class="wordmark" href="index.html"><span class="dot"></span>Zelos <span class="tag">/ leaderboard</span></a>
     <div class="nav-right">
       <div class="nav-menu">
         <button class="nav-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="nav-menu-caret">&#9662;</span></button>
@@ -167,68 +160,93 @@
           <a href="terms.html">Terms</a>
         </div>
       </div>
-      <a class="back" href="index.html">&larr; Site</a>
+      <a class="back" href="arcade.html">&larr; Arcade</a>
     </div>
   </nav>
 
   <header>
-    <div class="eyebrow">Free to play</div>
-    <h1>Zelos Arcade</h1>
-    <p class="lede">Three quick games, no account and no cost. One sharpens your eye for real setups, two are just here to be fun.</p>
+    <div class="eyebrow"><span class="live-dot" id="liveDot"></span>Live</div>
+    <h1>Leaderboard</h1>
+    <p class="lede">Top scores across all three Zelos Arcade games, updating in real time as people play &mdash; no refresh needed.</p>
   </header>
 
-  <div class="games">
-    <div class="game-row">
-      <div class="game-head">
-        <div class="game-icon">🐂</div>
-        <div>
-          <div class="game-tag">Practice</div>
-          <h3>Setup Spotter</h3>
-        </div>
-      </div>
-      <p>A chart flashes up &mdash; real setup or noise? Call it before the clock runs out.</p>
-      <a class="game-play" href="games/setup-spotter.html">Play &rarr;</a>
-    </div>
-
-    <div class="game-row">
-      <div class="game-head">
-        <div class="game-icon">🐃</div>
-        <div>
-          <div class="game-tag">Just for fun</div>
-          <h3>Bull Run</h3>
-        </div>
-      </div>
-      <p>Jump the red candles, grab the green ones. Gets faster the longer you survive.</p>
-      <a class="game-play" href="games/bull-run.html">Play &rarr;</a>
-    </div>
-
-    <div class="game-row">
-      <div class="game-head">
-        <div class="game-icon">💵</div>
-        <div>
-          <div class="game-tag">Just for fun</div>
-          <h3>Buy the Dip</h3>
-        </div>
-      </div>
-      <p>The tape's jumpy and you're all-in or all-out. Buy low, sell high, 45 seconds.</p>
-      <a class="game-play" href="games/buy-the-dip.html">Play &rarr;</a>
-    </div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" type="button" role="tab" data-game="bull-run" aria-selected="true">🐃 Bull Run</button>
+    <button class="tab" type="button" role="tab" data-game="buy-the-dip" aria-selected="false">💵 Buy the Dip</button>
+    <button class="tab" type="button" role="tab" data-game="setup-spotter" aria-selected="false">🐂 Setup Spotter</button>
   </div>
 
-  <a class="board-link" href="leaderboard.html">
-    <span class="board-link-dot"></span>
-    <span>See the live leaderboard &mdash; updates in real time</span>
-    <span class="board-link-arrow">&rarr;</span>
-  </a>
+  <div class="board" id="board">
+    <div class="board-empty" id="boardEmpty">Loading&hellip;</div>
+  </div>
 
-  <div class="note">
-    These are games with simulated or illustrative data &mdash; none of it is real market data or a real account. Zelos itself is a rule-based scan, not personalized investment advice.
+  <div class="setup-note" id="setupNote" hidden>
+    The live leaderboard isn't switched on for this site yet &mdash; scores aren't being collected. Play the games from the <a href="arcade.html">Arcade</a> anyway, your best run is still remembered on your own device.
+  </div>
+
+  <div class="setup-note">
+    Scores are self-reported by whoever's playing when their run ends &mdash; this is a for-fun board, not a verified ranking. These are games with simulated or illustrative data, not real market data or a real account.
   </div>
 
   <footer>
     Zelos Arcade &middot; part of <a href="index.html" style="color:inherit;">Zelos</a>
   </footer>
 </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="leaderboard.js"></script>
+<script>
+(function(){
+  var board = document.getElementById('board');
+  var boardEmpty = document.getElementById('boardEmpty');
+  var setupNote = document.getElementById('setupNote');
+  var liveDot = document.getElementById('liveDot');
+  var tabs = document.querySelectorAll('.tab');
+  var unsubscribe = null;
+  var currentGame = 'bull-run';
+
+  function renderRows(rows){
+    if (!rows.length){
+      board.innerHTML = '';
+      boardEmpty.textContent = 'No scores yet on this board — be the first from the Arcade.';
+      board.appendChild(boardEmpty);
+      return;
+    }
+    board.innerHTML = rows.map(function(r, i){
+      var shown = window.ZelosLeaderboard ? ZelosLeaderboard.formatScore(currentGame, r.score) : r.score;
+      return '<div class="board-row"><span class="board-rank">' + (i + 1) + '</span>' +
+        '<span class="board-name">' + String(r.name || 'Anon').replace(/</g, '&lt;') + '</span>' +
+        '<span class="board-score">' + shown + '</span></div>';
+    }).join('');
+  }
+
+  function loadBoard(gameId){
+    currentGame = gameId;
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    board.innerHTML = '';
+    boardEmpty.textContent = 'Loading…';
+    board.appendChild(boardEmpty);
+    unsubscribe = window.ZelosLeaderboard ? ZelosLeaderboard.topScores(gameId, 10, renderRows) : function(){};
+  }
+
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.setAttribute('aria-selected', String(t === tab)); });
+      loadBoard(tab.getAttribute('data-game'));
+    });
+  });
+
+  if (window.ZelosLeaderboard && ZelosLeaderboard.isConfigured()){
+    loadBoard(currentGame);
+  } else {
+    liveDot.style.display = 'none';
+    setupNote.hidden = false;
+    board.hidden = true;
+  }
+})();
+</script>
 <script>
 (function(){
   // Site-wide "Menu" dropdown — lets visitors jump between pages without

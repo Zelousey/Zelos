@@ -22,19 +22,19 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0f1310">
-<meta name="description" content="Six steps to get Zelos running on your own Claude and Robinhood accounts.">
+<meta name="description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
 <link rel="canonical" href="https://agentictrading.info/setup.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
 <meta property="og:title" content="Zelos Setup Guide">
-<meta property="og:description" content="Six steps to get Zelos running on your own Claude and Robinhood accounts.">
+<meta property="og:description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
 <meta property="og:url" content="https://agentictrading.info/setup.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Zelos Setup Guide">
-<meta name="twitter:description" content="Six steps to get Zelos running on your own Claude and Robinhood accounts.">
+<meta name="twitter:description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <style>
   :root{ color-scheme: light dark; }
@@ -195,11 +195,11 @@
   <div class="tos-gate-card">
     <div class="eyebrow">Before you continue</div>
     <h2>Read the Zelos Terms of Service</h2>
-    <p>Zelos connects to your own brokerage account and places real trades in it once you personally accept a specific setup. Please read the full terms before setting it up.</p>
+    <p>Zelos publishes general, rule-based trade alerts — the same page, on the same schedule, for every subscriber. It never connects to any brokerage account and never places a trade. Please read the full terms before you get started.</p>
     <p><a class="tos-link" href="terms.html" target="_blank" rel="noopener">Open the Terms of Service &rarr;</a></p>
     <label class="tos-gate-check" for="tosCheckbox">
       <input type="checkbox" id="tosCheckbox">
-      <span>I have read and agree to the Zelos Terms of Service, including the risk disclosures for accepting a trade.</span>
+      <span>I have read and agree to the Zelos Terms of Service, including the risk disclosures.</span>
     </label>
     <button type="button" id="tosContinueBtn" disabled>Continue to setup</button>
   </div>
@@ -217,6 +217,7 @@
         <a href="setup.html">Setup guide</a>
         <a href="demo.html">Try the demo</a>
         <a href="arcade.html">Arcade</a>
+          <a href="leaderboard.html">Leaderboard</a>
         <a href="terms.html">Terms</a>
       </div>
     </div>
@@ -224,14 +225,11 @@
 
   <header class="hero">
     <div class="eyebrow">Getting started</div>
-    <h1>Six steps to your first scan.</h1>
-    <p class="lede">This is the whole setup &mdash; nothing to install from an app store, just a few things Zelos needs from you once, up front, including pinning your alert page so it feels like an app on your phone.</p>
+    <h1>Four steps to your first alert.</h1>
+    <p class="lede">This is the whole setup &mdash; nothing to install, nothing to connect, no account required. Just find your link, bookmark it, and check back each session.</p>
     <div class="status-banner">
       <span>&#9989;</span>
-      <span><b>You're in.</b> Your Gumroad receipt has the skill file attached and a link back to this guide &mdash; the steps below get you from install to your first scan.</span>
-    </div>
-    <div class="callout" style="margin-top:14px;">
-      <b>Works on the free Claude plan</b> &mdash; installing the skill, connecting Robinhood, and running scans on demand don't require a paid plan. The only piece that does is Step 3's optional daily schedule (see below).
+      <span><b>You're in.</b> Your Gumroad receipt has your alert link and a link back to this guide &mdash; the steps below get you from purchase to your first read.</span>
     </div>
   </header>
 
@@ -239,11 +237,10 @@
     <div class="step">
       <div class="step-num">01</div>
       <div>
-        <h2>Connect your Robinhood account</h2>
+        <h2>Find your alert link</h2>
         <div class="step-body">
-          <p>In claude.ai, open <b>Settings &rarr; Connectors</b>, search for <b>Robinhood</b>, and connect it — you'll log in and authorize access the same way you would for any linked account.</p>
-          <div class="callout">If you have more than one Robinhood account (a retirement account, another brokerage account), that's fine &mdash; Zelos only ever reaches the one specifically enabled for agentic trading. Anything else you have on Robinhood stays completely out of reach, not just unused. It also never touches crypto or options on any account.</div>
-          <div class="callout">Position size is always a third of 10% of that account's balance, so it scales automatically &mdash; there's no fixed minimum. As a rough sense of scale: $500 in the account works out to about $17 per position, $3,000 works out to about $100. Very small accounts will see very small (but real) position sizes, and some days there may not be room under the cap to propose anything at all &mdash; that's expected, not a bug.</div>
+          <p>Your Gumroad receipt email has a direct link to your alert page &mdash; that's the one page you'll want to come back to. Can't find it? Sign in at gumroad.com with the email you purchased with, open <b>Library</b>, and it'll be right there next to Zelos.</p>
+          <div class="callout">This link is general information, published the same way to every subscriber &mdash; it isn't tied to any account, and Zelos never asks for one.</div>
         </div>
       </div>
     </div>
@@ -251,16 +248,9 @@
     <div class="step">
       <div class="step-num">02</div>
       <div>
-        <h2>Get the Zelos skill installed</h2>
+        <h2>See a sample first</h2>
         <div class="step-body">
-          <p>The skill file was attached to your Gumroad receipt as a <code class="inline">.zip</code>. To install it:</p>
-          <ol>
-            <li>In claude.ai, open <b>Settings &rarr; Capabilities</b> and make sure <b>Code execution and file creation</b> is turned on &mdash; skills need this to run.</li>
-            <li>Go to <b>Customize &rarr; Skills</b>, click <b>+</b>, then <b>Create skill</b>.</li>
-            <li>Choose <b>Upload a skill</b> and select the <code class="inline">.zip</code> file from your receipt, exactly as downloaded &mdash; don't unzip or rename it first.</li>
-            <li>Once it appears in your skills list, make sure it's toggled on.</li>
-          </ol>
-          <div class="callout">No slash command needed after this &mdash; Claude recognizes when to use the skill from what you ask it, like <code class="inline">"Run today's swing trade scan."</code></div>
+          <p><a href="demo.html" target="_blank" rel="noopener">Open the sample alert ticket</a> to see the exact format &mdash; ticker, entry, stop, targets, reward:risk &mdash; before your first real one shows up. It's a fixed example, not a live signal.</p>
         </div>
       </div>
     </div>
@@ -268,12 +258,10 @@
     <div class="step">
       <div class="step-num">03</div>
       <div>
-        <h2>Tell it about your account, once</h2>
+        <h2>Bookmark your alert page</h2>
         <div class="step-body">
-          <p>The first time you run it, Zelos will ask a few questions before it scans anything:</p>
-          <p><b>Which account</b> to use, if more than one is connected. <b>Whether anything else</b> already runs on that account (a crypto bot, another strategy) that it should stay away from. And <b>whether you want it on a schedule</b> &mdash; a daily morning run, or only when you ask.</p>
-          <div class="callout warn"><b>Scheduling needs a paid Claude plan.</b> Recurring/scheduled runs are a Pro, Max, Team, or Enterprise feature &mdash; not available on the free plan. On free, just skip the schedule and ask for a scan whenever you want one; everything else about Zelos works the same either way.</div>
-          <div class="callout">Every qualifying setup comes to you as an alert with Accept and Decline. Nothing is ever bought unless you tap Accept on that specific trade &mdash; there's no automatic setting to turn on.</div>
+          <p>Your alert page updates in place, on the same schedule every session &mdash; the ticket you see there is always the current one. That's the page you want on your home screen, not this setup guide, and not the public Zelos site you bought from.</p>
+          <p><b>iPhone (Safari):</b> open your alert link &rarr; tap the Share icon &rarr; <b>Add to Home Screen</b> &rarr; Add.<br><b>Android (Chrome):</b> open the link &rarr; tap the &#8942; menu &rarr; <b>Add to Home screen</b> / Install app.</p>
         </div>
       </div>
     </div>
@@ -281,46 +269,24 @@
     <div class="step">
       <div class="step-num">04</div>
       <div>
-        <h2>Try the demo card first</h2>
+        <h2>Check it each session</h2>
         <div class="step-body">
-          <p><a href="demo.html" target="_blank" rel="noopener">Open the interactive demo ticket</a> and tap Place it or Skip a couple of times &mdash; it's a real working copy of the alert page, just tagged as a test, so nothing gets bought. Worth doing once before your first real signal so the buttons aren't a surprise.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-num">05</div>
-      <div>
-        <h2>Run your first scan</h2>
-        <div class="step-body">
-          <p>Just ask: <code class="inline">"Run today's swing trade scan"</code> — or let the schedule handle it if you set one up. Most runs won't find anything worth trading, and that's the strategy working as intended, not a failed first try. This first run is also when Zelos gives you your own private alert-page link &mdash; the one the next step is about.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-num">06</div>
-      <div>
-        <h2>Pin your alert page to your phone</h2>
-        <div class="step-body">
-          <p>Every run republishes one page at that same private link &mdash; a single ticket with the ticker, entry, stop, targets, and <b>Place it</b> / <b>Skip</b> buttons for whatever the current call is. That page is what you want on your home screen &mdash; not this setup guide, and not the public zelos site you may have bought from.</p>
-          <p><b>iPhone (Safari):</b> open your alert link &rarr; tap the Share icon &rarr; <b>Add to Home Screen</b> &rarr; Add.<br><b>Android (Chrome):</b> open the link &rarr; tap the &#8942; menu &rarr; <b>Add to Home screen</b> / Install app.</p>
-          <div class="callout">Once it's pinned, tapping the icon goes straight to your current trade ticket &mdash; no homepage, no menu, nothing else to click through. On a no-trade day, it just says so.</div>
+          <p>Zelos runs the scan and republishes the page on a fixed schedule &mdash; there's nothing for you to trigger or configure. Most sessions won't turn up a qualifying setup, and that's the strategy working as intended, not a failed check. Whatever you decide to do with a published alert happens entirely in your own brokerage account, on your own.</p>
         </div>
       </div>
     </div>
   </div>
 
   <div class="recap">
-    <h2>What stays true no matter what you choose</h2>
+    <h2>What stays true no matter what</h2>
     <div class="recap-list">
       <div class="recap-item">
         <div class="recap-check">&#10003;</div>
-        <p><b>Only your account.</b> Zelos never acts on anyone else's money, ever.</p>
+        <p><b>Same alert, for everyone.</b> One page, published on one schedule &mdash; not tailored to your account, your balance, or your situation.</p>
       </div>
       <div class="recap-item">
         <div class="recap-check">&#10003;</div>
-        <p><b>Sizing is a fixed formula.</b> Never more than 10% of your account in stocks, never more than a third of that in one position.</p>
+        <p><b>Sizing is a general rule of thumb</b>, never a number calculated from your money &mdash; Zelos never sees it.</p>
       </div>
       <div class="recap-item">
         <div class="recap-check">&#10003;</div>
@@ -328,7 +294,7 @@
       </div>
       <div class="recap-item">
         <div class="recap-check">&#10003;</div>
-        <p><b>You can change your mind anytime.</b> Change the schedule or stop entirely just by asking.</p>
+        <p><b>Nothing to connect, nothing for us to touch.</b> There's no account link, so there's nothing beyond this page for Zelos to reach.</p>
       </div>
     </div>
   </div>
@@ -336,16 +302,16 @@
   <div class="recap">
     <h2>How Zelos works</h2>
     <div class="recap-list">
-      <p style="color:var(--muted); font-size:0.92rem;">Zelos is trading software you install and run yourself. It connects directly to your own brokerage account using your own credentials &mdash; we never access, view, or store your account information, positions, or trade history. Every subscriber runs the same rule-based strategy; trade sizing is calculated automatically from your own account balance, nothing more.</p>
+      <p style="color:var(--muted); font-size:0.92rem;">Zelos is a published research page, not trading software you install or connect to an account. It never asks for brokerage credentials, never sees your balance or positions, and never places an order. Every subscriber sees the same rule-based scan, on the same schedule &mdash; general information, not personalized to any individual's account or situation.</p>
       <p style="color:var(--muted); font-size:0.92rem; margin-top:4px;">Zelos is not personalized investment advice and Zelos is not a registered investment adviser. Trading involves risk, including loss of principal. Past performance of any strategy does not guarantee future results.</p>
     </div>
   </div>
 
   <div class="final">
     <h2>Stuck on a step?</h2>
-    <p>Open a Claude chat and describe what you're stuck on &mdash; which step, what you're seeing &mdash; and it can walk you through it from there.</p>
-    <a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Get help with setup</a>
-    <p style="margin-top:18px;">Want to cancel or change your billing instead? That's handled entirely through Gumroad &mdash; sign in at gumroad.com with the email you purchased with (or use the link in your receipt), open Library, and cancel there. Nothing on the Robinhood or Claude side needs to be undone separately.</p>
+    <p>Message me directly through Gumroad &mdash; open Library, find Zelos, and use the message-seller option there. That's the fastest way to reach me if a link isn't working or something doesn't match what you're seeing here.</p>
+    <a class="btn" href="https://gumroad.com/library" target="_blank" rel="noopener">Message me on Gumroad</a>
+    <p style="margin-top:18px;">Want to cancel or change your billing instead? That's handled entirely through Gumroad &mdash; sign in at gumroad.com with the email you purchased with (or use the link in your receipt), open Library, and cancel there. There's nothing else to undo elsewhere.</p>
   </div>
 
   <footer>

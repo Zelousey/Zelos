@@ -15,27 +15,30 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Sample Alert</title>
+<title>Zelos Alert (sample)</title>
 <link rel="icon" href="favicon-demo.ico" sizes="any">
 <link rel="icon" href="favicon-demo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0f1310">
-<meta name="description" content="See a sample Zelos alert ticket — entry, stop, target, and reward:risk at a glance. General information, not tied to any account.">
-<link rel="canonical" href="https://agentictrading.info/demo.html">
+<meta name="theme-color" content="#12161a">
+<meta name="description" content="An example Zelos trade alert ticket — entry, stop, target, and reward:risk at a glance.">
+<link rel="canonical" href="https://agentictrading.info/alert.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Sample Alert">
-<meta property="og:description" content="See a sample Zelos alert ticket — entry, stop, target, and reward:risk at a glance. General information, not tied to any account.">
-<meta property="og:url" content="https://agentictrading.info/demo.html">
+<meta property="og:title" content="Zelos Alert">
+<meta property="og:description" content="An example Zelos trade alert ticket — entry, stop, target, and reward:risk at a glance.">
+<meta property="og:url" content="https://agentictrading.info/alert.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Sample Alert">
-<meta name="twitter:description" content="See a sample Zelos alert ticket — entry, stop, target, and reward:risk at a glance. General information, not tied to any account.">
+<meta name="twitter:title" content="Zelos Alert">
+<meta name="twitter:description" content="An example Zelos trade alert ticket — entry, stop, target, and reward:risk at a glance.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <style>
   :root{ color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -264,6 +267,41 @@
     letter-spacing:0.03em;
   }
 
+  .actions{
+    display:flex;
+    gap:10px;
+    padding:0 24px 18px;
+  }
+  .actions button{
+    flex:1;
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:0.92rem;
+    padding:13px 16px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .actions button.place{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#08130d;
+  }
+  .actions button:disabled{ opacity:0.55; cursor:default; }
+  .action-status{
+    display:none;
+    margin:0 24px 18px;
+    padding:12px 14px;
+    border-radius:10px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-size:0.86rem;
+    font-family:var(--mono);
+  }
+  .action-status.is-visible{ display:block; }
+
   @media (max-width:420px){
     .ticker{ font-size:1.7rem; }
   }
@@ -280,19 +318,19 @@
 <body>
 <div class="page-wrap">
 <a class="back-link" href="swing-trader.html"><span class="dot"></span>Zelos &middot; back to Swing Trader</a>
-<div class="ticket" id="zelosTicket" data-ticker="TEST">
+<div class="ticket" id="zelosTicket" data-ticker="PFE">
   <div class="head">
     <div class="head-row">
-      <span class="ticker">TEST</span>
-      <span class="score">score <b>66</b>/80</span>
+      <span class="ticker">PFE</span>
+      <span class="score">score <b>59</b>/80</span>
     </div>
-    <div class="setup">Sample card &mdash; not a real signal</div>
-    <span class="status">Sample &middot; fixed example</span>
+    <div class="setup">Best candidate &mdash; Pullback in an uptrend (did not qualify, need 60+)</div>
+    <span class="status">No qualifying setup today</span>
   </div>
 
   <div class="chart-card">
-    <svg viewBox="0 0 300 118" role="img" aria-labelledby="demoChartTitle">
-      <title id="demoChartTitle">Sample candlestick chart leading into a fixed test setup &mdash; entry, stop, and target levels marked</title>
+    <svg viewBox="0 0 300 118" role="img" aria-labelledby="alertChartTitle">
+      <title id="alertChartTitle">Candlestick chart of PFE's last 15 sessions leading into this pullback setup &mdash; entry, stop, and target levels marked</title>
       <line x1="14.5" y1="78" x2="14.5" y2="90" stroke="var(--muted)" stroke-width="1.3"/>
       <rect x="9" y="80" width="11" height="8" fill="var(--muted)"/>
       <line x1="33.5" y1="70" x2="33.5" y2="84" stroke="var(--accent)" stroke-width="1.3"/>
@@ -329,46 +367,46 @@
       <!-- stop -->
       <line x1="0" y1="58" x2="300" y2="58" stroke="var(--risk)" stroke-width="1" stroke-dasharray="3 3"/>
       <text x="295" y="55" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--risk)">STOP</text>
-      <!-- entry -->
+      <!-- entry (reference) -->
       <circle cx="280.5" cy="38" r="3.5" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>
       <text x="280.5" y="112" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--ink)">ENTRY</text>
     </svg>
     <div class="chart-caption">
-      <span>Fixed sample, not live data</span>
-      <span>Your real alert plots the actual ticker</span>
+      <span>Last 15 sessions</span>
+      <span>Illustrative &mdash; price moves before you see it</span>
     </div>
   </div>
 
   <div class="ledger">
     <div class="row">
-      <span class="label">Entry</span>
-      <span class="value">$100.00</span>
+      <span class="label">Entry (reference)</span>
+      <span class="value">$27.72</span>
     </div>
     <div class="row">
       <span class="label">Stop</span>
-      <span class="value risk">$95.00</span>
+      <span class="value risk">$27.35</span>
     </div>
     <div class="row">
       <span class="label">Target 1</span>
-      <span class="value accent">$121.50</span>
+      <span class="value accent">$29.21</span>
     </div>
     <div class="row">
       <span class="label">Target 2</span>
-      <span class="value">$133.00</span>
+      <span class="value">$30.00</span>
     </div>
     <div class="row">
       <span class="label">Risk / share</span>
-      <span class="value risk">&minus;$5.00</span>
+      <span class="value risk">&minus;$0.37</span>
     </div>
     <div class="row">
       <span class="label">Reward / share (T1)</span>
-      <span class="value accent">+$21.50</span>
+      <span class="value accent">+$1.49</span>
     </div>
   </div>
 
   <div class="rr">
     <span class="label">Reward : Risk</span>
-    <span class="value">4.3 : 1</span>
+    <span class="value">4.0 : 1</span>
   </div>
 
   <div class="cap">
@@ -377,10 +415,10 @@
   </div>
 
   <div class="foot">
-    <div class="reply">This is a sample card, fixed for illustration &mdash; it isn't a live signal and doesn't update. Your real alert page looks like this, refreshed every session.</div>
-    <div class="fine">Market regime: TEST. Rule-based scan only, not personalized advice.</div>
+    <div class="reply">No qualifying setup today. Check back next session &mdash; this page updates on the same schedule for everyone subscribed.</div>
+    <div class="fine">Market regime: Neutral (SPY mixed &mdash; above 50sma, below 20sma; QQQ below both). Rule-based scan only, not personalized advice.</div>
     <div class="fine">This alert is general information published the same way to every subscriber &mdash; it is not tied to your account, and Zelos never sees your balance, positions, or trade history. If you choose to act on it, you do so yourself, in your own brokerage account. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
-    <div class="stamp">Sample card, not tied to a real run</div>
+    <div class="stamp">Generated 2026-09-15 09:08 ET</div>
   </div>
 </div>
 </div>
