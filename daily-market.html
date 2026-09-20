@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Y4B3ZC5XRX');
+</script>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Daily Market — Zelos</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#12161a">
+<meta name="description" content="Zelos's current read on the broad market — bullish, bearish, or neutral — and how that changes the bar for every strategy.">
+<link rel="canonical" href="https://agentictrading.info/daily-market.html">
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]{ display:none !important; }
+  :root{
+    --paper:#eef0ec; --card:#ffffff; --ink:#1a2420; --muted:#5b6660; --line:#d5dbd2;
+    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c; --risk-soft:#f6e2df;
+    --amber:#9a6a10; --amber-soft:#f5ead2;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#111512; --card:#181d19; --ink:#e7ece7; --muted:#8b968e; --line:#2a322b;
+      --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70; --risk-soft:#3a201d;
+      --amber:#f2a93b; --amber-soft:#3a2c12;
+    }
+  }
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); min-height:100vh; }
+
+  .topbar{ display:flex; align-items:center; gap:16px; padding:16px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .brand{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .brand.sub{ font-weight:500; color:var(--muted); font-size:0.85rem; }
+
+  .wrap{ max-width:720px; margin:0 auto; padding:24px 20px 64px; display:flex; flex-direction:column; gap:22px; }
+  .eyebrow{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
+  h1{ font-size:1.5rem; margin:0 0 4px; }
+  h2{ font-size:1.05rem; margin:0; }
+  .sub{ color:var(--muted); font-size:0.9rem; margin:0; max-width:58ch; }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  .card-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; gap:12px; }
+  .card-head a{ font-family:var(--mono); font-size:0.78rem; color:var(--accent); text-decoration:none; }
+
+  .regime-tile{ display:flex; align-items:center; gap:16px; }
+  .regime-badge{
+    flex:none; width:64px; height:64px; border-radius:16px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; font-size:1.6rem;
+  }
+  .regime-badge.bullish{ background:var(--accent-soft); color:var(--accent); }
+  .regime-badge.bearish{ background:var(--risk-soft); color:var(--risk); }
+  .regime-badge.neutral{ background:var(--amber-soft); color:var(--amber); }
+  .regime-badge.unknown{ background:var(--line); color:var(--muted); }
+  .regime-label{ font-size:1.15rem; font-weight:700; }
+  .regime-note{ margin-top:4px; color:var(--muted); font-size:0.86rem; max-width:48ch; }
+  .regime-stamp{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-top:14px; }
+
+  .explain-list{ display:flex; flex-direction:column; gap:14px; margin-top:4px; }
+  .explain-item{ display:flex; gap:12px; align-items:flex-start; }
+  .explain-dot{ flex:none; width:12px; height:12px; border-radius:4px; margin-top:4px; }
+  .explain-dot.bullish{ background:var(--accent); }
+  .explain-dot.bearish{ background:var(--risk); }
+  .explain-dot.neutral{ background:var(--amber); }
+  .explain-item p{ margin:0; font-size:0.9rem; color:var(--muted); }
+  .explain-item p b{ color:var(--ink); }
+
+  .history-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 0; border-top:1px solid var(--line); font-size:0.88rem;
+  }
+  .history-row:first-child{ border-top:none; }
+  .history-date{ font-family:var(--mono); color:var(--muted); font-size:0.8rem; }
+  .history-tag{
+    font-family:var(--mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.03em;
+    padding:3px 9px; border-radius:999px;
+  }
+  .history-tag.bullish{ background:var(--accent-soft); color:var(--accent); }
+  .history-tag.bearish{ background:var(--risk-soft); color:var(--risk); }
+  .history-tag.neutral{ background:var(--amber-soft); color:var(--amber); }
+  .history-tag.unknown{ background:var(--line); color:var(--muted); }
+
+  .empty{ color:var(--muted); font-size:0.88rem; padding:6px 0; }
+  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="dot"></span>Zelos</a>
+  <a class="brand sub" href="dashboard.html">Dashboard</a>
+  <a class="brand sub" href="my-zelos.html">My Zelos</a>
+  <a class="brand sub" href="arsenal.html">Arsenal</a>
+  <a class="brand sub" href="alert-history.html">Alert history</a>
+</div>
+
+<div class="wrap">
+  <div>
+    <p class="eyebrow">Daily market</p>
+    <h1>Zelos's current read on the market</h1>
+    <p class="sub">Every strategy checks the broad market first, before it looks at a single ticker — this is that same read, shown on its own. It's context, not a forecast, and it comes straight off the most recent alert run.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Today's regime</h2></div>
+    <div id="regimeBlock"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>How to read this</h2></div>
+    <div class="explain-list">
+      <div class="explain-item">
+        <div class="explain-dot bullish"></div>
+        <p><b>Bullish</b> — the broad market (tracked via SPY and QQQ) is trading above both its 20- and 50-day moving averages, and both are sloping up. Ordinary bar for a setup to qualify.</p>
+      </div>
+      <div class="explain-item">
+        <div class="explain-dot neutral"></div>
+        <p><b>Neutral</b> — a mixed read: above one moving average but not the other, or a moving average that's flattening out or starting to roll over. Same bar, more caution baked into which setups actually clear it.</p>
+      </div>
+      <div class="explain-item">
+        <div class="explain-dot bearish"></div>
+        <p><b>Bearish</b> — the market is below both moving averages and both are sloping down. Every Zelos strategy raises its bar considerably when this is the read, and strongly prefers publishing nothing over forcing a setup into a weak backdrop.</p>
+      </div>
+    </div>
+    <p class="fine" style="margin-top:16px;">This is a read on the broad market, not a prediction of what it does next — and it's the same input every Zelos strategy uses, not personalized to any account or position.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Recent sessions</h2></div>
+    <div id="historyBlock"><div class="empty">Loading…</div></div>
+  </div>
+
+  <div class="fine">Rule-based scans only — general information, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+(function(){
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+
+  function toDate(ts){
+    try { return ts && ts.toDate ? ts.toDate() : new Date(ts); } catch(e){ return null; }
+  }
+  function fmtStamp(ts){
+    var d = toDate(ts);
+    if (!d) return '';
+    return d.toLocaleString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' ET';
+  }
+  function dateKey(ts){
+    var d = toDate(ts);
+    if (!d) return '';
+    return d.toLocaleDateString('en-CA', { timeZone:'America/New_York' });
+  }
+  function fmtDay(ts){
+    var d = toDate(ts);
+    if (!d) return '';
+    return d.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
+  }
+
+  function regimeKey(text){
+    var t = (text || '').toUpperCase();
+    if (t.indexOf('BULLISH') !== -1) return 'bullish';
+    if (t.indexOf('BEARISH') !== -1) return 'bearish';
+    if (t.indexOf('NEUTRAL') !== -1) return 'neutral';
+    return 'unknown';
+  }
+  function regimeIcon(key){
+    return key === 'bullish' ? '↑' : key === 'bearish' ? '↓' : key === 'neutral' ? '→' : '?';
+  }
+  function regimeWord(key){
+    return key === 'bullish' ? 'Bullish' : key === 'bearish' ? 'Bearish' : key === 'neutral' ? 'Neutral' : 'Unknown';
+  }
+  function regimeNote(key){
+    if (key === 'bullish') return 'Ordinary bar for a setup to qualify — no extra caution baked in.';
+    if (key === 'bearish') return 'The bar is raised considerably — most strategies expect to publish nothing.';
+    if (key === 'neutral') return 'Same bar as usual, but with more caution around which setups actually clear it.';
+    return 'No market-regime note on the latest alert yet.';
+  }
+
+  function renderRegime(latest){
+    var block = document.getElementById('regimeBlock');
+    if (!latest) { block.innerHTML = '<div class="empty">No alerts recorded yet.</div>'; return; }
+    var key = regimeKey(latest.marketRegime);
+    block.innerHTML =
+      '<div class="regime-tile">' +
+        '<div class="regime-badge ' + key + '">' + regimeIcon(key) + '</div>' +
+        '<div>' +
+          '<div class="regime-label">' + regimeWord(key) + '</div>' +
+          '<div class="regime-note">' + (latest.marketRegime || regimeNote(key)) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="regime-stamp">As of ' + fmtStamp(latest.createdAt) + '</div>';
+  }
+
+  function renderHistory(docs){
+    var block = document.getElementById('historyBlock');
+    if (!docs.length) { block.innerHTML = '<div class="empty">No sessions recorded yet.</div>'; return; }
+    var seen = {};
+    var days = [];
+    docs.forEach(function(a){
+      var k = dateKey(a.createdAt);
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      days.push(a);
+    });
+    days = days.slice(0, 7);
+    if (!days.length) { block.innerHTML = '<div class="empty">No sessions recorded yet.</div>'; return; }
+    block.innerHTML = days.map(function(a){
+      var key = regimeKey(a.marketRegime);
+      return (
+        '<div class="history-row">' +
+          '<span class="history-date">' + fmtDay(a.createdAt) + '</span>' +
+          '<span class="history-tag ' + key + '">' + regimeWord(key) + '</span>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  if (!ready) {
+    document.getElementById('regimeBlock').innerHTML = '<div class="empty">Can\'t reach Zelos data right now — check back shortly.</div>';
+    document.getElementById('historyBlock').innerHTML = '<div class="empty">Can\'t reach Zelos data right now — check back shortly.</div>';
+    return;
+  }
+
+  db.collection('alerts').orderBy('createdAt', 'desc').limit(60).get().then(function(snap){
+    var docs = [];
+    snap.forEach(function(doc){ docs.push(doc.data()); });
+    renderRegime(docs[0] || null);
+    renderHistory(docs);
+  }).catch(function(){
+    document.getElementById('regimeBlock').innerHTML = '<div class="empty">Couldn\'t load market data right now.</div>';
+    document.getElementById('historyBlock').innerHTML = '<div class="empty">Couldn\'t load market data right now.</div>';
+  });
+})();
+</script>
+</body>
+</html>

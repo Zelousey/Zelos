@@ -15,26 +15,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Swing Trader — Zelos</title>
+<title>Options Scanner — Zelos</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0f1310">
-<meta name="description" content="Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.">
-<link rel="canonical" href="https://agentictrading.info/swing-trader.html">
+<meta name="description" content="Options Scanner takes the same directional setups Zelos already screens for and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies. Rule-based, general information, the same for every subscriber.">
+<link rel="canonical" href="https://agentictrading.info/options-scanner.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Swing Trader — Zelos">
-<meta property="og:description" content="Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.">
-<meta property="og:url" content="https://agentictrading.info/swing-trader.html">
+<meta property="og:title" content="Options Scanner — Zelos">
+<meta property="og:description" content="Options Scanner takes the same directional setups Zelos already screens for and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies. Rule-based, general information, the same for every subscriber.">
+<meta property="og:url" content="https://agentictrading.info/options-scanner.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Swing Trader — Zelos">
-<meta name="twitter:description" content="Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.">
+<meta name="twitter:title" content="Options Scanner — Zelos">
+<meta name="twitter:description" content="Options Scanner takes the same directional setups Zelos already screens for and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies. Rule-based, general information, the same for every subscriber.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <style>
   :root{ color-scheme: light dark; }
@@ -50,13 +50,10 @@
     --ink:#16201a;
     --muted:#5b6660;
     --line:#d5dbd2;
-    --accent:#1f7a4d;
-    --accent-soft:#dcefe2;
+    --accent:#a3690b;
+    --accent-soft:#f6e9d0;
     --risk:#a3352c;
     --risk-soft:#f6e2df;
-    --bull-fur:#d97b3f;
-    --bull-fur-dark:#b8622f;
-    --bull-cream:#faf1e2;
     --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
     --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
@@ -67,13 +64,10 @@
       --ink:#e7ece7;
       --muted:#8b968e;
       --line:#2a322b;
-      --accent:#4fd897;
-      --accent-soft:#163625;
+      --accent:#f0ad3d;
+      --accent-soft:#3a2c12;
       --risk:#ff7d70;
       --risk-soft:#3a201d;
-      --bull-fur:#e08a4f;
-      --bull-fur-dark:#c06a35;
-      --bull-cream:#f4e6d0;
     }
   }
   :root[data-theme="dark"]{
@@ -82,13 +76,10 @@
     --ink:#e7ece7;
     --muted:#8b968e;
     --line:#2a322b;
-    --accent:#4fd897;
-    --accent-soft:#163625;
+    --accent:#f0ad3d;
+    --accent-soft:#3a2c12;
     --risk:#ff7d70;
     --risk-soft:#3a201d;
-    --bull-fur:#e08a4f;
-    --bull-fur-dark:#c06a35;
-    --bull-cream:#f4e6d0;
   }
 
   body{
@@ -277,6 +268,16 @@
     padding:28px 26px;
     margin-top:28px;
   }
+  .proof-contract{
+    margin-top:14px;
+    font-family:var(--mono);
+    font-size:0.85rem;
+    color:var(--ink);
+    background:var(--accent-soft);
+    display:inline-block;
+    padding:6px 12px;
+    border-radius:8px;
+  }
   .proof-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -339,6 +340,19 @@
   }
   .play-card-top .ticker{ font-weight:700; font-size:1rem; }
   .play-card-top .date{ font-size:0.72rem; color:var(--muted); }
+  .play-direction{
+    margin-top:8px;
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    font-weight:700;
+    letter-spacing:0.02em;
+    padding:3px 9px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent);
+  }
+  .play-direction.put{ background:var(--risk-soft); color:var(--risk); }
   .play-card-rows{
     margin-top:12px;
     display:flex;
@@ -415,17 +429,6 @@
   .trust-item p{ color:var(--muted); font-size:0.95rem; }
   .trust-item p b{ color:var(--ink); font-weight:600; }
 
-  /* ---- final cta ---- */
-  .final{
-    text-align:left;
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:18px;
-    padding:40px 32px;
-  }
-  .final h2{ font-size:1.7rem; max-width:20ch; }
-  .final p{ margin-top:10px; color:var(--muted); max-width:48ch; }
-
   footer{
     padding-block:32px 60px;
     font-family:var(--mono);
@@ -461,46 +464,19 @@
     font-size:0.83rem;
     color:var(--muted);
   }
-
-  /* ---- why zelos ---- */
-  .why-card{
-    margin-top:24px;
+  .pattern-tag{
+    display:inline-block;
+    margin-top:10px;
+    font-family:var(--mono);
+    font-size:0.68rem;
+    font-weight:700;
+    letter-spacing:0.03em;
+    padding:2px 8px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent);
   }
-
-  /* ---- roadmap ---- */
-  .roadmap-list{
-    margin-top:24px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-  }
-  .roadmap-item{
-    display:flex;
-    gap:14px;
-    align-items:flex-start;
-  }
-  .roadmap-item .lock{
-    flex:none;
-    width:22px; height:22px;
-    border-radius:6px;
-    background:var(--line);
-    color:var(--muted);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:0.75rem;
-    margin-top:2px;
-  }
-  .roadmap-item p{ color:var(--muted); font-size:0.95rem; }
-  .roadmap-item p b{ color:var(--ink); font-weight:600; }
-  .roadmap-note{
-    margin-top:20px;
-    padding:14px 16px;
-    border:1px solid var(--line);
-    border-radius:10px;
-    font-size:0.88rem;
-    color:var(--muted);
-  }
+  .pattern-tag.put{ background:var(--risk-soft); color:var(--risk); }
 
   /* ---- floating eye ---- */
   .floating-eye{
@@ -526,28 +502,6 @@
   @media (prefers-reduced-motion: reduce){
     .floating-eye.is-blinking svg{ animation:none; }
   }
-  blockquote{
-    margin:0;
-    padding:20px 22px;
-    background:var(--accent-soft);
-    border-left:3px solid var(--accent);
-    border-radius:4px 12px 12px 4px;
-    font-size:1.05rem;
-    font-style:italic;
-    color:var(--ink);
-  }
-  blockquote cite{
-    display:block;
-    margin-top:12px;
-    font-style:normal;
-    font-family:var(--mono);
-    font-size:0.75rem;
-    color:var(--accent);
-    letter-spacing:0.02em;
-  }
-  .why-body p{ color:var(--muted); font-size:0.95rem; }
-  .why-body p + p{ margin-top:12px; }
-  .why-body b{ color:var(--ink); }
 
   /* ---- get started (setup + buy) ---- */
   .start-grid{
@@ -684,17 +638,17 @@
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Zelos Swing Trader",
-  "url": "https://agentictrading.info/swing-trader.html",
+  "name": "Zelos Options Scanner",
+  "url": "https://agentictrading.info/options-scanner.html",
   "image": "https://agentictrading.info/og-image.png",
-  "description": "Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.",
+  "description": "Options Scanner takes the same directional setups Zelos already screens for and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies. Rule-based, general information, the same for every subscriber.",
   "applicationCategory": "FinanceApplication",
   "operatingSystem": "Any",
   "offers": {
     "@type": "Offer",
     "price": "20",
     "priceCurrency": "USD",
-    "url": "https://agentictrading.gumroad.com/l/AgenticTrading?wanted=true",
+    "url": "https://agentictrading.gumroad.com/l/OptionsScanner?wanted=true",
     "availability": "https://schema.org/InStock"
   }
 }
@@ -715,8 +669,8 @@
           <a href="arsenal.html">Arsenal</a>
           <a href="daily-market.html">Daily market</a>
           <a href="alert-history.html">Alert history</a>
+          <a href="swing-trader.html">Swing Trader</a>
           <a href="breakout-rider.html">Breakout Rider</a>
-          <a href="options-scanner.html">Options Scanner</a>
           <a href="setup.html">Setup guide</a>
           <a href="demo.html">Try the demo</a>
           <a href="arcade.html">Arcade</a>
@@ -729,95 +683,94 @@
   </nav>
 
   <section class="hero">
-    <div class="eyebrow">Zelos &middot; Swing Trader &middot; a published alert, not a broker</div>
-    <h1>Swing Trader, by <em>Zelos.</em></h1>
-    <p class="lede">Swing Trader screens the market every session for one specific pattern &mdash; a healthy stock pausing after a run, not one still chasing its high &mdash; and only speaks up when the setup earns it. It publishes the same alert, on the same schedule, to every subscriber. It's not tied to your account, doesn't know your balance, and never places a trade for you &mdash; what you do with the information is entirely up to you.</p>
+    <div class="eyebrow">Zelos &middot; Options Scanner &middot; a published alert, not a broker</div>
+    <h1>Options Scanner, by <em>Zelos.</em></h1>
+    <p class="lede">Options Scanner doubles as an add-on to Swing Trader and Breakout Rider: each session it first checks whether either one already published today's headline stock pick, and if that setup also clears the options-specific checks, it becomes today's options idea instead of a separate call. If neither is running for you, or neither found anything today, it runs the same directional screen on its own &mdash; pullbacks holding in an uptrend, breakdowns failing to hold support &mdash; then translates whatever clears the bar into one specific options contract: a single long call or put, roughly one strike out of the money, 30&ndash;45 days to expiration. Never spreads, never multi-leg, never short options, never 0DTE, never weeklies. It's not tied to your account and never places an order &mdash; what you do with the information is entirely up to you.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="#access">Get started</a>
       <a class="btn btn-ghost" href="#how">See how it decides</a>
     </div>
-    <div class="cta-note">Live alert feed &middot; not a backtest, not a demo</div>
+    <div class="cta-note">New from Zelos &middot; add-on to Swing Trader &amp; Breakout Rider, or standalone &middot; no live track record yet</div>
 
     <div class="pulse-card">
       <svg viewBox="0 0 680 180" role="img" aria-labelledby="pulseTitle">
-        <title id="pulseTitle">Candlestick chart of a healthy uptrend that pulls back once, finds support, and breaks out again &mdash; entry, stop, and target marked</title>
-        <line x1="32.1" y1="126.8" x2="32.1" y2="144.0" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="20.9" y="129.7" width="22.5" height="11.5" fill="var(--accent)"/>
-        <line x1="68.3" y1="115.4" x2="68.3" y2="132.5" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="57.1" y="118.2" width="22.5" height="11.5" fill="var(--accent)"/>
-        <line x1="104.6" y1="101.0" x2="104.6" y2="121.1" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="93.3" y="103.9" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="140.8" y1="86.7" x2="140.8" y2="106.8" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="129.5" y="89.6" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="177.0" y1="78.1" x2="177.0" y2="95.3" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="165.8" y="81.0" width="22.5" height="8.6" fill="var(--accent)"/>
-        <line x1="213.2" y1="78.1" x2="213.2" y2="92.5" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="202.0" y="81.0" width="22.5" height="5.7" fill="var(--risk)"/>
-        <line x1="249.4" y1="83.9" x2="249.4" y2="103.9" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="238.2" y="86.7" width="22.5" height="14.3" fill="var(--risk)"/>
-        <line x1="285.7" y1="98.2" x2="285.7" y2="126.8" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="274.4" y="101.0" width="22.5" height="14.3" fill="var(--risk)"/>
-        <line x1="321.9" y1="106.8" x2="321.9" y2="118.2" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="310.7" y="109.6" width="22.5" height="5.7" fill="var(--accent)"/>
-        <line x1="358.1" y1="103.9" x2="358.1" y2="118.2" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="346.9" y="109.6" width="22.5" height="2.9" fill="var(--risk)"/>
-        <line x1="394.3" y1="101.0" x2="394.3" y2="115.4" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="383.1" y="103.9" width="22.5" height="8.6" fill="var(--accent)"/>
-        <line x1="430.6" y1="86.7" x2="430.6" y2="106.8" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="419.3" y="89.6" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="466.8" y1="61.0" x2="466.8" y2="92.5" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="455.5" y="66.7" width="22.5" height="22.9" fill="var(--accent)"/>
-        <line x1="503.0" y1="46.6" x2="503.0" y2="69.5" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="491.8" y="52.4" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="539.2" y1="32.3" x2="539.2" y2="55.2" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="528.0" y="38.0" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="575.4" y1="35.2" x2="575.4" y2="49.5" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="564.2" y="38.0" width="22.5" height="5.7" fill="var(--risk)"/>
-        <line x1="611.7" y1="26.6" x2="611.7" y2="46.6" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="600.4" y="32.3" width="22.5" height="11.5" fill="var(--accent)"/>
-        <line x1="647.9" y1="18.0" x2="647.9" y2="35.2" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="636.7" y="20.9" width="22.5" height="11.5" fill="var(--accent)"/>
-        <!-- entry -->
-        <circle cx="321.9" cy="109.6" r="5" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>
-        <text x="321.9" y="160" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)">ENTRY</text>
-        <!-- stop -->
-        <line x1="150" y1="132.5" x2="680" y2="132.5" stroke="var(--risk)" stroke-width="1" stroke-dasharray="4 4"/>
-        <text x="628" y="146" font-family="var(--mono)" font-size="10" fill="var(--risk)">STOP</text>
-        <!-- target -->
-        <circle cx="539.2" cy="38" r="5" fill="var(--accent)"/>
-        <text x="539.2" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">TARGET</text>
+        <title id="pulseTitle">Candlestick chart of a pullback holding in an uptrend, then a resumption higher &mdash; the point a long call would be identified, with an expiration window marked</title>
+        <line x1="32.1" y1="70.0" x2="32.1" y2="88.5" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="20.9" y="73.7" width="22.5" height="11.1" fill="var(--accent)"/>
+        <line x1="68.3" y1="77.4" x2="68.3" y2="95.9" stroke="var(--risk)" stroke-width="1.5"/>
+        <rect x="57.1" y="81.1" width="22.5" height="11.1" fill="var(--risk)"/>
+        <line x1="104.6" y1="84.7" x2="104.6" y2="103.3" stroke="var(--risk)" stroke-width="1.5"/>
+        <rect x="93.3" y="88.4" width="22.5" height="11.2" fill="var(--risk)"/>
+        <line x1="140.8" y1="92.1" x2="140.8" y2="107.0" stroke="var(--risk)" stroke-width="1.5"/>
+        <rect x="129.5" y="95.8" width="22.5" height="7.4" fill="var(--risk)"/>
+        <line x1="177.0" y1="88.4" x2="177.0" y2="103.3" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="165.8" y="92.1" width="22.5" height="7.4" fill="var(--accent)"/>
+        <line x1="4" y1="88.4" x2="668" y2="88.4" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4"/>
+        <line x1="213.2" y1="70.0" x2="213.2" y2="88.4" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="202.0" y="73.7" width="22.5" height="11.1" fill="var(--accent)"/>
+        <!-- entry (the hold, not the initial spike down) -->
+        <circle cx="213.2" cy="73.7" r="5" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="213.2" y="140" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)">ENTRY</text>
+        <line x1="249.4" y1="55.5" x2="249.4" y2="73.7" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="238.2" y="58.4" width="22.5" height="12.9" fill="var(--accent)"/>
+        <line x1="285.7" y1="47.7" x2="285.7" y2="66.6" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="274.4" y="51.0" width="22.5" height="12.9" fill="var(--accent)"/>
+        <line x1="321.9" y1="39.9" x2="321.9" y2="58.4" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="310.7" y="43.2" width="22.5" height="12.9" fill="var(--accent)"/>
+        <line x1="358.1" y1="35.5" x2="358.1" y2="51.0" stroke="var(--risk)" stroke-width="1.5"/>
+        <rect x="346.9" y="39.2" width="22.5" height="8.8" fill="var(--risk)"/>
+        <line x1="394.3" y1="27.8" x2="394.3" y2="46.3" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="383.1" y="31.4" width="22.5" height="12.9" fill="var(--accent)"/>
+        <line x1="430.6" y1="22.6" x2="430.6" y2="38.5" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="419.3" y="25.8" width="22.5" height="9.5" fill="var(--accent)"/>
+        <!-- expiration window -->
+        <line x1="440" y1="4" x2="440" y2="170" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="640" y1="4" x2="640" y2="170" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="540" y="16" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">30&ndash;45 DTE WINDOW</text>
+        <line x1="466.8" y1="18.3" x2="466.8" y2="35.5" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="455.5" y="21.0" width="22.5" height="10.8" fill="var(--accent)"/>
+        <line x1="503.0" y1="14.0" x2="503.0" y2="29.7" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="491.8" y="16.7" width="22.5" height="9.9" fill="var(--accent)"/>
+        <line x1="539.2" y1="9.5" x2="539.2" y2="25.0" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="528.0" y="12.2" width="22.5" height="9.5" fill="var(--accent)"/>
+        <line x1="575.4" y1="4.0" x2="575.4" y2="21.0" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="564.2" y="6.5" width="22.5" height="11.0" fill="var(--accent)"/>
+        <circle cx="575.4" cy="6.5" r="5" fill="var(--accent)"/>
+        <text x="575.4" y="0" text-anchor="middle" font-family="var(--mono)" font-size="0" fill="var(--accent)"></text>
       </svg>
       <div class="pulse-caption">
-        <span>Pullback into support, then a breakout past the prior high</span>
-        <span><b>R:R 3.1 : 1</b> on this pattern</span>
+        <span>A pullback holds, resumption confirms &mdash; the call gets picked from that point</span>
+        <span><b>1 OTM &middot; 30&ndash;45 DTE</b> on this pattern</span>
       </div>
     </div>
   </section>
 
   <section>
     <div class="eyebrow">What it's actually looking for</div>
-    <h2 style="font-size:1.7rem; margin-top:8px;">Four shapes on a chart. Nothing else counts.</h2>
-    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">Every candidate gets sorted into one of these &mdash; or thrown out. If a stock's chart doesn't look like one of these, it doesn't matter how exciting the ticker is.</p>
+    <h2 style="font-size:1.7rem; margin-top:8px;">Two directions. One contract rule. Nothing else counts.</h2>
+    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">Every candidate gets sorted into one of these &mdash; or thrown out. The direction decides call or put; the contract rule never changes.</p>
     <div class="pattern-grid">
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,75 C40,68 60,60 75,50 C90,40 95,55 105,60 C115,65 130,50 150,38 C170,26 200,20 250,14" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="105" cy="60" r="4" fill="var(--accent)"/></svg>
-        <h3>Pullback in an uptrend</h3>
-        <p>Climbing steadily, pauses, catches its breath near support.</p>
+        <svg viewBox="0 0 260 90"><line x1="10" y1="42" x2="250" y2="42" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/><path d="M10,50 C30,58 45,52 60,60 C80,68 95,58 110,50 C130,40 145,44 160,32 C175,22 180,18 195,10 C210,4 225,6 250,4" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="110" cy="50" r="4" fill="var(--accent)"/></svg>
+        <h3>Pullback holding in an uptrend</h3>
+        <p>Selling pressure fades, support holds, the trend resumes &mdash; the setup a long call gets built from.</p>
+        <div class="pattern-tag">&#8593; long call</div>
       </div>
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,78 C40,55 60,28 80,20 C95,24 105,32 115,30 C125,28 135,34 145,32 C155,30 165,36 175,34 C190,30 210,20 250,10" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="145" cy="32" r="4" fill="var(--accent)"/></svg>
-        <h3>Bull flag</h3>
-        <p>A sharp run, then a tight, orderly drift sideways &mdash; not a collapse.</p>
+        <svg viewBox="0 0 260 90"><line x1="10" y1="48" x2="250" y2="48" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/><path d="M10,20 C30,26 45,22 60,30 C80,38 95,44 110,52 C130,60 145,58 160,68 C175,76 180,78 195,82 C210,86 225,84 250,86" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="110" cy="52" r="4" fill="var(--risk)"/></svg>
+        <h3>Breakdown that fails to hold</h3>
+        <p>Support gives way and the bounce doesn't come &mdash; the setup a long put gets built from.</p>
+        <div class="pattern-tag put">&#8595; long put</div>
       </div>
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,75 C40,60 60,45 80,40 C95,36 105,50 115,58 C125,66 135,58 145,42 C160,20 190,15 250,12" fill="none" stroke="var(--muted)" stroke-width="2"/><line x1="80" y1="40" x2="250" y2="40" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/><circle cx="115" cy="58" r="4" fill="var(--accent)"/></svg>
-        <h3>Breakout + retest</h3>
-        <p>Breaks a level, comes back to prove that level now holds.</p>
+        <svg viewBox="0 0 260 90"><line x1="80" y1="10" x2="80" y2="80" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4"/><line x1="180" y1="10" x2="180" y2="80" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4"/><text x="130" y="20" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--muted)">30&ndash;45 DTE</text><path d="M10,50 L60,50 L100,30 L160,30 L200,50 L250,50" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="100" cy="30" r="4" fill="var(--accent)"/></svg>
+        <h3>Roughly 1 strike out of the money</h3>
+        <p>Close enough to the underlying's move to matter, far enough out to keep the premium reasonable.</p>
       </div>
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,20 C30,35 45,55 60,62 C75,69 85,58 95,52 C110,44 120,58 130,64 C145,72 155,60 170,45 C190,26 215,18 250,15" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="60" cy="62" r="3.5" fill="var(--ink)" opacity="0.5"/><circle cx="130" cy="64" r="4" fill="var(--accent)"/></svg>
-        <h3>Higher-low reversal</h3>
-        <p>A decline that stops short of its last low, then turns back up.</p>
+        <svg viewBox="0 0 260 90"><path d="M10,66 C30,60 45,52 60,40 C75,28 90,14 105,10 C115,20 122,34 130,44 C140,56 155,64 175,68 C195,72 220,72 250,72" fill="none" stroke="var(--risk)" stroke-width="2"/><circle cx="105" cy="10" r="3.5" fill="var(--risk)" opacity="0.6"/><circle cx="175" cy="68" r="4" fill="var(--risk)"/></svg>
+        <h3>Spreads, multi-leg, 0DTE &mdash; what it avoids</h3>
+        <p>Never a short leg, never weekly options, never same-day expiration. One long contract, or nothing.</p>
       </div>
     </div>
   </section>
@@ -836,22 +789,22 @@
       <div class="step">
         <div class="step-num">02</div>
         <div>
-          <h3>Scan for pullbacks, not runners</h3>
-          <p>Screens hundreds of stocks for ones climbing steadily that have recently paused &mdash; then explicitly throws out anything that's already made its big move. Chasing is the most common way this kind of trade goes wrong.</p>
+          <h3>Check for a same-day pick first, then scan on its own</h3>
+          <p>If you also run Swing Trader or Breakout Rider, it checks whether either one already published a real headline setup today and uses that as the candidate &mdash; so this can feel like the options way to play today's call rather than an unrelated scan. Otherwise, it screens hundreds of stocks itself for the same pullback-holding or breakdown-failing shapes those two look for &mdash; scored for a clean directional move, not a stock pick on its own. Either way, the candidate still has to clear every check below; being linked never skips a step.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">03</div>
         <div>
-          <h3>Score it, don't just spot it</h3>
-          <p>Trend, support, volume, reward-to-risk, relative strength &mdash; scored out of 80. Below the bar, it gets dropped, even if it "looks" interesting.</p>
+          <h3>Translate it to one contract</h3>
+          <p>Once a setup clears the bar, it's translated into exactly one options structure: call or put based on direction, roughly one strike out of the money, 30&ndash;45 days to expiration &mdash; enough runway for the move to play out without a weekly option's time decay eating it alive. Never a spread, never multiple legs, never a short option.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">04</div>
         <div>
           <h3>You decide, every time</h3>
-          <p>If something clears the bar, the alert publishes with the entry, stop, target, and reward:risk laid out, plus a general risk-sizing rule of thumb &mdash; never a number calculated from your account, since Zelos never sees it. What you do with that information, in your own brokerage account, is entirely your call.</p>
+          <p>If something clears the bar, the alert publishes the underlying setup plus the contract detail &mdash; direction, approximate strike, expiration window &mdash; and a general risk-sizing note, never a number calculated from your account, since Zelos never sees it. What you do with that information, in your own brokerage account, is entirely your call.</p>
         </div>
       </div>
     </div>
@@ -859,13 +812,14 @@
 
   <section>
     <div class="eyebrow">The discipline, not the hype</div>
-    <h2 style="font-size:1.7rem; margin-top:8px;">A real morning from this account &mdash; not a highlight reel.</h2>
-    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">On a recent run, the best candidate out of twenty screened stocks was Pfizer, and it still didn't qualify.</p>
+    <h2 style="font-size:1.7rem; margin-top:8px;">An illustrative walkthrough, not a highlight reel.</h2>
+    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">Options Scanner is newly launched, so there's no live account history to show yet. Here's exactly how the screen and translation rule treat a real setup shape &mdash; shown honestly as a sample, not as a completed trade.</p>
     <div class="proof">
       <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
-        <div style="font-family:var(--mono); font-weight:700; font-size:1.3rem;">PFE &middot; best candidate</div>
-        <div style="font-family:var(--mono); color:var(--muted); font-size:0.85rem;">score 55 / 80 &middot; needed 60</div>
+        <div style="font-family:var(--mono); font-weight:700; font-size:1.3rem;">[TICKER] &middot; sample walkthrough</div>
+        <div style="font-family:var(--mono); color:var(--muted); font-size:0.85rem;">score 54 / 80 &middot; needed 60</div>
       </div>
+      <div class="proof-contract">Would-be contract: 1 OTM long call &middot; ~37 DTE</div>
       <div class="proof-grid">
         <div class="proof-tile">
           <div class="label">Reward : Risk</div>
@@ -875,7 +829,7 @@
         <div class="proof-tile">
           <div class="label">Outcome</div>
           <div class="value risk">No trade</div>
-          <div class="sub">Reported honestly, nothing forced.</div>
+          <div class="sub">Illustrative only &mdash; not a trade on a live account.</div>
         </div>
       </div>
     </div>
@@ -883,15 +837,16 @@
 
   <section>
     <div class="eyebrow">Plays of the week</div>
-    <h2 style="font-size:1.7rem; margin-top:8px;">What Swing Trader has been calling.</h2>
+    <h2 style="font-size:1.7rem; margin-top:8px;">What Options Scanner will start calling.</h2>
     <div class="plays-note">Sample format shown below &mdash; these three aren't real trades yet. This section starts showing actual calls, ticker by ticker, once there's enough live history on the account to report honestly.</div>
     <div class="plays-grid">
       <div class="play-card">
         <div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div>
+        <div class="play-direction">&#8593; long call</div>
         <div class="play-card-rows">
-          <div>Entry <b>[$X.XX]</b></div>
-          <div>Stop <b>[$X.XX]</b></div>
-          <div>Target <b>[$X.XX]</b></div>
+          <div>Strike <b>[~1 OTM]</b></div>
+          <div>Expiration <b>[~XX DTE]</b></div>
+          <div>Underlying entry <b>[$X.XX]</b></div>
         </div>
         <div class="play-card-bottom">
           <span>R:R [X.X:1]</span>
@@ -900,10 +855,11 @@
       </div>
       <div class="play-card">
         <div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div>
+        <div class="play-direction put">&#8595; long put</div>
         <div class="play-card-rows">
-          <div>Entry <b>[$X.XX]</b></div>
-          <div>Stop <b>[$X.XX]</b></div>
-          <div>Target <b>[$X.XX]</b></div>
+          <div>Strike <b>[~1 OTM]</b></div>
+          <div>Expiration <b>[~XX DTE]</b></div>
+          <div>Underlying entry <b>[$X.XX]</b></div>
         </div>
         <div class="play-card-bottom">
           <span>R:R [X.X:1]</span>
@@ -912,10 +868,11 @@
       </div>
       <div class="play-card">
         <div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div>
+        <div class="play-direction">&#8593; long call</div>
         <div class="play-card-rows">
-          <div>Entry <b>[$X.XX]</b></div>
-          <div>Stop <b>[$X.XX]</b></div>
-          <div>Target <b>[$X.XX]</b></div>
+          <div>Strike <b>[~1 OTM]</b></div>
+          <div>Expiration <b>[~XX DTE]</b></div>
+          <div>Underlying entry <b>[$X.XX]</b></div>
         </div>
         <div class="play-card-bottom">
           <span>R:R [X.X:1]</span>
@@ -935,11 +892,15 @@
       </div>
       <div class="trust-item">
         <div class="check">&#10003;</div>
-        <p><b>Nothing here places a trade.</b> Every run only researches and reports. If you decide to act on an alert, you place that trade yourself, in your own brokerage account, on your own judgment.</p>
+        <p><b>Nothing here places an order.</b> Every run only researches and reports. If you decide to act on an alert, you place that options trade yourself, in your own brokerage account, on your own judgment.</p>
       </div>
       <div class="trust-item">
         <div class="check">&#10003;</div>
-        <p><b>Sizing is a general rule of thumb, not a calculation on your money.</b> Because Zelos never sees your balance, it can't and doesn't size a position for you &mdash; the alert offers a general guideline (like risking 1&ndash;2% of an account per idea) for you to apply to your own situation.</p>
+        <p><b>Long calls or long puts only &mdash; never spreads, multi-leg, short options, 0DTE, or weeklies.</b> This is the rule that doesn't bend. A single long option has a plainly defined maximum loss &mdash; what you paid for it &mdash; and nothing more complicated to manage or get assigned on.</p>
+      </div>
+      <div class="trust-item">
+        <div class="check">&#10003;</div>
+        <p><b>Sizing is a general rule of thumb, not a calculation on your money.</b> Because Zelos never sees your balance, it can't and doesn't size a position for you. Options can expire worthless, so the general guidance here leans smaller than the stock-alert equivalent &mdash; apply it to your own situation.</p>
       </div>
       <div class="trust-item">
         <div class="check">&#10003;</div>
@@ -957,7 +918,19 @@
     <div class="faq">
       <div class="faq-item">
         <h3>When can I start using it?</h3>
-        <p>Right away &mdash; Gumroad delivers access to the alert page the moment checkout finishes, no waiting on a manual step. It's been publishing live, not just backtested, before opening up.</p>
+        <p>Right away &mdash; Gumroad delivers access to the alert page the moment checkout finishes, no waiting on a manual step. Options Scanner runs the same rules engine as Swing Trader and Breakout Rider with an options-specific translation step on top; it's newly launched, so there's no live track record on this specific strategy yet &mdash; you're seeing it from day one rather than after months of quiet testing.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Does it work with Swing Trader or Breakout Rider?</h3>
+        <p>Yes &mdash; that's what it's built for. If you also run either one, Options Scanner checks each session whether that skill already published a real headline setup for you today, and if it clears the same options-specific checks (a liquid options chain, the qualifying score), that becomes today's options idea automatically. If neither is running for you, or neither found a setup that day, it runs its own independent bullish/bearish scan instead. Either path still has to pass the full screen &mdash; nothing gets a pass just because it's linked.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Why calls and puts only &mdash; never spreads?</h3>
+        <p>It keeps the position simple and the risk plainly defined: the most you can lose is what you paid for the contract, never more, and there's only one leg to track &mdash; no multi-leg management, no assignment risk from a short leg you sold. That's a deliberate trade-off against the extra income or defined-risk shapes a spread can offer.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What's the strike and expiration rule?</h3>
+        <p>Roughly one strike out of the money, 30&ndash;45 days to expiration. That's enough runway for the underlying move to actually play out without a weekly option's fast time decay working against the position before the setup has a chance to be right.</p>
       </div>
       <div class="faq-item">
         <h3>Will it cost anything?</h3>
@@ -965,15 +938,15 @@
       </div>
       <div class="faq-item">
         <h3>Does this trade for me?</h3>
-        <p>No. Swing Trader is a published alert, not a broker or an execution service &mdash; it never connects to any brokerage account and never places an order. It screens hundreds of stocks, scores every setup, and publishes what qualifies. What you do with that information, if anything, is entirely up to you, in your own account.</p>
+        <p>No. Options Scanner is a published alert, not a broker or an execution service &mdash; it never connects to any brokerage account and never places an order. It screens hundreds of stocks, scores every setup, and publishes what qualifies along with the contract detail. What you do with that information, if anything, is entirely up to you, in your own account.</p>
       </div>
       <div class="faq-item">
         <h3>How much money do I need to use this?</h3>
-        <p>None, to read it &mdash; it's general information, not tied to any account size. Since Zelos never sees your balance, it can't calculate a position size for you; the alert instead offers a general rule of thumb (like risking 1&ndash;2% of an account on any single idea) that you apply to your own situation. Think about what makes sense for you, and talk to a licensed professional if you want advice tailored to your circumstances.</p>
+        <p>None, to read it &mdash; it's general information, not tied to any account size. Since Zelos never sees your balance, it can't calculate a position size for you; the alert instead offers a general rule of thumb that you apply to your own situation. Options can expire worthless, so think carefully about what you can afford to lose entirely, and talk to a licensed professional if you want advice tailored to your circumstances.</p>
       </div>
       <div class="faq-item">
         <h3>What does an alert actually look like?</h3>
-        <p>A single ticket &mdash; ticker, entry, stop, targets, and reward:risk, kept current at one pinned link and timestamped every time it runs so you can always tell how fresh it is. <a href="demo.html">See a sample alert</a> to check out the format before you subscribe.</p>
+        <p>A single ticket &mdash; ticker, direction, approximate strike, expiration window, and the underlying setup's reward:risk, kept current at one pinned link and timestamped every time it runs so you can always tell how fresh it is. <a href="demo.html">See a sample alert</a> to check out the format before you subscribe.</p>
       </div>
       <div class="faq-item">
         <h3>Is there anything to cancel?</h3>
@@ -981,7 +954,7 @@
       </div>
       <div class="faq-item">
         <h3>What if I get stuck?</h3>
-        <p>Message me directly through Gumroad &mdash; open Library, find Zelos, and use the message-seller option there. That's the fastest way to reach me if something doesn't match what you're seeing on this page.</p>
+        <p>Message me directly through Gumroad &mdash; open Library, find Options Scanner, and use the message-seller option there. That's the fastest way to reach me if something doesn't match what you're seeing on this page.</p>
       </div>
     </div>
   </section>
@@ -995,7 +968,7 @@
       <div class="start-steps">
         <div class="start-step">
           <div class="n">01</div>
-          <div><h3>Get Swing Trader</h3><p>Gumroad emails you access the moment checkout finishes &mdash; nothing to wait on.</p></div>
+          <div><h3>Get Options Scanner</h3><p>Gumroad emails you access the moment checkout finishes &mdash; nothing to wait on.</p></div>
         </div>
         <div class="start-step">
           <div class="n">02</div>
@@ -1008,12 +981,12 @@
         <div class="eyebrow">One-time purchase</div>
         <div class="buy-price"><span class="amount">$20</span><span class="period">one time</span></div>
         <div class="buy-includes">
-          <div>The full scan, screen, and scoring strategy</div>
+          <div>The full scan, screen, and options-selection strategy</div>
           <div>The Zelos alert page, kept current every run</div>
           <div>General information &mdash; not tied to any account</div>
           <div>Every future refinement to the strategy</div>
         </div>
-        <a class="btn-buy" href="going-to-gumroad.html">Get Swing Trader &mdash; $20</a>
+        <a class="btn-buy" href="going-to-gumroad-options.html">Get Options Scanner &mdash; $20</a>
         <div class="buy-fine">One payment, yours to keep &mdash; not a subscription. Have an access code? Enter it at checkout on Gumroad. Not personalized advice.</div>
       </div>
     </div>
@@ -1029,12 +1002,12 @@
     <div class="eyebrow">Risk &amp; disclosures</div>
     <h2 style="font-size:1.5rem; margin-top:8px;">Read this before you subscribe.</h2>
     <div class="disclosures">
-      <div class="disclosure-item"><b>Trading involves real risk of loss, including total loss of your invested capital.</b> Markets can move against a position; nothing about Swing Trader's rules, scoring, or past behavior removes that risk.</div>
+      <div class="disclosure-item"><b>Options trading involves additional risks beyond stock trading and is not suitable for every investor.</b> A long call or put can lose its entire value, including 100% of the premium paid, and can expire completely worthless even if you're directionally right but the move doesn't happen in time.</div>
       <div class="disclosure-item"><b>No performance is guaranteed, and none is promised on this page.</b> This strategy has not been backtested against a long track record. Past behavior of any strategy &mdash; including anything eventually shown under "Plays of the week" &mdash; does not predict future results.</div>
-      <div class="disclosure-item"><b>This is general information, published the same way to every subscriber.</b> Zelos never connects to any brokerage account and never places a trade. If you choose to act on an alert, you do so entirely on your own, in your own account, on your own judgment &mdash; nothing here manages a position, watches a fast-moving market, or protects against a price gap or a missed notification.</div>
-      <div class="disclosure-item"><b>This is not personalized investment advice, and Zelos is not a registered investment adviser or broker-dealer.</b> The sizing guidance shown is a general rule of thumb, not a calculation based on your income, other holdings, goals, or risk tolerance. Consider whether this fits your own situation, and talk to a licensed financial professional for advice that does.</div>
-      <div class="disclosure-item"><b>Acting on any alert is your decision and your responsibility.</b> Nothing here places, sizes, or manages an order on your behalf.</div>
-      <div class="disclosure-item"><b>Software can fail.</b> Bugs, downtime, or rate limits could delay or prevent an alert from publishing or updating as intended. Don't rely on Swing Trader as your only source of information on a position.</div>
+      <div class="disclosure-item"><b>This is general information, published the same way to every subscriber.</b> Zelos never connects to any brokerage account and never places a trade. If you choose to act on an alert, you do so entirely on your own, in your own account, on your own judgment &mdash; nothing here manages a position, watches implied volatility, or protects against a price gap or a missed notification.</div>
+      <div class="disclosure-item"><b>This is not personalized investment advice, and Zelos is not a registered investment adviser or broker-dealer.</b> The sizing guidance shown is a general rule of thumb, not a calculation based on your income, other holdings, goals, or risk tolerance. Consider whether options fit your own situation, and talk to a licensed financial professional for advice that does.</div>
+      <div class="disclosure-item"><b>Acting on any alert is your decision and your responsibility.</b> Nothing here places, sizes, or manages an options order on your behalf.</div>
+      <div class="disclosure-item"><b>Software can fail.</b> Bugs, downtime, or rate limits could delay or prevent an alert from publishing or updating as intended. Don't rely on Options Scanner as your only source of information on a position.</div>
     </div>
   </section>
 
@@ -1054,9 +1027,9 @@
         <stop offset="100%" stop-color="#d8d3c8"/>
       </radialGradient>
       <radialGradient id="irisShade" cx="42%" cy="38%" r="65%">
-        <stop offset="0%" stop-color="#7fe0ac"/>
-        <stop offset="45%" stop-color="#1f7a4d"/>
-        <stop offset="100%" stop-color="#0e3d27"/>
+        <stop offset="0%" stop-color="#f5cf7f"/>
+        <stop offset="45%" stop-color="#a3690b"/>
+        <stop offset="100%" stop-color="#4d2f05"/>
       </radialGradient>
     </defs>
     <ellipse cx="50" cy="50" rx="47" ry="44" fill="url(#scleraShade)" stroke="#c9c3b4" stroke-width="1"/>
@@ -1064,7 +1037,7 @@
     <path d="M88,52 C81,50 76,52 71,55" fill="none" stroke="#c76b6b" stroke-width="0.6" opacity="0.4"/>
     <g id="zelosIrisGroup">
       <circle cx="50" cy="50" r="25" fill="url(#irisShade)"/>
-      <g stroke="#0a2b1b" stroke-width="0.8" opacity="0.4">
+      <g stroke="#3a2100" stroke-width="0.8" opacity="0.4">
         <line x1="63" y1="50" x2="75" y2="50"/>
         <line x1="61.3" y1="56.5" x2="71.6" y2="62.5"/>
         <line x1="56.5" y1="61.3" x2="62.5" y2="71.6"/>
@@ -1181,7 +1154,7 @@
   buyBtn.addEventListener('click', function(){
     gtag('event', 'click_buy_gumroad', {
       event_category: 'engagement',
-      event_label: 'Get Swing Trader — $20'
+      event_label: 'Get Options Scanner — $20'
     });
   });
 })();

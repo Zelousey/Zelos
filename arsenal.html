@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Y4B3ZC5XRX');
+</script>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zelos Arsenal</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#12161a">
+<meta name="description" content="Every Zelos skill in one place — what each one does, what it costs, and whether you already own it.">
+<link rel="canonical" href="https://agentictrading.info/arsenal.html">
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]{ display:none !important; }
+  :root{
+    --paper:#eef0ec; --card:#ffffff; --ink:#1a2420; --muted:#5b6660; --line:#d5dbd2;
+    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c; --risk-soft:#f6e2df;
+    --amber:#9a6a10; --amber-soft:#f5ead2;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#111512; --card:#181d19; --ink:#e7ece7; --muted:#8b968e; --line:#2a322b;
+      --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70; --risk-soft:#3a201d;
+      --amber:#f2a93b; --amber-soft:#3a2c12;
+    }
+  }
+  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); min-height:100vh; }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--paper); z-index:10;
+  }
+  .topbar-left{ display:flex; align-items:center; gap:16px; }
+  .brand{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .brand.sub{ font-weight:500; color:var(--muted); font-size:0.85rem; }
+  .user-chip{ font-family:var(--mono); font-size:0.78rem; color:var(--muted); }
+
+  .wrap{ max-width:720px; margin:0 auto; padding:24px 20px 64px; display:flex; flex-direction:column; gap:22px; }
+  .eyebrow{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
+  h1{ font-size:1.5rem; margin:0 0 4px; }
+  h2{ font-size:1.05rem; margin:0; }
+  .sub{ color:var(--muted); font-size:0.9rem; margin:0; max-width:56ch; }
+
+  .skill-card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  .skill-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .skill-name-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .skill-tag{
+    font-family:var(--mono); font-size:0.68rem; letter-spacing:0.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+  }
+  .skill-tag.amber{ background:var(--amber-soft); color:var(--amber); }
+  .skill-tag.owned{ background:var(--accent-soft); color:var(--accent); }
+  .skill-desc{ margin-top:10px; color:var(--muted); font-size:0.9rem; max-width:58ch; }
+  .skill-price{ font-family:var(--mono); font-weight:700; font-size:1.05rem; white-space:nowrap; }
+  .skill-actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .btn{
+    font-family:var(--sans); font-weight:600; font-size:0.85rem; padding:10px 16px;
+    border-radius:9px; border:1px solid var(--line); background:var(--card); color:var(--ink);
+    text-decoration:none; cursor:pointer; display:inline-block;
+  }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#08130d; }
+  .btn.small{ padding:8px 12px; font-size:0.8rem; }
+
+  .soon-grid{ display:flex; flex-direction:column; gap:10px; }
+  .soon-row{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    padding:12px 16px; background:var(--card); border:1px solid var(--line); border-radius:12px;
+  }
+  .soon-name{ font-weight:600; font-size:0.92rem; }
+  .soon-desc{ font-size:0.8rem; color:var(--muted); margin-top:2px; max-width:52ch; }
+  .soon-tag{
+    font-family:var(--mono); font-size:0.68rem; color:var(--muted); border:1px solid var(--line);
+    padding:3px 9px; border-radius:999px; white-space:nowrap;
+  }
+
+  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="brand" href="index.html"><span class="dot"></span>Zelos</a>
+    <a class="brand sub" href="dashboard.html">Dashboard</a>
+    <a class="brand sub" href="my-zelos.html">My Zelos</a>
+    <a class="brand sub" href="daily-market.html">Daily market</a>
+  </div>
+  <div class="auth-area" id="authArea"></div>
+</div>
+
+<div class="wrap">
+  <div>
+    <p class="eyebrow">The Zelos Arsenal</p>
+    <h1>Every skill, in one place</h1>
+    <p class="sub">What each Zelos skill actually does, what it costs, and — if you're signed in — whether you already own it. Every alert page linked here is public and free to read; buying a skill is what puts it in your own rotation.</p>
+  </div>
+
+  <div class="skill-card" data-skill="swing-trader">
+    <div class="skill-top">
+      <div>
+        <div class="skill-name-row">
+          <h2>Swing Trader</h2>
+          <span class="skill-tag">Stocks · live</span>
+          <span class="skill-tag owned" data-owned-tag hidden>Owned</span>
+        </div>
+        <p class="skill-desc">Pullbacks in a healthy uptrend — alerts only when selling pressure looks like it's fading and risk/reward earns it. Swing, days to weeks.</p>
+      </div>
+      <div class="skill-price">$20</div>
+    </div>
+    <div class="skill-actions">
+      <a class="btn" href="swing-trader.html">See today's alert</a>
+      <a class="btn primary" data-buy-btn href="going-to-gumroad.html">Get it — $20</a>
+    </div>
+  </div>
+
+  <div class="skill-card" data-skill="breakout-rider">
+    <div class="skill-top">
+      <div>
+        <div class="skill-name-row">
+          <h2>Breakout Rider</h2>
+          <span class="skill-tag">Stocks · live</span>
+          <span class="skill-tag owned" data-owned-tag hidden>Owned</span>
+        </div>
+        <p class="skill-desc">Waits for a stock to clear resistance and hold above it — not just spike — before it ever gets on the list. Swing, days to weeks.</p>
+      </div>
+      <div class="skill-price">$20</div>
+    </div>
+    <div class="skill-actions">
+      <a class="btn" href="breakout-rider.html">See today's alert</a>
+      <a class="btn primary" data-buy-btn href="going-to-gumroad-breakout.html">Get it — $20</a>
+    </div>
+  </div>
+
+  <div class="skill-card" data-skill="options-scanner">
+    <div class="skill-top">
+      <div>
+        <div class="skill-name-row">
+          <h2>Options Scanner</h2>
+          <span class="skill-tag amber">Options · live</span>
+          <span class="skill-tag owned" data-owned-tag hidden>Owned</span>
+        </div>
+        <p class="skill-desc">Takes the same pullback and breakdown setups and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies.</p>
+      </div>
+      <div class="skill-price">$20</div>
+    </div>
+    <div class="skill-actions">
+      <a class="btn" href="options-scanner.html">See today's alert</a>
+      <a class="btn primary" data-buy-btn href="going-to-gumroad-options.html">Get it — $20</a>
+    </div>
+  </div>
+
+  <div id="markOwnedBlock" hidden>
+    <p class="fine">Signed in — already bought one of these? <span id="markOwnedLinks"></span> Purchases on Gumroad aren't automatically synced yet, so marking a skill as owned here is what makes it show up as yours on the <a href="my-zelos.html" style="color:var(--accent);">My Zelos</a> and Dashboard pages.</p>
+  </div>
+
+  <div>
+    <p class="eyebrow" style="margin-top:6px;">On the roadmap</p>
+    <div class="soon-grid">
+      <div class="soon-row">
+        <div><div class="soon-name">Earnings Drift</div><div class="soon-desc">Buys into a strong earnings beat after the initial pop settles — riding the well-documented drift, not the headline spike.</div></div>
+        <span class="soon-tag">Coming soon</span>
+      </div>
+      <div class="soon-row">
+        <div><div class="soon-name">Dip Catcher</div><div class="soon-desc">Buys short-term oversold dips in otherwise strong names — small, quick, and sized down on purpose.</div></div>
+        <span class="soon-tag">Coming soon</span>
+      </div>
+      <div class="soon-row">
+        <div><div class="soon-name">Range Runner</div><div class="soon-desc">Trades the breakout off a stock's opening range and is flat by the close — no overnight risk, on purpose.</div></div>
+        <span class="soon-tag">Coming soon</span>
+      </div>
+      <div class="soon-row">
+        <div><div class="soon-name">Crypto Pulse</div><div class="soon-desc">Trades volatility swings on major coins inside a fixed risk band — sized smaller on purpose, given the swings.</div></div>
+        <span class="soon-tag">Coming soon</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fine">Every skill here publishes the same alert, on the same schedule, to every subscriber — general information, not personalized advice, and not tied to any brokerage account. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+(function(){
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth();
+      db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+
+  var authArea = document.getElementById('authArea');
+  function renderAuth(user){
+    if (user) {
+      authArea.innerHTML = '<span class="user-chip">' + (user.email || 'Signed in') + '</span> <a class="btn small" href="my-zelos.html">My Zelos</a>';
+    } else {
+      authArea.innerHTML = '<a class="btn small primary" href="dashboard.html">Sign in</a>';
+    }
+  }
+
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+
+  function markOwnedLink(skillId, label){
+    var a = document.createElement('a');
+    a.href = '#'; a.textContent = label; a.style.color = 'var(--accent)'; a.dataset.skill = skillId;
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      var user = auth.currentUser;
+      if (!user) return;
+      userDocRef(user.uid).set({ ownedSkills: firebase.firestore.FieldValue.arrayUnion(skillId) }, { merge: true });
+    });
+    return a;
+  }
+
+  function applyOwnership(owned){
+    document.querySelectorAll('.skill-card').forEach(function(card){
+      var id = card.dataset.skill;
+      var tag = card.querySelector('[data-owned-tag]');
+      var isOwned = owned.indexOf(id) !== -1;
+      tag.hidden = !isOwned;
+      var buyBtn = card.querySelector('[data-buy-btn]');
+      if (isOwned) { buyBtn.textContent = 'Buy again'; }
+    });
+    var block = document.getElementById('markOwnedBlock');
+    var links = document.getElementById('markOwnedLinks');
+    var names = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+    var missing = Object.keys(names).filter(function(id){ return owned.indexOf(id) === -1; });
+    if (!missing.length) { block.hidden = true; return; }
+    links.innerHTML = '';
+    missing.forEach(function(id, i){
+      links.appendChild(markOwnedLink(id, 'Mark ' + names[id] + ' as owned'));
+      if (i < missing.length - 1) links.appendChild(document.createTextNode(' · '));
+    });
+    block.hidden = false;
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      renderAuth(user);
+      if (!user) { document.getElementById('markOwnedBlock').hidden = true; return; }
+      userDocRef(user.uid).onSnapshot(function(doc){
+        var data = doc.data() || {};
+        applyOwnership(data.ownedSkills || []);
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function(){
+  var buyBtns = document.querySelectorAll('[data-buy-btn]');
+  if (typeof gtag !== 'function') return;
+  buyBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      gtag('event', 'click_buy_gumroad', { event_category: 'engagement', event_label: 'Arsenal — ' + btn.closest('.skill-card').dataset.skill });
+    });
+  });
+})();
+</script>
+</body>
+</html>

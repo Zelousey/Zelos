@@ -56,6 +56,7 @@
     --risk-soft:#f6e2df;
     --amber:#a3651f;
     --amber-soft:#f3e6d3;
+    --accent-glow: rgba(31,122,77,0.38);
     --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
     --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
@@ -72,6 +73,7 @@
       --risk-soft:#3a201d;
       --amber:#f2a93b;
       --amber-soft:#3a2c12;
+      --accent-glow: rgba(79,216,151,0.4);
     }
   }
   :root[data-theme="dark"]{
@@ -86,6 +88,7 @@
     --risk-soft:#3a201d;
     --amber:#f2a93b;
     --amber-soft:#3a2c12;
+    --accent-glow: rgba(79,216,151,0.4);
   }
 
   body{
@@ -256,6 +259,15 @@
     font-family:var(--sans); font-weight:700; font-size:0.82rem;
     color:#08130d; background:var(--accent); padding:9px 16px; border-radius:9px;
     text-decoration:none;
+    animation:bot-cta-pulse 2.2s ease-in-out infinite;
+  }
+  .bot-cta:hover{ animation-play-state:paused; }
+  @keyframes bot-cta-pulse{
+    0%, 100%{ box-shadow:0 0 0 0 var(--accent-glow); }
+    50%{ box-shadow:0 0 0 7px transparent; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .bot-cta{ animation:none; }
   }
   .bot-addon{
     display:inline-flex;
@@ -414,6 +426,23 @@
         "url": "https://agentictrading.gumroad.com/l/BreakoutRider?wanted=true",
         "availability": "https://schema.org/InStock"
       }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "position": 3,
+      "name": "Zelos Options Scanner",
+      "url": "https://agentictrading.info/options-scanner.html",
+      "image": "https://agentictrading.info/og-image.png",
+      "description": "Options Scanner takes the same directional setups Zelos already screens for and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies. Rule-based, general information, the same for every subscriber.",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "20",
+        "priceCurrency": "USD",
+        "url": "https://agentictrading.gumroad.com/l/OptionsScanner?wanted=true",
+        "availability": "https://schema.org/InStock"
+      }
     }
   ]
 }
@@ -430,9 +459,13 @@
         <div class="nav-menu-list" hidden>
           <a href="index.html">Home</a>
           <a href="dashboard.html">Dashboard</a>
+          <a href="my-zelos.html">My Zelos</a>
+          <a href="arsenal.html">Arsenal</a>
+          <a href="daily-market.html">Daily market</a>
           <a href="alert-history.html">Alert history</a>
           <a href="swing-trader.html">Swing Trader</a>
           <a href="breakout-rider.html">Breakout Rider</a>
+          <a href="options-scanner.html">Options Scanner</a>
           <a href="setup.html">Setup guide</a>
           <a href="demo.html">Try the demo</a>
           <a href="arcade.html">Arcade</a>
@@ -534,6 +567,49 @@
         <div class="bot-backtest">New from Zelos &middot; same rules engine as Swing Trader &middot; no live track record yet</div>
         <div class="bot-card-bottom">
           <a href="breakout-rider.html" class="bot-cta" id="viewBreakoutRider">See today's alert &rarr;</a>
+        </div>
+      </div>
+
+      <!-- Options Scanner — live -->
+      <div class="bot-card">
+        <div class="bot-card-top">
+          <div class="bot-tag live">Options &middot; live</div>
+          <div class="bot-cadence">Swing, days&ndash;weeks</div>
+        </div>
+        <div>
+          <h2>Options Scanner</h2>
+          <p class="bot-desc">Doubles as an add-on to Swing Trader and Breakout Rider &mdash; checks today's headline stock pick from either one first, and translates it into a single long call or put if it clears the bar; runs its own independent scan the rest of the time. Never spreads, multi-leg, short options, 0DTE, or weeklies.</p>
+        </div>
+        <svg viewBox="0 0 260 64" role="img" aria-label="Candlestick chart of a pullback holding then resuming higher, with an expiration window marked for the options contract">
+          <line x1="17.3" y1="30" x2="17.3" y2="42" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="10.55" y="33" width="13.5" height="6" fill="var(--accent)"/>
+          <line x1="39.8" y1="34" x2="39.8" y2="46" stroke="var(--risk)" stroke-width="1.4"/>
+          <rect x="33.05" y="37" width="13.5" height="6" fill="var(--risk)"/>
+          <line x1="62.4" y1="38" x2="62.4" y2="50" stroke="var(--risk)" stroke-width="1.4"/>
+          <rect x="55.65" y="41" width="13.5" height="6" fill="var(--risk)"/>
+          <line x1="84.9" y1="42" x2="84.9" y2="52" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="78.15" y="44" width="13.5" height="5" fill="var(--accent)"/>
+          <circle cx="84.9" cy="44" r="3" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>
+          <line x1="107.5" y1="30" x2="107.5" y2="42" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="100.75" y="33" width="13.5" height="6" fill="var(--accent)"/>
+          <line x1="122" y1="4" x2="122" y2="60" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="220" y1="4" x2="220" y2="60" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="130.0" y1="22" x2="130.0" y2="34" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="123.25" y="25" width="13.5" height="6" fill="var(--accent)"/>
+          <line x1="152.5" y1="15" x2="152.5" y2="27" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="145.75" y="18" width="13.5" height="6" fill="var(--accent)"/>
+          <line x1="175.1" y1="9" x2="175.1" y2="21" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="168.35" y="12" width="13.5" height="6" fill="var(--accent)"/>
+          <line x1="197.6" y1="5" x2="197.6" y2="16" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="190.85" y="8" width="13.5" height="5" fill="var(--accent)"/>
+          <line x1="220.2" y1="3" x2="220.2" y2="13" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="213.45" y="5" width="13.5" height="5" fill="var(--accent)"/>
+          <line x1="242.7" y1="2" x2="242.7" y2="11" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="235.95" y="4" width="13.5" height="4" fill="var(--accent)"/>
+        </svg>
+        <div class="bot-backtest">New from Zelos &middot; add-on to Swing Trader &amp; Breakout Rider, or standalone &middot; no live track record yet</div>
+        <div class="bot-card-bottom">
+          <a href="options-scanner.html" class="bot-cta" id="viewOptionsScanner">See today's alert &rarr;</a>
         </div>
       </div>
 

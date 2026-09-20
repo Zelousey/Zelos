@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Dashboard</title>
+<title>My Zelos</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -21,7 +21,7 @@
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#12161a">
 <meta name="robots" content="noindex">
-<meta name="description" content="What Zelos is seeing today — latest alerts, market status, your watchlist and skills.">
+<meta name="description" content="Your Zelos account — owned skills, watchlist, XP and streak, and account settings, all in one place.">
 <style>
   :root{ color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -48,7 +48,7 @@
     padding:16px 20px; border-bottom:1px solid var(--line);
     position:sticky; top:0; background:var(--paper); z-index:10;
   }
-  .topbar-left{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .topbar-left{ display:flex; align-items:center; gap:16px; }
   .brand{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; }
   .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
   .brand.sub{ font-weight:500; color:var(--muted); font-size:0.85rem; }
@@ -59,6 +59,7 @@
   }
   .btn.primary{ background:var(--accent); border-color:var(--accent); color:#08130d; }
   .btn.ghost{ background:transparent; }
+  .btn.small{ padding:7px 11px; font-size:0.8rem; }
   .user-chip{ font-family:var(--mono); font-size:0.78rem; color:var(--muted); }
 
   .wrap{ max-width:720px; margin:0 auto; padding:24px 20px 64px; display:flex; flex-direction:column; gap:22px; }
@@ -70,27 +71,18 @@
   .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
   .card-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; gap:12px; }
   .card-head a{ font-family:var(--mono); font-size:0.78rem; color:var(--accent); text-decoration:none; }
+  .card-note{ font-size:0.78rem; color:var(--muted); margin-top:12px; line-height:1.5; }
 
-  .status-line{ font-size:0.92rem; line-height:1.5; }
-  .status-stamp{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-top:8px; }
-
-  .alert-row{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:11px 0; border-bottom:1px solid var(--line); text-decoration:none; color:var(--ink);
+  .field-row{ display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+  .field-row:last-child{ margin-bottom:0; }
+  .field-row label{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); }
+  .field-row .value{ font-size:0.95rem; }
+  .field-edit{ display:flex; gap:8px; }
+  .field-edit input{
+    flex:1; font-family:var(--sans); font-size:0.9rem; padding:9px 10px; border-radius:8px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink);
   }
-  .alert-row:last-child{ border-bottom:none; }
-  .alert-left{ display:flex; align-items:center; gap:10px; min-width:0; }
-  .alert-ticker{ font-family:var(--mono); font-weight:700; font-size:1rem; }
-  .alert-meta{ font-size:0.78rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .alert-badge{
-    font-family:var(--mono); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em;
-    padding:3px 8px; border-radius:6px; white-space:nowrap;
-  }
-  .alert-badge.qualified{ background:var(--accent-soft); color:var(--accent); }
-  .alert-badge.watching{ background:var(--amber-soft); color:var(--amber); }
-  .alert-badge.no-setup{ background:transparent; border:1px solid var(--line); color:var(--muted); }
-
-  .empty{ color:var(--muted); font-size:0.88rem; padding:6px 0; }
+  .save-msg{ font-family:var(--mono); font-size:0.74rem; color:var(--accent); min-height:1.1em; margin-top:6px; }
 
   .chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
   .chip{
@@ -108,12 +100,26 @@
   .stat{ display:flex; flex-direction:column; gap:2px; }
   .stat .num{ font-family:var(--mono); font-weight:700; font-size:1.6rem; color:var(--accent); }
   .stat .lbl{ font-size:0.76rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
-  .progress-note{ font-size:0.78rem; color:var(--muted); margin-top:10px; }
 
-  .skill-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
-  .skill-row:last-child{ border-bottom:none; }
+  .activity-list{ margin-top:14px; display:flex; flex-direction:column; }
+  .activity-row{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    padding:8px 0; border-top:1px solid var(--line); font-size:0.85rem;
+  }
+  .activity-row:first-child{ border-top:none; }
+  .activity-what{ color:var(--ink); }
+  .activity-xp{ font-family:var(--mono); color:var(--accent); font-weight:700; white-space:nowrap; }
+  .activity-when{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); }
+
+  .skill-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+  .skill-row:first-child{ border-top:none; }
   .skill-name{ font-weight:600; font-size:0.92rem; }
-  .skill-sub{ font-size:0.76rem; color:var(--muted); }
+  .skill-sub{ font-size:0.76rem; color:var(--muted); margin-top:2px; }
+
+  .pref-row{ display:flex; align-items:flex-start; gap:10px; }
+  .pref-row input[type="checkbox"]{ margin-top:3px; }
+  .pref-row .pref-text{ font-size:0.9rem; }
+  .pref-row .pref-sub{ font-size:0.78rem; color:var(--muted); margin-top:2px; }
 
   .signin-card{ display:flex; flex-direction:column; gap:10px; max-width:340px; }
   .signin-card input{
@@ -127,9 +133,10 @@
   .auth-msg{ font-size:0.8rem; color:var(--muted); min-height:1.2em; }
   .auth-msg.is-error{ color:var(--risk); }
 
-  .lock{ display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
-  .lock p{ margin:0; color:var(--muted); font-size:0.88rem; }
+  .lock{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:8px 4px; }
+  .lock p{ margin:0; color:var(--muted); font-size:0.9rem; max-width:44ch; }
 
+  .empty{ color:var(--muted); font-size:0.88rem; padding:6px 0; }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
 </style>
 </head>
@@ -138,10 +145,9 @@
 <div class="topbar">
   <div class="topbar-left">
     <a class="brand" href="index.html"><span class="dot"></span>Zelos</a>
-    <a class="brand sub" href="my-zelos.html">My Zelos</a>
+    <a class="brand sub" href="dashboard.html">Dashboard</a>
     <a class="brand sub" href="arsenal.html">Arsenal</a>
     <a class="brand sub" href="daily-market.html">Daily market</a>
-    <a class="brand sub" href="alert-history.html">History</a>
   </div>
   <div class="auth-area" id="authArea">
     <button class="btn primary" id="showSignInBtn" type="button">Sign in</button>
@@ -150,12 +156,12 @@
 
 <div class="wrap">
   <div>
-    <p class="eyebrow">Dashboard</p>
-    <h1>What Zelos is seeing today</h1>
-    <p class="sub">Market status, the latest alerts, and quick access to what's yours.</p>
+    <p class="eyebrow">My Zelos</p>
+    <h1>Your account, in one place</h1>
+    <p class="sub">The skills you own, your watchlist, your XP and streak, and your account settings. For what Zelos is seeing right now, check the <a href="dashboard.html" style="color:var(--accent);">Dashboard</a> — this page is about your stuff, not today's market.</p>
   </div>
 
-  <!-- Sign-in card (shown when signed out and "Sign in" is clicked) -->
+  <!-- Sign-in card -->
   <div class="card signin-card" id="signInCard" hidden>
     <h2>Sign in to Zelos</h2>
     <div class="auth-msg" id="authMsg"></div>
@@ -169,45 +175,75 @@
     <button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>
   </div>
 
-  <!-- Market status -->
-  <div class="card">
-    <div class="card-head"><h2>Market status</h2></div>
-    <div class="status-line" id="marketStatus">Loading…</div>
-    <div class="status-stamp" id="marketStamp"></div>
-  </div>
-
-  <!-- Latest alerts -->
-  <div class="card">
-    <div class="card-head">
-      <h2>Latest alerts</h2>
-      <a href="alert-history.html">See all →</a>
-    </div>
-    <div id="alertsList"><div class="empty">Loading…</div></div>
-  </div>
-
-  <!-- Progress (XP/streak) -->
-  <div class="card" id="progressCard" hidden>
-    <div class="card-head"><h2>Your progress</h2></div>
-    <div id="progressBlock"></div>
-  </div>
-
-  <!-- Watchlist -->
-  <div class="card">
-    <div class="card-head"><h2>Stocks you're watching</h2></div>
-    <div id="watchlistBlock">
-      <div class="lock">
-        <p>Sign in to save a watchlist.</p>
-      </div>
+  <!-- Signed-out lock state -->
+  <div class="card" id="lockedCard">
+    <div class="lock">
+      <p>Sign in to see your owned skills, watchlist, XP and streak, and account settings. Nothing here is required to read an alert — every alert page is public, no account needed.</p>
+      <button class="btn primary" id="lockedSignInBtn" type="button">Sign in</button>
     </div>
   </div>
 
-  <!-- My skills -->
-  <div class="card">
-    <div class="card-head"><h2>Your skills</h2><a href="arsenal.html">Full catalog →</a></div>
-    <div id="skillsBlock">
-      <div class="lock">
-        <p>Sign in to see which Zelos skills you own and jump straight to them.</p>
+  <div id="signedInBlocks" hidden style="display:flex; flex-direction:column; gap:22px;">
+
+    <!-- Account -->
+    <div class="card">
+      <div class="card-head"><h2>Account</h2></div>
+      <div class="field-row">
+        <label>Email</label>
+        <div class="value" id="acctEmail">—</div>
       </div>
+      <div class="field-row">
+        <label>Display name</label>
+        <div class="field-edit">
+          <input id="displayNameInput" placeholder="Add a name (optional)" maxlength="40">
+          <button class="btn small" id="saveNameBtn" type="button">Save</button>
+        </div>
+        <div class="save-msg" id="nameSaveMsg"></div>
+      </div>
+      <div class="field-row">
+        <label>Member since</label>
+        <div class="value" id="acctSince">—</div>
+      </div>
+    </div>
+
+    <!-- Owned skills -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Your skills</h2>
+        <a href="arsenal.html">See the Arsenal →</a>
+      </div>
+      <div id="skillsBlock"><div class="empty">Loading…</div></div>
+      <div class="card-note">Purchases on Gumroad aren't automatically synced here yet — after you buy a skill, mark it as owned yourself so it shows up here and on the Dashboard. That's a known gap, not a trust issue: your alert access itself always comes straight from Gumroad, never from this checkbox.</div>
+    </div>
+
+    <!-- Watchlist -->
+    <div class="card">
+      <div class="card-head"><h2>Your watchlist</h2></div>
+      <div id="watchlistBlock"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="card">
+      <div class="card-head"><h2>XP &amp; streak</h2></div>
+      <div id="progressBlock"><div class="empty">Loading…</div></div>
+      <div id="activityBlock"></div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card">
+      <div class="card-head"><h2>Notifications</h2></div>
+      <div class="pref-row">
+        <input type="checkbox" id="emailPrefCheckbox">
+        <div>
+          <div class="pref-text">Email me when a new alert publishes</div>
+          <div class="pref-sub">Saves your preference to your account. Zelos doesn't send email yet — nothing changes right now, but your choice is stored for when it does.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Sign out</h2></div>
+      <button class="btn" id="signOutBtnCard" type="button">Sign out of Zelos</button>
     </div>
   </div>
 
@@ -226,11 +262,15 @@
     'breakout-rider': { name: 'Breakout Rider', href: 'breakout-rider.html' },
     'options-scanner':{ name: 'Options Scanner', href: 'options-scanner.html' }
   };
-  var STRATEGY_LABEL = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+  var ACTIVITY_LABEL = {
+    'alert-open': 'Opened an alert',
+    'daily-checkin': 'Checked in',
+    'arcade-play': 'Played an Arcade game'
+  };
 
   var cfg = window.ZELOS_FIREBASE_CONFIG;
   var ready = !!(cfg && cfg.projectId && window.firebase);
-  var auth = null, db = null, currentUser = null;
+  var auth = null, db = null;
 
   if (ready) {
     try {
@@ -240,63 +280,23 @@
     } catch (e) { ready = false; }
   }
 
-  function fmtStamp(ts){
+  function fmtDate(ts){
     try {
       var d = ts && ts.toDate ? ts.toDate() : new Date(ts);
-      return d.toLocaleString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' ET';
+      return d.toLocaleDateString('en-US', { timeZone:'America/New_York', month:'short', day:'numeric', year:'numeric' });
+    } catch(e){ return '—'; }
+  }
+  function fmtWhen(ts){
+    try {
+      var d = ts && ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit' });
     } catch(e){ return ''; }
   }
-  function statusClass(status){
-    if (status === 'qualified') return 'qualified';
-    if (status === 'watching') return 'watching';
-    return 'no-setup';
-  }
-  function statusLabel(status){
-    if (status === 'qualified') return 'Qualified';
-    if (status === 'watching') return 'Watching';
-    return 'No setup';
-  }
 
-  // ---- market status + latest alerts (public, no auth needed) ----
-  function loadAlerts(){
-    if (!ready) {
-      document.getElementById('alertsList').innerHTML = '<div class="empty">Can\'t reach Zelos data right now — check back shortly.</div>';
-      document.getElementById('marketStatus').textContent = 'Unavailable right now.';
-      return;
-    }
-    db.collection('alerts').orderBy('createdAt', 'desc').limit(6).get().then(function(snap){
-      if (snap.empty) {
-        document.getElementById('alertsList').innerHTML = '<div class="empty">No alerts yet.</div>';
-        document.getElementById('marketStatus').textContent = 'No scans recorded yet.';
-        return;
-      }
-      var rows = [];
-      var first = null;
-      snap.forEach(function(doc){
-        var a = doc.data();
-        if (!first) first = a;
-        rows.push(
-          '<a class="alert-row" href="alert.html?id=' + encodeURIComponent(doc.id) + '">' +
-            '<div class="alert-left">' +
-              '<span class="alert-ticker">' + (a.ticker || '—') + '</span>' +
-              '<span class="alert-meta">' + (STRATEGY_LABEL[a.strategy] || a.strategy || '') + ' · ' + fmtStamp(a.createdAt) + '</span>' +
-            '</div>' +
-            '<span class="alert-badge ' + statusClass(a.status) + '">' + statusLabel(a.status) + '</span>' +
-          '</a>'
-        );
-      });
-      document.getElementById('alertsList').innerHTML = rows.join('');
-      document.getElementById('marketStatus').textContent = first.marketRegime || 'No market-regime note on the latest alert.';
-      document.getElementById('marketStamp').textContent = 'As of ' + fmtStamp(first.createdAt);
-    }).catch(function(){
-      document.getElementById('alertsList').innerHTML = '<div class="empty">Couldn\'t load alerts right now.</div>';
-      document.getElementById('marketStatus').textContent = 'Unavailable right now.';
-    });
-  }
-
-  // ---- auth UI ----
   var authArea = document.getElementById('authArea');
   var signInCard = document.getElementById('signInCard');
+  var lockedCard = document.getElementById('lockedCard');
+  var signedInBlocks = document.getElementById('signedInBlocks');
   var authMsg = document.getElementById('authMsg');
 
   function setMsg(text, isError){
@@ -304,9 +304,10 @@
     authMsg.className = 'auth-msg' + (isError ? ' is-error' : '');
   }
 
-  document.getElementById('showSignInBtn').addEventListener('click', function(){
-    signInCard.hidden = !signInCard.hidden;
-  });
+  function toggleSignIn(){ signInCard.hidden = !signInCard.hidden; }
+  document.getElementById('showSignInBtn').addEventListener('click', toggleSignIn);
+  document.getElementById('lockedSignInBtn').addEventListener('click', toggleSignIn);
+
   document.getElementById('signInBtn').addEventListener('click', function(){
     if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
     var email = document.getElementById('authEmail').value.trim();
@@ -334,13 +335,16 @@
       '<button class="btn ghost" id="signOutBtn" type="button">Sign out</button>';
     document.getElementById('signOutBtn').addEventListener('click', function(){ auth.signOut(); });
     signInCard.hidden = true;
+    lockedCard.hidden = true;
+    signedInBlocks.hidden = false;
   }
   function renderSignedOut(){
     authArea.innerHTML = '<button class="btn primary" id="showSignInBtn" type="button">Sign in</button>';
-    document.getElementById('showSignInBtn').addEventListener('click', function(){ signInCard.hidden = !signInCard.hidden; });
+    document.getElementById('showSignInBtn').addEventListener('click', toggleSignIn);
+    lockedCard.hidden = false;
+    signedInBlocks.hidden = true;
   }
 
-  // ---- per-user: watchlist + owned skills ----
   function userDocRef(uid){ return db.collection('users').doc(uid); }
 
   function ensureUserDoc(user){
@@ -351,15 +355,36 @@
           email: user.email || null,
           displayName: user.displayName || null,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0,
+          notificationPrefs: { emailOnAlert: false }
         }).then(function(){ return ref.get(); });
       }
       return doc;
     });
   }
 
+  function renderAccount(user, data){
+    document.getElementById('acctEmail').textContent = user.email || '—';
+    document.getElementById('acctSince').textContent = data.createdAt ? fmtDate(data.createdAt) : '—';
+    var nameInput = document.getElementById('displayNameInput');
+    if (document.activeElement !== nameInput) nameInput.value = data.displayName || '';
+  }
+
+  document.getElementById('saveNameBtn').addEventListener('click', function(){
+    var user = auth.currentUser;
+    if (!user) return;
+    var name = document.getElementById('displayNameInput').value.trim().slice(0, 40);
+    var msg = document.getElementById('nameSaveMsg');
+    msg.textContent = 'Saving…';
+    userDocRef(user.uid).set({ displayName: name || null }, { merge: true }).then(function(){
+      return user.updateProfile({ displayName: name || null });
+    }).then(function(){
+      msg.textContent = 'Saved.';
+      setTimeout(function(){ msg.textContent = ''; }, 2000);
+    }).catch(function(){ msg.textContent = 'Could not save just now.'; });
+  });
+
   function renderProgress(user, data){
-    document.getElementById('progressCard').hidden = false;
     var xp = data.xp || 0;
     var streak = data.streakDays || 0;
     document.getElementById('progressBlock').innerHTML =
@@ -367,14 +392,31 @@
         '<div class="stat"><span class="num">' + xp + '</span><span class="lbl">XP</span></div>' +
         '<div class="stat"><span class="num">' + streak + '</span><span class="lbl">Day streak</span></div>' +
       '</div>' +
-      '<div class="progress-note">Streaks track opening at least one alert each day. XP also comes from checking in and playing Arcade games — small amounts, never required.</div>';
+      '<div class="card-note">Your streak tracks opening at least one alert each day — checking in and playing Arcade games earn small XP too, but neither one builds or breaks the streak.</div>';
+
+    userDocRef(user.uid).collection('activity').orderBy('createdAt', 'desc').limit(10).get().then(function(snap){
+      var block = document.getElementById('activityBlock');
+      if (snap.empty) { block.innerHTML = ''; return; }
+      var rows = [];
+      snap.forEach(function(doc){
+        var a = doc.data();
+        rows.push(
+          '<div class="activity-row">' +
+            '<span class="activity-what">' + (ACTIVITY_LABEL[a.type] || a.type) + '</span>' +
+            '<span class="activity-xp">+' + (a.xp || 0) + ' XP</span>' +
+            '<span class="activity-when">' + fmtWhen(a.createdAt) + '</span>' +
+          '</div>'
+        );
+      });
+      block.innerHTML = '<div class="activity-list">' + rows.join('') + '</div>';
+    }).catch(function(){ /* activity feed is a nice-to-have, fail quietly */ });
   }
 
   function renderWatchlist(user, data){
     var list = data.watchlist || [];
     var html = '';
     if (list.length) {
-      html += '<div class="chip-row" id="watchChips">' + list.map(function(t){
+      html += '<div class="chip-row">' + list.map(function(t){
         return '<span class="chip">' + t + '<button data-ticker="' + t + '" class="wl-remove" type="button">&times;</button></span>';
       }).join('') + '</div>';
     } else {
@@ -419,34 +461,39 @@
     });
   }
 
+  function renderPrefs(user, data){
+    var prefs = data.notificationPrefs || {};
+    var box = document.getElementById('emailPrefCheckbox');
+    box.checked = !!prefs.emailOnAlert;
+    box.onchange = function(){
+      userDocRef(user.uid).set({ notificationPrefs: { emailOnAlert: box.checked } }, { merge: true });
+    };
+  }
+
   function watchUserDoc(user){
     ensureUserDoc(user).then(function(){
       userDocRef(user.uid).onSnapshot(function(doc){
         var data = doc.data() || {};
+        renderAccount(user, data);
         renderProgress(user, data);
         renderWatchlist(user, data);
         renderSkills(user, data);
+        renderPrefs(user, data);
       });
-      // Silent, once-per-day XP for showing up — never blocks anything above.
       if (window.ZelosXP) ZelosXP.award('daily-checkin');
     });
   }
 
-  function renderSignedOutBlocks(){
-    document.getElementById('progressCard').hidden = true;
-    document.getElementById('watchlistBlock').innerHTML = '<div class="lock"><p>Sign in to save a watchlist.</p></div>';
-    document.getElementById('skillsBlock').innerHTML = '<div class="lock"><p>Sign in to see which Zelos skills you own and jump straight to them.</p></div>';
-  }
+  document.getElementById('signOutBtnCard').addEventListener('click', function(){ if (auth) auth.signOut(); });
 
   if (ready) {
     auth.onAuthStateChanged(function(user){
-      currentUser = user;
       if (user) { renderSignedIn(user); watchUserDoc(user); }
-      else { renderSignedOut(); renderSignedOutBlocks(); }
+      else { renderSignedOut(); }
     });
+  } else {
+    lockedCard.innerHTML = '<div class="lock"><p>Can\'t reach Zelos data right now — check back shortly.</p></div>';
   }
-
-  loadAlerts();
 })();
 </script>
 </body>
