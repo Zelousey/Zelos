@@ -178,6 +178,56 @@
     padding:8px 10px; border-radius:7px;
   }
   .nav-menu-list a:hover{ background:var(--accent-soft); color:var(--accent); }
+  /* ---- grouped menu sections ---- */
+.nav-group {
+width: 100%;
+}
+
+.nav-group > summary {
+list-style: none;
+cursor: pointer;
+font-family: var(--sans);
+font-size: 0.88rem;
+color: var(--ink);
+padding: 8px 10px;
+border-radius: 7px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
+.nav-group > summary::-webkit-details-marker {
+display: none;
+}
+
+.nav-group > summary::after {
+content: "▸";
+font-size: 0.7rem;
+opacity: 0.7;
+transition: transform 0.15s ease;
+}
+
+.nav-group[open] > summary::after {
+transform: rotate(90deg);
+}
+
+.nav-group > summary:hover {
+background: var(--accent-soft);
+color: var(--accent);
+}
+
+.nav-group-items {
+display: flex;
+flex-direction: column;
+gap: 2px;
+padding-left: 10px;
+margin-bottom: 2px;
+}
+
+.nav-group-items a {
+font-size: 0.84rem;
+padding: 7px 10px;
+}
 
   /* ---- hero ---- */
   .hero{ padding-block:56px 40px; max-width:64ch; }
@@ -457,21 +507,40 @@
       <div class="nav-menu">
         <button class="nav-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="nav-menu-caret">&#9662;</span></button>
         <div class="nav-menu-list" hidden>
-          <a href="index.html">Home</a>
-          <a href="dashboard.html">Dashboard</a>
-          <a href="my-zelos.html">My Zelos</a>
-          <a href="arsenal.html">Arsenal</a>
-          <a href="daily-market.html">Daily market</a>
-          <a href="alert-history.html">Alert history</a>
-          <a href="swing-trader.html">Swing Trader</a>
-          <a href="breakout-rider.html">Breakout Rider</a>
-          <a href="options-scanner.html">Options Scanner</a>
-          <a href="setup.html">Setup guide</a>
-          <a href="demo.html">Try the demo</a>
-          <a href="arcade.html">Arcade</a>
-          <a href="leaderboard.html">Leaderboard</a>
-          <a href="terms.html">Terms</a>
-        </div>
+         <a href="index.html">Home</a>
+<a href="dashboard.html">Dashboard</a>
+<a href="my-zelos.html">My Zelos</a>
+<a href="arsenal.html">Arsenal</a>
+
+<details class="nav-group">
+<summary>Trading Tools</summary>
+<div class="nav-group-items">
+<a href="swing-trader.html">Swing Trader</a>
+<a href="breakout-rider.html">Breakout Rider</a>
+<a href="options-scanner.html">Options Scanner</a>
+<a href="daily-market.html">Daily Market</a>
+</div>
+</details>
+
+<details class="nav-group">
+<summary>Alerts</summary>
+<div class="nav-group-items">
+<a href="alert-history.html">Alert History</a>
+</div>
+</details>
+
+<a href="setup.html">Setup guide</a>
+<a href="demo.html">Try the demo</a>
+
+<details class="nav-group">
+<summary>Community</summary>
+<div class="nav-group-items">
+<a href="arcade.html">Arcade</a>
+<a href="leaderboard.html">Leaderboard</a>
+</div>
+</details>
+
+<a href="terms.html">Terms</a>
       </div>
       <a class="nav-play" href="arcade.html">Play Zelos games &mdash; free</a>
     </div>
