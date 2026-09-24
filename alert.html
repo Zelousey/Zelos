@@ -7,7 +7,6 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-Y4B3ZC5XRX');
 </script>
 <meta charset="utf-8">
@@ -21,7 +20,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#12161a">
+<meta name="theme-color" content="#4d3720">
 <meta name="description" content="A Zelos trade alert — full analysis: setup, entry, stop, target, technicals, and risk.">
 <link rel="canonical" href="https://agentictrading.info/alert.html">
 <meta property="og:type" content="website">
@@ -39,60 +38,18 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
-  [hidden]:not([hidden="until-found"]){ display:none !important; }
-</style>
-<style>
+  [hidden]{ display:none !important; }
 
-  :root{
-    --paper:#eef0ec;
-    --card:#ffffff;
-    --ink:#1a2420;
-    --muted:#5b6660;
-    --line:#d5dbd2;
-    --accent:#1f7a4d;
-    --accent-soft:#dcefe2;
-    --risk:#a3352c;
-    --risk-soft:#f6e2df;
-    --amber:#9a6a10;
-    --amber-soft:#f5ead2;
-    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#111512;
-      --card:#181d19;
-      --ink:#e7ece7;
-      --muted:#8b968e;
-      --line:#2a322b;
-      --accent:#4fd897;
-      --accent-soft:#163625;
-      --risk:#ff7d70;
-      --risk-soft:#3a201d;
-      --amber:#f2a93b;
-      --amber-soft:#3a2c12;
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#111512;
-    --card:#181d19;
-    --ink:#e7ece7;
-    --muted:#8b968e;
-    --line:#2a322b;
-    --accent:#4fd897;
-    --accent-soft:#163625;
-    --risk:#ff7d70;
-    --risk-soft:#3a201d;
-    --amber:#f2a93b;
-    --amber-soft:#3a2c12;
-  }
+  :root{ --risk-soft:var(--danger-soft); }
 
   body{
-    background:var(--paper);
+    background:var(--bg);
     color:var(--ink);
     font-family:var(--sans);
     min-height:100vh;
@@ -102,25 +59,25 @@
   }
 
   .page-wrap{ display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:460px; }
+  .top-row{ display:flex; align-items:center; justify-content:space-between; width:100%; align-self:flex-start; }
   .back-link{
     font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted);
-    text-decoration:none; display:flex; align-items:center; gap:7px; align-self:flex-start;
+    text-decoration:none; display:flex; align-items:center; gap:7px;
   }
   .back-link .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
   .back-link:hover{ color:var(--accent); }
 
   .ticket{
     width:100%;
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
     overflow:hidden;
-    box-shadow:0 1px 2px rgba(0,0,0,0.04);
   }
 
   .head{
     padding:22px 24px 18px;
-    border-bottom:1px dashed var(--line);
+    border-bottom:1px dashed var(--border);
     display:flex;
     flex-direction:column;
     gap:10px;
@@ -167,8 +124,8 @@
     border-radius:50%;
     background:var(--accent);
   }
-  .status.is-watching{ color:var(--amber); }
-  .status.is-watching::before{ background:var(--amber); }
+  .status.is-watching{ color:var(--gold); }
+  .status.is-watching::before{ background:var(--gold); }
 
   .ledger{
     padding:18px 24px;
@@ -180,7 +137,7 @@
     align-items:baseline;
     justify-content:space-between;
     padding:9px 0;
-    border-bottom:1px solid var(--line);
+    border-bottom:1px solid var(--border-soft);
     gap:16px;
   }
   .row:last-child{ border-bottom:none; }
@@ -195,14 +152,14 @@
     font-weight:600;
     text-align:right;
   }
-  .value.risk{ color:var(--risk); }
+  .value.risk{ color:var(--danger); }
   .value.accent{ color:var(--accent); }
 
   .rr{
     margin:6px 24px 20px;
     padding:14px 16px;
     background:var(--accent-soft);
-    border-radius:10px;
+    border-radius:3px;
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -222,8 +179,8 @@
   .cap{
     margin:0 24px 20px;
     padding:12px 14px;
-    border:1px solid var(--line);
-    border-radius:10px;
+    border:1px solid var(--border);
+    border-radius:3px;
     font-size:0.82rem;
     color:var(--muted);
     display:flex;
@@ -242,8 +199,8 @@
     gap:14px;
   }
   .analysis-block{
-    border:1px solid var(--line);
-    border-radius:10px;
+    border:1px solid var(--border);
+    border-radius:3px;
     padding:14px 16px;
   }
   .analysis-block h3{
@@ -273,22 +230,22 @@
   .outcome{
     margin:0 24px 20px;
     padding:12px 16px;
-    border-radius:10px;
+    border-radius:3px;
     font-size:0.85rem;
     display:flex;
     justify-content:space-between;
     gap:12px;
     align-items:center;
   }
-  .outcome.result-open{ background:var(--amber-soft); color:var(--amber); }
+  .outcome.result-open{ background:var(--gold-soft); color:var(--gold); }
   .outcome.result-hit-target{ background:var(--accent-soft); color:var(--accent); }
-  .outcome.result-stopped-out{ background:var(--risk-soft); color:var(--risk); }
-  .outcome.result-expired, .outcome.result-no-trade{ background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .outcome.result-stopped-out{ background:var(--danger-soft); color:var(--danger); }
+  .outcome.result-expired, .outcome.result-no-trade{ background:transparent; border:1px solid var(--border); color:var(--muted); }
   .outcome .tag{ font-family:var(--mono); font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; }
 
   .foot{
     padding:16px 24px 22px;
-    border-top:1px dashed var(--line);
+    border-top:1px dashed var(--border);
     display:flex;
     flex-direction:column;
     gap:8px;
@@ -322,9 +279,12 @@
   }
 </style>
 </head>
-<body>
+<body class="zt">
 <div class="page-wrap">
-<a class="back-link" href="index.html"><span class="dot"></span>Zelos &middot; home</a>
+<div class="top-row">
+  <a class="back-link" href="index.html"><span class="dot"></span>Zelos &middot; home</a>
+  <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+</div>
 
 <div class="ticket" id="zelosLoading">
   <div class="load-state">Loading alert…</div>
@@ -375,7 +335,7 @@
   <div class="foot">
     <div class="reply" id="fMarketRegime"></div>
     <div class="fine">Rule-based scan only — general information, the same for every subscriber, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
-    <div class="fine">Zelos runs on your own account using your own credentials — this page never places, cancels, or modifies any order. Any go-ahead on a trade happens only in your own conversation with Zelos, never here.</div>
+    <div class="fine">Zelos never connects to any brokerage account, never asks for your credentials, and never places, cancels, or modifies an order. If you choose to act on this alert, you do so entirely on your own, in your own account, on your own judgment.</div>
     <div class="stamp" id="fStamp"></div>
   </div>
 </div>
@@ -385,6 +345,8 @@
 </div>
 
 </div>
+
+<script src="zelos-theme-toggle.js"></script>
 
 <!-- Firebase (compat build, matches leaderboard.js's pattern) -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -517,12 +479,11 @@
       if (!doc.exists) { showNotFound(); return; }
       render(doc.data());
       // XP is a silent side effect of opening a real alert — never blocks or
-      // delays anything above, and a signed-out visitor just earns nothing.
-      if (window.ZelosXP) {
-        ZelosXP.onChange(function(user){
-          if (user) ZelosXP.award('alert-open', id);
-        });
-      }
+      // delays anything above. award() itself waits for (or silently creates)
+      // a Firebase user before writing anything, so this doesn't need to wait
+      // on this page's own auth state first — a cold visit straight from a
+      // shared link earns the same +5/streak-day credit as anywhere else.
+      if (window.ZelosXP) ZelosXP.award('alert-open', id);
     }).catch(function(){ showNotFound(); });
   } catch (e) {
     showNotFound();

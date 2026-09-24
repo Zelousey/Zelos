@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -13,196 +14,361 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Arsenal</title>
+<title>The Zelos Arsenal</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#12161a">
-<meta name="description" content="Every Zelos skill in one place — what each one does, what it costs, and whether you already own it.">
+<meta name="theme-color" content="#4d3720">
+<meta name="description" content="Every Zelos skill in one place — what each one does, what it costs, and whether you've unlocked it yet.">
 <link rel="canonical" href="https://agentictrading.info/arsenal.html">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
   [hidden]{ display:none !important; }
-  :root{
-    --paper:#eef0ec; --card:#ffffff; --ink:#1a2420; --muted:#5b6660; --line:#d5dbd2;
-    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c; --risk-soft:#f6e2df;
-    --amber:#9a6a10; --amber-soft:#f5ead2;
-    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#111512; --card:#181d19; --ink:#e7ece7; --muted:#8b968e; --line:#2a322b;
-      --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70; --risk-soft:#3a201d;
-      --amber:#f2a93b; --amber-soft:#3a2c12;
-    }
-  }
-  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); min-height:100vh; }
 
-  .topbar{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:16px 20px; border-bottom:1px solid var(--line);
-    position:sticky; top:0; background:var(--paper); z-index:10;
+  /* ---- page-local components (not in the shared theme) ---- */
+  .applinks{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .applinks a{
+    font-family:var(--mono); font-size:0.78rem; color:var(--ink-2); text-decoration:none;
+    background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:7px 14px;
   }
-  .topbar-left{ display:flex; align-items:center; gap:16px; }
-  .brand{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--ink); text-decoration:none; }
-  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
-  .brand.sub{ font-weight:500; color:var(--muted); font-size:0.85rem; }
-  .user-chip{ font-family:var(--mono); font-size:0.78rem; color:var(--muted); }
+  .applinks a:hover{ color:var(--ink); border-color:var(--muted-2); }
+  .applinks a.is-active{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
+  .status-line{ font-size:0.92rem; line-height:1.5; color:var(--ink-2); }
 
-  .wrap{ max-width:720px; margin:0 auto; padding:24px 20px 64px; display:flex; flex-direction:column; gap:22px; }
-  .eyebrow{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
-  h1{ font-size:1.5rem; margin:0 0 4px; }
-  h2{ font-size:1.05rem; margin:0; }
-  .sub{ color:var(--muted); font-size:0.9rem; margin:0; max-width:56ch; }
+  /* ---- unlock progress meter ---- */
+  .progress-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px 20px; margin-top:22px;
+  }
+  .progress-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .progress-head h2{ font-size:0.95rem; margin:0; font-family:var(--mono); letter-spacing:0.02em; }
+  .progress-count{ font-family:var(--mono); font-weight:700; font-size:0.95rem; color:var(--accent); }
+  .progress-track{
+    height:10px; border-radius:3px; background:var(--surface-2); border:1px solid var(--border-soft);
+    overflow:hidden; margin-top:12px;
+  }
+  .progress-fill{
+    height:100%; width:0%; border-radius:3px;
+    background:linear-gradient(90deg, var(--accent), var(--bull));
+    transition:width .5s ease;
+  }
+  .progress-note{ font-size:0.78rem; color:var(--muted); margin-top:10px; }
 
-  .skill-card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; }
-  .skill-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-  .skill-name-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  /* ---- skill tree grid ---- */
+  .skill-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
+  .skill-tile{
+    position:relative; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px; display:flex; flex-direction:column; gap:14px; transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .skill-tile.is-unlocked{ border-color:var(--accent-line); box-shadow:0 0 0 1px var(--accent-line) inset; }
+  .skill-tile.is-locked{ border-style:dashed; }
+
+  .skill-icon{
+    width:46px; height:46px; border-radius:3px; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; font-size:0.95rem; flex:none;
+    background:var(--surface-2); color:var(--muted); border:1px solid var(--border);
+  }
+  .skill-tile.is-unlocked .skill-icon.accent{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent-line); }
+  .skill-tile.is-unlocked .skill-icon.gold{ background:var(--gold-soft); color:var(--gold); border-color:var(--gold); }
+  .skill-tile.is-unlocked .skill-icon.violet{ background:var(--violet-soft); color:var(--violet); border-color:var(--violet); }
+
+  .skill-ribbon{
+    position:absolute; top:16px; right:16px; display:flex; align-items:center; gap:5px;
+    font-family:var(--mono); font-size:0.62rem; text-transform:uppercase; letter-spacing:0.05em;
+    padding:4px 9px 4px 7px; border-radius:3px; white-space:nowrap;
+  }
+  .skill-ribbon svg{ width:10px; height:10px; flex:none; }
+  .skill-ribbon.unlocked{ background:var(--accent-soft); color:var(--accent); }
+  .skill-ribbon.locked{ background:var(--surface-2); color:var(--muted); border:1px solid var(--border); }
+
+  .skill-name-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding-right:76px; }
+  .skill-name-row h2{ font-size:1.05rem; margin:0; }
   .skill-tag{
-    font-family:var(--mono); font-size:0.68rem; letter-spacing:0.04em; text-transform:uppercase;
-    padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent);
+    font-family:var(--mono); font-size:0.66rem; letter-spacing:0.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:3px; background:var(--surface-2); color:var(--muted); border:1px solid var(--border);
   }
-  .skill-tag.amber{ background:var(--amber-soft); color:var(--amber); }
-  .skill-tag.owned{ background:var(--accent-soft); color:var(--accent); }
-  .skill-desc{ margin-top:10px; color:var(--muted); font-size:0.9rem; max-width:58ch; }
-  .skill-price{ font-family:var(--mono); font-weight:700; font-size:1.05rem; white-space:nowrap; }
-  .skill-actions{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
-  .btn{
-    font-family:var(--sans); font-weight:600; font-size:0.85rem; padding:10px 16px;
-    border-radius:9px; border:1px solid var(--line); background:var(--card); color:var(--ink);
-    text-decoration:none; cursor:pointer; display:inline-block;
-  }
-  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#08130d; }
-  .btn.small{ padding:8px 12px; font-size:0.8rem; }
+  .skill-desc{ color:var(--muted); font-size:0.88rem; line-height:1.5; margin:0; }
+  .skill-bottom{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:auto; flex-wrap:wrap; }
+  .skill-price{ font-family:var(--mono); font-weight:700; font-size:1.05rem; }
+  .skill-actions{ display:flex; gap:8px; flex-wrap:wrap; }
 
-  .soon-grid{ display:flex; flex-direction:column; gap:10px; }
-  .soon-row{
-    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-    padding:12px 16px; background:var(--card); border:1px solid var(--line); border-radius:12px;
+  /* ---- roadmap: locked-in-development nodes ---- */
+  .roadmap-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+  .roadmap-tile{
+    position:relative; display:flex; flex-direction:column; gap:8px; padding:16px;
+    background:repeating-linear-gradient(135deg, var(--surface) 0 10px, var(--surface-2) 10px 20px);
+    border:1px dashed var(--border); border-radius:var(--radius-sm);
   }
-  .soon-name{ font-weight:600; font-size:0.92rem; }
-  .soon-desc{ font-size:0.8rem; color:var(--muted); margin-top:2px; max-width:52ch; }
-  .soon-tag{
-    font-family:var(--mono); font-size:0.68rem; color:var(--muted); border:1px solid var(--line);
-    padding:3px 9px; border-radius:999px; white-space:nowrap;
+  .roadmap-icon{
+    width:34px; height:34px; border-radius:3px; display:flex; align-items:center; justify-content:center;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--muted);
+  }
+  .roadmap-icon svg{ width:15px; height:15px; }
+  .roadmap-name{ font-weight:600; font-size:0.9rem; display:flex; align-items:center; gap:8px; }
+  .roadmap-desc{ font-size:0.8rem; color:var(--muted); line-height:1.45; margin:0; }
+  .roadmap-tag{
+    align-self:flex-start; font-family:var(--mono); font-size:0.62rem; letter-spacing:0.04em; text-transform:uppercase;
+    color:var(--muted); border:1px solid var(--border); padding:3px 8px; border-radius:3px; background:var(--surface);
   }
 
+  .empty{ color:var(--muted); font-size:0.88rem; padding:6px 0; }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
 </style>
 </head>
-<body>
+<body class="zt zt-body">
 
-<div class="topbar">
-  <div class="topbar-left">
-    <a class="brand" href="index.html"><span class="dot"></span>Zelos</a>
-    <a class="brand sub" href="dashboard.html">Dashboard</a>
-    <a class="brand sub" href="my-zelos.html">My Zelos</a>
-    <a class="brand sub" href="daily-market.html">Daily market</a>
-  </div>
-  <div class="auth-area" id="authArea"></div>
-</div>
+<nav class="site-nav">
+  <div class="shell">
+    <a class="nav-brand" href="index.html"><span class="mark-dot"></span>Zelos</a>
 
-<div class="wrap">
-  <div>
-    <p class="eyebrow">The Zelos Arsenal</p>
-    <h1>Every skill, in one place</h1>
-    <p class="sub">What each Zelos skill actually does, what it costs, and — if you're signed in — whether you already own it. Every alert page linked here is public and free to read; buying a skill is what puts it in your own rotation.</p>
-  </div>
-
-  <div class="skill-card" data-skill="swing-trader">
-    <div class="skill-top">
-      <div>
-        <div class="skill-name-row">
-          <h2>Swing Trader</h2>
-          <span class="skill-tag">Stocks · live</span>
-          <span class="skill-tag owned" data-owned-tag hidden>Owned</span>
+    <div class="nav-primary" id="navPrimary">
+      <a class="nav-link" href="index.html">Home</a>
+      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <hr>
+          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
         </div>
-        <p class="skill-desc">Pullbacks in a healthy uptrend — alerts only when selling pressure looks like it's fading and risk/reward earns it. Swing, days to weeks.</p>
       </div>
-      <div class="skill-price">$20</div>
-    </div>
-    <div class="skill-actions">
-      <a class="btn" href="swing-trader.html">See today's alert</a>
-      <a class="btn primary" data-buy-btn href="going-to-gumroad.html">Get it — $20</a>
-    </div>
-  </div>
-
-  <div class="skill-card" data-skill="breakout-rider">
-    <div class="skill-top">
-      <div>
-        <div class="skill-name-row">
-          <h2>Breakout Rider</h2>
-          <span class="skill-tag">Stocks · live</span>
-          <span class="skill-tag owned" data-owned-tag hidden>Owned</span>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
         </div>
-        <p class="skill-desc">Waits for a stock to clear resistance and hold above it — not just spike — before it ever gets on the list. Swing, days to weeks.</p>
       </div>
-      <div class="skill-price">$20</div>
+
+      <a class="nav-link" href="arcade.html">Arcade</a>
+      <a class="nav-link" href="alert-history.html">Alerts</a>
+      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="index.html#why-zelos">About</a>
     </div>
-    <div class="skill-actions">
-      <a class="btn" href="breakout-rider.html">See today's alert</a>
-      <a class="btn primary" data-buy-btn href="going-to-gumroad-breakout.html">Get it — $20</a>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-auth" id="navAuth"></div>
+    </div>
+
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <div class="nav-mobile-label">Strategies</div>
+      <a href="swing-trader.html">Swing Trader</a>
+      <a href="breakout-rider.html">Breakout Rider</a>
+      <a href="options-scanner.html">Options Scanner</a>
+      <a href="arsenal.html">Full Arsenal</a>
+      <div class="nav-mobile-label">Market</div>
+      <a href="market-3d.html">Market 3D</a>
+      <a href="live-chart.html">Live Chart</a>
+      <a href="daily-market.html">Daily Market</a>
+      <a href="alert-history.html">Alert History</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="arcade.html">Arcade</a>
+      <a href="alert-history.html">Alerts</a>
+      <a href="ai-knowledge-catalog.html">Knowledge</a>
+      <a href="index.html#why-zelos">About</a>
     </div>
   </div>
+</nav>
 
-  <div class="skill-card" data-skill="options-scanner">
-    <div class="skill-top">
-      <div>
-        <div class="skill-name-row">
-          <h2>Options Scanner</h2>
-          <span class="skill-tag amber">Options · live</span>
-          <span class="skill-tag owned" data-owned-tag hidden>Owned</span>
+<section class="section-tight">
+  <div class="shell-narrow">
+    <div>
+      <p class="eyebrow">The Zelos Arsenal</p>
+      <h1 style="font-size:1.5rem; margin-top:6px;">Unlock every strategy in the arsenal</h1>
+      <p class="status-line" style="margin-top:6px;">What each Zelos skill actually does, what it costs, and whether you've unlocked it yet. Every alert page linked here is public and free to read — buying a skill is what unlocks it in your own rotation.</p>
+      <div class="applinks">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="my-zelos.html">My Zelos</a>
+        <a href="arsenal.html" class="is-active">Arsenal</a>
+        <a href="daily-market.html">Daily market</a>
+        <a href="alert-history.html">History</a>
+      </div>
+    </div>
+
+    <div class="progress-card">
+      <div class="progress-head">
+        <h2>Skill unlocks</h2>
+        <span class="progress-count" id="progressCount">— / 3</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="progress-note" id="progressNote">Sign in to track which skills you've unlocked.</p>
+    </div>
+
+    <div style="margin-top:26px;">
+      <div class="skill-grid">
+        <div class="skill-tile is-locked" data-skill="swing-trader">
+          <span class="skill-ribbon locked" data-ribbon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span data-ribbon-label>Locked</span>
+          </span>
+          <div class="skill-icon accent">SW</div>
+          <div>
+            <div class="skill-name-row"><h2>Swing Trader</h2><span class="skill-tag">Stocks · live</span></div>
+            <p class="skill-desc">Pullbacks in a healthy uptrend — alerts only when selling pressure looks like it's fading and risk/reward earns it. Swing, days to weeks.</p>
+          </div>
+          <div class="skill-bottom">
+            <span class="skill-price">$20</span>
+            <div class="skill-actions">
+              <a class="btn btn-ghost btn-sm" href="swing-trader.html">Preview</a>
+              <a class="btn btn-primary btn-sm" data-buy-btn href="going-to-gumroad.html">Unlock — $20</a>
+            </div>
+          </div>
         </div>
-        <p class="skill-desc">Takes the same pullback and breakdown setups and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies.</p>
-      </div>
-      <div class="skill-price">$20</div>
-    </div>
-    <div class="skill-actions">
-      <a class="btn" href="options-scanner.html">See today's alert</a>
-      <a class="btn primary" data-buy-btn href="going-to-gumroad-options.html">Get it — $20</a>
-    </div>
-  </div>
 
-  <div id="markOwnedBlock" hidden>
-    <p class="fine">Signed in — already bought one of these? <span id="markOwnedLinks"></span> Purchases on Gumroad aren't automatically synced yet, so marking a skill as owned here is what makes it show up as yours on the <a href="my-zelos.html" style="color:var(--accent);">My Zelos</a> and Dashboard pages.</p>
-  </div>
+        <div class="skill-tile is-locked" data-skill="breakout-rider">
+          <span class="skill-ribbon locked" data-ribbon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span data-ribbon-label>Locked</span>
+          </span>
+          <div class="skill-icon gold">BR</div>
+          <div>
+            <div class="skill-name-row"><h2>Breakout Rider</h2><span class="skill-tag">Stocks · live</span></div>
+            <p class="skill-desc">Waits for a stock to clear resistance and hold above it — not just spike — before it ever gets on the list. Swing, days to weeks.</p>
+          </div>
+          <div class="skill-bottom">
+            <span class="skill-price">$20</span>
+            <div class="skill-actions">
+              <a class="btn btn-ghost btn-sm" href="breakout-rider.html">Preview</a>
+              <a class="btn btn-primary btn-sm" data-buy-btn href="going-to-gumroad-breakout.html">Unlock — $20</a>
+            </div>
+          </div>
+        </div>
 
-  <div>
-    <p class="eyebrow" style="margin-top:6px;">On the roadmap</p>
-    <div class="soon-grid">
-      <div class="soon-row">
-        <div><div class="soon-name">Earnings Drift</div><div class="soon-desc">Buys into a strong earnings beat after the initial pop settles — riding the well-documented drift, not the headline spike.</div></div>
-        <span class="soon-tag">Coming soon</span>
+        <div class="skill-tile is-locked" data-skill="options-scanner">
+          <span class="skill-ribbon locked" data-ribbon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span data-ribbon-label>Locked</span>
+          </span>
+          <div class="skill-icon violet">OS</div>
+          <div>
+            <div class="skill-name-row"><h2>Options Scanner</h2><span class="skill-tag">Options · live</span></div>
+            <p class="skill-desc">Takes the same pullback and breakdown setups and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies.</p>
+          </div>
+          <div class="skill-bottom">
+            <span class="skill-price">$20</span>
+            <div class="skill-actions">
+              <a class="btn btn-ghost btn-sm" href="options-scanner.html">Preview</a>
+              <a class="btn btn-primary btn-sm" data-buy-btn href="going-to-gumroad-options.html">Unlock — $20</a>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="soon-row">
-        <div><div class="soon-name">Dip Catcher</div><div class="soon-desc">Buys short-term oversold dips in otherwise strong names — small, quick, and sized down on purpose.</div></div>
-        <span class="soon-tag">Coming soon</span>
-      </div>
-      <div class="soon-row">
-        <div><div class="soon-name">Range Runner</div><div class="soon-desc">Trades the breakout off a stock's opening range and is flat by the close — no overnight risk, on purpose.</div></div>
-        <span class="soon-tag">Coming soon</span>
-      </div>
-      <div class="soon-row">
-        <div><div class="soon-name">Crypto Pulse</div><div class="soon-desc">Trades volatility swings on major coins inside a fixed risk band — sized smaller on purpose, given the swings.</div></div>
-        <span class="soon-tag">Coming soon</span>
+
+      <div id="markOwnedBlock" hidden style="margin-top:16px;">
+        <p class="fine">Signed in — already bought one of these? <span id="markOwnedLinks"></span> Purchases on Gumroad aren't automatically synced yet, so marking a skill as unlocked here is what makes it show up as yours on the <a href="my-zelos.html" style="color:var(--accent);">My Zelos</a> and Dashboard pages.</p>
       </div>
     </div>
-  </div>
 
-  <div class="fine">Every skill here publishes the same alert, on the same schedule, to every subscriber — general information, not personalized advice, and not tied to any brokerage account. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
-</div>
+    <div style="margin-top:30px;">
+      <p class="eyebrow">Next in the tech tree</p>
+      <p class="status-line" style="margin:6px 0 14px;">Still in development — not unlockable yet, but on the roadmap.</p>
+      <div class="roadmap-grid">
+        <div class="roadmap-tile">
+          <div class="roadmap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+          <div class="roadmap-name">Earnings Drift</div>
+          <p class="roadmap-desc">Buys into a strong earnings beat after the initial pop settles — riding the well-documented drift, not the headline spike.</p>
+          <span class="roadmap-tag">Coming soon</span>
+        </div>
+        <div class="roadmap-tile">
+          <div class="roadmap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+          <div class="roadmap-name">Dip Catcher</div>
+          <p class="roadmap-desc">Buys short-term oversold dips in otherwise strong names — small, quick, and sized down on purpose.</p>
+          <span class="roadmap-tag">Coming soon</span>
+        </div>
+        <div class="roadmap-tile">
+          <div class="roadmap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+          <div class="roadmap-name">Range Runner</div>
+          <p class="roadmap-desc">Trades the breakout off a stock's opening range and is flat by the close — no overnight risk, on purpose.</p>
+          <span class="roadmap-tag">Coming soon</span>
+        </div>
+        <div class="roadmap-tile">
+          <div class="roadmap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+          <div class="roadmap-name">Crypto Pulse</div>
+          <p class="roadmap-desc">Trades volatility swings on major coins inside a fixed risk band — sized smaller on purpose, given the swings.</p>
+          <span class="roadmap-tag">Coming soon</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="fine" style="margin-top:26px;">Every skill here publishes the same alert, on the same schedule, to every subscriber — general information, not personalized advice, and not tied to any brokerage account. Not a registered investment adviser. Trading involves risk, including loss of principal.</p>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <a class="footer-brand" href="index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="arsenal.html">Strategies</a>
+        <a href="alert-history.html">Alerts</a>
+        <a href="terms.html">Terms</a>
+      </div>
+    </div>
+    <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  function wireDropdown(trigger, panel){
+    if(!trigger || !panel) return;
+    function close(){ panel.hidden = true; trigger.setAttribute('aria-expanded','false'); }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false; trigger.setAttribute('aria-expanded','true');
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  document.querySelectorAll('.nav-drop').forEach(function(menu){
+    wireDropdown(menu.querySelector('.nav-drop-btn'), menu.querySelector('.nav-drop-panel'));
+  });
+
+  var siteNav = document.querySelector('.site-nav');
+  var hamburger = document.getElementById('navHamburger');
+  if (siteNav && hamburger) {
+    hamburger.addEventListener('click', function(){
+      var open = siteNav.classList.toggle('is-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('navMobilePanel').addEventListener('click', function(e){
+      if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
+    });
+  }
+})();
+</script>
+
+<script src="zelos-theme-toggle.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="zelos-mood.js"></script>
+<script src="zelos-xp.js"></script>
 <script>
 (function(){
+  var SKILL_IDS = ['swing-trader', 'breakout-rider', 'options-scanner'];
+  var SKILL_NAMES = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+
   var cfg = window.ZELOS_FIREBASE_CONFIG;
   var ready = !!(cfg && cfg.projectId && window.firebase);
   var auth = null, db = null;
@@ -214,13 +380,102 @@
     } catch(e){ ready = false; }
   }
 
-  var authArea = document.getElementById('authArea');
-  function renderAuth(user){
-    if (user) {
-      authArea.innerHTML = '<span class="user-chip">' + (user.email || 'Signed in') + '</span> <a class="btn small" href="my-zelos.html">My Zelos</a>';
-    } else {
-      authArea.innerHTML = '<a class="btn small primary" href="dashboard.html">Sign in</a>';
+  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  var navAuth = document.getElementById('navAuth');
+
+  function wireDropdownRef(trigger, panel){
+    function close(){ panel.hidden = true; }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false;
     }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+
+  function renderSignedOut(){
+    navAuth.innerHTML =
+      '<div style="position:relative;"><button class="btn btn-ghost btn-sm" id="loginBtn" type="button">Log in</button></div>' +
+      '<div style="position:relative;">' +
+        '<button class="btn btn-primary btn-sm" id="getStartedBtn" type="button">Get Started</button>' +
+        '<div class="auth-pop" id="authPop" hidden>' +
+          '<h3 id="authPopTitle">Sign in to Zelos</h3>' +
+          '<div class="auth-msg" id="authMsg"></div>' +
+          '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+          '<input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">' +
+          '<button class="btn btn-primary" id="authSubmitBtn" type="button">Sign in</button>' +
+          '<div class="auth-divider">or</div>' +
+          '<button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>' +
+          '<div class="auth-switch" id="authSwitch">New here? <button type="button" id="authModeToggle">Create an account</button></div>' +
+        '</div>' +
+      '</div>';
+
+    var pop = document.getElementById('authPop');
+    var mode = 'signin';
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = 'dashboard.html'; } }
+    function setMsg(text, isError){
+      var el = document.getElementById('authMsg');
+      el.textContent = text || '';
+      el.className = 'auth-msg' + (isError ? ' is-error' : '');
+    }
+    function applyMode(){
+      document.getElementById('authPopTitle').textContent = mode === 'signup' ? 'Create your Zelos account' : 'Sign in to Zelos';
+      document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+      document.getElementById('authSwitch').innerHTML = mode === 'signup'
+        ? 'Already have an account? <button type="button" id="authModeToggle">Sign in</button>'
+        : 'New here? <button type="button" id="authModeToggle">Create an account</button>';
+      document.getElementById('authModeToggle').addEventListener('click', function(){ mode = mode === 'signup' ? 'signin' : 'signup'; applyMode(); });
+    }
+    applyMode();
+
+    var dd = wireDropdownRef(document.getElementById('getStartedBtn'), pop);
+    document.getElementById('loginBtn').addEventListener('click', function(e){ e.stopPropagation(); mode='signin'; applyMode(); dd.open(); });
+
+    document.getElementById('authSubmitBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var email = document.getElementById('authEmail').value.trim();
+      var pw = document.getElementById('authPassword').value;
+      if (mode === 'signup') {
+        setMsg('Creating account…');
+        auth.createUserWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      } else {
+        setMsg('Signing in…');
+        auth.signInWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      }
+    });
+    document.getElementById('googleSignInBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var provider = new firebase.auth.GoogleAuthProvider();
+      setMsg('Opening Google sign-in…');
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+    });
+  }
+
+  function renderSignedIn(user){
+    var initial = (user.email || '?').charAt(0).toUpperCase();
+    navAuth.innerHTML =
+      '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="account-avatar">' + initial + '</span>' +
+        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="nav-drop-caret">&#9662;</span></button>' +
+        '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
+          '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
+          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<hr><a href="#" id="signOutLink">Sign out</a>' +
+        '</div></div>';
+    wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
+    document.getElementById('signOutLink').addEventListener('click', function(e){ e.preventDefault(); auth.signOut(); });
+  }
+
+  var LOCK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  var CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9.5 17 19 7.5"/></svg>';
+
+  function setProgress(count, total, note){
+    document.getElementById('progressCount').textContent = count + ' / ' + total;
+    document.getElementById('progressFill').style.width = (total ? (count / total * 100) : 0) + '%';
+    document.getElementById('progressNote').textContent = note;
   }
 
   function userDocRef(uid){ return db.collection('users').doc(uid); }
@@ -238,22 +493,32 @@
   }
 
   function applyOwnership(owned){
-    document.querySelectorAll('.skill-card').forEach(function(card){
-      var id = card.dataset.skill;
-      var tag = card.querySelector('[data-owned-tag]');
+    var unlockedCount = 0;
+    document.querySelectorAll('.skill-tile').forEach(function(tile){
+      var id = tile.dataset.skill;
       var isOwned = owned.indexOf(id) !== -1;
-      tag.hidden = !isOwned;
-      var buyBtn = card.querySelector('[data-buy-btn]');
+      if (isOwned) unlockedCount++;
+      tile.classList.toggle('is-unlocked', isOwned);
+      tile.classList.toggle('is-locked', !isOwned);
+      var ribbon = tile.querySelector('[data-ribbon]');
+      var label = tile.querySelector('[data-ribbon-label]');
+      ribbon.classList.toggle('unlocked', isOwned);
+      ribbon.classList.toggle('locked', !isOwned);
+      ribbon.innerHTML = (isOwned ? CHECK_ICON : LOCK_ICON) + '<span data-ribbon-label>' + (isOwned ? 'Unlocked' : 'Locked') + '</span>';
+      var buyBtn = tile.querySelector('[data-buy-btn]');
       if (isOwned) { buyBtn.textContent = 'Buy again'; }
     });
+    setProgress(unlockedCount, SKILL_IDS.length, unlockedCount === SKILL_IDS.length
+      ? 'Every core skill unlocked — full arsenal equipped.'
+      : 'Unlocking a skill also adds it to My Zelos and your XP progress.');
+
     var block = document.getElementById('markOwnedBlock');
     var links = document.getElementById('markOwnedLinks');
-    var names = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
-    var missing = Object.keys(names).filter(function(id){ return owned.indexOf(id) === -1; });
+    var missing = SKILL_IDS.filter(function(id){ return owned.indexOf(id) === -1; });
     if (!missing.length) { block.hidden = true; return; }
     links.innerHTML = '';
     missing.forEach(function(id, i){
-      links.appendChild(markOwnedLink(id, 'Mark ' + names[id] + ' as owned'));
+      links.appendChild(markOwnedLink(id, 'Mark ' + SKILL_NAMES[id] + ' as unlocked'));
       if (i < missing.length - 1) links.appendChild(document.createTextNode(' · '));
     });
     block.hidden = false;
@@ -261,13 +526,22 @@
 
   if (ready) {
     auth.onAuthStateChanged(function(user){
-      renderAuth(user);
-      if (!user) { document.getElementById('markOwnedBlock').hidden = true; return; }
+      if (!user || user.isAnonymous) {
+        renderSignedOut();
+        document.getElementById('markOwnedBlock').hidden = true;
+        setProgress(0, SKILL_IDS.length, 'Sign in to track which skills you\'ve unlocked.');
+        if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
+        return;
+      }
+      renderSignedIn(user);
       userDocRef(user.uid).onSnapshot(function(doc){
         var data = doc.data() || {};
         applyOwnership(data.ownedSkills || []);
       });
+      if (window.ZelosXP) ZelosXP.award('daily-checkin');
     });
+  } else {
+    renderSignedOut();
   }
 })();
 </script>
@@ -277,7 +551,7 @@
   if (typeof gtag !== 'function') return;
   buyBtns.forEach(function(btn){
     btn.addEventListener('click', function(){
-      gtag('event', 'click_buy_gumroad', { event_category: 'engagement', event_label: 'Arsenal — ' + btn.closest('.skill-card').dataset.skill });
+      gtag('event', 'click_buy_gumroad', { event_category: 'engagement', event_label: 'Arsenal — ' + btn.closest('.skill-tile').dataset.skill });
     });
   });
 })();

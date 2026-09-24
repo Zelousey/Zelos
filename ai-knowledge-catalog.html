@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-Y4B3ZC5XRX');
+</script>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI Knowledge Catalog — Zelos</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#080b13">
+<meta name="description" content="How Zelos actually thinks: the shared rule-based engine behind every strategy, how a setup gets scored, a side-by-side comparison of Swing Trader, Breakout Rider, and Options Scanner, and a plain-English glossary of alert terminology.">
+<link rel="canonical" href="https://agentictrading.info/ai-knowledge-catalog.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Zelos">
+<meta property="og:title" content="AI Knowledge Catalog — Zelos">
+<meta property="og:description" content="How Zelos actually thinks: the shared rule-based engine behind every strategy, how a setup gets scored, a strategy comparison, and a plain-English glossary of alert terminology.">
+<meta property="og:url" content="https://agentictrading.info/ai-knowledge-catalog.html">
+<meta property="og:image" content="https://agentictrading.info/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI Knowledge Catalog — Zelos">
+<meta name="twitter:description" content="How Zelos actually thinks: the shared rule-based engine behind every strategy, how a setup gets scored, a strategy comparison, and a plain-English glossary of alert terminology.">
+<meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
+<style>
+  :root{ color-scheme: dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]{ display:none !important; }
+
+  /* ---- page-local components (not in the shared theme) ---- */
+  .cta-row{ margin-top:28px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+
+  /* shared-engine steps (same visual language as the strategy "how it decides" list) */
+  .engine-steps{ margin-top:30px; display:flex; flex-direction:column; }
+  .engine-step{ display:grid; grid-template-columns:44px 1fr; gap:18px; padding-block:20px; border-top:1px solid var(--line); }
+  .engine-step:last-child{ border-bottom:1px solid var(--line); }
+  .engine-step-num{ font-family:var(--mono); font-size:0.85rem; color:var(--accent); padding-top:2px; }
+  .engine-step h3{ font-size:1.05rem; font-weight:600; }
+  .engine-step p{ margin-top:6px; color:var(--muted); font-size:0.95rem; }
+
+  /* scoring factor breakdown */
+  .factor-grid{ margin-top:22px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:640px){ .factor-grid{ grid-template-columns:1fr; } }
+  .factor-card{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:16px 18px; }
+  .factor-card .n{ font-family:var(--mono); font-size:0.72rem; color:var(--accent); letter-spacing:0.05em; text-transform:uppercase; }
+  .factor-card h3{ font-size:0.98rem; font-weight:600; margin-top:6px; }
+  .factor-card p{ margin-top:5px; font-size:0.86rem; color:var(--muted); }
+  .bar-note{ margin-top:16px; padding:12px 16px; border:1px dashed var(--line); border-radius:3px; font-family:var(--mono); font-size:0.8rem; color:var(--muted); }
+
+  /* regime cards */
+  .regime-grid{ margin-top:22px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  @media (max-width:760px){ .regime-grid{ grid-template-columns:1fr; } }
+  .regime-card{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:16px 18px; }
+  .regime-card .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; }
+  .regime-card.up .dot{ background:var(--accent); }
+  .regime-card.down .dot{ background:var(--risk); }
+  .regime-card.side .dot{ background:var(--amber); }
+  .regime-card h3{ display:inline; font-size:0.95rem; font-weight:600; }
+  .regime-card p{ margin-top:8px; font-size:0.86rem; color:var(--muted); }
+
+  /* strategy comparison table */
+  .compare-wrap{ margin-top:22px; overflow-x:auto; border:1px solid var(--line); border-radius:3px; }
+  table.compare{ width:100%; border-collapse:collapse; min-width:620px; font-size:0.88rem; }
+  table.compare th, table.compare td{ padding:14px 16px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.compare thead th{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); background:var(--card); }
+  table.compare tbody th{ font-weight:600; color:var(--ink); white-space:nowrap; background:var(--card); }
+  table.compare tbody tr:last-child td, table.compare tbody tr:last-child th{ border-bottom:none; }
+  table.compare td{ color:var(--ink-2); }
+  table.compare td a{ color:var(--accent); text-decoration:none; font-family:var(--mono); font-size:0.82rem; }
+  table.compare td a:hover{ text-decoration:underline; }
+  .pill{ display:inline-block; font-family:var(--mono); font-size:0.68rem; font-weight:700; letter-spacing:0.03em; padding:2px 8px; border-radius:3px; }
+  .pill.violet{ background:var(--violet-soft); color:var(--violet); }
+  .pill.teal{ background:var(--accent-soft); color:var(--accent); }
+
+  /* glossary */
+  .glossary-grid{ margin-top:22px; display:grid; grid-template-columns:1fr 1fr; gap:0 32px; }
+  @media (max-width:760px){ .glossary-grid{ grid-template-columns:1fr; } }
+  .glossary-item{ padding-block:16px; border-top:1px solid var(--line); }
+  .glossary-item dt{ font-family:var(--mono); font-weight:700; font-size:0.92rem; color:var(--ink); }
+  .glossary-item dd{ margin:6px 0 0; font-size:0.86rem; color:var(--muted); line-height:1.5; }
+
+  /* trust + disclosures (same pattern used on the strategy pages) */
+  .trust-list{ margin-top:24px; display:flex; flex-direction:column; gap:14px; }
+  .trust-item{ display:flex; gap:14px; align-items:flex-start; }
+  .check{ flex:none; width:22px; height:22px; border-radius:2px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:0.8rem; margin-top:2px; }
+  .trust-item p{ color:var(--muted); font-size:0.95rem; }
+  .trust-item p b{ color:var(--ink); font-weight:600; }
+
+  .disclosures{ margin-top:20px; background:var(--risk-soft); border-left:3px solid var(--risk); border-radius:2px 3px 3px 2px; padding:20px 22px; display:flex; flex-direction:column; gap:14px; }
+  .disclosure-item{ font-size:0.87rem; color:var(--ink); line-height:1.55; }
+  .disclosure-item b{ color:var(--ink); }
+
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://agentictrading.info/ai-knowledge-catalog.html#webpage",
+      "name": "AI Knowledge Catalog — Zelos",
+      "url": "https://agentictrading.info/ai-knowledge-catalog.html",
+      "image": "https://agentictrading.info/og-image.png",
+      "description": "How Zelos actually thinks: the shared rule-based engine behind every strategy, how a setup gets scored, a strategy comparison, and a plain-English glossary of alert terminology.",
+      "isPartOf": { "@type": "WebSite", "name": "Zelos", "url": "https://agentictrading.info/" }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://agentictrading.info/ai-knowledge-catalog.html#what-is-agentic-trading",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is agentic trading?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Agentic trading is when a software agent applies a fixed set of trading rules on its own initiative — screening the market, scoring candidate setups, and deciding whether to publish an alert — without a person re-running the analysis by hand each session. The agent decides what qualifies; a person still decides whether to act on it. It is distinct from automated trade execution, which places orders on its own — an agentic trading system can stop at the decision and the write-up, never the order itself. Zelos is a rule-based agentic trading system: the same scoring engine runs every session, unattended, and either publishes a qualifying setup with its full reasoning or says plainly that nothing cleared the bar."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "DefinedTermSet",
+      "@id": "https://agentictrading.info/ai-knowledge-catalog.html#glossary",
+      "name": "Zelos alert & agentic trading glossary",
+      "description": "Plain-English definitions of the terms used on Zelos alert pages and in describing how its agentic trading engine works.",
+      "url": "https://agentictrading.info/ai-knowledge-catalog.html#glossary",
+      "hasDefinedTerm": [
+        { "@type": "DefinedTerm", "name": "Agentic trading", "description": "A software agent applying a fixed set of trading rules on its own initiative — screening the market, scoring setups, and deciding whether to publish an alert — without a person re-running the analysis each session, and without placing trades itself." },
+        { "@type": "DefinedTerm", "name": "Entry", "description": "The reference price a setup was identified at — not an order Zelos places, just where the pattern qualified." },
+        { "@type": "DefinedTerm", "name": "Stop", "description": "The price where the setup's thesis is considered wrong. Used to size a position's risk, never placed as an order automatically." },
+        { "@type": "DefinedTerm", "name": "Target 1 / Target 2", "description": "Reference levels where the reward side of the trade would likely be realized — the first and, if relevant, a further objective." },
+        { "@type": "DefinedTerm", "name": "Risk / reward per share", "description": "The dollar distance from entry to stop (risk) and from entry to target (reward), per share — the two numbers a reward:risk ratio is built from." },
+        { "@type": "DefinedTerm", "name": "Reward : risk ratio", "description": "Reward per share divided by risk per share. A 3:1 ratio means the target is three times as far away as the stop, in the trade's favor." },
+        { "@type": "DefinedTerm", "name": "Support / resistance", "description": "A price level a stock has had trouble falling below (support) or rising above (resistance) recently — the \"floor\" or \"ceiling\" a setup reacts to." },
+        { "@type": "DefinedTerm", "name": "Pullback", "description": "A short pause or dip within a larger uptrend, without breaking the trend itself — what Swing Trader is built to find." },
+        { "@type": "DefinedTerm", "name": "Breakout / retest", "description": "A breakout is a move through a resistance level; a retest is the price coming back to prove that level now holds as support — what Breakout Rider is built to find." },
+        { "@type": "DefinedTerm", "name": "Relative strength", "description": "How a stock is performing compared to the broader market or its peers right now, independent of its own chart shape." },
+        { "@type": "DefinedTerm", "name": "Score / the bar", "description": "The 0–80 number a setup is rated on across the five scoring factors, and the minimum (typically ~60) it has to clear to qualify for an alert." },
+        { "@type": "DefinedTerm", "name": "Market regime", "description": "Today's classification of the broad market as trending up, trending down, or sideways — it changes how strict the scoring bar is that session." },
+        { "@type": "DefinedTerm", "name": "DTE (days to expiration)", "description": "How many days remain until an options contract expires. Options Scanner targets roughly 30–45 DTE — enough runway for a move to play out." },
+        { "@type": "DefinedTerm", "name": "OTM (out of the money)", "description": "An option whose strike price hasn't yet been reached by the underlying stock. \"1 OTM\" means roughly one strike beyond the current price." },
+        { "@type": "DefinedTerm", "name": "Long call / long put", "description": "Buying a call profits if the stock rises; buying a put profits if it falls. \"Long\" means bought outright — the only structure Options Scanner ever uses." },
+        { "@type": "DefinedTerm", "name": "\"No trade today\"", "description": "The outcome on any day nothing clears the bar. It's the most common result by design — the bar exists to be missed most sessions." },
+        { "@type": "DefinedTerm", "name": "Backtest vs. live track record", "description": "A backtest simulates a strategy on past data; a live track record is what actually published in real time. Zelos is upfront about which each strategy currently has." }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body class="zt zt-body">
+
+<nav class="site-nav">
+  <div class="shell">
+    <a class="nav-brand" href="index.html"><span class="mark-dot"></span>Zelos</a>
+
+    <div class="nav-primary" id="navPrimary">
+      <a class="nav-link" href="index.html">Home</a>
+      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <hr>
+          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
+        </div>
+      </div>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
+        </div>
+      </div>
+
+      <a class="nav-link" href="arcade.html">Arcade</a>
+      <a class="nav-link" href="alert-history.html">Alerts</a>
+      <a class="nav-link is-active" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="index.html#why-zelos">About</a>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-auth" id="navAuth"></div>
+    </div>
+
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <div class="nav-mobile-label">Strategies</div>
+      <a href="swing-trader.html">Swing Trader</a>
+      <a href="breakout-rider.html">Breakout Rider</a>
+      <a href="options-scanner.html">Options Scanner</a>
+      <a href="arsenal.html">Full Arsenal</a>
+      <div class="nav-mobile-label">Market</div>
+      <a href="market-3d.html">Market 3D</a>
+      <a href="live-chart.html">Live Chart</a>
+      <a href="daily-market.html">Daily Market</a>
+      <a href="alert-history.html">Alert History</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="arcade.html">Arcade</a>
+      <a href="alert-history.html">Alerts</a>
+      <a href="ai-knowledge-catalog.html">Knowledge</a>
+      <a href="index.html#why-zelos">About</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="shell-narrow">
+    <div class="eyebrow">Zelos &middot; AI Knowledge Catalog &middot; the engine, explained</div>
+    <h1 style="font-size:clamp(2.1rem, 5vw, 3.1rem); margin-top:10px; max-width:17ch;">How Zelos actually <em style="font-style:normal; color:var(--accent);">thinks.</em></h1>
+    <p class="lede" style="margin-top:18px; font-size:1.1rem; color:var(--ink-2); max-width:58ch;">Every Zelos strategy runs on the same rule-based engine underneath &mdash; a market read, a pattern scan, a score, and a publish-or-pass decision. Nothing here is a black box: this page walks through exactly how a setup earns an alert, what the scoring actually weighs, how the three strategies differ, and what the jargon in an alert means.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#scoring">See the scoring system</a>
+      <a class="btn" href="#glossary">Jump to the glossary</a>
+    </div>
+    <div class="cta-note" style="margin-top:16px;">Rule-based, not a black box &middot; the same logic explained here runs behind every alert</div>
+  </div>
+</section>
+
+<section class="section-tight" id="what-is-agentic-trading">
+  <div class="shell-narrow">
+    <div class="eyebrow">What is agentic trading?</div>
+    <h2 style="font-size:1.5rem; margin-top:8px;">Agentic trading, in plain terms</h2>
+    <p style="margin-top:14px; color:var(--ink-2); max-width:62ch; font-size:1.02rem; line-height:1.6;"><b>Agentic trading is when a software agent applies a fixed set of trading rules on its own initiative &mdash; screening the market, scoring candidate setups, and deciding whether to publish an alert &mdash; without a person re-running the analysis by hand each session.</b> The agent decides what qualifies; a person still decides whether to act on it. It's distinct from automated trade execution, which places orders on its own &mdash; an agentic trading system can (and, in Zelos's case, does) stop at the decision and the write-up, never the order itself.</p>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:62ch; font-size:1.02rem; line-height:1.6;">Zelos is a rule-based agentic trading system: the same scoring engine described below runs every session, unattended, and either publishes a qualifying setup with its full reasoning or says plainly that nothing cleared the bar. See <a href="#engine" style="color:var(--accent);">how the engine works</a> for the exact steps, or the <a href="#glossary" style="color:var(--accent);">glossary</a> for the terminology it uses.</p>
+  </div>
+</section>
+
+<section class="section" id="engine">
+  <div class="shell-narrow">
+    <div class="eyebrow">One engine, three lenses</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">Swing Trader, Breakout Rider, and Options Scanner all run the same four checks.</h2>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">What changes between strategies is the shape on the chart each one is hunting for. What doesn't change is the process that shape has to survive before it becomes an alert.</p>
+    <div class="engine-steps">
+      <div class="engine-step">
+        <div class="engine-step-num">01</div>
+        <div><h3>Read the market</h3><p>Before looking at any single stock, the engine classifies the broad market as trending up, trending down, or sideways. That read sets how strict everything downstream gets &mdash; the bar for a "good" setup rises when the backdrop is weak, and eases slightly when it's healthy.</p></div>
+      </div>
+      <div class="engine-step">
+        <div class="engine-step-num">02</div>
+        <div><h3>Scan for the pattern</h3><p>Each strategy screens hundreds of stocks for its own specific shape &mdash; a pullback holding in an uptrend, a breakout that's actually holding above resistance, or a same-day setup already published by another strategy. Anything that doesn't match the shape gets thrown out immediately, no matter how exciting the ticker looks.</p></div>
+      </div>
+      <div class="engine-step">
+        <div class="engine-step-num">03</div>
+        <div><h3>Score it, don't just spot it</h3><p>Every candidate that survives the scan gets scored, not just flagged. See <a href="#scoring" style="color:var(--accent);">the scoring system</a> below for exactly what's weighed. Most days, most candidates don't clear the bar &mdash; that's by design, not a bug.</p></div>
+      </div>
+      <div class="engine-step">
+        <div class="engine-step-num">04</div>
+        <div><h3>Publish, or say nothing</h3><p>If something clears the bar, the alert page updates with the setup, the numbers, and the reasoning behind it. If nothing clears the bar, the page says so plainly. Nothing is ever forced onto the page to make a session look more active than it was.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" id="scoring">
+  <div class="shell-narrow">
+    <div class="eyebrow">The scoring system</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">Five factors, scored out of 80.</h2>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">A setup that matches the right shape still has to earn its score. These are the factors that make up that number on every alert page.</p>
+    <div class="factor-grid">
+      <div class="factor-card"><div class="n">Factor</div><h3>Trend</h3><p>Is the stock's broader direction actually working in the trade's favor, or is this setup fighting the tape?</p></div>
+      <div class="factor-card"><div class="n">Factor</div><h3>Support / structure</h3><p>Is there a real level the setup is holding above (or breaking through), or is the "level" just a line drawn to fit the story?</p></div>
+      <div class="factor-card"><div class="n">Factor</div><h3>Volume</h3><p>Is participation confirming the move, or is this happening on thin, unconvincing volume that could reverse on nothing?</p></div>
+      <div class="factor-card"><div class="n">Reward : risk</div><h3>Reward-to-risk</h3><p>How much upside is on the table versus how far away the stop has to sit? A great pattern with a poor reward:risk still gets marked down.</p></div>
+      <div class="factor-card"><div class="n">Factor</div><h3>Relative strength</h3><p>Is this stock outperforming or lagging the broader market right now? Strength relative to peers matters as much as the chart in isolation.</p></div>
+      <div class="factor-card"><div class="n">Factor</div><h3>The bar itself</h3><p>Typically around 60 out of 80 to qualify. It's set high on purpose &mdash; "no trade today" is meant to be the most common outcome, not an edge case.</p></div>
+    </div>
+    <div class="bar-note">A setup can pass on reward:risk alone and still get dropped on overall score &mdash; every strategy page's "discipline, not the hype" section shows a real example of exactly that.</div>
+  </div>
+</section>
+
+<section class="section-tight" id="regime">
+  <div class="shell-narrow">
+    <div class="eyebrow">Reading the market regime</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">The same setup can pass on one day and fail on another.</h2>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">That's not inconsistency &mdash; it's the market-regime check working as intended. The broader backdrop changes how strict the scan is before a single stock is even screened.</p>
+    <div class="regime-grid">
+      <div class="regime-card up"><h3><span class="dot"></span>Trending up</h3><p>Bullish continuation setups (pullbacks, breakouts) get a slightly easier bar &mdash; the wind is at their back.</p></div>
+      <div class="regime-card down"><h3><span class="dot"></span>Trending down</h3><p>The bar tightens across the board. Fewer setups qualify, and reversal or short-biased shapes get closer scrutiny.</p></div>
+      <div class="regime-card side"><h3><span class="dot"></span>Sideways / mixed</h3><p>Neither trend nor breakout patterns get the benefit of the doubt &mdash; setups need to prove themselves on their own merits.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" id="compare">
+  <div class="shell-narrow">
+    <div class="eyebrow">Strategy comparison</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">Three strategies, one engine, different targets.</h2>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">Every row below runs through the same four-step engine above &mdash; this is where they diverge.</p>
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th scope="col">&nbsp;</th>
+            <th scope="col">Swing Trader</th>
+            <th scope="col">Breakout Rider</th>
+            <th scope="col">Options Scanner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Pattern targeted</th>
+            <td>Pullbacks, bull flags, breakout+retests, and higher-low reversals in an uptrend</td>
+            <td>Clean breaks above resistance that actually hold, not spike-and-fade moves</td>
+            <td>Whichever directional setup (from either strategy above, or its own scan) clears an options-specific check</td>
+          </tr>
+          <tr>
+            <th scope="row">Direction / instrument</th>
+            <td>Long equity</td>
+            <td>Long equity</td>
+            <td>Single long call or put &mdash; never spreads, multi-leg, short options, 0DTE, or weeklies</td>
+          </tr>
+          <tr>
+            <th scope="row">Typical structure</th>
+            <td>Entry, stop, target 1/2, reward:risk</td>
+            <td>Entry (at the hold, not the spike), stop, target, reward:risk</td>
+            <td>Direction, ~1 strike OTM, 30&ndash;45 DTE, plus the underlying setup's reward:risk</td>
+          </tr>
+          <tr>
+            <th scope="row">Track record</th>
+            <td><span class="pill teal">Live</span> &mdash; publishing real sessions</td>
+            <td><span class="pill teal">Live</span>, newly launched &mdash; no long-run history yet</td>
+            <td><span class="pill violet">New</span> &mdash; illustrative walkthroughs only so far</td>
+          </tr>
+          <tr>
+            <th scope="row">Price</th>
+            <td>$20 one time</td>
+            <td>$20 one time</td>
+            <td>$20 one time</td>
+          </tr>
+          <tr>
+            <th scope="row">&nbsp;</th>
+            <td><a href="swing-trader.html">See Swing Trader &rarr;</a></td>
+            <td><a href="breakout-rider.html">See Breakout Rider &rarr;</a></td>
+            <td><a href="options-scanner.html">See Options Scanner &rarr;</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" id="glossary">
+  <div class="shell-narrow">
+    <div class="eyebrow">Glossary</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">What the terms on an alert page actually mean.</h2>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">Plain-English definitions for the vocabulary used across every alert &mdash; no finance-degree required.</p>
+    <dl class="glossary-grid">
+      <div class="glossary-item"><dt>Entry</dt><dd>The reference price a setup was identified at &mdash; not an order Zelos places, just where the pattern qualified.</dd></div>
+      <div class="glossary-item"><dt>Stop</dt><dd>The price where the setup's thesis is considered wrong. Used to size a position's risk, never placed as an order automatically.</dd></div>
+      <div class="glossary-item"><dt>Target 1 / Target 2</dt><dd>Reference levels where the reward side of the trade would likely be realized &mdash; the first and, if relevant, a further objective.</dd></div>
+      <div class="glossary-item"><dt>Risk / reward per share</dt><dd>The dollar distance from entry to stop (risk) and from entry to target (reward), per share &mdash; the two numbers a reward:risk ratio is built from.</dd></div>
+      <div class="glossary-item"><dt>Reward : risk ratio</dt><dd>Reward per share divided by risk per share. A 3:1 ratio means the target is three times as far away as the stop, in the trade's favor.</dd></div>
+      <div class="glossary-item"><dt>Support / resistance</dt><dd>A price level a stock has had trouble falling below (support) or rising above (resistance) recently &mdash; the "floor" or "ceiling" a setup reacts to.</dd></div>
+      <div class="glossary-item"><dt>Pullback</dt><dd>A short pause or dip within a larger uptrend, without breaking the trend itself &mdash; what Swing Trader is built to find.</dd></div>
+      <div class="glossary-item"><dt>Breakout / retest</dt><dd>A breakout is a move through a resistance level; a retest is the price coming back to prove that level now holds as support &mdash; what Breakout Rider is built to find.</dd></div>
+      <div class="glossary-item"><dt>Relative strength</dt><dd>How a stock is performing compared to the broader market or its peers right now, independent of its own chart shape.</dd></div>
+      <div class="glossary-item"><dt>Score / the bar</dt><dd>The 0&ndash;80 number a setup is rated on across the five scoring factors, and the minimum (typically ~60) it has to clear to qualify for an alert.</dd></div>
+      <div class="glossary-item"><dt>Market regime</dt><dd>Today's classification of the broad market as trending up, trending down, or sideways &mdash; it changes how strict the scoring bar is that session.</dd></div>
+      <div class="glossary-item"><dt>DTE (days to expiration)</dt><dd>How many days remain until an options contract expires. Options Scanner targets roughly 30&ndash;45 DTE &mdash; enough runway for a move to play out.</dd></div>
+      <div class="glossary-item"><dt>OTM (out of the money)</dt><dd>An option whose strike price hasn't yet been reached by the underlying stock. "1 OTM" means roughly one strike beyond the current price.</dd></div>
+      <div class="glossary-item"><dt>Long call / long put</dt><dd>Buying a call profits if the stock rises; buying a put profits if it falls. "Long" means bought outright &mdash; the only structure Options Scanner ever uses.</dd></div>
+      <div class="glossary-item"><dt>"No trade today"</dt><dd>The outcome on any day nothing clears the bar. It's the most common result by design &mdash; the bar exists to be missed most sessions.</dd></div>
+      <div class="glossary-item"><dt>Backtest vs. live track record</dt><dd>A backtest simulates a strategy on past data; a live track record is what actually published in real time. Zelos is upfront about which each strategy currently has.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="shell-narrow">
+    <div class="eyebrow">What Zelos never does</div>
+    <h2 style="font-size:1.7rem; margin-top:8px;">The same rules hold no matter which strategy you're reading about.</h2>
+    <div class="trust-list">
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>No account connection, ever.</b> Zelos never asks for your brokerage credentials and never links to any account. There's nothing to authorize and nothing for it to touch &mdash; it publishes an alert page, full stop.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>Nothing here places a trade.</b> Every run only researches and reports. If you decide to act on an alert, you place that trade yourself, in your own brokerage account, on your own judgment.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>It's rules, not a mysterious model.</b> Every factor described on this page &mdash; trend, support, volume, reward:risk, relative strength, market regime &mdash; is an explainable, standard technical concept. Nothing here is a proprietary black box.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>"No trade today" is a normal outcome.</b> The bar exists to be missed most days &mdash; that's what keeps it a strategy instead of a habit.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>Nothing here is a guarantee.</b> This approach hasn't been backtested against a long track record. It's rules, applied consistently &mdash; not a promise of returns.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" id="disclosures">
+  <div class="shell-narrow">
+    <div class="eyebrow">Risk &amp; disclosures</div>
+    <div class="disclosures">
+      <div class="disclosure-item"><b>This is general, educational information about how Zelos's engine works &mdash; not personalized investment advice.</b> Zelos is not a registered investment adviser or broker-dealer.</div>
+      <div class="disclosure-item"><b>Trading involves real risk of loss, including total loss of invested capital.</b> Nothing about the scoring or process described here removes that risk.</div>
+      <div class="disclosure-item"><b>Past behavior of any strategy does not predict future results.</b> No performance is promised or guaranteed anywhere on this page or the strategy pages it links to.</div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <a class="footer-brand" href="index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="arsenal.html">Strategies</a>
+        <a href="alert-history.html">Alerts</a>
+        <a href="terms.html">Terms</a>
+        <a href="#disclosures">Risk &amp; disclosures</a>
+      </div>
+    </div>
+    <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
+  </div>
+</footer>
+
+<!-- Firebase (compat build) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="zelos-mood.js"></script>
+<script src="zelos-xp.js"></script>
+
+<script>
+(function(){
+  function wireDropdown(trigger, panel){
+    if(!trigger || !panel) return;
+    function close(){ panel.hidden = true; trigger.setAttribute('aria-expanded','false'); }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false; trigger.setAttribute('aria-expanded','true');
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  document.querySelectorAll('.nav-drop').forEach(function(menu){
+    wireDropdown(menu.querySelector('.nav-drop-btn'), menu.querySelector('.nav-drop-panel'));
+  });
+
+  var siteNav = document.querySelector('.site-nav');
+  var hamburger = document.getElementById('navHamburger');
+  if (siteNav && hamburger) {
+    hamburger.addEventListener('click', function(){
+      var open = siteNav.classList.toggle('is-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('navMobilePanel').addEventListener('click', function(e){
+      if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
+    });
+  }
+})();
+</script>
+
+<script>
+(function(){
+  // ---- auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth(); db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+  var navAuth = document.getElementById('navAuth');
+
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+  function ensureUserDoc(user){
+    var ref = userDocRef(user.uid);
+    return ref.get().then(function(doc){
+      if (!doc.exists) {
+        return ref.set({
+          email: user.email || null, displayName: user.displayName || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+        }).then(function(){ return ref.get(); });
+      }
+      return doc;
+    });
+  }
+  function claimPendingOwnership(user){
+    if (!user.email) return Promise.resolve();
+    var pendingRef = db.collection('pendingOwnership').doc(user.email.toLowerCase());
+    return pendingRef.get().then(function(doc){
+      if (!doc.exists) return;
+      var skills = (doc.data().skills || []).filter(Boolean);
+      if (!skills.length) return pendingRef.delete().catch(function(){});
+      return userDocRef(user.uid).set({
+        ownedSkills: firebase.firestore.FieldValue.arrayUnion.apply(null, skills)
+      }, { merge:true }).then(function(){ return pendingRef.delete(); });
+    }).catch(function(){});
+  }
+  function wireDropdownRef(trigger, panel){
+    function close(){ panel.hidden = true; }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false;
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+
+  function renderSignedOut(){
+    navAuth.innerHTML =
+      '<div style="position:relative;"><button class="btn btn-ghost btn-sm" id="loginBtn" type="button">Log in</button></div>' +
+      '<div style="position:relative;">' +
+        '<button class="btn btn-primary btn-sm" id="getStartedBtn" type="button">Get Started</button>' +
+        '<div class="auth-pop" id="authPop" hidden>' +
+          '<h3 id="authPopTitle">Sign in to Zelos</h3>' +
+          '<div class="auth-msg" id="authMsg"></div>' +
+          '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+          '<input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">' +
+          '<button class="btn btn-primary" id="authSubmitBtn" type="button">Sign in</button>' +
+          '<div class="auth-divider">or</div>' +
+          '<button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>' +
+          '<div class="auth-switch" id="authSwitch">New here? <button type="button" id="authModeToggle">Create an account</button></div>' +
+        '</div>' +
+      '</div>';
+
+    var pop = document.getElementById('authPop');
+    var mode = 'signin';
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = 'dashboard.html'; } }
+    function setMsg(text, isError){
+      var el = document.getElementById('authMsg');
+      el.textContent = text || '';
+      el.className = 'auth-msg' + (isError ? ' is-error' : '');
+    }
+    function applyMode(){
+      document.getElementById('authPopTitle').textContent = mode === 'signup' ? 'Create your Zelos account' : 'Sign in to Zelos';
+      document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+      document.getElementById('authSwitch').innerHTML = mode === 'signup'
+        ? 'Already have an account? <button type="button" id="authModeToggle">Sign in</button>'
+        : 'New here? <button type="button" id="authModeToggle">Create an account</button>';
+      document.getElementById('authModeToggle').addEventListener('click', function(){ mode = mode === 'signup' ? 'signin' : 'signup'; applyMode(); });
+    }
+    applyMode();
+
+    var dd = wireDropdownRef(document.getElementById('getStartedBtn'), pop);
+    document.getElementById('loginBtn').addEventListener('click', function(e){ e.stopPropagation(); mode='signin'; applyMode(); dd.open(); });
+
+    document.getElementById('authSubmitBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var email = document.getElementById('authEmail').value.trim();
+      var pw = document.getElementById('authPassword').value;
+      if (mode === 'signup') {
+        setMsg('Creating account…');
+        auth.createUserWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      } else {
+        setMsg('Signing in…');
+        auth.signInWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      }
+    });
+    document.getElementById('googleSignInBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var provider = new firebase.auth.GoogleAuthProvider();
+      setMsg('Opening Google sign-in…');
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+    });
+  }
+
+  function renderSignedIn(user){
+    var initial = (user.email || '?').charAt(0).toUpperCase();
+    navAuth.innerHTML =
+      '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="account-avatar">' + initial + '</span>' +
+        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="nav-drop-caret">&#9662;</span></button>' +
+        '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
+          '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
+          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<hr><a href="#" id="signOutLink">Sign out</a>' +
+        '</div></div>';
+    wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
+    document.getElementById('signOutLink').addEventListener('click', function(e){ e.preventDefault(); auth.signOut(); });
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      if (user && !user.isAnonymous) {
+        renderSignedIn(user);
+        ensureUserDoc(user).then(function(){ return claimPendingOwnership(user); }).then(function(){
+          if (window.ZelosXP) ZelosXP.award('daily-checkin');
+        });
+      } else {
+        renderSignedOut();
+        if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
+      }
+    });
+  } else { renderSignedOut(); }
+})();
+</script>
+
+<script src="zelos-theme-toggle.js"></script>
+</body>
+</html>

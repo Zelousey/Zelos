@@ -14,26 +14,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Arcade</title>
-<link rel="icon" href="favicon-arcade.ico" sizes="any">
-<link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
+<title>Market 3D — Zelos</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#4d3720">
-<meta name="description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
-<link rel="canonical" href="https://agentictrading.info/arcade.html">
+<meta name="description" content="Global markets on a live, rotating 3D globe — see which countries are up or down at a glance, then drill into the names driving it.">
+<link rel="canonical" href="https://agentictrading.info/market-3d.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Arcade">
-<meta property="og:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
-<meta property="og:url" content="https://agentictrading.info/arcade.html">
+<meta property="og:title" content="Market 3D — Zelos">
+<meta property="og:description" content="Global markets on a live, rotating 3D globe — see which countries are up or down at a glance.">
+<meta property="og:url" content="https://agentictrading.info/market-3d.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Arcade">
-<meta name="twitter:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
+<meta name="twitter:title" content="Market 3D — Zelos">
+<meta name="twitter:description" content="Global markets on a live, rotating 3D globe.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
@@ -43,34 +43,11 @@
   body{ margin:0; }
   [hidden]{ display:none !important; }
 
-  .games{ display:flex; flex-direction:column; gap:14px; margin-top:22px; }
-  .game-row{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
-  .game-head{ display:flex; align-items:center; gap:14px; }
-  .game-icon{
-    flex:none; width:48px; height:48px; border-radius:3px;
-    display:flex; align-items:center; justify-content:center; font-size:1.4rem;
-    background:var(--surface-2); border:1px solid var(--border);
-  }
-  .game-icon.accent{ background:var(--accent-soft); border-color:var(--accent-line); }
-  .game-icon.gold{ background:var(--gold-soft); border-color:var(--gold); }
-  .game-icon.violet{ background:var(--violet-soft); border-color:var(--violet); }
-  .game-tag{ font-family:var(--mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
-  .game-head h3{ font-size:1.08rem; font-weight:700; margin:2px 0 0; }
-  .game-row p{ margin-top:12px; color:var(--muted); font-size:0.88rem; max-width:46ch; }
+  .globe-toolbar{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .globe-toolbar p{ color:var(--muted); font-size:0.85rem; max-width:64ch; }
 
-  .board-link{
-    margin-top:16px; display:flex; align-items:center; gap:10px;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:14px 16px; text-decoration:none; color:var(--ink); font-weight:600; font-size:0.9rem;
-  }
-  .board-link:hover{ border-color:var(--accent-line); }
-  .board-link-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; animation:board-link-pulse 1.8s ease-in-out infinite; }
-  @keyframes board-link-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  @media (prefers-reduced-motion: reduce){ .board-link-dot{ animation:none; } }
-  .board-link-arrow{ margin-left:auto; color:var(--muted); }
+  .disclosures{ margin-top:22px; background:var(--danger-soft); border-left:3px solid var(--danger); border-radius:2px 3px 3px 2px; padding:16px 18px; font-size:0.82rem; color:var(--ink); line-height:1.55; }
 
-  .note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
-  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
 </style>
 </head>
 <body class="zt zt-body">
@@ -138,60 +115,74 @@
 </nav>
 
 <section class="section-tight">
-  <div class="shell-narrow">
-    <div>
-      <p class="eyebrow">Free to play</p>
-      <h1 style="font-size:1.5rem; margin-top:6px;">Zelos Arcade</h1>
-      <p class="status-line" style="margin-top:6px;">Three quick games, no account and no cost. One sharpens your eye for real setups, two are just here to be fun.</p>
-    </div>
-
-    <div class="games">
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon accent">🐂</div>
-          <div>
-            <div class="game-tag">Practice</div>
-            <h3>Setup Spotter</h3>
-          </div>
-        </div>
-        <p>A chart flashes up &mdash; real setup or noise? Call it before the clock runs out.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/setup-spotter.html">Play &rarr;</a></div>
-      </div>
-
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon gold">🐃</div>
-          <div>
-            <div class="game-tag">Just for fun</div>
-            <h3>Bull Run</h3>
-          </div>
-        </div>
-        <p>Jump the red candles, grab the green ones. Gets faster the longer you survive.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/bull-run.html">Play &rarr;</a></div>
-      </div>
-
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon violet">💵</div>
-          <div>
-            <div class="game-tag">Just for fun</div>
-            <h3>Buy the Dip</h3>
-          </div>
-        </div>
-        <p>The tape's jumpy and you're all-in or all-out. Buy low, sell high, 45 seconds.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/buy-the-dip.html">Play &rarr;</a></div>
+  <div class="shell">
+    <div class="globe-toolbar">
+      <div>
+        <div class="eyebrow">Zelos &middot; Market 3D</div>
+        <h1 style="font-size:1.7rem; margin-top:8px;">Global markets, on a globe.</h1>
+        <p style="margin-top:8px;">A quick-look prototype: drag to rotate, scroll to zoom, and see which countries are green or red at a glance. The shading below is mocked up for now &mdash; not a live index feed &mdash; while we work out whether this is worth wiring to the real thing.</p>
       </div>
     </div>
 
-    <a class="board-link" href="leaderboard.html">
-      <span class="board-link-dot"></span>
-      <span>See the live leaderboard &mdash; updates in real time</span>
-      <span class="board-link-arrow">&rarr;</span>
-    </a>
+    <div class="globe-page-grid">
+      <div>
+        <div class="globe-panel">
+          <h3>Global Market Overview</h3>
+          <div class="globe-stat-row"><span>S&amp;P 500</span><span>5,762.48 <span class="chg up">+1.21%</span></span></div>
+          <div class="globe-stat-row"><span>Nasdaq</span><span>18,182.86 <span class="chg up">+1.63%</span></span></div>
+          <div class="globe-stat-row"><span>Dow Jones</span><span>42,219.64 <span class="chg up">+0.87%</span></span></div>
+        </div>
+        <div class="globe-panel">
+          <h3>Top Sectors</h3>
+          <div class="globe-stat-row"><span>Technology</span><span class="chg up">+2.41%</span></div>
+          <div class="globe-stat-row"><span>Communication Services</span><span class="chg up">+1.87%</span></div>
+          <div class="globe-stat-row"><span>Consumer Cyclical</span><span class="chg up">+1.32%</span></div>
+          <div class="globe-stat-row"><span>Healthcare</span><span class="chg up">+0.96%</span></div>
+          <div class="globe-stat-row"><span>Energy</span><span class="chg dn">&minus;0.34%</span></div>
+        </div>
+      </div>
 
-    <div class="note">
-      These are games with simulated or illustrative data &mdash; none of it is real market data or a real account. Zelos itself is a rule-based scan, not personalized investment advice.
+      <div>
+        <div class="globe-frame">
+          <div class="globe-wrap" id="marketGlobe"></div>
+          <div class="globe-live-tag"><span class="dot"></span>Mock data &middot; <span id="globeClock"></span></div>
+
+          <div class="heatmap-card" id="heatMapCard">
+            <div class="heatmap-card-head">
+              <span>Heat index</span>
+              <button class="heatmap-card-close" id="heatMapClose" type="button" aria-label="Close heat map">&times;</button>
+            </div>
+            <div class="heatmap-svg-wrap" id="heatMapSvg"></div>
+            <div class="globe-legend">
+              <span><i style="background:var(--bull);"></i>Strong up</span>
+              <span><i style="background:color-mix(in srgb, var(--bull) 55%, var(--muted-2));"></i>Up</span>
+              <span><i style="background:var(--muted-2);"></i>Flat</span>
+              <span><i style="background:color-mix(in srgb, var(--danger) 55%, var(--muted-2));"></i>Down</span>
+              <span><i style="background:var(--danger);"></i>Strong down</span>
+            </div>
+          </div>
+          <button class="heatmap-reopen" id="heatMapReopen" type="button" hidden>&#9633; Heat index</button>
+        </div>
+        <div class="globe-hint">Drag to rotate &middot; scroll to zoom &middot; badges show a country's live move</div>
+      </div>
+
+      <div>
+        <div class="globe-panel">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <h3 style="margin:0;">Trending Now</h3>
+            <a href="alert-history.html" style="font-family:var(--mono); font-size:0.72rem; color:var(--accent); text-decoration:none;">View all &rarr;</a>
+          </div>
+          <div class="globe-trend-row"><span class="sym-badge">N</span><span class="meta"><span class="ticker">NVDA</span><span class="name">NVIDIA</span></span><span class="chg up">+4.82%</span></div>
+          <div class="globe-trend-row"><span class="sym-badge">T</span><span class="meta"><span class="ticker">TSLA</span><span class="name">Tesla</span></span><span class="chg up">+2.31%</span></div>
+          <div class="globe-trend-row"><span class="sym-badge">A</span><span class="meta"><span class="ticker">AMD</span><span class="name">AMD</span></span><span class="chg up">+2.15%</span></div>
+          <div class="globe-trend-row"><span class="sym-badge">P</span><span class="meta"><span class="ticker">PLTR</span><span class="name">Palantir</span></span><span class="chg up">+3.12%</span></div>
+          <div class="globe-trend-row"><span class="sym-badge">A</span><span class="meta"><span class="ticker">AMZN</span><span class="name">Amazon</span></span><span class="chg up">+1.76%</span></div>
+          <div class="globe-trend-row"><span class="sym-badge">R</span><span class="meta"><span class="ticker">RIVN</span><span class="name">Rivian</span></span><span class="chg dn">&minus;1.24%</span></div>
+        </div>
+      </div>
     </div>
+
+    <div class="disclosures">Prototype only &mdash; the country shading and index/sector figures above are mocked up for layout and performance testing, not live market data. Nothing on this page connects to a brokerage account, places an order, or constitutes personalized investment advice.</div>
   </div>
 </section>
 
@@ -209,6 +200,19 @@
     <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
   </div>
 </footer>
+
+<!-- Firebase (compat build) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="zelos-mood.js"></script>
+<script src="zelos-xp.js"></script>
+
+<!-- 3D globe — globe.gl bundles three.js; mock heat data for this first pass.
+     Rendering pauses off-screen / when the tab is hidden — see zelos-globe.js -->
+<script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+<script src="zelos-globe.js"></script>
 
 <script>
 (function(){
@@ -242,17 +246,9 @@
 })();
 </script>
 
-<script src="zelos-theme-toggle.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="zelos-mood.js"></script>
-<script src="zelos-xp.js"></script>
 <script>
 (function(){
-  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  // ---- auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
   var cfg = window.ZELOS_FIREBASE_CONFIG;
   var ready = !!(cfg && cfg.projectId && window.firebase);
   var auth = null, db = null;
@@ -391,5 +387,61 @@
   } else { renderSignedOut(); }
 })();
 </script>
+
+<script>
+(function(){
+  // ---- the 3D globe itself ----
+  var el = document.getElementById('marketGlobe');
+  if (!el || !window.ZelosGlobe) return;
+  ZelosGlobe.mount({
+    el: el,
+    flatMapEl: document.getElementById('heatMapSvg'),
+    autoRotate: true,
+    enableZoom: true,
+    altitude: 2.2,
+    badges: [
+      { name:'Canada', lat:56, lng:-106, pct:0.62 },
+      { name:'U.S.', lat:39, lng:-98, pct:1.21 },
+      { name:'Germany', lat:51, lng:10, pct:0.48 },
+      { name:'China', lat:35, lng:103, pct:-0.87 },
+      { name:'Brazil', lat:-14, lng:-52, pct:1.56 },
+      { name:'Australia', lat:-25, lng:134, pct:0.34 }
+    ]
+  });
+
+  // heat-map card: dismissible with the X, reopenable from the small pill
+  // that takes its place — remembered per-browser so a visitor who closes
+  // it doesn't have to re-close it on every visit.
+  (function () {
+    var card = document.getElementById('heatMapCard');
+    var reopenBtn = document.getElementById('heatMapReopen');
+    var closeBtn = document.getElementById('heatMapClose');
+    if (!card || !reopenBtn || !closeBtn) return;
+    var KEY = 'zelosHeatMapClosed';
+    function setClosed(closed) {
+      card.hidden = closed;
+      reopenBtn.hidden = !closed;
+      try { localStorage.setItem(KEY, closed ? '1' : '0'); } catch (e) { /* ignore */ }
+    }
+    var startClosed = false;
+    try { startClosed = localStorage.getItem(KEY) === '1'; } catch (e) { /* ignore */ }
+    setClosed(startClosed);
+    closeBtn.addEventListener('click', function () { setClosed(true); });
+    reopenBtn.addEventListener('click', function () { setClosed(false); });
+  })();
+
+  var clock = document.getElementById('globeClock');
+  function tick(){
+    if (!clock) return;
+    var now = new Date();
+    clock.textContent = now.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' ' +
+      now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+
+<script src="zelos-theme-toggle.js"></script>
 </body>
 </html>

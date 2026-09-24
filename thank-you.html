@@ -21,7 +21,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0f1310">
+<meta name="theme-color" content="#4d3720">
 <meta name="description" content="You're in — here's how to find and start reading your Zelos alert page.">
 <link rel="canonical" href="https://agentictrading.info/thank-you.html">
 <meta property="og:type" content="website">
@@ -36,47 +36,32 @@
 <meta name="twitter:title" content="Thanks — Zelos">
 <meta name="twitter:description" content="You're in — here's how to find and start reading your Zelos alert page.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
-  [hidden]:not([hidden="until-found"]){ display:none !important; }
-</style>
-<style>
-
-  :root{
-    --paper:#eef0ec; --card:#ffffff; --ink:#16201a; --muted:#5b6660; --line:#d5dbd2;
-    --accent:#1f7a4d; --accent-soft:#dcefe2;
-    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-      --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-    --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
-  }
+  [hidden]{ display:none !important; }
 
   body{
-    background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.5;
+    background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.5;
     min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px;
   }
   .wrap{ width:100%; max-width:480px; }
   h1,h2{ text-wrap:balance; margin:0; }
   p{ margin:0; }
 
+  .top-row{ display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:28px; position:relative; }
   .wordmark{
     font-family:var(--mono); font-weight:700; font-size:1.05rem;
-    display:flex; align-items:center; gap:8px; justify-content:center; margin-bottom:28px;
+    display:flex; align-items:center; gap:8px; justify-content:center;
   }
   .wordmark .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .top-row .theme-toggle{ position:absolute; right:0; }
 
   .card{
-    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
     padding:36px 30px; text-align:center;
   }
   .check{
@@ -92,12 +77,12 @@
   .lede{ margin-top:12px; color:var(--muted); font-size:0.98rem; }
 
   .next{
-    margin-top:26px; padding-top:22px; border-top:1px solid var(--line);
+    margin-top:26px; padding-top:22px; border-top:1px solid var(--border);
     text-align:left; display:flex; flex-direction:column; gap:14px;
   }
   .next-item{ display:flex; gap:12px; align-items:flex-start; }
   .next-num{
-    flex:none; width:22px; height:22px; border-radius:6px; background:var(--accent-soft); color:var(--accent);
+    flex:none; width:22px; height:22px; border-radius:2px; background:var(--accent-soft); color:var(--accent);
     font-family:var(--mono); font-weight:700; font-size:0.78rem;
     display:flex; align-items:center; justify-content:center; margin-top:1px;
   }
@@ -107,8 +92,8 @@
   .btn{
     display:block; margin-top:26px; text-align:center;
     font-family:var(--sans); font-weight:700; font-size:0.98rem;
-    padding:14px 18px; border-radius:10px; text-decoration:none;
-    background:var(--accent); color:#08130d;
+    padding:14px 18px; border-radius:3px; text-decoration:none;
+    background:var(--accent); color:var(--accent-ink);
   }
   .btn-ghost{
     display:block; margin-top:10px; text-align:center;
@@ -122,9 +107,12 @@
   }
 </style>
 </head>
-<body>
+<body class="zt">
 <div class="wrap">
-  <div class="wordmark"><span class="dot"></span>Zelos</div>
+  <div class="top-row">
+    <div class="wordmark"><span class="dot"></span>Zelos</div>
+    <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+  </div>
 
   <div class="card">
     <div class="check">&#10003;</div>
@@ -153,7 +141,10 @@
 
   <footer>
     Didn't get an email? Check spam, or reach out from your Gumroad Library and we'll help.
+    <p style="margin-top:10px;">Zelos is a rule-based scan, not a licensed financial advisor. Nothing here is personalized investment advice, and no strategy is guaranteed to be profitable. <a href="terms.html" style="color:inherit; text-decoration:underline;">Terms of Service</a></p>
   </footer>
 </div>
+
+<script src="zelos-theme-toggle.js"></script>
 </body>
 </html>

@@ -50,7 +50,7 @@
     --ink:#16201a;
     --muted:#5b6660;
     --line:#d5dbd2;
-    --accent:#1f7a4d;
+    --accent:#2f6fed;
     --accent-soft:#dcefe2;
     --risk:#a3352c;
     --risk-soft:#f6e2df;
@@ -372,30 +372,6 @@
     color:var(--muted);
   }
 
-  /* ---- floating eye ---- */
-  .floating-eye{
-    position:absolute;
-    width:56px;
-    height:56px;
-    z-index:500;
-    pointer-events:none;
-    filter:drop-shadow(0 4px 10px rgba(0,0,0,0.28));
-    opacity:0;
-    transition:opacity 0.6s ease;
-    cursor:pointer;
-  }
-  .floating-eye.is-visible{ opacity:1; }
-  .floating-eye svg{ width:100%; height:100%; display:block; transform-origin:50% 50%; }
-  .floating-eye.is-blinking svg{ animation:zelosBlink 0.36s ease; }
-  @keyframes zelosBlink{
-    0%{ transform:scaleY(1); }
-    45%{ transform:scaleY(0.06); }
-    60%{ transform:scaleY(0.06); }
-    100%{ transform:scaleY(1); }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .floating-eye.is-blinking svg{ animation:none; }
-  }
 </style>
 <script type="application/ld+json">
 {
@@ -809,126 +785,7 @@
 
 </div>
 
-<div class="floating-eye" id="zelosEye" aria-hidden="true">
-  <svg viewBox="0 0 100 100">
-    <defs>
-      <radialGradient id="scleraShade" cx="50%" cy="42%" r="65%">
-        <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="72%" stop-color="#f1efe9"/>
-        <stop offset="100%" stop-color="#d8d3c8"/>
-      </radialGradient>
-      <radialGradient id="irisShade" cx="42%" cy="38%" r="65%">
-        <stop offset="0%" stop-color="#7fe0ac"/>
-        <stop offset="45%" stop-color="#1f7a4d"/>
-        <stop offset="100%" stop-color="#0e3d27"/>
-      </radialGradient>
-    </defs>
-    <ellipse cx="50" cy="50" rx="47" ry="44" fill="url(#scleraShade)" stroke="#c9c3b4" stroke-width="1"/>
-    <path d="M12,46 C20,44 26,47 30,50" fill="none" stroke="#c76b6b" stroke-width="0.6" opacity="0.45"/>
-    <path d="M88,52 C81,50 76,52 71,55" fill="none" stroke="#c76b6b" stroke-width="0.6" opacity="0.4"/>
-    <g id="zelosIrisGroup">
-      <circle cx="50" cy="50" r="25" fill="url(#irisShade)"/>
-      <g stroke="#0a2b1b" stroke-width="0.8" opacity="0.4">
-        <line x1="63" y1="50" x2="75" y2="50"/>
-        <line x1="61.3" y1="56.5" x2="71.6" y2="62.5"/>
-        <line x1="56.5" y1="61.3" x2="62.5" y2="71.6"/>
-        <line x1="50" y1="63" x2="50" y2="75"/>
-        <line x1="43.5" y1="61.3" x2="37.5" y2="71.6"/>
-        <line x1="38.7" y1="56.5" x2="28.4" y2="62.5"/>
-        <line x1="37" y1="50" x2="25" y2="50"/>
-        <line x1="38.7" y1="43.5" x2="28.4" y2="37.5"/>
-        <line x1="43.5" y1="38.7" x2="37.5" y2="28.4"/>
-        <line x1="50" y1="37" x2="50" y2="25"/>
-        <line x1="56.5" y1="38.7" x2="62.5" y2="28.4"/>
-        <line x1="61.3" y1="43.5" x2="71.6" y2="37.5"/>
-      </g>
-      <circle cx="50" cy="50" r="11" fill="#080706"/>
-      <circle cx="45" cy="44" r="4" fill="#ffffff" opacity="0.9"/>
-      <circle cx="56" cy="57" r="1.6" fill="#ffffff" opacity="0.5"/>
-    </g>
-    <path d="M6,42 C22,20 78,20 94,42" fill="none" stroke="#00000022" stroke-width="3"/>
-  </svg>
-</div>
-
 <script>
-(function(){
-  var eye = document.getElementById('zelosEye');
-  if(!eye) return;
-
-  function placeEye(){
-    var size = 56, margin = 8, pad = 10;
-    var pageWidth = document.documentElement.scrollWidth;
-    var pageHeight = document.documentElement.scrollHeight;
-    var maxLeft = Math.max(margin, pageWidth - size - margin);
-    var maxTop = Math.max(margin, pageHeight - size - margin);
-
-    var obstacleEls = document.querySelectorAll(
-      'nav, h1, h2, h3, p, svg, .btn, .cta-note, .eyebrow, .bot-card, footer'
-    );
-    var scrollX = window.scrollX || window.pageXOffset || 0;
-    var scrollY = window.scrollY || window.pageYOffset || 0;
-    var obstacles = [];
-    for (var i = 0; i < obstacleEls.length; i++) {
-      if (obstacleEls[i] === eye) continue;
-      var r = obstacleEls[i].getBoundingClientRect();
-      obstacles.push({
-        left: r.left + scrollX, right: r.right + scrollX,
-        top: r.top + scrollY, bottom: r.bottom + scrollY
-      });
-    }
-
-    function overlaps(left, top){
-      var right = left + size, bottom = top + size;
-      for (var i = 0; i < obstacles.length; i++) {
-        var o = obstacles[i];
-        if (!(right < o.left - pad || left > o.right + pad ||
-              bottom < o.top - pad || top > o.bottom + pad)) return true;
-      }
-      return false;
-    }
-
-    var bestLeft = margin, bestTop = margin;
-    for (var attempt = 0; attempt < 120; attempt++) {
-      var left = margin + Math.random() * (maxLeft - margin);
-      var top = margin + Math.random() * (maxTop - margin);
-      if (!overlaps(left, top)) { bestLeft = left; bestTop = top; break; }
-    }
-    eye.style.left = bestLeft + 'px';
-    eye.style.top = bestTop + 'px';
-  }
-
-  placeEye();
-  requestAnimationFrame(function(){ eye.classList.add('is-visible'); });
-
-  eye.style.pointerEvents = 'auto';
-  eye.addEventListener('click', function(){
-    eye.classList.remove('is-blinking');
-    void eye.offsetWidth;
-    eye.classList.add('is-blinking');
-  });
-  eye.addEventListener('animationend', function(){
-    eye.classList.remove('is-blinking');
-  });
-
-  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduceMotion) return;
-
-  var iris = document.getElementById('zelosIrisGroup');
-  if(!iris) return;
-  document.addEventListener('mousemove', function(e){
-    var rect = eye.getBoundingClientRect();
-    var cx = rect.left + rect.width / 2;
-    var cy = rect.top + rect.height / 2;
-    var dx = e.clientX - cx;
-    var dy = e.clientY - cy;
-    var dist = Math.min(6, Math.hypot(dx, dy) / 18);
-    var angle = Math.atan2(dy, dx);
-    var ox = Math.cos(angle) * dist;
-    var oy = Math.sin(angle) * dist;
-    iris.setAttribute('transform', 'translate(' + ox.toFixed(2) + ',' + oy.toFixed(2) + ')');
-  }, { passive: true });
-})();
-
 (function(){
   // Track clicks into the one live bot's product page from the catalog.
   var link = document.getElementById('viewSwingTrader');

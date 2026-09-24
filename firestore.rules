@@ -51,5 +51,31 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
+
+    // "Vote for the next strategy" on the Upcoming Strategies section: one doc
+    // per person, keyed by their own uid (real account OR the anonymous uid
+    // zelos-xp.js silently signs every visitor in with — same trust model as
+    // XP). Public read so the tallies/bars are visible to everyone, including
+    // signed-out visitors; a person can only ever create/update/delete their
+    // own single vote doc, so there's no way to inflate a strategy's count
+    // beyond one vote per real Firebase user — the same accepted trade-off
+    // already noted above for XP.
+    match /strategyVotes/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Unclaimed Gumroad purchases, keyed by the lowercased email used at checkout.
+    // Written only by the gumroad_ping Cloud Function (Admin SDK, bypasses these
+    // rules). A signed-in person may read and delete only the doc matching their
+    // own login email - that's how they "claim" it into their own users/ doc on
+    // next sign-in (see claimPendingOwnership() in dashboard.html / my-zelos.html).
+    // Never client-writable: the webhook is the only thing allowed to create one.
+    match /pendingOwnership/{email} {
+      allow read, delete: if request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() == email;
+      allow write: if false;
+    }
   }
 }

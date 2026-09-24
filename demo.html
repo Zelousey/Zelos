@@ -21,7 +21,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0f1310">
+<meta name="theme-color" content="#4d3720">
 <meta name="description" content="See a sample Zelos alert ticket — entry, stop, target, and reward:risk at a glance. General information, not tied to any account.">
 <link rel="canonical" href="https://agentictrading.info/demo.html">
 <meta property="og:type" content="website">
@@ -36,76 +36,44 @@
 <meta name="twitter:title" content="Zelos Sample Alert">
 <meta name="twitter:description" content="See a sample Zelos alert ticket — entry, stop, target, and reward:risk at a glance. General information, not tied to any account.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
-  [hidden]:not([hidden="until-found"]){ display:none !important; }
-</style>
-<style>
-
-  :root{
-    --paper:#eef0ec;
-    --card:#ffffff;
-    --ink:#1a2420;
-    --muted:#5b6660;
-    --line:#d5dbd2;
-    --accent:#1f7a4d;
-    --accent-soft:#dcefe2;
-    --risk:#a3352c;
-    --risk-soft:#f6e2df;
-    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#111512;
-      --card:#181d19;
-      --ink:#e7ece7;
-      --muted:#8b968e;
-      --line:#2a322b;
-      --accent:#4fd897;
-      --accent-soft:#163625;
-      --risk:#ff7d70;
-      --risk-soft:#3a201d;
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#111512;
-    --card:#181d19;
-    --ink:#e7ece7;
-    --muted:#8b968e;
-    --line:#2a322b;
-    --accent:#4fd897;
-    --accent-soft:#163625;
-    --risk:#ff7d70;
-    --risk-soft:#3a201d;
-  }
+  [hidden]{ display:none !important; }
 
   body{
-    background:var(--paper);
+    background:var(--bg);
     color:var(--ink);
     font-family:var(--sans);
     min-height:100vh;
     display:flex;
-    align-items:center;
     justify-content:center;
-    padding:32px 16px;
+    padding:32px 16px 64px;
   }
+
+  .page-wrap{ display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:420px; }
+  .top-row{ display:flex; align-items:center; justify-content:space-between; width:100%; align-self:flex-start; }
+  .back-link{
+    font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted);
+    text-decoration:none; display:flex; align-items:center; gap:7px;
+  }
+  .back-link .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
+  .back-link:hover{ color:var(--accent); }
 
   .ticket{
     width:100%;
-    max-width:420px;
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
     overflow:hidden;
-    box-shadow:0 1px 2px rgba(0,0,0,0.04);
   }
 
   .head{
     padding:22px 24px 18px;
-    border-bottom:1px dashed var(--line);
+    border-bottom:1px dashed var(--border);
     display:flex;
     flex-direction:column;
     gap:10px;
@@ -163,7 +131,7 @@
     align-items:baseline;
     justify-content:space-between;
     padding:9px 0;
-    border-bottom:1px solid var(--line);
+    border-bottom:1px solid var(--border-soft);
     gap:16px;
   }
   .row:last-child{ border-bottom:none; }
@@ -184,8 +152,8 @@
   .chart-card{
     margin:0 24px 4px;
     padding:14px 16px 12px;
-    border:1px solid var(--line);
-    border-radius:10px;
+    border:1px solid var(--border);
+    border-radius:3px;
   }
   .chart-card svg{ width:100%; height:auto; display:block; }
   .chart-caption{
@@ -201,7 +169,7 @@
     margin:6px 24px 20px;
     padding:14px 16px;
     background:var(--accent-soft);
-    border-radius:10px;
+    border-radius:3px;
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -221,8 +189,8 @@
   .cap{
     margin:0 24px 20px;
     padding:12px 14px;
-    border:1px solid var(--line);
-    border-radius:10px;
+    border:1px solid var(--border);
+    border-radius:3px;
     font-size:0.82rem;
     color:var(--muted);
     display:flex;
@@ -235,7 +203,7 @@
 
   .foot{
     padding:16px 24px 22px;
-    border-top:1px dashed var(--line);
+    border-top:1px dashed var(--border);
     display:flex;
     flex-direction:column;
     gap:8px;
@@ -249,7 +217,7 @@
     background:var(--accent-soft);
     color:var(--accent);
     padding:1px 6px;
-    border-radius:4px;
+    border-radius:2px;
     font-size:0.82rem;
   }
   .fine{
@@ -267,19 +235,14 @@
   @media (max-width:420px){
     .ticker{ font-size:1.7rem; }
   }
-
-  .page-wrap{ display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:420px; }
-  .back-link{
-    font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted);
-    text-decoration:none; display:flex; align-items:center; gap:7px;
-  }
-  .back-link .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
-  .back-link:hover{ color:var(--accent); }
 </style>
 </head>
-<body>
+<body class="zt">
 <div class="page-wrap">
-<a class="back-link" href="swing-trader.html"><span class="dot"></span>Zelos &middot; back to Swing Trader</a>
+<div class="top-row">
+  <a class="back-link" href="swing-trader.html"><span class="dot"></span>Zelos &middot; back to Swing Trader</a>
+  <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+</div>
 <div class="ticket" id="zelosTicket" data-ticker="TEST">
   <div class="head">
     <div class="head-row">
@@ -330,7 +293,7 @@
       <line x1="0" y1="58" x2="300" y2="58" stroke="var(--risk)" stroke-width="1" stroke-dasharray="3 3"/>
       <text x="295" y="55" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--risk)">STOP</text>
       <!-- entry -->
-      <circle cx="280.5" cy="38" r="3.5" fill="var(--card)" stroke="var(--ink)" stroke-width="1.5"/>
+      <circle cx="280.5" cy="38" r="3.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/>
       <text x="280.5" y="112" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--ink)">ENTRY</text>
     </svg>
     <div class="chart-caption">
@@ -384,5 +347,7 @@
   </div>
 </div>
 </div>
+
+<script src="zelos-theme-toggle.js"></script>
 </body>
 </html>

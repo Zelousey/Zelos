@@ -14,26 +14,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Arcade</title>
-<link rel="icon" href="favicon-arcade.ico" sizes="any">
-<link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
+<title>Live Chart — Zelos</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#4d3720">
-<meta name="description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
-<link rel="canonical" href="https://agentictrading.info/arcade.html">
+<meta name="theme-color" content="#080b13">
+<meta name="description" content="A full, interactive TradingView chart — search any ticker, add indicators, draw trendlines, and change the timeframe. The same charting engine used across Zelos, free to explore on its own.">
+<link rel="canonical" href="https://agentictrading.info/live-chart.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Arcade">
-<meta property="og:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
-<meta property="og:url" content="https://agentictrading.info/arcade.html">
+<meta property="og:title" content="Live Chart — Zelos">
+<meta property="og:description" content="A full, interactive TradingView chart — search any ticker, add indicators, draw trendlines, and change the timeframe.">
+<meta property="og:url" content="https://agentictrading.info/live-chart.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Arcade">
-<meta name="twitter:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
+<meta name="twitter:title" content="Live Chart — Zelos">
+<meta name="twitter:description" content="A full, interactive TradingView chart — search any ticker, add indicators, draw trendlines, and change the timeframe.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
@@ -43,34 +43,27 @@
   body{ margin:0; }
   [hidden]{ display:none !important; }
 
-  .games{ display:flex; flex-direction:column; gap:14px; margin-top:22px; }
-  .game-row{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
-  .game-head{ display:flex; align-items:center; gap:14px; }
-  .game-icon{
-    flex:none; width:48px; height:48px; border-radius:3px;
-    display:flex; align-items:center; justify-content:center; font-size:1.4rem;
-    background:var(--surface-2); border:1px solid var(--border);
+  .chart-toolbar{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+  .chart-toolbar p{ color:var(--muted); font-size:0.85rem; max-width:60ch; }
+  .chart-frame{
+    border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden;
+    background:var(--surface); height:720px;
   }
-  .game-icon.accent{ background:var(--accent-soft); border-color:var(--accent-line); }
-  .game-icon.gold{ background:var(--gold-soft); border-color:var(--gold); }
-  .game-icon.violet{ background:var(--violet-soft); border-color:var(--violet); }
-  .game-tag{ font-family:var(--mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
-  .game-head h3{ font-size:1.08rem; font-weight:700; margin:2px 0 0; }
-  .game-row p{ margin-top:12px; color:var(--muted); font-size:0.88rem; max-width:46ch; }
+  .chart-frame .tradingview-widget-container{ height:100%; width:100%; }
+  @media (max-width:760px){ .chart-frame{ height:520px; } }
+  @media (max-width:480px){ .chart-frame{ height:440px; } }
 
-  .board-link{
-    margin-top:16px; display:flex; align-items:center; gap:10px;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:14px 16px; text-decoration:none; color:var(--ink); font-weight:600; font-size:0.9rem;
+  .quick-syms{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .quick-sym{
+    font-family:var(--mono); font-size:0.78rem; font-weight:600; color:var(--ink-2);
+    background:var(--surface); border:1px solid var(--border); border-radius:3px;
+    padding:7px 14px; cursor:pointer;
   }
-  .board-link:hover{ border-color:var(--accent-line); }
-  .board-link-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; animation:board-link-pulse 1.8s ease-in-out infinite; }
-  @keyframes board-link-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  @media (prefers-reduced-motion: reduce){ .board-link-dot{ animation:none; } }
-  .board-link-arrow{ margin-left:auto; color:var(--muted); }
+  .quick-sym:hover{ color:var(--ink); border-color:var(--accent-line); }
+  .quick-sym.is-active{ color:var(--accent-ink); background:var(--accent); border-color:var(--accent); }
 
-  .note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
-  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
+  .disclosures{ margin-top:24px; background:var(--danger-soft); border-left:3px solid var(--danger); border-radius:2px 3px 3px 2px; padding:16px 18px; font-size:0.82rem; color:var(--ink); line-height:1.55; }
+
 </style>
 </head>
 <body class="zt zt-body">
@@ -138,60 +131,29 @@
 </nav>
 
 <section class="section-tight">
-  <div class="shell-narrow">
-    <div>
-      <p class="eyebrow">Free to play</p>
-      <h1 style="font-size:1.5rem; margin-top:6px;">Zelos Arcade</h1>
-      <p class="status-line" style="margin-top:6px;">Three quick games, no account and no cost. One sharpens your eye for real setups, two are just here to be fun.</p>
-    </div>
-
-    <div class="games">
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon accent">🐂</div>
-          <div>
-            <div class="game-tag">Practice</div>
-            <h3>Setup Spotter</h3>
-          </div>
-        </div>
-        <p>A chart flashes up &mdash; real setup or noise? Call it before the clock runs out.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/setup-spotter.html">Play &rarr;</a></div>
-      </div>
-
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon gold">🐃</div>
-          <div>
-            <div class="game-tag">Just for fun</div>
-            <h3>Bull Run</h3>
-          </div>
-        </div>
-        <p>Jump the red candles, grab the green ones. Gets faster the longer you survive.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/bull-run.html">Play &rarr;</a></div>
-      </div>
-
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon violet">💵</div>
-          <div>
-            <div class="game-tag">Just for fun</div>
-            <h3>Buy the Dip</h3>
-          </div>
-        </div>
-        <p>The tape's jumpy and you're all-in or all-out. Buy low, sell high, 45 seconds.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/buy-the-dip.html">Play &rarr;</a></div>
+  <div class="shell">
+    <div class="chart-toolbar">
+      <div>
+        <div class="eyebrow">Zelos &middot; Live Chart</div>
+        <h1 style="font-size:1.7rem; margin-top:8px;">A full TradingView chart, free to explore.</h1>
+        <p style="margin-top:8px;">Search any ticker, switch the timeframe, add your own indicators or drawings &mdash; this is the same charting engine used across Zelos, not tied to any alert or strategy. Nothing here places a trade or sizes a position.</p>
       </div>
     </div>
 
-    <a class="board-link" href="leaderboard.html">
-      <span class="board-link-dot"></span>
-      <span>See the live leaderboard &mdash; updates in real time</span>
-      <span class="board-link-arrow">&rarr;</span>
-    </a>
-
-    <div class="note">
-      These are games with simulated or illustrative data &mdash; none of it is real market data or a real account. Zelos itself is a rule-based scan, not personalized investment advice.
+    <div class="quick-syms" id="quickSyms">
+      <button class="quick-sym is-active" data-symbol="FOREXCOM:SPXUSD" type="button">S&amp;P 500</button>
+      <button class="quick-sym" data-symbol="NASDAQ:IXIC" type="button">Nasdaq</button>
+      <button class="quick-sym" data-symbol="NASDAQ:AAPL" type="button">AAPL</button>
+      <button class="quick-sym" data-symbol="NASDAQ:NVDA" type="button">NVDA</button>
+      <button class="quick-sym" data-symbol="NASDAQ:TSLA" type="button">TSLA</button>
+      <button class="quick-sym" data-symbol="COINBASE:BTCUSD" type="button">BTC</button>
     </div>
+
+    <div class="chart-frame" id="chartFrame" style="margin-top:16px;">
+      <div class="tradingview-widget-container" id="liveChartWidget"><div class="tradingview-widget-container__widget"></div></div>
+    </div>
+
+    <div class="disclosures">Charting only &mdash; nothing on this page connects to a brokerage account, places an order, or constitutes personalized investment advice. Rule-based Zelos alerts are separate and always published on their own strategy pages.</div>
   </div>
 </section>
 
@@ -209,6 +171,14 @@
     <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
   </div>
 </footer>
+
+<!-- Firebase (compat build) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="zelos-mood.js"></script>
+<script src="zelos-xp.js"></script>
 
 <script>
 (function(){
@@ -242,17 +212,9 @@
 })();
 </script>
 
-<script src="zelos-theme-toggle.js"></script>
-
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="zelos-mood.js"></script>
-<script src="zelos-xp.js"></script>
 <script>
 (function(){
-  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  // ---- auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
   var cfg = window.ZELOS_FIREBASE_CONFIG;
   var ready = !!(cfg && cfg.projectId && window.firebase);
   var auth = null, db = null;
@@ -391,5 +353,51 @@
   } else { renderSignedOut(); }
 })();
 </script>
+
+<script>
+(function(){
+  // ---- the full, interactive TradingView chart: search, indicators, drawings all on ----
+  var host = document.getElementById('liveChartWidget');
+  if (!host) return;
+
+  function mount(symbol){
+    host.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.async = true;
+    script.text = JSON.stringify({
+      autosize: true,
+      symbol: symbol,
+      interval: 'D',
+      timezone: 'America/New_York',
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      allow_symbol_change: true,
+      hide_top_toolbar: false,
+      hide_side_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      calendar: false,
+      backgroundColor: 'rgba(18,23,41,1)',
+      gridColor: 'rgba(35,43,70,0.55)'
+    });
+    host.appendChild(script);
+  }
+
+  mount('FOREXCOM:SPXUSD');
+
+  document.querySelectorAll('.quick-sym').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.quick-sym').forEach(function(b){ b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      mount(btn.getAttribute('data-symbol'));
+    });
+  });
+})();
+</script>
+
+<script src="zelos-theme-toggle.js"></script>
 </body>
 </html>

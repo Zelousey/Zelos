@@ -21,7 +21,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0f1310">
+<meta name="theme-color" content="#4d3720">
 <meta name="description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
 <link rel="canonical" href="https://agentictrading.info/setup.html">
 <meta property="og:type" content="website">
@@ -36,140 +36,68 @@
 <meta name="twitter:title" content="Zelos Setup Guide">
 <meta name="twitter:description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
-  [hidden]:not([hidden="until-found"]){ display:none !important; }
-</style>
-<style>
-
-  :root{
-    --paper:#eef0ec;
-    --card:#ffffff;
-    --ink:#16201a;
-    --muted:#5b6660;
-    --line:#d5dbd2;
-    --accent:#1f7a4d;
-    --accent-soft:#dcefe2;
-    --risk:#a3352c;
-    --risk-soft:#f6e2df;
-    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-      --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
-      --risk:#ff7d70; --risk-soft:#3a201d;
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-    --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
-    --risk:#ff7d70; --risk-soft:#3a201d;
-  }
-
-  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.55; }
-  .wrap{ max-width:680px; margin:0 auto; padding:0 24px 80px; }
-  h1,h2,h3{ text-wrap:balance; margin:0; }
-  p{ margin:0; }
-
-  nav{ display:flex; align-items:center; justify-content:space-between; padding-block:20px; }
-  .wordmark{ font-family:var(--mono); font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
-  .wordmark .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
-  .wordmark .tag{ font-weight:500; color:var(--muted); }
-  nav a.back{ font-family:var(--mono); font-size:0.82rem; color:var(--muted); text-decoration:none; }
-  nav a.back:hover{ color:var(--accent); }
-
-  .nav-menu{ position:relative; }
-  .nav-menu-btn{
-    font-family:var(--mono); font-size:0.82rem; font-weight:600; color:var(--muted);
-    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px;
-    cursor:pointer; display:inline-flex; align-items:center; gap:5px;
-  }
-  .nav-menu-btn:hover{ color:var(--ink); border-color:var(--accent); }
-  .nav-menu-caret{ font-size:0.7rem; transition:transform 0.15s ease; }
-  .nav-menu-btn[aria-expanded="true"] .nav-menu-caret{ transform:rotate(180deg); }
-  .nav-menu-list{
-    position:absolute; top:calc(100% + 8px); right:0; min-width:170px;
-    background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:8px; display:flex; flex-direction:column; gap:2px; z-index:20;
-    box-shadow:0 12px 28px rgba(0,0,0,0.18);
-  }
-  .nav-menu-list a{
-    font-family:var(--sans); font-size:0.88rem; color:var(--ink); text-decoration:none;
-    padding:8px 10px; border-radius:7px;
-  }
-  .nav-menu-list a:hover{ background:var(--accent-soft); color:var(--accent); }
-
-  header.hero{ padding-block:20px 44px; }
-  .eyebrow{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
-  h1{ font-size:clamp(1.9rem,4.5vw,2.5rem); font-weight:700; margin-top:8px; max-width:18ch; }
-  .lede{ margin-top:14px; color:var(--muted); font-size:1.02rem; max-width:56ch; }
+  [hidden]{ display:none !important; }
 
   .status-banner{
-    margin-top:22px; padding:14px 16px; border:1px solid var(--line); border-radius:10px;
-    background:var(--card); font-size:0.88rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;
+    margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--surface); font-size:0.88rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;
   }
   .status-banner b{ color:var(--ink); }
 
   .steps{ margin-top:40px; display:flex; flex-direction:column; gap:0; }
-  .step{ display:grid; grid-template-columns:40px 1fr; gap:18px; padding-block:26px; border-top:1px solid var(--line); }
-  .step:last-child{ border-bottom:1px solid var(--line); }
+  .step{ display:grid; grid-template-columns:40px 1fr; gap:18px; padding-block:26px; border-top:1px solid var(--border); }
+  .step:last-child{ border-bottom:1px solid var(--border); }
   .step-num{ font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--accent); }
-  .step h2{ font-size:1.15rem; font-weight:600; }
+  .step h2{ font-size:1.15rem; font-weight:600; margin:0; }
   .step .step-body{ margin-top:8px; color:var(--muted); font-size:0.95rem; }
+  .step .step-body p{ margin:0; }
   .step .step-body p + p{ margin-top:10px; }
   .step .step-body b{ color:var(--ink); }
   .step .step-body ol, .step .step-body ul{ margin:10px 0 0; padding-left:20px; }
   .step .step-body li{ margin-top:6px; }
+  .step .step-body a{ color:var(--accent); }
   .callout{
     margin-top:12px; padding:12px 14px; border-left:3px solid var(--accent);
-    background:var(--accent-soft); border-radius:4px 10px 10px 4px; font-size:0.86rem; color:var(--ink);
+    background:var(--accent-soft); border-radius:2px 3px 3px 2px; font-size:0.86rem; color:var(--ink);
   }
-  .callout.warn{ border-left-color:var(--risk); background:var(--risk-soft); }
+  .callout.warn{ border-left-color:var(--danger); background:var(--danger-soft); }
   code.inline{
     font-family:var(--mono); background:var(--accent-soft); color:var(--accent);
-    padding:1px 6px; border-radius:4px; font-size:0.86rem;
+    padding:1px 6px; border-radius:2px; font-size:0.86rem;
   }
 
   .recap{ margin-top:44px; }
-  .recap h2{ font-size:1.3rem; }
+  .recap h2{ font-size:1.3rem; margin:0; }
   .recap-list{ margin-top:18px; display:flex; flex-direction:column; gap:12px; }
   .recap-item{ display:flex; gap:12px; align-items:flex-start; }
   .recap-check{
-    flex:none; width:20px; height:20px; border-radius:6px; background:var(--accent-soft); color:var(--accent);
+    flex:none; width:20px; height:20px; border-radius:2px; background:var(--accent-soft); color:var(--accent);
     display:flex; align-items:center; justify-content:center; font-size:0.75rem; margin-top:2px;
   }
-  .recap-item p{ color:var(--muted); font-size:0.92rem; }
+  .recap-item p{ color:var(--muted); font-size:0.92rem; margin:0; }
   .recap-item p b{ color:var(--ink); }
 
-  .final{
-    margin-top:44px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px 26px;
-  }
-  .final h2{ font-size:1.3rem; }
+  .final{ margin-top:44px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:28px 26px; }
+  .final h2{ font-size:1.3rem; margin:0; }
   .final p{ margin-top:8px; color:var(--muted); font-size:0.92rem; }
-  .btn{
-    display:inline-block; margin-top:16px; font-family:var(--sans); font-weight:600; font-size:0.92rem;
-    padding:12px 20px; border-radius:10px; text-decoration:none; background:var(--accent); color:#08130d;
-  }
-
-  footer{
-    margin-top:56px; padding-top:24px; border-top:1px solid var(--line);
-    font-family:var(--mono); font-size:0.7rem; color:var(--muted);
-  }
+  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
 
   /* ---- terms click-wrap gate ---- */
   .tos-gate{
     position:fixed; inset:0; z-index:9999;
-    background:var(--paper);
+    background:var(--bg);
     display:flex; align-items:center; justify-content:center;
     padding:24px;
   }
   .tos-gate-card{
     max-width:480px; width:100%;
-    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
     padding:28px 26px;
   }
   .tos-gate-card h2{ font-size:1.25rem; font-weight:700; margin-top:8px; }
@@ -184,13 +112,13 @@
   .tos-gate button{
     margin-top:18px; width:100%;
     font-family:var(--sans); font-weight:700; font-size:0.95rem;
-    padding:13px 16px; border-radius:10px; border:none;
-    background:var(--accent); color:#08130d; cursor:pointer;
+    padding:13px 16px; border-radius:3px; border:none;
+    background:var(--accent); color:var(--accent-ink); cursor:pointer;
   }
   .tos-gate button:disabled{ opacity:0.5; cursor:not-allowed; }
 </style>
 </head>
-<body>
+<body class="zt zt-body">
 <div class="tos-gate" id="tosGate">
   <div class="tos-gate-card">
     <div class="eyebrow">Before you continue</div>
@@ -205,119 +133,179 @@
   </div>
 </div>
 
-<div class="wrap">
-  <nav>
-    <a class="wordmark" href="index.html"><span class="dot"></span>Zelos <span class="tag">/ setup</span></a>
-    <div class="nav-menu">
-      <button class="nav-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="nav-menu-caret">&#9662;</span></button>
-      <div class="nav-menu-list" hidden>
+<nav class="site-nav">
+  <div class="shell">
+    <a class="nav-brand" href="index.html"><span class="mark-dot"></span>Zelos</a>
+
+    <div class="nav-primary" id="navPrimary">
+      <a class="nav-link" href="index.html">Home</a>
+      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <hr>
+          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
+        </div>
+      </div>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
+        </div>
+      </div>
+
+      <a class="nav-link" href="arcade.html">Arcade</a>
+      <a class="nav-link" href="alert-history.html">Alerts</a>
+      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="index.html#why-zelos">About</a>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-auth" id="navAuth"></div>
+    </div>
+
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <div class="nav-mobile-label">Strategies</div>
+      <a href="swing-trader.html">Swing Trader</a>
+      <a href="breakout-rider.html">Breakout Rider</a>
+      <a href="options-scanner.html">Options Scanner</a>
+      <a href="arsenal.html">Full Arsenal</a>
+      <div class="nav-mobile-label">Market</div>
+      <a href="market-3d.html">Market 3D</a>
+      <a href="live-chart.html">Live Chart</a>
+      <a href="daily-market.html">Daily Market</a>
+      <a href="alert-history.html">Alert History</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="arcade.html">Arcade</a>
+      <a href="alert-history.html">Alerts</a>
+      <a href="ai-knowledge-catalog.html">Knowledge</a>
+      <a href="index.html#why-zelos">About</a>
+    </div>
+  </div>
+</nav>
+
+<section class="section-tight">
+  <div class="shell-narrow">
+    <div>
+      <p class="eyebrow">Getting started</p>
+      <h1 style="font-size:1.5rem; margin-top:6px;">Four steps to your first alert.</h1>
+      <p class="status-line" style="margin-top:6px;">This is the whole setup &mdash; nothing to install, nothing to connect, no account required. Just find your link, bookmark it, and check back each session.</p>
+      <div class="status-banner">
+        <span>&#9989;</span>
+        <span><b>You're in.</b> Your Gumroad receipt has your alert link and a link back to this guide &mdash; the steps below get you from purchase to your first read.</span>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div>
+          <h2>Find your alert link</h2>
+          <div class="step-body">
+            <p>Your Gumroad receipt email has a direct link to your alert page &mdash; that's the one page you'll want to come back to. Can't find it? Sign in at gumroad.com with the email you purchased with, open <b>Library</b>, and it'll be right there next to Zelos.</p>
+            <div class="callout">This link is general information, published the same way to every subscriber &mdash; it isn't tied to any account, and Zelos never asks for one.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div>
+          <h2>See a sample first</h2>
+          <div class="step-body">
+            <p><a href="demo.html" target="_blank" rel="noopener">Open the sample alert ticket</a> to see the exact format &mdash; ticker, entry, stop, targets, reward:risk &mdash; before your first real one shows up. It's a fixed example, not a live signal.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div>
+          <h2>Bookmark your alert page</h2>
+          <div class="step-body">
+            <p>Your alert page updates in place, on the same schedule every session &mdash; the ticket you see there is always the current one. That's the page you want on your home screen, not this setup guide, and not the public Zelos site you bought from.</p>
+            <p><b>iPhone (Safari):</b> open your alert link &rarr; tap the Share icon &rarr; <b>Add to Home Screen</b> &rarr; Add.<br><b>Android (Chrome):</b> open the link &rarr; tap the &#8942; menu &rarr; <b>Add to Home screen</b> / Install app.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div>
+          <h2>Check it each session</h2>
+          <div class="step-body">
+            <p>Zelos runs the scan and republishes the page on a fixed schedule &mdash; there's nothing for you to trigger or configure. Most sessions won't turn up a qualifying setup, and that's the strategy working as intended, not a failed check. Whatever you decide to do with a published alert happens entirely in your own brokerage account, on your own.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="recap">
+      <h2>What stays true no matter what</h2>
+      <div class="recap-list">
+        <div class="recap-item">
+          <div class="recap-check">&#10003;</div>
+          <p><b>Same alert, for everyone.</b> One page, published on one schedule &mdash; not tailored to your account, your balance, or your situation.</p>
+        </div>
+        <div class="recap-item">
+          <div class="recap-check">&#10003;</div>
+          <p><b>Sizing is a general rule of thumb</b>, never a number calculated from your money &mdash; Zelos never sees it.</p>
+        </div>
+        <div class="recap-item">
+          <div class="recap-check">&#10003;</div>
+          <p><b>Score bar and reward:risk minimum never bend</b>, no matter how many setups have come and gone.</p>
+        </div>
+        <div class="recap-item">
+          <div class="recap-check">&#10003;</div>
+          <p><b>Nothing to connect, nothing for us to touch.</b> There's no account link, so there's nothing beyond this page for Zelos to reach.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="recap">
+      <h2>How Zelos works</h2>
+      <div class="recap-list">
+        <p style="color:var(--muted); font-size:0.92rem;">Zelos is a published research page, not trading software you install or connect to an account. It never asks for brokerage credentials, never sees your balance or positions, and never places an order. Every subscriber sees the same rule-based scan, on the same schedule &mdash; general information, not personalized to any individual's account or situation.</p>
+        <p style="color:var(--muted); font-size:0.92rem; margin-top:4px;">Zelos is not personalized investment advice and Zelos is not a registered investment adviser. Trading involves risk, including loss of principal. Past performance of any strategy does not guarantee future results.</p>
+      </div>
+    </div>
+
+    <div class="final">
+      <h2>Stuck on a step?</h2>
+      <p>Message me directly through Gumroad &mdash; open Library, find Zelos, and use the message-seller option there. That's the fastest way to reach me if a link isn't working or something doesn't match what you're seeing here.</p>
+      <div style="margin-top:16px;"><a class="btn btn-primary" href="https://gumroad.com/library" target="_blank" rel="noopener">Message me on Gumroad</a></div>
+      <p style="margin-top:18px;">Want to cancel or change your billing instead? That's handled entirely through Gumroad &mdash; sign in at gumroad.com with the email you purchased with (or use the link in your receipt), open Library, and cancel there. There's nothing else to undo elsewhere.</p>
+    </div>
+
+    <p class="fine" style="margin-top:26px;">Zelos is a rule-based scan, not a licensed financial advisor. Nothing here is personalized investment advice, and no strategy is guaranteed to be profitable.</p>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <a class="footer-brand" href="index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <div class="footer-links">
         <a href="index.html">Home</a>
-        <a href="swing-trader.html">Swing Trader</a>
-        <a href="breakout-rider.html">Breakout Rider</a>
-        <a href="setup.html">Setup guide</a>
-        <a href="demo.html">Try the demo</a>
-        <a href="arcade.html">Arcade</a>
-          <a href="leaderboard.html">Leaderboard</a>
+        <a href="arsenal.html">Strategies</a>
+        <a href="alert-history.html">Alerts</a>
         <a href="terms.html">Terms</a>
       </div>
     </div>
-  </nav>
-
-  <header class="hero">
-    <div class="eyebrow">Getting started</div>
-    <h1>Four steps to your first alert.</h1>
-    <p class="lede">This is the whole setup &mdash; nothing to install, nothing to connect, no account required. Just find your link, bookmark it, and check back each session.</p>
-    <div class="status-banner">
-      <span>&#9989;</span>
-      <span><b>You're in.</b> Your Gumroad receipt has your alert link and a link back to this guide &mdash; the steps below get you from purchase to your first read.</span>
-    </div>
-  </header>
-
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">01</div>
-      <div>
-        <h2>Find your alert link</h2>
-        <div class="step-body">
-          <p>Your Gumroad receipt email has a direct link to your alert page &mdash; that's the one page you'll want to come back to. Can't find it? Sign in at gumroad.com with the email you purchased with, open <b>Library</b>, and it'll be right there next to Zelos.</p>
-          <div class="callout">This link is general information, published the same way to every subscriber &mdash; it isn't tied to any account, and Zelos never asks for one.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-num">02</div>
-      <div>
-        <h2>See a sample first</h2>
-        <div class="step-body">
-          <p><a href="demo.html" target="_blank" rel="noopener">Open the sample alert ticket</a> to see the exact format &mdash; ticker, entry, stop, targets, reward:risk &mdash; before your first real one shows up. It's a fixed example, not a live signal.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-num">03</div>
-      <div>
-        <h2>Bookmark your alert page</h2>
-        <div class="step-body">
-          <p>Your alert page updates in place, on the same schedule every session &mdash; the ticket you see there is always the current one. That's the page you want on your home screen, not this setup guide, and not the public Zelos site you bought from.</p>
-          <p><b>iPhone (Safari):</b> open your alert link &rarr; tap the Share icon &rarr; <b>Add to Home Screen</b> &rarr; Add.<br><b>Android (Chrome):</b> open the link &rarr; tap the &#8942; menu &rarr; <b>Add to Home screen</b> / Install app.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-num">04</div>
-      <div>
-        <h2>Check it each session</h2>
-        <div class="step-body">
-          <p>Zelos runs the scan and republishes the page on a fixed schedule &mdash; there's nothing for you to trigger or configure. Most sessions won't turn up a qualifying setup, and that's the strategy working as intended, not a failed check. Whatever you decide to do with a published alert happens entirely in your own brokerage account, on your own.</p>
-        </div>
-      </div>
-    </div>
+    <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
   </div>
-
-  <div class="recap">
-    <h2>What stays true no matter what</h2>
-    <div class="recap-list">
-      <div class="recap-item">
-        <div class="recap-check">&#10003;</div>
-        <p><b>Same alert, for everyone.</b> One page, published on one schedule &mdash; not tailored to your account, your balance, or your situation.</p>
-      </div>
-      <div class="recap-item">
-        <div class="recap-check">&#10003;</div>
-        <p><b>Sizing is a general rule of thumb</b>, never a number calculated from your money &mdash; Zelos never sees it.</p>
-      </div>
-      <div class="recap-item">
-        <div class="recap-check">&#10003;</div>
-        <p><b>Score bar and reward:risk minimum never bend</b>, no matter how many setups have come and gone.</p>
-      </div>
-      <div class="recap-item">
-        <div class="recap-check">&#10003;</div>
-        <p><b>Nothing to connect, nothing for us to touch.</b> There's no account link, so there's nothing beyond this page for Zelos to reach.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="recap">
-    <h2>How Zelos works</h2>
-    <div class="recap-list">
-      <p style="color:var(--muted); font-size:0.92rem;">Zelos is a published research page, not trading software you install or connect to an account. It never asks for brokerage credentials, never sees your balance or positions, and never places an order. Every subscriber sees the same rule-based scan, on the same schedule &mdash; general information, not personalized to any individual's account or situation.</p>
-      <p style="color:var(--muted); font-size:0.92rem; margin-top:4px;">Zelos is not personalized investment advice and Zelos is not a registered investment adviser. Trading involves risk, including loss of principal. Past performance of any strategy does not guarantee future results.</p>
-    </div>
-  </div>
-
-  <div class="final">
-    <h2>Stuck on a step?</h2>
-    <p>Message me directly through Gumroad &mdash; open Library, find Zelos, and use the message-seller option there. That's the fastest way to reach me if a link isn't working or something doesn't match what you're seeing here.</p>
-    <a class="btn" href="https://gumroad.com/library" target="_blank" rel="noopener">Message me on Gumroad</a>
-    <p style="margin-top:18px;">Want to cancel or change your billing instead? That's handled entirely through Gumroad &mdash; sign in at gumroad.com with the email you purchased with (or use the link in your receipt), open Library, and cancel there. There's nothing else to undo elsewhere.</p>
-  </div>
-
-  <footer>
-    Zelos is a rule-based scan, not a licensed financial advisor. Nothing here is personalized investment advice, and no strategy is guaranteed to be profitable.
-  </footer>
-</div>
+</footer>
 
 <script>
 (function(){
@@ -350,25 +338,183 @@
 </script>
 <script>
 (function(){
-  // Site-wide "Menu" dropdown — lets visitors jump between pages without
-  // going back to the home page first.
-  document.querySelectorAll('.nav-menu').forEach(function(menu){
-    var btn = menu.querySelector('.nav-menu-btn');
-    var list = menu.querySelector('.nav-menu-list');
-    if(!btn || !list) return;
-    function close(){ list.hidden = true; btn.setAttribute('aria-expanded','false'); }
-    function open(){ list.hidden = false; btn.setAttribute('aria-expanded','true'); }
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(list.hidden){ open(); } else { close(); }
-    });
-    document.addEventListener('click', function(e){
-      if(!menu.contains(e.target)) close();
-    });
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape') close();
-    });
+  function wireDropdown(trigger, panel){
+    if(!trigger || !panel) return;
+    function close(){ panel.hidden = true; trigger.setAttribute('aria-expanded','false'); }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false; trigger.setAttribute('aria-expanded','true');
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  document.querySelectorAll('.nav-drop').forEach(function(menu){
+    wireDropdown(menu.querySelector('.nav-drop-btn'), menu.querySelector('.nav-drop-panel'));
   });
+
+  var siteNav = document.querySelector('.site-nav');
+  var hamburger = document.getElementById('navHamburger');
+  if (siteNav && hamburger) {
+    hamburger.addEventListener('click', function(){
+      var open = siteNav.classList.toggle('is-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('navMobilePanel').addEventListener('click', function(e){
+      if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
+    });
+  }
+})();
+</script>
+
+<script src="zelos-theme-toggle.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="zelos-mood.js"></script>
+<script src="zelos-xp.js"></script>
+<script>
+(function(){
+  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth(); db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+  var navAuth = document.getElementById('navAuth');
+
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+  function ensureUserDoc(user){
+    var ref = userDocRef(user.uid);
+    return ref.get().then(function(doc){
+      if (!doc.exists) {
+        return ref.set({
+          email: user.email || null, displayName: user.displayName || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+        }).then(function(){ return ref.get(); });
+      }
+      return doc;
+    });
+  }
+  function claimPendingOwnership(user){
+    if (!user.email) return Promise.resolve();
+    var pendingRef = db.collection('pendingOwnership').doc(user.email.toLowerCase());
+    return pendingRef.get().then(function(doc){
+      if (!doc.exists) return;
+      var skills = (doc.data().skills || []).filter(Boolean);
+      if (!skills.length) return pendingRef.delete().catch(function(){});
+      return userDocRef(user.uid).set({
+        ownedSkills: firebase.firestore.FieldValue.arrayUnion.apply(null, skills)
+      }, { merge:true }).then(function(){ return pendingRef.delete(); });
+    }).catch(function(){});
+  }
+  function wireDropdownRef(trigger, panel){
+    function close(){ panel.hidden = true; }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false;
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+
+  function renderSignedOut(){
+    navAuth.innerHTML =
+      '<div style="position:relative;"><button class="btn btn-ghost btn-sm" id="loginBtn" type="button">Log in</button></div>' +
+      '<div style="position:relative;">' +
+        '<button class="btn btn-primary btn-sm" id="getStartedBtn" type="button">Get Started</button>' +
+        '<div class="auth-pop" id="authPop" hidden>' +
+          '<h3 id="authPopTitle">Sign in to Zelos</h3>' +
+          '<div class="auth-msg" id="authMsg"></div>' +
+          '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+          '<input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">' +
+          '<button class="btn btn-primary" id="authSubmitBtn" type="button">Sign in</button>' +
+          '<div class="auth-divider">or</div>' +
+          '<button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>' +
+          '<div class="auth-switch" id="authSwitch">New here? <button type="button" id="authModeToggle">Create an account</button></div>' +
+        '</div>' +
+      '</div>';
+
+    var pop = document.getElementById('authPop');
+    var mode = 'signin';
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = 'dashboard.html'; } }
+    function setMsg(text, isError){
+      var el = document.getElementById('authMsg');
+      el.textContent = text || '';
+      el.className = 'auth-msg' + (isError ? ' is-error' : '');
+    }
+    function applyMode(){
+      document.getElementById('authPopTitle').textContent = mode === 'signup' ? 'Create your Zelos account' : 'Sign in to Zelos';
+      document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+      document.getElementById('authSwitch').innerHTML = mode === 'signup'
+        ? 'Already have an account? <button type="button" id="authModeToggle">Sign in</button>'
+        : 'New here? <button type="button" id="authModeToggle">Create an account</button>';
+      document.getElementById('authModeToggle').addEventListener('click', function(){ mode = mode === 'signup' ? 'signin' : 'signup'; applyMode(); });
+    }
+    applyMode();
+
+    var dd = wireDropdownRef(document.getElementById('getStartedBtn'), pop);
+    document.getElementById('loginBtn').addEventListener('click', function(e){ e.stopPropagation(); mode='signin'; applyMode(); dd.open(); });
+
+    document.getElementById('authSubmitBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var email = document.getElementById('authEmail').value.trim();
+      var pw = document.getElementById('authPassword').value;
+      if (mode === 'signup') {
+        setMsg('Creating account…');
+        auth.createUserWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      } else {
+        setMsg('Signing in…');
+        auth.signInWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      }
+    });
+    document.getElementById('googleSignInBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var provider = new firebase.auth.GoogleAuthProvider();
+      setMsg('Opening Google sign-in…');
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+    });
+  }
+
+  function renderSignedIn(user){
+    var initial = (user.email || '?').charAt(0).toUpperCase();
+    navAuth.innerHTML =
+      '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="account-avatar">' + initial + '</span>' +
+        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="nav-drop-caret">&#9662;</span></button>' +
+        '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
+          '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
+          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<hr><a href="#" id="signOutLink">Sign out</a>' +
+        '</div></div>';
+    wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
+    document.getElementById('signOutLink').addEventListener('click', function(e){ e.preventDefault(); auth.signOut(); });
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      if (user && !user.isAnonymous) {
+        renderSignedIn(user);
+        ensureUserDoc(user).then(function(){ return claimPendingOwnership(user); }).then(function(){
+          if (window.ZelosXP) ZelosXP.award('daily-checkin');
+        });
+      } else {
+        renderSignedOut();
+        if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
+      }
+    });
+  } else { renderSignedOut(); }
 })();
 </script>
 </body>

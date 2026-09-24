@@ -21,7 +21,7 @@
 <link rel="apple-touch-icon" href="../icons/icon-180.png">
 <link rel="manifest" href="../manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0f1310">
+<meta name="theme-color" content="#4d3720">
 <meta name="description" content="Jump the red candles, grab the green ones, in this quick market-themed game.">
 <link rel="canonical" href="https://agentictrading.info/games/bull-run.html">
 <meta property="og:type" content="website">
@@ -36,76 +36,28 @@
 <meta name="twitter:title" content="Bull Run — Zelos Arcade">
 <meta name="twitter:description" content="Jump the red candles, grab the green ones, in this quick market-themed game.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="../zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
-  [hidden]:not([hidden="until-found"]){ display:none !important; }
+  [hidden]{ display:none !important; }
 </style>
 <style>
+  :root{ --fur:#e08a4f; --sky:var(--surface-2); }
 
-  :root{
-    --paper:#eef0ec; --card:#ffffff; --ink:#16201a; --muted:#5b6660; --line:#d5dbd2;
-    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c; --risk-soft:#f6e2df;
-    --fur:#c0632c; --sky:#dce6dd;
-    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-      --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
-      --risk:#ff7d70; --risk-soft:#3a201d; --fur:#e08a4f; --sky:#1a2320;
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-    --line:#2a322b; --accent:#4fd897; --accent-soft:#163625;
-    --risk:#ff7d70; --risk-soft:#3a201d; --fur:#e08a4f; --sky:#1a2320;
-  }
+  .game-wrap{ max-width:460px; margin:0 auto; padding:28px 20px 60px; }
+  .game-wrap h1,.game-wrap h2{ text-wrap:balance; margin:0; }
+  .game-wrap p{ margin:0; }
 
-  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.5; }
-  .wrap{ max-width:460px; margin:0 auto; padding:0 20px 60px; }
-  h1,h2{ text-wrap:balance; margin:0; }
-  p{ margin:0; }
-
-  nav{ display:flex; align-items:center; justify-content:space-between; padding-block:20px; }
-  .wordmark{ font-family:var(--mono); font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
-  .wordmark .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
-  .wordmark .tag{ font-weight:500; color:var(--muted); }
-  nav a.back{ font-family:var(--mono); font-size:0.82rem; color:var(--muted); text-decoration:none; }
-  nav a.back:hover{ color:var(--accent); }
-
-  .nav-right{ display:flex; align-items:center; gap:14px; }
-  .nav-menu{ position:relative; }
-  .nav-menu-btn{
-    font-family:var(--mono); font-size:0.82rem; font-weight:600; color:var(--muted);
-    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px;
-    cursor:pointer; display:inline-flex; align-items:center; gap:5px;
-  }
-  .nav-menu-btn:hover{ color:var(--ink); border-color:var(--accent); }
-  .nav-menu-caret{ font-size:0.7rem; transition:transform 0.15s ease; }
-  .nav-menu-btn[aria-expanded="true"] .nav-menu-caret{ transform:rotate(180deg); }
-  .nav-menu-list{
-    position:absolute; top:calc(100% + 8px); right:0; min-width:170px;
-    background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:8px; display:flex; flex-direction:column; gap:2px; z-index:20;
-    box-shadow:0 12px 28px rgba(0,0,0,0.18);
-  }
-  .nav-menu-list a{
-    font-family:var(--sans); font-size:0.88rem; color:var(--ink); text-decoration:none;
-    padding:8px 10px; border-radius:7px;
-  }
-  .nav-menu-list a:hover{ background:var(--accent-soft); color:var(--accent); }
-
-  header{ padding-block:8px 24px; }
-  .eyebrow{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
-  h1{ font-size:clamp(1.6rem,6vw,2rem); font-weight:700; margin-top:8px; }
+  .eyebrow-game{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
+  .game-wrap h1{ font-size:clamp(1.6rem,6vw,2rem); font-weight:700; margin-top:8px; }
   .lede{ margin-top:10px; color:var(--muted); font-size:0.92rem; }
 
   .game-card{
     position:relative; margin-top:18px;
-    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
     padding:16px 16px 20px; overflow:hidden;
   }
   .game-topbar{ display:flex; justify-content:space-between; align-items:baseline; font-family:var(--mono); padding:0 4px; }
@@ -113,7 +65,7 @@
   .game-topbar .stat b{ display:block; font-size:1.15rem; color:var(--ink); font-family:var(--mono); margin-top:2px; font-variant-numeric:tabular-nums; }
 
   .stage-box{
-    margin-top:12px; border:1px solid var(--line); border-radius:12px;
+    margin-top:12px; border:1px solid var(--border); border-radius:3px;
     overflow:hidden; background:var(--sky); position:relative; touch-action:manipulation;
   }
   .stage-box canvas{ display:block; width:100%; height:auto; }
@@ -125,17 +77,18 @@
 
   .overlay{
     position:absolute; inset:0; z-index:20;
-    background:var(--card);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:var(--surface);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
     text-align:center; padding:28px 24px; gap:14px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
   }
   .overlay h2{ font-size:1.3rem; font-weight:700; }
   .overlay p{ color:var(--muted); font-size:0.9rem; max-width:32ch; }
   .overlay .score-line{ font-family:var(--mono); font-size:0.85rem; color:var(--ink); margin-top:2px; }
   .overlay button.start{
     margin-top:6px; font-family:var(--sans); font-weight:700; font-size:0.95rem;
-    padding:13px 26px; border-radius:10px; border:none;
-    background:var(--accent); color:#08130d; cursor:pointer;
+    padding:13px 26px; border-radius:3px; border:none;
+    background:var(--accent); color:var(--accent-ink); cursor:pointer;
   }
   .overlay .cta{
     margin-top:10px; font-family:var(--mono); font-size:0.76rem; color:var(--muted); text-decoration:none;
@@ -146,60 +99,100 @@
   .lb-name-row{ display:flex; gap:8px; margin-bottom:10px; }
   .lb-name-row input{
     flex:1; min-width:0; font-family:var(--sans); font-size:0.86rem; padding:9px 10px;
-    border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink);
+    border:1px solid var(--border); border-radius:3px; background:var(--bg); color:var(--ink);
   }
   .lb-name-row button{
     font-family:var(--sans); font-weight:700; font-size:0.82rem; white-space:nowrap;
-    padding:9px 14px; border-radius:8px; border:none; background:var(--accent); color:#08130d; cursor:pointer;
+    padding:9px 14px; border-radius:3px; border:none; background:var(--accent); color:var(--accent-ink); cursor:pointer;
   }
   .lb-status{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-bottom:8px; }
   .lb-title{ font-family:var(--mono); font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
-  .lb-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+  .lb-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; max-height:130px; overflow-y:auto; }
   .lb-list li{
     display:flex; justify-content:space-between; gap:10px; font-family:var(--mono); font-size:0.82rem;
-    padding:6px 10px; border-radius:7px; background:var(--paper);
+    padding:6px 10px; border-radius:2px; background:var(--bg);
   }
   .lb-list li.me{ background:var(--accent-soft); color:var(--accent); font-weight:700; }
   .lb-list .rank{ color:var(--muted); width:1.4em; display:inline-block; }
   .lb-empty{ color:var(--muted); font-size:0.8rem; padding:6px 10px; background:none; }
 
   .rules{
-    margin-top:22px; padding:14px 16px; border:1px solid var(--line); border-radius:10px;
+    margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:3px;
     font-size:0.84rem; color:var(--muted);
   }
   .rules b{ color:var(--ink); }
 
-  footer{
-    margin-top:44px; padding-top:20px; border-top:1px solid var(--line);
-    font-family:var(--mono); font-size:0.7rem; color:var(--muted);
-  }
+  .note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
 </style>
 </head>
-<body>
-<div class="wrap">
-  <nav>
-    <a class="wordmark" href="../index.html"><span class="dot"></span>Zelos <span class="tag">/ play</span></a>
-    <div class="nav-right">
-      <div class="nav-menu">
-        <button class="nav-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="nav-menu-caret">&#9662;</span></button>
-        <div class="nav-menu-list" hidden>
-          <a href="../index.html">Home</a>
-          <a href="../setup.html">Setup guide</a>
-          <a href="../demo.html">Try the demo</a>
-          <a href="../arcade.html">Arcade</a>
-          <a href="../leaderboard.html">Leaderboard</a>
-          <a href="../terms.html">Terms</a>
+<body class="zt zt-body">
+
+<nav class="site-nav">
+  <div class="shell">
+    <a class="nav-brand" href="../index.html"><span class="mark-dot"></span>Zelos</a>
+
+    <div class="nav-primary" id="navPrimary">
+      <a class="nav-link" href="../index.html">Home</a>
+      <a class="nav-link" href="../dashboard.html">Dashboard</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="../swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="../breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="../options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <hr>
+          <a href="../arsenal.html">Full Arsenal<small>Everything you own</small></a>
         </div>
       </div>
-      <a class="back" href="../index.html">&larr; Site</a>
-    </div>
-  </nav>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="../market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="../live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="../daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="../alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="../leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
+        </div>
+      </div>
 
-  <header>
-    <div class="eyebrow">Mini game</div>
-    <h1>Bull Run</h1>
-    <p class="lede">Jump every drawdown, grab the green candles, don't get gored by a red one. It only gets faster from here.</p>
-  </header>
+      <a class="nav-link" href="../arcade.html">Arcade</a>
+      <a class="nav-link" href="../alert-history.html">Alerts</a>
+      <a class="nav-link" href="../ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="../index.html#why-zelos">About</a>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-auth" id="navAuth"></div>
+    </div>
+
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <a href="../index.html">Home</a>
+      <a href="../dashboard.html">Dashboard</a>
+      <div class="nav-mobile-label">Strategies</div>
+      <a href="../swing-trader.html">Swing Trader</a>
+      <a href="../breakout-rider.html">Breakout Rider</a>
+      <a href="../options-scanner.html">Options Scanner</a>
+      <a href="../arsenal.html">Full Arsenal</a>
+      <div class="nav-mobile-label">Market</div>
+      <a href="../market-3d.html">Market 3D</a>
+      <a href="../live-chart.html">Live Chart</a>
+      <a href="../daily-market.html">Daily Market</a>
+      <a href="../alert-history.html">Alert History</a>
+      <a href="../leaderboard.html">Leaderboard</a>
+      <a href="../arcade.html">Arcade</a>
+      <a href="../alert-history.html">Alerts</a>
+      <a href="../ai-knowledge-catalog.html">Knowledge</a>
+      <a href="../index.html#why-zelos">About</a>
+    </div>
+  </div>
+</nav>
+
+<div class="game-wrap">
+  <div class="eyebrow-game">Mini game</div>
+  <h1>Bull Run</h1>
+  <p class="lede">Jump every drawdown, grab the green candles, don't get gored by a red one. It only gets faster from here.</p>
 
   <div class="game-card" id="gameCard">
     <div class="game-topbar">
@@ -212,14 +205,14 @@
     </div>
 
     <div class="overlay" id="startOverlay">
-      <div class="eyebrow">Bull Run</div>
+      <div class="eyebrow-game">Bull Run</div>
       <h2>Ready to run?</h2>
       <p>Tap, click, or press Space to jump. Clear the red candles, grab the green ones for bonus points.</p>
       <button type="button" class="start" id="startBtn">Start</button>
     </div>
 
     <div class="overlay" id="overOverlay" hidden>
-      <div class="eyebrow" id="overEyebrow">Wiped out</div>
+      <div class="eyebrow-game" id="overEyebrow">Wiped out</div>
       <h2 id="overTitle">Good run</h2>
       <div class="score-line" id="overScore">Score: 0 &middot; Best: 0</div>
 
@@ -242,14 +235,33 @@
     <b>How it works:</b> jump red candles, land on the ground between them. Green candles are worth +15 if you grab them mid-air. Speed climbs the longer you survive. Your best run is remembered on this device.
   </div>
 
-  <footer>
+  <div class="note">
     Bull Run is a game, not real market data. Zelos itself is a rule-based scan, not personalized investment advice.
-  </footer>
+  </div>
 </div>
+
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <a class="footer-brand" href="../index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="../arsenal.html">Strategies</a>
+        <a href="../alert-history.html">Alerts</a>
+        <a href="../terms.html">Terms</a>
+      </div>
+    </div>
+    <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
+  </div>
+</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="../firebase-config.js"></script>
+<script src="../zelos-mood.js"></script>
+<script src="../zelos-xp.js"></script>
 <script src="../leaderboard.js"></script>
 <script>
 (function(){
@@ -539,27 +551,180 @@
   if (reduceMotion) stageHint.textContent = 'Tap to jump';
 })();
 </script>
+
 <script>
 (function(){
-  // Site-wide "Menu" dropdown — lets visitors jump between pages without
-  // going back to the home page first.
-  document.querySelectorAll('.nav-menu').forEach(function(menu){
-    var btn = menu.querySelector('.nav-menu-btn');
-    var list = menu.querySelector('.nav-menu-list');
-    if(!btn || !list) return;
-    function close(){ list.hidden = true; btn.setAttribute('aria-expanded','false'); }
-    function open(){ list.hidden = false; btn.setAttribute('aria-expanded','true'); }
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(list.hidden){ open(); } else { close(); }
-    });
-    document.addEventListener('click', function(e){
-      if(!menu.contains(e.target)) close();
-    });
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape') close();
-    });
+  function wireDropdown(trigger, panel){
+    if(!trigger || !panel) return;
+    function close(){ panel.hidden = true; trigger.setAttribute('aria-expanded','false'); }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false; trigger.setAttribute('aria-expanded','true');
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  document.querySelectorAll('.nav-drop').forEach(function(menu){
+    wireDropdown(menu.querySelector('.nav-drop-btn'), menu.querySelector('.nav-drop-panel'));
   });
+
+  var siteNav = document.querySelector('.site-nav');
+  var hamburger = document.getElementById('navHamburger');
+  if (siteNav && hamburger) {
+    hamburger.addEventListener('click', function(){
+      var open = siteNav.classList.toggle('is-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('navMobilePanel').addEventListener('click', function(e){
+      if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
+    });
+  }
+})();
+</script>
+
+<script src="../zelos-theme-toggle.js"></script>
+
+<script>
+(function(){
+  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth(); db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+  var navAuth = document.getElementById('navAuth');
+
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+  function ensureUserDoc(user){
+    var ref = userDocRef(user.uid);
+    return ref.get().then(function(doc){
+      if (!doc.exists) {
+        return ref.set({
+          email: user.email || null, displayName: user.displayName || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+        }).then(function(){ return ref.get(); });
+      }
+      return doc;
+    });
+  }
+  function claimPendingOwnership(user){
+    if (!user.email) return Promise.resolve();
+    var pendingRef = db.collection('pendingOwnership').doc(user.email.toLowerCase());
+    return pendingRef.get().then(function(doc){
+      if (!doc.exists) return;
+      var skills = (doc.data().skills || []).filter(Boolean);
+      if (!skills.length) return pendingRef.delete().catch(function(){});
+      return userDocRef(user.uid).set({
+        ownedSkills: firebase.firestore.FieldValue.arrayUnion.apply(null, skills)
+      }, { merge:true }).then(function(){ return pendingRef.delete(); });
+    }).catch(function(){});
+  }
+  function wireDropdownRef(trigger, panel){
+    function close(){ panel.hidden = true; }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false;
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+
+  function renderSignedOut(){
+    navAuth.innerHTML =
+      '<div style="position:relative;"><button class="btn btn-ghost btn-sm" id="loginBtn" type="button">Log in</button></div>' +
+      '<div style="position:relative;">' +
+        '<button class="btn btn-primary btn-sm" id="getStartedBtn" type="button">Get Started</button>' +
+        '<div class="auth-pop" id="authPop" hidden>' +
+          '<h3 id="authPopTitle">Sign in to Zelos</h3>' +
+          '<div class="auth-msg" id="authMsg"></div>' +
+          '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+          '<input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">' +
+          '<button class="btn btn-primary" id="authSubmitBtn" type="button">Sign in</button>' +
+          '<div class="auth-divider">or</div>' +
+          '<button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>' +
+          '<div class="auth-switch" id="authSwitch">New here? <button type="button" id="authModeToggle">Create an account</button></div>' +
+        '</div>' +
+      '</div>';
+
+    var pop = document.getElementById('authPop');
+    var mode = 'signin';
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = '../dashboard.html'; } }
+    function setMsg(text, isError){
+      var el = document.getElementById('authMsg');
+      el.textContent = text || '';
+      el.className = 'auth-msg' + (isError ? ' is-error' : '');
+    }
+    function applyMode(){
+      document.getElementById('authPopTitle').textContent = mode === 'signup' ? 'Create your Zelos account' : 'Sign in to Zelos';
+      document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+      document.getElementById('authSwitch').innerHTML = mode === 'signup'
+        ? 'Already have an account? <button type="button" id="authModeToggle">Sign in</button>'
+        : 'New here? <button type="button" id="authModeToggle">Create an account</button>';
+      document.getElementById('authModeToggle').addEventListener('click', function(){ mode = mode === 'signup' ? 'signin' : 'signup'; applyMode(); });
+    }
+    applyMode();
+
+    var dd = wireDropdownRef(document.getElementById('getStartedBtn'), pop);
+    document.getElementById('loginBtn').addEventListener('click', function(e){ e.stopPropagation(); mode='signin'; applyMode(); dd.open(); });
+
+    document.getElementById('authSubmitBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var email = document.getElementById('authEmail').value.trim();
+      var pw = document.getElementById('authPassword').value;
+      if (mode === 'signup') {
+        setMsg('Creating account…');
+        auth.createUserWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      } else {
+        setMsg('Signing in…');
+        auth.signInWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      }
+    });
+    document.getElementById('googleSignInBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var provider = new firebase.auth.GoogleAuthProvider();
+      setMsg('Opening Google sign-in…');
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+    });
+  }
+
+  function renderSignedIn(user){
+    var initial = (user.email || '?').charAt(0).toUpperCase();
+    navAuth.innerHTML =
+      '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="account-avatar">' + initial + '</span>' +
+        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="nav-drop-caret">&#9662;</span></button>' +
+        '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
+          '<a href="../dashboard.html">Dashboard</a><a href="../my-zelos.html">My Zelos</a><a href="../arsenal.html">Arsenal</a>' +
+          '<a href="../alert-history.html">Alert History</a><a href="../leaderboard.html">Leaderboard</a><a href="../arcade.html">Arcade</a>' +
+          '<hr><a href="#" id="signOutLink">Sign out</a>' +
+        '</div></div>';
+    wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
+    document.getElementById('signOutLink').addEventListener('click', function(e){ e.preventDefault(); auth.signOut(); });
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      if (user && !user.isAnonymous) {
+        renderSignedIn(user);
+        ensureUserDoc(user).then(function(){ return claimPendingOwnership(user); }).then(function(){
+          if (window.ZelosXP) ZelosXP.award('daily-checkin');
+        });
+      } else {
+        renderSignedOut();
+        if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
+      }
+    });
+  } else { renderSignedOut(); }
 })();
 </script>
 </body>

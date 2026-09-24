@@ -7,7 +7,6 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-Y4B3ZC5XRX');
 </script>
 <meta charset="utf-8">
@@ -21,7 +20,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0f1310">
+<meta name="theme-color" content="#4d3720">
 <meta name="description" content="Live top scores for the three Zelos Arcade games — updates in real time as people play.">
 <link rel="canonical" href="https://agentictrading.info/leaderboard.html">
 <meta property="og:type" content="website">
@@ -36,166 +35,333 @@
 <meta name="twitter:title" content="Live Leaderboard — Zelos Arcade">
 <meta name="twitter:description" content="Live top scores for the three Zelos Arcade games — updates in real time as people play.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
-  [hidden]:not([hidden="until-found"]){ display:none !important; }
-</style>
-<style>
+  [hidden]{ display:none !important; }
 
-  :root{
-    --paper:#eef0ec; --card:#ffffff; --ink:#16201a; --muted:#5b6660; --line:#d5dbd2;
-    --accent:#1f7a4d; --accent-soft:#dcefe2; --risk:#a3352c;
-    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-      --line:#2a322b; --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70;
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#0f1310; --card:#181d19; --ink:#e7ece7; --muted:#8b968e;
-    --line:#2a322b; --accent:#4fd897; --accent-soft:#163625; --risk:#ff7d70;
-  }
-
-  body{ background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.5; }
-  .wrap{ max-width:560px; margin:0 auto; padding:0 20px 60px; }
-  h1,h2{ text-wrap:balance; margin:0; }
-  p{ margin:0; }
-
-  nav{ display:flex; align-items:center; justify-content:space-between; padding-block:20px; }
-  .wordmark{ font-family:var(--mono); font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
-  .wordmark .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); }
-  .wordmark .tag{ font-weight:500; color:var(--muted); }
-  nav a.back{ font-family:var(--mono); font-size:0.82rem; color:var(--muted); text-decoration:none; }
-  nav a.back:hover{ color:var(--accent); }
-
-  .nav-right{ display:flex; align-items:center; gap:14px; }
-  .nav-menu{ position:relative; }
-  .nav-menu-btn{
-    font-family:var(--mono); font-size:0.82rem; font-weight:600; color:var(--muted);
-    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px;
-    cursor:pointer; display:inline-flex; align-items:center; gap:5px;
-  }
-  .nav-menu-btn:hover{ color:var(--ink); border-color:var(--accent); }
-  .nav-menu-caret{ font-size:0.7rem; transition:transform 0.15s ease; }
-  .nav-menu-btn[aria-expanded="true"] .nav-menu-caret{ transform:rotate(180deg); }
-  .nav-menu-list{
-    position:absolute; top:calc(100% + 8px); right:0; min-width:170px;
-    background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:8px; display:flex; flex-direction:column; gap:2px; z-index:20;
-    box-shadow:0 12px 28px rgba(0,0,0,0.18);
-  }
-  .nav-menu-list a{
-    font-family:var(--sans); font-size:0.88rem; color:var(--ink); text-decoration:none;
-    padding:8px 10px; border-radius:7px;
-  }
-  .nav-menu-list a:hover{ background:var(--accent-soft); color:var(--accent); }
-
-  header{ padding-block:8px 26px; }
-  .eyebrow{ font-family:var(--mono); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:7px; }
-  .eyebrow .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); animation:lb-live-pulse 1.8s ease-in-out infinite; }
+  .eyebrow.live{ display:flex; align-items:center; gap:7px; }
+  .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); animation:lb-live-pulse 1.8s ease-in-out infinite; }
   @keyframes lb-live-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  @media (prefers-reduced-motion: reduce){ .eyebrow .live-dot{ animation:none; } }
-  h1{ font-size:clamp(1.9rem,7vw,2.4rem); font-weight:700; margin-top:8px; }
-  .lede{ margin-top:10px; color:var(--muted); font-size:0.96rem; max-width:48ch; }
+  @media (prefers-reduced-motion: reduce){ .live-dot{ animation:none; } }
 
   .tabs{ display:flex; gap:8px; margin-top:22px; flex-wrap:wrap; }
   .tab{
     font-family:var(--sans); font-weight:600; font-size:0.86rem; color:var(--muted);
-    background:var(--card); border:1px solid var(--line); border-radius:9px;
+    background:var(--surface); border:1px solid var(--border); border-radius:3px;
     padding:9px 14px; cursor:pointer;
   }
-  .tab[aria-selected="true"]{ color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+  .tab[aria-selected="true"]{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
 
-  .board{
-    margin-top:16px; background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:8px;
-  }
-  .board-row{
-    display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px;
-  }
-  .board-row + .board-row{ border-top:1px solid var(--line); }
-  .board-rank{
-    font-family:var(--mono); font-weight:700; font-size:0.92rem; color:var(--muted);
-    width:1.8em; flex:none; text-align:center;
-  }
-  .board-row:nth-child(1) .board-rank{ color:#c9971f; }
-  .board-row:nth-child(2) .board-rank{ color:#8b96a3; }
+  .board{ margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:8px; }
+  .board-row{ display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:3px; }
+  .board-row + .board-row{ border-top:1px solid var(--border-soft); }
+  .board-rank{ font-family:var(--mono); font-weight:700; font-size:0.92rem; color:var(--muted); width:1.8em; flex:none; text-align:center; }
+  .board-row:nth-child(1) .board-rank{ color:var(--gold); }
+  .board-row:nth-child(2) .board-rank{ color:var(--ink-2); }
   .board-row:nth-child(3) .board-rank{ color:#b0703f; }
   .board-name{ flex:1; font-weight:600; font-size:0.94rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .board-score{ font-family:var(--mono); font-weight:700; font-size:0.96rem; color:var(--accent); font-variant-numeric:tabular-nums; }
   .board-empty{ padding:26px 16px; text-align:center; color:var(--muted); font-size:0.88rem; }
 
-  .setup-note{
-    margin-top:26px; padding:14px 16px; border:1px solid var(--line); border-radius:10px;
-    font-size:0.84rem; color:var(--muted);
-  }
+  .setup-note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
   .setup-note a{ color:var(--accent); }
-
-  footer{
-    margin-top:44px; padding-top:20px; border-top:1px solid var(--line);
-    font-family:var(--mono); font-size:0.7rem; color:var(--muted);
-  }
+  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
 </style>
 </head>
-<body>
-<div class="wrap">
-  <nav>
-    <a class="wordmark" href="index.html"><span class="dot"></span>Zelos <span class="tag">/ leaderboard</span></a>
-    <div class="nav-right">
-      <div class="nav-menu">
-        <button class="nav-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="nav-menu-caret">&#9662;</span></button>
-        <div class="nav-menu-list" hidden>
-          <a href="index.html">Home</a>
-          <a href="swing-trader.html">Swing Trader</a>
-          <a href="breakout-rider.html">Breakout Rider</a>
-          <a href="setup.html">Setup guide</a>
-          <a href="demo.html">Try the demo</a>
-          <a href="arcade.html">Arcade</a>
-          <a href="leaderboard.html">Leaderboard</a>
-          <a href="terms.html">Terms</a>
+<body class="zt zt-body">
+
+<nav class="site-nav">
+  <div class="shell">
+    <a class="nav-brand" href="index.html"><span class="mark-dot"></span>Zelos</a>
+
+    <div class="nav-primary" id="navPrimary">
+      <a class="nav-link" href="index.html">Home</a>
+      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <hr>
+          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
         </div>
       </div>
-      <a class="back" href="arcade.html">&larr; Arcade</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
+        </div>
+      </div>
+
+      <a class="nav-link" href="arcade.html">Arcade</a>
+      <a class="nav-link" href="alert-history.html">Alerts</a>
+      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="index.html#why-zelos">About</a>
     </div>
-  </nav>
 
-  <header>
-    <div class="eyebrow"><span class="live-dot" id="liveDot"></span>Live</div>
-    <h1>Leaderboard</h1>
-    <p class="lede">Top scores across all three Zelos Arcade games, updating in real time as people play &mdash; no refresh needed.</p>
-  </header>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-auth" id="navAuth"></div>
+    </div>
 
-  <div class="tabs" role="tablist" id="tabs">
-    <button class="tab" type="button" role="tab" data-game="bull-run" aria-selected="true">🐃 Bull Run</button>
-    <button class="tab" type="button" role="tab" data-game="buy-the-dip" aria-selected="false">💵 Buy the Dip</button>
-    <button class="tab" type="button" role="tab" data-game="setup-spotter" aria-selected="false">🐂 Setup Spotter</button>
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <div class="nav-mobile-label">Strategies</div>
+      <a href="swing-trader.html">Swing Trader</a>
+      <a href="breakout-rider.html">Breakout Rider</a>
+      <a href="options-scanner.html">Options Scanner</a>
+      <a href="arsenal.html">Full Arsenal</a>
+      <div class="nav-mobile-label">Market</div>
+      <a href="market-3d.html">Market 3D</a>
+      <a href="live-chart.html">Live Chart</a>
+      <a href="daily-market.html">Daily Market</a>
+      <a href="alert-history.html">Alert History</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="arcade.html">Arcade</a>
+      <a href="alert-history.html">Alerts</a>
+      <a href="ai-knowledge-catalog.html">Knowledge</a>
+      <a href="index.html#why-zelos">About</a>
+    </div>
   </div>
+</nav>
 
-  <div class="board" id="board">
-    <div class="board-empty" id="boardEmpty">Loading&hellip;</div>
+<section class="section-tight">
+  <div class="shell-narrow">
+    <div>
+      <p class="eyebrow live"><span class="live-dot" id="liveDot"></span>Live</p>
+      <h1 style="font-size:1.5rem; margin-top:6px;">Leaderboard</h1>
+      <p class="status-line" style="margin-top:6px;">Top scores across all three Zelos Arcade games, updating in real time as people play &mdash; no refresh needed.</p>
+    </div>
+
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" type="button" role="tab" data-game="bull-run" aria-selected="true">🐃 Bull Run</button>
+      <button class="tab" type="button" role="tab" data-game="buy-the-dip" aria-selected="false">💵 Buy the Dip</button>
+      <button class="tab" type="button" role="tab" data-game="setup-spotter" aria-selected="false">🐂 Setup Spotter</button>
+    </div>
+
+    <div class="board" id="board">
+      <div class="board-empty" id="boardEmpty">Loading&hellip;</div>
+    </div>
+
+    <div class="setup-note" id="setupNote" hidden>
+      The live leaderboard isn't switched on for this site yet &mdash; scores aren't being collected. Play the games from the <a href="arcade.html">Arcade</a> anyway, your best run is still remembered on your own device.
+    </div>
+
+    <div class="setup-note">
+      Scores are self-reported by whoever's playing when their run ends &mdash; this is a for-fun board, not a verified ranking. These are games with simulated or illustrative data, not real market data or a real account.
+    </div>
   </div>
+</section>
 
-  <div class="setup-note" id="setupNote" hidden>
-    The live leaderboard isn't switched on for this site yet &mdash; scores aren't being collected. Play the games from the <a href="arcade.html">Arcade</a> anyway, your best run is still remembered on your own device.
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <a class="footer-brand" href="index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="arsenal.html">Strategies</a>
+        <a href="alert-history.html">Alerts</a>
+        <a href="terms.html">Terms</a>
+      </div>
+    </div>
+    <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
   </div>
+</footer>
 
-  <div class="setup-note">
-    Scores are self-reported by whoever's playing when their run ends &mdash; this is a for-fun board, not a verified ranking. These are games with simulated or illustrative data, not real market data or a real account.
-  </div>
+<script>
+(function(){
+  function wireDropdown(trigger, panel){
+    if(!trigger || !panel) return;
+    function close(){ panel.hidden = true; trigger.setAttribute('aria-expanded','false'); }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false; trigger.setAttribute('aria-expanded','true');
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  document.querySelectorAll('.nav-drop').forEach(function(menu){
+    wireDropdown(menu.querySelector('.nav-drop-btn'), menu.querySelector('.nav-drop-panel'));
+  });
 
-  <footer>
-    Zelos Arcade &middot; part of <a href="index.html" style="color:inherit;">Zelos</a>
-  </footer>
-</div>
+  var siteNav = document.querySelector('.site-nav');
+  var hamburger = document.getElementById('navHamburger');
+  if (siteNav && hamburger) {
+    hamburger.addEventListener('click', function(){
+      var open = siteNav.classList.toggle('is-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('navMobilePanel').addEventListener('click', function(e){
+      if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
+    });
+  }
+})();
+</script>
+
+<script src="zelos-theme-toggle.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="zelos-mood.js"></script>
+<script src="zelos-xp.js"></script>
+<script>
+(function(){
+  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth(); db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+  var navAuth = document.getElementById('navAuth');
+
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+  function ensureUserDoc(user){
+    var ref = userDocRef(user.uid);
+    return ref.get().then(function(doc){
+      if (!doc.exists) {
+        return ref.set({
+          email: user.email || null, displayName: user.displayName || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+        }).then(function(){ return ref.get(); });
+      }
+      return doc;
+    });
+  }
+  function claimPendingOwnership(user){
+    if (!user.email) return Promise.resolve();
+    var pendingRef = db.collection('pendingOwnership').doc(user.email.toLowerCase());
+    return pendingRef.get().then(function(doc){
+      if (!doc.exists) return;
+      var skills = (doc.data().skills || []).filter(Boolean);
+      if (!skills.length) return pendingRef.delete().catch(function(){});
+      return userDocRef(user.uid).set({
+        ownedSkills: firebase.firestore.FieldValue.arrayUnion.apply(null, skills)
+      }, { merge:true }).then(function(){ return pendingRef.delete(); });
+    }).catch(function(){});
+  }
+  function wireDropdownRef(trigger, panel){
+    function close(){ panel.hidden = true; }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false;
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+
+  function renderSignedOut(){
+    navAuth.innerHTML =
+      '<div style="position:relative;"><button class="btn btn-ghost btn-sm" id="loginBtn" type="button">Log in</button></div>' +
+      '<div style="position:relative;">' +
+        '<button class="btn btn-primary btn-sm" id="getStartedBtn" type="button">Get Started</button>' +
+        '<div class="auth-pop" id="authPop" hidden>' +
+          '<h3 id="authPopTitle">Sign in to Zelos</h3>' +
+          '<div class="auth-msg" id="authMsg"></div>' +
+          '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+          '<input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">' +
+          '<button class="btn btn-primary" id="authSubmitBtn" type="button">Sign in</button>' +
+          '<div class="auth-divider">or</div>' +
+          '<button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>' +
+          '<div class="auth-switch" id="authSwitch">New here? <button type="button" id="authModeToggle">Create an account</button></div>' +
+        '</div>' +
+      '</div>';
+
+    var pop = document.getElementById('authPop');
+    var mode = 'signin';
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = 'dashboard.html'; } }
+    function setMsg(text, isError){
+      var el = document.getElementById('authMsg');
+      el.textContent = text || '';
+      el.className = 'auth-msg' + (isError ? ' is-error' : '');
+    }
+    function applyMode(){
+      document.getElementById('authPopTitle').textContent = mode === 'signup' ? 'Create your Zelos account' : 'Sign in to Zelos';
+      document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+      document.getElementById('authSwitch').innerHTML = mode === 'signup'
+        ? 'Already have an account? <button type="button" id="authModeToggle">Sign in</button>'
+        : 'New here? <button type="button" id="authModeToggle">Create an account</button>';
+      document.getElementById('authModeToggle').addEventListener('click', function(){ mode = mode === 'signup' ? 'signin' : 'signup'; applyMode(); });
+    }
+    applyMode();
+
+    var dd = wireDropdownRef(document.getElementById('getStartedBtn'), pop);
+    document.getElementById('loginBtn').addEventListener('click', function(e){ e.stopPropagation(); mode='signin'; applyMode(); dd.open(); });
+
+    document.getElementById('authSubmitBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var email = document.getElementById('authEmail').value.trim();
+      var pw = document.getElementById('authPassword').value;
+      if (mode === 'signup') {
+        setMsg('Creating account…');
+        auth.createUserWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      } else {
+        setMsg('Signing in…');
+        auth.signInWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      }
+    });
+    document.getElementById('googleSignInBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var provider = new firebase.auth.GoogleAuthProvider();
+      setMsg('Opening Google sign-in…');
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+    });
+  }
+
+  function renderSignedIn(user){
+    var initial = (user.email || '?').charAt(0).toUpperCase();
+    navAuth.innerHTML =
+      '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="account-avatar">' + initial + '</span>' +
+        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="nav-drop-caret">&#9662;</span></button>' +
+        '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
+          '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
+          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<hr><a href="#" id="signOutLink">Sign out</a>' +
+        '</div></div>';
+    wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
+    document.getElementById('signOutLink').addEventListener('click', function(e){ e.preventDefault(); auth.signOut(); });
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      if (user && !user.isAnonymous) {
+        renderSignedIn(user);
+        ensureUserDoc(user).then(function(){ return claimPendingOwnership(user); }).then(function(){
+          if (window.ZelosXP) ZelosXP.award('daily-checkin');
+        });
+      } else {
+        renderSignedOut();
+        if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
+      }
+    });
+  } else { renderSignedOut(); }
+})();
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="leaderboard.js"></script>
 <script>
 (function(){
@@ -245,29 +411,6 @@
     setupNote.hidden = false;
     board.hidden = true;
   }
-})();
-</script>
-<script>
-(function(){
-  // Site-wide "Menu" dropdown — lets visitors jump between pages without
-  // going back to the home page first.
-  document.querySelectorAll('.nav-menu').forEach(function(menu){
-    var btn = menu.querySelector('.nav-menu-btn');
-    var list = menu.querySelector('.nav-menu-list');
-    if(!btn || !list) return;
-    function close(){ list.hidden = true; btn.setAttribute('aria-expanded','false'); }
-    function open(){ list.hidden = false; btn.setAttribute('aria-expanded','true'); }
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(list.hidden){ open(); } else { close(); }
-    });
-    document.addEventListener('click', function(e){
-      if(!menu.contains(e.target)) close();
-    });
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape') close();
-    });
-  });
 })();
 </script>
 </body>

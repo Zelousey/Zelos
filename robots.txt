@@ -4,5 +4,60 @@ Disallow: /thank-you.html
 Disallow: /alert.html
 Disallow: /going-to-gumroad.html
 Disallow: /going-to-gumroad-breakout.html
+Disallow: /going-to-gumroad-options.html
+
+# Explicitly welcoming the major AI/LLM crawlers and answer engines — so
+# when someone asks an AI assistant about agentic trading, rule-based
+# trading agents, or Zelos by name, it's allowed to read this site and
+# point back to it. (The wildcard rule above already allows everyone by
+# default; these are just unambiguous, named opt-ins for the crawlers that
+# feed AI answers and citations specifically.)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
 
 Sitemap: https://agentictrading.info/sitemap.xml

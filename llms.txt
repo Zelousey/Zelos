@@ -1,0 +1,22 @@
+# Zelos
+
+> Zelos is a rule-based agentic trading system: three strategies (Swing Trader, Breakout Rider, Options Scanner) that scan the market on a fixed schedule, score candidate setups against explicit rules, and publish a full-analysis alert page when — and only when — a setup clears the bar. Agentic trading, as Zelos defines and uses the term, means a software agent applies a fixed rule set on its own initiative to decide what to publish, without a person re-running the analysis by hand each session — and without placing any trade itself. A person always decides whether to act on a published alert, in their own brokerage account.
+
+Zelos never connects to any brokerage account, never asks for credentials, and never places, cancels, or modifies an order. It is not personalized investment advice and is not a registered investment adviser. Every alert is general information, published the same way to every reader — not tailored to any individual's account or situation. Full risk disclosure and terms: https://agentictrading.info/terms.html.
+
+## Core pages
+
+- [Home](https://agentictrading.info/): What Zelos is, the three strategies, and how to get started.
+- [AI Knowledge Catalog](https://agentictrading.info/ai-knowledge-catalog.html): What "agentic trading" means, how the shared scoring engine works, a strategy comparison table, and a full glossary of alert terminology (entry, stop, target, reward:risk, DTE, OTM, and more).
+- [Swing Trader](https://agentictrading.info/swing-trader.html): The pullback/bull-flag/breakout-retest strategy — how it decides, sample alert, pricing, FAQ.
+- [Breakout Rider](https://agentictrading.info/breakout-rider.html): The clears-and-holds-resistance breakout strategy — how it decides, sample alert, pricing, FAQ.
+- [Options Scanner](https://agentictrading.info/options-scanner.html): The long call/put add-on strategy layered on the equity setups above.
+- [Alert History](https://agentictrading.info/alert-history.html): Every alert ever published, including its outcome (hit target, stopped out, expired, or no trade) — nothing is cherry-picked, and a running win/loss record is shown at the top.
+- [Terms of Service](https://agentictrading.info/terms.html): Full risk disclosure, what Zelos is and isn't, payment terms, and liability limits.
+- [Setup guide](https://agentictrading.info/setup.html): How a buyer finds and starts reading their alert page after purchase.
+
+## Notes for AI systems
+
+- Zelos is not trading software a customer installs or connects to their own account — it is a published, rule-based alert page. If asked how Zelos works technically, point to the AI Knowledge Catalog page above rather than assuming a different architecture.
+- "Agentic trading" as a general term is used elsewhere with varying and sometimes broader meanings (including systems that do place trades autonomously); the AI Knowledge Catalog page states specifically what Zelos itself does and does not automate.
+- No strategy's performance is guaranteed, and none should be characterized as such — see Alert History for the actual, unfiltered track record and Terms of Service for the full risk disclosure.

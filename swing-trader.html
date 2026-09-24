@@ -7,7 +7,6 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-Y4B3ZC5XRX');
 </script>
 <meta charset="utf-8">
@@ -21,7 +20,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0f1310">
+<meta name="theme-color" content="#080b13">
 <meta name="description" content="Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.">
 <link rel="canonical" href="https://agentictrading.info/swing-trader.html">
 <meta property="og:type" content="website">
@@ -36,640 +35,87 @@
 <meta name="twitter:title" content="Swing Trader — Zelos">
 <meta name="twitter:description" content="Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')==='black')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
 <style>
-  :root{ color-scheme: light dark; }
+  :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
-  [hidden]:not([hidden="until-found"]){ display:none !important; }
-</style>
-<style>
+  [hidden]{ display:none !important; }
 
-  :root{
-    --paper:#eef0ec;
-    --card:#ffffff;
-    --ink:#16201a;
-    --muted:#5b6660;
-    --line:#d5dbd2;
-    --accent:#1f7a4d;
-    --accent-soft:#dcefe2;
-    --risk:#a3352c;
-    --risk-soft:#f6e2df;
-    --bull-fur:#d97b3f;
-    --bull-fur-dark:#b8622f;
-    --bull-cream:#faf1e2;
-    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-    --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --paper:#0f1310;
-      --card:#181d19;
-      --ink:#e7ece7;
-      --muted:#8b968e;
-      --line:#2a322b;
-      --accent:#4fd897;
-      --accent-soft:#163625;
-      --risk:#ff7d70;
-      --risk-soft:#3a201d;
-      --bull-fur:#e08a4f;
-      --bull-fur-dark:#c06a35;
-      --bull-cream:#f4e6d0;
-    }
-  }
-  :root[data-theme="dark"]{
-    --paper:#0f1310;
-    --card:#181d19;
-    --ink:#e7ece7;
-    --muted:#8b968e;
-    --line:#2a322b;
-    --accent:#4fd897;
-    --accent-soft:#163625;
-    --risk:#ff7d70;
-    --risk-soft:#3a201d;
-    --bull-fur:#e08a4f;
-    --bull-fur-dark:#c06a35;
-    --bull-cream:#f4e6d0;
-  }
-
-  body{
-    background:var(--paper);
-    color:var(--ink);
-    font-family:var(--sans);
-    line-height:1.5;
-  }
-  .wrap{
-    max-width:760px;
-    margin:0 auto;
-    padding:0 24px;
-  }
-  section{ padding-block:64px; }
-  h1,h2,h3{ text-wrap:balance; margin:0; }
-  p{ margin:0; }
-  .eyebrow{
-    font-family:var(--mono);
-    font-size:0.75rem;
-    letter-spacing:0.12em;
-    text-transform:uppercase;
-    color:var(--accent);
-  }
-
-  /* ---- nav ---- */
-  nav{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding-block:20px;
-    flex-wrap:wrap;
-    gap:10px;
-  }
-  .wordmark{
-    font-family:var(--mono);
-    font-weight:700;
-    font-size:1.15rem;
-    letter-spacing:0.02em;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    color:inherit;
-  }
-  a.wordmark:hover{ opacity:0.85; }
-  .wordmark .dot{
-    width:8px; height:8px; border-radius:50%;
-    background:var(--accent);
-  }
-  nav .nav-links{
-    display:flex;
-    align-items:center;
-    gap:18px;
-  }
-  nav a.nav-play{
-    font-family:var(--mono);
-    font-weight:600;
-    font-size:0.8rem;
-    color:var(--accent);
-    text-decoration:none;
-    letter-spacing:0.01em;
-    background:var(--accent-soft);
-    padding:8px 14px;
-    border-radius:8px;
-    white-space:nowrap;
-  }
-  nav a.nav-play:hover{ background:var(--accent); color:#08130d; }
-
-  /* ---- nav dropdown menu ---- */
-  .nav-menu{ position:relative; }
-  .nav-menu-btn{
-    font-family:var(--mono); font-size:0.82rem; font-weight:600; color:var(--muted);
-    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px;
-    cursor:pointer; display:inline-flex; align-items:center; gap:5px;
-  }
-  .nav-menu-btn:hover{ color:var(--ink); border-color:var(--accent); }
-  .nav-menu-caret{ font-size:0.7rem; transition:transform 0.15s ease; }
-  .nav-menu-btn[aria-expanded="true"] .nav-menu-caret{ transform:rotate(180deg); }
-  .nav-menu-list{
-    position:absolute; top:calc(100% + 8px); right:0; min-width:170px;
-    background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:8px; display:flex; flex-direction:column; gap:2px; z-index:20;
-    box-shadow:0 12px 28px rgba(0,0,0,0.18);
-  }
-  .nav-menu-list a{
-    font-family:var(--sans); font-size:0.88rem; color:var(--ink); text-decoration:none;
-    padding:8px 10px; border-radius:7px;
-  }
-  .nav-menu-list a:hover{ background:var(--accent-soft); color:var(--accent); }
-
-  /* ---- hero ---- */
-  .hero{ padding-block:56px 40px; }
-  .hero h1{
-    font-size:clamp(2.1rem, 5vw, 3.1rem);
-    font-weight:700;
-    letter-spacing:-0.01em;
-    max-width:15ch;
-  }
-  .hero h1 em{
-    font-style:normal;
-    color:var(--accent);
-  }
-  .hero p.lede{
-    margin-top:18px;
-    font-size:1.1rem;
-    color:var(--muted);
-    max-width:52ch;
-  }
-  .cta-row{
-    margin-top:28px;
-    display:flex;
-    flex-wrap:wrap;
-    gap:12px;
-    align-items:center;
-  }
-  .btn{
-    font-family:var(--sans);
-    font-weight:600;
-    font-size:0.95rem;
-    padding:13px 22px;
-    border-radius:10px;
-    text-decoration:none;
-    display:inline-block;
-  }
-  .btn-primary{
-    background:var(--accent);
-    color:#08130d;
-  }
-  .btn-ghost{
-    color:var(--ink);
-    border:1px solid var(--line);
-  }
-  .cta-note{
-    font-family:var(--mono);
-    font-size:0.78rem;
-    color:var(--muted);
-  }
-
-  /* ---- pulse chart ---- */
-  .pulse-card{
-    margin-top:44px;
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:16px;
-    padding:22px 20px 16px;
-  }
+  /* ---- page-local components (not in the shared theme) ---- */
+  .cta-row{ margin-top:28px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .pulse-card{ margin-top:40px; background:var(--card); border:1px solid var(--line); border-radius:3px; padding:22px 20px 16px; }
   .pulse-card svg{ width:100%; height:auto; display:block; }
-  .pulse-caption{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    margin-top:10px;
-    font-family:var(--mono);
-    font-size:0.72rem;
-    color:var(--muted);
-  }
+  .pulse-caption{ display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; font-family:var(--mono); font-size:0.72rem; color:var(--muted); flex-wrap:wrap; gap:6px; }
   .pulse-caption b{ color:var(--ink); }
 
-  /* ---- how it works ---- */
-  .steps{
-    margin-top:34px;
-    display:flex;
-    flex-direction:column;
-  }
-  .step{
-    display:grid;
-    grid-template-columns:44px 1fr;
-    gap:18px;
-    padding-block:20px;
-    border-top:1px solid var(--line);
-  }
+  .pattern-grid{ margin-top:28px; display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .pattern-card{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:16px 18px 14px; }
+  .pattern-card svg{ width:100%; height:auto; display:block; }
+  .pattern-card h3{ font-size:0.92rem; font-weight:600; margin-top:12px; }
+  .pattern-card p{ margin-top:4px; font-size:0.83rem; color:var(--muted); }
+
+  .steps{ margin-top:34px; display:flex; flex-direction:column; }
+  .step{ display:grid; grid-template-columns:44px 1fr; gap:18px; padding-block:20px; border-top:1px solid var(--line); }
   .step:last-child{ border-bottom:1px solid var(--line); }
-  .step-num{
-    font-family:var(--mono);
-    font-size:0.85rem;
-    color:var(--accent);
-    padding-top:2px;
-  }
+  .step-num{ font-family:var(--mono); font-size:0.85rem; color:var(--accent); padding-top:2px; }
   .step h3{ font-size:1.05rem; font-weight:600; }
   .step p{ margin-top:6px; color:var(--muted); font-size:0.95rem; }
 
-  /* ---- discipline / proof ---- */
-  .proof{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:16px;
-    padding:28px 26px;
-    margin-top:28px;
-  }
-  .proof-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-    margin-top:20px;
-  }
-  .proof-tile{
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:16px 18px;
-  }
-  .proof-tile .label{
-    font-family:var(--mono);
-    font-size:0.7rem;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color:var(--muted);
-  }
-  .proof-tile .value{
-    font-family:var(--mono);
-    font-size:1.4rem;
-    font-weight:600;
-    margin-top:4px;
-    font-variant-numeric:tabular-nums;
-  }
+  .proof{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:28px 26px; margin-top:28px; }
+  .proof-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px; }
+  .proof-tile{ border:1px solid var(--line); border-radius:3px; padding:16px 18px; }
+  .proof-tile .label{ font-family:var(--mono); font-size:0.7rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+  .proof-tile .value{ font-family:var(--mono); font-size:1.4rem; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }
   .proof-tile .value.risk{ color:var(--risk); }
-  .proof-tile .sub{
-    margin-top:4px;
-    font-size:0.82rem;
-    color:var(--muted);
-  }
+  .proof-tile .sub{ margin-top:4px; font-size:0.82rem; color:var(--muted); }
 
-  /* ---- plays of the week ---- */
-  .plays-note{
-    margin-top:12px;
-    padding:10px 14px;
-    border:1px dashed var(--line);
-    border-radius:10px;
-    font-family:var(--mono);
-    font-size:0.78rem;
-    color:var(--muted);
-  }
-  .plays-grid{
-    margin-top:20px;
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:16px;
-  }
-  .play-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:18px 18px 16px;
-  }
-  .play-card-top{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    font-family:var(--mono);
-  }
+  .plays-note{ margin-top:12px; padding:10px 14px; border:1px dashed var(--line); border-radius:3px; font-family:var(--mono); font-size:0.78rem; color:var(--muted); }
+  .plays-grid{ margin-top:20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .play-card{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:18px 18px 16px; }
+  .play-card-top{ display:flex; align-items:baseline; justify-content:space-between; font-family:var(--mono); }
   .play-card-top .ticker{ font-weight:700; font-size:1rem; }
   .play-card-top .date{ font-size:0.72rem; color:var(--muted); }
-  .play-card-rows{
-    margin-top:12px;
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-    font-family:var(--mono);
-    font-size:0.78rem;
-    color:var(--muted);
-  }
+  .play-card-rows{ margin-top:12px; display:flex; flex-direction:column; gap:4px; font-family:var(--mono); font-size:0.78rem; color:var(--muted); }
   .play-card-rows b{ color:var(--ink); }
-  .play-card-bottom{
-    margin-top:12px;
-    padding-top:10px;
-    border-top:1px solid var(--line);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    font-family:var(--mono);
-    font-size:0.8rem;
-  }
-  .play-outcome{
-    font-weight:700;
-    padding:3px 9px;
-    border-radius:999px;
-    background:var(--line);
-    color:var(--muted);
-  }
-  @media (max-width:760px){
-    .plays-grid{ grid-template-columns:1fr; }
-  }
+  .play-card-bottom{ margin-top:12px; padding-top:10px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; font-family:var(--mono); font-size:0.8rem; }
+  .play-outcome{ font-weight:700; padding:3px 9px; border-radius:3px; background:var(--line); color:var(--muted); }
+  @media (max-width:760px){ .plays-grid{ grid-template-columns:1fr; } }
 
-  /* ---- risk & disclosures ---- */
-  .disclosures{
-    margin-top:20px;
-    background:var(--risk-soft);
-    border-left:3px solid var(--risk);
-    border-radius:4px 14px 14px 4px;
-    padding:20px 22px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-  }
-  .disclosure-item{
-    font-size:0.87rem;
-    color:var(--ink);
-    line-height:1.55;
-  }
+  .disclosures{ margin-top:20px; background:var(--risk-soft); border-left:3px solid var(--risk); border-radius:2px 3px 3px 2px; padding:20px 22px; display:flex; flex-direction:column; gap:14px; }
+  .disclosure-item{ font-size:0.87rem; color:var(--ink); line-height:1.55; }
   .disclosure-item b{ color:var(--ink); }
 
-  /* ---- trust ---- */
-  .trust-list{
-    margin-top:24px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-  }
-  .trust-item{
-    display:flex;
-    gap:14px;
-    align-items:flex-start;
-  }
-  .check{
-    flex:none;
-    width:22px; height:22px;
-    border-radius:6px;
-    background:var(--accent-soft);
-    color:var(--accent);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:0.8rem;
-    margin-top:2px;
-  }
+  .trust-list{ margin-top:24px; display:flex; flex-direction:column; gap:14px; }
+  .trust-item{ display:flex; gap:14px; align-items:flex-start; }
+  .check{ flex:none; width:22px; height:22px; border-radius:2px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:0.8rem; margin-top:2px; }
   .trust-item p{ color:var(--muted); font-size:0.95rem; }
   .trust-item p b{ color:var(--ink); font-weight:600; }
 
-  /* ---- final cta ---- */
-  .final{
-    text-align:left;
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:18px;
-    padding:40px 32px;
-  }
-  .final h2{ font-size:1.7rem; max-width:20ch; }
-  .final p{ margin-top:10px; color:var(--muted); max-width:48ch; }
-
-  footer{
-    padding-block:32px 60px;
-    font-family:var(--mono);
-    font-size:0.72rem;
-    color:var(--muted);
-    border-top:1px solid var(--line);
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-  }
-
-  /* ---- patterns ---- */
-  .pattern-grid{
-    margin-top:28px;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px;
-  }
-  .pattern-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:16px 18px 14px;
-  }
-  .pattern-card svg{ width:100%; height:auto; display:block; }
-  .pattern-card h3{
-    font-size:0.92rem;
-    font-weight:600;
-    margin-top:12px;
-  }
-  .pattern-card p{
-    margin-top:4px;
-    font-size:0.83rem;
-    color:var(--muted);
-  }
-
-  /* ---- why zelos ---- */
-  .why-card{
-    margin-top:24px;
-  }
-
-  /* ---- roadmap ---- */
-  .roadmap-list{
-    margin-top:24px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-  }
-  .roadmap-item{
-    display:flex;
-    gap:14px;
-    align-items:flex-start;
-  }
-  .roadmap-item .lock{
-    flex:none;
-    width:22px; height:22px;
-    border-radius:6px;
-    background:var(--line);
-    color:var(--muted);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:0.75rem;
-    margin-top:2px;
-  }
-  .roadmap-item p{ color:var(--muted); font-size:0.95rem; }
-  .roadmap-item p b{ color:var(--ink); font-weight:600; }
-  .roadmap-note{
-    margin-top:20px;
-    padding:14px 16px;
-    border:1px solid var(--line);
-    border-radius:10px;
-    font-size:0.88rem;
-    color:var(--muted);
-  }
-
-  /* ---- floating eye ---- */
-  .floating-eye{
-    position:absolute;
-    width:56px;
-    height:56px;
-    z-index:500;
-    pointer-events:none;
-    filter:drop-shadow(0 4px 10px rgba(0,0,0,0.28));
-    opacity:0;
-    transition:opacity 0.6s ease;
-    cursor:pointer;
-  }
-  .floating-eye.is-visible{ opacity:1; }
-  .floating-eye svg{ width:100%; height:100%; display:block; transform-origin:50% 50%; }
-  .floating-eye.is-blinking svg{ animation:zelosBlink 0.36s ease; }
-  @keyframes zelosBlink{
-    0%{ transform:scaleY(1); }
-    45%{ transform:scaleY(0.06); }
-    60%{ transform:scaleY(0.06); }
-    100%{ transform:scaleY(1); }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .floating-eye.is-blinking svg{ animation:none; }
-  }
-  blockquote{
-    margin:0;
-    padding:20px 22px;
-    background:var(--accent-soft);
-    border-left:3px solid var(--accent);
-    border-radius:4px 12px 12px 4px;
-    font-size:1.05rem;
-    font-style:italic;
-    color:var(--ink);
-  }
-  blockquote cite{
-    display:block;
-    margin-top:12px;
-    font-style:normal;
-    font-family:var(--mono);
-    font-size:0.75rem;
-    color:var(--accent);
-    letter-spacing:0.02em;
-  }
-  .why-body p{ color:var(--muted); font-size:0.95rem; }
-  .why-body p + p{ margin-top:12px; }
-  .why-body b{ color:var(--ink); }
-
-  /* ---- get started (setup + buy) ---- */
-  .start-grid{
-    margin-top:28px;
-    display:grid;
-    grid-template-columns:1.15fr 1fr;
-    gap:20px;
-    align-items:start;
-  }
-  .start-steps{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:16px;
-    padding:8px 24px;
-  }
-  .start-step{
-    display:grid;
-    grid-template-columns:28px 1fr;
-    gap:14px;
-    padding-block:16px;
-    border-top:1px solid var(--line);
-  }
+  .start-grid{ margin-top:28px; display:grid; grid-template-columns:1.15fr 1fr; gap:20px; align-items:start; }
+  .start-steps{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:8px 24px; }
+  .start-step{ display:grid; grid-template-columns:28px 1fr; gap:14px; padding-block:16px; border-top:1px solid var(--line); }
   .start-step:first-child{ border-top:none; }
-  .start-step .n{
-    font-family:var(--mono);
-    font-weight:700;
-    color:var(--accent);
-    font-size:0.9rem;
-    padding-top:1px;
-  }
+  .start-step .n{ font-family:var(--mono); font-weight:700; color:var(--accent); font-size:0.9rem; padding-top:1px; }
   .start-step h3{ font-size:0.95rem; font-weight:600; }
   .start-step p{ margin-top:3px; color:var(--muted); font-size:0.86rem; }
-  .start-more{
-    display:block;
-    margin-top:2px;
-    padding-block:14px;
-    font-family:var(--mono);
-    font-size:0.8rem;
-    color:var(--muted);
-    text-decoration:none;
-    border-top:1px solid var(--line);
-  }
+  .start-more{ display:block; margin-top:2px; padding-block:14px; font-family:var(--mono); font-size:0.8rem; color:var(--muted); text-decoration:none; border-top:1px solid var(--line); }
   .start-more:hover{ color:var(--accent); }
 
-  .buy-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:16px;
-    padding:26px 24px;
-    position:sticky;
-    top:20px;
-  }
-  .buy-price{
-    display:flex;
-    align-items:baseline;
-    gap:6px;
-    margin-top:10px;
-  }
-  .buy-price .amount{
-    font-family:var(--mono);
-    font-weight:700;
-    font-size:2.1rem;
-  }
-  .buy-price .period{
-    font-family:var(--mono);
-    color:var(--muted);
-    font-size:0.9rem;
-  }
-  .buy-includes{
-    margin-top:16px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .buy-includes div{
-    display:flex;
-    gap:8px;
-    font-size:0.85rem;
-    color:var(--muted);
-    align-items:flex-start;
-  }
-  .buy-includes div::before{
-    content:"\2713";
-    color:var(--accent);
-    font-weight:700;
-    flex:none;
-  }
-  .btn-buy{
-    display:block;
-    width:100%;
-    text-align:center;
-    margin-top:20px;
-    font-family:var(--sans);
-    font-weight:700;
-    font-size:1rem;
-    padding:15px 18px;
-    border-radius:10px;
-    background:var(--accent);
-    color:#08130d;
-    text-decoration:none;
-    box-sizing:border-box;
-  }
-  .buy-fine{
-    margin-top:12px;
-    font-family:var(--mono);
-    font-size:0.72rem;
-    color:var(--muted);
-    text-align:center;
-  }
+  .buy-card{ background:var(--card); border:1px solid var(--line); border-radius:3px; padding:26px 24px; position:sticky; top:84px; }
+  .buy-price{ display:flex; align-items:baseline; gap:6px; margin-top:10px; }
+  .buy-price .amount{ font-family:var(--mono); font-weight:700; font-size:2.1rem; }
+  .buy-price .period{ font-family:var(--mono); color:var(--muted); font-size:0.9rem; }
+  .buy-includes{ margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+  .buy-includes div{ display:flex; gap:8px; font-size:0.85rem; color:var(--muted); align-items:flex-start; }
+  .buy-includes div::before{ content:"\2713"; color:var(--accent); font-weight:700; flex:none; }
+  .btn-buy{ display:block; width:100%; text-align:center; margin-top:20px; font-family:var(--sans); font-weight:700; font-size:1rem; padding:15px 18px; border-radius:3px; background:var(--accent); color:var(--accent-ink); text-decoration:none; box-sizing:border-box; }
+  .buy-fine{ margin-top:12px; font-family:var(--mono); font-size:0.72rem; color:var(--muted); text-align:center; }
   .buy-fine a{ color:var(--muted); }
+  @media (max-width:640px){ .start-grid{ grid-template-columns:1fr; } .buy-card{ position:static; } }
 
-  @media (max-width:640px){
-    .start-grid{ grid-template-columns:1fr; }
-    .buy-card{ position:static; }
-  }
-
-  /* ---- faq ---- */
-  .faq{ margin-top:28px; }
-  .faq-item{
-    padding-block:20px;
-    border-top:1px solid var(--line);
-  }
+  .faq-item{ padding-block:20px; border-top:1px solid var(--line); }
   .faq-item:last-child{ border-bottom:1px solid var(--line); }
   .faq-item h3{ font-size:1rem; font-weight:600; }
   .faq-item p{ margin-top:6px; color:var(--muted); font-size:0.92rem; max-width:58ch; }
@@ -677,8 +123,8 @@
   @media (max-width:520px){
     .proof-grid{ grid-template-columns:1fr; }
     .pattern-grid{ grid-template-columns:1fr; }
-    nav a.nav-play{ padding:7px 12px; }
   }
+
 </style>
 <script type="application/ld+json">
 {
@@ -690,320 +136,209 @@
   "description": "Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.",
   "applicationCategory": "FinanceApplication",
   "operatingSystem": "Any",
-  "offers": {
-    "@type": "Offer",
-    "price": "20",
-    "priceCurrency": "USD",
-    "url": "https://agentictrading.gumroad.com/l/AgenticTrading?wanted=true",
-    "availability": "https://schema.org/InStock"
-  }
+  "offers": { "@type": "Offer", "price": "20", "priceCurrency": "USD", "url": "https://agentictrading.gumroad.com/l/AgenticTrading?wanted=true", "availability": "https://schema.org/InStock" }
 }
 </script>
 </head>
-<body>
-<div class="wrap">
+<body class="zt zt-body">
 
-  <nav>
-    <a class="wordmark" href="index.html"><span class="dot"></span>Zelos</a>
-    <div class="nav-links">
-      <div class="nav-menu">
-        <button class="nav-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">Menu <span class="nav-menu-caret">&#9662;</span></button>
-        <div class="nav-menu-list" hidden>
-          <a href="index.html">Home</a>
-          <a href="dashboard.html">Dashboard</a>
-          <a href="my-zelos.html">My Zelos</a>
-          <a href="arsenal.html">Arsenal</a>
-          <a href="daily-market.html">Daily market</a>
-          <a href="alert-history.html">Alert history</a>
-          <a href="breakout-rider.html">Breakout Rider</a>
-          <a href="options-scanner.html">Options Scanner</a>
-          <a href="setup.html">Setup guide</a>
-          <a href="demo.html">Try the demo</a>
-          <a href="arcade.html">Arcade</a>
-          <a href="leaderboard.html">Leaderboard</a>
-          <a href="terms.html">Terms</a>
+<nav class="site-nav">
+  <div class="shell">
+    <a class="nav-brand" href="index.html"><span class="mark-dot"></span>Zelos</a>
+
+    <div class="nav-primary" id="navPrimary">
+      <a class="nav-link" href="index.html">Home</a>
+      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <hr>
+          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
         </div>
       </div>
-      <a class="nav-play" href="arcade.html">Play Zelos games &mdash; free</a>
-    </div>
-  </nav>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
+        </div>
+      </div>
 
-  <section class="hero">
+      <a class="nav-link" href="arcade.html">Arcade</a>
+      <a class="nav-link" href="alert-history.html">Alerts</a>
+      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="index.html#why-zelos">About</a>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-auth" id="navAuth"></div>
+    </div>
+
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+      <div class="nav-mobile-label">Strategies</div>
+      <a href="swing-trader.html">Swing Trader</a>
+      <a href="breakout-rider.html">Breakout Rider</a>
+      <a href="options-scanner.html">Options Scanner</a>
+      <a href="arsenal.html">Full Arsenal</a>
+      <div class="nav-mobile-label">Market</div>
+      <a href="market-3d.html">Market 3D</a>
+      <a href="live-chart.html">Live Chart</a>
+      <a href="daily-market.html">Daily Market</a>
+      <a href="alert-history.html">Alert History</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="arcade.html">Arcade</a>
+      <a href="alert-history.html">Alerts</a>
+      <a href="ai-knowledge-catalog.html">Knowledge</a>
+      <a href="index.html#why-zelos">About</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="shell-narrow">
     <div class="eyebrow">Zelos &middot; Swing Trader &middot; a published alert, not a broker</div>
-    <h1>Swing Trader, by <em>Zelos.</em></h1>
-    <p class="lede">Swing Trader screens the market every session for one specific pattern &mdash; a healthy stock pausing after a run, not one still chasing its high &mdash; and only speaks up when the setup earns it. It publishes the same alert, on the same schedule, to every subscriber. It's not tied to your account, doesn't know your balance, and never places a trade for you &mdash; what you do with the information is entirely up to you.</p>
+    <h1 style="font-size:clamp(2.1rem, 5vw, 3.1rem); margin-top:10px; max-width:15ch;">Swing Trader, by <em>Zelos.</em></h1>
+    <p class="lede" style="margin-top:18px; font-size:1.1rem; color:var(--ink-2); max-width:56ch;">Swing Trader screens the market every session for one specific pattern &mdash; a healthy stock pausing after a run, not one still chasing its high &mdash; and only speaks up when the setup earns it. It publishes the same alert, on the same schedule, to every subscriber. It's not tied to your account, doesn't know your balance, and never places a trade for you &mdash; what you do with the information is entirely up to you.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="#access">Get started</a>
-      <a class="btn btn-ghost" href="#how">See how it decides</a>
+      <a class="btn" href="#how">See how it decides</a>
     </div>
-    <div class="cta-note">Live alert feed &middot; not a backtest, not a demo</div>
+    <div class="cta-note" style="margin-top:16px;">Live alert feed &middot; not a backtest, not a demo</div>
 
     <div class="pulse-card">
-      <svg viewBox="0 0 680 180" role="img" aria-labelledby="pulseTitle">
-        <title id="pulseTitle">Candlestick chart of a healthy uptrend that pulls back once, finds support, and breaks out again &mdash; entry, stop, and target marked</title>
-        <line x1="32.1" y1="126.8" x2="32.1" y2="144.0" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="20.9" y="129.7" width="22.5" height="11.5" fill="var(--accent)"/>
-        <line x1="68.3" y1="115.4" x2="68.3" y2="132.5" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="57.1" y="118.2" width="22.5" height="11.5" fill="var(--accent)"/>
-        <line x1="104.6" y1="101.0" x2="104.6" y2="121.1" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="93.3" y="103.9" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="140.8" y1="86.7" x2="140.8" y2="106.8" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="129.5" y="89.6" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="177.0" y1="78.1" x2="177.0" y2="95.3" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="165.8" y="81.0" width="22.5" height="8.6" fill="var(--accent)"/>
-        <line x1="213.2" y1="78.1" x2="213.2" y2="92.5" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="202.0" y="81.0" width="22.5" height="5.7" fill="var(--risk)"/>
-        <line x1="249.4" y1="83.9" x2="249.4" y2="103.9" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="238.2" y="86.7" width="22.5" height="14.3" fill="var(--risk)"/>
-        <line x1="285.7" y1="98.2" x2="285.7" y2="126.8" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="274.4" y="101.0" width="22.5" height="14.3" fill="var(--risk)"/>
-        <line x1="321.9" y1="106.8" x2="321.9" y2="118.2" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="310.7" y="109.6" width="22.5" height="5.7" fill="var(--accent)"/>
-        <line x1="358.1" y1="103.9" x2="358.1" y2="118.2" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="346.9" y="109.6" width="22.5" height="2.9" fill="var(--risk)"/>
-        <line x1="394.3" y1="101.0" x2="394.3" y2="115.4" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="383.1" y="103.9" width="22.5" height="8.6" fill="var(--accent)"/>
-        <line x1="430.6" y1="86.7" x2="430.6" y2="106.8" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="419.3" y="89.6" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="466.8" y1="61.0" x2="466.8" y2="92.5" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="455.5" y="66.7" width="22.5" height="22.9" fill="var(--accent)"/>
-        <line x1="503.0" y1="46.6" x2="503.0" y2="69.5" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="491.8" y="52.4" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="539.2" y1="32.3" x2="539.2" y2="55.2" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="528.0" y="38.0" width="22.5" height="14.3" fill="var(--accent)"/>
-        <line x1="575.4" y1="35.2" x2="575.4" y2="49.5" stroke="var(--risk)" stroke-width="1.5"/>
-        <rect x="564.2" y="38.0" width="22.5" height="5.7" fill="var(--risk)"/>
-        <line x1="611.7" y1="26.6" x2="611.7" y2="46.6" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="600.4" y="32.3" width="22.5" height="11.5" fill="var(--accent)"/>
-        <line x1="647.9" y1="18.0" x2="647.9" y2="35.2" stroke="var(--accent)" stroke-width="1.5"/>
-        <rect x="636.7" y="20.9" width="22.5" height="11.5" fill="var(--accent)"/>
-        <!-- entry -->
-        <circle cx="321.9" cy="109.6" r="5" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>
-        <text x="321.9" y="160" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)">ENTRY</text>
-        <!-- stop -->
-        <line x1="150" y1="132.5" x2="680" y2="132.5" stroke="var(--risk)" stroke-width="1" stroke-dasharray="4 4"/>
-        <text x="628" y="146" font-family="var(--mono)" font-size="10" fill="var(--risk)">STOP</text>
-        <!-- target -->
-        <circle cx="539.2" cy="38" r="5" fill="var(--accent)"/>
-        <text x="539.2" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">TARGET</text>
-      </svg>
+      <svg viewBox="0 0 680 260" role="img" aria-labelledby="heroTitle"><title id="heroTitle">A full swing trade: a run higher, a pullback that holds, then a breakout to a new high</title><line x1="14" y1="85.3" x2="666" y2="85.3" stroke="var(--border-soft)" stroke-width="1"/><line x1="14" y1="156.7" x2="666" y2="156.7" stroke="var(--border-soft)" stroke-width="1"/><line x1="14" y1="98.5" x2="666" y2="98.5" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/><text x="20" y="92.5" font-family="var(--mono)" font-size="9.5" fill="var(--muted)">reclaims the prior high</text><line x1="23.6" y1="201.4" x2="23.6" y2="219.3" stroke="var(--bull)" stroke-width="1.5"/><rect x="18.2" y="206.5" width="10.7" height="6.5" fill="var(--bull)"/><line x1="42.8" y1="191.1" x2="42.8" y2="213.0" stroke="var(--bull)" stroke-width="1.5"/><rect x="37.4" y="196.5" width="10.7" height="10.0" fill="var(--bull)"/><line x1="61.9" y1="190.7" x2="61.9" y2="202.3" stroke="var(--bull)" stroke-width="1.5"/><rect x="56.6" y="196.0" width="10.7" height="2.2" fill="var(--bull)"/><line x1="81.1" y1="189.1" x2="81.1" y2="199.7" stroke="var(--bull)" stroke-width="1.5"/><rect x="75.7" y="192.1" width="10.7" height="3.9" fill="var(--bull)"/><line x1="100.3" y1="188.1" x2="100.3" y2="197.3" stroke="var(--risk)" stroke-width="1.5"/><rect x="94.9" y="192.1" width="10.7" height="2.2" fill="var(--risk)"/><line x1="119.5" y1="177.6" x2="119.5" y2="197.3" stroke="var(--bull)" stroke-width="1.5"/><rect x="114.1" y="181.3" width="10.7" height="12.8" fill="var(--bull)"/><line x1="138.6" y1="167.6" x2="138.6" y2="186.8" stroke="var(--bull)" stroke-width="1.5"/><rect x="133.3" y="171.6" width="10.7" height="9.8" fill="var(--bull)"/><line x1="157.8" y1="146.3" x2="157.8" y2="175.9" stroke="var(--bull)" stroke-width="1.5"/><rect x="152.5" y="150.6" width="10.7" height="21.0" fill="var(--bull)"/><line x1="177.0" y1="139.6" x2="177.0" y2="154.5" stroke="var(--bull)" stroke-width="1.5"/><rect x="171.6" y="143.3" width="10.7" height="7.3" fill="var(--bull)"/><line x1="196.2" y1="121.6" x2="196.2" y2="148.8" stroke="var(--bull)" stroke-width="1.5"/><rect x="190.8" y="128.4" width="10.7" height="14.9" fill="var(--bull)"/><line x1="215.4" y1="114.9" x2="215.4" y2="131.9" stroke="var(--bull)" stroke-width="1.5"/><rect x="210.0" y="120.2" width="10.7" height="8.2" fill="var(--bull)"/><line x1="234.5" y1="110.7" x2="234.5" y2="123.7" stroke="var(--bull)" stroke-width="1.5"/><rect x="229.2" y="116.6" width="10.7" height="3.7" fill="var(--bull)"/><line x1="253.7" y1="100.1" x2="253.7" y2="123.5" stroke="var(--bull)" stroke-width="1.5"/><rect x="248.3" y="104.5" width="10.7" height="12.1" fill="var(--bull)"/><line x1="272.9" y1="99.0" x2="272.9" y2="114.1" stroke="var(--risk)" stroke-width="1.5"/><rect x="267.5" y="104.5" width="10.7" height="4.5" fill="var(--risk)"/><line x1="292.1" y1="103.3" x2="292.1" y2="133.9" stroke="var(--risk)" stroke-width="1.5"/><rect x="286.7" y="109.0" width="10.7" height="18.6" fill="var(--risk)"/><line x1="311.2" y1="121.5" x2="311.2" y2="143.8" stroke="var(--risk)" stroke-width="1.5"/><rect x="305.9" y="127.6" width="10.7" height="12.5" fill="var(--risk)"/><line x1="330.4" y1="137.1" x2="330.4" y2="150.5" stroke="var(--risk)" stroke-width="1.5"/><rect x="325.0" y="140.0" width="10.7" height="6.3" fill="var(--risk)"/><line x1="349.6" y1="142.5" x2="349.6" y2="163.2" stroke="var(--risk)" stroke-width="1.5"/><rect x="344.2" y="146.4" width="10.7" height="13.1" fill="var(--risk)"/><line x1="368.8" y1="145.6" x2="368.8" y2="166.0" stroke="var(--bull)" stroke-width="1.5"/><rect x="363.4" y="152.4" width="10.7" height="7.2" fill="var(--bull)"/><line x1="387.9" y1="126.3" x2="387.9" y2="157.9" stroke="var(--bull)" stroke-width="1.5"/><rect x="382.6" y="130.4" width="10.7" height="22.0" fill="var(--bull)"/><line x1="407.1" y1="121.2" x2="407.1" y2="137.1" stroke="var(--bull)" stroke-width="1.5"/><rect x="401.7" y="125.6" width="10.7" height="4.8" fill="var(--bull)"/><line x1="426.3" y1="106.1" x2="426.3" y2="129.5" stroke="var(--bull)" stroke-width="1.5"/><rect x="420.9" y="110.8" width="10.7" height="14.8" fill="var(--bull)"/><line x1="445.5" y1="90.2" x2="445.5" y2="116.0" stroke="var(--bull)" stroke-width="1.5"/><rect x="440.1" y="94.0" width="10.7" height="16.8" fill="var(--bull)"/><line x1="464.6" y1="78.0" x2="464.6" y2="99.3" stroke="var(--bull)" stroke-width="1.5"/><rect x="459.3" y="81.9" width="10.7" height="12.1" fill="var(--bull)"/><line x1="483.8" y1="74.0" x2="483.8" y2="86.4" stroke="var(--bull)" stroke-width="1.5"/><rect x="478.5" y="80.6" width="10.7" height="2.2" fill="var(--bull)"/><line x1="503.0" y1="61.0" x2="503.0" y2="87.6" stroke="var(--bull)" stroke-width="1.5"/><rect x="497.6" y="64.7" width="10.7" height="15.9" fill="var(--bull)"/><line x1="522.2" y1="51.0" x2="522.2" y2="67.9" stroke="var(--bull)" stroke-width="1.5"/><rect x="516.8" y="55.9" width="10.7" height="8.7" fill="var(--bull)"/><line x1="541.4" y1="46.9" x2="541.4" y2="59.2" stroke="var(--bull)" stroke-width="1.5"/><rect x="536.0" y="49.9" width="10.7" height="6.0" fill="var(--bull)"/><line x1="560.5" y1="44.5" x2="560.5" y2="58.3" stroke="var(--risk)" stroke-width="1.5"/><rect x="555.2" y="49.9" width="10.7" height="2.2" fill="var(--risk)"/><line x1="579.7" y1="42.3" x2="579.7" y2="55.2" stroke="var(--bull)" stroke-width="1.5"/><rect x="574.3" y="46.8" width="10.7" height="5.3" fill="var(--bull)"/><line x1="598.9" y1="42.2" x2="598.9" y2="53.8" stroke="var(--bull)" stroke-width="1.5"/><rect x="593.5" y="46.7" width="10.7" height="2.2" fill="var(--bull)"/><line x1="618.1" y1="38.4" x2="618.1" y2="53.5" stroke="var(--bull)" stroke-width="1.5"/><rect x="612.7" y="43.4" width="10.7" height="3.3" fill="var(--bull)"/><line x1="637.2" y1="32.4" x2="637.2" y2="46.2" stroke="var(--bull)" stroke-width="1.5"/><rect x="631.9" y="38.8" width="10.7" height="4.6" fill="var(--bull)"/><line x1="656.4" y1="33.0" x2="656.4" y2="46.9" stroke="var(--risk)" stroke-width="1.5"/><rect x="651.0" y="38.8" width="10.7" height="2.4" fill="var(--risk)"/><circle cx="349.6" cy="159.5" r="5" fill="var(--card)" stroke="var(--bull)" stroke-width="2.4"/><text x="349.6" y="181.5" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="600" fill="var(--bull)" letter-spacing="0.05em">ENTRY</text><text x="349.6" y="195.5" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--muted)">pullback, after the run</text><circle cx="637.2" cy="38.8" r="5" fill="var(--card)" stroke="var(--bull)" stroke-width="2.4"/><text x="637.2" y="22.0" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="600" fill="var(--bull)" letter-spacing="0.05em">TARGET</text></svg>
       <div class="pulse-caption">
         <span>Pullback into support, then a breakout past the prior high</span>
         <span><b>R:R 3.1 : 1</b> on this pattern</span>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
+<section class="section">
+  <div class="shell-narrow">
     <div class="eyebrow">What it's actually looking for</div>
     <h2 style="font-size:1.7rem; margin-top:8px;">Four shapes on a chart. Nothing else counts.</h2>
-    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">Every candidate gets sorted into one of these &mdash; or thrown out. If a stock's chart doesn't look like one of these, it doesn't matter how exciting the ticker is.</p>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">Every candidate gets sorted into one of these &mdash; or thrown out. If a stock's chart doesn't look like one of these, it doesn't matter how exciting the ticker is.</p>
     <div class="pattern-grid">
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,75 C40,68 60,60 75,50 C90,40 95,55 105,60 C115,65 130,50 150,38 C170,26 200,20 250,14" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="105" cy="60" r="4" fill="var(--accent)"/></svg>
+        <svg viewBox="0 0 260 90"><line x1="6" y1="43.5" x2="254" y2="43.5" stroke="var(--border-soft)" stroke-width="0.75"/><line x1="10.1" y1="68.1" x2="10.1" y2="73.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="7.9" y="69.4" width="4.5" height="2.5" fill="var(--bull)"/><line x1="18.4" y1="67.8" x2="18.4" y2="71.8" stroke="var(--risk)" stroke-width="0.9"/><rect x="16.1" y="69.4" width="4.5" height="1.0" fill="var(--risk)"/><line x1="26.7" y1="65.1" x2="26.7" y2="72.4" stroke="var(--bull)" stroke-width="0.9"/><rect x="24.4" y="66.2" width="4.5" height="4.2" fill="var(--bull)"/><line x1="34.9" y1="57.5" x2="34.9" y2="68.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="32.7" y="59.2" width="4.5" height="7.0" fill="var(--bull)"/><line x1="43.2" y1="55.8" x2="43.2" y2="61.4" stroke="var(--bull)" stroke-width="0.9"/><rect x="40.9" y="57.1" width="4.5" height="2.1" fill="var(--bull)"/><line x1="51.5" y1="51.1" x2="51.5" y2="58.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="49.2" y="53.1" width="4.5" height="4.0" fill="var(--bull)"/><line x1="59.7" y1="49.3" x2="59.7" y2="55.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="57.5" y="50.8" width="4.5" height="2.3" fill="var(--bull)"/><line x1="68.0" y1="46.1" x2="68.0" y2="52.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="65.7" y="48.0" width="4.5" height="2.8" fill="var(--bull)"/><line x1="76.3" y1="38.2" x2="76.3" y2="50.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="74.0" y="39.8" width="4.5" height="8.2" fill="var(--bull)"/><line x1="84.5" y1="33.9" x2="84.5" y2="41.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="82.3" y="35.7" width="4.5" height="4.1" fill="var(--bull)"/><line x1="92.8" y1="33.9" x2="92.8" y2="39.4" stroke="var(--risk)" stroke-width="0.9"/><rect x="90.5" y="35.7" width="4.5" height="1.6" fill="var(--risk)"/><line x1="101.1" y1="30.5" x2="101.1" y2="39.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="98.8" y="32.6" width="4.5" height="4.8" fill="var(--bull)"/><line x1="109.3" y1="30.8" x2="109.3" y2="34.0" stroke="var(--risk)" stroke-width="0.9"/><rect x="107.1" y="32.6" width="4.5" height="0.9" fill="var(--risk)"/><line x1="117.6" y1="28.6" x2="117.6" y2="34.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="115.3" y="30.0" width="4.5" height="2.9" fill="var(--bull)"/><line x1="125.9" y1="28.4" x2="125.9" y2="37.2" stroke="var(--risk)" stroke-width="0.9"/><rect x="123.6" y="30.0" width="4.5" height="5.9" fill="var(--risk)"/><line x1="134.1" y1="34.2" x2="134.1" y2="42.5" stroke="var(--risk)" stroke-width="0.9"/><rect x="131.9" y="35.9" width="4.5" height="4.8" fill="var(--risk)"/><line x1="142.4" y1="38.5" x2="142.4" y2="42.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="140.1" y="40.3" width="4.5" height="0.9" fill="var(--bull)"/><line x1="150.7" y1="38.7" x2="150.7" y2="48.1" stroke="var(--risk)" stroke-width="0.9"/><rect x="148.4" y="40.3" width="4.5" height="6.2" fill="var(--risk)"/><line x1="158.9" y1="44.5" x2="158.9" y2="49.2" stroke="var(--risk)" stroke-width="0.9"/><rect x="156.7" y="46.5" width="4.5" height="1.1" fill="var(--risk)"/><line x1="167.2" y1="37.1" x2="167.2" y2="49.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="164.9" y="38.6" width="4.5" height="9.0" fill="var(--bull)"/><line x1="175.5" y1="34.2" x2="175.5" y2="39.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="173.2" y="35.3" width="4.5" height="3.3" fill="var(--bull)"/><line x1="183.7" y1="33.4" x2="183.7" y2="37.6" stroke="var(--risk)" stroke-width="0.9"/><rect x="181.5" y="35.3" width="4.5" height="0.9" fill="var(--risk)"/><line x1="192.0" y1="33.1" x2="192.0" y2="36.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="189.7" y="34.9" width="4.5" height="0.9" fill="var(--bull)"/><line x1="200.3" y1="27.1" x2="200.3" y2="36.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="198.0" y="28.4" width="4.5" height="6.5" fill="var(--bull)"/><line x1="208.5" y1="22.3" x2="208.5" y2="30.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="206.3" y="24.5" width="4.5" height="3.9" fill="var(--bull)"/><line x1="216.8" y1="21.3" x2="216.8" y2="26.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="214.5" y="23.0" width="4.5" height="1.5" fill="var(--bull)"/><line x1="225.1" y1="16.2" x2="225.1" y2="24.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="222.8" y="17.6" width="4.5" height="5.4" fill="var(--bull)"/><line x1="233.3" y1="13.9" x2="233.3" y2="19.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="231.1" y="16.0" width="4.5" height="1.6" fill="var(--bull)"/><line x1="241.6" y1="13.0" x2="241.6" y2="17.4" stroke="var(--bull)" stroke-width="0.9"/><rect x="239.3" y="14.6" width="4.5" height="1.4" fill="var(--bull)"/><line x1="249.9" y1="10.5" x2="249.9" y2="16.8" stroke="var(--bull)" stroke-width="0.9"/><rect x="247.6" y="12.2" width="4.5" height="2.4" fill="var(--bull)"/><circle cx="158.9" cy="47.6" r="3" fill="var(--bull)"/></svg>
         <h3>Pullback in an uptrend</h3>
         <p>Climbing steadily, pauses, catches its breath near support.</p>
       </div>
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,78 C40,55 60,28 80,20 C95,24 105,32 115,30 C125,28 135,34 145,32 C155,30 165,36 175,34 C190,30 210,20 250,10" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="145" cy="32" r="4" fill="var(--accent)"/></svg>
+        <svg viewBox="0 0 260 90"><line x1="6" y1="43.5" x2="254" y2="43.5" stroke="var(--border-soft)" stroke-width="0.75"/><line x1="10.1" y1="75.4" x2="10.1" y2="80.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="7.9" y="76.7" width="4.5" height="2.7" fill="var(--bull)"/><line x1="18.4" y1="68.0" x2="18.4" y2="78.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="16.1" y="70.2" width="4.5" height="6.5" fill="var(--bull)"/><line x1="26.7" y1="56.6" x2="26.7" y2="72.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="24.4" y="57.9" width="4.5" height="12.3" fill="var(--bull)"/><line x1="34.9" y1="49.7" x2="34.9" y2="59.8" stroke="var(--bull)" stroke-width="0.9"/><rect x="32.7" y="51.7" width="4.5" height="6.2" fill="var(--bull)"/><line x1="43.2" y1="48.1" x2="43.2" y2="53.6" stroke="var(--bull)" stroke-width="0.9"/><rect x="40.9" y="50.2" width="4.5" height="1.5" fill="var(--bull)"/><line x1="51.5" y1="41.2" x2="51.5" y2="51.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="49.2" y="43.1" width="4.5" height="7.1" fill="var(--bull)"/><line x1="59.7" y1="34.1" x2="59.7" y2="45.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="57.5" y="36.3" width="4.5" height="6.9" fill="var(--bull)"/><line x1="68.0" y1="26.2" x2="68.0" y2="38.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="65.7" y="27.5" width="4.5" height="8.8" fill="var(--bull)"/><line x1="76.3" y1="25.6" x2="76.3" y2="29.7" stroke="var(--risk)" stroke-width="0.9"/><rect x="74.0" y="27.5" width="4.5" height="0.9" fill="var(--risk)"/><line x1="84.5" y1="26.4" x2="84.5" y2="30.0" stroke="var(--risk)" stroke-width="0.9"/><rect x="82.3" y="28.1" width="4.5" height="0.9" fill="var(--risk)"/><line x1="92.8" y1="26.3" x2="92.8" y2="30.2" stroke="var(--risk)" stroke-width="0.9"/><rect x="90.5" y="28.4" width="4.5" height="0.9" fill="var(--risk)"/><line x1="101.1" y1="24.1" x2="101.1" y2="30.1" stroke="var(--bull)" stroke-width="0.9"/><rect x="98.8" y="26.2" width="4.5" height="2.4" fill="var(--bull)"/><line x1="109.3" y1="24.1" x2="109.3" y2="30.4" stroke="var(--risk)" stroke-width="0.9"/><rect x="107.1" y="26.2" width="4.5" height="2.1" fill="var(--risk)"/><line x1="117.6" y1="26.7" x2="117.6" y2="30.1" stroke="var(--risk)" stroke-width="0.9"/><rect x="115.3" y="28.3" width="4.5" height="0.9" fill="var(--risk)"/><line x1="125.9" y1="26.3" x2="125.9" y2="32.8" stroke="var(--risk)" stroke-width="0.9"/><rect x="123.6" y="28.4" width="4.5" height="2.5" fill="var(--risk)"/><line x1="134.1" y1="29.3" x2="134.1" y2="34.4" stroke="var(--risk)" stroke-width="0.9"/><rect x="131.9" y="30.9" width="4.5" height="2.1" fill="var(--risk)"/><line x1="142.4" y1="31.6" x2="142.4" y2="34.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="140.1" y="33.0" width="4.5" height="0.9" fill="var(--bull)"/><line x1="150.7" y1="28.3" x2="150.7" y2="35.1" stroke="var(--bull)" stroke-width="0.9"/><rect x="148.4" y="29.6" width="4.5" height="3.4" fill="var(--bull)"/><line x1="158.9" y1="26.9" x2="158.9" y2="31.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="156.7" y="28.3" width="4.5" height="1.3" fill="var(--bull)"/><line x1="167.2" y1="26.8" x2="167.2" y2="30.5" stroke="var(--risk)" stroke-width="0.9"/><rect x="164.9" y="28.3" width="4.5" height="0.9" fill="var(--risk)"/><line x1="175.5" y1="25.3" x2="175.5" y2="30.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="173.2" y="27.2" width="4.5" height="1.2" fill="var(--bull)"/><line x1="183.7" y1="23.2" x2="183.7" y2="29.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="181.5" y="24.9" width="4.5" height="2.3" fill="var(--bull)"/><line x1="192.0" y1="23.2" x2="192.0" y2="27.0" stroke="var(--risk)" stroke-width="0.9"/><rect x="189.7" y="24.9" width="4.5" height="0.9" fill="var(--risk)"/><line x1="200.3" y1="21.1" x2="200.3" y2="27.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="198.0" y="22.4" width="4.5" height="3.2" fill="var(--bull)"/><line x1="208.5" y1="18.5" x2="208.5" y2="24.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="206.3" y="20.6" width="4.5" height="1.8" fill="var(--bull)"/><line x1="216.8" y1="19.4" x2="216.8" y2="23.7" stroke="var(--risk)" stroke-width="0.9"/><rect x="214.5" y="20.6" width="4.5" height="1.2" fill="var(--risk)"/><line x1="225.1" y1="15.3" x2="225.1" y2="23.8" stroke="var(--bull)" stroke-width="0.9"/><rect x="222.8" y="17.1" width="4.5" height="4.6" fill="var(--bull)"/><line x1="233.3" y1="13.9" x2="233.3" y2="19.1" stroke="var(--bull)" stroke-width="0.9"/><rect x="231.1" y="15.2" width="4.5" height="2.0" fill="var(--bull)"/><line x1="241.6" y1="9.7" x2="241.6" y2="17.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="239.3" y="10.8" width="4.5" height="4.3" fill="var(--bull)"/><line x1="249.9" y1="7.0" x2="249.9" y2="12.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="247.6" y="8.0" width="4.5" height="2.8" fill="var(--bull)"/><circle cx="158.9" cy="28.3" r="3" fill="var(--bull)"/></svg>
         <h3>Bull flag</h3>
         <p>A sharp run, then a tight, orderly drift sideways &mdash; not a collapse.</p>
       </div>
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,75 C40,60 60,45 80,40 C95,36 105,50 115,58 C125,66 135,58 145,42 C160,20 190,15 250,12" fill="none" stroke="var(--muted)" stroke-width="2"/><line x1="80" y1="40" x2="250" y2="40" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/><circle cx="115" cy="58" r="4" fill="var(--accent)"/></svg>
+        <svg viewBox="0 0 260 90"><line x1="6" y1="43.5" x2="254" y2="43.5" stroke="var(--border-soft)" stroke-width="0.75"/><line x1="6" y1="38.3" x2="254" y2="38.3" stroke="var(--line)" stroke-width="0.9" stroke-dasharray="2 3"/><line x1="10.1" y1="66.1" x2="10.1" y2="73.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="7.9" y="68.2" width="4.5" height="3.4" fill="var(--bull)"/><line x1="18.4" y1="65.7" x2="18.4" y2="69.8" stroke="var(--bull)" stroke-width="0.9"/><rect x="16.1" y="67.7" width="4.5" height="0.9" fill="var(--bull)"/><line x1="26.7" y1="61.8" x2="26.7" y2="69.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="24.4" y="64.0" width="4.5" height="3.7" fill="var(--bull)"/><line x1="34.9" y1="61.7" x2="34.9" y2="65.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="32.7" y="62.9" width="4.5" height="1.0" fill="var(--bull)"/><line x1="43.2" y1="59.2" x2="43.2" y2="65.1" stroke="var(--bull)" stroke-width="0.9"/><rect x="40.9" y="60.5" width="4.5" height="2.4" fill="var(--bull)"/><line x1="51.5" y1="52.7" x2="51.5" y2="62.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="49.2" y="54.2" width="4.5" height="6.2" fill="var(--bull)"/><line x1="59.7" y1="49.9" x2="59.7" y2="55.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="57.5" y="51.3" width="4.5" height="2.9" fill="var(--bull)"/><line x1="68.0" y1="49.8" x2="68.0" y2="55.7" stroke="var(--risk)" stroke-width="0.9"/><rect x="65.7" y="51.3" width="4.5" height="2.8" fill="var(--risk)"/><line x1="76.3" y1="46.1" x2="76.3" y2="55.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="74.0" y="47.8" width="4.5" height="6.4" fill="var(--bull)"/><line x1="84.5" y1="43.0" x2="84.5" y2="49.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="82.3" y="45.1" width="4.5" height="2.7" fill="var(--bull)"/><line x1="92.8" y1="43.0" x2="92.8" y2="49.5" stroke="var(--risk)" stroke-width="0.9"/><rect x="90.5" y="45.1" width="4.5" height="2.4" fill="var(--risk)"/><line x1="101.1" y1="39.3" x2="101.1" y2="49.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="98.8" y="41.5" width="4.5" height="6.0" fill="var(--bull)"/><line x1="109.3" y1="39.4" x2="109.3" y2="43.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="107.1" y="40.6" width="4.5" height="0.9" fill="var(--bull)"/><line x1="117.6" y1="31.8" x2="117.6" y2="42.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="115.3" y="34.0" width="4.5" height="6.6" fill="var(--bull)"/><line x1="125.9" y1="32.3" x2="125.9" y2="36.5" stroke="var(--risk)" stroke-width="0.9"/><rect x="123.6" y="34.0" width="4.5" height="0.9" fill="var(--risk)"/><line x1="134.1" y1="31.7" x2="134.1" y2="36.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="131.9" y="33.1" width="4.5" height="1.6" fill="var(--bull)"/><line x1="142.4" y1="31.3" x2="142.4" y2="39.3" stroke="var(--risk)" stroke-width="0.9"/><rect x="140.1" y="33.1" width="4.5" height="4.8" fill="var(--risk)"/><line x1="150.7" y1="36.7" x2="150.7" y2="42.3" stroke="var(--risk)" stroke-width="0.9"/><rect x="148.4" y="37.9" width="4.5" height="2.5" fill="var(--risk)"/><line x1="158.9" y1="33.7" x2="158.9" y2="41.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="156.7" y="35.9" width="4.5" height="4.4" fill="var(--bull)"/><line x1="167.2" y1="33.2" x2="167.2" y2="37.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="164.9" y="35.2" width="4.5" height="0.9" fill="var(--bull)"/><line x1="175.5" y1="31.3" x2="175.5" y2="36.6" stroke="var(--bull)" stroke-width="0.9"/><rect x="173.2" y="32.6" width="4.5" height="2.6" fill="var(--bull)"/><line x1="183.7" y1="24.4" x2="183.7" y2="34.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="181.5" y="26.3" width="4.5" height="6.3" fill="var(--bull)"/><line x1="192.0" y1="25.2" x2="192.0" y2="30.3" stroke="var(--risk)" stroke-width="0.9"/><rect x="189.7" y="26.3" width="4.5" height="2.2" fill="var(--risk)"/><line x1="200.3" y1="23.9" x2="200.3" y2="30.4" stroke="var(--bull)" stroke-width="0.9"/><rect x="198.0" y="25.1" width="4.5" height="3.5" fill="var(--bull)"/><line x1="208.5" y1="19.4" x2="208.5" y2="27.1" stroke="var(--bull)" stroke-width="0.9"/><rect x="206.3" y="20.8" width="4.5" height="4.3" fill="var(--bull)"/><line x1="216.8" y1="14.5" x2="216.8" y2="22.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="214.5" y="16.7" width="4.5" height="4.1" fill="var(--bull)"/><line x1="225.1" y1="14.5" x2="225.1" y2="21.3" stroke="var(--risk)" stroke-width="0.9"/><rect x="222.8" y="16.7" width="4.5" height="3.1" fill="var(--risk)"/><line x1="233.3" y1="13.7" x2="233.3" y2="21.6" stroke="var(--bull)" stroke-width="0.9"/><rect x="231.1" y="14.9" width="4.5" height="4.9" fill="var(--bull)"/><line x1="241.6" y1="13.0" x2="241.6" y2="16.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="239.3" y="14.1" width="4.5" height="0.9" fill="var(--bull)"/><line x1="249.9" y1="11.3" x2="249.9" y2="15.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="247.6" y="12.8" width="4.5" height="1.3" fill="var(--bull)"/><circle cx="150.7" cy="40.3" r="3" fill="var(--bull)"/></svg>
         <h3>Breakout + retest</h3>
         <p>Breaks a level, comes back to prove that level now holds.</p>
       </div>
       <div class="pattern-card">
-        <svg viewBox="0 0 260 90"><path d="M10,20 C30,35 45,55 60,62 C75,69 85,58 95,52 C110,44 120,58 130,64 C145,72 155,60 170,45 C190,26 215,18 250,15" fill="none" stroke="var(--muted)" stroke-width="2"/><circle cx="60" cy="62" r="3.5" fill="var(--ink)" opacity="0.5"/><circle cx="130" cy="64" r="4" fill="var(--accent)"/></svg>
+        <svg viewBox="0 0 260 90"><line x1="6" y1="43.5" x2="254" y2="43.5" stroke="var(--border-soft)" stroke-width="0.75"/><line x1="10.1" y1="20.5" x2="10.1" y2="26.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="7.9" y="21.7" width="4.5" height="2.9" fill="var(--bull)"/><line x1="18.4" y1="19.6" x2="18.4" y2="28.2" stroke="var(--risk)" stroke-width="0.9"/><rect x="16.1" y="21.7" width="4.5" height="4.8" fill="var(--risk)"/><line x1="26.7" y1="25.1" x2="26.7" y2="36.2" stroke="var(--risk)" stroke-width="0.9"/><rect x="24.4" y="26.5" width="4.5" height="7.6" fill="var(--risk)"/><line x1="34.9" y1="32.4" x2="34.9" y2="40.3" stroke="var(--risk)" stroke-width="0.9"/><rect x="32.7" y="34.1" width="4.5" height="4.1" fill="var(--risk)"/><line x1="43.2" y1="36.2" x2="43.2" y2="45.0" stroke="var(--risk)" stroke-width="0.9"/><rect x="40.9" y="38.2" width="4.5" height="5.1" fill="var(--risk)"/><line x1="51.5" y1="41.8" x2="51.5" y2="53.0" stroke="var(--risk)" stroke-width="0.9"/><rect x="49.2" y="43.4" width="4.5" height="7.9" fill="var(--risk)"/><line x1="59.7" y1="49.7" x2="59.7" y2="54.0" stroke="var(--risk)" stroke-width="0.9"/><rect x="57.5" y="51.3" width="4.5" height="1.4" fill="var(--risk)"/><line x1="68.0" y1="46.4" x2="68.0" y2="54.7" stroke="var(--bull)" stroke-width="0.9"/><rect x="65.7" y="47.8" width="4.5" height="4.9" fill="var(--bull)"/><line x1="76.3" y1="42.3" x2="76.3" y2="49.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="74.0" y="43.4" width="4.5" height="4.4" fill="var(--bull)"/><line x1="84.5" y1="34.0" x2="84.5" y2="44.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="82.3" y="35.8" width="4.5" height="7.7" fill="var(--bull)"/><line x1="92.8" y1="34.1" x2="92.8" y2="39.8" stroke="var(--risk)" stroke-width="0.9"/><rect x="90.5" y="35.8" width="4.5" height="2.5" fill="var(--risk)"/><line x1="101.1" y1="36.7" x2="101.1" y2="40.8" stroke="var(--risk)" stroke-width="0.9"/><rect x="98.8" y="38.2" width="4.5" height="0.9" fill="var(--risk)"/><line x1="109.3" y1="37.3" x2="109.3" y2="41.6" stroke="var(--risk)" stroke-width="0.9"/><rect x="107.1" y="38.6" width="4.5" height="1.5" fill="var(--risk)"/><line x1="117.6" y1="38.8" x2="117.6" y2="43.6" stroke="var(--risk)" stroke-width="0.9"/><rect x="115.3" y="40.1" width="4.5" height="1.7" fill="var(--risk)"/><line x1="125.9" y1="40.4" x2="125.9" y2="46.1" stroke="var(--risk)" stroke-width="0.9"/><rect x="123.6" y="41.8" width="4.5" height="2.9" fill="var(--risk)"/><line x1="134.1" y1="42.7" x2="134.1" y2="50.4" stroke="var(--risk)" stroke-width="0.9"/><rect x="131.9" y="44.7" width="4.5" height="4.3" fill="var(--risk)"/><line x1="142.4" y1="43.7" x2="142.4" y2="51.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="140.1" y="45.4" width="4.5" height="3.5" fill="var(--bull)"/><line x1="150.7" y1="41.2" x2="150.7" y2="46.6" stroke="var(--bull)" stroke-width="0.9"/><rect x="148.4" y="42.4" width="4.5" height="3.0" fill="var(--bull)"/><line x1="158.9" y1="38.1" x2="158.9" y2="44.3" stroke="var(--bull)" stroke-width="0.9"/><rect x="156.7" y="39.5" width="4.5" height="2.9" fill="var(--bull)"/><line x1="167.2" y1="30.8" x2="167.2" y2="40.8" stroke="var(--bull)" stroke-width="0.9"/><rect x="164.9" y="32.6" width="4.5" height="6.9" fill="var(--bull)"/><line x1="175.5" y1="29.0" x2="175.5" y2="33.9" stroke="var(--bull)" stroke-width="0.9"/><rect x="173.2" y="30.5" width="4.5" height="2.1" fill="var(--bull)"/><line x1="183.7" y1="28.6" x2="183.7" y2="31.6" stroke="var(--bull)" stroke-width="0.9"/><rect x="181.5" y="30.2" width="4.5" height="0.9" fill="var(--bull)"/><line x1="192.0" y1="26.9" x2="192.0" y2="32.2" stroke="var(--bull)" stroke-width="0.9"/><rect x="189.7" y="28.7" width="4.5" height="1.5" fill="var(--bull)"/><line x1="200.3" y1="25.2" x2="200.3" y2="30.6" stroke="var(--bull)" stroke-width="0.9"/><rect x="198.0" y="27.4" width="4.5" height="1.3" fill="var(--bull)"/><line x1="208.5" y1="23.3" x2="208.5" y2="28.5" stroke="var(--bull)" stroke-width="0.9"/><rect x="206.3" y="25.4" width="4.5" height="2.0" fill="var(--bull)"/><line x1="216.8" y1="16.6" x2="216.8" y2="27.6" stroke="var(--bull)" stroke-width="0.9"/><rect x="214.5" y="18.1" width="4.5" height="7.4" fill="var(--bull)"/><line x1="225.1" y1="16.1" x2="225.1" y2="20.9" stroke="var(--risk)" stroke-width="0.9"/><rect x="222.8" y="18.1" width="4.5" height="1.3" fill="var(--risk)"/><line x1="233.3" y1="15.5" x2="233.3" y2="21.1" stroke="var(--bull)" stroke-width="0.9"/><rect x="231.1" y="17.6" width="4.5" height="1.7" fill="var(--bull)"/><line x1="241.6" y1="12.4" x2="241.6" y2="19.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="239.3" y="14.4" width="4.5" height="3.2" fill="var(--bull)"/><line x1="249.9" y1="8.8" x2="249.9" y2="16.0" stroke="var(--bull)" stroke-width="0.9"/><rect x="247.6" y="10.1" width="4.5" height="4.3" fill="var(--bull)"/><circle cx="51.5" cy="51.3" r="2.6" fill="var(--ink)" opacity="0.5"/><circle cx="134.1" cy="49.0" r="3" fill="var(--bull)"/></svg>
         <h3>Higher-low reversal</h3>
         <p>A decline that stops short of its last low, then turns back up.</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="how">
+<section class="section-tight" id="how">
+  <div class="shell-narrow">
     <div class="eyebrow">How it decides</div>
     <h2 style="font-size:1.7rem; margin-top:8px;">Four checks, every session, before anything gets suggested.</h2>
     <div class="steps">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div>
-          <h3>Read the market</h3>
-          <p>Checks whether stocks broadly are trending up, down, or sideways first &mdash; the bar for a good setup gets stricter when the backdrop is weak.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div>
-          <h3>Scan for pullbacks, not runners</h3>
-          <p>Screens hundreds of stocks for ones climbing steadily that have recently paused &mdash; then explicitly throws out anything that's already made its big move. Chasing is the most common way this kind of trade goes wrong.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div>
-          <h3>Score it, don't just spot it</h3>
-          <p>Trend, support, volume, reward-to-risk, relative strength &mdash; scored out of 80. Below the bar, it gets dropped, even if it "looks" interesting.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div>
-          <h3>You decide, every time</h3>
-          <p>If something clears the bar, the alert publishes with the entry, stop, target, and reward:risk laid out, plus a general risk-sizing rule of thumb &mdash; never a number calculated from your account, since Zelos never sees it. What you do with that information, in your own brokerage account, is entirely your call.</p>
-        </div>
-      </div>
+      <div class="step"><div class="step-num">01</div><div><h3>Read the market</h3><p>Checks whether stocks broadly are trending up, down, or sideways first &mdash; the bar for a good setup gets stricter when the backdrop is weak.</p></div></div>
+      <div class="step"><div class="step-num">02</div><div><h3>Scan for pullbacks, not runners</h3><p>Screens hundreds of stocks for ones climbing steadily that have recently paused &mdash; then explicitly throws out anything that's already made its big move. Chasing is the most common way this kind of trade goes wrong.</p></div></div>
+      <div class="step"><div class="step-num">03</div><div><h3>Score it, don't just spot it</h3><p>Trend, support, volume, reward-to-risk, relative strength &mdash; scored out of 80. Below the bar, it gets dropped, even if it "looks" interesting.</p></div></div>
+      <div class="step"><div class="step-num">04</div><div><h3>You decide, every time</h3><p>If something clears the bar, the alert publishes with the entry, stop, target, and reward:risk laid out, plus a general risk-sizing rule of thumb &mdash; never a number calculated from your account, since Zelos never sees it. What you do with that information, in your own brokerage account, is entirely your call.</p></div></div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
+<section class="section-tight">
+  <div class="shell-narrow">
     <div class="eyebrow">The discipline, not the hype</div>
     <h2 style="font-size:1.7rem; margin-top:8px;">A real morning from this account &mdash; not a highlight reel.</h2>
-    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">On a recent run, the best candidate out of twenty screened stocks was Pfizer, and it still didn't qualify.</p>
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">On a recent run, the best candidate out of twenty screened stocks was Pfizer, and it still didn't qualify.</p>
     <div class="proof">
       <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
         <div style="font-family:var(--mono); font-weight:700; font-size:1.3rem;">PFE &middot; best candidate</div>
         <div style="font-family:var(--mono); color:var(--muted); font-size:0.85rem;">score 55 / 80 &middot; needed 60</div>
       </div>
       <div class="proof-grid">
-        <div class="proof-tile">
-          <div class="label">Reward : Risk</div>
-          <div class="value">2.1 : 1</div>
-          <div class="sub">Passed on its own &mdash; the setup quality didn't.</div>
-        </div>
-        <div class="proof-tile">
-          <div class="label">Outcome</div>
-          <div class="value risk">No trade</div>
-          <div class="sub">Reported honestly, nothing forced.</div>
-        </div>
+        <div class="proof-tile"><div class="label">Reward : Risk</div><div class="value">2.1 : 1</div><div class="sub">Passed on its own &mdash; the setup quality didn't.</div></div>
+        <div class="proof-tile"><div class="label">Outcome</div><div class="value risk">No trade</div><div class="sub">Reported honestly, nothing forced.</div></div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
+<section class="section-tight">
+  <div class="shell-narrow">
     <div class="eyebrow">Plays of the week</div>
     <h2 style="font-size:1.7rem; margin-top:8px;">What Swing Trader has been calling.</h2>
     <div class="plays-note">Sample format shown below &mdash; these three aren't real trades yet. This section starts showing actual calls, ticker by ticker, once there's enough live history on the account to report honestly.</div>
     <div class="plays-grid">
-      <div class="play-card">
-        <div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div>
-        <div class="play-card-rows">
-          <div>Entry <b>[$X.XX]</b></div>
-          <div>Stop <b>[$X.XX]</b></div>
-          <div>Target <b>[$X.XX]</b></div>
-        </div>
-        <div class="play-card-bottom">
-          <span>R:R [X.X:1]</span>
-          <span class="play-outcome">[Open / +X.X% / &minus;X.X%]</span>
-        </div>
-      </div>
-      <div class="play-card">
-        <div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div>
-        <div class="play-card-rows">
-          <div>Entry <b>[$X.XX]</b></div>
-          <div>Stop <b>[$X.XX]</b></div>
-          <div>Target <b>[$X.XX]</b></div>
-        </div>
-        <div class="play-card-bottom">
-          <span>R:R [X.X:1]</span>
-          <span class="play-outcome">[Open / +X.X% / &minus;X.X%]</span>
-        </div>
-      </div>
-      <div class="play-card">
-        <div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div>
-        <div class="play-card-rows">
-          <div>Entry <b>[$X.XX]</b></div>
-          <div>Stop <b>[$X.XX]</b></div>
-          <div>Target <b>[$X.XX]</b></div>
-        </div>
-        <div class="play-card-bottom">
-          <span>R:R [X.X:1]</span>
-          <span class="play-outcome">[Open / +X.X% / &minus;X.X%]</span>
-        </div>
-      </div>
+      <div class="play-card"><div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div><div class="play-card-rows"><div>Entry <b>[$X.XX]</b></div><div>Stop <b>[$X.XX]</b></div><div>Target <b>[$X.XX]</b></div></div><div class="play-card-bottom"><span>R:R [X.X:1]</span><span class="play-outcome">[Open / +X.X% / &minus;X.X%]</span></div></div>
+      <div class="play-card"><div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div><div class="play-card-rows"><div>Entry <b>[$X.XX]</b></div><div>Stop <b>[$X.XX]</b></div><div>Target <b>[$X.XX]</b></div></div><div class="play-card-bottom"><span>R:R [X.X:1]</span><span class="play-outcome">[Open / +X.X% / &minus;X.X%]</span></div></div>
+      <div class="play-card"><div class="play-card-top"><span class="ticker">[TICKER]</span><span class="date">[Mon DD]</span></div><div class="play-card-rows"><div>Entry <b>[$X.XX]</b></div><div>Stop <b>[$X.XX]</b></div><div>Target <b>[$X.XX]</b></div></div><div class="play-card-bottom"><span>R:R [X.X:1]</span><span class="play-outcome">[Open / +X.X% / &minus;X.X%]</span></div></div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
+<section class="section-tight">
+  <div class="shell-narrow">
     <div class="eyebrow">Trust &amp; safety</div>
     <h2 style="font-size:1.7rem; margin-top:8px;">The rules that don't bend.</h2>
     <div class="trust-list">
-      <div class="trust-item">
-        <div class="check">&#10003;</div>
-        <p><b>No account connection, ever.</b> Zelos never asks for your brokerage credentials and never links to any account. There's nothing to authorize and nothing for it to touch &mdash; it publishes an alert page, full stop.</p>
-      </div>
-      <div class="trust-item">
-        <div class="check">&#10003;</div>
-        <p><b>Nothing here places a trade.</b> Every run only researches and reports. If you decide to act on an alert, you place that trade yourself, in your own brokerage account, on your own judgment.</p>
-      </div>
-      <div class="trust-item">
-        <div class="check">&#10003;</div>
-        <p><b>Sizing is a general rule of thumb, not a calculation on your money.</b> Because Zelos never sees your balance, it can't and doesn't size a position for you &mdash; the alert offers a general guideline (like risking 1&ndash;2% of an account per idea) for you to apply to your own situation.</p>
-      </div>
-      <div class="trust-item">
-        <div class="check">&#10003;</div>
-        <p><b>"No trade today" is a normal outcome.</b> The bar exists to be missed most days &mdash; that's what keeps it a strategy instead of a habit.</p>
-      </div>
-      <div class="trust-item">
-        <div class="check">&#10003;</div>
-        <p><b>Nothing here is a guarantee.</b> This approach hasn't been backtested against a long track record. It's rules, applied consistently &mdash; not a promise of returns.</p>
-      </div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>No account connection, ever.</b> Zelos never asks for your brokerage credentials and never links to any account. There's nothing to authorize and nothing for it to touch &mdash; it publishes an alert page, full stop.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>Nothing here places a trade.</b> Every run only researches and reports. If you decide to act on an alert, you place that trade yourself, in your own brokerage account, on your own judgment.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>Sizing is a general rule of thumb, not a calculation on your money.</b> Because Zelos never sees your balance, it can't and doesn't size a position for you &mdash; the alert offers a general guideline (like risking 1&ndash;2% of an account per idea) for you to apply to your own situation.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>"No trade today" is a normal outcome.</b> The bar exists to be missed most days &mdash; that's what keeps it a strategy instead of a habit.</p></div>
+      <div class="trust-item"><div class="check">&#10003;</div><p><b>Nothing here is a guarantee.</b> This approach hasn't been backtested against a long track record. It's rules, applied consistently &mdash; not a promise of returns.</p></div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
+<section class="section-tight">
+  <div class="shell-narrow">
     <div class="eyebrow">Questions people actually ask</div>
     <div class="faq">
-      <div class="faq-item">
-        <h3>When can I start using it?</h3>
-        <p>Right away &mdash; Gumroad delivers access to the alert page the moment checkout finishes, no waiting on a manual step. It's been publishing live, not just backtested, before opening up.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Will it cost anything?</h3>
-        <p>$20, paid once &mdash; not a subscription, nothing recurring on your card. That covers the strategy itself, the alert page kept current every run, and every future refinement. If you were given a free access code instead, it unlocks full access for 3 weeks from when you redeem it; after that, your alert page stops updating until you purchase full access.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Does this trade for me?</h3>
-        <p>No. Swing Trader is a published alert, not a broker or an execution service &mdash; it never connects to any brokerage account and never places an order. It screens hundreds of stocks, scores every setup, and publishes what qualifies. What you do with that information, if anything, is entirely up to you, in your own account.</p>
-      </div>
-      <div class="faq-item">
-        <h3>How much money do I need to use this?</h3>
-        <p>None, to read it &mdash; it's general information, not tied to any account size. Since Zelos never sees your balance, it can't calculate a position size for you; the alert instead offers a general rule of thumb (like risking 1&ndash;2% of an account on any single idea) that you apply to your own situation. Think about what makes sense for you, and talk to a licensed professional if you want advice tailored to your circumstances.</p>
-      </div>
-      <div class="faq-item">
-        <h3>What does an alert actually look like?</h3>
-        <p>A single ticket &mdash; ticker, entry, stop, targets, and reward:risk, kept current at one pinned link and timestamped every time it runs so you can always tell how fresh it is. <a href="demo.html">See a sample alert</a> to check out the format before you subscribe.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Is there anything to cancel?</h3>
-        <p>No &mdash; Zelos is a one-time purchase, so there's no recurring charge sitting on your card to cancel. If you'd rather stop using it, just stop checking the alert page or remove the skill; nothing is billed after your original purchase. Free access from a code stops updating on its own after 3 weeks &mdash; there's nothing to cancel there either.</p>
-      </div>
-      <div class="faq-item">
-        <h3>What if I get stuck?</h3>
-        <p>Message me directly through Gumroad &mdash; open Library, find Zelos, and use the message-seller option there. That's the fastest way to reach me if something doesn't match what you're seeing on this page.</p>
-      </div>
+      <div class="faq-item"><h3>When can I start using it?</h3><p>Right away &mdash; Gumroad delivers access to the alert page the moment checkout finishes, no waiting on a manual step. It's been publishing live, not just backtested, before opening up.</p></div>
+      <div class="faq-item"><h3>Will it cost anything?</h3><p>$20, paid once &mdash; not a subscription, nothing recurring on your card. That covers the strategy itself, the alert page kept current every run, and every future refinement. If you were given a free access code instead, it unlocks full access for 3 weeks from when you redeem it; after that, your alert page stops updating until you purchase full access.</p></div>
+      <div class="faq-item"><h3>Does this trade for me?</h3><p>No. Swing Trader is a published alert, not a broker or an execution service &mdash; it never connects to any brokerage account and never places an order. It screens hundreds of stocks, scores every setup, and publishes what qualifies. What you do with that information, if anything, is entirely up to you, in your own account.</p></div>
+      <div class="faq-item"><h3>How much money do I need to use this?</h3><p>None, to read it &mdash; it's general information, not tied to any account size. Since Zelos never sees your balance, it can't calculate a position size for you; the alert instead offers a general rule of thumb (like risking 1&ndash;2% of an account on any single idea) that you apply to your own situation. Think about what makes sense for you, and talk to a licensed professional if you want advice tailored to your circumstances.</p></div>
+      <div class="faq-item"><h3>What does an alert actually look like?</h3><p>A single ticket &mdash; ticker, entry, stop, targets, and reward:risk, kept current at one pinned link and timestamped every time it runs so you can always tell how fresh it is. <a href="demo.html" style="color:var(--accent);">See a sample alert</a> to check out the format before you subscribe.</p></div>
+      <div class="faq-item"><h3>Is there anything to cancel?</h3><p>No &mdash; Zelos is a one-time purchase, so there's no recurring charge sitting on your card to cancel. If you'd rather stop using it, just stop checking the alert page or remove the skill; nothing is billed after your original purchase. Free access from a code stops updating on its own after 3 weeks &mdash; there's nothing to cancel there either.</p></div>
+      <div class="faq-item"><h3>What if I get stuck?</h3><p>Message me directly through Gumroad &mdash; open Library, find Zelos, and use the message-seller option there. That's the fastest way to reach me if something doesn't match what you're seeing on this page.</p></div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="access" style="padding-top:8px;">
+<section class="section-tight" id="access">
+  <div class="shell-narrow">
     <div class="eyebrow">Get started</div>
     <h2 style="font-size:1.7rem; margin-top:8px;">Two steps. Nothing to connect.</h2>
-    <p style="margin-top:12px; color:var(--muted); max-width:56ch;">No brokerage account, no credentials, nothing to link &mdash; just a page that publishes the day's alert on a fixed schedule.</p>
-
+    <p style="margin-top:12px; color:var(--ink-2); max-width:56ch;">No brokerage account, no credentials, nothing to link &mdash; just a page that publishes the day's alert on a fixed schedule.</p>
     <div class="start-grid">
       <div class="start-steps">
-        <div class="start-step">
-          <div class="n">01</div>
-          <div><h3>Get Swing Trader</h3><p>Gumroad emails you access the moment checkout finishes &mdash; nothing to wait on.</p></div>
-        </div>
-        <div class="start-step">
-          <div class="n">02</div>
-          <div><h3>Bookmark the alert page</h3><p>One link, kept current every session. Check it, or set your own reminder &mdash; there's nothing to configure.</p></div>
-        </div>
+        <div class="start-step"><div class="n">01</div><div><h3>Get Swing Trader</h3><p>Gumroad emails you access the moment checkout finishes &mdash; nothing to wait on.</p></div></div>
+        <div class="start-step"><div class="n">02</div><div><h3>Bookmark the alert page</h3><p>One link, kept current every session. Check it, or set your own reminder &mdash; there's nothing to configure.</p></div></div>
         <a class="start-more" href="setup.html">Full guide &rarr;</a>
       </div>
-
       <div class="buy-card">
         <div class="eyebrow">One-time purchase</div>
         <div class="buy-price"><span class="amount">$20</span><span class="period">one time</span></div>
@@ -1017,15 +352,19 @@
         <div class="buy-fine">One payment, yours to keep &mdash; not a subscription. Have an access code? Enter it at checkout on Gumroad. Not personalized advice.</div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section style="padding-block:32px 24px;">
+<section class="section-tight">
+  <div class="shell-narrow">
     <div class="eyebrow">How Zelos works</div>
     <p style="margin-top:10px; color:var(--muted); font-size:0.85rem; max-width:62ch;">Zelos is a published research page, not trading software you install or connect to an account. It never asks for brokerage credentials, never sees your balance or positions, and never places an order. Every subscriber sees the same rule-based scan, on the same schedule &mdash; general information, not personalized to any individual's account or situation.</p>
     <p style="margin-top:8px; color:var(--muted); font-size:0.85rem; max-width:62ch;">Zelos is not personalized investment advice and Zelos is not a registered investment adviser. Trading involves risk, including loss of principal. Past performance of any strategy does not guarantee future results.</p>
-  </section>
+  </div>
+</section>
 
-  <section id="disclosures" style="padding-block:8px 40px;">
+<section class="section-tight" id="disclosures">
+  <div class="shell-narrow">
     <div class="eyebrow">Risk &amp; disclosures</div>
     <h2 style="font-size:1.5rem; margin-top:8px;">Read this before you subscribe.</h2>
     <div class="disclosures">
@@ -1036,178 +375,207 @@
       <div class="disclosure-item"><b>Acting on any alert is your decision and your responsibility.</b> Nothing here places, sizes, or manages an order on your behalf.</div>
       <div class="disclosure-item"><b>Software can fail.</b> Bugs, downtime, or rate limits could delay or prevent an alert from publishing or updating as intended. Don't rely on Swing Trader as your only source of information on a position.</div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <footer>
-    <div>Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable.</div>
-    <div><a href="terms.html" style="color:inherit;">Terms of Service</a> &middot; <a href="#disclosures" style="color:inherit;">Risk &amp; disclosures</a> &middot; &copy; 2026 Zelos</div>
-  </footer>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <a class="footer-brand" href="index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="arsenal.html">Strategies</a>
+        <a href="alert-history.html">Alerts</a>
+        <a href="terms.html">Terms</a>
+        <a href="#disclosures">Risk &amp; disclosures</a>
+      </div>
+    </div>
+    <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
+  </div>
+</footer>
 
-</div>
-
-<div class="floating-eye" id="zelosEye" aria-hidden="true">
-  <svg viewBox="0 0 100 100">
-    <defs>
-      <radialGradient id="scleraShade" cx="50%" cy="42%" r="65%">
-        <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="72%" stop-color="#f1efe9"/>
-        <stop offset="100%" stop-color="#d8d3c8"/>
-      </radialGradient>
-      <radialGradient id="irisShade" cx="42%" cy="38%" r="65%">
-        <stop offset="0%" stop-color="#7fe0ac"/>
-        <stop offset="45%" stop-color="#1f7a4d"/>
-        <stop offset="100%" stop-color="#0e3d27"/>
-      </radialGradient>
-    </defs>
-    <ellipse cx="50" cy="50" rx="47" ry="44" fill="url(#scleraShade)" stroke="#c9c3b4" stroke-width="1"/>
-    <path d="M12,46 C20,44 26,47 30,50" fill="none" stroke="#c76b6b" stroke-width="0.6" opacity="0.45"/>
-    <path d="M88,52 C81,50 76,52 71,55" fill="none" stroke="#c76b6b" stroke-width="0.6" opacity="0.4"/>
-    <g id="zelosIrisGroup">
-      <circle cx="50" cy="50" r="25" fill="url(#irisShade)"/>
-      <g stroke="#0a2b1b" stroke-width="0.8" opacity="0.4">
-        <line x1="63" y1="50" x2="75" y2="50"/>
-        <line x1="61.3" y1="56.5" x2="71.6" y2="62.5"/>
-        <line x1="56.5" y1="61.3" x2="62.5" y2="71.6"/>
-        <line x1="50" y1="63" x2="50" y2="75"/>
-        <line x1="43.5" y1="61.3" x2="37.5" y2="71.6"/>
-        <line x1="38.7" y1="56.5" x2="28.4" y2="62.5"/>
-        <line x1="37" y1="50" x2="25" y2="50"/>
-        <line x1="38.7" y1="43.5" x2="28.4" y2="37.5"/>
-        <line x1="43.5" y1="38.7" x2="37.5" y2="28.4"/>
-        <line x1="50" y1="37" x2="50" y2="25"/>
-        <line x1="56.5" y1="38.7" x2="62.5" y2="28.4"/>
-        <line x1="61.3" y1="43.5" x2="71.6" y2="37.5"/>
-      </g>
-      <circle cx="50" cy="50" r="11" fill="#080706"/>
-      <circle cx="45" cy="44" r="4" fill="#ffffff" opacity="0.9"/>
-      <circle cx="56" cy="57" r="1.6" fill="#ffffff" opacity="0.5"/>
-    </g>
-    <path d="M6,42 C22,20 78,20 94,42" fill="none" stroke="#00000022" stroke-width="3"/>
-  </svg>
-</div>
+<!-- Firebase (compat build) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="zelos-mood.js"></script>
+<script src="zelos-xp.js"></script>
 
 <script>
 (function(){
-  var eye = document.getElementById('zelosEye');
-  if(!eye) return;
-
-  function placeEye(){
-    var size = 56, margin = 8, pad = 10;
-    // Document coordinates (not viewport) so the eye scrolls away with the
-    // page instead of hovering over it — a spot ON the page, not on screen.
-    var pageWidth = document.documentElement.scrollWidth;
-    var pageHeight = document.documentElement.scrollHeight;
-    var maxLeft = Math.max(margin, pageWidth - size - margin);
-    var maxTop = Math.max(margin, pageHeight - size - margin);
-
-    // Anything with visible content or a card background counts as an
-    // obstacle — the eye should never land on top of it, anywhere on the page.
-    var obstacleEls = document.querySelectorAll(
-      'nav, h1, h2, h3, p, blockquote, svg, .btn, .cta-note, .eyebrow, ' +
-      '.pattern-card, .proof, .trust-item, .faq-item, .step, .final, footer'
-    );
-    var scrollX = window.scrollX || window.pageXOffset || 0;
-    var scrollY = window.scrollY || window.pageYOffset || 0;
-    var obstacles = [];
-    for (var i = 0; i < obstacleEls.length; i++) {
-      if (obstacleEls[i] === eye) continue;
-      var r = obstacleEls[i].getBoundingClientRect();
-      obstacles.push({
-        left: r.left + scrollX, right: r.right + scrollX,
-        top: r.top + scrollY, bottom: r.bottom + scrollY
-      });
+  function wireDropdown(trigger, panel){
+    if(!trigger || !panel) return;
+    function close(){ panel.hidden = true; trigger.setAttribute('aria-expanded','false'); }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false; trigger.setAttribute('aria-expanded','true');
     }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  document.querySelectorAll('.nav-drop').forEach(function(menu){
+    wireDropdown(menu.querySelector('.nav-drop-btn'), menu.querySelector('.nav-drop-panel'));
+  });
 
-    function overlaps(left, top){
-      var right = left + size, bottom = top + size;
-      for (var i = 0; i < obstacles.length; i++) {
-        var o = obstacles[i];
-        if (!(right < o.left - pad || left > o.right + pad ||
-              bottom < o.top - pad || top > o.bottom + pad)) return true;
+  var siteNav = document.querySelector('.site-nav');
+  var hamburger = document.getElementById('navHamburger');
+  if (siteNav && hamburger) {
+    hamburger.addEventListener('click', function(){
+      var open = siteNav.classList.toggle('is-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('navMobilePanel').addEventListener('click', function(e){
+      if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
+    });
+  }
+})();
+</script>
+
+<script>
+(function(){
+  // ---- auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth(); db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+  var navAuth = document.getElementById('navAuth');
+
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+  function ensureUserDoc(user){
+    var ref = userDocRef(user.uid);
+    return ref.get().then(function(doc){
+      if (!doc.exists) {
+        return ref.set({
+          email: user.email || null, displayName: user.displayName || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+        }).then(function(){ return ref.get(); });
       }
-      return false;
+      return doc;
+    });
+  }
+  function claimPendingOwnership(user){
+    if (!user.email) return Promise.resolve();
+    var pendingRef = db.collection('pendingOwnership').doc(user.email.toLowerCase());
+    return pendingRef.get().then(function(doc){
+      if (!doc.exists) return;
+      var skills = (doc.data().skills || []).filter(Boolean);
+      if (!skills.length) return pendingRef.delete().catch(function(){});
+      return userDocRef(user.uid).set({
+        ownedSkills: firebase.firestore.FieldValue.arrayUnion.apply(null, skills)
+      }, { merge:true }).then(function(){ return pendingRef.delete(); });
+    }).catch(function(){});
+  }
+  function wireDropdownRef(trigger, panel){
+    function close(){ panel.hidden = true; }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false;
     }
-
-    var bestLeft = margin, bestTop = margin;
-    for (var attempt = 0; attempt < 120; attempt++) {
-      var left = margin + Math.random() * (maxLeft - margin);
-      var top = margin + Math.random() * (maxTop - margin);
-      if (!overlaps(left, top)) { bestLeft = left; bestTop = top; break; }
-    }
-    eye.style.left = bestLeft + 'px';
-    eye.style.top = bestTop + 'px';
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
   }
 
-  placeEye();
-  requestAnimationFrame(function(){ eye.classList.add('is-visible'); });
+  function renderSignedOut(){
+    navAuth.innerHTML =
+      '<div style="position:relative;"><button class="btn btn-ghost btn-sm" id="loginBtn" type="button">Log in</button></div>' +
+      '<div style="position:relative;">' +
+        '<button class="btn btn-primary btn-sm" id="getStartedBtn" type="button">Get Started</button>' +
+        '<div class="auth-pop" id="authPop" hidden>' +
+          '<h3 id="authPopTitle">Sign in to Zelos</h3>' +
+          '<div class="auth-msg" id="authMsg"></div>' +
+          '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+          '<input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">' +
+          '<button class="btn btn-primary" id="authSubmitBtn" type="button">Sign in</button>' +
+          '<div class="auth-divider">or</div>' +
+          '<button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>' +
+          '<div class="auth-switch" id="authSwitch">New here? <button type="button" id="authModeToggle">Create an account</button></div>' +
+        '</div>' +
+      '</div>';
 
-  // Collision-checked against everything on the page, so it's safe to make
-  // it clickable — nothing important is ever sitting underneath it.
-  eye.style.pointerEvents = 'auto';
-  eye.addEventListener('click', function(){
-    eye.classList.remove('is-blinking');
-    void eye.offsetWidth; // restart the animation if clicked again mid-blink
-    eye.classList.add('is-blinking');
-  });
-  eye.addEventListener('animationend', function(){
-    eye.classList.remove('is-blinking');
-  });
+    var pop = document.getElementById('authPop');
+    var mode = 'signin';
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = 'dashboard.html'; } }
+    function setMsg(text, isError){
+      var el = document.getElementById('authMsg');
+      el.textContent = text || '';
+      el.className = 'auth-msg' + (isError ? ' is-error' : '');
+    }
+    function applyMode(){
+      document.getElementById('authPopTitle').textContent = mode === 'signup' ? 'Create your Zelos account' : 'Sign in to Zelos';
+      document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+      document.getElementById('authSwitch').innerHTML = mode === 'signup'
+        ? 'Already have an account? <button type="button" id="authModeToggle">Sign in</button>'
+        : 'New here? <button type="button" id="authModeToggle">Create an account</button>';
+      document.getElementById('authModeToggle').addEventListener('click', function(){ mode = mode === 'signup' ? 'signin' : 'signup'; applyMode(); });
+    }
+    applyMode();
 
-  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduceMotion) return;
+    var dd = wireDropdownRef(document.getElementById('getStartedBtn'), pop);
+    document.getElementById('loginBtn').addEventListener('click', function(e){ e.stopPropagation(); mode='signin'; applyMode(); dd.open(); });
 
-  var iris = document.getElementById('zelosIrisGroup');
-  if(!iris) return;
-  document.addEventListener('mousemove', function(e){
-    var rect = eye.getBoundingClientRect();
-    var cx = rect.left + rect.width / 2;
-    var cy = rect.top + rect.height / 2;
-    var dx = e.clientX - cx;
-    var dy = e.clientY - cy;
-    var dist = Math.min(6, Math.hypot(dx, dy) / 18);
-    var angle = Math.atan2(dy, dx);
-    var ox = Math.cos(angle) * dist;
-    var oy = Math.sin(angle) * dist;
-    iris.setAttribute('transform', 'translate(' + ox.toFixed(2) + ',' + oy.toFixed(2) + ')');
-  }, { passive: true });
-})();
-
-(function(){
-  // Track clicks on the Gumroad buy button so Analytics can show how many
-  // visitors click through to purchase — the sale itself happens off-site
-  // on Gumroad, so this click is the only signal we have on this end.
-  var buyBtn = document.querySelector('.btn-buy');
-  if(!buyBtn || typeof gtag !== 'function') return;
-  buyBtn.addEventListener('click', function(){
-    gtag('event', 'click_buy_gumroad', {
-      event_category: 'engagement',
-      event_label: 'Get Swing Trader — $20'
+    document.getElementById('authSubmitBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var email = document.getElementById('authEmail').value.trim();
+      var pw = document.getElementById('authPassword').value;
+      if (mode === 'signup') {
+        setMsg('Creating account…');
+        auth.createUserWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      } else {
+        setMsg('Signing in…');
+        auth.signInWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      }
     });
-  });
+    document.getElementById('googleSignInBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var provider = new firebase.auth.GoogleAuthProvider();
+      setMsg('Opening Google sign-in…');
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+    });
+  }
+
+  function renderSignedIn(user){
+    var initial = (user.email || '?').charAt(0).toUpperCase();
+    navAuth.innerHTML =
+      '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="account-avatar">' + initial + '</span>' +
+        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="nav-drop-caret">&#9662;</span></button>' +
+        '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
+          '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
+          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<hr><a href="#" id="signOutLink">Sign out</a>' +
+        '</div></div>';
+    wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
+    document.getElementById('signOutLink').addEventListener('click', function(e){ e.preventDefault(); auth.signOut(); });
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      if (user && !user.isAnonymous) {
+        renderSignedIn(user);
+        ensureUserDoc(user).then(function(){ return claimPendingOwnership(user); }).then(function(){
+          if (window.ZelosXP) ZelosXP.award('daily-checkin');
+        });
+      } else {
+        renderSignedOut();
+        if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
+      }
+    });
+  } else { renderSignedOut(); }
 })();
 </script>
-<script>
-(function(){
-  // Site-wide "Menu" dropdown — lets visitors jump between pages without
-  // going back to the home page first.
-  document.querySelectorAll('.nav-menu').forEach(function(menu){
-    var btn = menu.querySelector('.nav-menu-btn');
-    var list = menu.querySelector('.nav-menu-list');
-    if(!btn || !list) return;
-    function close(){ list.hidden = true; btn.setAttribute('aria-expanded','false'); }
-    function open(){ list.hidden = false; btn.setAttribute('aria-expanded','true'); }
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      if(list.hidden){ open(); } else { close(); }
-    });
-    document.addEventListener('click', function(e){
-      if(!menu.contains(e.target)) close();
-    });
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape') close();
-    });
-  });
-})();
-</script>
+
+<script src="zelos-theme-toggle.js"></script>
 </body>
 </html>
