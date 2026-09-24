@@ -22,14 +22,27 @@ update_alert_outcomes  - a scheduled Claude task (with Robinhood market data)
                           `outcome` field docs/data-model.md already
                           documents, turning alert-history.html from a feed
                           of predictions into an honest track record.
+post_to_buffer         - the same kind of scheduled Claude task calls this
+                          once a day to drop one post into Nate's own,
+                          already-connected Buffer queue: either "this alert
+                          just ran to target 2" (see the target2Hit tracking
+                          in scripts/check_alert_outcomes.py) or, on a day
+                          with nothing to brag about, a plain market recap -
+                          see docs/buffer-automation.md for the full runbook
+                          and scripts/buffer_post_content.py for how the post
+                          text itself gets written. Keeps the actual Buffer
+                          API key in this function's own secret config,
+                          never in the calling agent session.
 
-Both endpoints check a shared secret before doing anything, so if either URL
+Every endpoint checks a shared secret before doing anything, so if any URL
 ever leaked, it could only trigger that one narrow action - never read or
-write anything else in the database, and never touch Gumroad or Robinhood
-directly.
+write anything else in the database, and never touch Gumroad, Robinhood, or
+Buffer directly.
 """
 import json
 import os
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 
 from firebase_functions import https_fn
@@ -192,6 +205,8 @@ def _apply_one_outcome(db, update):
         "result": result,
         "closedAt": update.get("closedAt"),
         "exitPrice": update.get("exitPrice"),
+        "target2Hit": update.get("target2Hit"),
+        "target2ResolvedAt": update.get("target2ResolvedAt"),
         "notes": update.get("notes") or "",
     }
     try:
@@ -256,6 +271,149 @@ def update_alert_outcomes(req: https_fn.Request) -> https_fn.Response:
             results.append({"ok": True, "alertId": alert_id})
 
     status = 200 if any_ok else 400
+    return https_fn.Response(
+        json.dumps({"ok": any_ok, "results": results}),
+        status=status,
+        content_type="application/json",
+    )
+
+
+BUFFER_API_URL = "https://api.buffer.com"
+
+
+def _escape_graphql_string(text):
+    """Buffer's API takes the post body as a quoted string inside a GraphQL
+    query document (see docs/buffer-automation.md) rather than as a separate
+    JSON variable, so this is the one thing standing between a post with a
+    quote mark or a line break in it and a broken request - escape exactly
+    the three characters that would otherwise break out of the quotes."""
+    return text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+def _buffer_create_post(api_key, channel_id, text, timeout=15):
+    """One createPost call to Buffer's GraphQL API for one channel. Always
+    schedulingType=automatic / mode=addToQueue - this drops the post into
+    whatever posting schedule is already configured for that channel in
+    Buffer, rather than this function trying to pick a good time itself.
+    Returns (ok, post_id_or_None, error_message_or_None)."""
+    query = (
+        "mutation ZelosPost { createPost(input: { text: \"%s\", "
+        "channelId: \"%s\", schedulingType: automatic, mode: addToQueue }) "
+        "{ ... on PostActionSuccess { post { id dueAt } } "
+        "... on MutationError { message } } }"
+        % (_escape_graphql_string(text), channel_id)
+    )
+    req = urllib.request.Request(
+        BUFFER_API_URL,
+        data=json.dumps({"query": query}).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer %s" % api_key,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        return False, None, "Buffer API HTTP %s: %s" % (e.code, e.read().decode("utf-8", "replace")[:300])
+    except Exception as e:
+        return False, None, "Buffer API request failed: %s" % (e,)
+
+    if data.get("errors"):
+        return False, None, str(data["errors"])[:300]
+    create = ((data.get("data") or {}).get("createPost") or {})
+    if create.get("message"):
+        return False, None, create["message"]
+    post = create.get("post")
+    if post:
+        return True, post.get("id"), None
+    return False, None, "Unrecognized Buffer response: %s" % (str(data)[:300],)
+
+
+@https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET", "BUFFER_API_KEY", "BUFFER_CHANNEL_IDS"])
+def post_to_buffer(req: https_fn.Request) -> https_fn.Response:
+    """Drop one post into Nate's own Buffer queue, on one or more of his
+    already-connected channels. See docs/buffer-automation.md for the full
+    runbook (getting a Buffer personal API key, finding channel ids, and how
+    the daily job decides what to post) and scripts/buffer_post_content.py
+    for how the post text itself gets composed - this endpoint only relays
+    already-composed text, it never decides what to say.
+
+    Body: {"text": "...", "channelIds": ["...", ...], "alertId": "..."}
+      - channelIds is optional; if omitted, posts to every id in the
+        comma-separated BUFFER_CHANNEL_IDS secret (i.e. "post this
+        everywhere I've got Buffer set up").
+      - alertId is optional. If given AND the post succeeds on at least one
+        channel, this also marks that alert's outcome.target2Announced=true
+        (merge, same narrow write as update_alert_outcomes) so the daily job
+        never announces the same win twice.
+
+    The actual Buffer API key lives only in this function's own secret
+    config - the calling agent session never sees or needs it.
+    """
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
+
+    expected_secret = os.environ.get("ZELOS_PUBLISH_SECRET", "")
+    provided_secret = req.headers.get("X-Zelos-Secret", "")
+    if not expected_secret or provided_secret != expected_secret:
+        return https_fn.Response("Unauthorized", status=401)
+
+    api_key = os.environ.get("BUFFER_API_KEY", "")
+    if not api_key:
+        return https_fn.Response(
+            json.dumps({"ok": False, "error": "BUFFER_API_KEY is not configured"}),
+            status=500, content_type="application/json",
+        )
+
+    try:
+        payload = req.get_json(silent=False)
+    except Exception:
+        return https_fn.Response("Invalid JSON body", status=400)
+    if not isinstance(payload, dict):
+        return https_fn.Response("Body must be a JSON object", status=400)
+
+    text = (payload.get("text") or "").strip()
+    if not text:
+        return https_fn.Response("Missing 'text'", status=400)
+    if len(text) > 2000:
+        return https_fn.Response("'text' is too long (max 2000 chars)", status=400)
+
+    channel_ids = payload.get("channelIds")
+    if not channel_ids:
+        channel_ids = [c.strip() for c in os.environ.get("BUFFER_CHANNEL_IDS", "").split(",") if c.strip()]
+    if not channel_ids or not isinstance(channel_ids, list):
+        return https_fn.Response(
+            json.dumps({"ok": False, "error": "No channelIds given and BUFFER_CHANNEL_IDS is not configured"}),
+            status=400, content_type="application/json",
+        )
+
+    results = []
+    any_ok = False
+    for channel_id in channel_ids:
+        ok, post_id, error = _buffer_create_post(api_key, channel_id, text)
+        if ok:
+            any_ok = True
+            results.append({"ok": True, "channelId": channel_id, "postId": post_id})
+        else:
+            results.append({"ok": False, "channelId": channel_id, "error": error})
+
+    alert_id = (payload.get("alertId") or "").strip()
+    if any_ok and alert_id:
+        try:
+            db = firestore.client()
+            db.collection("alerts").document(alert_id).set(
+                {"outcome": {
+                    "target2Announced": True,
+                    "target2AnnouncedAt": datetime.now(timezone.utc).isoformat(),
+                }},
+                merge=True,
+            )
+        except Exception:
+            pass  # the post already went out; never fail the response over this bookkeeping step
+
+    status = 200 if any_ok else 502
     return https_fn.Response(
         json.dumps({"ok": any_ok, "results": results}),
         status=status,

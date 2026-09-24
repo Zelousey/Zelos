@@ -40,6 +40,17 @@ no login required, so a shared link always opens straight to the full analysis.
     result: "hit-target" | "stopped-out" | "open" | "expired" | "no-trade",
     closedAt: <timestamp>,
     exitPrice: 29.10,
+    // only ever meaningful when result is "hit-target" — null/absent otherwise.
+    // true = also ran to target2 before falling back to breakeven; false = gave
+    // the runner back; null = still running, not resolved either way yet. See
+    // docs/buffer-automation.md — this is the one and only trigger for the
+    // Buffer win-announce auto-post.
+    target2Hit: true | false | null,
+    target2ResolvedAt: <timestamp> | null,
+    // set once a win-announce post about THIS alert has actually gone out,
+    // so the daily Buffer job never announces the same win twice.
+    target2Announced: true | undefined,
+    target2AnnouncedAt: <timestamp> | undefined,
     notes: "Hit target 1 two sessions later."
   }
 }
@@ -99,3 +110,8 @@ Not written by anything above — see `docs/firestore-alerts-setup.md` for the
 outcome-checking job (`scripts/check_alert_outcomes.py` decides what
 happened, `update_alert_outcomes` in `functions/main.py` writes it) that
 fills this in once a published alert's stop or target is actually reached.
+
+`target2Announced`/`target2AnnouncedAt` are the one exception — those are
+written by `post_to_buffer` itself (not the outcome checker) right after a
+win-announce post about that alert actually goes out. See
+`docs/buffer-automation.md`.

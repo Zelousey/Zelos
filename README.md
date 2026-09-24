@@ -29,6 +29,15 @@ runbook and `scripts/check_alert_outcomes.py` for the decision logic (unit-teste
 `scripts/check_alert_outcomes_test.py`). This is what makes `alert-history.html` an honest,
 checkable track record instead of a feed of predictions nobody follows up on.
 
+That same daily job also tracks whether a winning alert ran all the way to its *second* target
+(`outcome.target2Hit` — see the TARGET2 / "RUNNER" TRACKING note in
+`scripts/check_alert_outcomes.py`), and if one just did, can automatically drop a post into your
+own Buffer queue announcing it — with a plain market recap instead on a day with nothing to
+announce. See `docs/buffer-automation.md` for the full setup and `scripts/buffer_post_content.py`
+(unit-tested in `scripts/buffer_post_content_test.py`) for how the post text itself gets composed.
+This is entirely optional and off unless you set the `BUFFER_API_KEY` / `BUFFER_CHANNEL_IDS`
+secrets described there.
+
 ## Deploy with GitHub Pages
 
 1. Create a new GitHub repository (public repos get free Pages hosting; a private repo needs GitHub Pro/Team/Enterprise for Pages).

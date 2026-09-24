@@ -1,13 +1,15 @@
 # Deploying the Zelos Cloud Functions
 
-This deploys `publish_alert`, `gumroad_ping`, and `update_alert_outcomes`
-(`functions/main.py`) into the `leaderboard-agentictrading` Firebase project —
-the same project the arcade leaderboard already uses. Once `publish_alert` is
-live, the Zelos scan skills can write real alerts into the `alerts`
-collection that `alert.html`, `dashboard.html`, `alert-history.html`,
+This deploys `publish_alert`, `gumroad_ping`, `update_alert_outcomes`, and
+`post_to_buffer` (`functions/main.py`) into the `leaderboard-agentictrading`
+Firebase project — the same project the arcade leaderboard already uses. Once
+`publish_alert` is live, the Zelos scan skills can write real alerts into the
+`alerts` collection that `alert.html`, `dashboard.html`, `alert-history.html`,
 `daily-market.html`, and `index.html` already read from. `update_alert_outcomes`
 is the other half of that loop — see `docs/firestore-alerts-setup.md` for how
-it gets called and what decides what to send it.
+it gets called and what decides what to send it. `post_to_buffer` is optional
+on top of that — see `docs/buffer-automation.md` — and needs two extra
+secrets (`BUFFER_API_KEY`, `BUFFER_CHANNEL_IDS`) covered there, not here.
 
 ## One-time setup
 
@@ -47,10 +49,12 @@ an environment variable wherever the Zelos scan skills run on a schedule (see
 firebase deploy --only functions
 ```
 
-This installs `functions/requirements.txt` and deploys all three functions.
-The CLI prints each function's HTTPS URL when it finishes — copy the
-`publish_alert` and `update_alert_outcomes` ones, you'll need both for
-`docs/firestore-alerts-setup.md`. It'll look like
+This installs `functions/requirements.txt` and deploys all four functions
+(deploying without `BUFFER_API_KEY`/`BUFFER_CHANNEL_IDS` set is fine —
+`post_to_buffer` just responds with a clear 500 until they're set, it won't
+break the other three). The CLI prints each function's HTTPS URL when it
+finishes — copy the `publish_alert` and `update_alert_outcomes` ones, you'll
+need both for `docs/firestore-alerts-setup.md`. It'll look like
 `https://publish-alert-<random>-uc.a.run.app` or
 `https://us-central1-leaderboard-agentictrading.cloudfunctions.net/publish_alert`
 depending on how the CLI names it — use exactly what it prints, don't guess.

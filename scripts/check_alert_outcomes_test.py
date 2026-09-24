@@ -67,6 +67,68 @@ class LongTrades(unittest.TestCase):
         self.assertEqual(r["closedAt"], "2026-09-11")
 
 
+class Target2Runner(unittest.TestCase):
+    def test_runner_reaches_target2(self):
+        bars = [
+            bar("2026-09-11", 29.30, 28.50),   # hits target1 (29.21)
+            bar("2026-09-12", 29.60, 29.00),   # neither yet
+            bar("2026-09-15", 30.10, 29.50),   # hits target2 (30.00)
+        ]
+        r = determine_outcome("long", 27.72, 27.35, 29.21, 30.00, bars)
+        self.assertEqual(r["result"], "hit-target")
+        self.assertTrue(r["target2Hit"])
+        self.assertEqual(r["target2ResolvedAt"], "2026-09-15")
+        self.assertIn("Also ran to target 2", r["notes"])
+
+    def test_runner_falls_back_to_breakeven(self):
+        bars = [
+            bar("2026-09-11", 29.30, 28.50),   # hits target1 (29.21)
+            bar("2026-09-12", 29.00, 27.60),   # low falls back to entry (27.72)
+        ]
+        r = determine_outcome("long", 27.72, 27.35, 29.21, 30.00, bars)
+        self.assertEqual(r["result"], "hit-target")
+        self.assertFalse(r["target2Hit"])
+        self.assertEqual(r["target2ResolvedAt"], "2026-09-12")
+        self.assertIn("Gave the runner back to breakeven", r["notes"])
+
+    def test_runner_still_undetermined_with_no_bars_yet(self):
+        bars = [bar("2026-09-11", 29.30, 28.50)]   # hits target1, nothing after yet
+        r = determine_outcome("long", 27.72, 27.35, 29.21, 30.00, bars)
+        self.assertEqual(r["result"], "hit-target")
+        self.assertIsNone(r["target2Hit"])
+        self.assertIsNone(r["target2ResolvedAt"])
+
+    def test_ambiguous_runner_session_resolves_conservatively_to_false(self):
+        bars = [
+            bar("2026-09-11", 29.30, 28.50),   # hits target1
+            bar("2026-09-12", 30.50, 27.00),   # touches both target2 and breakeven
+        ]
+        r = determine_outcome("long", 27.72, 27.35, 29.21, 30.00, bars)
+        self.assertFalse(r["target2Hit"])
+
+    def test_short_runner_reaches_target2(self):
+        bars = [
+            bar("2026-09-11", 99.00, 94.50),   # hits target1 (95.0)
+            bar("2026-09-12", 92.00, 89.50),   # hits target2 (90.0)
+        ]
+        r = determine_outcome("short", 100.0, 103.0, 95.0, 90.0, bars)
+        self.assertEqual(r["result"], "hit-target")
+        self.assertTrue(r["target2Hit"])
+
+    def test_no_target2_on_alert_leaves_it_none(self):
+        bars = [bar("2026-09-11", 29.30, 28.50)]
+        r = determine_outcome("long", 27.72, 27.35, 29.21, None, bars)
+        self.assertEqual(r["result"], "hit-target")
+        self.assertIsNone(r["target2Hit"])
+
+    def test_stopped_out_trade_has_no_target2_tracking(self):
+        bars = [bar("2026-09-10", 27.60, 27.20)]
+        r = determine_outcome("long", 27.72, 27.35, 29.21, 30.00, bars)
+        self.assertEqual(r["result"], "stopped-out")
+        self.assertIsNone(r["target2Hit"])
+        self.assertIsNone(r["target2ResolvedAt"])
+
+
 class ShortTrades(unittest.TestCase):
     def test_hits_target_first(self):
         # short: entry 100, stop 103, target1 95 — wins when LOW <= 95

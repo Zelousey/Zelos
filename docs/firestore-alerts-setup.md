@@ -85,11 +85,20 @@ environment the scan skills themselves run in):
    curl -sS "https://firestore.googleapis.com/v1/projects/leaderboard-agentictrading/databases/(default)/documents/alerts?pageSize=300"
    ```
 
-   Keep every doc whose `status` is `"qualified"` and whose `outcome` is
-   still missing/null or `{"result": "open"}` — those are the ones worth
-   checking. (Firestore's REST JSON wraps values as `{"stringValue": ...}`
-   etc. — unwrap those, or query through the web SDK instead if that's
-   easier from wherever this runs.)
+   Keep every doc whose `status` is `"qualified"` AND either:
+   - `outcome` is still missing/null or `{"result": "open"}` (nothing decided
+     yet), OR
+   - `outcome.result` is `"hit-target"` and `outcome.target2Hit` is still
+     `null`/absent (the win is locked in, but the runner-to-target2 flag
+     hasn't resolved either way yet — see the TARGET2 / "RUNNER" TRACKING
+     note in `scripts/check_alert_outcomes.py`, and `docs/buffer-automation.md`
+     for why that flag matters enough to keep re-checking for it).
+
+   Everything else (`stopped-out`, `expired`, `no-trade`, or a `hit-target`
+   whose `target2Hit` is already `true`/`false`) is fully resolved — skip it.
+   (Firestore's REST JSON wraps values as `{"stringValue": ...}` etc. —
+   unwrap those, or query through the web SDK instead if that's easier from
+   wherever this runs.)
 
 2. **Get the price bars since each one published.** For an equity alert
    (`swing-trader` or `breakout-rider`), call the Robinhood MCP
@@ -127,12 +136,21 @@ environment the scan skills themselves run in):
    the docstring on `update_alert_outcomes` in `functions/main.py` for the
    exact shape. It only ever touches the `outcome` field of an existing
    alert doc (merge, never overwrite), same shared-secret gate as
-   `publish_alert` and `gumroad_ping`.
+   `publish_alert` and `gumroad_ping`. `check_alert_outcomes.py`'s output
+   already includes `target2Hit`/`target2ResolvedAt` alongside
+   `result`/`closedAt`/`exitPrice`/`notes` — post the whole dict through as-is
+   (plus `alertId`), no need to pick fields out of it by hand.
 
 That's the whole loop: scan skills publish in the morning, the outcome
 checker looks back at yesterday's (and any still-open older) alerts in the
 evening, and `alert-history.html` / `alert.html` already know how to render
 whatever `outcome.result` they find — no site changes needed on top of this.
+
+**One more step, same run:** once outcomes are updated, check whether any
+alert's `outcome.target2Hit` just became `true` and `outcome.target2Announced`
+isn't already `true` — if so, that's the trigger for the Buffer win-announce
+post. See `docs/buffer-automation.md` for that whole other half of the loop
+(and what to post instead on a day with nothing to announce).
 
 ## Sanity-checking it without touching real data
 
