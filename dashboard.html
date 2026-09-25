@@ -290,7 +290,7 @@
 
       <a class="nav-link" href="arcade.html">Arcade</a>
       <a class="nav-link" href="alert-history.html">Alerts</a>
-      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="learn/index.html">Learn</a>
       <a class="nav-link" href="index.html#why-zelos">About</a>
     </div>
 
@@ -316,6 +316,7 @@
       <a href="leaderboard.html">Leaderboard</a>
       <a href="arcade.html">Arcade</a>
       <a href="alert-history.html">Alerts</a>
+      <a href="learn/index.html">Learn</a>
       <a href="ai-knowledge-catalog.html">Knowledge</a>
       <a href="index.html#why-zelos">About</a>
     </div>
@@ -409,15 +410,9 @@
         </div>
 
         <div class="card">
-          <h3 style="margin:0 0 10px; font-size:0.92rem;">Global Market Overview</h3>
-          <div class="globe-stat-row"><span>S&amp;P 500</span><span>5,762.48 <span class="chg up">+1.21%</span></span></div>
-          <div class="globe-stat-row"><span>Nasdaq</span><span>18,182.86 <span class="chg up">+1.63%</span></span></div>
-          <div class="globe-stat-row"><span>Dow Jones</span><span>42,219.64 <span class="chg up">+0.87%</span></span></div>
-          <h3 style="margin:16px 0 10px; font-size:0.92rem;">Top Sectors</h3>
-          <div class="globe-stat-row"><span>Technology</span><span class="chg up">+2.41%</span></div>
-          <div class="globe-stat-row"><span>Communication Services</span><span class="chg up">+1.87%</span></div>
-          <div class="globe-stat-row"><span>Consumer Cyclical</span><span class="chg up">+1.32%</span></div>
-          <div class="globe-stat-row"><span>Energy</span><span class="chg dn">&minus;0.34%</span></div>
+          <h3 style="margin:0 0 10px; font-size:0.92rem;">US market &amp; sectors</h3>
+          <div id="dashTvQuotes" class="tradingview-widget-container" style="min-height:380px;"><div class="tradingview-widget-container__widget"></div></div>
+          <p style="margin:6px 0 0; font-size:0.68rem; color:var(--muted);">Quotes by TradingView, may be delayed.</p>
         </div>
       </div>
 
@@ -431,30 +426,15 @@
               <button type="button" class="viz-toggle-btn" id="vizChartBtn" data-viz="chart">TradingView</button>
             </div>
           </div>
-          <div class="card-sub">Drag to rotate, scroll to zoom — or switch to a full TradingView chart. Country shading is mocked up for layout, not a live index feed.</div>
+          <div class="card-sub">Major exchanges on a live globe: green markers are in their regular session right now. Or switch to a full TradingView chart.</div>
 
           <div id="vizGlobePane">
             <div class="globe-frame">
               <div class="globe-wrap" id="dashGlobe"></div>
-              <div class="globe-live-tag"><span class="dot"></span>Mock data &middot; <span id="dashGlobeClock"></span></div>
+              <div class="globe-live-tag"><span class="dot"></span><span id="dashOpenCount">Exchange hours</span> &middot; <span id="dashGlobeClock"></span></div>
 
-              <div class="heatmap-card" id="dashHeatMapCard">
-                <div class="heatmap-card-head">
-                  <span>Heat index</span>
-                  <button class="heatmap-card-close" id="dashHeatMapClose" type="button" aria-label="Close heat map">&times;</button>
-                </div>
-                <div class="heatmap-svg-wrap" id="dashHeatMapSvg"></div>
-                <div class="globe-legend">
-                  <span><i style="background:var(--bull);"></i>Strong up</span>
-                  <span><i style="background:color-mix(in srgb, var(--bull) 55%, var(--muted-2));"></i>Up</span>
-                  <span><i style="background:var(--muted-2);"></i>Flat</span>
-                  <span><i style="background:color-mix(in srgb, var(--danger) 55%, var(--muted-2));"></i>Down</span>
-                  <span><i style="background:var(--danger);"></i>Strong down</span>
-                </div>
-              </div>
-              <button class="heatmap-reopen" id="dashHeatMapReopen" type="button" hidden>&#9633; Heat index</button>
             </div>
-            <div class="globe-hint">Drag to rotate &middot; scroll to zoom &middot; badges show a country's live move</div>
+            <div class="globe-hint">Drag to rotate &middot; scroll to zoom &middot; hover a marker for its session hours</div>
           </div>
 
           <div id="vizChartPane" hidden>
@@ -491,11 +471,8 @@
       <!-- Right column: trending, live pulse, active calls -->
       <div class="dash-col">
         <div class="card">
-          <div class="card-head"><h3 style="margin:0; font-size:0.92rem;">Trending Now</h3><a href="alert-history.html">View all &rarr;</a></div>
-          <div class="globe-trend-row"><span class="sym-badge">N</span><span class="meta"><span class="ticker">NVDA</span><span class="name">NVIDIA</span></span><span class="chg up">+4.82%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">T</span><span class="meta"><span class="ticker">TSLA</span><span class="name">Tesla</span></span><span class="chg up">+2.31%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">A</span><span class="meta"><span class="ticker">AMD</span><span class="name">AMD</span></span><span class="chg up">+2.15%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">P</span><span class="meta"><span class="ticker">PLTR</span><span class="name">Palantir</span></span><span class="chg up">+3.12%</span></div>
+          <div class="card-head"><h3 style="margin:0; font-size:0.92rem;">Exchanges right now</h3><a href="market-3d.html">Globe &rarr;</a></div>
+          <div id="dashExchanges"></div>
         </div>
 
         <div class="card">
@@ -577,7 +554,6 @@
 <script src="zelos-xp.js"></script>
 
 <!-- 3D globe — see zelos-globe.js. Only mounted while the Globe pane is visible. -->
-<script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
 <script src="zelos-globe.js"></script>
 
 <script>
@@ -1192,41 +1168,41 @@
     if (globeMounted || !el || !window.ZelosGlobe) return;
     globeMounted = true;
     ZelosGlobe.mount({
+      style: 'blend',
       el: el,
-      flatMapEl: document.getElementById('dashHeatMapSvg'),
       autoRotate: true,
       enableZoom: true,
-      altitude: 2.2,
-      badges: [
-        { name:'Canada', lat:56, lng:-106, pct:0.62 },
-        { name:'U.S.', lat:39, lng:-98, pct:1.21 },
-        { name:'Germany', lat:51, lng:10, pct:0.48 },
-        { name:'China', lat:35, lng:103, pct:-0.87 },
-        { name:'Brazil', lat:-14, lng:-52, pct:1.56 },
-        { name:'Australia', lat:-25, lng:134, pct:0.34 }
-      ]
+      altitude: 2.2
     });
   }
 
-  // heat-map card: dismissible with the X, reopenable from the small pill
-  // that takes its place — remembered per-browser.
-  (function () {
-    var card = document.getElementById('dashHeatMapCard');
-    var reopenBtn = document.getElementById('dashHeatMapReopen');
-    var closeBtn = document.getElementById('dashHeatMapClose');
-    if (!card || !reopenBtn || !closeBtn) return;
-    var KEY = 'zelosHeatMapClosed';
-    function setClosed(closed) {
-      card.hidden = closed;
-      reopenBtn.hidden = !closed;
-      try { localStorage.setItem(KEY, closed ? '1' : '0'); } catch (e) { /* ignore */ }
-    }
-    var startClosed = false;
-    try { startClosed = localStorage.getItem(KEY) === '1'; } catch (e) { /* ignore */ }
-    setClosed(startClosed);
-    closeBtn.addEventListener('click', function () { setClosed(true); });
-    reopenBtn.addEventListener('click', function () { setClosed(false); });
-  })();
+  // exchange status (same session rules as the globe markers)
+  function renderExchanges(){
+    if (!window.ZelosGlobe) return;
+    var xs = ZelosGlobe.exchanges();
+    var open = xs.filter(function(x){ return x.open; });
+    var c = document.getElementById('dashOpenCount');
+    if (c) c.textContent = open.length ? (open.length + ' of ' + xs.length + ' exchanges open') : 'All major exchanges closed';
+    var host = document.getElementById('dashExchanges'); if (!host) return;
+    var show = open.length ? open : xs.filter(function(x){ return ['NYSE','LSE','TSE','HKEX','XETRA','NSE'].indexOf(x.id) !== -1; });
+    host.innerHTML = show.map(function(x){
+      return '<div class="globe-stat-row"><span><b style="font-weight:600;">' + x.id + '</b> <span style="color:var(--muted); font-size:0.78rem;">' + x.city + '</span></span><span class="chg ' + (x.open ? 'up' : '') + '" style="font-size:0.72rem;">' + (x.open ? 'Open' : 'Closed') + '</span></div>';
+    }).join('');
+  }
+  renderExchanges(); setInterval(renderExchanges, 60000);
+
+  var tvq = document.getElementById('dashTvQuotes');
+  if (tvq) {
+    var sq = document.createElement('script');
+    sq.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js';
+    sq.async = true;
+    sq.text = JSON.stringify({ width: '100%', height: 380, colorTheme: 'dark', isTransparent: true, locale: 'en', showSymbolLogo: false,
+      symbolsGroups: [
+        { name: 'Indices', symbols: [ { name: 'FOREXCOM:SPXUSD', displayName: 'S&P 500' }, { name: 'NASDAQ:IXIC', displayName: 'Nasdaq' }, { name: 'FOREXCOM:DJI', displayName: 'Dow Jones' } ] },
+        { name: 'Sectors', symbols: [ { name: 'AMEX:XLK', displayName: 'Technology' }, { name: 'AMEX:XLC', displayName: 'Communication' }, { name: 'AMEX:XLY', displayName: 'Consumer Disc.' }, { name: 'AMEX:XLE', displayName: 'Energy' } ] }
+      ] });
+    tvq.appendChild(sq);
+  }
 
   var clock = document.getElementById('dashGlobeClock');
   function tick(){

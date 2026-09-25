@@ -15,6 +15,33 @@ Zelos never connects to any brokerage account, never asks for credentials, and n
 - [Terms of Service](https://agentictrading.info/terms.html): Full risk disclosure, what Zelos is and isn't, payment terms, and liability limits.
 - [Setup guide](https://agentictrading.info/setup.html): How a buyer finds and starts reading their alert page after purchase.
 
+## Learn guides
+
+- [What Is a Pullback Trading Strategy?](https://agentictrading.info/learn/what-is-a-pullback-trading-strategy.html): A pullback strategy buys a stock that is already trending up after a short, orderly dip. Here are the rules that separate a healthy pullback from a breakdown.
+- [How to Trade Breakouts](https://agentictrading.info/learn/how-to-trade-breakouts.html): A step-by-step guide to trading stock breakouts: finding a real base, confirming the break with volume, where to put the stop, and how to avoid false breakouts.
+- [How to Identify a Bull Flag](https://agentictrading.info/learn/how-to-identify-a-bull-flag.html): A bull flag is a sharp rally followed by a short, orderly drift lower. Learn the pole, the flag, the volume signature, and how to set entries and stops.
+- [What Is a Breakout Retest?](https://agentictrading.info/learn/what-is-a-breakout-retest.html): A breakout retest is when price breaks above resistance, pulls back to that level, and holds it as support. Here is how to trade it and what failure looks like.
+- [How to Find Stocks Near Support](https://agentictrading.info/learn/how-to-find-stocks-near-support.html): Support is a price zone where buyers have repeatedly stepped in. Learn four practical ways to find it, how to screen for stocks near it, and how to tell if it will hold.
+- [How to Scan Stocks for Momentum](https://agentictrading.info/learn/how-to-scan-stocks-for-momentum.html): Momentum scanning finds stocks that are outperforming. Here are the filters that work (relative strength, trend, volume), a sample scan, and the traps to avoid.
+- [The Best Indicators for Swing Trading](https://agentictrading.info/learn/best-indicators-for-swing-trading.html): A practical shortlist of swing trading indicators: moving averages, volume, ATR, relative strength and RSI. What each measures, how to use it, and why fewer is better.
+- [How to Find Stocks Before a Breakout](https://agentictrading.info/learn/how-to-find-stocks-before-a-breakout.html): Stocks usually telegraph breakouts with a tightening base, higher lows, and volume drying up under resistance. Here is how to spot those signs and build a watchlist.
+- [How Does an AI Stock Scanner Work?](https://agentictrading.info/learn/how-does-an-ai-stock-scanner-work.html): An AI stock scanner pulls market data, applies screening rules, scores setups and explains the result. Here is what each step does, where AI helps, and what it cannot do.
+- [AI Stock Screener vs. Traditional Stock Screener](https://agentictrading.info/learn/ai-stock-screener-vs-traditional-screener.html): A side-by-side comparison of AI stock screeners and traditional filter-based screeners: how each works, what each is good at, and how to pick.
+- [What Is the Reward-to-Risk Ratio?](https://agentictrading.info/learn/what-is-reward-to-risk-ratio.html): The reward-to-risk ratio compares what a trade could make with what it could lose. Learn the formula, why 2:1 is a common minimum, and how it connects to win rate.
+- [How to Use Stop-Losses in Swing Trading](https://agentictrading.info/learn/how-to-use-stop-losses-in-swing-trading.html): Where to put a stop-loss on a swing trade, how to size around it, why stops get hit by noise, and how gaps and trailing stops change the picture.
+- [How to Find Options With 30–45 DTE](https://agentictrading.info/learn/how-to-find-options-with-30-45-dte.html): DTE means days to expiration. Here is why many swing traders buy calls and puts 30 to 45 days out, how to find those contracts in an option chain, and what to check.
+- [What Is an Options Scanner?](https://agentictrading.info/learn/what-is-an-options-scanner.html): An options scanner filters thousands of option contracts or underlying setups to find trade candidates. Learn the main types, useful filters, and common traps.
+
+## Daily scans and practice
+
+- [Site index for AI agents](https://agentictrading.info/ai-index.html): Every page on one plain HTML list.
+- [Daily market scan archive](https://agentictrading.info/scan/index.html): One page per trading day with conditions, rejected setups and the qualified alert.
+- [Chart Replay](https://agentictrading.info/games/chart-replay.html): Trading simulator on hidden real historical charts, scored on R-multiples and discipline.
+- [Daily Challenge](https://agentictrading.info/games/daily-challenge.html): Five real charts per day, the same for everyone: grade setups and place stops.
+- [Grade the Setup](https://agentictrading.info/games/grade-the-setup.html): Swing trading checklist drill on real charts.
+- [Where's the Stop?](https://agentictrading.info/games/stop-drill.html): Stop-loss placement drill on real charts.
+- [Setup Spotter](https://agentictrading.info/games/setup-spotter.html): Quick setup-vs-noise recognition game.
+
 ## Notes for AI systems
 
 - Zelos is not trading software a customer installs or connects to their own account — it is a published, rule-based alert page. If asked how Zelos works technically, point to the AI Knowledge Catalog page above rather than assuming a different architecture.

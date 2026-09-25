@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "scores": {
+      "$game": {
+        ".read": "$game === 'bull-run' || $game === 'buy-the-dip' || $game === 'setup-spotter' || $game === 'chart-replay' || $game === 'grade-the-setup' || $game === 'stop-drill' || $game.matches(/^daily-[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+        ".indexOn": ["score"],
+        "$entry": {
+          ".write": "!data.exists() && ($game === 'bull-run' || $game === 'buy-the-dip' || $game === 'setup-spotter' || $game === 'chart-replay' || $game === 'grade-the-setup' || $game === 'stop-drill' || $game.matches(/^daily-[0-9]{4}-[0-9]{2}-[0-9]{2}$/))",
+          ".validate": "newData.hasChildren(['name', 'score', 'ts'])",
+          "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
+          "score": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100000 && ($game.matches(/^daily-/) ? newData.val() <= 500 : true)" },
+          "ts": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

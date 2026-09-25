@@ -14,26 +14,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Arcade</title>
+<title>Free Trading Games on Real Charts: Simulator &amp; Daily Challenge | Zelos Arcade</title>
 <link rel="icon" href="favicon-arcade.ico" sizes="any">
 <link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
+<meta name="description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
 <link rel="canonical" href="https://agentictrading.info/arcade.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
 <meta property="og:title" content="Zelos Arcade">
-<meta property="og:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
+<meta property="og:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
 <meta property="og:url" content="https://agentictrading.info/arcade.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Zelos Arcade">
-<meta name="twitter:description" content="Three quick games — sharpen your eye for real trade setups, or just have fun with the market-themed games.">
+<meta name="twitter:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){try{if(localStorage.getItem('zelosTheme')!=='brown')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
@@ -71,6 +71,12 @@
 
   .note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
+  .fine a, .note a{ color:var(--accent); }
+  .daily-card{ display:flex; flex-direction:column; gap:6px; margin-top:22px; padding:20px; text-decoration:none; color:var(--ink);
+    border:1px solid var(--accent-line); border-radius:var(--radius); background:linear-gradient(135deg, var(--accent-soft), var(--surface)); }
+  .daily-card strong{ font-size:1.15rem; }
+  .daily-kicker{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:0.7rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); }
+  .daily-sub{ color:var(--muted); font-size:0.88rem; }
 </style>
 </head>
 <body class="zt zt-body">
@@ -140,57 +146,61 @@
 <section class="section-tight">
   <div class="shell-narrow">
     <div>
-      <p class="eyebrow">Free to play</p>
-      <h1 style="font-size:1.5rem; margin-top:6px;">Zelos Arcade</h1>
-      <p class="status-line" style="margin-top:6px;">Three quick games, no account and no cost. One sharpens your eye for real setups, two are just here to be fun.</p>
+      <p class="eyebrow">Free training games · real charts</p>
+      <h1 style="font-size:1.6rem; margin-top:6px;">Zelos Arcade</h1>
+      <p class="status-line" style="margin-top:6px;">Practice the skills that actually matter in trading (reading a setup, placing a stop, managing risk) on real historical stock charts with the ticker hidden. No account, no money, no cost.</p>
     </div>
+
+    <a class="daily-card" href="games/daily-challenge.html">
+      <span class="daily-kicker"><span class="board-link-dot"></span>Daily Challenge · <span id="dcToday">today</span></span>
+      <strong>Five real charts. Same five for everyone. One try.</strong>
+      <span class="daily-sub">Grade three setups, place two stops, share your grid. New puzzle at midnight ET. <span id="dcState"></span></span>
+      <span class="btn btn-primary" style="margin-top:12px; align-self:flex-start;">Play today's challenge &rarr;</span>
+    </a>
 
     <div class="games">
       <div class="game-row">
         <div class="game-head">
+          <div class="game-icon accent">📈</div>
+          <div><div class="game-tag">Flagship · simulator</div><h3>Chart Replay</h3></div>
+        </div>
+        <p>A hidden ticker, 60 bars you haven't seen. Trade it bar by bar with a $10,000 practice account. Every trade needs a stop, and you're scored on R-multiples and discipline.</p>
+        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/chart-replay.html">Start a replay &rarr;</a></div>
+      </div>
+      <div class="game-row">
+        <div class="game-head">
+          <div class="game-icon gold">✅</div>
+          <div><div class="game-tag">Drill · 8 rounds</div><h3>Grade the Setup</h3></div>
+        </div>
+        <p>Run the four-point swing checklist (trend, support, volume, reward:risk) on a real chart, make the call, then see what happened next.</p>
+        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/grade-the-setup.html">Play &rarr;</a></div>
+      </div>
+      <div class="game-row">
+        <div class="game-head">
+          <div class="game-icon violet">🛑</div>
+          <div><div class="game-tag">Drill · 8 rounds</div><h3>Where's the Stop?</h3></div>
+        </div>
+        <p>You're long at the close. Tap where your stop-loss belongs. Too tight gets shaken out; too wide wastes your size. Graded on structure, not luck.</p>
+        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/stop-drill.html">Play &rarr;</a></div>
+      </div>
+      <div class="game-row">
+        <div class="game-head">
           <div class="game-icon accent">🐂</div>
-          <div>
-            <div class="game-tag">Practice</div>
-            <h3>Setup Spotter</h3>
-          </div>
+          <div><div class="game-tag">Quick practice</div><h3>Setup Spotter</h3></div>
         </div>
-        <p>A chart flashes up &mdash; real setup or noise? Call it before the clock runs out.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/setup-spotter.html">Play &rarr;</a></div>
-      </div>
-
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon gold">🐃</div>
-          <div>
-            <div class="game-tag">Just for fun</div>
-            <h3>Bull Run</h3>
-          </div>
-        </div>
-        <p>Jump the red candles, grab the green ones. Gets faster the longer you survive.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/bull-run.html">Play &rarr;</a></div>
-      </div>
-
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon violet">💵</div>
-          <div>
-            <div class="game-tag">Just for fun</div>
-            <h3>Buy the Dip</h3>
-          </div>
-        </div>
-        <p>The tape's jumpy and you're all-in or all-out. Buy low, sell high, 45 seconds.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/buy-the-dip.html">Play &rarr;</a></div>
+        <p>A chart flashes up: real setup or noise? Call it before the clock runs out.</p>
+        <div style="margin-top:14px;"><a class="btn" href="games/setup-spotter.html">Play &rarr;</a></div>
       </div>
     </div>
 
     <a class="board-link" href="leaderboard.html">
       <span class="board-link-dot"></span>
-      <span>See the live leaderboard &mdash; updates in real time</span>
+      <span>See the live leaderboard</span>
       <span class="board-link-arrow">&rarr;</span>
     </a>
-
+    <p class="fine" style="margin-top:14px;">Classic arcade: <a href="games/bull-run.html">Bull Run</a> · <a href="games/buy-the-dip.html">Buy the Dip</a></p>
     <div class="note">
-      These are games with simulated or illustrative data &mdash; none of it is real market data or a real account. Zelos itself is a rule-based scan, not personalized investment advice.
+      Charts are real historical daily bars for widely traded US stocks and ETFs; the games themselves are practice only, with no real money and no account. Zelos itself is a rule-based scan, not personalized investment advice. New to the terms? Start with <a href="learn/index.html">Learn</a>.
     </div>
   </div>
 </section>
@@ -242,6 +252,17 @@
 })();
 </script>
 
+<script>
+(function(){
+  try {
+    var d = new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    document.getElementById('dcToday').textContent = d;
+    var done = JSON.parse(localStorage.getItem('zdc-' + d) || 'null');
+    var st = JSON.parse(localStorage.getItem('zdc-streak') || 'null');
+    if (done) document.getElementById('dcState').textContent = 'You scored ' + done.total + '/500 today' + (st && st.n > 1 ? ' · ' + st.n + '-day streak' : '') + '.';
+  } catch (e) {}
+})();
+</script>
 <script src="zelos-theme-toggle.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

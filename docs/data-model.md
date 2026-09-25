@@ -34,6 +34,16 @@ no login required, so a shared link always opens straight to the full analysis.
   technicals: { rsi: 48, sma20: 27.10, sma50: 26.40, volumeVsAvg: "0.8x" },
   riskNotes: "Earnings in 9 days — position sized/held with that in mind.",
 
+  // OPTIONAL: what the scan looked at, for the public daily scan page
+  // (scan/YYYY-MM-DD.html, built by scripts/build_scan_pages.py). Every field
+  // is optional; the page simply leaves out sections it has no data for.
+  scanStats: {
+    scanned: 3120,                 // stocks in the universe that day
+    passedFilters: 41,             // survived the hard filters
+    rejected: [{ ticker: "XYZ", reason: "Below a falling 50-day average" }],
+    qualified: [{ ticker: "PFE", score: 59, setup: "Pullback" }]
+  },
+
   // filled in later by a follow-up job that checks what actually happened —
   // this is what makes alert history transparent instead of cherry-picked
   outcome: null | {

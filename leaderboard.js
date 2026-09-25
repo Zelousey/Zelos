@@ -25,8 +25,17 @@
   var GAMES = {
     'bull-run': { label: 'Bull Run', isCurrency: false },
     'buy-the-dip': { label: 'Buy the Dip', isCurrency: true },
-    'setup-spotter': { label: 'Setup Spotter', isCurrency: false }
+    'setup-spotter': { label: 'Setup Spotter', isCurrency: false },
+    'chart-replay': { label: 'Chart Replay', isCurrency: false },
+    'grade-the-setup': { label: 'Grade the Setup', isCurrency: false },
+    'stop-drill': { label: "Where's the Stop?", isCurrency: false }
   };
+  // Daily Challenge boards are one per ET date: 'daily-2026-09-24' etc.
+  function gameInfo(id) {
+    if (GAMES[id]) return GAMES[id];
+    if (/^daily-\d{4}-\d{2}-\d{2}$/.test(id)) return { label: 'Daily Challenge ' + id.slice(6), isCurrency: false };
+    return null;
+  }
   var NAME_KEY = 'zelosPlayerName';
   var initialized = false;
   var db = null;
@@ -63,13 +72,13 @@
   function formatScore(gameId, score) {
     var n = Math.round(score);
     var withCommas = n.toLocaleString('en-US');
-    return (GAMES[gameId] && GAMES[gameId].isCurrency) ? ('$' + withCommas) : withCommas;
+    return (gameInfo(gameId) && gameInfo(gameId).isCurrency) ? ('$' + withCommas) : withCommas;
   }
 
   function submitScore(gameId, score, cb) {
     var database = ensureInit();
     var n = Math.round(score);
-    if (!database || !GAMES[gameId] || !(n > 0)) { if (cb) cb(false); return; }
+    if (!database || !gameInfo(gameId) || !(n > 0)) { if (cb) cb(false); return; }
     var name = sanitizeName(getName());
     database.ref('scores/' + gameId).push({ name: name, score: n, ts: Date.now() })
       .then(function () { if (cb) cb(true); })
@@ -82,7 +91,7 @@
 
   function topScores(gameId, limit, cb) {
     var database = ensureInit();
-    if (!database || !GAMES[gameId]) { cb([]); return function () {}; }
+    if (!database || !gameInfo(gameId)) { cb([]); return function () {}; }
     var q = database.ref('scores/' + gameId).orderByChild('score').limitToLast(limit || 10);
     var handler = function (snap) {
       var rows = [];
@@ -96,6 +105,7 @@
 
   window.ZelosLeaderboard = {
     GAMES: GAMES,
+    gameInfo: gameInfo,
     isConfigured: function () { return !!ensureInit(); },
     getName: getName,
     setName: setName,

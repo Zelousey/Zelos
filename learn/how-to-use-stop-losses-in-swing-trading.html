@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Y4B3ZC5XRX');
+</script>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>How to Use Stop-Losses in Swing Trading: Placement, Sizing &amp; Gaps | Zelos</title>
+<link rel="icon" href="../favicon-arcade.ico" sizes="any">
+<link rel="icon" href="../favicon-arcade.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<link rel="manifest" href="../manifest.json">
+<meta name="apple-mobile-web-app-title" content="Zelos">
+<meta name="theme-color" content="#0c0d10">
+<meta name="description" content="Where to put a stop-loss on a swing trade, how to size around it, why stops get hit by noise, and how gaps and trailing stops change the picture.">
+<link rel="canonical" href="https://agentictrading.info/learn/how-to-use-stop-losses-in-swing-trading.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Zelos">
+<meta property="og:title" content="How to Use Stop-Losses in Swing Trading: Placement, Sizing &amp; Gaps | Zelos">
+<meta property="og:description" content="Where to put a stop-loss on a swing trade, how to size around it, why stops get hit by noise, and how gaps and trailing stops change the picture.">
+<meta property="og:url" content="https://agentictrading.info/learn/how-to-use-stop-losses-in-swing-trading.html">
+<meta property="og:image" content="https://agentictrading.info/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to Use Stop-Losses in Swing Trading: Placement, Sizing &amp; Gaps | Zelos">
+<meta name="twitter:description" content="Where to put a stop-loss on a swing trade, how to size around it, why stops get hit by noise, and how gaps and trailing stops change the picture.">
+<meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<link rel="stylesheet" href="../zelos-theme.css">
+<script>(function(){try{if(localStorage.getItem('zelosTheme')!=='brown')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
+<style>
+  :root{ color-scheme: dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  [hidden]{ display:none !important; }
+</style>
+<link rel="stylesheet" href="../zelos-theme.css">
+<link rel="stylesheet" href="learn.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "Article",
+ "headline": "How to Use Stop-Losses in Swing Trading",
+ "description": "Where to put a stop-loss on a swing trade, how to size around it, why stops get hit by noise, and how gaps and trailing stops change the picture.",
+ "url": "https://agentictrading.info/learn/how-to-use-stop-losses-in-swing-trading.html",
+ "mainEntityOfPage": "https://agentictrading.info/learn/how-to-use-stop-losses-in-swing-trading.html",
+ "datePublished": "2026-09-24",
+ "dateModified": "2026-09-24",
+ "author": {
+  "@type": "Organization",
+  "name": "Zelos",
+  "url": "https://agentictrading.info/"
+ },
+ "publisher": {
+  "@type": "Organization",
+  "name": "Zelos",
+  "url": "https://agentictrading.info/"
+ },
+ "image": "https://agentictrading.info/og-image.png",
+ "inLanguage": "en-US",
+ "about": "How to Use Stop-Losses in Swing Trading",
+ "isAccessibleForFree": true
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "What percentage should a stop-loss be?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "A fixed percentage ignores the chart and the stock's volatility. It is better to place the stop by structure and then size the position so that hitting it costs a fixed, acceptable amount."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Should I use a stop-loss order or a mental stop?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "A resting stop order executes even if you are away, which is why many swing traders prefer it. Mental stops rely on discipline at exactly the moment it is hardest."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Why do my stops always get hit before the stock goes up?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Usually because they are inside normal daily noise or placed exactly at an obvious level. Placing stops a buffer below real structure and at least about one ATR away usually helps."
+   }
+  }
+ ]
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "BreadcrumbList",
+ "itemListElement": [
+  {
+   "@type": "ListItem",
+   "position": 1,
+   "name": "Zelos",
+   "item": "https://agentictrading.info/"
+  },
+  {
+   "@type": "ListItem",
+   "position": 2,
+   "name": "Learn",
+   "item": "https://agentictrading.info/learn/index.html"
+  },
+  {
+   "@type": "ListItem",
+   "position": 3,
+   "name": "How to Use Stop-Losses in Swing Trading"
+  }
+ ]
+}
+</script>
+</head>
+<body class="zt zt-body">
+
+<nav class="site-nav">
+  <div class="shell">
+    <a class="nav-brand" href="../index.html"><span class="mark-dot"></span>Zelos</a>
+
+    <div class="nav-primary" id="navPrimary">
+      <a class="nav-link" href="../index.html">Home</a>
+      <a class="nav-link" href="../dashboard.html">Dashboard</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="../swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="../breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="../options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <hr>
+          <a href="../arsenal.html">Full Arsenal<small>Everything you own</small></a>
+        </div>
+      </div>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="../market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="../live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="../daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="../alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="../leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
+        </div>
+      </div>
+
+      <a class="nav-link" href="../arcade.html">Arcade</a>
+      <a class="nav-link" href="../alert-history.html">Alerts</a>
+      <a class="nav-link" href="../learn/index.html">Learn</a>
+      <a class="nav-link" href="../index.html#why-zelos">About</a>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <div class="nav-auth" id="navAuth"></div>
+    </div>
+
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <a href="../index.html">Home</a>
+      <a href="../dashboard.html">Dashboard</a>
+      <div class="nav-mobile-label">Strategies</div>
+      <a href="../swing-trader.html">Swing Trader</a>
+      <a href="../breakout-rider.html">Breakout Rider</a>
+      <a href="../options-scanner.html">Options Scanner</a>
+      <a href="../arsenal.html">Full Arsenal</a>
+      <div class="nav-mobile-label">Market</div>
+      <a href="../market-3d.html">Market 3D</a>
+      <a href="../live-chart.html">Live Chart</a>
+      <a href="../daily-market.html">Daily Market</a>
+      <a href="../alert-history.html">Alert History</a>
+      <a href="../leaderboard.html">Leaderboard</a>
+      <a href="../arcade.html">Arcade</a>
+      <a href="../alert-history.html">Alerts</a>
+      <a href="../learn/index.html">Learn</a>
+      <a href="../ai-knowledge-catalog.html">Knowledge</a>
+      <a href="../index.html#why-zelos">About</a>
+    </div>
+  </div>
+</nav>
+
+<main class="lr-shell">
+  <nav class="lr-crumbs" aria-label="Breadcrumb"><a href="../index.html">Zelos</a> / <a href="index.html">Learn</a> / <span>How to Use Stop-Losses in Swing Trading</span></nav>
+  <article class="lr-article">
+    <header>
+      <h1>How to Use Stop-Losses in Swing Trading</h1>
+      <p class="lr-meta">Updated <time datetime="2026-09-24">September 24, 2026</time> · 3 min read · Educational, not investment advice</p>
+    </header>
+    <p class="lede">A stop-loss is the price at which you accept a trade idea was wrong and exit. In swing trading it does two jobs: it caps the loss on any single trade, and it tells you how big the position can be. Getting the placement right matters more than almost any entry trick.</p>
+
+<h2>Rule 1: Put the stop where the idea is wrong</h2>
+<p>A good stop isn't a round number or a fixed percentage. It's a level that, if broken, means the setup no longer exists:</p>
+<ul>
+<li>For a <a href="what-is-a-pullback-trading-strategy.html">pullback</a>: just below the swing low of the dip.</li>
+<li>For a <a href="how-to-trade-breakouts.html">breakout</a>: back inside the old range, below the breakout level or the last higher low in the base.</li>
+<li>For a <a href="how-to-identify-a-bull-flag.html">bull flag</a>: below the low of the flag.</li>
+</ul>
+
+<h2>Rule 2: Stay outside the noise</h2>
+<p>Every stock wiggles. The Average True Range (ATR) tells you how much on a normal day. A stop closer than about one ATR to your entry is likely to get hit by ordinary movement even if you're right about direction. Adding a small buffer below the structural level (a fraction of ATR) helps, because levels get undercut briefly all the time.</p>
+
+<h2>Rule 3: Size the position from the stop</h2>
+<p>Decide the dollar amount you're willing to lose if the stop is hit, then work backward:</p>
+<p><b>Shares = dollar risk &divide; (entry &minus; stop)</b></p>
+<p>With $200 of risk, an entry at $50 and a stop at $47, that's about 66 shares. A wider stop means fewer shares, not more risk. This is why placing the stop by structure doesn't make the trade riskier; it just changes the size.</p>
+
+<h2>Rule 4: Never widen it</h2>
+<p>Moving a stop further away once price approaches it turns a planned small loss into an unplanned big one. Tightening a stop as the trade works is fine. Widening it is the most common way traders blow up an otherwise sound approach.</p>
+
+<h2>Gaps: when stops don't fill at your price</h2>
+<p>A stop order becomes a market order when triggered. If a stock closes at $50 with a stop at $48 and opens the next morning at $44 on bad news, the fill will be near $44. Swing traders hold overnight, so gap risk is part of the job. Ways to manage it: avoid holding through earnings, keep position sizes modest, and expect the occasional loss bigger than 1R.</p>
+
+<h2>Trailing stops</h2>
+<p>Once a trade moves in your favor, you can raise the stop to lock in part of the gain: to break-even after a 1R move, or under each new higher swing low. Trailing too tightly gets you shaken out of good trends; trailing by structure (swing lows, or a rising moving average) gives the trade room.</p>
+
+<h2>Checklist</h2>
+<table>
+<tr><th>Question</th><th>Good answer</th></tr>
+<tr><td>Why is the stop there?</td><td>Below the level that invalidates the setup</td></tr>
+<tr><td>Is it outside normal noise?</td><td>At least about one ATR from entry</td></tr>
+<tr><td>Is the position sized to it?</td><td>Hitting it costs only the planned dollar risk</td></tr>
+<tr><td>Is there room for a target?</td><td>Target at least about 2&times; the stop distance</td></tr>
+</table>
+
+<h2>How Zelos uses it</h2>
+<p>Every Zelos alert includes a stop, and the alert history records whether each alert hit its target or its stop. Practice placement on real charts in <a href="../games/stop-drill.html">Where's the Stop?</a></p>
+    <a class="lr-practice" href="../games/stop-drill.html"><span class="lr-kicker">Practice it free</span><b>Where's the Stop?</b><span>Place stops on real charts in Where's the Stop? on real historical charts, with the ticker hidden. &rarr;</span></a>
+    <aside class="lr-cta">
+      <div><b>Want Zelos to run this scan automatically?</b>
+      <span>Swing Trader applies these rules to the market on a schedule and publishes an alert only when a setup qualifies: pullbacks, bull flags and breakout retests.</span></div>
+      <a class="btn btn-primary" href="../swing-trader.html">Try Swing Trader &rarr;</a>
+    </aside>
+    <section class="lr-faq"><h2>Frequently asked questions</h2><div class="lr-faq-item"><h3>What percentage should a stop-loss be?</h3><p>A fixed percentage ignores the chart and the stock&#x27;s volatility. It is better to place the stop by structure and then size the position so that hitting it costs a fixed, acceptable amount.</p></div><div class="lr-faq-item"><h3>Should I use a stop-loss order or a mental stop?</h3><p>A resting stop order executes even if you are away, which is why many swing traders prefer it. Mental stops rely on discipline at exactly the moment it is hardest.</p></div><div class="lr-faq-item"><h3>Why do my stops always get hit before the stock goes up?</h3><p>Usually because they are inside normal daily noise or placed exactly at an obvious level. Placing stops a buffer below real structure and at least about one ATR away usually helps.</p></div></section>
+  </article>
+  <section class="lr-related"><h2>Keep learning</h2><div class="lr-grid"><a class="lr-card" href="what-is-reward-to-risk-ratio.html"><b>What Is the Reward-to-Risk Ratio?</b><span>The reward-to-risk ratio compares what a trade could make with what it could lose. Learn the formula, why 2:1…</span></a><a class="lr-card" href="how-to-find-stocks-near-support.html"><b>How to Find Stocks Near Support</b><span>Support is a price zone where buyers have repeatedly stepped in. Learn four practical ways to find it, how to…</span></a><a class="lr-card" href="best-indicators-for-swing-trading.html"><b>The Best Indicators for Swing Trading</b><span>A practical shortlist of swing trading indicators: moving averages, volume, ATR, relative strength and RSI.…</span></a><a class="lr-card" href="what-is-a-pullback-trading-strategy.html"><b>What Is a Pullback Trading Strategy?</b><span>A pullback strategy buys a stock that is already trending up after a short, orderly dip. Here are the rules…</span></a></div></section>
+  <p class="lr-disclaimer">This article is general education about trading concepts. It isn't personalized investment advice, and no strategy is guaranteed to be profitable. Trading involves risk, including loss of principal. See the <a href="../terms.html">terms</a> for Zelos's full risk disclosure.</p>
+</main>
+
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <a class="footer-brand" href="../index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <div class="footer-links">
+        <a href="../index.html">Home</a>
+        <a href="../arsenal.html">Strategies</a>
+        <a href="../alert-history.html">Alerts</a>
+        <a href="../terms.html">Terms</a>
+      </div>
+    </div>
+    <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script src="../zelos-mood.js"></script>
+<script src="../zelos-xp.js"></script>
+<script src="../leaderboard.js"></script>
+
+<script>
+(function(){
+  function wireDropdown(trigger, panel){
+    if(!trigger || !panel) return;
+    function close(){ panel.hidden = true; trigger.setAttribute('aria-expanded','false'); }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false; trigger.setAttribute('aria-expanded','true');
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+  document.querySelectorAll('.nav-drop').forEach(function(menu){
+    wireDropdown(menu.querySelector('.nav-drop-btn'), menu.querySelector('.nav-drop-panel'));
+  });
+
+  var siteNav = document.querySelector('.site-nav');
+  var hamburger = document.getElementById('navHamburger');
+  if (siteNav && hamburger) {
+    hamburger.addEventListener('click', function(){
+      var open = siteNav.classList.toggle('is-open');
+      hamburger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.getElementById('navMobilePanel').addEventListener('click', function(e){
+      if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
+    });
+  }
+})();
+</script>
+
+<script src="../zelos-theme-toggle.js"></script>
+
+<script>
+(function(){
+  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  var cfg = window.ZELOS_FIREBASE_CONFIG;
+  var ready = !!(cfg && cfg.projectId && window.firebase);
+  var auth = null, db = null;
+  if (ready) {
+    try {
+      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      auth = firebase.auth(); db = firebase.firestore();
+    } catch(e){ ready = false; }
+  }
+  var navAuth = document.getElementById('navAuth');
+
+  function userDocRef(uid){ return db.collection('users').doc(uid); }
+  function ensureUserDoc(user){
+    var ref = userDocRef(user.uid);
+    return ref.get().then(function(doc){
+      if (!doc.exists) {
+        return ref.set({
+          email: user.email || null, displayName: user.displayName || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ownedSkills: [], watchlist: [], xp: 0, streakDays: 0
+        }).then(function(){ return ref.get(); });
+      }
+      return doc;
+    });
+  }
+  function claimPendingOwnership(user){
+    if (!user.email) return Promise.resolve();
+    var pendingRef = db.collection('pendingOwnership').doc(user.email.toLowerCase());
+    return pendingRef.get().then(function(doc){
+      if (!doc.exists) return;
+      var skills = (doc.data().skills || []).filter(Boolean);
+      if (!skills.length) return pendingRef.delete().catch(function(){});
+      return userDocRef(user.uid).set({
+        ownedSkills: firebase.firestore.FieldValue.arrayUnion.apply(null, skills)
+      }, { merge:true }).then(function(){ return pendingRef.delete(); });
+    }).catch(function(){});
+  }
+  function wireDropdownRef(trigger, panel){
+    function close(){ panel.hidden = true; }
+    function open(){
+      document.querySelectorAll('.nav-drop-panel, .auth-pop').forEach(function(p){ if(p !== panel) p.hidden = true; });
+      panel.hidden = false;
+    }
+    trigger.addEventListener('click', function(e){ e.stopPropagation(); if (panel.hidden) open(); else close(); });
+    document.addEventListener('click', function(e){ if (!panel.contains(e.target) && !trigger.contains(e.target)) close(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+    return { open: open, close: close };
+  }
+
+  function renderSignedOut(){
+    navAuth.innerHTML =
+      '<div style="position:relative;"><button class="btn btn-ghost btn-sm" id="loginBtn" type="button">Log in</button></div>' +
+      '<div style="position:relative;">' +
+        '<button class="btn btn-primary btn-sm" id="getStartedBtn" type="button">Get Started</button>' +
+        '<div class="auth-pop" id="authPop" hidden>' +
+          '<h3 id="authPopTitle">Sign in to Zelos</h3>' +
+          '<div class="auth-msg" id="authMsg"></div>' +
+          '<input type="email" id="authEmail" placeholder="Email" autocomplete="email">' +
+          '<input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">' +
+          '<button class="btn btn-primary" id="authSubmitBtn" type="button">Sign in</button>' +
+          '<div class="auth-divider">or</div>' +
+          '<button class="btn" id="googleSignInBtn" type="button">Continue with Google</button>' +
+          '<div class="auth-switch" id="authSwitch">New here? <button type="button" id="authModeToggle">Create an account</button></div>' +
+        '</div>' +
+      '</div>';
+
+    var pop = document.getElementById('authPop');
+    var mode = 'signin';
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = '../dashboard.html'; } }
+    function setMsg(text, isError){
+      var el = document.getElementById('authMsg');
+      el.textContent = text || '';
+      el.className = 'auth-msg' + (isError ? ' is-error' : '');
+    }
+    function applyMode(){
+      document.getElementById('authPopTitle').textContent = mode === 'signup' ? 'Create your Zelos account' : 'Sign in to Zelos';
+      document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+      document.getElementById('authSwitch').innerHTML = mode === 'signup'
+        ? 'Already have an account? <button type="button" id="authModeToggle">Sign in</button>'
+        : 'New here? <button type="button" id="authModeToggle">Create an account</button>';
+      document.getElementById('authModeToggle').addEventListener('click', function(){ mode = mode === 'signup' ? 'signin' : 'signup'; applyMode(); });
+    }
+    applyMode();
+
+    var dd = wireDropdownRef(document.getElementById('getStartedBtn'), pop);
+    document.getElementById('loginBtn').addEventListener('click', function(e){ e.stopPropagation(); mode='signin'; applyMode(); dd.open(); });
+
+    document.getElementById('authSubmitBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var email = document.getElementById('authEmail').value.trim();
+      var pw = document.getElementById('authPassword').value;
+      if (mode === 'signup') {
+        setMsg('Creating account…');
+        auth.createUserWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      } else {
+        setMsg('Signing in…');
+        auth.signInWithEmailAndPassword(email, pw).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      }
+    });
+    document.getElementById('googleSignInBtn').addEventListener('click', function(){
+      if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
+      var provider = new firebase.auth.GoogleAuthProvider();
+      setMsg('Opening Google sign-in…');
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+    });
+  }
+
+  function renderSignedIn(user){
+    var initial = (user.email || '?').charAt(0).toUpperCase();
+    navAuth.innerHTML =
+      '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="account-avatar">' + initial + '</span>' +
+        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="nav-drop-caret">&#9662;</span></button>' +
+        '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
+          '<a href="../dashboard.html">Dashboard</a><a href="../my-zelos.html">My Zelos</a><a href="../arsenal.html">Arsenal</a>' +
+          '<a href="../alert-history.html">Alert History</a><a href="../leaderboard.html">Leaderboard</a><a href="../arcade.html">Arcade</a>' +
+          '<hr><a href="#" id="signOutLink">Sign out</a>' +
+        '</div></div>';
+    wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
+    document.getElementById('signOutLink').addEventListener('click', function(e){ e.preventDefault(); auth.signOut(); });
+  }
+
+  if (ready) {
+    auth.onAuthStateChanged(function(user){
+      if (user && !user.isAnonymous) {
+        renderSignedIn(user);
+        ensureUserDoc(user).then(function(){ return claimPendingOwnership(user); }).then(function(){
+          if (window.ZelosXP) ZelosXP.award('daily-checkin');
+        });
+      } else {
+        renderSignedOut();
+        if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
+      }
+    });
+  } else { renderSignedOut(); }
+})();
+</script>
+</body>
+</html>

@@ -86,6 +86,28 @@
   ]
 }
 </script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "Organization",
+ "name": "Zelos",
+ "url": "https://agentictrading.info/",
+ "logo": "https://agentictrading.info/icons/icon-512.png",
+ "description": "Zelos publishes rule-based, AI-run stock scans and trade alerts: general information, the same for every reader. It never connects to brokerage accounts or places trades."
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "WebSite",
+ "name": "Zelos",
+ "url": "https://agentictrading.info/",
+ "publisher": {
+  "@type": "Organization",
+  "name": "Zelos"
+ }
+}
+</script>
 </head>
 <body class="zt zt-body">
 
@@ -122,7 +144,7 @@
       <a class="nav-link" href="arcade.html">Arcade</a>
 
       <a class="nav-link" href="alert-history.html">Alerts</a>
-      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="learn/index.html">Learn</a>
       <a class="nav-link" href="#why-zelos">About</a>
     </div>
 
@@ -150,6 +172,7 @@
       <a href="leaderboard.html">Leaderboard</a>
       <a href="arcade.html">Arcade</a>
       <a href="alert-history.html">Alerts</a>
+      <a href="learn/index.html">Learn</a>
       <a href="ai-knowledge-catalog.html">Knowledge</a>
       <a href="#why-zelos">About</a>
     </div>
@@ -200,11 +223,11 @@
     <div class="hero-visual">
       <div class="zmark is-globe">
         <div class="zmark-glow"></div>
-        <div class="zmark-label"><span class="dot"></span>Global Markets &middot; live</div>
+        <div class="zmark-label"><span class="dot"></span><span id="heroGlobeLabel">Global exchanges</span></div>
         <div class="globe-wrap" id="heroGlobe"></div>
-        <div class="zmark-chip c1"><span class="up">NVDA +2.3%</span></div>
-        <div class="zmark-chip c2">Scanning 3,000+ setups</div>
-        <div class="zmark-chip c3">Alert published 9:41 ET</div>
+        <div class="zmark-chip c1" id="heroNyse">NYSE &middot; checking hours…</div>
+        <div class="zmark-chip c2">Every setup scored out of 80</div>
+        <a class="zmark-chip c3" href="alert-history.html" style="text-decoration:none; color:inherit;">Every outcome tracked &rarr;</a>
       </div>
     </div>
   </div>
@@ -436,24 +459,32 @@
 <script src="zelos-xp.js"></script>
 <script src="zelos-alert-modal.js"></script>
 
-<!-- 3D globe (hero) — globe.gl bundles three.js; mock heat data until real
-     market data is wired in. Rendering pauses off-screen — see zelos-globe.js -->
-<script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+<!-- 3D globe (hero) — self-contained WebGL, no libraries. Real sun position and
+     real exchange open/closed state. Rendering pauses off-screen — see zelos-globe.js -->
 <script src="zelos-globe.js"></script>
 <script>
 (function(){
   var el = document.getElementById('heroGlobe');
   if (!el || !window.ZelosGlobe) return;
   ZelosGlobe.mount({
+    style: 'blend',
     el: el,
     autoRotate: true,
     enableZoom: false,
     altitude: 2.3,
-    badges: [
-      { name:'US', lat:39, lng:-98, pct:1.21 },
-      { name:'China', lat:35, lng:103, pct:-0.87 },
-      { name:'Germany', lat:51, lng:10, pct:0.48 }
-    ]
+    onReady: function(g){
+      var lab = document.getElementById('heroGlobeLabel');
+      function upd(){
+        if (!lab) return;
+        var open = g.exchanges().filter(function(x){ return x.open; });
+        lab.textContent = open.length ? (open.length + ' of 17 major exchanges open now') : 'All major exchanges closed right now';
+      }
+      function nyse(){
+        var x = g.exchanges().filter(function(e){ return e.id === 'NYSE'; })[0], c = document.getElementById('heroNyse');
+        if (x && c) c.innerHTML = 'NYSE &middot; <span class="' + (x.open ? 'up' : '') + '">' + x.label.replace(' local', ' ET') + '</span>';
+      }
+      upd(); nyse(); setInterval(function(){ upd(); nyse(); }, 60000);
+    }
   });
 })();
 </script>

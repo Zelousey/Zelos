@@ -21,12 +21,12 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Global markets on a live, rotating 3D globe — see which countries are up or down at a glance, then drill into the names driving it.">
+<meta name="description" content="The world's major stock exchanges on a live 3D globe: which are open right now, with the real day/night line, plus US index and sector quotes.">
 <link rel="canonical" href="https://agentictrading.info/market-3d.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
 <meta property="og:title" content="Market 3D — Zelos">
-<meta property="og:description" content="Global markets on a live, rotating 3D globe — see which countries are up or down at a glance.">
+<meta property="og:description" content="The world's major stock exchanges on a live 3D globe, open or closed right now.">
 <meta property="og:url" content="https://agentictrading.info/market-3d.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -82,7 +82,7 @@
 
       <a class="nav-link" href="arcade.html">Arcade</a>
       <a class="nav-link" href="alert-history.html">Alerts</a>
-      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="learn/index.html">Learn</a>
       <a class="nav-link" href="index.html#why-zelos">About</a>
     </div>
 
@@ -108,6 +108,7 @@
       <a href="leaderboard.html">Leaderboard</a>
       <a href="arcade.html">Arcade</a>
       <a href="alert-history.html">Alerts</a>
+      <a href="learn/index.html">Learn</a>
       <a href="ai-knowledge-catalog.html">Knowledge</a>
       <a href="index.html#why-zelos">About</a>
     </div>
@@ -120,69 +121,37 @@
       <div>
         <div class="eyebrow">Zelos &middot; Market 3D</div>
         <h1 style="font-size:1.7rem; margin-top:8px;">Global markets, on a globe.</h1>
-        <p style="margin-top:8px;">A quick-look prototype: drag to rotate, scroll to zoom, and see which countries are green or red at a glance. The shading below is mocked up for now &mdash; not a live index feed &mdash; while we work out whether this is worth wiring to the real thing.</p>
+        <p style="margin-top:8px;">Seventeen major stock exchanges on a live globe. Green markers are inside their regular trading session right now; the day/night line follows the real position of the sun. Drag to rotate, scroll to zoom, hover a marker for its hours.</p>
       </div>
     </div>
 
     <div class="globe-page-grid">
       <div>
         <div class="globe-panel">
-          <h3>Global Market Overview</h3>
-          <div class="globe-stat-row"><span>S&amp;P 500</span><span>5,762.48 <span class="chg up">+1.21%</span></span></div>
-          <div class="globe-stat-row"><span>Nasdaq</span><span>18,182.86 <span class="chg up">+1.63%</span></span></div>
-          <div class="globe-stat-row"><span>Dow Jones</span><span>42,219.64 <span class="chg up">+0.87%</span></span></div>
-        </div>
-        <div class="globe-panel">
-          <h3>Top Sectors</h3>
-          <div class="globe-stat-row"><span>Technology</span><span class="chg up">+2.41%</span></div>
-          <div class="globe-stat-row"><span>Communication Services</span><span class="chg up">+1.87%</span></div>
-          <div class="globe-stat-row"><span>Consumer Cyclical</span><span class="chg up">+1.32%</span></div>
-          <div class="globe-stat-row"><span>Healthcare</span><span class="chg up">+0.96%</span></div>
-          <div class="globe-stat-row"><span>Energy</span><span class="chg dn">&minus;0.34%</span></div>
+          <h3>US market &amp; sectors</h3>
+          <div id="tvQuotes" class="tradingview-widget-container" style="min-height:420px;"><div class="tradingview-widget-container__widget"></div></div>
+          <p style="margin-top:8px; font-size:0.7rem; color:var(--muted);">Quotes by TradingView, may be delayed.</p>
         </div>
       </div>
 
       <div>
         <div class="globe-frame">
           <div class="globe-wrap" id="marketGlobe"></div>
-          <div class="globe-live-tag"><span class="dot"></span>Mock data &middot; <span id="globeClock"></span></div>
-
-          <div class="heatmap-card" id="heatMapCard">
-            <div class="heatmap-card-head">
-              <span>Heat index</span>
-              <button class="heatmap-card-close" id="heatMapClose" type="button" aria-label="Close heat map">&times;</button>
-            </div>
-            <div class="heatmap-svg-wrap" id="heatMapSvg"></div>
-            <div class="globe-legend">
-              <span><i style="background:var(--bull);"></i>Strong up</span>
-              <span><i style="background:color-mix(in srgb, var(--bull) 55%, var(--muted-2));"></i>Up</span>
-              <span><i style="background:var(--muted-2);"></i>Flat</span>
-              <span><i style="background:color-mix(in srgb, var(--danger) 55%, var(--muted-2));"></i>Down</span>
-              <span><i style="background:var(--danger);"></i>Strong down</span>
-            </div>
-          </div>
-          <button class="heatmap-reopen" id="heatMapReopen" type="button" hidden>&#9633; Heat index</button>
+          <div class="globe-live-tag"><span class="dot"></span><span id="globeOpenCount">Exchange hours</span> &middot; <span id="globeClock"></span></div>
         </div>
-        <div class="globe-hint">Drag to rotate &middot; scroll to zoom &middot; badges show a country's live move</div>
+        <div class="globe-hint">Drag to rotate &middot; scroll to zoom &middot; hover a marker for its session hours</div>
       </div>
 
       <div>
         <div class="globe-panel">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-            <h3 style="margin:0;">Trending Now</h3>
-            <a href="alert-history.html" style="font-family:var(--mono); font-size:0.72rem; color:var(--accent); text-decoration:none;">View all &rarr;</a>
-          </div>
-          <div class="globe-trend-row"><span class="sym-badge">N</span><span class="meta"><span class="ticker">NVDA</span><span class="name">NVIDIA</span></span><span class="chg up">+4.82%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">T</span><span class="meta"><span class="ticker">TSLA</span><span class="name">Tesla</span></span><span class="chg up">+2.31%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">A</span><span class="meta"><span class="ticker">AMD</span><span class="name">AMD</span></span><span class="chg up">+2.15%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">P</span><span class="meta"><span class="ticker">PLTR</span><span class="name">Palantir</span></span><span class="chg up">+3.12%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">A</span><span class="meta"><span class="ticker">AMZN</span><span class="name">Amazon</span></span><span class="chg up">+1.76%</span></div>
-          <div class="globe-trend-row"><span class="sym-badge">R</span><span class="meta"><span class="ticker">RIVN</span><span class="name">Rivian</span></span><span class="chg dn">&minus;1.24%</span></div>
+          <h3>Exchanges right now</h3>
+          <div id="exchangeList"></div>
+          <p style="margin-top:10px; font-size:0.7rem; color:var(--muted);">Regular sessions in each exchange's local time. Public holidays and half-days aren't included.</p>
         </div>
       </div>
     </div>
 
-    <div class="disclosures">Prototype only &mdash; the country shading and index/sector figures above are mocked up for layout and performance testing, not live market data. Nothing on this page connects to a brokerage account, places an order, or constitutes personalized investment advice.</div>
+    <div class="disclosures">Index and sector quotes are provided by TradingView and may be delayed. Exchange open/closed status is calculated from each exchange's regular hours and doesn't account for holidays. Nothing on this page connects to a brokerage account, places an order, or constitutes personalized investment advice.</div>
   </div>
 </section>
 
@@ -211,7 +180,6 @@
 
 <!-- 3D globe — globe.gl bundles three.js; mock heat data for this first pass.
      Rendering pauses off-screen / when the tab is hidden — see zelos-globe.js -->
-<script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
 <script src="zelos-globe.js"></script>
 
 <script>
@@ -394,41 +362,44 @@
   var el = document.getElementById('marketGlobe');
   if (!el || !window.ZelosGlobe) return;
   ZelosGlobe.mount({
+    style: 'blend',
     el: el,
-    flatMapEl: document.getElementById('heatMapSvg'),
     autoRotate: true,
     enableZoom: true,
-    altitude: 2.2,
-    badges: [
-      { name:'Canada', lat:56, lng:-106, pct:0.62 },
-      { name:'U.S.', lat:39, lng:-98, pct:1.21 },
-      { name:'Germany', lat:51, lng:10, pct:0.48 },
-      { name:'China', lat:35, lng:103, pct:-0.87 },
-      { name:'Brazil', lat:-14, lng:-52, pct:1.56 },
-      { name:'Australia', lat:-25, lng:134, pct:0.34 }
-    ]
+    altitude: 2.2
   });
 
-  // heat-map card: dismissible with the X, reopenable from the small pill
-  // that takes its place — remembered per-browser so a visitor who closes
-  // it doesn't have to re-close it on every visit.
-  (function () {
-    var card = document.getElementById('heatMapCard');
-    var reopenBtn = document.getElementById('heatMapReopen');
-    var closeBtn = document.getElementById('heatMapClose');
-    if (!card || !reopenBtn || !closeBtn) return;
-    var KEY = 'zelosHeatMapClosed';
-    function setClosed(closed) {
-      card.hidden = closed;
-      reopenBtn.hidden = !closed;
-      try { localStorage.setItem(KEY, closed ? '1' : '0'); } catch (e) { /* ignore */ }
-    }
-    var startClosed = false;
-    try { startClosed = localStorage.getItem(KEY) === '1'; } catch (e) { /* ignore */ }
-    setClosed(startClosed);
-    closeBtn.addEventListener('click', function () { setClosed(true); });
-    reopenBtn.addEventListener('click', function () { setClosed(false); });
-  })();
+  // live exchange list, from the same session rules the globe markers use
+  var list = document.getElementById('exchangeList'), countEl = document.getElementById('globeOpenCount');
+  function renderExchanges(){
+    var xs = ZelosGlobe.exchanges();
+    var open = xs.filter(function(x){ return x.open; }).length;
+    if (countEl) countEl.textContent = open ? (open + ' of ' + xs.length + ' exchanges open') : 'All major exchanges closed';
+    if (!list) return;
+    xs.sort(function(a,b){ return (b.open - a.open); });
+    list.innerHTML = xs.map(function(x){
+      return '<div class="globe-stat-row"><span><b style="font-weight:600;">' + x.id + '</b> <span style="color:var(--muted); font-size:0.78rem;">' + x.city + '</span></span>' +
+        '<span class="chg ' + (x.open ? 'up' : '') + '" style="font-size:0.72rem; text-align:right;">' + x.label.replace(' · ', '<br>') + '</span></div>';
+    }).join('');
+  }
+  renderExchanges(); setInterval(renderExchanges, 60000);
+
+  // TradingView market quotes: indices + sector ETFs (real, possibly delayed)
+  var tv = document.querySelector('#tvQuotes');
+  if (tv) {
+    var sc = document.createElement('script');
+    sc.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js';
+    sc.async = true;
+    sc.text = JSON.stringify({
+      width: '100%', height: 420, colorTheme: 'dark', isTransparent: true, locale: 'en', showSymbolLogo: false,
+      symbolsGroups: [
+        { name: 'Indices', symbols: [ { name: 'FOREXCOM:SPXUSD', displayName: 'S&P 500' }, { name: 'NASDAQ:IXIC', displayName: 'Nasdaq' }, { name: 'FOREXCOM:DJI', displayName: 'Dow Jones' } ] },
+        { name: 'Sectors', symbols: [ { name: 'AMEX:XLK', displayName: 'Technology' }, { name: 'AMEX:XLC', displayName: 'Communication' }, { name: 'AMEX:XLY', displayName: 'Consumer Disc.' },
+          { name: 'AMEX:XLV', displayName: 'Healthcare' }, { name: 'AMEX:XLF', displayName: 'Financials' }, { name: 'AMEX:XLE', displayName: 'Energy' } ] }
+      ]
+    });
+    tv.appendChild(sc);
+  }
 
   var clock = document.getElementById('globeClock');
   function tick(){

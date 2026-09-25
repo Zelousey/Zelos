@@ -1,0 +1,28 @@
+/* Daily market scan pages. Builds on learn/learn.css. */
+.sc-stats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin:18px 0 6px; }
+.sc-stats div{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; }
+.sc-stats small{ display:block; font-family:var(--mono); font-size:0.62rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+.sc-stats b{ font-family:var(--mono); font-size:1.15rem; }
+.sc-card{ border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); padding:16px 18px; margin:14px 0; }
+.sc-card-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.sc-score{ font-family:var(--mono); font-size:0.75rem; color:var(--muted); }
+.sc-card h3{ font-size:1.5rem; margin:6px 0 10px; font-family:var(--mono); }
+.sc-card h4{ font-size:0.95rem; margin:16px 0 4px; }
+.lr-article .sc-plan{ display:table; width:auto; min-width:260px; }
+.lr-article .sc-plan th{ width:130px; }
+.sc-tech{ list-style:none; padding:0 !important; display:flex; flex-wrap:wrap; gap:6px; }
+.sc-tech li{ margin:0 !important; font-family:var(--mono); font-size:0.78rem !important; border:1px solid var(--border); border-radius:3px; padding:4px 8px; }
+.sc-tech span{ color:var(--muted); margin-right:6px; }
+.sc-outcome{ border-left:3px solid var(--muted); padding-left:10px; }
+.sc-hit-target{ border-color:var(--bull); } .sc-stopped-out{ border-color:var(--danger); }
+.sc-fine{ font-size:0.85rem !important; color:var(--muted) !important; }
+.sc-links{ font-size:0.88rem !important; }
+.sc-pn{ display:flex; justify-content:space-between; gap:10px; margin-top:28px; font-family:var(--mono); font-size:0.78rem; }
+.sc-pn a{ color:var(--accent); text-decoration:none; }
+.sc-list{ display:flex; flex-direction:column; margin-top:18px; border-top:1px solid var(--border); }
+.sc-row{ display:flex; gap:16px; padding:12px 4px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--ink); }
+.sc-row:hover{ background:var(--surface); }
+.sc-date{ font-family:var(--mono); font-size:0.82rem; min-width:170px; color:var(--muted); }
+.sc-row em{ color:var(--muted); }
+.sc-delay{ display:flex; flex-direction:column; gap:4px; margin:6px 0 18px; padding:12px 14px; border:1px solid var(--border); border-left:3px solid var(--gold, #d9a441); border-radius:var(--radius-sm); background:var(--surface); }
+.sc-delay b{ font-size:0.9rem; } .sc-delay span{ font-size:0.86rem; color:var(--ink-2, var(--ink)); line-height:1.55; }

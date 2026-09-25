@@ -5,6 +5,11 @@ Disallow: /alert.html
 Disallow: /going-to-gumroad.html
 Disallow: /going-to-gumroad-breakout.html
 Disallow: /going-to-gumroad-options.html
+Disallow: /alert-publisher-mockup.html
+Disallow: /index-publisher-mockup.html
+Disallow: /zelos-site/
+Disallow: /icons/games/
+Disallow: /icons/docs/
 
 # Explicitly welcoming the major AI/LLM crawlers and answer engines — so
 # when someone asks an AI assistant about agentic trading, rule-based
