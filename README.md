@@ -54,6 +54,8 @@ secrets described there.
 
 ## Globe
 
+Hovering a country tints it red/green by its country ETF's daily move and shows its trending stock and linked US-listed names; clicking pins the card. Data: `data/globe-markets.json` (static fallback) and Firestore `markets/globe` (live). See `docs/market-map.md`.
+
 `zelos-globe.js` is a self-contained WebGL globe (no three.js / globe.gl). Styles: `realistic`, `futuristic`, `blend`, set per page with `style:` in `ZelosGlobe.mount`. The terminator follows the real sun; exchange markers show regular trading hours (holidays not modelled).
 
 ## Deploy with GitHub Pages

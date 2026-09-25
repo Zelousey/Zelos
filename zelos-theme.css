@@ -790,3 +790,29 @@ body.zt-body::after{
   color:var(--muted); display:flex; align-items:center; gap:6px; pointer-events:none;
 }
 .globe-live-tag .dot{ width:6px; height:6px; border-radius:50%; background:var(--bull); box-shadow:0 0 6px var(--bull-glow); }
+
+/* ---- globe country card (hover preview / click to pin) ---- */
+.globe-card{
+  position:absolute; z-index:6; width:290px; max-width:calc(100% - 16px); pointer-events:none;
+  background:rgba(12,14,18,0.94); border:1px solid var(--border); border-radius:var(--radius-sm, 4px);
+  box-shadow:0 14px 34px rgba(0,0,0,0.55); padding:12px 14px; font-size:0.8rem; color:var(--ink);
+  font-family:var(--sans, 'IBM Plex Sans', system-ui, sans-serif); text-align:left;
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+}
+.globe-card.is-pinned{ pointer-events:auto; max-height:calc(100% - 16px); overflow:auto; border-color:var(--accent-line, var(--accent)); }
+.globe-card.is-docked{ width:auto; max-height:55%; overflow:auto; }
+.globe-card .gc-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding-right:18px; }
+.globe-card .gc-head b{ font-size:0.98rem; }
+.globe-card .gc-big{ font-family:var(--mono); font-size:0.92rem; font-weight:600; }
+.globe-card .gc-sub{ color:var(--muted); font-size:0.72rem; margin-top:2px; }
+.globe-card .gc-sec{ font-family:var(--mono); font-size:0.62rem; letter-spacing:0.07em; text-transform:uppercase; color:var(--accent); margin:10px 0 4px; }
+.globe-card .gc-row{ display:flex; justify-content:space-between; gap:8px; padding:2px 0; font-family:var(--mono); font-size:0.76rem; }
+.globe-card .gc-row b{ font-weight:600; }
+.globe-card .gc-row em{ color:var(--muted); font-style:normal; font-size:0.7rem; }
+.globe-card .gc-why{ color:var(--muted); font-size:0.7rem; line-height:1.4; margin:0 0 4px; }
+.globe-card .gc-news{ font-size:0.74rem; line-height:1.45; color:var(--ink-2, var(--ink)); margin:2px 0 2px; }
+.globe-card .gc-news span{ color:var(--muted); font-size:0.68rem; }
+.globe-card .gc-up{ color:var(--bull); } .globe-card .gc-dn{ color:var(--danger); } .globe-card .gc-na{ color:var(--muted); }
+.globe-card .gc-foot{ margin-top:10px; padding-top:8px; border-top:1px solid var(--border); color:var(--muted); font-size:0.66rem; line-height:1.45; }
+.globe-card .gc-close{ position:absolute; top:6px; right:8px; background:none; border:0; color:var(--muted); font-size:1.1rem; cursor:pointer; line-height:1; }
+.globe-card .gc-close:hover{ color:var(--ink); }

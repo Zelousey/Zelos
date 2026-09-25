@@ -32,6 +32,13 @@ service cloud.firestore {
       allow write: if false; // written only by the scan pipeline via the Admin SDK
     }
 
+    // Globe market map (country moves, trending stocks, linked US-listed names).
+    // Public read; written only by publish_market_map via the Admin SDK.
+    match /markets/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Skills catalog: Swing Trader / Breakout Rider / Options Scanner listings.
     // Public read so the Arsenal page and Gumroad links work for signed-out visitors.
     match /skills/{skillId} {

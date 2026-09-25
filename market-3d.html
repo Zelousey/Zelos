@@ -139,10 +139,15 @@
           <div class="globe-wrap" id="marketGlobe"></div>
           <div class="globe-live-tag"><span class="dot"></span><span id="globeOpenCount">Exchange hours</span> &middot; <span id="globeClock"></span></div>
         </div>
-        <div class="globe-hint">Drag to rotate &middot; scroll to zoom &middot; hover a marker for its session hours</div>
+        <div class="globe-hint">Hover a country for its market &middot; click to pin &middot; drag to rotate &middot; scroll to zoom</div>
       </div>
 
       <div>
+        <div class="globe-panel">
+          <h3>Biggest country moves</h3>
+          <div id="countryMovers"><div style="color:var(--muted); font-size:0.8rem;">Loading…</div></div>
+          <p id="moversAsOf" style="margin-top:10px; font-size:0.7rem; color:var(--muted);"></p>
+        </div>
         <div class="globe-panel">
           <h3>Exchanges right now</h3>
           <div id="exchangeList"></div>
@@ -361,12 +366,29 @@
   // ---- the 3D globe itself ----
   var el = document.getElementById('marketGlobe');
   if (!el || !window.ZelosGlobe) return;
-  ZelosGlobe.mount({
+  var globe = ZelosGlobe.mount({
     style: 'blend',
     el: el,
     autoRotate: true,
     enableZoom: true,
     altitude: 2.2
+  });
+
+  // country movers list: click one to spin the globe there and open its card
+  if (globe) globe.markets().then(function(m){
+    var host = document.getElementById('countryMovers'); if (!host) return;
+    if (!m || !m.countries) { host.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Market map unavailable right now.</div>'; return; }
+    var rows = Object.keys(m.countries).map(function(k){ var c = m.countries[k]; return { iso:k, name:c.name, chg:c.chg, t:c.trending }; })
+      .filter(function(r){ return r.chg != null && r.iso !== 'USA'; })
+      .sort(function(a,b){ return Math.abs(b.chg) - Math.abs(a.chg); }).slice(0, 8);
+    host.innerHTML = rows.map(function(r){
+      return '<button type="button" class="globe-stat-row" data-iso="' + r.iso + '" style="width:100%; background:none; border:0; border-bottom:1px solid var(--border-soft, var(--border)); color:inherit; font:inherit; cursor:pointer; text-align:left; padding:9px 0;">' +
+        '<span>' + r.name + (r.t ? ' <span style="color:var(--muted); font-size:0.74rem;">' + r.t.sym + '</span>' : '') + '</span>' +
+        '<span class="chg ' + (r.chg >= 0 ? 'up' : 'dn') + '">' + (r.chg >= 0 ? '+' : '&minus;') + Math.abs(r.chg).toFixed(2) + '%</span></button>';
+    }).join('');
+    host.querySelectorAll('[data-iso]').forEach(function(b){ b.addEventListener('click', function(){ globe.focusCountry(b.getAttribute('data-iso')); }); });
+    var asof = document.getElementById('moversAsOf');
+    if (asof && m.asOf) asof.textContent = 'Country ETF moves in USD, as of the ' + m.asOf + ' close. Hover or click any country on the globe for its trending stock and linked US-listed names.';
   });
 
   // live exchange list, from the same session rules the globe markers use

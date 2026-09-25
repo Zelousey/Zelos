@@ -112,6 +112,35 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
 
 
 @https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
+def publish_market_map(req: https_fn.Request) -> https_fn.Response:
+    """Stores the globe's country market map (built by scripts/build_market_map.py)
+    at markets/globe, as one JSON string so the browser can read it with a single
+    public GET. Same shared-secret gate as publish_alert."""
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
+    expected_secret = os.environ.get("ZELOS_PUBLISH_SECRET", "")
+    provided_secret = req.headers.get("X-Zelos-Secret", "")
+    if not expected_secret or provided_secret != expected_secret:
+        return https_fn.Response("Unauthorized", status=401)
+    try:
+        payload = req.get_json(silent=False)
+    except Exception:
+        return https_fn.Response("Invalid JSON body", status=400)
+    if not isinstance(payload, dict) or not isinstance(payload.get("countries"), dict) or not payload.get("asOf"):
+        return https_fn.Response("Body must be a market map with 'asOf' and 'countries'", status=400)
+    body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    if len(body) > 500_000:
+        return https_fn.Response("Market map too large", status=413)
+    db = firestore.client()
+    try:
+        db.collection("markets").document("globe").set(
+            {"json": body, "asOf": payload["asOf"], "updatedAt": firestore.SERVER_TIMESTAMP})
+    except Exception as e:
+        return https_fn.Response("Firestore write failed: %s" % (e,), status=500)
+    return https_fn.Response(json.dumps({"ok": True, "asOf": payload["asOf"]}), status=200, content_type="application/json")
+
+
+@https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
 def gumroad_ping(req: https_fn.Request) -> https_fn.Response:
     """Gumroad's account-wide sale-notification webhook.
 

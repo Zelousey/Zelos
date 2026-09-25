@@ -50,6 +50,37 @@
     } catch (e) {}
     return '/data/countries-110m.geojson';
   })();
+  var MARKETS_URL = COUNTRIES_URL.replace('countries-110m.geojson', 'globe-markets.json');
+  // live copy published by the daily market-map job (public read); the static
+  // file above is the fallback, so the globe always has something to show
+  var MARKETS_FIRESTORE = 'https://firestore.googleapis.com/v1/projects/leaderboard-agentictrading/databases/(default)/documents/markets/globe';
+  var marketsPromise = null;
+  function loadMarkets() {
+    if (marketsPromise) return marketsPromise;
+    function fromStatic() { return fetch(MARKETS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+    marketsPromise = fetch(MARKETS_FIRESTORE).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (doc) {
+        var j = doc && doc.fields && doc.fields.json && doc.fields.json.stringValue;
+        var live = j ? JSON.parse(j) : null;
+        return fromStatic().then(function (st) {
+          if (!live) return st;
+          if (st && st.asOf && live.asOf && st.asOf > live.asOf) return st;
+          return live;
+        });
+      })
+      .catch(fromStatic);
+    return marketsPromise;
+  }
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function pctHtml(v) {
+    if (v == null || isNaN(v)) return '<span class="gc-na">n/a</span>';
+    return '<span class="' + (v >= 0 ? 'gc-up' : 'gc-dn') + '">' + (v >= 0 ? '+' : '&minus;') + Math.abs(v).toFixed(2) + '%</span>';
+  }
+  function niceDate(iso) {
+    if (!iso) return '';
+    var m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return m[parseInt(iso.slice(5, 7), 10) - 1] + ' ' + parseInt(iso.slice(8, 10), 10);
+  }
   var TEX_W = 2048, TEX_H = 1024;
   var DEG = Math.PI / 180;
 
@@ -295,6 +326,19 @@
     return c;
   }
 
+  // tex3: country id (R = index+1, G = 255 coverage flag, B = checksum), read
+  // with NEAREST filtering so the shader can light up exactly one country.
+  function buildIdTexture(features) {
+    var c = makeCanvas(TEX_W, TEX_H), ctx = c.getContext('2d');
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, TEX_W, TEX_H);
+    features.forEach(function (f, i) {
+      var id = i + 1;
+      ctx.fillStyle = 'rgb(' + id + ',255,' + ((id * 37) % 256) + ')';
+      ctx.beginPath(); traceFeatures(ctx, [f]); ctx.fill('evenodd');
+    });
+    return c;
+  }
+
   // tex2: per-country heat colours (only when heat mode is on)
   function buildHeatTexture(features, heatFn) {
     var c = makeCanvas(TEX_W, TEX_H), ctx = c.getContext('2d');
@@ -314,6 +358,8 @@
     'uniform vec3 uRight; uniform vec3 uUp; uniform vec3 uFwd;',
     'uniform vec3 uSun; uniform float uTime; uniform float uStyle; uniform float uHeat;',
     'uniform vec3 uAccent; uniform sampler2D uLand; uniform sampler2D uBiome; uniform sampler2D uHeatTex;',
+    'uniform sampler2D uIdTex; uniform float uHoverId; uniform vec3 uHoverCol; uniform float uHoverAmt;',
+    'float idHit(vec3 c){ return step(abs(c.r*255.0 - uHoverId), 0.5) * step(0.98, c.g) * step(abs(c.b*255.0 - mod(uHoverId*37.0, 256.0)), 0.5); }',
     '#define PI 3.14159265',
     'float hash(vec3 p){ p = fract(p*0.3183099 + 0.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }',
     'float vnoise(vec3 x){ vec3 i = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);',
@@ -404,6 +450,14 @@
     '  bl += uAccent * dotMask * cellLand * (1.0 - day) * 0.16 * tw;',
     '  bl += uAccent * rim * 0.35;',
     '  vec3 col3 = real*isReal + fut*isFut + bl*isBlend;',
+    // ---- hovered country: faint fill, tinted dots, brighter border
+    '  if (uHoverAmt > 0.001) {',
+    '    float pixHit = idHit(texture2D(uIdTex, uv).rgb);',
+    '    float cellHit = idHit(texture2D(uIdTex, vec2((lngC+180.0)/360.0, (90.0-latC)/180.0)).rgb);',
+    '    col3 = mix(col3, col3*0.55 + uHoverCol*0.16, pixHit*uHoverAmt);',
+    '    col3 += uHoverCol * dotMask * cellHit * uHoverAmt * (0.7 + 0.3*tw);',
+    '    col3 += uHoverCol * L.g * pixHit * uHoverAmt * 0.7;',
+    '  }',
     // ---- optional heat overlay (country colours)
     '  vec3 heat = texture2D(uHeatTex, uv).rgb;',
     '  col3 = mix(col3, heat*(0.35 + 0.75*max(day, 0.35)) + uAccent*L.g*0.2, uHeat * land * 0.85);',
@@ -420,7 +474,7 @@
     if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
     return s;
   }
-  function uploadTex(gl, unit, canvas) {
+  function uploadTex(gl, unit, canvas, nearest) {
     var t = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + unit);
     gl.bindTexture(gl.TEXTURE_2D, t);
@@ -429,8 +483,8 @@
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
     return t;
   }
 
@@ -551,6 +605,78 @@
     var accent = accentRgb.map(function (v) { return v / 255; });
     var exState = EXCHANGES.map(function (x) { return { x: x, v: llToVec(x.lat, x.lng), st: exchangeStatus(x, new Date()) }; });
     var exAt = 0;
+    var hl = { id: 0, col: [0, 0, 0], amt: 0, target: null };
+    var markets = null, pinned = null, hoverIso = null;
+    var bullRgb = hexToRgb(cssVar('--bull', '#3ecb7c')).map(function (v) { return v / 255; });
+    var bearRgb = hexToRgb(cssVar('--danger', '#e0483f')).map(function (v) { return v / 255; });
+    var card = document.createElement('div');
+    card.className = 'globe-card';
+    card.style.display = 'none';
+    el.appendChild(card);
+    if (opts.markets !== false) loadMarkets().then(function (m) { markets = m; });
+
+    function isoOf(f) { return (f && f.properties && (f.properties.ADM0_A3 || f.properties.ISO_A3)) || ''; }
+    function countryColor(m) {
+      if (!m || m.chg == null) return accent;
+      var t = Math.min(1, 0.45 + Math.abs(m.chg) / 3);
+      var base = m.chg >= 0 ? bullRgb : bearRgb;
+      return base.map(function (v) { return v * t; });
+    }
+    function setHighlight(f) {
+      if (!f) { hl.target = null; return; }
+      var idx = state.features.indexOf(f);
+      var m = markets && markets.countries && markets.countries[isoOf(f)];
+      hl.target = { id: idx + 1, col: countryColor(m) };
+    }
+    function cardHtml(f, full) {
+      var iso = isoOf(f), m = markets && markets.countries && markets.countries[iso], name = featureName(f);
+      if (!m) return '<div class="gc-head"><b>' + esc(name) + '</b></div><div class="gc-sub">No US-listed market data mapped for this country yet.</div>';
+      var h = '<div class="gc-head"><b>' + esc(m.name) + '</b>' + (m.chg != null ? '<span class="gc-big">' + pctHtml(m.chg) + '</span>' : '') + '</div>';
+      h += '<div class="gc-sub">' + (m.etf ? esc(m.etfLabel || m.etf) + ' country ETF, daily move' + (m.m1 != null ? ' · 1-month ' + pctHtml(m.m1) : '') : 'No US-listed country ETF') + '</div>';
+      if (m.trending) {
+        var t = m.trending;
+        h += '<div class="gc-sec">Trending here</div><div class="gc-row"><span><b>' + esc(t.sym) + '</b> ' + esc(t.name) + '</span>' + pctHtml(t.chg) + '</div>';
+        if (t.headline) h += '<div class="gc-news">&ldquo;' + esc(t.headline.title) + '&rdquo; <span>' + esc(t.headline.publisher || '') + '</span></div>';
+      }
+      var us = (m.us || []);
+      if (us.length) {
+        h += '<div class="gc-sec">Linked US-listed stocks</div>';
+        us.slice(0, full ? 6 : 2).forEach(function (u) {
+          h += '<div class="gc-row"><span><b>' + esc(u.sym) + '</b></span>' + pctHtml(u.chg) + '</div><div class="gc-why">' + esc(u.why) + '</div>';
+        });
+      }
+      if (full && m.local && m.local.length) {
+        h += '<div class="gc-sec">Companies based here</div>';
+        m.local.forEach(function (l) {
+          h += '<div class="gc-row"><span>' + esc(l.name) + ' ' + (l.sym ? '<b>' + esc(l.sym) + '</b>' : '<em>not US-listed</em>') + '</span>' + (l.sym ? pctHtml(l.chg) : '') + '</div>';
+        });
+      }
+      h += '<div class="gc-foot">' + (full ? '' : 'Click the country for more · ') + 'As of ' + esc(niceDate(markets.asOf)) + ' close. Business links, not recommendations.</div>';
+      return h;
+    }
+    function placeCard(x, y) {
+      var narrow = W < 520;
+      card.classList.toggle('is-docked', narrow);
+      if (narrow) { card.style.left = '8px'; card.style.right = '8px'; card.style.top = ''; card.style.bottom = '8px'; return; }
+      card.style.right = ''; card.style.bottom = '';
+      var cw = card.offsetWidth || 280, chh = card.offsetHeight || 200;
+      var left = x + 18, top = y - chh / 2;
+      if (left + cw > W - 8) left = x - cw - 18;
+      left = Math.max(8, Math.min(W - cw - 8, left));
+      top = Math.max(8, Math.min(H - chh - 8, top));
+      card.style.left = left + 'px'; card.style.top = top + 'px';
+    }
+    function showCard(f, x, y, full) {
+      card.innerHTML = (full ? '<button class="gc-close" type="button" aria-label="Close">&times;</button>' : '') + cardHtml(f, full);
+      card.classList.toggle('is-pinned', !!full);
+      card.style.display = 'block';
+      placeCard(x, y);
+      var cb = card.querySelector('.gc-close');
+      if (cb) cb.addEventListener('click', function (ev) { ev.stopPropagation(); unpin(); });
+    }
+    function hideCard() { if (!pinned) card.style.display = 'none'; }
+    function unpin() { pinned = null; card.style.display = 'none'; setHighlight(null); }
+    function pin(f, x, y) { pinned = f; setHighlight(f); showCard(f, x, y, true); if (opts.onCountryClick) opts.onCountryClick(featureName(f), f); }
 
     function setupGL(world) {
       prog = gl.createProgram();
@@ -565,12 +691,13 @@
       var loc = gl.getAttribLocation(prog, 'aPos');
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-      ['uRes', 'uCenter', 'uR', 'uRight', 'uUp', 'uFwd', 'uSun', 'uTime', 'uStyle', 'uHeat', 'uAccent', 'uLand', 'uBiome', 'uHeatTex']
+      ['uRes', 'uCenter', 'uR', 'uRight', 'uUp', 'uFwd', 'uSun', 'uTime', 'uStyle', 'uHeat', 'uAccent', 'uLand', 'uBiome', 'uHeatTex', 'uIdTex', 'uHoverId', 'uHoverCol', 'uHoverAmt']
         .forEach(function (n) { uni[n] = gl.getUniformLocation(prog, n); });
       uploadTex(gl, 0, buildLandTexture(world.features));
       uploadTex(gl, 1, buildBiomeTexture());
       uploadTex(gl, 2, opts.heat ? buildHeatTexture(world.features, heatFn) : makeCanvas(4, 4));
-      gl.uniform1i(uni.uLand, 0); gl.uniform1i(uni.uBiome, 1); gl.uniform1i(uni.uHeatTex, 2);
+      uploadTex(gl, 3, buildIdTexture(world.features), true);
+      gl.uniform1i(uni.uLand, 0); gl.uniform1i(uni.uBiome, 1); gl.uniform1i(uni.uHeatTex, 2); gl.uniform1i(uni.uIdTex, 3);
     }
 
     function resize() {
@@ -725,7 +852,7 @@
         if (Math.abs(state.vx) > 0.001 || Math.abs(state.vy) > 0.001) {
           state.lng -= state.vx * dt; state.lat += state.vy * dt;
           state.vx *= 0.94; state.vy *= 0.94;
-        } else if (state.autoRotate && !state.hover) {
+        } else if (state.autoRotate && !state.hover && !pinned) {
           state.lng += dt * 0.0045;
         }
         if (state.focus) {
@@ -750,6 +877,12 @@
       gl.uniform1f(uni.uStyle, style);
       gl.uniform1f(uni.uHeat, opts.heat ? 1 : 0);
       gl.uniform3f(uni.uAccent, accent[0], accent[1], accent[2]);
+      var hk = 1 - Math.pow(0.001, dt / 350);
+      hl.amt += ((hl.target ? 1 : 0) - hl.amt) * hk;
+      if (hl.target) { hl.id = hl.target.id; hl.col = hl.target.col; }
+      gl.uniform1f(uni.uHoverId, hl.id);
+      gl.uniform3f(uni.uHoverCol, hl.col[0], hl.col[1], hl.col[2]);
+      gl.uniform1f(uni.uHoverAmt, hl.amt < 0.01 ? 0 : hl.amt);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       drawOverlay(time, b, R);
       badgeEls.forEach(function (bd) {
@@ -780,7 +913,7 @@
     function onHover(e) {
       if (state.dragging) return;
       var p = pick(e.clientX, e.clientY);
-      if (!p.hit) { state.hover = null; hideTip(); return; }
+      if (!p.hit) { state.hover = null; hideTip(); if (!pinned) { setHighlight(null); hideCard(); hoverIso = null; } return; }
       state.hover = true;
       // exchange markers win over countries
       if (showEx) {
@@ -796,11 +929,18 @@
         }
       }
       var f = findCountry(state.features, p.lat, p.lng);
-      if (!f) { hideTip(); return; }
-      var name = featureName(f);
-      var extra = '';
-      if (opts.heat) { var pc = heatFn(name); extra = ' ' + (pc >= 0 ? '+' : '') + pc.toFixed(2) + '%'; }
-      showTip(p.x, p.y, '<b>' + name + '</b>' + extra);
+      if (!f) { hideTip(); if (!pinned) { setHighlight(null); hideCard(); } return; }
+      hideTip();
+      if (pinned) return;
+      setHighlight(f);
+      if (opts.markets === false) {
+        var extra = '';
+        if (opts.heat) { var pc = heatFn(featureName(f)); extra = ' ' + (pc >= 0 ? '+' : '') + pc.toFixed(2) + '%'; }
+        showTip(p.x, p.y, '<b>' + featureName(f) + '</b>' + extra);
+        return;
+      }
+      if (hoverIso !== isoOf(f) || card.style.display === 'none') { hoverIso = isoOf(f); showCard(f, p.x, p.y, false); }
+      else placeCard(p.x, p.y);
     }
 
     var lastX = 0, lastY = 0, lastT = 0, downX = 0, downY = 0;
@@ -826,15 +966,19 @@
       if (moved < 4) {
         var p = pick(e.clientX, e.clientY);
         if (p.hit) {
-          state.focus = { lat: p.lat, lng: p.lng };
           var f = findCountry(state.features, p.lat, p.lng);
-          if (f && opts.onCountryClick) opts.onCountryClick(featureName(f), f);
-        }
+          if (f && opts.markets !== false) { pin(f, p.x, p.y); }
+          else {
+            if (pinned) unpin();
+            state.focus = { lat: p.lat, lng: p.lng };
+            if (f && opts.onCountryClick) opts.onCountryClick(featureName(f), f);
+          }
+        } else if (pinned) { unpin(); }
       }
     }
     host.addEventListener('pointerup', endDrag);
     host.addEventListener('pointercancel', endDrag);
-    host.addEventListener('pointerleave', function () { state.hover = null; hideTip(); });
+    host.addEventListener('pointerleave', function () { state.hover = null; hideTip(); hoverIso = null; if (!pinned) { setHighlight(null); hideCard(); } });
     if (opts.enableZoom !== false) {
       host.addEventListener('wheel', function (e) {
         e.preventDefault();
@@ -846,6 +990,17 @@
       setStyle: function (s) { if (STYLE_ID.hasOwnProperty(s)) { style = STYLE_ID[s]; showEx = opts.exchanges !== undefined ? opts.exchanges : style !== 0; showArcs = opts.arcs !== undefined ? opts.arcs : style !== 0; } },
       pointOfView: function (p) { if (p) { state.focus = { lat: p.lat, lng: p.lng }; if (p.zoom) state.targetZoom = p.zoom; } },
       pauseAnimation: stop, resumeAnimation: start,
+      markets: function () { return loadMarkets(); },
+      focusCountry: function (iso) {
+        var f = state.features.filter(function (x) { return isoOf(x) === iso; })[0];
+        if (!f) return;
+        var c = null, g = f.geometry, polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates, best = null;
+        polys.forEach(function (pp) { if (!best || pp[0].length > best.length) best = pp[0]; });
+        var sx = 0, sy = 0; best.forEach(function (pt) { sx += pt[0]; sy += pt[1]; });
+        c = { lng: sx / best.length, lat: sy / best.length };
+        state.focus = { lat: Math.max(-60, Math.min(60, c.lat)), lng: c.lng };
+        pin(f, W, H / 2); // card docks to the right edge so the country stays visible
+      },
       exchanges: function () { return exState.map(function (e) { return { id: e.x.id, name: e.x.name, city: e.x.city, open: e.st.open, label: e.st.label }; }); },
       destroy: function () { state.destroyed = true; stop(); if (host.parentNode) el.innerHTML = ''; }
     };
