@@ -411,8 +411,7 @@
 
         <div class="card">
           <h3 style="margin:0 0 10px; font-size:0.92rem;">US market &amp; sectors</h3>
-          <div id="dashTvQuotes" class="tradingview-widget-container" style="min-height:380px;"><div class="tradingview-widget-container__widget"></div></div>
-          <p style="margin:6px 0 0; font-size:0.68rem; color:var(--muted);">Quotes by TradingView, may be delayed.</p>
+          <div id="dashTvQuotes" data-zm="quotes"></div>
         </div>
       </div>
 
@@ -543,6 +542,7 @@
 })();
 </script>
 
+<script src="zelos-market.js"></script>
 <script src="zelos-theme-toggle.js"></script>
 
 <!-- Firebase (compat build) -->
@@ -1191,18 +1191,6 @@
   }
   renderExchanges(); setInterval(renderExchanges, 60000);
 
-  var tvq = document.getElementById('dashTvQuotes');
-  if (tvq) {
-    var sq = document.createElement('script');
-    sq.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js';
-    sq.async = true;
-    sq.text = JSON.stringify({ width: '100%', height: 380, colorTheme: 'dark', isTransparent: true, locale: 'en', showSymbolLogo: false,
-      symbolsGroups: [
-        { name: 'Indices', symbols: [ { name: 'FOREXCOM:SPXUSD', displayName: 'S&P 500' }, { name: 'NASDAQ:IXIC', displayName: 'Nasdaq' }, { name: 'FOREXCOM:DJI', displayName: 'Dow Jones' } ] },
-        { name: 'Sectors', symbols: [ { name: 'AMEX:XLK', displayName: 'Technology' }, { name: 'AMEX:XLC', displayName: 'Communication' }, { name: 'AMEX:XLY', displayName: 'Consumer Disc.' }, { name: 'AMEX:XLE', displayName: 'Energy' } ] }
-      ] });
-    tvq.appendChild(sq);
-  }
 
   var clock = document.getElementById('dashGlobeClock');
   function tick(){

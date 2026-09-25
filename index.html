@@ -233,11 +233,7 @@
   </div>
 </section>
 
-<div class="ticker-strip">
-  <div class="tradingview-widget-container">
-    <div class="tradingview-widget-container__widget"></div>
-  </div>
-</div>
+<div class="ticker-strip"><div data-zm="tape"></div></div>
 
 <section class="section" id="strategies">
   <div class="shell">
@@ -362,7 +358,7 @@
 
         <div class="side-card">
           <div class="side-card-head"><h3>Market Overview</h3><a href="live-chart.html">Full chart &rarr;</a></div>
-          <div id="marketOverviewWidget" class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div></div>
+          <div id="marketOverviewWidget" data-zm="overview" data-sym="SPX"></div>
         </div>
 
         <div class="side-card">
@@ -529,53 +525,7 @@
 })();
 </script>
 
-<script>
-(function(){
-  // ---- TradingView: ticker tape (site-wide strip) + market overview (sidebar) ----
-  var tapeHost = document.querySelector('.ticker-strip .tradingview-widget-container');
-  if (tapeHost) {
-    var tapeScript = document.createElement('script');
-    tapeScript.type = 'text/javascript';
-    tapeScript.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-    tapeScript.async = true;
-    tapeScript.text = JSON.stringify({
-      symbols: [
-        { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
-        { proName: 'NASDAQ:IXIC', title: 'Nasdaq' },
-        { proName: 'NASDAQ:AAPL', title: 'AAPL' },
-        { proName: 'NASDAQ:NVDA', title: 'NVDA' },
-        { proName: 'NASDAQ:TSLA', title: 'TSLA' },
-        { proName: 'COINBASE:BTCUSD', title: 'BTC' }
-      ],
-      showSymbolLogo: true,
-      colorTheme: 'dark',
-      isTransparent: true,
-      displayMode: 'adaptive',
-      locale: 'en'
-    });
-    tapeHost.appendChild(tapeScript);
-  }
-
-  var moHost = document.querySelector('#marketOverviewWidget');
-  if (moHost) {
-    var moScript = document.createElement('script');
-    moScript.type = 'text/javascript';
-    moScript.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
-    moScript.async = true;
-    moScript.text = JSON.stringify({
-      symbol: 'FOREXCOM:SPXUSD',
-      width: '100%',
-      height: 200,
-      locale: 'en',
-      dateRange: '1M',
-      colorTheme: 'dark',
-      isTransparent: true,
-      autosize: true
-    });
-    moHost.appendChild(moScript);
-  }
-})();
-</script>
+<script src="zelos-market.js"></script>
 
 <script>
 (function(){
