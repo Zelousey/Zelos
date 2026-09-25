@@ -22,7 +22,7 @@ This is designed to run as a scheduled Claude task with the Robinhood connector,
 1. `git clone https://github.com/Zelousey/zelos && cd zelos`
 2. `python3 scripts/moves_from_robinhood.py --symbols` prints every symbol needed (~145).
 3. With Robinhood: `get_equity_historicals` (interval `day`, start ~2 months back, 10 symbols per call) and one `get_equity_quotes` call for all symbols. Save each raw result as JSON.
-4. `python3 scripts/moves_from_robinhood.py --quotes quotes.json --bars bars*.json > moves.json`
+4. `python3 scripts/moves_from_robinhood.py --after-close --quotes quotes.json --bars bars*.json > moves.json`
 5. For the ~5 biggest movers among country companies, `get_equity_news` (limit 3) and keep the most relevant headline as `{"SYM": {"title", "publisher", "published"}}` in `headlines.json`. Only use a headline that actually explains the move.
 6. `ZELOS_MARKET_MAP_URL=<publish_market_map URL> ZELOS_PUBLISH_SECRET=<secret> python3 scripts/build_market_map.py moves.json --headlines headlines.json --publish`
 

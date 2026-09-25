@@ -5,7 +5,13 @@
 quotes.json: one get_equity_quotes result for every symbol (its previous_close is
 the latest official close once the session is over). bars*.json:
 get_equity_historicals results (interval=day, ~2 months back) used for the prior
-close and the 1-month change. Prints the list of symbols with `python3
+close and the 1-month change.
+
+previous_close only rolls over to the new session overnight, so a same-evening
+run would rebuild the day before. Pass --after-close when running after today's
+4:00 pm ET close: each symbol's last regular-session trade (last_trade_price)
+then counts as today's close when it's dated after previous_close_date. Leave it
+off during market hours, or intraday prices would be recorded as a close. Prints the list of symbols with `python3
 scripts/moves_from_robinhood.py --symbols`.
 """
 import argparse
@@ -32,6 +38,7 @@ def main():
     ap.add_argument('--symbols', action='store_true')
     ap.add_argument('--quotes')
     ap.add_argument('--bars', nargs='*', default=[])
+    ap.add_argument('--after-close', action='store_true')
     a = ap.parse_args()
     if a.symbols:
         print(json.dumps(symbols()))
@@ -47,6 +54,9 @@ def main():
         if not b or not q.get('previous_close'):
             continue
         last, d = float(q['previous_close']), q['previous_close_date']
+        traded = (q.get('venue_last_trade_time') or '')[:10]
+        if a.after_close and q.get('last_trade_price') and traded > d:
+            last, d = float(q['last_trade_price']), traded
         prior = [x for x in b if x[0] < d]
         if not prior:
             continue
