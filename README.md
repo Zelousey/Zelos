@@ -80,6 +80,8 @@ secrets described there.
 - `practice/index.html`: paper trading on 30 real stocks with live prices, a full chart (RSI, MACD, Bollinger, SMA/EMA, volume) and market/limit/stop/bracket orders. Built by `python3 scripts/build_practice.py`; logic in `practice/practice.js`, chart in `practice/practice-chart.js`.
 - Live quotes come from the `refresh_quotes` Cloud Function (Finnhub → Firestore `markets/quotes`). One-time setup: `docs/practice-account.md`. Without it the page uses the latest daily close.
 - Accounts are saved in localStorage, and to `users/{uid}.practice` for signed-in users.
+- Timeframes: 5m / 15m / 1H (from the function's 5-minute bars in `markets/intraday_<SYM>`), D, W. Candle color presets and custom colors are saved as `zelosChartColors` in localStorage and also used by the Arcade charts. Full Port (all-in sizing plus the green/red glow) is a toggle on the order ticket.
+- The home page preview chart is real data: `python3 scripts/build_home_promo.py` redraws it from `data/game-charts.json`.
 
 ## Themes, levels, dashboard
 

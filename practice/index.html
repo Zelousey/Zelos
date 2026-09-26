@@ -201,11 +201,14 @@
       </div>
       <div class="pt-stats" id="ptStats"></div>
       <div class="pt-toolbar">
-        <button class="pt-chip" type="button" data-range="21">1M</button>
-        <button class="pt-chip" type="button" data-range="63">3M</button>
-        <button class="pt-chip is-on" type="button" data-range="126">6M</button>
-        <button class="pt-chip" type="button" data-range="252">1Y</button>
-        <button class="pt-chip" type="button" data-range="all">All</button>
+        <span class="pt-seg" role="group" aria-label="Timeframe">
+          <button class="pt-chip" type="button" data-tf="5m" title="5-minute bars">5m</button>
+          <button class="pt-chip" type="button" data-tf="15m" title="15-minute bars">15m</button>
+          <button class="pt-chip" type="button" data-tf="1h" title="1-hour bars">1H</button>
+          <button class="pt-chip" type="button" data-tf="D" title="Daily bars">D</button>
+          <button class="pt-chip" type="button" data-tf="W" title="Weekly bars">W</button>
+        </span>
+        <span class="pt-seg" id="ptRanges" role="group" aria-label="Range"></span>
         <button class="pt-chip" type="button" id="ptZoomIn" aria-label="Zoom in">+</button>
         <button class="pt-chip" type="button" id="ptZoomOut" aria-label="Zoom out">&minus;</button>
         <span class="grow"></span>
@@ -216,6 +219,18 @@
         <button class="pt-chip" type="button" data-ind="vol">Volume</button>
         <button class="pt-chip" type="button" data-ind="rsi">RSI</button>
         <button class="pt-chip" type="button" data-ind="macd">MACD</button>
+        <span class="pt-colors">
+          <button class="pt-chip" type="button" id="ptColorsBtn" aria-haspopup="true" aria-expanded="false" title="Candle colors"><i class="pt-swatch" id="ptColorSwatch"></i>Colors</button>
+          <div class="pt-color-pop" id="ptColorPop" hidden>
+            <b>Candle colors</b>
+            <div class="pt-presets" id="ptColorPresets"></div>
+            <div class="pt-custom">
+              <label>Up <input type="color" id="ptColorUp"></label>
+              <label>Down <input type="color" id="ptColorDown"></label>
+            </div>
+            <small>Also used on the Arcade charts. Saved in this browser.</small>
+          </div>
+        </span>
       </div>
       <div class="pt-chart-wrap"><canvas class="pt-chart" id="ptChart" aria-label="Price chart"></canvas></div>
       <p class="pt-hint">Scroll to zoom &middot; drag to pan &middot; hover for exact values. Dashed lines are your average cost and open orders.</p>
@@ -227,6 +242,10 @@
           <button class="pt-side is-on" type="button" id="ptBuy" aria-pressed="true">Buy</button>
           <button class="pt-side" type="button" id="ptSell" aria-pressed="false">Sell</button>
         </div>
+        <label class="pt-fp"><input type="checkbox" id="ptFullPort"><span class="pt-fp-track"><i></i></span><span><b>Full Port</b> (all-in)</span></label>
+        <div class="pt-fp-warn" id="ptFullWarn" hidden><b>&#9888; Full Port:</b> every buy puts your <b>entire buying power</b> into one stock, and every
+        sell dumps the whole position. One bad trade can take a huge bite out of the account, which is exactly how real accounts blow up. The screen
+        glows green or red with how the account is doing.</div>
         <div class="pt-field"><span>Order type</span>
           <div class="pt-types" role="radiogroup" aria-label="Order type">
             <label><input type="radio" name="ptType" value="market" checked>Market</label>
@@ -272,6 +291,10 @@
     <p><b>Orders.</b> Market orders fill at the current price. Limit orders fill at your price or better. Stop orders trigger when price
     reaches your stop (a gap can fill it past your price). Day orders expire at the close; good-til-cancelled orders stay open. Add a
     stop-loss and take-profit to a buy and they're placed together the moment it fills: whichever hits first cancels the other.</p>
+    <p><b>Timeframes.</b> Daily and weekly charts go back to 2024. The 5-minute, 15-minute and 1-hour charts are built from the live
+    price feed during market hours and keep the last five sessions.</p>
+    <p><b>Full Port</b> is the all-in mode from Chart Replay: every order uses all your buying power, and the screen glows with your
+    profit or loss. It's here so you can feel how fast concentration swings an account, not as a way to trade.</p>
     <p><b>Your account</b> is saved in this browser. Sign in and it follows you to any device. Reset it to $10,000 any time from the
     Performance tab. Want to train your eye first? Try <a href="../games/chart-replay.html">Chart Replay</a> or
     <a href="../games/grade-the-setup.html">Grade the Setup</a>.</p>

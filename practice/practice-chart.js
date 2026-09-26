@@ -48,12 +48,33 @@
     return s;
   }
 
+  // ------------------------------------------------------------ candle colors
+  // Shared with the Arcade charts (games/zelos-chart-engine.js reads the same key).
+  var COLOR_KEY = 'zelosChartColors';
+  var PRESETS = [
+    { id: 'classic', name: 'Green / Red', up: '#3ecb7c', down: '#e0483f' },
+    { id: 'bluewhite', name: 'Blue / White', up: '#4a86ff', down: '#e8eaef' },
+    { id: 'tv', name: 'Teal / Coral', up: '#26a69a', down: '#ef5350' },
+    { id: 'cb', name: 'Blue / Orange (color-blind safe)', up: '#3b82f6', down: '#f59e0b' },
+    { id: 'purple', name: 'Purple / Gold', up: '#a78bfa', down: '#fbbf24' },
+    { id: 'neon', name: 'Cyan / Magenta', up: '#22d3ee', down: '#f472b6' },
+    { id: 'mono', name: 'White / Gray', up: '#f4f5f7', down: '#6b7280' },
+    { id: 'lime', name: 'Lime / Crimson', up: '#a3e635', down: '#dc2626' }
+  ];
+  function loadColors() {
+    try { var c = JSON.parse(localStorage.getItem(COLOR_KEY) || 'null'); if (c && /^#[0-9a-f]{6}$/i.test(c.up) && /^#[0-9a-f]{6}$/i.test(c.down)) return c; } catch (e) {}
+    return { id: 'classic', up: PRESETS[0].up, down: PRESETS[0].down };
+  }
+  function saveColors(c) { try { localStorage.setItem(COLOR_KEY, JSON.stringify(c)); } catch (e) {} }
+  function rgba(hex, a) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  function lum(hex) { var n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; }
+
   // ------------------------------------------------------------ chart
   function TradeChart(canvas) {
     this.cv = canvas; this.ctx = canvas.getContext('2d');
     this.s = null; this.from = 0; this.to = 0; this.hover = null;
     this.show = { vol: true, sma20: true, sma50: true, ema9: false, bb: false, rsi: true, macd: false };
-    this.lines = []; this.lastPrice = null; this.marks = [];
+    this.lines = []; this.lastPrice = null; this.marks = []; this.colors = loadColors(); this.empty = null;
     var self = this, drag = null;
     function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
     canvas.addEventListener('pointerdown', function (e) {
@@ -89,7 +110,8 @@
     this.W = w; this.H = h; this.dpr = dpr; this.draw();
   };
   TradeChart.prototype.setSeries = function (s, bars) {
-    var keep = this.s && this.s.sym === s.sym && this.to === this.s.n - 1;
+    // same stock and timeframe, scrolled to the latest bar: stay pinned to the right edge as bars arrive
+    var keep = this.s && this.s.key === s.key && this.to === this.s.n - 1;
     var span = this.s ? this.to - this.from : null;
     this.s = s;
     if (keep && span != null) { this.to = s.n - 1; this.from = Math.max(0, this.to - span); }
@@ -100,7 +122,7 @@
     this.to = this.s.n - 1; this.from = bars === 'all' ? 0 : Math.max(0, this.to - bars + 1); this.draw();
   };
   TradeChart.prototype.zoom = function (f, x) {
-    var span = this.to - this.from + 1, ns = Math.max(15, Math.min(this.s.n, Math.round(span * f)));
+    var span = this.to - this.from + 1, ns = Math.max(Math.min(8, this.s.n), Math.min(this.s.n, Math.round(span * f)));
     var L = this.layout(), rel = x == null ? 1 : Math.max(0, Math.min(1, (x - L.x0) / (L.x1 - L.x0)));
     var anchor = this.from + rel * span, from = Math.round(anchor - rel * ns);
     from = Math.max(0, Math.min(this.s.n - ns, from));
@@ -120,9 +142,20 @@
     return L;
   };
   TradeChart.prototype.draw = function () {
-    var c = this.ctx, s = this.s; if (!s || !this.W) return;
+    var c = this.ctx, s = this.s; if (!this.W) return;
+    if (this.empty || !s || !s.n) {
+      c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); c.clearRect(0, 0, this.W, this.H);
+      c.fillStyle = cssVar('--muted', '#8a8f98'); c.font = '500 13px "IBM Plex Sans", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      var msg = this.empty || 'No data yet', words = msg.split(' '), line = '', y = this.H / 2 - 10, lines = [];
+      words.forEach(function (w) { if (c.measureText(line + w).width > Math.min(460, this.W - 40) && line) { lines.push(line); line = ''; } line += w + ' '; }, this);
+      lines.push(line);
+      lines.forEach(function (l, k) { c.fillText(l.trim(), this.W / 2, y + k * 20 - (lines.length - 1) * 10); }, this);
+      c.textAlign = 'left'; return;
+    }
     var L = this.layout(), self = this, show = this.show;
-    var bull = cssVar('--bull', '#3ecb7c'), bear = cssVar('--danger', '#e0483f'), acc = cssVar('--accent', '#4a86ff');
+    var bull = this.colors.up, bear = this.colors.down, acc = cssVar('--accent', '#4a86ff');
+    // light candles on a light background get an outline so they don't vanish
+    var lightBg = document.documentElement.getAttribute('data-theme') === 'white';
     var gold = cssVar('--gold', '#e8b23d'), violet = cssVar('--violet', '#8f7bf6'), muted = cssVar('--muted', '#8a8f98');
     var ink = cssVar('--ink', '#f4f5f7'), grid = cssVar('--chart-grid', 'rgba(255,255,255,0.06)'), cross = cssVar('--chart-cross', 'rgba(255,255,255,0.35)');
     var tagInk = cssVar('--chart-label-ink', '#0b0c0f'), bg = cssVar('--bg', '#0c0d10');
@@ -150,6 +183,19 @@
     c.textBaseline = 'alphabetic';
     var lastM = null, MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], minGap = 46, lastX = -1e9;
     for (i = from; i <= to; i++) {
+      if (s.intraday) {
+        // intraday: a line and label at each new session, plus the hour when there's room
+        var day = s.d[i].slice(0, 10), hr = s.d[i].slice(11, 13);
+        var isDay = day !== lastM, isHour = !isDay && i > from && s.d[i - 1].slice(11, 13) !== hr;
+        if (isDay) lastM = day;
+        if ((isDay || isHour) && X(i) - lastX > (isDay ? 40 : 34)) {
+          var ix = X(i); lastX = ix;
+          c.strokeStyle = grid; c.beginPath(); c.moveTo(ix, L.y0); c.lineTo(ix, L.y1); c.stroke();
+          c.fillStyle = isDay ? ink : muted;
+          c.fillText(isDay ? MN[parseInt(day.slice(5, 7), 10) - 1] + ' ' + parseInt(day.slice(8, 10), 10) : s.d[i].slice(11, 16), ix + 3, L.xAxis);
+        }
+        continue;
+      }
       var m = s.d[i].slice(0, 7);
       if (m !== lastM) {
         lastM = m; var mx = X(i);
@@ -176,7 +222,7 @@
       for (i = from; i <= to; i++) {
         if (!s.v[i]) continue;
         var up = s.c[i] >= s.o[i], h = s.v[i] / vmax * vh;
-        c.fillStyle = up ? 'rgba(62,203,124,0.28)' : 'rgba(224,72,63,0.28)';
+        c.fillStyle = rgba(up ? bull : bear, 0.28);
         c.fillRect(X(i) - bw * 0.36, L.y1 - h, Math.max(1, bw * 0.72), h);
       }
     }
@@ -195,6 +241,7 @@
       c.strokeStyle = col; c.lineWidth = 1; c.beginPath(); c.moveTo(x, Y(s.h[i])); c.lineTo(x, Y(s.l[i])); c.stroke();
       var top = Y(Math.max(o, cl)), hgt = Math.max(1, Math.abs(Y(o) - Y(cl)));
       c.fillStyle = col; c.fillRect(x - bw * 0.36, top, Math.max(1, bw * 0.72), hgt);
+      if (lightBg && lum(col) > 0.8) { c.strokeStyle = '#9aa1ac'; c.strokeRect(x - bw * 0.36, top, Math.max(1, bw * 0.72), hgt); c.beginPath(); c.moveTo(x, Y(s.h[i])); c.lineTo(x, Y(s.l[i])); c.stroke(); }
       if (s.live && i === s.n - 1) { c.strokeStyle = acc; c.setLineDash([2, 2]); c.strokeRect(x - bw * 0.5, Y(s.h[i]) - 2, bw, Y(s.l[i]) - Y(s.h[i]) + 4); c.setLineDash([]); }
     }
     // fills on the chart
@@ -217,7 +264,7 @@
       var ly = Y(this.lastPrice), up2 = this.lastPrice >= (s.c[s.n - 2] || this.lastPrice);
       if (ly >= L.y0 && ly <= L.y1) {
         c.strokeStyle = up2 ? bull : bear; c.globalAlpha = 0.6; c.setLineDash([1, 3]); c.beginPath(); c.moveTo(L.x0, ly); c.lineTo(L.x1, ly); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
-        c.fillStyle = up2 ? bull : bear; c.fillRect(L.x1 + 1, ly - 9, 62, 18); c.fillStyle = '#ffffff'; c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText(fmt(this.lastPrice), L.x1 + 6, ly); c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+        c.fillStyle = up2 ? bull : bear; c.fillRect(L.x1 + 1, ly - 9, 62, 18); c.fillStyle = lum(up2 ? bull : bear) > 0.62 ? '#0b0c0f' : '#ffffff'; c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText(fmt(this.lastPrice), L.x1 + 6, ly); c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
       }
     }
     // sub panes
@@ -281,5 +328,6 @@
   };
   function niceStep(raw) { var p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
 
-  global.ZelosTradeChart = { TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol };
+  global.ZelosTradeChart = { TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol,
+    PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors };
 })(window);

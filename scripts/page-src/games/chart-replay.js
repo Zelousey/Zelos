@@ -131,6 +131,10 @@
     $('zrWait').innerHTML = (pos ? 'Hold' : 'Wait') + (isFull() ? ' (−' + FULL_WAIT_COST + ')' : ' &#9656;');
     $('zrWait').classList.toggle('zg-btn-primary', !isFull());
     $('zrAuto').classList.toggle('zg-btn-primary', isFull());
+    // Full Port: Auto-play only runs while you're in a trade; before that, Wait (−10) is the only preview
+    var autoLocked = isFull() && !auto && !inTrade();
+    $('zrAuto').disabled = busy || autoLocked;
+    $('zrAuto').title = autoLocked ? 'Full Port: make a trade first. Until then, Wait (−' + FULL_WAIT_COST + ') is the only way to see ahead.' : '';
     $('zrWait').title = pos ? 'Hold the position and reveal the next few bars' : 'Stay flat and reveal the next few bars';
     $('zrCancel').hidden = !mode && !(draft && draft.queued);
     $('zrConfirm').hidden = mode !== 'confirm' && mode !== 'target';
@@ -165,7 +169,7 @@
     if (finished || revealing) return;
     if (mode === 'confirm') return $('zrConfirm').classList.add('zg-pulse');
     if (mode) return; // stop/target: the prompt and handles on the chart carry it
-    if (isFull()) { if (!auto) $('zrAuto').classList.add('zg-pulse'); return; } // Full Port is played on Auto-play
+    if (isFull()) { if (!auto && inTrade()) $('zrAuto').classList.add('zg-pulse'); return; } // Full Port is played on Auto-play, once you're in
     if (pos || (draft && draft.queued) || hesitating) return $('zrWait').classList.add('zg-pulse');
     if (t && t.side) return $(t.side > 0 ? 'zrLong' : 'zrShort').classList.add('zg-pulse');
     $('zrWait').classList.add('zg-pulse');
@@ -382,15 +386,20 @@
   }
   function card(k, v, good) { return '<div class="zg-stat"><small>' + k + '</small><b class="' + (good === true ? 'up' : good === false ? 'dn' : '') + '">' + v + '</b></div>'; }
 
+  // in a trade, or about to be: a position, a queued order, or a plan with a stop set
+  function inTrade() { return !!pos || !!(draft && (draft.queued || draft.stop != null)); }
   function toggleAuto() {
     touch();
     if (auto) return stopAuto();
+    if (isFull() && !inTrade()) { setHint('<b>Full Port:</b> make a trade first. Until then, <b>Wait (−' + FULL_WAIT_COST + ')</b> is the only way to see ahead.'); return; }
     commitDraft();
     $('zrAuto').textContent = 'Pause';
     auto = setInterval(function () {
       if (mode || revealing) return stopAuto();
-      var ev = step(); render();
-      // Full Port keeps rolling through fills and exits; normal mode pauses so you can react
+      var ev = step();
+      // Full Port rolls through the fill and the trade, and stops the moment you're flat again
+      if (isFull() && !finished && !pos && !(draft && draft.queued)) { stopAuto(); setHint('Trade closed. <b>Full Port:</b> Auto-play unlocks again once you\'re in your next trade; <b>Wait (−' + FULL_WAIT_COST + ')</b> is the only preview until then.'); }
+      render();
       if (finished || (ev && !isFull())) stopAuto();
     }, 450);
     render();

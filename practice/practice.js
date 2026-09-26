@@ -49,7 +49,7 @@
   }
 
   // ------------------------------------------------------------ data
-  var hist = {}, extra = {}, quotes = {}, feed = { state: 'loading' }, series = {};
+  var hist = {}, extra = {}, quotes = {}, feed = { state: 'loading' }, series = {}, intraday = {}, intradayUnsub = null, intradaySym = null;
   function buildSeries(sym) {
     var rows = hist[sym] || []; var last = rows.length ? rows[rows.length - 1][0] : '';
     var more = (extra[sym] || []).filter(function (r) { return r[0] > last; });
@@ -74,6 +74,68 @@
     return s.c[s.n - 2];
   }
   function isLiveTick(sym) { return feed.state === 'live' && quotes[sym] && marketOpen(); }
+
+  // ------------------------------------------------------------ timeframes
+  // Daily bars drive prices and orders. The chart can also show weekly bars
+  // (built from daily) and 5m / 15m / 1h bars (built from the live feed's
+  // 5-minute bars, markets/intraday_<SYM>).
+  var TF = {
+    '5m': { label: '5m', intraday: 5, ranges: [['1D', 78], ['2D', 156], ['5D', 390]], def: 78 },
+    '15m': { label: '15m', intraday: 15, ranges: [['1D', 26], ['2D', 52], ['5D', 130]], def: 52 },
+    '1h': { label: '1H', intraday: 60, ranges: [['1D', 7], ['5D', 35]], def: 35 },
+    'D': { label: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
+    'W': { label: 'W', ranges: [['6M', 26], ['1Y', 52], ['All', 'all']], def: 52 }
+  };
+  var tf = 'D', rangeSel = null;
+  function fromRows(rows, key, extraProps) {
+    var s = { sym: sel, key: key, d: [], o: [], h: [], l: [], c: [], v: [] };
+    rows.forEach(function (r) { s.d.push(r[0]); s.o.push(r[1]); s.h.push(r[2]); s.l.push(r[3]); s.c.push(r[4]); s.v.push(r[5] || 0); });
+    s.n = s.d.length;
+    Object.keys(extraProps || {}).forEach(function (k) { s[k] = extraProps[k]; });
+    return TC.computeIndicators(s);
+  }
+  function weekKey(ds) { var d = new Date(ds + 'T12:00:00Z'), wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10); }
+  function displaySeries() {
+    var day = series[sel]; if (!day) return null;
+    if (tf === 'D') { day.key = sel + ':D'; return day; }
+    if (tf === 'W') {
+      var rows = [], cur = null;
+      for (var i = 0; i < day.n; i++) {
+        var k = weekKey(day.d[i]);
+        if (!cur || cur[0] !== k) { cur = [k, day.o[i], day.h[i], day.l[i], day.c[i], day.v[i]]; rows.push(cur); }
+        else { cur[2] = Math.max(cur[2], day.h[i]); cur[3] = Math.min(cur[3], day.l[i]); cur[4] = day.c[i]; cur[5] += day.v[i]; }
+      }
+      return fromRows(rows, sel + ':W', { live: day.live });
+    }
+    var base = intraday[sel] || [], step = TF[tf].intraday, out = [], cb = null;
+    base.forEach(function (r) {
+      var mins = parseInt(r[0].slice(11, 13), 10) * 60 + parseInt(r[0].slice(14, 16), 10);
+      var b = 570 + Math.floor((mins - 570) / step) * step;
+      var label = r[0].slice(0, 11) + ('0' + Math.floor(b / 60)).slice(-2) + ':' + ('0' + b % 60).slice(-2);
+      if (!cb || cb[0] !== label) { cb = [label, r[1], r[2], r[3], r[4], 0]; out.push(cb); }
+      else { cb[2] = Math.max(cb[2], r[2]); cb[3] = Math.min(cb[3], r[3]); cb[4] = r[4]; }
+    });
+    return fromRows(out, sel + ':' + tf, { intraday: true, live: marketOpen() && feed.state === 'live' });
+  }
+  function watchIntraday() {
+    var want = TF[tf].intraday ? sel : null;
+    if (want === intradaySym) return;
+    if (intradayUnsub) { intradayUnsub(); intradayUnsub = null; }
+    intradaySym = want;
+    if (!want || !db) return;
+    intradayUnsub = db.collection('markets').doc('intraday_' + want).onSnapshot(function (snap) {
+      var bars = (snap.exists && snap.data().bars) || [];
+      intraday[want] = bars.map(function (b) { var p = String(b).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], 0]; });
+      renderQuote();
+    }, function () {});
+  }
+  function renderRanges() {
+    var def = rangeSel || TF[tf].def;
+    $('ptRanges').innerHTML = TF[tf].ranges.map(function (r) {
+      return '<button class="pt-chip' + (String(r[1]) === String(def) ? ' is-on' : '') + '" type="button" data-range="' + r[1] + '">' + r[0] + '</button>';
+    }).join('');
+    document.querySelectorAll('[data-tf]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-tf') === tf); b.setAttribute('aria-pressed', String(b.getAttribute('data-tf') === tf)); });
+  }
 
   // ------------------------------------------------------------ account state
   var acct = null, currentUser = null, db = null, saveTimer = null;
@@ -152,7 +214,7 @@
     return {
       id: uid(), sym: f.sym, side: f.side, type: f.type, qty: f.qty, limit: f.limit || null, stop: f.stop || null,
       tif: f.tif || 'day', status: 'open', createdAt: Date.now(), createdDay: todayNY(), placedOpen: f.placedOpen != null ? f.placedOpen : open,
-      session: activeSession(), bracket: f.bracket || null, oco: f.oco || null, parent: f.parent || null
+      session: activeSession(), bracket: f.bracket || null, oco: f.oco || null, parent: f.parent || null, fullPort: !!f.fullPort
     };
   }
   function triggerOnPrice(o, p) {
@@ -214,7 +276,23 @@
         '<span class="pt-wpx">' + fmt(px) + '<small class="' + (ch >= 0 ? 'up' : 'dn') + '">' + pct(ch) + '</small></span></button>';
     }).join('');
   }
+  // Full Port: the page glows green or red with the account, brighter the further it swings
+  // (open P&L while holding, total return while flat), same as Chart Replay's Full Port
+  function fullPortGlow() {
+    var on = !!acct.fullPort;
+    document.body.classList.toggle('pt-fullport', on);
+    if (!on) return;
+    var eq = equity(), cost = 0, held = Object.keys(acct.positions);
+    held.forEach(function (sy) { cost += acct.positions[sy].qty * acct.positions[sy].avg; });
+    var move = held.length ? (positionValue() - cost) / Math.max(1, eq) : eq / START_CASH - 1;
+    var k = Math.min(1, 0.3 + Math.abs(move) * 12), rgb = move >= 0 ? '62,203,124' : '224,72,63', st = document.body.style;
+    st.setProperty('--pt-glow', 'rgba(' + rgb + ',' + (0.25 + 0.55 * k).toFixed(2) + ')');
+    st.setProperty('--pt-glow-soft', 'rgba(' + rgb + ',' + (0.08 + 0.22 * k).toFixed(2) + ')');
+    st.setProperty('--pt-glow-size', Math.round(60 + 140 * k) + 'px');
+    st.setProperty('--pt-glow-speed', (2.4 - 1.5 * k).toFixed(2) + 's');
+  }
   function renderHeader() {
+    fullPortGlow();
     var eq = equity(), tot = eq - START_CASH, dp = dayPnl();
     $('ptEquity').textContent = money(eq);
     $('ptTotal').textContent = signed(tot) + ' (' + pct(tot / START_CASH * 100) + ')'; $('ptTotal').className = tot >= 0 ? 'up' : 'dn';
@@ -258,9 +336,21 @@
     });
     lines.forEach(function (l) { if (l.color.indexOf('var(') === 0) l.color = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#f4f5f7'; });
     chart.lines = lines;
-    chart.marks = acct.fills.filter(function (f) { return f.sym === sel; }).map(function (f) { return { i: s.d.indexOf(f.day), price: f.price, side: f.side }; }).filter(function (m) { return m.i >= 0; });
+    var ds = displaySeries();
+    chart.marks = !ds || ds.intraday ? [] : acct.fills.filter(function (f) { return f.sym === sel; }).map(function (f) {
+      return { i: ds.d.indexOf(tf === 'W' ? weekKey(f.day) : f.day), price: f.price, side: f.side };
+    }).filter(function (m) { return m.i >= 0; });
     chart.lastPrice = px;
-    chart.setSeries(s);
+    chart.empty = null;
+    if (!ds || !ds.n) {
+      chart.empty = ds && ds.intraday
+        ? 'Intraday bars are built from the live price feed during market hours (9:30 am to 4:00 pm Eastern). They start filling in at the next open and keep the last 5 sessions. Daily and weekly charts are available now.'
+        : 'Loading chart…';
+      chart.s = null; chart.draw(); return;
+    }
+    var fresh = !chart.s || chart.s.key !== ds.key;
+    chart.setSeries(ds, rangeSel || TF[tf].def);
+    if (fresh && rangeSel) chart.setRange(rangeSel);
     chart.draw();
   }
 
@@ -270,7 +360,12 @@
     $('ptBuy').setAttribute('aria-pressed', String(side === 'buy')); $('ptSell').setAttribute('aria-pressed', String(side === 'sell'));
     $('ptLimitRow').hidden = ticket.type !== 'limit'; $('ptStopRow').hidden = ticket.type !== 'stop';
     $('ptBracket').hidden = side !== 'buy';
-    $('ptQtyLabel').textContent = ticket.qtyMode === 'shares' ? 'Shares' : 'Amount ($)';
+    $('ptQtyLabel').textContent = acct.fullPort ? 'Shares (Full Port: all in)' : ticket.qtyMode === 'shares' ? 'Shares' : 'Amount ($)';
+    $('ptFullPort').checked = !!acct.fullPort;
+    $('ptFullWarn').hidden = !acct.fullPort;
+    $('ptQtyMode').hidden = !!acct.fullPort;
+    $('ptQty').disabled = !!acct.fullPort;
+    if (acct.fullPort) $('ptQty').value = fullQty() || '';
     var q = orderQty(), est = q * (ticket.type === 'limit' ? +$('ptLimit').value || px : ticket.type === 'stop' ? +$('ptStopPx').value || px : px);
     var have = pos ? pos.qty - reservedShares(sel) : 0;
     var msg = '';
@@ -284,7 +379,13 @@
     $('ptSubmit').textContent = (side === 'buy' ? 'Review buy' : 'Review sell') + (q ? ' · ' + q + ' ' + sel : '');
     $('ptSubmit').className = 'pt-submit ' + (side === 'buy' ? 'is-buy' : 'is-sell');
   }
+  function fullQty() {
+    if (side === 'sell') { var p = acct.positions[sel]; return p ? Math.max(0, p.qty - reservedShares(sel)) : 0; }
+    var px = ticket.type === 'limit' ? +$('ptLimit').value || price(sel) : ticket.type === 'stop' ? +$('ptStopPx').value || price(sel) : price(sel);
+    return px ? Math.floor(buyingPower() / px) : 0;
+  }
   function orderQty() {
+    if (acct.fullPort) return fullQty();
     var v = parseFloat($('ptQty').value); if (!(v > 0)) return 0;
     if (ticket.qtyMode === 'shares') return Math.floor(v);
     var px = ticket.type === 'limit' ? +$('ptLimit').value || price(sel) : price(sel);
@@ -317,7 +418,7 @@
       h = done.length ? '<table class="pt-table"><thead><tr><th>Date</th><th>Symbol</th><th>Side</th><th>Type</th><th>Qty</th><th>Status</th><th>Fill</th><th>P&amp;L</th></tr></thead><tbody>' +
         done.map(function (o) {
           var f = acct.fills.filter(function (x) { return x.orderId === o.id; })[0];
-          return '<tr><td>' + (o.filledDay || o.createdDay) + '</td><td>' + o.sym + '</td><td class="' + (o.side === 'buy' ? 'up' : 'dn') + '">' + o.side.toUpperCase() + '</td><td>' + o.type + '</td><td>' + o.qty + '</td>' +
+          return '<tr><td>' + (o.filledDay || o.createdDay) + '</td><td>' + o.sym + '</td><td class="' + (o.side === 'buy' ? 'up' : 'dn') + '">' + o.side.toUpperCase() + '</td><td>' + o.type + (o.fullPort ? ' <small class="pt-fp-tag">FULL PORT</small>' : '') + '</td><td>' + o.qty + '</td>' +
             '<td>' + o.status + (o.note ? ' <small>· ' + esc(o.note) + '</small>' : '') + '</td><td>' + (o.fillPrice ? fmt(o.fillPrice) : '–') + '</td>' +
             '<td class="' + (f && f.pnl != null ? (f.pnl >= 0 ? 'up' : 'dn') : '') + '">' + (f && f.pnl != null ? signed(f.pnl) : '–') + '</td></tr>';
         }).join('') + '</tbody></table>' : '<p class="pt-empty">Nothing yet. Filled, cancelled and expired orders show up here.</p>';
@@ -330,6 +431,7 @@
         '<span><small>Realized P&amp;L</small><b class="' + (acct.realized >= 0 ? 'up' : 'dn') + '">' + signed(acct.realized) + '</b></span>' +
         '<span><small>Closed trades</small><b>' + sells.length + '</b></span>' +
         '<span><small>Win rate</small><b>' + (sells.length ? Math.round(wins.length / sells.length * 100) + '%' : '–') + '</b></span>' +
+        '<span><small>Full Port trades</small><b>' + acct.orders.filter(function (o) { return o.fullPort && o.status === 'filled' && o.side === 'buy'; }).length + '</b></span>' +
         '<span><small>Since</small><b>' + new Date(acct.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</b></span></div>' +
         (days.length > 1 ? '<canvas class="pt-curve" id="ptCurve"></canvas>' : '<p class="pt-empty">Your account-value curve fills in as the days go by.</p>') +
         '<button class="pt-reset" id="ptReset" type="button">Reset account to $10,000</button>';
@@ -366,6 +468,7 @@
     $('ptLimit').value = p ? fmt(p) : ''; $('ptStopPx').value = p ? fmt(p) : '';
     if ($('ptUseBracket').checked && p) { $('ptSL').value = fmt(p * 0.95); $('ptTP').value = fmt(p * 1.10); }
     else { $('ptSL').value = ''; $('ptTP').value = ''; }
+    watchIntraday();
     renderAll();
   }
 
@@ -382,7 +485,7 @@
   function review() {
     var q = orderQty(), px = price(sel);
     if (!q) return toast('Enter how many shares (or dollars) first.', true);
-    var o = { sym: sel, side: side, type: ticket.type, qty: q, tif: $('ptTif').value };
+    var o = { sym: sel, side: side, type: ticket.type, qty: q, tif: $('ptTif').value, fullPort: !!acct.fullPort };
     if (o.type === 'limit') { o.limit = +(+$('ptLimit').value).toFixed(2); if (!(o.limit > 0)) return toast('Enter a limit price.', true); }
     if (o.type === 'stop') { o.stop = +(+$('ptStopPx').value).toFixed(2); if (!(o.stop > 0)) return toast('Enter a stop price.', true); }
     if (o.type === 'market') o.tif = 'day';
@@ -399,7 +502,7 @@
       var pos = acct.positions[sel], have = pos ? pos.qty - reservedShares(sel) : 0;
       if (q > have) return toast(have ? 'You can only sell ' + have + ' share' + (have === 1 ? '' : 's') + ' of ' + sel + '.' : 'You don\'t have any ' + sel + ' to sell.', true);
     }
-    var desc = (side === 'buy' ? 'Buy ' : 'Sell ') + q + ' ' + sel + ' · ' + (o.type === 'market' ? 'market order' : o.type + ' @ ' + fmt(o.limit || o.stop)) +
+    var desc = (o.fullPort ? 'FULL PORT · ' : '') + (side === 'buy' ? 'Buy ' : 'Sell ') + q + ' ' + sel + ' · ' + (o.type === 'market' ? 'market order' : o.type + ' @ ' + fmt(o.limit || o.stop)) +
       (o.bracket ? ' · stop-loss ' + (o.bracket.sl ? fmt(o.bracket.sl) : 'none') + ', take-profit ' + (o.bracket.tp ? fmt(o.bracket.tp) : 'none') : '');
     $('ptConfirmText').innerHTML = '<b>' + esc(desc) + '</b><br>' + esc($('ptWhen').textContent) + (side === 'buy' ? '<br>Estimated ' + money(q * (o.limit || o.stop || px)) + ' of your ' + money(buyingPower()) + ' buying power.' : '');
     $('ptConfirm').hidden = false; $('ptConfirmGo').focus();
@@ -450,7 +553,48 @@
       if (c) { acct.orders.forEach(function (o) { if (o.id === c && o.status === 'open') { o.status = 'cancelled'; o.note = 'Cancelled by you'; } }); save(); renderAll(); toast('Order cancelled.'); }
       if (cl) { selectSymbol(cl); side = 'sell'; ticket.type = 'market'; document.querySelector('[name="ptType"][value="market"]').checked = true; ticket.qtyMode = 'shares'; $('ptQtyMode').textContent = 'Use $ amount'; $('ptQty').value = acct.positions[cl].qty - reservedShares(cl); renderAll(); review(); }
     });
-    document.querySelectorAll('[data-range]').forEach(function (b) { b.addEventListener('click', function () { var r = b.getAttribute('data-range'); chart.setRange(r === 'all' ? 'all' : +r); document.querySelectorAll('[data-range]').forEach(function (x) { x.classList.toggle('is-on', x === b); }); }); });
+    $('ptRanges').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-range]'); if (!b) return;
+      var r = b.getAttribute('data-range'); rangeSel = r === 'all' ? 'all' : +r;
+      chart.setRange(rangeSel); renderRanges();
+    });
+    document.querySelectorAll('[data-tf]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        tf = b.getAttribute('data-tf'); rangeSel = null;
+        try { localStorage.setItem('zelosPracticeTf', tf); } catch (err) {}
+        watchIntraday(); renderRanges(); renderQuote();
+      });
+    });
+    try { var savedTf = localStorage.getItem('zelosPracticeTf'); if (TF[savedTf]) tf = savedTf; } catch (err) {}
+    renderRanges();
+    // candle colors
+    function paintColors() {
+      var c = chart.colors;
+      $('ptColorUp').value = c.up; $('ptColorDown').value = c.down;
+      $('ptColorSwatch').style.background = 'linear-gradient(135deg, ' + c.up + ' 50%, ' + c.down + ' 50%)';
+      document.querySelectorAll('[data-preset]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-preset') === c.id); });
+    }
+    $('ptColorPresets').innerHTML = TC.PRESETS.map(function (p) {
+      return '<button type="button" class="pt-preset" data-preset="' + p.id + '"><i style="background:' + p.up + '"></i><i style="background:' + p.down + '"></i>' + esc(p.name) + '</button>';
+    }).join('');
+    $('ptColorPresets').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-preset]'); if (!b) return;
+      var p = TC.PRESETS.filter(function (x) { return x.id === b.getAttribute('data-preset'); })[0];
+      chart.colors = { id: p.id, up: p.up, down: p.down }; TC.saveColors(chart.colors); paintColors(); chart.draw();
+    });
+    ['ptColorUp', 'ptColorDown'].forEach(function (id) {
+      $(id).addEventListener('input', function () {
+        chart.colors = { id: 'custom', up: $('ptColorUp').value, down: $('ptColorDown').value }; TC.saveColors(chart.colors); paintColors(); chart.draw();
+      });
+    });
+    $('ptColorsBtn').addEventListener('click', function (e) { e.stopPropagation(); var pop = $('ptColorPop'); pop.hidden = !pop.hidden; this.setAttribute('aria-expanded', String(!pop.hidden)); });
+    document.addEventListener('click', function (e) { var pop = $('ptColorPop'); if (!pop.hidden && !pop.contains(e.target)) { pop.hidden = true; $('ptColorsBtn').setAttribute('aria-expanded', 'false'); } });
+    paintColors();
+    // Full Port
+    $('ptFullPort').addEventListener('change', function () {
+      acct.fullPort = this.checked; save(); renderAll();
+      toast(this.checked ? '<b>Full Port on.</b> Every order now uses your entire buying power (or your whole position when selling).' : 'Full Port off.', this.checked);
+    });
     document.querySelectorAll('[data-ind]').forEach(function (b) {
       var k = b.getAttribute('data-ind'); b.classList.toggle('is-on', !!chart.show[k]);
       b.addEventListener('click', function () { chart.show[k] = !chart.show[k]; b.classList.toggle('is-on', chart.show[k]); chart.draw(); });
@@ -484,6 +628,7 @@
           Object.keys(b).forEach(function (s) { extra[s] = (b[s] || []).map(function (r) { var p = String(r).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], +p[5] || 0]; }); });
           tick();
         }, function () {});
+        watchIntraday();
         firebase.auth().onAuthStateChanged(function (user) {
           currentUser = user && !user.isAnonymous ? user : null;
           $('ptSync').textContent = currentUser ? 'Saved to your account' : 'Saved in this browser · sign in to keep it everywhere';
