@@ -1,6 +1,34 @@
-# Zelos site
+<div align="center">
 
-Static site for Zelos — no build step, no framework, just plain HTML/CSS/JS. Deploy it with GitHub Pages.
+<a href="https://agentictrading.info"><img src="icons/icon-192.png" width="84" alt="Zelos"></a>
+
+# Zelos · AgenticTrading.info
+
+**Rule-based stock scans, live market tools and free trading games on real charts.**
+
+<a href="https://agentictrading.info"><img alt="Visit AgenticTrading.info" src="https://img.shields.io/badge/Visit-AgenticTrading.info-4a86ff?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+&nbsp;
+<a href="https://agentictrading.info/arcade.html"><img alt="Play the Arcade" src="https://img.shields.io/badge/Play-the_Arcade-3ecb7c?style=for-the-badge"></a>
+&nbsp;
+<a href="https://agentictrading.info/leaderboard.html"><img alt="Leaderboard" src="https://img.shields.io/badge/Live-Leaderboard-e8b23d?style=for-the-badge"></a>
+
+<a href="https://agentictrading.info"><img src="og-image.png" width="720" alt="AgenticTrading.info"></a>
+
+**[agentictrading.info](https://agentictrading.info)** · [Swing Trader](https://agentictrading.info/swing-trader.html) · [Breakout Rider](https://agentictrading.info/breakout-rider.html) · [Options Scanner](https://agentictrading.info/options-scanner.html) · [Chart Replay](https://agentictrading.info/games/chart-replay.html) · [Learn](https://agentictrading.info/learn/index.html)
+
+</div>
+
+---
+
+> **This is the source of the official AgenticTrading.info site.** It's public only so it can be hosted on GitHub Pages.
+> **All rights reserved:** copying, re-hosting or reusing any part of it (code, design, games, text or graphics) is not permitted. See [LICENSE](LICENSE).
+> Looking for the product? Head to **[agentictrading.info](https://agentictrading.info)**.
+
+---
+
+## Site owner notes
+
+Static site for Zelos: no build step, no framework, just plain HTML/CSS/JS, hosted with GitHub Pages.
 
 ## Pages
 
