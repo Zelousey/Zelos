@@ -210,8 +210,9 @@ def main():
         <button class="zg-btn zg-btn-sm" id="zrNew" type="button">New chart</button>
       </div>
       <div class="zr-risk-warn" id="zrRiskWarn" role="note" hidden><b>&#9888; Full Port:</b> every trade puts your <b>entire account</b> into the position,
-      so a loss at your stop is no longer a fixed 0.5&ndash;2%; it can be many times that. Real traders almost never do this. Each Full Port trade costs
-      <b>25 discipline points</b>, and discipline multiplies your score.</div>
+      so a loss at your stop is no longer a fixed 0.5&ndash;2%; it can be many times that. Real traders almost never do this. Full Port plays on
+      <b>Auto-play</b> with <b>no hints</b>. Each Full Port trade costs <b>25 discipline points</b>, each <b>Wait</b> costs 10, and discipline
+      multiplies your score.</div>
       <div class="zr-tip" id="zrTip" hidden></div>
       <p class="zr-hint" id="zrHint">Loading a real chart…</p>
       <div class="zr-log" id="zrLog"></div>
@@ -227,8 +228,9 @@ def main():
     The red box is what you risk and the green box is your reward; drag either handle to adjust them, before or after the fill.
     Moving a target farther when the chart supports a bigger move is fine; widening a stop costs discipline.</p>
     <p>Orders fill at the next day's open, and position size is calculated so that hitting your stop costs exactly your chosen risk
-    (0.5%, 1% or 2% of the account). <b>Full Port</b> instead puts the whole account into the trade, which is why it costs
-    discipline points.</p>
+    (0.5%, 1% or 2% of the account). <b>Full Port</b> instead puts the whole account into the trade: the screen glows green or red
+    with your account, there are no hints, you play it on Auto-play, and every Wait costs 10 discipline points on top of the 25 each
+    Full Port trade costs.</p>
     <p>Stops and targets fill at their price during the day, or at the open if price gaps through them. If a day touches both,
     the stop is assumed to fill first. That's the conservative assumption real backtests use.</p>
     <h2>Scoring</h2>
