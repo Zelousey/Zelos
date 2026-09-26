@@ -65,11 +65,48 @@
     syncButtons();
   }
 
+  // The mobile menu scrolls inside itself. Its height has to be measured, not
+  // guessed: the header wraps to two rows on phones, and mobile browser bars
+  // change the visible height, so a fixed calc() left the last links off-screen.
+  function fitMobileMenu() {
+    var panel = document.getElementById('navMobilePanel');
+    if (!panel || !panel.offsetParent) return;
+    var vh = global.visualViewport ? global.visualViewport.height : global.innerHeight;
+    panel.style.maxHeight = Math.max(160, Math.floor(vh - panel.getBoundingClientRect().top - 8)) + 'px';
+  }
+  function wireMobileMenu() {
+    var btn = document.getElementById('navHamburger');
+    if (!btn || btn._zelosFit) return;
+    btn._zelosFit = true;
+    btn.addEventListener('click', function () { setTimeout(fitMobileMenu, 0); });
+    global.addEventListener('resize', fitMobileMenu);
+    global.addEventListener('orientationchange', function () { setTimeout(fitMobileMenu, 250); });
+    if (global.visualViewport) global.visualViewport.addEventListener('resize', fitMobileMenu);
+  }
+
+  // Copies of the site hosted anywhere else (another domain, a downloaded
+  // folder opened from disk, a local server) get a banner pointing people to
+  // the real site. The repo is public only for GitHub Pages hosting; see LICENSE.
+  var OFFICIAL = ['agentictrading.info', 'www.agentictrading.info', 'zelousey.github.io'];
+  function copyNotice() {
+    var host = (global.location.hostname || '').toLowerCase();
+    if (OFFICIAL.indexOf(host) !== -1 || document.getElementById('zelosCopyNotice')) return;
+    var bar = document.createElement('div');
+    bar.id = 'zelosCopyNotice';
+    bar.setAttribute('role', 'note');
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;' +
+      'padding:10px 16px;background:#0c0d10;border-top:2px solid #4a86ff;color:#f4f5f7;font:600 14px/1.4 "IBM Plex Sans",system-ui,sans-serif;text-align:center;box-shadow:0 -8px 24px rgba(0,0,0,0.45);';
+    bar.innerHTML = '<span>&#9888; This is an unofficial copy of <b>AgenticTrading.info</b>. The real site, with live data, is at</span>' +
+      '<a href="https://agentictrading.info" style="color:#fff;background:#4a86ff;padding:7px 14px;border-radius:4px;text-decoration:none;">agentictrading.info &rarr;</a>';
+    document.body.appendChild(bar);
+    document.body.style.paddingBottom = (bar.offsetHeight + 8) + 'px';
+  }
+
   global.ZelosThemeToggle = { THEMES: THEMES, applyStoredTheme: applyStoredTheme, setTheme: setTheme, currentTheme: currentTheme, wireToggle: wireToggle };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wireToggle);
+    document.addEventListener('DOMContentLoaded', function () { wireToggle(); wireMobileMenu(); copyNotice(); });
   } else {
-    wireToggle();
+    wireToggle(); wireMobileMenu(); copyNotice();
   }
 })(window);

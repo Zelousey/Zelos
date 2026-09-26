@@ -448,3 +448,122 @@ def post_to_buffer(req: https_fn.Request) -> https_fn.Response:
         status=status,
         content_type="application/json",
     )
+
+
+# ---------------------------------------------------------------------------
+# Live prices for the $10,000 Practice Account (practice/index.html).
+#
+# refresh_quotes runs every minute on weekdays, 9:00-16:59 New York time, and
+# only calls Finnhub between 9:25 and 16:10. It fetches one quote per symbol
+# (30 calls, inside Finnhub's free 60/minute) and writes them all to the
+# public Firestore doc markets/quotes, which every open practice page is
+# listening to. That way the API key stays in this function's secret config
+# and never reaches a browser, and Finnhub sees one caller no matter how many
+# people are on the site.
+#
+# After the close it also appends the day's bar (open/high/low/close from the
+# quote; the quote has no volume, so that's stored as 0) to markets/dailyBars,
+# so charts keep extending day by day between manual data refreshes.
+#
+# Setup: firebase functions:secrets:set FINNHUB_API_KEY, then deploy. See
+# docs/practice-account.md.
+# ---------------------------------------------------------------------------
+from zoneinfo import ZoneInfo
+from firebase_functions import scheduler_fn
+
+PRACTICE_SYMBOLS = [
+    "AAPL", "AMZN", "MSFT", "GOOGL", "NFLX", "CRWD", "UBER", "SMCI", "AVGO", "SOFI",
+    "NVDA", "AMD", "TSLA", "META", "PLTR", "COIN", "SHOP", "MU", "SPY", "QQQ",
+    "JPM", "XOM", "LLY", "COST", "HOOD", "ANET", "DKNG", "RBLX", "SNOW", "ABNB",
+]
+NY = ZoneInfo("America/New_York")
+DAILY_BARS_KEEP = 90
+
+
+def _finnhub_quote(symbol, api_key, timeout=8):
+    req = urllib.request.Request(
+        "https://finnhub.io/api/v1/quote?symbol=" + symbol,
+        headers={"X-Finnhub-Token": api_key, "User-Agent": "zelos-practice/1.0"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _fetch_all_quotes(api_key):
+    """Returns (quotes, error). error is 'auth' for a bad key, else a short message."""
+    quotes, last_error = {}, None
+    for sym in PRACTICE_SYMBOLS:
+        try:
+            q = _finnhub_quote(sym, api_key)
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                return {}, "auth"  # bad or revoked key: no point trying the rest
+            last_error = "http %d" % e.code
+            continue
+        except Exception as e:  # timeout, DNS, bad JSON
+            last_error = type(e).__name__
+            continue
+        # Finnhub answers unknown symbols with all zeros
+        if not q or not q.get("c"):
+            continue
+        quotes[sym] = {k: q.get(k) for k in ("c", "o", "h", "l", "pc", "t")}
+    return quotes, (None if quotes else (last_error or "no data"))
+
+
+@scheduler_fn.on_schedule(
+    schedule="* 9-16 * * 1-5",
+    timezone=scheduler_fn.Timezone("America/New_York"),
+    secrets=["FINNHUB_API_KEY"],
+    timeout_sec=55,
+    memory=256,
+)
+def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
+    now = datetime.now(NY)
+    minutes = now.hour * 60 + now.minute
+    if minutes < 9 * 60 + 25 or minutes > 16 * 60 + 10:
+        return
+    api_key = os.environ.get("FINNHUB_API_KEY", "").strip()
+    db = firestore.client()
+    doc = db.collection("markets").document("quotes")
+    if not api_key:
+        doc.set({"error": "missing-key", "checkedAt": now.isoformat()}, merge=True)
+        return
+
+    quotes, error = _fetch_all_quotes(api_key)
+    if error and not quotes:
+        # keep the last good prices; just flag the problem so the page can say so
+        doc.set({"error": error, "checkedAt": now.isoformat()}, merge=True)
+        print("[refresh_quotes] Finnhub error:", error)
+        return
+
+    today = now.strftime("%Y-%m-%d")
+    session_open = 9 * 60 + 30 <= minutes < 16 * 60
+    doc.set({
+        "source": "finnhub",
+        "updatedAt": now.isoformat(),
+        "date": today,
+        "marketOpen": session_open,
+        "error": None,
+        "quotes": quotes,
+    })
+
+    # after the close: record today's bar once the quotes are from today.
+    # Firestore can't store nested arrays, so each bar is kept as a
+    # "date,o,h,l,c,v" string; the page splits it back apart.
+    if minutes >= 16 * 60 + 2:
+        bars_ref = db.collection("markets").document("dailyBars")
+        snap = bars_ref.get()
+        stored = (snap.to_dict() or {}).get("bars", {}) if snap.exists else {}
+        bars = {sym: [str(r) for r in rows] for sym, rows in stored.items()}
+        changed = False
+        for sym, q in quotes.items():
+            qdate = datetime.fromtimestamp(q.get("t") or 0, NY).strftime("%Y-%m-%d")
+            if qdate != today or not q.get("o"):
+                continue
+            row = ",".join(str(x) for x in (today, q["o"], q["h"], q["l"], q["c"], 0))
+            series = [r for r in bars.get(sym, []) if not r.startswith(today + ",")]
+            series.append(row)
+            bars[sym] = series[-DAILY_BARS_KEEP:]
+            changed = True
+        if changed:
+            bars_ref.set({"updatedAt": now.isoformat(), "bars": bars})

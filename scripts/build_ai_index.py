@@ -30,6 +30,7 @@ TOOLS = [
     ('ai-knowledge-catalog.html', 'Knowledge catalog and glossary', 'Definitions of alert terminology and how the shared scoring engine works.'),
 ]
 GAMES = [
+    ('practice/index.html', '$10,000 Practice Account', 'Free paper trading account: real stocks at live prices, full charts and indicators, market/limit/stop and bracket orders.'),
     ('games/chart-replay.html', 'Chart Replay', 'Trading simulator on hidden real historical charts, scored on R-multiples and discipline.'),
     ('games/daily-challenge.html', 'Daily Challenge', 'Five real charts per day, the same for everyone: grade setups and place stops.'),
     ('games/grade-the-setup.html', 'Grade the Setup', 'Swing trading checklist drill on real charts.'),

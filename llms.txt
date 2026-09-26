@@ -36,6 +36,7 @@ Zelos never connects to any brokerage account, never asks for credentials, and n
 
 - [Site index for AI agents](https://agentictrading.info/ai-index.html): Every page on one plain HTML list.
 - [Daily market scan archive](https://agentictrading.info/scan/index.html): One page per trading day with conditions, rejected setups and the qualified alert.
+- [$10,000 Practice Account](https://agentictrading.info/practice/index.html): Free paper trading account: real stocks at live prices, full charts and indicators, market/limit/stop and bracket orders.
 - [Chart Replay](https://agentictrading.info/games/chart-replay.html): Trading simulator on hidden real historical charts, scored on R-multiples and discipline.
 - [Daily Challenge](https://agentictrading.info/games/daily-challenge.html): Five real charts per day, the same for everyone: grade setups and place stops.
 - [Grade the Setup](https://agentictrading.info/games/grade-the-setup.html): Swing trading checklist drill on real charts.

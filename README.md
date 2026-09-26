@@ -1,6 +1,34 @@
-# Zelos site
+<div align="center">
 
-Static site for Zelos — no build step, no framework, just plain HTML/CSS/JS. Deploy it with GitHub Pages.
+<a href="https://agentictrading.info"><img src="icons/icon-192.png" width="84" alt="Zelos"></a>
+
+# Zelos · AgenticTrading.info
+
+**Rule-based stock scans, live market tools and free trading games on real charts.**
+
+<a href="https://agentictrading.info"><img alt="Visit AgenticTrading.info" src="https://img.shields.io/badge/Visit-AgenticTrading.info-4a86ff?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+&nbsp;
+<a href="https://agentictrading.info/arcade.html"><img alt="Play the Arcade" src="https://img.shields.io/badge/Play-the_Arcade-3ecb7c?style=for-the-badge"></a>
+&nbsp;
+<a href="https://agentictrading.info/leaderboard.html"><img alt="Leaderboard" src="https://img.shields.io/badge/Live-Leaderboard-e8b23d?style=for-the-badge"></a>
+
+<a href="https://agentictrading.info"><img src="og-image.png" width="720" alt="AgenticTrading.info"></a>
+
+**[agentictrading.info](https://agentictrading.info)** · [Swing Trader](https://agentictrading.info/swing-trader.html) · [Breakout Rider](https://agentictrading.info/breakout-rider.html) · [Options Scanner](https://agentictrading.info/options-scanner.html) · [Chart Replay](https://agentictrading.info/games/chart-replay.html) · [Learn](https://agentictrading.info/learn/index.html)
+
+</div>
+
+---
+
+> **This is the source of the official AgenticTrading.info site.** It's public only so it can be hosted on GitHub Pages.
+> **All rights reserved:** copying, re-hosting or reusing any part of it (code, design, games, text or graphics) is not permitted. See [LICENSE](LICENSE).
+> Looking for the product? Head to **[agentictrading.info](https://agentictrading.info)**.
+
+---
+
+## Site owner notes
+
+Static site for Zelos: no build step, no framework, just plain HTML/CSS/JS, hosted with GitHub Pages.
 
 ## Pages
 
@@ -46,6 +74,12 @@ secrets described there.
 - New leaderboard ids (`chart-replay`, `grade-the-setup`, `stop-drill`, `daily-YYYY-MM-DD`) are registered in `leaderboard.js`. Matching Realtime Database rules are in `database.rules.json` (paste into Firebase console → Realtime Database → Rules).
 - Scores can carry an optional `ref` (Chart Replay sends its chart seed) so a leaderboard row opens that exact chart. The rule for `ref` is in `database.rules.json`; until it's pasted into the console, `leaderboard.js` retries the push without `ref`, so scores still post.
 - Engine features the games use: forecast boxes (`chart.box`), draggable stop/target handles (`chart.handles` + `onDrag`), on-chart prompts (`chart.prompt`), the "what happened next" banner and bar-by-bar `chart.reveal()`.
+
+## $10,000 Practice Account
+
+- `practice/index.html`: paper trading on 30 real stocks with live prices, a full chart (RSI, MACD, Bollinger, SMA/EMA, volume) and market/limit/stop/bracket orders. Built by `python3 scripts/build_practice.py`; logic in `practice/practice.js`, chart in `practice/practice-chart.js`.
+- Live quotes come from the `refresh_quotes` Cloud Function (Finnhub → Firestore `markets/quotes`). One-time setup: `docs/practice-account.md`. Without it the page uses the latest daily close.
+- Accounts are saved in localStorage, and to `users/{uid}.practice` for signed-in users.
 
 ## Themes, levels, dashboard
 
