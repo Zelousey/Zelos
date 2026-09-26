@@ -1,7 +1,7 @@
 (function () {
-  var START_EQ = 10000, PLAY = 60, HIST = 100, WAIT_BARS = 3, WAIT_MS = 280, IDLE_MS = 14000;
+  var START_EQ = 10000, PLAY = 60, HIST = 100, WAIT_BARS = 3, WAIT_MS = 280, IDLE_MS = 14000, FULL_WAIT_COST = 10;
   var $ = function (id) { return document.getElementById(id); };
-  var ch, s, cur, end, startIdx, eq, pos, draft, mode, trades, log, peak, maxDD, widen, lowRR, fullPorts, auto, rand, gameSeed, finished;
+  var ch, s, cur, end, startIdx, eq, pos, draft, mode, trades, log, peak, maxDD, widen, lowRR, fullPorts, fullWaits, auto, rand, gameSeed, finished;
   var revealing = false, hesitating = false, idleTimer = null, dragFrom = null;
   var RED = function () { return ZC.cssVar('--danger', '#e0483f'); }, GREEN = function () { return ZC.cssVar('--bull', '#3ecb7c'); };
   var TIPS = [
@@ -43,7 +43,7 @@
 
   function tip() {
     var c = s.c[cur];
-    if (finished) return null;
+    if (finished || isFull()) return null; // Full Port plays without a safety net: no hints
     if (hesitating) return { ico: '⏳', text: '<b>Not seeing a setup? Wait for confirmation.</b> Press <b>Wait</b> to reveal the next few bars. Sitting out a messy chart is a decision too.' };
     if (mode === 'stop' && draft) {
       var sw = draft.side > 0 ? ZC.minRange(s.l, cur - 9, cur) : ZC.maxRange(s.h, cur - 9, cur);
@@ -78,7 +78,7 @@
       rand = ZC.rng(gameSeed);
       var pick = ZC.pickReplay(data, rand, PLAY, HIST + 60);
       s = pick.s; startIdx = pick.start; cur = startIdx; end = startIdx + PLAY - 1;
-      eq = START_EQ; pos = null; draft = null; mode = null; trades = []; log = []; peak = START_EQ; maxDD = 0; widen = 0; lowRR = 0; fullPorts = 0; finished = false;
+      eq = START_EQ; pos = null; draft = null; mode = null; trades = []; log = []; peak = START_EQ; maxDD = 0; widen = 0; lowRR = 0; fullPorts = 0; fullWaits = 0; finished = false;
       revealing = false; hesitating = false;
       stopAuto();
       $('zrEnd').hidden = true; $('zrPlay').hidden = false;
@@ -128,24 +128,44 @@
     $('zrSetTarget').hidden = !pos || !!pos.target;
     $('zrSetTarget').disabled = busy;
     $('zrWait').disabled = busy;
-    $('zrWait').innerHTML = pos ? 'Hold &#9656;' : 'Wait &#9656;';
+    $('zrWait').innerHTML = (pos ? 'Hold' : 'Wait') + (isFull() ? ' (−' + FULL_WAIT_COST + ')' : ' &#9656;');
+    $('zrWait').classList.toggle('zg-btn-primary', !isFull());
+    $('zrAuto').classList.toggle('zg-btn-primary', isFull());
     $('zrWait').title = pos ? 'Hold the position and reveal the next few bars' : 'Stay flat and reveal the next few bars';
     $('zrCancel').hidden = !mode && !(draft && draft.queued);
     $('zrConfirm').hidden = mode !== 'confirm' && mode !== 'target';
     $('zrConfirm').textContent = mode === 'target' ? 'Skip target' : 'Place order';
 
+    fullPortGlow(m);
     var t = tip(), box = $('zrTip');
     if (t) { box.hidden = false; box.className = 'zr-tip' + (hesitating ? ' is-warn' : ''); box.innerHTML = '<span class="zr-tip-ico" aria-hidden="true">' + t.ico + '</span><span>' + t.text + '</span>'; }
     else box.hidden = true;
     guide(t);
   }
 
+  // Full Port: the whole page glows green or red with the account, brighter the
+  // further it swings (open P&L while in a trade, session return while flat)
+  function fullPortGlow(m) {
+    var on = isFull() && !finished;
+    document.body.classList.toggle('zr-fullport', on);
+    if (!on) return;
+    var move = pos ? (m - eq) / eq : (m / START_EQ - 1);
+    var win = move >= 0, k = Math.min(1, 0.3 + Math.abs(move) * 12);
+    var rgb = win ? '62,203,124' : '224,72,63';
+    var st = document.body.style;
+    st.setProperty('--zr-glow', 'rgba(' + rgb + ',' + (0.25 + 0.55 * k).toFixed(2) + ')');
+    st.setProperty('--zr-glow-soft', 'rgba(' + rgb + ',' + (0.08 + 0.22 * k).toFixed(2) + ')');
+    st.setProperty('--zr-glow-size', Math.round(60 + 140 * k) + 'px');
+    st.setProperty('--zr-glow-speed', (2.4 - 1.5 * k).toFixed(2) + 's');
+  }
+
   // exactly one next action glows at a time
   function guide(t) {
-    ['zrWait', 'zrLong', 'zrShort', 'zrConfirm', 'zrSetTarget'].forEach(function (id) { $(id).classList.remove('zg-pulse'); });
+    ['zrWait', 'zrLong', 'zrShort', 'zrConfirm', 'zrSetTarget', 'zrAuto'].forEach(function (id) { $(id).classList.remove('zg-pulse'); });
     if (finished || revealing) return;
     if (mode === 'confirm') return $('zrConfirm').classList.add('zg-pulse');
     if (mode) return; // stop/target: the prompt and handles on the chart carry it
+    if (isFull()) { if (!auto) $('zrAuto').classList.add('zg-pulse'); return; } // Full Port is played on Auto-play
     if (pos || (draft && draft.queued) || hesitating) return $('zrWait').classList.add('zg-pulse');
     if (t && t.side) return $(t.side > 0 ? 'zrLong' : 'zrShort').classList.add('zg-pulse');
     $('zrWait').classList.add('zg-pulse');
@@ -156,7 +176,7 @@
     if (hesitating) { hesitating = false; if (s && !finished) render(); }
     clearTimeout(idleTimer);
     idleTimer = setTimeout(function () {
-      if (finished || revealing || pos || mode || (draft && draft.queued) || auto) return;
+      if (finished || revealing || pos || mode || (draft && draft.queued) || auto || isFull()) return;
       hesitating = true; render();
     }, IDLE_MS);
   }
@@ -244,6 +264,14 @@
     setHint('Order queued: ' + (draft.side > 0 ? 'buy' : 'short') + ' at the next open with stop ' + ZC.fmt(draft.stop) + (draft.target ? ', target ' + ZC.fmt(draft.target) : '') + '. Press <b>Wait</b>.');
     render();
   }
+  // Wait / Auto-play with an order half-planned: a stop means the plan is real,
+  // so place it (target optional); without a stop there's nothing to place yet.
+  function commitDraft() {
+    if (mode === 'ptarget') { mode = null; return; }
+    if (!draft || draft.queued) return;
+    if (draft.stop != null) { mode = 'confirm'; confirmOrder(); }
+    else { draft = null; mode = null; addLog('Bar ' + barNo() + ': skipped the entry, waiting for confirmation'); }
+  }
   function cancel() {
     touch();
     if (mode === 'ptarget') mode = null;
@@ -295,7 +323,7 @@
     }
     var m = mtm(); peak = Math.max(peak, m); maxDD = Math.max(maxDD, (peak - m) / peak);
     if (cur >= end) { render(); finish(); return true; }
-    if (!pos && !draft && detectSetup()) event = true; // stop the reveal so the player can act on it
+    if (!pos && !draft && !isFull() && detectSetup()) event = true; // stop the reveal so the player can act on it
     return event;
   }
 
@@ -303,10 +331,8 @@
   function wait(n) {
     if (finished || revealing) return;
     touch();
-    if (mode === 'stop' || mode === 'target' || mode === 'confirm') {
-      draft = null; mode = null;
-      addLog('Bar ' + barNo() + ': skipped the entry, waiting for confirmation');
-    } else if (mode === 'ptarget') mode = null;
+    commitDraft();
+    if (isFull()) { fullWaits++; addLog('Bar ' + barNo() + ': used Wait in Full Port (discipline −' + FULL_WAIT_COST + ')'); }
     revealing = true; render();
     var left = n || WAIT_BARS;
     (function next() {
@@ -325,7 +351,7 @@
     finished = true; draft = null; mode = null; revealing = false;
     var n = trades.length, wins = trades.filter(function (t) { return t.r > 0; }).length;
     var totR = trades.reduce(function (a, t) { return a + t.r; }, 0);
-    var disc = Math.max(0, 100 - 15 * widen - 10 * lowRR - 25 * fullPorts - (n > 8 ? 20 : 0));
+    var disc = Math.max(0, 100 - 15 * widen - 10 * lowRR - 25 * fullPorts - FULL_WAIT_COST * fullWaits - (n > 8 ? 20 : 0));
     var bh = (s.c[end] / s.o[startIdx] - 1) * 100;
     var ret = (eq / START_EQ - 1) * 100;
     var score = Math.max(0, Math.round((1000 + totR * 200) * disc / 100));
@@ -343,7 +369,7 @@
       card('Buy & hold', (bh >= 0 ? '+' : '') + bh.toFixed(2) + '%', bh >= 0) + card('Total R', (totR >= 0 ? '+' : '') + totR.toFixed(2) + 'R', totR >= 0) +
       card('Trades', n) + card('Win rate', n ? Math.round(wins / n * 100) + '%' : '–') +
       card('Max drawdown', (maxDD * 100).toFixed(1) + '%') + card('Discipline', disc + '%', disc >= 80) + '</div>' +
-      '<p class="zg-fine">Discipline loses 15 for each time a stop was moved further away, 10 for each trade planned under 1.5:1, 25 for each Full Port trade, and 20 for more than 8 trades.</p>' +
+      '<p class="zg-fine">Discipline loses 15 for each time a stop was moved further away, 10 for each trade planned under 1.5:1, 25 for each Full Port trade, ' + FULL_WAIT_COST + ' for each Wait used in Full Port, and 20 for more than 8 trades.</p>' +
       '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="zrAgain" type="button">New chart</button><button class="zg-btn" id="zrShare" type="button">Share result</button>' +
       '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Arcade</a><a class="zg-btn zg-back" href="../leaderboard.html#chart-replay">Leaderboard</a></div>';
     $('zrAgain').addEventListener('click', function () { newGame(); });
@@ -359,21 +385,25 @@
   function toggleAuto() {
     touch();
     if (auto) return stopAuto();
-    if (mode) { draft = null; mode = null; }
+    commitDraft();
     $('zrAuto').textContent = 'Pause';
     auto = setInterval(function () {
       if (mode || revealing) return stopAuto();
       var ev = step(); render();
-      if (finished || ev) stopAuto();
+      // Full Port keeps rolling through fills and exits; normal mode pauses so you can react
+      if (finished || (ev && !isFull())) stopAuto();
     }, 450);
+    render();
   }
-  function stopAuto() { if (auto) clearInterval(auto); auto = null; if ($('zrAuto')) $('zrAuto').textContent = 'Auto-play'; }
+  function stopAuto() { if (auto) clearInterval(auto); auto = null; if ($('zrAuto')) $('zrAuto').textContent = 'Auto-play'; if (s && !finished && $('zrAuto')) guide(tip()); }
 
   function syncRiskUi() {
     var full = isFull();
     $('zrRisk').classList.toggle('is-full', full);
     $('zrRiskWarn').hidden = !full;
+    if (full) { hesitating = false; clearTimeout(idleTimer); }
     if (s && mode === 'confirm') confirmHint();
+    if (s) render();
   }
 
   document.addEventListener('DOMContentLoaded', function () {

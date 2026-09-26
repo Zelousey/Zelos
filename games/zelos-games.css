@@ -128,3 +128,16 @@
 .zg-lb a{ color:var(--accent); text-decoration:none; }
 .zg-lb a:hover{ text-decoration:underline; }
 .zg-lb-all{ font-family:var(--mono); font-size:0.74rem; margin-left:6px; }
+
+/* Full Port: the page itself glows with the account, green when winning, red when losing */
+body.zr-fullport::after{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:90;
+  box-shadow:inset 0 0 var(--zr-glow-size, 80px) var(--zr-glow, rgba(62,203,124,0.4));
+  background:radial-gradient(ellipse at center, transparent 55%, var(--zr-glow-soft, transparent) 100%);
+  animation:zr-breathe var(--zr-glow-speed, 2s) ease-in-out infinite;
+  transition:box-shadow .4s ease, background .4s ease;
+}
+body.zr-fullport .zg-panel{ border-color:var(--zr-glow); box-shadow:0 0 calc(var(--zr-glow-size, 80px) / 2) var(--zr-glow-soft), 0 0 0 1px var(--zr-glow); transition:box-shadow .4s ease, border-color .4s ease; }
+body.zr-fullport .zg-stat{ border-color:var(--zr-glow); }
+@keyframes zr-breathe{ 0%,100%{ opacity:0.75; } 50%{ opacity:1; } }
+@media (prefers-reduced-motion: reduce){ body.zr-fullport::after{ animation:none; } }
