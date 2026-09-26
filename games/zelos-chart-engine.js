@@ -173,6 +173,12 @@
   //            'move'|'end') fires while dragging and on release
   //   prompt   { text, color }  pulsing call-to-action drawn on the chart itself
   //   revealTo bar index: candles after it stay hidden (for animated reveals)
+  // candle colors picked on the Practice Account chart (shared localStorage key)
+  function candleColors(bull, bear) {
+    try { var c = JSON.parse(localStorage.getItem('zelosChartColors') || 'null'); if (c && /^#[0-9a-f]{6}$/i.test(c.up) && /^#[0-9a-f]{6}$/i.test(c.down)) return c; } catch (e) {}
+    return { up: bull, down: bear };
+  }
+  function hexA(hex, a) { if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex; var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
   var REDUCED = !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
   function Chart(canvas, opts) {
     this.cv = canvas; this.ctx = canvas.getContext('2d'); this.opts = opts || {};
@@ -280,6 +286,7 @@
     var bull = cssVar('--bull', '#3ecb7c'), bear = cssVar('--danger', '#e0483f'), acc = cssVar('--accent', '#4a86ff');
     var gold = cssVar('--gold', '#d9a441'), muted = cssVar('--muted', '#8a8f98'), ink = cssVar('--ink', '#e8e6e1');
     var grid = cssVar('--chart-grid', 'rgba(255,255,255,0.06)'), cross = cssVar('--chart-cross', 'rgba(255,255,255,0.35)'), tagInk = cssVar('--chart-label-ink', '#0b0c0f');
+    var cc = candleColors(bull, bear);
     var t = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
     var pulseA = REDUCED ? 1 : 0.55 + 0.45 * Math.sin(t * 4);
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -330,7 +337,7 @@
     var vmax = 0; for (var i = this.from; i <= this.to; i++) vmax = Math.max(vmax, s.v[i]);
     for (i = this.from; i <= lastShown; i++) {
       var up = s.c[i] >= s.o[i], vh = (s.v[i] / vmax) * (L.vy1 - L.vy0);
-      c.fillStyle = up ? 'rgba(62,203,124,0.35)' : 'rgba(224,72,63,0.35)';
+      c.fillStyle = hexA(up ? cc.up : cc.down, 0.35);
       c.fillRect(X(i) - bw * 0.35, L.vy1 - vh, Math.max(1, bw * 0.7), vh);
     }
     // moving averages
@@ -344,7 +351,7 @@
     }
     // candles
     for (i = this.from; i <= lastShown; i++) {
-      var o = s.o[i], cl = s.c[i], x = X(i), upc = cl >= o, col = upc ? bull : bear;
+      var o = s.o[i], cl = s.c[i], x = X(i), upc = cl >= o, col = upc ? cc.up : cc.down;
       c.strokeStyle = col; c.lineWidth = 1; c.beginPath(); c.moveTo(x, Y(s.h[i])); c.lineTo(x, Y(s.l[i])); c.stroke();
       var top = Y(Math.max(o, cl)), hgt = Math.max(1, Math.abs(Y(o) - Y(cl)));
       c.fillStyle = col; c.fillRect(x - bw * 0.36, top, Math.max(1, bw * 0.72), hgt);

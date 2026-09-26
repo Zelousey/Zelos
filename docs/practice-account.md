@@ -11,6 +11,10 @@ closes. Live prices need the `refresh_quotes` Cloud Function turned on once.
   free limit of 60 calls a minute) and writes them to the Firestore doc
   `markets/quotes`. Every open practice page listens to that doc, so there's only
   ever one caller to Finnhub, however many people are trading.
+- During the session it also folds each minute's price into 5-minute bars, one
+  doc per symbol (`markets/intraday_<SYM>`, last 5 sessions). The page's 5m, 15m
+  and 1H charts are built from these. Finnhub's free plan has no intraday
+  history, so the bars start filling in from the first session after deploying.
 - After the close it adds the day's bar to `markets/dailyBars`, so charts keep
   moving forward day by day.
 - The Finnhub API key lives only in the function's secret config. It is never in
@@ -57,6 +61,20 @@ computer with [Node.js](https://nodejs.org) installed.
    Use `--only functions:refresh_quotes` rather than deploying every function:
    a full deploy also needs the other functions' secrets
    (`ZELOS_PUBLISH_SECRET`, Buffer keys) to exist.
+
+## Updating after a code change
+
+When `functions/main.py` changes, open https://shell.cloud.google.com, where the
+repo was cloned the first time, and run:
+
+```
+cd ~/Zelos && git pull
+source functions/venv/bin/activate
+pip install -r functions/requirements.txt
+npx -y firebase-tools@latest deploy --only functions:refresh_quotes --project leaderboard-agentictrading
+```
+
+The secret stays set; there's no need to enter the key again.
 
 ## Checking it works
 

@@ -213,8 +213,8 @@
         <button class="zg-btn zg-btn-sm" id="zrNew" type="button">New chart</button>
       </div>
       <div class="zr-risk-warn" id="zrRiskWarn" role="note" hidden><b>&#9888; Full Port:</b> every trade puts your <b>entire account</b> into the position,
-      so a loss at your stop is no longer a fixed 0.5&ndash;2%; it can be many times that. Real traders almost never do this. Full Port plays on
-      <b>Auto-play</b> with <b>no hints</b>. Each Full Port trade costs <b>25 discipline points</b>, each <b>Wait</b> costs 10, and discipline
+      so a loss at your stop is no longer a fixed 0.5&ndash;2%; it can be many times that. Real traders almost never do this. In Full Port there are
+      <b>no hints</b>, and <b>Auto-play only unlocks once you're in a trade</b>: before that, Wait is the only way to see ahead. Each Full Port trade costs <b>25 discipline points</b>, each <b>Wait</b> costs 10, and discipline
       multiplies your score.</div>
       <div class="zr-tip" id="zrTip" hidden></div>
       <p class="zr-hint" id="zrHint">Loading a real chart…</p>
@@ -232,8 +232,8 @@
     Moving a target farther when the chart supports a bigger move is fine; widening a stop costs discipline.</p>
     <p>Orders fill at the next day's open, and position size is calculated so that hitting your stop costs exactly your chosen risk
     (0.5%, 1% or 2% of the account). <b>Full Port</b> instead puts the whole account into the trade: the screen glows green or red
-    with your account, there are no hints, you play it on Auto-play, and every Wait costs 10 discipline points on top of the 25 each
-    Full Port trade costs.</p>
+    with your account, there are no hints, Auto-play only runs while you're in a trade, and every Wait costs 10 discipline points on top
+    of the 25 each Full Port trade costs.</p>
     <p>Stops and targets fill at their price during the day, or at the open if price gaps through them. If a day touches both,
     the stop is assumed to fill first. That's the conservative assumption real backtests use.</p>
     <h2>Scoring</h2>
@@ -462,6 +462,10 @@ function zgLeaderboard(host, gameId, score, label, ref) {
     $('zrWait').innerHTML = (pos ? 'Hold' : 'Wait') + (isFull() ? ' (−' + FULL_WAIT_COST + ')' : ' &#9656;');
     $('zrWait').classList.toggle('zg-btn-primary', !isFull());
     $('zrAuto').classList.toggle('zg-btn-primary', isFull());
+    // Full Port: Auto-play only runs while you're in a trade; before that, Wait (−10) is the only preview
+    var autoLocked = isFull() && !auto && !inTrade();
+    $('zrAuto').disabled = busy || autoLocked;
+    $('zrAuto').title = autoLocked ? 'Full Port: make a trade first. Until then, Wait (−' + FULL_WAIT_COST + ') is the only way to see ahead.' : '';
     $('zrWait').title = pos ? 'Hold the position and reveal the next few bars' : 'Stay flat and reveal the next few bars';
     $('zrCancel').hidden = !mode && !(draft && draft.queued);
     $('zrConfirm').hidden = mode !== 'confirm' && mode !== 'target';
@@ -496,7 +500,7 @@ function zgLeaderboard(host, gameId, score, label, ref) {
     if (finished || revealing) return;
     if (mode === 'confirm') return $('zrConfirm').classList.add('zg-pulse');
     if (mode) return; // stop/target: the prompt and handles on the chart carry it
-    if (isFull()) { if (!auto) $('zrAuto').classList.add('zg-pulse'); return; } // Full Port is played on Auto-play
+    if (isFull()) { if (!auto && inTrade()) $('zrAuto').classList.add('zg-pulse'); return; } // Full Port is played on Auto-play, once you're in
     if (pos || (draft && draft.queued) || hesitating) return $('zrWait').classList.add('zg-pulse');
     if (t && t.side) return $(t.side > 0 ? 'zrLong' : 'zrShort').classList.add('zg-pulse');
     $('zrWait').classList.add('zg-pulse');
@@ -713,15 +717,20 @@ function zgLeaderboard(host, gameId, score, label, ref) {
   }
   function card(k, v, good) { return '<div class="zg-stat"><small>' + k + '</small><b class="' + (good === true ? 'up' : good === false ? 'dn' : '') + '">' + v + '</b></div>'; }
 
+  // in a trade, or about to be: a position, a queued order, or a plan with a stop set
+  function inTrade() { return !!pos || !!(draft && (draft.queued || draft.stop != null)); }
   function toggleAuto() {
     touch();
     if (auto) return stopAuto();
+    if (isFull() && !inTrade()) { setHint('<b>Full Port:</b> make a trade first. Until then, <b>Wait (−' + FULL_WAIT_COST + ')</b> is the only way to see ahead.'); return; }
     commitDraft();
     $('zrAuto').textContent = 'Pause';
     auto = setInterval(function () {
       if (mode || revealing) return stopAuto();
-      var ev = step(); render();
-      // Full Port keeps rolling through fills and exits; normal mode pauses so you can react
+      var ev = step();
+      // Full Port rolls through the fill and the trade, and stops the moment you're flat again
+      if (isFull() && !finished && !pos && !(draft && draft.queued)) { stopAuto(); setHint('Trade closed. <b>Full Port:</b> Auto-play unlocks again once you\'re in your next trade; <b>Wait (−' + FULL_WAIT_COST + ')</b> is the only preview until then.'); }
+      render();
       if (finished || (ev && !isFull())) stopAuto();
     }, 450);
     render();

@@ -461,6 +461,12 @@ def post_to_buffer(req: https_fn.Request) -> https_fn.Response:
 # and never reaches a browser, and Finnhub sees one caller no matter how many
 # people are on the site.
 #
+# During the session it also builds 5-minute bars for each symbol from those
+# once-a-minute prices (markets/intraday_<SYM>, the last 5 sessions), which is
+# what the page's 5m / 15m / 1h charts are made of. Finnhub's free plan has no
+# intraday history, so these bars are our own: open/close are the first/last
+# price seen in each 5 minutes, high/low the extremes of those samples.
+#
 # After the close it also appends the day's bar (open/high/low/close from the
 # quote; the quote has no volume, so that's stored as 0) to markets/dailyBars,
 # so charts keep extending day by day between manual data refreshes.
@@ -478,6 +484,43 @@ PRACTICE_SYMBOLS = [
 ]
 NY = ZoneInfo("America/New_York")
 DAILY_BARS_KEEP = 90
+INTRADAY_SESSIONS_KEEP = 5
+SESSION_OPEN, SESSION_CLOSE = 9 * 60 + 30, 16 * 60
+
+
+def _update_intraday(db, quotes, now):
+    """Folds this minute's prices into each symbol's 5-minute bars.
+
+    Bars are "YYYY-MM-DD HH:MM,o,h,l,c" strings (Firestore can't nest arrays),
+    one doc per symbol so a page only downloads the stock it's showing."""
+    minutes = now.hour * 60 + now.minute
+    if minutes < SESSION_OPEN or minutes > SESSION_CLOSE:
+        return
+    today = now.strftime("%Y-%m-%d")
+    # the 16:00 sample closes the 15:55 bar rather than opening a 16:00 one
+    bucket = SESSION_OPEN + (min(minutes, SESSION_CLOSE - 1) - SESSION_OPEN) // 5 * 5
+    label = "%s %02d:%02d" % (today, bucket // 60, bucket % 60)
+    batch = db.batch()
+    for sym, q in quotes.items():
+        qdate = datetime.fromtimestamp(q.get("t") or 0, NY).strftime("%Y-%m-%d")
+        px = q.get("c")
+        if qdate != today or not px:
+            continue  # market holiday or a stale quote: nothing traded today
+        ref = db.collection("markets").document("intraday_" + sym)
+        snap = ref.get()
+        bars = [str(b) for b in ((snap.to_dict() or {}).get("bars", []) if snap.exists else [])]
+        if bars and bars[-1].startswith(label + ","):
+            parts = bars[-1].split(",")
+            o, h, l = float(parts[1]), float(parts[2]), float(parts[3])
+            bars[-1] = "%s,%s,%s,%s,%s" % (label, o, max(h, px), min(l, px), px)
+        else:
+            bars.append("%s,%s,%s,%s,%s" % (label, px, px, px, px))
+        # keep the last few sessions
+        dates = sorted({b[:10] for b in bars})
+        keep = set(dates[-INTRADAY_SESSIONS_KEEP:])
+        bars = [b for b in bars if b[:10] in keep]
+        batch.set(ref, {"updatedAt": now.isoformat(), "interval": "5m", "bars": bars})
+    batch.commit()
 
 
 def _finnhub_quote(symbol, api_key, timeout=8):
@@ -546,6 +589,10 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
         "error": None,
         "quotes": quotes,
     })
+    try:
+        _update_intraday(db, quotes, now)
+    except Exception as e:  # never let chart bookkeeping stop the quotes
+        print("[refresh_quotes] intraday update failed:", type(e).__name__, e)
 
     # after the close: record today's bar once the quotes are from today.
     # Firestore can't store nested arrays, so each bar is kept as a
