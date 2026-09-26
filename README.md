@@ -75,6 +75,12 @@ secrets described there.
 - Scores can carry an optional `ref` (Chart Replay sends its chart seed) so a leaderboard row opens that exact chart. The rule for `ref` is in `database.rules.json`; until it's pasted into the console, `leaderboard.js` retries the push without `ref`, so scores still post.
 - Engine features the games use: forecast boxes (`chart.box`), draggable stop/target handles (`chart.handles` + `onDrag`), on-chart prompts (`chart.prompt`), the "what happened next" banner and bar-by-bar `chart.reveal()`.
 
+## $10,000 Practice Account
+
+- `practice/index.html`: paper trading on 30 real stocks with live prices, a full chart (RSI, MACD, Bollinger, SMA/EMA, volume) and market/limit/stop/bracket orders. Built by `python3 scripts/build_practice.py`; logic in `practice/practice.js`, chart in `practice/practice-chart.js`.
+- Live quotes come from the `refresh_quotes` Cloud Function (Finnhub → Firestore `markets/quotes`). One-time setup: `docs/practice-account.md`. Without it the page uses the latest daily close.
+- Accounts are saved in localStorage, and to `users/{uid}.practice` for signed-in users.
+
 ## Themes, levels, dashboard
 
 - Background themes are Black (default), Blue and White: tokens in `zelos-theme.css` under `:root[data-theme=...]`, toggle in `zelos-theme-toggle.js`. Every page runs a one-line inline copy of the stored-theme read at the top of `<head>` to avoid a flash.
