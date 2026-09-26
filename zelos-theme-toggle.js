@@ -65,11 +65,30 @@
     syncButtons();
   }
 
+  // The mobile menu scrolls inside itself. Its height has to be measured, not
+  // guessed: the header wraps to two rows on phones, and mobile browser bars
+  // change the visible height, so a fixed calc() left the last links off-screen.
+  function fitMobileMenu() {
+    var panel = document.getElementById('navMobilePanel');
+    if (!panel || !panel.offsetParent) return;
+    var vh = global.visualViewport ? global.visualViewport.height : global.innerHeight;
+    panel.style.maxHeight = Math.max(160, Math.floor(vh - panel.getBoundingClientRect().top - 8)) + 'px';
+  }
+  function wireMobileMenu() {
+    var btn = document.getElementById('navHamburger');
+    if (!btn || btn._zelosFit) return;
+    btn._zelosFit = true;
+    btn.addEventListener('click', function () { setTimeout(fitMobileMenu, 0); });
+    global.addEventListener('resize', fitMobileMenu);
+    global.addEventListener('orientationchange', function () { setTimeout(fitMobileMenu, 250); });
+    if (global.visualViewport) global.visualViewport.addEventListener('resize', fitMobileMenu);
+  }
+
   global.ZelosThemeToggle = { THEMES: THEMES, applyStoredTheme: applyStoredTheme, setTheme: setTheme, currentTheme: currentTheme, wireToggle: wireToggle };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wireToggle);
+    document.addEventListener('DOMContentLoaded', function () { wireToggle(); wireMobileMenu(); });
   } else {
-    wireToggle();
+    wireToggle(); wireMobileMenu();
   }
 })(window);

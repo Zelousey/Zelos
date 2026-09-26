@@ -275,7 +275,10 @@ body.zt-body{
      scrolled the whole (short, already-pinned) page instead of the menu
      itself. Giving the panel its own bounded, scrollable box makes it
      independently scrollable so the rest of the list is always reachable. */
-  max-height:calc(100vh - 66px);
+  /* fallback only: zelos-theme-toggle.js measures where the panel really
+     starts (the header wraps to two rows on phones) and sets the exact height */
+  max-height:calc(100vh - 130px);
+  max-height:calc(100dvh - 130px);
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
