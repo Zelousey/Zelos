@@ -30,23 +30,27 @@ function zgRunDrill(cfg) {
   }
   next();
 }
-function zgLeaderboard(host, gameId, score, label) {
+function zgLeaderboard(host, gameId, score, label, ref) {
   var LB = window.ZelosLeaderboard;
   var box = ZC.el('div', 'zg-lb');
   host.appendChild(box);
   if (!LB || !LB.isConfigured()) { box.innerHTML = '<p class="zg-fine">Leaderboard offline right now.</p>'; return; }
   var form = ZC.el('div', 'zg-lb-form', '<input id="zgName" maxlength="20" placeholder="Your name" aria-label="Your name"><button class="zg-btn zg-btn-primary" id="zgSubmit" type="button">Post score</button>');
   box.appendChild(form);
-  var list = ZC.el('div', '', '<b>Top scores' + (label ? ' · ' + label : '') + '</b><ol id="zgTop5"><li>Loading…</li></ol>');
+  var list = ZC.el('div', '', '<b>Top scores' + (label ? ' · ' + label : '') + '</b> <a class="zg-lb-all" href="../leaderboard.html#' + (/^daily-/.test(gameId) ? 'daily' : gameId) + '">Full leaderboard &rarr;</a><ol id="zgTop5"><li>Loading…</li></ol>');
   box.appendChild(list);
   var inp = form.querySelector('input'); inp.value = LB.getName() || '';
   form.querySelector('button').addEventListener('click', function () {
     LB.setName(inp.value || 'Anon');
     this.disabled = true; var b = this;
-    LB.submitScore(gameId, score, function (ok) { b.textContent = ok ? 'Posted ✓' : 'Couldn\'t post'; });
+    LB.submitScore(gameId, score, function (ok) { b.textContent = ok ? 'Posted ✓' : 'Couldn\'t post'; }, ref);
   });
   LB.topScores(gameId, 5, function (rows) {
     var ol = document.getElementById('zgTop5'); if (!ol) return;
-    ol.innerHTML = rows && rows.length ? rows.map(function (r) { return '<li>' + String(r.name).replace(/[<>&]/g, '') + ' · ' + LB.formatScore(gameId, r.score) + '</li>'; }).join('') : '<li>No scores yet. Be first.</li>';
+    ol.innerHTML = rows && rows.length ? rows.map(function (r) {
+      var txt = String(r.name).replace(/[<>&"]/g, '') + ' · ' + LB.formatScore(gameId, r.score);
+      var href = LB.entryHref ? LB.entryHref(gameId, r, '../') : null;
+      return '<li>' + (href && r.ref ? '<a href="' + href.replace(/"/g, '') + '" title="Play this exact chart">' + txt + ' ↗</a>' : txt) + '</li>';
+    }).join('') : '<li>No scores yet. Be first.</li>';
   });
 }

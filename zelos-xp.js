@@ -58,6 +58,36 @@
  */
 (function () {
   var POINTS = { 'alert-open': 5, 'daily-checkin': 3, 'arcade-play': 5 };
+
+  // Level-ups get a full-screen celebration (zelos-levels.js) on whatever page
+  // the XP was earned. Loaded lazily, from the same folder as this file, so
+  // no page has to add another script tag.
+  var LEVELS_SRC = (function () {
+    var cs = document.currentScript;
+    return cs && cs.src ? cs.src.replace(/zelos-xp\.js(\?.*)?$/, 'zelos-levels.js') : null;
+  })();
+  var levelsPromise = null;
+  function withLevels(fn) {
+    if (window.ZelosLevels) return fn(window.ZelosLevels);
+    if (!LEVELS_SRC) return;
+    if (!levelsPromise) {
+      levelsPromise = new Promise(function (resolve) {
+        var sc = document.createElement('script');
+        sc.src = LEVELS_SRC; sc.async = true;
+        sc.onload = function () { resolve(window.ZelosLevels || null); };
+        sc.onerror = function () { resolve(null); };
+        document.head.appendChild(sc);
+      });
+    }
+    levelsPromise.then(function (L) { if (L) fn(L); });
+  }
+  function maybeCelebrate(before, after) {
+    if (!(after > before)) return;
+    withLevels(function (L) {
+      var a = L.levelForXp(before), b = L.levelForXp(after);
+      if (b.level > a.level) L.celebrate(b, { xp: after, gained: after - before });
+    });
+  }
   var initialized = false;
   var auth = null, db = null;
   var authReadyPromise = null;
@@ -154,6 +184,7 @@
           }
 
           return {
+            before: data.xp || 0,
             awarded: awardedThisCall,
             xp: updates.xp !== undefined ? updates.xp : (data.xp || 0),
             streakDays: updates.streakDays !== undefined ? updates.streakDays : (data.streakDays || 0)
@@ -161,6 +192,7 @@
         });
       });
     }).then(function (result) {
+      if (result.awarded) maybeCelebrate(result.before, result.xp);
       cb(result.awarded, { xp: result.xp, streakDays: result.streakDays });
     }).catch(function (e) {
       console.warn('[ZelosXP] award failed:', type, refId, e);

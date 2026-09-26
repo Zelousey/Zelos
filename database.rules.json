@@ -10,6 +10,7 @@
           "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
           "score": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100000 && ($game.matches(/^daily-/) ? newData.val() <= 500 : true)" },
           "ts": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+          "ref": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 64" },
           "$other": { ".validate": false }
         }
       }

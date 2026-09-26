@@ -12,29 +12,42 @@
  * actually enforce "you can only add a new score, never edit or delete one."
  *
  * Exposes window.ZelosLeaderboard with:
- *   GAMES                          — { gameId: { label, isCurrency } }
+ *   GAMES                          — { gameId: { label, isCurrency, group, href, emoji } }
+ *                                    group is the leaderboard section it's listed under;
+ *                                    href is the page (relative to the site root) a board
+ *                                    row links back to
  *   isConfigured()                 — true once firebase-config.js has real values
  *   getName() / setName(v)         — the player's cached display name (localStorage)
  *   formatScore(gameId, score)     — "$1,234" for currency games, "1,234" otherwise
- *   submitScore(gameId, score, cb) — cb(true|false)
+ *   submitScore(gameId, score, cb, ref) — cb(true|false). ref is optional: a short
+ *                                    string that lets a board row link to the exact run
+ *                                    (Chart Replay passes its chart seed). If the live
+ *                                    database rules predate the ref field, the push is
+ *                                    retried without it so the score still posts.
+ *   entryHref(gameId, row, prefix) — link for one board row (the game, or that exact run)
  *   topScores(gameId, limit, cb)   — cb(rows), returns an unsubscribe function; rows
  *                                    stay live-updated (cb fires again on any change)
  *                                    until you call the returned unsubscribe function
  */
 (function () {
   var GAMES = {
-    'bull-run': { label: 'Bull Run', isCurrency: false },
-    'buy-the-dip': { label: 'Buy the Dip', isCurrency: true },
-    'setup-spotter': { label: 'Setup Spotter', isCurrency: false },
-    'chart-replay': { label: 'Chart Replay', isCurrency: false },
-    'grade-the-setup': { label: 'Grade the Setup', isCurrency: false },
-    'stop-drill': { label: "Where's the Stop?", isCurrency: false }
+    'chart-replay': { label: 'Chart Replay', isCurrency: false, group: 'sim', href: 'games/chart-replay.html', emoji: '📈' },
+    'grade-the-setup': { label: 'Grade the Setup', isCurrency: false, group: 'sim', href: 'games/grade-the-setup.html', emoji: '✅' },
+    'stop-drill': { label: "Where's the Stop?", isCurrency: false, group: 'sim', href: 'games/stop-drill.html', emoji: '🛑' },
+    'bull-run': { label: 'Bull Run', isCurrency: false, group: 'arcade', href: 'games/bull-run.html', emoji: '🐃' },
+    'buy-the-dip': { label: 'Buy the Dip', isCurrency: true, group: 'arcade', href: 'games/buy-the-dip.html', emoji: '💵' },
+    'setup-spotter': { label: 'Setup Spotter', isCurrency: false, group: 'arcade', href: 'games/setup-spotter.html', emoji: '🐂' }
   };
   // Daily Challenge boards are one per ET date: 'daily-2026-09-24' etc.
   function gameInfo(id) {
     if (GAMES[id]) return GAMES[id];
-    if (/^daily-\d{4}-\d{2}-\d{2}$/.test(id)) return { label: 'Daily Challenge ' + id.slice(6), isCurrency: false };
+    if (/^daily-\d{4}-\d{2}-\d{2}$/.test(id)) return { label: 'Daily Challenge ' + id.slice(6), isCurrency: false, group: 'daily', href: 'games/daily-challenge.html', emoji: '📅' };
     return null;
+  }
+  function entryHref(gameId, row, prefix) {
+    var g = gameInfo(gameId); if (!g) return null;
+    var ref = row && typeof row.ref === 'string' && /^[\w.-]{1,64}$/.test(row.ref) ? row.ref : null;
+    return (prefix || '') + g.href + (ref && gameId === 'chart-replay' ? '?seed=' + encodeURIComponent(ref) : '');
   }
   var NAME_KEY = 'zelosPlayerName';
   var initialized = false;
@@ -75,12 +88,21 @@
     return (gameInfo(gameId) && gameInfo(gameId).isCurrency) ? ('$' + withCommas) : withCommas;
   }
 
-  function submitScore(gameId, score, cb) {
+  function submitScore(gameId, score, cb, ref) {
     var database = ensureInit();
     var n = Math.round(score);
     if (!database || !gameInfo(gameId) || !(n > 0)) { if (cb) cb(false); return; }
     var name = sanitizeName(getName());
-    database.ref('scores/' + gameId).push({ name: name, score: n, ts: Date.now() })
+    var entry = { name: name, score: n, ts: Date.now() };
+    var push = function (e) { return database.ref('scores/' + gameId).push(e); };
+    var withRef = ref != null && /^[\w.-]{1,64}$/.test(String(ref));
+    if (withRef) entry.ref = String(ref);
+    push(entry)
+      .catch(function (err) {
+        if (!withRef) throw err;
+        delete entry.ref; // rules deployed before the ref field existed reject it — post the plain score
+        return push(entry);
+      })
       .then(function () { if (cb) cb(true); })
       .catch(function () { if (cb) cb(false); });
     // Small, once-per-day XP for playing — separate system (zelos-xp.js, Firestore),
@@ -110,6 +132,7 @@
     getName: getName,
     setName: setName,
     formatScore: formatScore,
+    entryHref: entryHref,
     submitScore: submitScore,
     topScores: topScores
   };
