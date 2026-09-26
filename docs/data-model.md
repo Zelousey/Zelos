@@ -91,7 +91,10 @@ One doc per signed-in person. Only that person can read or write it.
   ownedSkills: ["swing-trader"],       // which Arsenal skills they've bought
   watchlist: ["PFE", "NVDA"],
   xp: 340, streakDays: 4, lastActiveDate: "2026-09-19",
-  notificationPrefs: { push: true, strategies: ["swing-trader", "breakout-rider"] }
+  notificationPrefs: { push: true, strategies: ["swing-trader", "breakout-rider"] },
+  // written by zelos-dashboard-layout.js when someone customizes dashboard.html
+  dashboardLayout: { order: ["status", "viz", ...], hidden: ["agents"],
+                     size: { viz: { w: 6, h: 520 } }, updatedAt: 1790440789677 }
 }
 ```
 

@@ -68,7 +68,8 @@ def drill_page(path, game_id, title, h1, kicker, lede, rounds, howto, seo_title,
           '<div class="zg-grid">' + res.grid + '</div>' +
           '<p class="zg-fine">Charts this session: ' + res.results.map(function(r){{ return r.sym + ' (' + ZC.monthYear(r.date) + ')'; }}).join(', ') + '</p>' +
           '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="zgAgain" type="button">Play again</button>' +
-          '<button class="zg-btn" id="zgShare" type="button">Share</button><a class="zg-btn" href="daily-challenge.html">Today\\'s Daily Challenge</a></div></div>';
+          '<button class="zg-btn" id="zgShare" type="button">Share</button><a class="zg-btn zg-back" href="daily-challenge.html">Today\\'s Daily Challenge</a>' +
+          '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Arcade</a></div></div>';
         document.getElementById('zgAgain').addEventListener('click', start);
         document.getElementById('zgShare').addEventListener('click', function(){{ var b2=this;
           ZC.share({jstitle} + ': ' + res.total + '/' + res.max + '\\n' + res.grid, 'https://agentictrading.info/{path}').then(function(){{ b2.textContent='Copied ✓'; }}); }});
@@ -86,12 +87,16 @@ def drill_page(path, game_id, title, h1, kicker, lede, rounds, howto, seo_title,
 def main():
     drill_page(
         'games/grade-the-setup.html', 'grade-the-setup', 'Grade the Setup', 'Grade the Setup', 'Training drill · 8 rounds',
-        'A real chart with a planned trade on it. Run the four-point swing trading checklist (trend, support, volume, reward:risk), '
-        'then decide whether it qualifies. Then see what actually happened.',
+        'A real chart, entry at today\'s close. Plan the trade with the red stop and green target boxes, run the four-point swing '
+        'trading checklist (trend, support, volume, reward:risk), decide whether it qualifies, then watch what actually happened.',
         ['grade'] * 8,
-        '<h2>How scoring works</h2><p>Each checklist answer is worth 1 point and the final call is worth 2, so 6 per round. '
+        '<h2>How a round works</h2><p>1. Tap the chart to set your stop (the red box is what you risk). 2. Tap again for your target '
+        '(the green box is your reward). Drag either handle to adjust. 3. Answer the checklist. 4. Make the call. The chart then plays '
+        'the next 20 trading days forward through your boxes.</p>'
+        '<h2>How scoring works</h2><p>8 points per round: 1 for a stop just under the 10-day swing low (within one average daily range), '
+        '1 for a target at the recent high (the first real resistance), 1 for each checklist answer and 2 for the final call. '
         'The rules are the same objective ones every time: price above a rising 50-day average; within about 3% of the 20-day '
-        'average after a real pullback; lighter volume on the last three days; and a target at least twice as far away as the stop.</p>'
+        'average after a real pullback; lighter volume on the last three days; and room to the recent high of at least twice the stop distance.</p>'
         '<p>Want the background? Read <a href="../learn/what-is-a-pullback-trading-strategy.html">what a pullback strategy is</a> '
         'and <a href="../learn/what-is-reward-to-risk-ratio.html">how reward-to-risk works</a>.</p>',
         'Grade the Setup: Swing Trading Checklist Practice on Real Charts | Zelos',
@@ -141,7 +146,8 @@ def main():
       '<div class="zg-grid">' + res.grid + '</div>' +
       '<p class="zg-fine">Streak: ' + streak.n + ' day' + (streak.n === 1 ? '' : 's') + '. Next challenge at midnight ET.</p>' +
       (res.results ? '<p class="zg-fine">Today\\'s charts: ' + res.results.map(function(r){ return r.sym + ' (' + ZC.monthYear(r.date) + ')'; }).join(', ') + '</p>' : '') +
-      '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="dcShare" type="button">Share my grid</button><a class="zg-btn" href="chart-replay.html">Play Chart Replay</a></div></div>';
+      '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="dcShare" type="button">Share my grid</button><a class="zg-btn zg-back" href="chart-replay.html">Play Chart Replay</a>' +
+      '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Arcade</a></div></div>';
     document.getElementById('dcShare').addEventListener('click', function(){ var b=this;
       ZC.share('Zelos Daily Challenge ' + day + '\\n' + res.grid + '  ' + res.total + '/500' + (streak.n > 1 ? '  🔥' + streak.n : ''), 'https://agentictrading.info/games/daily-challenge.html')
         .then(function(){ b.textContent = 'Copied ✓'; }); });
@@ -175,8 +181,8 @@ def main():
     body = f'''<main class="zg-shell" id="zgTop">
   <div class="zg-top">
     <div><span class="zg-kicker">Flagship · trading simulator</span><h1>Chart Replay</h1>
-    <p>A hidden ticker, a real daily chart, 60 bars you haven't seen yet. Trade it bar by bar with a $10,000 practice account.
-    Every trade needs a stop. You're scored on R-multiples and discipline, not luck.</p></div>
+    <p>A hidden ticker, a real daily chart, 60 bars you haven't seen yet. Wait for your setup, then trade it with a $10,000 practice
+    account. Every trade needs a stop. You're scored on R-multiples and discipline, not luck.</p></div>
     <div class="zg-stats">
       <div class="zg-stat"><small>Equity</small><b id="zrEq">$10,000</b></div>
       <div class="zg-stat"><small>Return</small><b id="zrRet">+0.00%</b></div>
@@ -188,21 +194,25 @@ def main():
     <div class="zg-chart-wrap" style="height:clamp(300px, 52vh, 480px)"><canvas class="zg-chart zg-pickable" id="zrChart" aria-label="Price chart"></canvas></div>
     <div id="zrPlay">
       <div class="zr-bar">
-        <button class="zg-btn zg-btn-primary" id="zrNext" type="button">Next bar &rarr;</button>
+        <button class="zg-btn zg-btn-primary" id="zrWait" type="button" title="Stay flat and reveal the next few bars">Wait &#9656;</button>
         <button class="zg-btn" id="zrAuto" type="button">Auto-play</button>
         <span class="grow"></span>
         <button class="zg-btn zg-btn-buy" id="zrLong" type="button">Go long</button>
         <button class="zg-btn zg-btn-sell" id="zrShort" type="button">Go short</button>
-        <button class="zg-btn" id="zrMove" type="button">Move stop</button>
+        <button class="zg-btn" id="zrSetTarget" type="button" hidden>Set target</button>
         <button class="zg-btn" id="zrClose" type="button">Close</button>
       </div>
       <div class="zr-bar">
-        <label class="zr-risk">Risk per trade <select id="zrRisk"><option value="0.5">0.5%</option><option value="1" selected>1%</option><option value="2">2%</option></select></label>
+        <label class="zr-risk">Risk per trade <select id="zrRisk"><option value="0.5">0.5%</option><option value="1" selected>1%</option><option value="2">2%</option><option value="full">Full Port (all-in)</option></select></label>
         <span class="grow"></span>
         <button class="zg-btn zg-btn-primary" id="zrConfirm" type="button" hidden>Place order</button>
         <button class="zg-btn" id="zrCancel" type="button" hidden>Cancel</button>
         <button class="zg-btn zg-btn-sm" id="zrNew" type="button">New chart</button>
       </div>
+      <div class="zr-risk-warn" id="zrRiskWarn" role="note" hidden><b>&#9888; Full Port:</b> every trade puts your <b>entire account</b> into the position,
+      so a loss at your stop is no longer a fixed 0.5&ndash;2%; it can be many times that. Real traders almost never do this. Each Full Port trade costs
+      <b>25 discipline points</b>, and discipline multiplies your score.</div>
+      <div class="zr-tip" id="zrTip" hidden></div>
       <p class="zr-hint" id="zrHint">Loading a real chart…</p>
       <div class="zr-log" id="zrLog"></div>
     </div>
@@ -211,16 +221,21 @@ def main():
   {CTA}
   <section class="zg-howto">
     <h2>How Chart Replay works</h2>
-    <p>You see 100 days of history. Each press of <b>Next bar</b> (or the → key) reveals one more trading day. To enter, choose
-    <b>Go long</b> or <b>Go short</b>, tap your stop on the chart, then tap a target or skip it. Orders fill at the next day's open, and
-    position size is calculated so that hitting your stop costs exactly your chosen risk (0.5%, 1% or 2% of the account).</p>
+    <p>You see 100 days of history. <b>Wait</b> (or the → key) reveals the next few trading days one at a time, and stops early
+    when something happens: a fill, an exit, or a setup worth a look. You never have to enter: waiting for confirmation is a
+    real decision. To enter, choose <b>Go long</b> or <b>Go short</b>, tap your stop on the chart, then tap a target or skip it.
+    The red box is what you risk and the green box is your reward; drag either handle to adjust them, before or after the fill.
+    Moving a target farther when the chart supports a bigger move is fine; widening a stop costs discipline.</p>
+    <p>Orders fill at the next day's open, and position size is calculated so that hitting your stop costs exactly your chosen risk
+    (0.5%, 1% or 2% of the account). <b>Full Port</b> instead puts the whole account into the trade, which is why it costs
+    discipline points.</p>
     <p>Stops and targets fill at their price during the day, or at the open if price gaps through them. If a day touches both,
     the stop is assumed to fill first. That's the conservative assumption real backtests use.</p>
     <h2>Scoring</h2>
     <p>Score = (1,000 + 200 × total R) × discipline%. An R is one unit of the risk you planned, so +3R means you made three times
-    what you risked. Discipline drops when you move a stop further away, plan trades under 1.5:1 reward:risk, or overtrade.
+    what you risked. Discipline drops when you move a stop further away, plan trades under 1.5:1 reward:risk, go Full Port, or overtrade.
     You'll also see how you did against simply buying and holding the same 60 days.</p>
-    <p>Keyboard: → or Space next bar · L long · S short · Esc cancel. Background reading:
+    <p>Keyboard: → or Space wait · L long · S short · Esc cancel. Background reading:
     <a href="../learn/what-is-reward-to-risk-ratio.html">reward-to-risk</a>,
     <a href="../learn/how-to-use-stop-losses-in-swing-trading.html">stop-losses</a>.</p>
   </section>

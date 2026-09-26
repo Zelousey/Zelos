@@ -26,26 +26,32 @@
 :root{
   color-scheme: dark;
 
-  /* -- surfaces: solid light-brown page background, black-brown surfaces for
-     cards/nav on top of it — the "black, cream, brown" chrome palette -- */
-  --bg:#4d3720;
-  --bg-soft:#43301c;
-  --surface:#221810;
-  --surface-2:#2c2115;
-  --surface-hover:#372a1a;
-  --border:#5c4429;
-  --border-soft:#3a2b1a;
-  --nav-bg:rgba(28,19,10,0.88);
+  /* -- surfaces: near-black page, slightly lifted cards/nav. Black is the
+     default theme; Blue and White (below) only swap these surface/text
+     tokens. -- */
+  --bg:#0c0d10;
+  --bg-soft:#101216;
+  --surface:#15171c;
+  --surface-2:#1a1d23;
+  --surface-hover:#22252c;
+  --border:#2b2e35;
+  --border-soft:#1d1f24;
+  --nav-bg:rgba(10,11,14,0.88);
 
-  /* -- text (cream) -- */
-  --ink:#f8efdd;
-  --ink-2:#ecdcbe;
-  --muted:#c9ac82;
-  --muted-2:#8f7250;
+  /* -- text -- */
+  --ink:#f4f5f7;
+  --ink-2:#d6d9de;
+  --muted:#9599a3;
+  --muted-2:#5c6068;
+
+  /* chart chrome that has to flip with the background */
+  --chart-bg:rgba(0,0,0,0.25);
+  --chart-grid:rgba(255,255,255,0.06);
+  --chart-cross:rgba(255,255,255,0.35);
+  --chart-label-ink:#0b0c0f;
 
   /* -- brand accent (electric blue — kept as the interactive / "up" color, now
-     popping against warm brown instead of charcoal; brightened a touch so it
-     still reads against the lighter page background) -- */
+     the one accent that stays fixed across all three themes) -- */
   --accent:#4a86ff;
   --accent-ink:#f5f8ff;
   --accent-soft:#182a4a;
@@ -93,25 +99,58 @@
   --paper:var(--bg);
 }
 
-/* ---- alternate "black" background theme, toggled via [data-theme="black"]
-   on <html>. Only the base surfaces/text shift — accent blue, violet, gold,
-   bull-green and danger-red stay identical in both themes so charts, chips
-   and alerts always read the same way regardless of which background the
-   viewer picked. ---- */
-:root[data-theme="black"]{
-  --bg:#0c0d10;
-  --bg-soft:#101216;
-  --surface:#15171c;
-  --surface-2:#1a1d23;
-  --surface-hover:#22252c;
-  --border:#2b2e35;
-  --border-soft:#1d1f24;
-  --nav-bg:rgba(10,11,14,0.88);
-
-  --ink:#f4f5f7;
-  --ink-2:#d6d9de;
-  --muted:#9599a3;
-  --muted-2:#5c6068;
+/* ---- background themes: Black (default, tokens above), Blue and White.
+   Toggled via [data-theme] on <html> by zelos-theme-toggle.js. Only the
+   surfaces/text shift — accent blue, violet, gold, bull-green and
+   danger-red stay the same in every theme so charts, chips and alerts
+   always read the same way. ---- */
+:root[data-theme="black"]{ color-scheme:dark; }
+:root[data-theme="blue"]{
+  color-scheme:dark;
+  --bg:#081226;
+  --bg-soft:#0b1830;
+  --surface:#0f1e3a;
+  --surface-2:#132544;
+  --surface-hover:#1a2f55;
+  --border:#243d68;
+  --border-soft:#172a4c;
+  --nav-bg:rgba(7,15,32,0.88);
+  --ink:#eef3ff;
+  --ink-2:#cbd7ef;
+  --muted:#8ea3c8;
+  --muted-2:#586d94;
+  --accent-soft:#16305e;
+  --chart-bg:rgba(3,9,22,0.45);
+}
+:root[data-theme="white"]{
+  color-scheme:light;
+  --bg:#f4f5f8;
+  --bg-soft:#eceef2;
+  --surface:#ffffff;
+  --surface-2:#f3f4f7;
+  --surface-hover:#e9ecf1;
+  --border:#d3d8e0;
+  --border-soft:#e3e6eb;
+  --nav-bg:rgba(255,255,255,0.9);
+  --ink:#12151b;
+  --ink-2:#2d323b;
+  --muted:#5b6370;
+  --muted-2:#98a0ac;
+  --accent:#2f6bea;
+  --accent-soft:#e2ebff;
+  --accent-line:#9dbbff;
+  --accent-glow:rgba(47,107,234,0.28);
+  --violet-soft:#ece8ff;
+  --gold:#b98110;
+  --gold-soft:#fbefd2;
+  --bull:#1f9d5a;
+  --amber-soft:#fcefd6;
+  --danger:#d23a31;
+  --danger-soft:#fbe2df;
+  --chart-bg:#fbfbfd;
+  --chart-grid:rgba(0,0,0,0.07);
+  --chart-cross:rgba(0,0,0,0.35);
+  --chart-label-ink:#ffffff;
 }
 
 /* ---------------------------------------------------------------- reset */
@@ -196,28 +235,30 @@ body.zt-body{
 
 .nav-auth{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
 
-/* -- background theme toggle: a small two-swatch pill, brown vs black.
-   Everything else (accent blue, gold, bull/danger) stays fixed — this only
-   flips the surface tokens above via [data-theme] on <html>. -- */
+/* -- background theme toggle: a three-swatch pill (Blue / White / Black).
+   Click a swatch to pick it, or anywhere else on the pill to cycle. -- */
 .theme-toggle{
-  position:relative; flex-shrink:0; width:52px; height:28px; padding:3px;
+  position:relative; flex-shrink:0; width:74px; height:28px; padding:3px;
   border-radius:999px; border:1px solid var(--border); background:var(--surface);
   cursor:pointer; display:inline-flex; align-items:center;
 }
 .theme-toggle:hover{ border-color:var(--muted-2); }
 .theme-toggle-track{
-  position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:space-between;
-  padding:0 3px;
+  position:relative; z-index:1; width:100%; height:100%; display:flex; align-items:center; justify-content:space-between;
+  padding:0 5px;
 }
-.theme-toggle-track i{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.theme-toggle-track i.sw-brown{ background:#c98a4b; }
-.theme-toggle-track i.sw-black{ background:#e7e9ee; }
+.theme-toggle-track i{ width:10px; height:10px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 1px rgba(127,127,127,0.45); }
+.theme-toggle-track i.sw-blue{ background:#1d4fd8; }
+.theme-toggle-track i.sw-white{ background:#ffffff; }
+.theme-toggle-track i.sw-black{ background:#0c0d10; }
 .theme-toggle-knob{
-  position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%;
-  background:var(--ink); box-shadow:0 2px 6px rgba(0,0,0,0.4);
+  position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+  background:transparent; border:2px solid var(--accent); box-shadow:0 0 8px var(--accent-glow);
   transition:transform 0.18s ease;
 }
-:root[data-theme="black"] .theme-toggle-knob{ transform:translateX(24px); }
+:root[data-theme="white"] .theme-toggle-knob{ transform:translateX(23px); }
+:root[data-theme="black"] .theme-toggle-knob{ transform:translateX(46px); }
+@media (prefers-reduced-motion: reduce){ .theme-toggle-knob{ transition:none; } }
 
 /* mobile nav collapse */
 .nav-hamburger{
@@ -756,11 +797,12 @@ body.zt-body::after{
    to get it out of the way while dragging/zooming the globe underneath. -- */
 .heatmap-card{
   position:absolute; top:14px; left:14px; z-index:5; width:200px;
-  background:rgba(15,11,7,0.88); border:1px solid var(--border); border-radius:var(--radius);
+  background:rgba(10,10,12,0.88); border:1px solid var(--border); border-radius:var(--radius);
   backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   box-shadow:0 12px 30px rgba(0,0,0,0.4);
 }
-:root[data-theme="black"] .heatmap-card{ background:rgba(10,10,12,0.88); }
+:root[data-theme="blue"] .heatmap-card{ background:rgba(8,18,38,0.9); }
+:root[data-theme="white"] .heatmap-card{ background:rgba(255,255,255,0.92); }
 .heatmap-card-head{
   display:flex; align-items:center; justify-content:space-between; gap:8px;
   padding:10px 8px 6px 12px;
@@ -781,10 +823,11 @@ body.zt-body::after{
 }
 .heatmap-reopen{
   position:absolute; top:14px; left:14px; z-index:5; font-family:var(--mono); font-size:0.72rem;
-  color:var(--ink-2); background:rgba(15,11,7,0.88); border:1px solid var(--border); border-radius:3px;
+  color:var(--ink-2); background:rgba(10,10,12,0.88); border:1px solid var(--border); border-radius:3px;
   padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
 }
-:root[data-theme="black"] .heatmap-reopen{ background:rgba(10,10,12,0.88); }
+:root[data-theme="blue"] .heatmap-reopen{ background:rgba(8,18,38,0.9); }
+:root[data-theme="white"] .heatmap-reopen{ background:rgba(255,255,255,0.92); }
 .heatmap-reopen:hover{ border-color:var(--muted-2); color:var(--ink); }
 .heatmap-reopen[hidden], .heatmap-card[hidden]{ display:none; }
 @media (max-width:520px){ .heatmap-card{ width:min(78vw, 220px); } }

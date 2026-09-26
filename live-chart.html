@@ -36,7 +36,7 @@
 <meta name="twitter:description" content="A full, interactive TradingView chart — search any ticker, add indicators, draw trendlines, and change the timeframe.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
-<script>(function(){try{if(localStorage.getItem('zelosTheme')!=='brown')document.documentElement.setAttribute('data-theme','black');}catch(e){}})();</script>
+<script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
@@ -92,18 +92,27 @@
           <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
           <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
           <a href="alert-history.html">Alert History<small>Every alert, archived</small></a>
-          <a href="leaderboard.html">Leaderboard<small>XP &amp; streaks</small></a>
         </div>
       </div>
 
-      <a class="nav-link" href="arcade.html">Arcade</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Arcade <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="arcade.html">Arcade Hub<small>Every training game</small></a>
+          <a href="games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
+          <a href="games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
+          <a href="games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
+          <hr>
+          <a href="leaderboard.html">Leaderboard<small>Top scores in every game</small></a>
+        </div>
+      </div>
       <a class="nav-link" href="alert-history.html">Alerts</a>
       <a class="nav-link" href="learn/index.html">Learn</a>
       <a class="nav-link" href="index.html#why-zelos">About</a>
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
-      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-brown"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-blue"></i><i class="sw-white"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
       <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
       <div class="nav-auth" id="navAuth"></div>
     </div>
@@ -121,8 +130,10 @@
       <a href="live-chart.html">Live Chart</a>
       <a href="daily-market.html">Daily Market</a>
       <a href="alert-history.html">Alert History</a>
+      <div class="nav-mobile-label">Arcade</div>
+      <a href="arcade.html">Arcade Hub</a>
       <a href="leaderboard.html">Leaderboard</a>
-      <a href="arcade.html">Arcade</a>
+      <div class="nav-mobile-label">More</div>
       <a href="alert-history.html">Alerts</a>
       <a href="learn/index.html">Learn</a>
       <a href="ai-knowledge-catalog.html">Knowledge</a>

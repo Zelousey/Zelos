@@ -44,6 +44,14 @@ secrets described there.
 - Shared engine: `games/zelos-chart-engine.js` + `games/zelos-games.css`. Chart data: `data/game-charts.json` (real daily bars, 30 symbols, 2024–2026).
 - Pages are generated: edit `scripts/build_games.py` / `scripts/page-src/games/*.js`, then run `python3 scripts/build_games.py`.
 - New leaderboard ids (`chart-replay`, `grade-the-setup`, `stop-drill`, `daily-YYYY-MM-DD`) are registered in `leaderboard.js`. Matching Realtime Database rules are in `database.rules.json` (paste into Firebase console → Realtime Database → Rules).
+- Scores can carry an optional `ref` (Chart Replay sends its chart seed) so a leaderboard row opens that exact chart. The rule for `ref` is in `database.rules.json`; until it's pasted into the console, `leaderboard.js` retries the push without `ref`, so scores still post.
+- Engine features the games use: forecast boxes (`chart.box`), draggable stop/target handles (`chart.handles` + `onDrag`), on-chart prompts (`chart.prompt`), the "what happened next" banner and bar-by-bar `chart.reveal()`.
+
+## Themes, levels, dashboard
+
+- Background themes are Black (default), Blue and White: tokens in `zelos-theme.css` under `:root[data-theme=...]`, toggle in `zelos-theme-toggle.js`. Every page runs a one-line inline copy of the stored-theme read at the top of `<head>` to avoid a flash.
+- XP levels, the branded level badges and the full-screen level-up pop-up live in `zelos-levels.js`. `zelos-xp.js` loads it on demand and celebrates whenever an award crosses a level, on any page.
+- `dashboard.html` widgets can be added, removed, dragged and resized (`zelos-dashboard-layout.js`). The layout is saved to localStorage, and to `users/{uid}.dashboardLayout` for signed-in accounts.
 
 ## Learn articles, AI index, daily scan pages
 
