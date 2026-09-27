@@ -477,11 +477,21 @@ def post_to_buffer(req: https_fn.Request) -> https_fn.Response:
 from zoneinfo import ZoneInfo
 from firebase_functions import scheduler_fn
 
-PRACTICE_SYMBOLS = [
-    "AAPL", "AMZN", "MSFT", "GOOGL", "NFLX", "CRWD", "UBER", "SMCI", "AVGO", "SOFI",
-    "NVDA", "AMD", "TSLA", "META", "PLTR", "COIN", "SHOP", "MU", "SPY", "QQQ",
-    "JPM", "XOM", "LLY", "COST", "HOOD", "ANET", "DKNG", "RBLX", "SNOW", "ABNB",
-]
+def _load_practice_symbols():
+    """The stock list lives in data/practice-universe.json (the page reads the
+    same file); scripts/build_practice.py copies it next to this module so it
+    ships with the deploy. Falls back to a core list if the copy is missing."""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "practice_universe.json"), encoding="utf-8") as f:
+            syms = [str(u["sym"]).upper() for u in json.load(f)["symbols"]]
+        if syms:
+            return syms[:55]  # Finnhub's free plan allows 60 calls a minute; leave room for news
+    except Exception as e:
+        print("[practice] universe file unreadable, using the core list:", type(e).__name__, e)
+    return ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "SPY", "QQQ"]
+
+
+PRACTICE_SYMBOLS = _load_practice_symbols()
 NY = ZoneInfo("America/New_York")
 DAILY_BARS_KEEP = 90
 INTRADAY_SESSIONS_KEEP = 5
@@ -579,6 +589,16 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
         print("[refresh_quotes] Finnhub error:", error)
         return
 
+    # a symbol that failed this round (timeout, rate limit) keeps its last good
+    # quote instead of dropping off the page for a minute
+    try:
+        prev = doc.get()
+        for sym, q in (((prev.to_dict() or {}).get("quotes") or {}) if prev.exists else {}).items():
+            if sym in PRACTICE_SYMBOLS and sym not in quotes:
+                quotes[sym] = q
+    except Exception as e:
+        print("[refresh_quotes] couldn't read previous quotes:", type(e).__name__)
+
     today = now.strftime("%Y-%m-%d")
     session_open = 9 * 60 + 30 <= minutes < 16 * 60
     doc.set({
@@ -614,3 +634,132 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
             changed = True
         if changed:
             bars_ref.set({"updatedAt": now.isoformat(), "bars": bars})
+
+
+# ---------------------------------------------------------------------------
+# refresh_news - market headlines for the dashboard's Trending News and
+# Watchlist News widgets.
+#
+# Every 10 minutes: the latest general market headlines, plus company news for
+# the 5 practice symbols refreshed longest ago (so the whole list turns over
+# about every 100 minutes, at 6 Finnhub calls a run, well inside the free
+# 60-a-minute limit even while refresh_quotes is running). Everything lands in
+# ONE doc, markets/news, so a dashboard needs a single read:
+#   { provider, attribution, attributionUrl, updatedAt,
+#     general: [item...], bySymbol: {SYM: [item...]}, symbolsUpdatedAt: {SYM: iso} }
+# item = { headline, source, url, datetime (unix s), summary, image, tickers: [..] }
+#
+# The provider is swappable: write another pair of fetch functions returning
+# the same item shape and point NEWS_PROVIDER at them. The browser only ever
+# sees the normalized items plus the attribution to show.
+# ---------------------------------------------------------------------------
+NEWS_SYMBOLS_PER_RUN = 5
+NEWS_ITEMS_GENERAL = 30
+NEWS_ITEMS_PER_SYMBOL = 6
+
+
+def _finnhub_get(path, api_key, timeout=8):
+    req = urllib.request.Request(
+        "https://finnhub.io/api/v1" + path,
+        headers={"X-Finnhub-Token": api_key, "User-Agent": "zelos-news/1.0"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _news_item(raw, tickers=None):
+    url = str(raw.get("url") or "")
+    headline = str(raw.get("headline") or "").strip()
+    if not headline or not url.startswith("http"):
+        return None
+    related = [t.strip().upper() for t in str(raw.get("related") or "").split(",") if t.strip()]
+    return {
+        "headline": headline[:220],
+        "source": str(raw.get("source") or "")[:60],
+        "url": url[:600],
+        "datetime": int(raw.get("datetime") or 0),
+        "summary": str(raw.get("summary") or "").strip()[:240],
+        "image": str(raw.get("image") or "")[:600] if str(raw.get("image") or "").startswith("https") else "",
+        "tickers": sorted(set((tickers or []) + related))[:6],
+    }
+
+
+def _finnhub_general_news(api_key):
+    rows = _finnhub_get("/news?category=general", api_key) or []
+    items = [i for i in (_news_item(r) for r in rows) if i]
+    return sorted(items, key=lambda i: -i["datetime"])[:NEWS_ITEMS_GENERAL]
+
+
+def _finnhub_company_news(sym, api_key, now):
+    to = now.strftime("%Y-%m-%d")
+    frm = datetime.fromtimestamp(now.timestamp() - 6 * 86400, NY).strftime("%Y-%m-%d")
+    rows = _finnhub_get("/company-news?symbol=%s&from=%s&to=%s" % (sym, frm, to), api_key) or []
+    items, seen = [], set()
+    for r in sorted(rows, key=lambda r: -(r.get("datetime") or 0)):
+        i = _news_item(r, [sym])
+        if i and i["headline"] not in seen:
+            seen.add(i["headline"])
+            items.append(i)
+        if len(items) >= NEWS_ITEMS_PER_SYMBOL:
+            break
+    return items
+
+
+NEWS_PROVIDER = {
+    "name": "finnhub",
+    "attribution": "News via Finnhub",
+    "attributionUrl": "https://finnhub.io",
+    "general": _finnhub_general_news,
+    "company": _finnhub_company_news,
+}
+
+
+@scheduler_fn.on_schedule(
+    schedule="*/10 * * * *",
+    timezone=scheduler_fn.Timezone("America/New_York"),
+    secrets=["FINNHUB_API_KEY"],
+    timeout_sec=60,
+    memory=256,
+)
+def refresh_news(event: scheduler_fn.ScheduledEvent) -> None:
+    api_key = os.environ.get("FINNHUB_API_KEY", "").strip()
+    if not api_key:
+        return
+    now = datetime.now(NY)
+    db = firestore.client()
+    ref = db.collection("markets").document("news")
+    snap = ref.get()
+    doc = (snap.to_dict() or {}) if snap.exists else {}
+    by_symbol = {k: v for k, v in (doc.get("bySymbol") or {}).items() if k in PRACTICE_SYMBOLS}
+    stamps = {k: v for k, v in (doc.get("symbolsUpdatedAt") or {}).items() if k in PRACTICE_SYMBOLS}
+    general, errors = doc.get("general") or [], []
+    try:
+        general = NEWS_PROVIDER["general"](api_key) or general
+    except Exception as e:
+        errors.append("general: %s" % type(e).__name__)
+    # the symbols refreshed longest ago (never-fetched first)
+    due = sorted(PRACTICE_SYMBOLS, key=lambda s: stamps.get(s, ""))[:NEWS_SYMBOLS_PER_RUN]
+    for sym in due:
+        try:
+            by_symbol[sym] = NEWS_PROVIDER["company"](sym, api_key, now)
+            stamps[sym] = now.isoformat()
+        except urllib.error.HTTPError as e:
+            errors.append("%s: http %d" % (sym, e.code))
+            stamps[sym] = now.isoformat()  # retried next lap, so one bad symbol can't stall the rotation
+            if e.code in (401, 403, 429):
+                break
+        except Exception as e:
+            errors.append("%s: %s" % (sym, type(e).__name__))
+            stamps[sym] = now.isoformat()
+    ref.set({
+        "provider": NEWS_PROVIDER["name"],
+        "attribution": NEWS_PROVIDER["attribution"],
+        "attributionUrl": NEWS_PROVIDER["attributionUrl"],
+        "updatedAt": now.isoformat(),
+        "general": general,
+        "bySymbol": by_symbol,
+        "symbolsUpdatedAt": stamps,
+        "error": "; ".join(errors)[:300] or None,
+    })
+    if errors:
+        print("[refresh_news]", "; ".join(errors))

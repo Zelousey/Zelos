@@ -288,13 +288,16 @@
     var r = pnl / pos.risk;
     eq += pnl;
     trades.push({ r: r, pnl: pnl });
-    ch.marks.push({ i: cur, price: price, type: pos.side > 0 ? 'sell' : 'buy', color: ZC.cssVar('--ink', '#d8dde6') });
+    var tp = why === 'Target hit';
+    ch.marks.push({ i: cur, price: price, type: pos.side > 0 ? 'sell' : 'buy', color: tp ? ZC.cssVar('--bull', '#3ecb7c') : ZC.cssVar('--ink', '#d8dde6'),
+      label: tp ? 'TARGET HIT ✓' : null, flash: tp ? performance.now() : null });
     addLog('Bar ' + barNo() + ': ' + why + ' at ' + ZC.fmt(price) + ' · ' + (pnl >= 0 ? '+' : '') + ZC.money(pnl) + ' (' + (r >= 0 ? '+' : '') + r.toFixed(2) + 'R)');
     setHint(why + ' at ' + ZC.fmt(price) + ': <b>' + (r >= 0 ? '+' : '') + r.toFixed(2) + 'R</b> (' + (pnl >= 0 ? '+' : '') + ZC.money(pnl) + '). Flat now; wait for the next setup.');
     pos = null;
   }
 
-  // advances one bar; returns true if something happened the player should see
+  // advances one bar; returns 'trade' (fill / exit), 'setup' (a new setup
+  // formed while flat), true (session over) or false (nothing to see)
   function step() {
     if (finished) return true;
     if (cur >= end) { finish(); return true; }
@@ -327,8 +330,10 @@
     }
     var m = mtm(); peak = Math.max(peak, m); maxDD = Math.max(maxDD, (peak - m) / peak);
     if (cur >= end) { render(); finish(); return true; }
-    if (!pos && !draft && !isFull() && detectSetup()) event = true; // stop the reveal so the player can act on it
-    return event;
+    if (event) return 'trade';
+    // a fresh setup stops Wait (so the player can act on it) but not Auto-play
+    if (!pos && !draft && !isFull() && detectSetup()) return 'setup';
+    return false;
   }
 
   // Wait / Hold: reveal a few bars one at a time, stopping early on anything new
@@ -391,16 +396,19 @@
   function toggleAuto() {
     touch();
     if (auto) return stopAuto();
+    if (finished) return;
     if (isFull() && !inTrade()) { setHint('<b>Full Port:</b> make a trade first. Until then, <b>Wait (−' + FULL_WAIT_COST + ')</b> is the only way to see ahead.'); return; }
     commitDraft();
     $('zrAuto').textContent = 'Pause';
     auto = setInterval(function () {
-      if (mode || revealing) return stopAuto();
+      if (revealing) return; // a Wait reveal is still animating: pick up on the next tick instead of dying
+      if (mode) return stopAuto();
       var ev = step();
       // Full Port rolls through the fill and the trade, and stops the moment you're flat again
       if (isFull() && !finished && !pos && !(draft && draft.queued)) { stopAuto(); setHint('Trade closed. <b>Full Port:</b> Auto-play unlocks again once you\'re in your next trade; <b>Wait (−' + FULL_WAIT_COST + ')</b> is the only preview until then.'); }
       render();
-      if (finished || (ev && !isFull())) stopAuto();
+      // Auto-play pauses for fills and exits (outside Full Port), never for setups
+      if (finished || (ev && ev !== 'setup' && !isFull())) stopAuto();
     }, 450);
     render();
   }

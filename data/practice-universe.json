@@ -1,0 +1,256 @@
+{
+ "version": 1,
+ "note": "Single source of truth for the Practice Account stock list. Edit here, then run python3 scripts/build_practice.py (it copies this to functions/practice_universe.json for the price function). History comes from data/game-charts.json + data/practice-extra.json.",
+ "symbols": [
+  {
+   "sym": "AAPL",
+   "name": "Apple",
+   "group": "Tech"
+  },
+  {
+   "sym": "MSFT",
+   "name": "Microsoft",
+   "group": "Tech"
+  },
+  {
+   "sym": "NVDA",
+   "name": "NVIDIA",
+   "group": "Tech"
+  },
+  {
+   "sym": "GOOGL",
+   "name": "Alphabet",
+   "group": "Tech"
+  },
+  {
+   "sym": "AMZN",
+   "name": "Amazon",
+   "group": "Tech"
+  },
+  {
+   "sym": "META",
+   "name": "Meta",
+   "group": "Tech"
+  },
+  {
+   "sym": "AVGO",
+   "name": "Broadcom",
+   "group": "Tech"
+  },
+  {
+   "sym": "AMD",
+   "name": "AMD",
+   "group": "Tech"
+  },
+  {
+   "sym": "MU",
+   "name": "Micron",
+   "group": "Tech"
+  },
+  {
+   "sym": "INTC",
+   "name": "Intel",
+   "group": "Tech"
+  },
+  {
+   "sym": "ARM",
+   "name": "Arm Holdings",
+   "group": "Tech"
+  },
+  {
+   "sym": "SMCI",
+   "name": "Super Micro",
+   "group": "Tech"
+  },
+  {
+   "sym": "ORCL",
+   "name": "Oracle",
+   "group": "Software"
+  },
+  {
+   "sym": "CRM",
+   "name": "Salesforce",
+   "group": "Software"
+  },
+  {
+   "sym": "ADBE",
+   "name": "Adobe",
+   "group": "Software"
+  },
+  {
+   "sym": "PLTR",
+   "name": "Palantir",
+   "group": "Software"
+  },
+  {
+   "sym": "CRWD",
+   "name": "CrowdStrike",
+   "group": "Software"
+  },
+  {
+   "sym": "SNOW",
+   "name": "Snowflake",
+   "group": "Software"
+  },
+  {
+   "sym": "ANET",
+   "name": "Arista",
+   "group": "Software"
+  },
+  {
+   "sym": "SHOP",
+   "name": "Shopify",
+   "group": "Software"
+  },
+  {
+   "sym": "TSLA",
+   "name": "Tesla",
+   "group": "Consumer"
+  },
+  {
+   "sym": "NFLX",
+   "name": "Netflix",
+   "group": "Consumer"
+  },
+  {
+   "sym": "DIS",
+   "name": "Disney",
+   "group": "Consumer"
+  },
+  {
+   "sym": "UBER",
+   "name": "Uber",
+   "group": "Consumer"
+  },
+  {
+   "sym": "ABNB",
+   "name": "Airbnb",
+   "group": "Consumer"
+  },
+  {
+   "sym": "RBLX",
+   "name": "Roblox",
+   "group": "Consumer"
+  },
+  {
+   "sym": "DKNG",
+   "name": "DraftKings",
+   "group": "Consumer"
+  },
+  {
+   "sym": "WMT",
+   "name": "Walmart",
+   "group": "Consumer"
+  },
+  {
+   "sym": "COST",
+   "name": "Costco",
+   "group": "Consumer"
+  },
+  {
+   "sym": "KO",
+   "name": "Coca-Cola",
+   "group": "Consumer"
+  },
+  {
+   "sym": "JPM",
+   "name": "JPMorgan",
+   "group": "Finance"
+  },
+  {
+   "sym": "BAC",
+   "name": "Bank of America",
+   "group": "Finance"
+  },
+  {
+   "sym": "GS",
+   "name": "Goldman Sachs",
+   "group": "Finance"
+  },
+  {
+   "sym": "V",
+   "name": "Visa",
+   "group": "Finance"
+  },
+  {
+   "sym": "MA",
+   "name": "Mastercard",
+   "group": "Finance"
+  },
+  {
+   "sym": "PYPL",
+   "name": "PayPal",
+   "group": "Finance"
+  },
+  {
+   "sym": "SOFI",
+   "name": "SoFi",
+   "group": "Finance"
+  },
+  {
+   "sym": "HOOD",
+   "name": "Robinhood",
+   "group": "Finance"
+  },
+  {
+   "sym": "COIN",
+   "name": "Coinbase",
+   "group": "Crypto"
+  },
+  {
+   "sym": "MSTR",
+   "name": "Strategy",
+   "group": "Crypto"
+  },
+  {
+   "sym": "LLY",
+   "name": "Eli Lilly",
+   "group": "Health"
+  },
+  {
+   "sym": "UNH",
+   "name": "UnitedHealth",
+   "group": "Health"
+  },
+  {
+   "sym": "PFE",
+   "name": "Pfizer",
+   "group": "Health"
+  },
+  {
+   "sym": "XOM",
+   "name": "Exxon Mobil",
+   "group": "Energy & Industrial"
+  },
+  {
+   "sym": "BA",
+   "name": "Boeing",
+   "group": "Energy & Industrial"
+  },
+  {
+   "sym": "SPY",
+   "name": "S&P 500 ETF",
+   "group": "ETF"
+  },
+  {
+   "sym": "QQQ",
+   "name": "Nasdaq 100 ETF",
+   "group": "ETF"
+  },
+  {
+   "sym": "IWM",
+   "name": "Russell 2000 ETF",
+   "group": "ETF"
+  },
+  {
+   "sym": "DIA",
+   "name": "Dow Jones ETF",
+   "group": "ETF"
+  },
+  {
+   "sym": "GLD",
+   "name": "Gold ETF",
+   "group": "ETF"
+  }
+ ]
+}

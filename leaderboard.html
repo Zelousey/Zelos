@@ -74,6 +74,11 @@
   .board-row:nth-child(3) .board-rank{ color:#b0703f; }
   .board-name{ flex:1; font-weight:600; font-size:0.94rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .board-score{ font-family:var(--mono); font-weight:700; font-size:0.96rem; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .board-sub{ display:flex; gap:12px; font-family:var(--mono); font-size:0.74rem; color:var(--muted); white-space:nowrap; }
+  .board-sub .up{ color:var(--bull); } .board-sub .dn{ color:var(--danger); }
+  .board-cols{ display:flex; gap:12px; padding:4px 12px 8px; font-family:var(--mono); font-size:0.62rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border-soft); }
+  .board-cols span:first-child{ width:1.8em; } .board-cols .grow{ flex:1; }
+  @media (max-width:560px){ .board-sub .board-resets{ display:none; } }
   .board-empty{ padding:26px 16px; text-align:center; color:var(--muted); font-size:0.88rem; }
 
   .setup-note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
@@ -164,7 +169,7 @@
     <div>
       <p class="eyebrow live"><span class="live-dot" id="liveDot"></span>Live</p>
       <h1 style="font-size:1.5rem; margin-top:6px;">Leaderboard</h1>
-      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Arcade game, updating in real time as people play &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
+      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Arcade game and the $10,000 Practice Account, updating in real time &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
     </div>
 
     <div class="lb-sections" id="tabs">
@@ -175,6 +180,12 @@
           <button class="tab" type="button" role="tab" data-game="grade-the-setup" aria-selected="false">✅ Grade the Setup</button>
           <button class="tab" type="button" role="tab" data-game="stop-drill" aria-selected="false">🛑 Where's the Stop?</button>
           <button class="tab" type="button" role="tab" data-game="daily" aria-selected="false">📅 Today's Daily Challenge</button>
+        </div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-section-label">$10,000 Practice Account &middot; live prices</div>
+        <div class="tabs" role="tablist" aria-label="Practice account board">
+          <button class="tab" type="button" role="tab" data-game="practice" aria-selected="false">💼 Practice Account</button>
         </div>
       </div>
       <div class="lb-section">
@@ -442,7 +453,37 @@
     }).join('');
   }
 
+  // Practice Account board: public profiles published by signed-in players (practiceProfiles/{uid})
+  function money(v){ return '$' + Math.round(+v || 0).toLocaleString('en-US'); }
+  function loadPractice(){
+    document.getElementById('boardTitle').textContent = '💼 Practice Account · by balance';
+    var play = document.getElementById('boardPlay'); play.href = 'practice/'; play.innerHTML = 'Open the practice account &rarr;';
+    var fb = window.firebase, cfg = window.ZELOS_FIREBASE_CONFIG;
+    if (!fb || !cfg || !cfg.projectId) { boardEmpty.textContent = 'The practice leaderboard needs the live site.'; return function(){}; }
+    try { if (!fb.apps.length) fb.initializeApp(cfg); } catch(e){}
+    return fb.firestore().collection('practiceProfiles').orderBy('equity', 'desc').limit(50).onSnapshot(function(snap){
+      var rows = []; snap.forEach(function(d){ var r = d.data(); r.uid = d.id; rows.push(r); });
+      if (!rows.length){ board.innerHTML = ''; boardEmpty.textContent = 'No practice accounts yet. Sign in on the practice page and place a trade to show up here.'; board.appendChild(boardEmpty); return; }
+      board.innerHTML = '<div class="board-cols"><span>#</span><span class="grow">Trader</span><span>Growth · resets · trades</span><span>Balance</span></div>' + rows.map(function(r, i){
+        var g = +r.growthPct || 0;
+        return '<a class="board-row" href="practice/profile.html?u=' + encodeURIComponent(r.uid) + '"><span class="board-rank">' + (i + 1) + '</span>' +
+          '<span class="board-name">' + esc(r.name || 'Trader') + '</span>' +
+          '<span class="board-sub"><span class="' + (g >= 0 ? 'up' : 'dn') + '">' + (g >= 0 ? '+' : '') + g.toFixed(1) + '%</span>' +
+          '<span class="board-resets">' + (r.resets || 0) + ' reset' + (r.resets === 1 ? '' : 's') + '</span><span>' + (r.trades || 0) + ' trades</span></span>' +
+          '<span class="board-score">' + money(r.equity) + '</span><span class="board-go">Stats &rarr;</span></a>';
+      }).join('');
+    }, function(){ board.innerHTML = ''; boardEmpty.textContent = 'The practice leaderboard isn\'t reachable right now.'; board.appendChild(boardEmpty); });
+  }
+
   function loadBoard(key){
+    if (key === 'practice') {
+      currentGame = 'practice';
+      tabs.forEach(function(t){ t.setAttribute('aria-selected', String(t.getAttribute('data-game') === key)); });
+      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+      board.hidden = false; board.innerHTML = ''; boardEmpty.textContent = 'Loading…'; board.appendChild(boardEmpty);
+      unsubscribe = loadPractice();
+      return;
+    }
     currentGame = boardId(key);
     var info = LB && LB.gameInfo(currentGame);
     if (info) {
@@ -476,7 +517,7 @@
     if (LB) loadBoard(initial);
     liveDot.style.display = 'none';
     setupNote.hidden = false;
-    board.hidden = true;
+    board.hidden = initial !== 'practice'; // the practice board reads Firestore, not the arcade score feed
   }
 })();
 </script>

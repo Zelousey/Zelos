@@ -141,3 +141,11 @@ body.zr-fullport .zg-panel{ border-color:var(--zr-glow); box-shadow:0 0 calc(var
 body.zr-fullport .zg-stat{ border-color:var(--zr-glow); }
 @keyframes zr-breathe{ 0%,100%{ opacity:0.75; } 50%{ opacity:1; } }
 @media (prefers-reduced-motion: reduce){ body.zr-fullport::after{ animation:none; } }
+
+/* Grade the Setup: why a losing round lost, and the target-hit moment */
+.zg-why{ margin:12px 0 4px; padding:12px 14px; border:1px solid rgba(224,72,63,0.55); border-left:3px solid var(--danger); border-radius:var(--radius-sm); background:var(--danger-soft, rgba(224,72,63,0.08)); }
+.zg-why-head{ font-weight:800; font-size:0.95rem; color:var(--danger); margin-bottom:4px; }
+.zg-why p{ font-size:0.87rem !important; margin:6px 0 !important; line-height:1.55; }
+.zg-chart-wrap.zg-tp-hit{ animation:zg-tp 1.4s ease-out 1; }
+@keyframes zg-tp{ 0%{ box-shadow:0 0 0 0 rgba(62,203,124,0); } 20%{ box-shadow:0 0 0 3px rgba(62,203,124,0.7), 0 0 36px rgba(62,203,124,0.45); } 100%{ box-shadow:0 0 0 0 rgba(62,203,124,0); } }
+@media (prefers-reduced-motion: reduce){ .zg-chart-wrap.zg-tp-hit{ animation:none; } }

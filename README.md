@@ -77,9 +77,12 @@ secrets described there.
 
 ## $10,000 Practice Account
 
-- `practice/index.html`: paper trading on 30 real stocks with live prices, a full chart (RSI, MACD, Bollinger, SMA/EMA, volume) and market/limit/stop/bracket orders. Built by `python3 scripts/build_practice.py`; logic in `practice/practice.js`, chart in `practice/practice-chart.js`.
-- Live quotes come from the `refresh_quotes` Cloud Function (Finnhub → Firestore `markets/quotes`). One-time setup: `docs/practice-account.md`. Without it the page uses the latest daily close.
-- Accounts are saved in localStorage, and to `users/{uid}.practice` for signed-in users.
+- `practice/index.html`: paper trading on 50 real stocks and ETFs with live prices, a full chart (13 toggleable indicators, SL/TP forecast boxes), market/limit/stop/bracket orders, simulated options (long calls/puts, modeled prices) and agent signals. Built by `python3 scripts/build_practice.py`; logic in `practice/practice.js`, chart in `practice/practice-chart.js`, option pricing in `practice/practice-options.js`.
+- The stock list is `data/practice-universe.json` (single source of truth; the build copies it to `functions/practice_universe.json` for the price function). Extra price history lives in `data/practice-extra.json`.
+- Live quotes come from the `refresh_quotes` Cloud Function (Finnhub → Firestore `markets/quotes`); headlines from `refresh_news` (→ `markets/news`). Setup: `docs/practice-account.md`. Without them the page uses the latest daily close.
+- Accounts are saved in localStorage, and to `users/{uid}.practice` for signed-in users. Signed-in players publish public stats to `practiceProfiles/{uid}` (leaderboard + `practice/profile.html`).
+- The dashboard's Practice Account, Watchlist news and Trending news widgets live in `zelos-dash-hub.js`.
+- What's next: `docs/roadmap.md`.
 - Timeframes: 5m / 15m / 1H (from the function's 5-minute bars in `markets/intraday_<SYM>`), D, W. Candle color presets and custom colors are saved as `zelosChartColors` in localStorage and also used by the Arcade charts. Full Port (all-in sizing plus the green/red glow) is a toggle on the order ticket.
 - The home page preview chart is real data: `python3 scripts/build_home_promo.py` redraws it from `data/game-charts.json`.
 

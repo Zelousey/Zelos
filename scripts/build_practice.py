@@ -8,26 +8,27 @@ Live quotes come from the refresh_quotes Cloud Function (functions/main.py);
 see docs/practice-account.md.
 """
 import os
+import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from site_shell import render, breadcrumbs, SITE  # noqa: E402
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 HEAD = '<link rel="stylesheet" href="../zelos-theme.css">\n<link rel="stylesheet" href="practice.css">\n'
 
 BODY = '''<main class="pt-shell">
   <div class="pt-top">
-    <div>
-      <span class="pt-kicker">Practice account &middot; paper trading</span>
+    <div class="pt-title">
+      <span class="pt-kicker">Practice account &middot; <span id="ptUser">Guest</span></span>
       <h1>$10,000 Practice Account</h1>
-      <p>Trade real stocks at real prices with $10,000 of practice money. Full charts and indicators, market, limit and stop orders,
-      stop-loss and take-profit brackets. No real money, no brokerage account.</p>
     </div>
     <div class="pt-acct">
       <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
       <span><small>Today</small><b id="ptDay">+$0.00</b></span>
       <span><small>Total P&amp;L</small><b id="ptTotal">+$0.00</b></span>
-      <span><small>Cash</small><b id="ptCash">$10,000.00</b></span>
+      <span><small>Open P&amp;L</small><b id="ptOpen">+$0.00</b></span>
       <span><small>Buying power</small><b id="ptBP">$10,000.00</b></span>
     </div>
   </div>
@@ -35,42 +36,40 @@ BODY = '''<main class="pt-shell">
     <span class="pt-feed" id="ptFeed">Connecting to live prices…</span>
     <span class="pt-clock" id="ptClock">Market closed</span>
     <span class="pt-sync" id="ptSync">Saved in this browser</span>
+    <button class="pt-bell" type="button" id="ptBell" title="Get a pop-up when a take profit or stop loss hits">&#128277;<span>Alerts</span></button>
+  </div>
+  <div class="pt-reset-banner" id="ptResetBanner" hidden>
+    <span><b>Account below $2,500.</b> You can start over at $10,000. Your trade history is kept and the reset shows on your stats.</span>
+    <button class="pt-btn" type="button" id="ptResetBtn">Reset account</button>
   </div>
 
   <div class="pt-grid">
     <aside class="pt-card pt-watch-card" aria-label="Stocks">
-      <input class="pt-search" id="ptSearch" type="search" placeholder="Search 30 stocks & ETFs" aria-label="Search stocks">
+      <input class="pt-search" id="ptSearch" type="search" placeholder="Search stocks &amp; ETFs" aria-label="Search stocks">
       <div class="pt-watch" id="ptWatch"></div>
     </aside>
 
     <section class="pt-card pt-main" aria-label="Chart">
       <div class="pt-qhead">
-        <h2 id="ptSym">AAPL</h2><span class="pt-name" id="ptName">Apple</span>
+        <h2 id="ptSym">NVDA</h2><span class="pt-name" id="ptName"></span>
         <span class="pt-px" id="ptPx">–</span><span class="pt-chg" id="ptChg"></span>
       </div>
       <div class="pt-stats" id="ptStats"></div>
       <div class="pt-toolbar">
-        <span class="pt-seg" role="group" aria-label="Timeframe">
-          <button class="pt-chip" type="button" data-tf="5m" title="5-minute bars">5m</button>
-          <button class="pt-chip" type="button" data-tf="15m" title="15-minute bars">15m</button>
-          <button class="pt-chip" type="button" data-tf="1h" title="1-hour bars">1H</button>
-          <button class="pt-chip" type="button" data-tf="D" title="Daily bars">D</button>
-          <button class="pt-chip" type="button" data-tf="W" title="Weekly bars">W</button>
+        <span class="pt-dd">
+          <button class="pt-chip pt-dd-btn" type="button" id="ptTfBtn" aria-haspopup="true" aria-expanded="false" title="Timeframe">D</button>
+          <div class="pt-menu pt-tf-menu" id="ptTfMenu" role="menu" hidden></div>
         </span>
         <span class="pt-seg" id="ptRanges" role="group" aria-label="Range"></span>
-        <button class="pt-chip" type="button" id="ptZoomIn" aria-label="Zoom in">+</button>
-        <button class="pt-chip" type="button" id="ptZoomOut" aria-label="Zoom out">&minus;</button>
+        <span class="pt-dd">
+          <button class="pt-chip pt-dd-btn" type="button" id="ptIndBtn" aria-haspopup="true" aria-expanded="false">Indicators</button>
+          <div class="pt-menu pt-ind-menu" id="ptIndMenu" hidden></div>
+        </span>
+        <button class="pt-chip pt-fc-chip" type="button" id="ptForecast" aria-pressed="false" title="Draw your stop-loss and take-profit as boxes on the chart"><i></i>SL / TP boxes</button>
         <span class="grow"></span>
-        <button class="pt-chip" type="button" data-ind="sma20">SMA 20</button>
-        <button class="pt-chip" type="button" data-ind="sma50">SMA 50</button>
-        <button class="pt-chip" type="button" data-ind="ema9">EMA 9</button>
-        <button class="pt-chip" type="button" data-ind="bb">Bollinger</button>
-        <button class="pt-chip" type="button" data-ind="vol">Volume</button>
-        <button class="pt-chip" type="button" data-ind="rsi">RSI</button>
-        <button class="pt-chip" type="button" data-ind="macd">MACD</button>
-        <span class="pt-colors">
+        <span class="pt-dd">
           <button class="pt-chip" type="button" id="ptColorsBtn" aria-haspopup="true" aria-expanded="false" title="Candle colors"><i class="pt-swatch" id="ptColorSwatch"></i>Colors</button>
-          <div class="pt-color-pop" id="ptColorPop" hidden>
+          <div class="pt-menu pt-color-pop" id="ptColorPop" hidden>
             <b>Candle colors</b>
             <div class="pt-presets" id="ptColorPresets"></div>
             <div class="pt-custom">
@@ -80,6 +79,8 @@ BODY = '''<main class="pt-shell">
             <small>Also used on the Arcade charts. Saved in this browser.</small>
           </div>
         </span>
+        <button class="pt-chip" type="button" id="ptZoomIn" aria-label="Zoom in">+</button>
+        <button class="pt-chip" type="button" id="ptZoomOut" aria-label="Zoom out">&minus;</button>
       </div>
       <div class="pt-chart-wrap"><canvas class="pt-chart" id="ptChart" aria-label="Price chart"></canvas></div>
       <p class="pt-hint">Scroll to zoom &middot; drag to pan &middot; hover for exact values. Dashed lines are your average cost and open orders.</p>
@@ -87,37 +88,58 @@ BODY = '''<main class="pt-shell">
 
     <div class="pt-ticket-col">
       <section class="pt-card pt-ticket" aria-label="Order ticket">
-        <div class="pt-sides">
-          <button class="pt-side is-on" type="button" id="ptBuy" aria-pressed="true">Buy</button>
-          <button class="pt-side" type="button" id="ptSell" aria-pressed="false">Sell</button>
+        <div class="pt-modes" role="tablist" aria-label="Trade">
+          <button type="button" role="tab" data-mode="stock" class="is-on" aria-selected="true">Stock</button>
+          <button type="button" role="tab" data-mode="options" aria-selected="false">Options</button>
         </div>
-        <label class="pt-fp"><input type="checkbox" id="ptFullPort"><span class="pt-fp-track"><i></i></span><span><b>Full Port</b> (all-in)</span></label>
-        <div class="pt-fp-warn" id="ptFullWarn" hidden><b>&#9888; Full Port:</b> every buy puts your <b>entire buying power</b> into one stock, and every
-        sell dumps the whole position. One bad trade can take a huge bite out of the account, which is exactly how real accounts blow up. The screen
-        glows green or red with how the account is doing.</div>
-        <div class="pt-field"><span>Order type</span>
-          <div class="pt-types" role="radiogroup" aria-label="Order type">
-            <label><input type="radio" name="ptType" value="market" checked>Market</label>
-            <label><input type="radio" name="ptType" value="limit">Limit</label>
-            <label><input type="radio" name="ptType" value="stop">Stop</label>
+        <div id="ptStockTicket">
+          <div class="pt-sides">
+            <button class="pt-side is-on" type="button" id="ptBuy" aria-pressed="true">Buy</button>
+            <button class="pt-side" type="button" id="ptSell" aria-pressed="false">Sell</button>
           </div>
-        </div>
-        <label class="pt-field"><span><span id="ptQtyLabel">Shares</span><button class="pt-linkbtn" type="button" id="ptQtyMode">Use $ amount</button></span>
-          <input id="ptQty" type="number" min="0" step="1" inputmode="decimal" placeholder="0"></label>
-        <label class="pt-field" id="ptLimitRow" hidden><span>Limit price</span><input id="ptLimit" type="number" min="0" step="0.01" inputmode="decimal"></label>
-        <label class="pt-field" id="ptStopRow" hidden><span>Stop price</span><input id="ptStopPx" type="number" min="0" step="0.01" inputmode="decimal"></label>
-        <label class="pt-field"><span>Time in force</span>
-          <select id="ptTif"><option value="day">Day</option><option value="gtc">Good til cancelled</option></select></label>
-        <div class="pt-bracket" id="ptBracket">
-          <label class="pt-check"><input type="checkbox" id="ptUseBracket"> Add stop-loss / take-profit</label>
-          <div class="pt-bracket-fields" id="ptBracketFields" hidden>
-            <label class="pt-field"><span>Stop-loss</span><input id="ptSL" type="number" min="0" step="0.01" inputmode="decimal"></label>
-            <label class="pt-field"><span>Take-profit</span><input id="ptTP" type="number" min="0" step="0.01" inputmode="decimal"></label>
+          <label class="pt-fp"><input type="checkbox" id="ptFullPort"><span class="pt-fp-track"><i></i></span><span><b>Full Port</b> (all-in)</span></label>
+          <div class="pt-fp-warn" id="ptFullWarn" hidden><b>&#9888; Full Port:</b> every buy puts your <b>entire buying power</b> into one stock, and every
+          sell dumps the whole position. One bad trade can take a huge bite out of the account, which is exactly how real accounts blow up. The screen
+          glows green or red with how the account is doing.</div>
+          <div class="pt-field"><span>Order type</span>
+            <div class="pt-types" role="radiogroup" aria-label="Order type">
+              <label><input type="radio" name="ptType" value="market" checked>Market</label>
+              <label><input type="radio" name="ptType" value="limit">Limit</label>
+              <label><input type="radio" name="ptType" value="stop">Stop</label>
+            </div>
           </div>
+          <label class="pt-field"><span><span id="ptQtyLabel">Shares</span><button class="pt-linkbtn" type="button" id="ptQtyMode">Use $ amount</button></span>
+            <input id="ptQty" type="number" min="0" step="1" inputmode="decimal" placeholder="0"></label>
+          <label class="pt-field" id="ptLimitRow" hidden><span>Limit price</span><input id="ptLimit" type="number" min="0" step="0.01" inputmode="decimal"></label>
+          <label class="pt-field" id="ptStopRow" hidden><span>Stop price</span><input id="ptStopPx" type="number" min="0" step="0.01" inputmode="decimal"></label>
+          <label class="pt-field"><span>Time in force</span>
+            <select id="ptTif"><option value="day">Day</option><option value="gtc">Good til cancelled</option></select></label>
+          <div class="pt-bracket" id="ptBracket">
+            <label class="pt-check"><input type="checkbox" id="ptUseBracket"> Add stop-loss / take-profit</label>
+            <div class="pt-bracket-fields" id="ptBracketFields" hidden>
+              <label class="pt-field pt-f-sl"><span>Stop-loss</span><input id="ptSL" type="number" min="0" step="0.01" inputmode="decimal"></label>
+              <label class="pt-field pt-f-tp"><span>Take-profit</span><input id="ptTP" type="number" min="0" step="0.01" inputmode="decimal"></label>
+            </div>
+          </div>
+          <div class="pt-est" id="ptEst"></div>
+          <p class="pt-when" id="ptWhen"></p>
+          <button class="pt-submit is-buy" type="button" id="ptSubmit"><span class="pt-sub-main">Buy</span></button>
         </div>
-        <p class="pt-est" id="ptEst"></p>
-        <p class="pt-when" id="ptWhen"></p>
-        <button class="pt-submit is-buy" type="button" id="ptSubmit">Review buy</button>
+        <div id="ptOptTicket" hidden>
+          <div class="pt-sides pt-otypes">
+            <button class="pt-side is-on" type="button" data-otype="call">Calls</button>
+            <button class="pt-side" type="button" data-otype="put">Puts</button>
+          </div>
+          <label class="pt-field"><span>Expiration</span><select id="ptOptExp"></select></label>
+          <div class="pt-chain-wrap" id="ptChain"></div>
+          <div class="pt-opt-pick" id="ptOptPick"></div>
+          <label class="pt-field"><span>Contracts</span><input id="ptOptQty" type="number" min="1" step="1" value="1" inputmode="numeric"></label>
+          <div class="pt-opt-btns">
+            <button class="pt-submit is-buy" type="button" id="ptOptBuy" disabled><span class="pt-sub-main">Buy to open</span></button>
+            <button class="pt-submit is-sell" type="button" id="ptOptSell" disabled><span class="pt-sub-main">Sell to close</span></button>
+          </div>
+          <p class="pt-fine" id="ptOptNote"></p>
+        </div>
         <p class="pt-fine">Practice only. Long positions, cash account, no fees. Prices are real; your money isn't.</p>
       </section>
     </div>
@@ -128,6 +150,7 @@ BODY = '''<main class="pt-shell">
       <button class="pt-tab" type="button" role="tab" data-tab="positions" aria-selected="true">Positions</button>
       <button class="pt-tab" type="button" role="tab" data-tab="orders" aria-selected="false">Open orders</button>
       <button class="pt-tab" type="button" role="tab" data-tab="history" aria-selected="false">History</button>
+      <button class="pt-tab" type="button" role="tab" data-tab="agents" aria-selected="false">Agent signals</button>
       <button class="pt-tab" type="button" role="tab" data-tab="performance" aria-selected="false">Performance</button>
     </div>
     <div class="pt-table-wrap" id="ptTabBody"></div>
@@ -139,34 +162,74 @@ BODY = '''<main class="pt-shell">
     you see the latest close, and market orders wait for the next open, just like at a real broker.</p>
     <p><b>Orders.</b> Market orders fill at the current price. Limit orders fill at your price or better. Stop orders trigger when price
     reaches your stop (a gap can fill it past your price). Day orders expire at the close; good-til-cancelled orders stay open. Add a
-    stop-loss and take-profit to a buy and they're placed together the moment it fills: whichever hits first cancels the other.</p>
+    stop-loss and take-profit to a buy and they're placed together the moment it fills: whichever hits first cancels the other.
+    Turn on <b>Alerts</b> to get a pop-up when one hits while this page is open.</p>
+    <p><b>Options.</b> Buy calls and puts to open, sell them to close. There's no live options feed on this data plan, so option prices are
+    <b>modeled</b> (Black-Scholes on the stock's live price and its recent volatility) with a bid/ask spread. Contracts left open at
+    expiration settle at their intrinsic value.</p>
+    <p><b>Agent signals.</b> The Agent signals tab shows the latest setup from each Zelos agent. One click loads it into your ticket with its
+    stop and target so you can test the agent with virtual money.</p>
     <p><b>Timeframes.</b> Daily and weekly charts go back to 2024. The 5-minute, 15-minute and 1-hour charts are built from the live
     price feed during market hours and keep the last five sessions.</p>
-    <p><b>Full Port</b> is the all-in mode from Chart Replay: every order uses all your buying power, and the screen glows with your
-    profit or loss. It's here so you can feel how fast concentration swings an account, not as a way to trade.</p>
-    <p><b>Your account</b> is saved in this browser. Sign in and it follows you to any device. Reset it to $10,000 any time from the
-    Performance tab. Want to train your eye first? Try <a href="../games/chart-replay.html">Chart Replay</a> or
+    <p><b>Your account</b> is saved in this browser. Sign in with Google and it follows you to any device and shows on the
+    <a href="../leaderboard.html">leaderboard</a> (public numbers only: name, balance, trades; turn it off any time in Performance).
+    If the account drops below $2,500 you can reset it to $10,000; resets are counted on your stats.
+    Want to train your eye first? Try <a href="../games/chart-replay.html">Chart Replay</a> or
     <a href="../games/grade-the-setup.html">Grade the Setup</a>.</p>
     <p class="pt-fine">Paper trading for practice and education only. Not investment advice, no real orders, no brokerage connection.
     Quotes may be delayed or briefly unavailable; holidays aren't modelled.</p>
   </section>
 </main>
 
-<div class="pt-modal" id="ptConfirm" hidden role="dialog" aria-modal="true" aria-labelledby="ptConfirmTitle">
+<div class="pt-vmoney" aria-hidden="true">Practice account &middot; virtual money</div>
+
+<div class="pt-gate" id="ptGate" hidden role="dialog" aria-modal="true" aria-labelledby="ptGateTitle">
+  <div class="pt-gate-card">
+    <span class="pt-kicker">Paper trading &middot; live prices</span>
+    <h2 id="ptGateTitle">You're entering the $10,000 Practice Account</h2>
+    <p>Real stocks, real prices, virtual money. Nothing here touches a real brokerage account.</p>
+    <div class="pt-gate-who">
+      <span class="pt-gate-av" aria-hidden="true">&#9679;</span>
+      <span><b id="ptGateName">Guest</b><small id="ptGateWho">Guest · saved in this browser only</small></span>
+      <button class="pt-linkbtn" type="button" id="ptGateRename" hidden>Rename</button>
+    </div>
+    <div class="pt-gate-bal"><small>Account value</small><b id="ptGateBal">$10,000.00</b></div>
+    <button class="pt-btn pt-gate-google" type="button" id="ptGateGoogle"><svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>Continue with Google</button>
+    <button class="pt-btn pt-btn-go pt-gate-enter" type="button" id="ptGateEnter">Enter practice account</button>
+    <small class="pt-gate-fine">Sign in to save your account everywhere and appear on the leaderboard. Only your display name and trading stats are public.</small>
+  </div>
+</div>
+
+<div class="pt-modal" id="ptConfirm" hidden role="dialog" aria-modal="true" aria-labelledby="ptModalTitle">
   <div class="pt-modal-card">
-    <h3 id="ptConfirmTitle">Confirm order</h3>
-    <p id="ptConfirmText"></p>
+    <h3 id="ptModalTitle">Confirm order</h3>
+    <p id="ptModalText"></p>
     <div class="pt-modal-actions">
-      <button class="pt-btn" type="button" id="ptConfirmCancel">Cancel</button>
-      <button class="pt-btn pt-btn-go" type="button" id="ptConfirmGo">Place order</button>
+      <button class="pt-btn" type="button" id="ptModalCancel">Cancel</button>
+      <button class="pt-btn pt-btn-go" type="button" id="ptModalGo">Place order</button>
     </div>
   </div>
 </div>'''
 
 
+PROFILE_BODY = '''<main class="pt-shell pf-shell">
+  <nav class="pf-crumbs"><a href="../leaderboard.html#practice">&larr; Practice leaderboard</a> &middot; <a href="./">Open the practice account</a></nav>
+  <div id="pfBody"><p class="pt-empty">Loading profile…</p></div>
+  <p class="pt-fine pf-fine">Public practice-account stats only: display name, balance and closed trades with virtual money. No email, login or
+  personal details are shown. Players can make their stats private any time from the Performance tab.</p>
+</main>'''
+
+
+def build_profile():
+    desc = 'Public stats for a Zelos $10,000 Practice Account: balance, growth, resets, win rate and best trades with virtual money.'
+    scripts = '<script src="profile.js"></script>\n'
+    render('practice/profile.html', 'Practice Account Profile | Zelos', desc, PROFILE_BODY, HEAD, scripts, robots='noindex')
+    print('built practice/profile.html')
+
+
 def main():
-    desc = ('Free $10,000 practice trading account: trade real stocks at live prices with paper money. Candlestick charts with RSI, MACD, '
-            'Bollinger Bands and moving averages, plus market, limit, stop and bracket orders.')
+    desc = ('Free $10,000 practice trading account: trade 50 real stocks and ETFs at live prices with paper money. Candlestick charts with 13 '
+            'indicators, market, limit, stop and bracket orders, simulated options, agent signals and a public leaderboard.')
     ld = {
         '@context': 'https://schema.org', '@type': 'WebApplication', 'name': 'Zelos $10,000 Practice Account',
         'url': SITE + '/practice/', 'description': desc, 'applicationCategory': 'FinanceApplication',
@@ -174,10 +237,15 @@ def main():
         'offers': {'@type': 'Offer', 'price': 0, 'priceCurrency': 'USD'},
         'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
     }
-    scripts = '<script src="practice-chart.js"></script>\n<script src="practice.js"></script>\n'
+    scripts = ('<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
+               '<script src="practice.js"></script>\n')
     render('practice/index.html', '$10,000 Practice Account: Free Paper Trading with Live Prices | Zelos', desc, BODY, HEAD, scripts,
            jsonld=[ld, breadcrumbs([('Zelos', ''), ('Practice Account', None)])])
     print('built practice/index.html')
+    build_profile()
+    # the price function reads the same stock list, so it can never drift from the page
+    shutil.copyfile(os.path.join(ROOT, 'data', 'practice-universe.json'), os.path.join(ROOT, 'functions', 'practice_universe.json'))
+    print('copied data/practice-universe.json -> functions/practice_universe.json')
 
 
 if __name__ == '__main__':
