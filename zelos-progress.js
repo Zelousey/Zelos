@@ -109,14 +109,14 @@
 
   // ------------------------------------------------------------ missions
   var DAILY = [
-    { id: 'trade', label: 'Make 1 practice trade', goal: 1, xp: 10, ev: 'trade', href: 'practice/' },
-    { id: 'analyze', label: 'Analyze 3 stocks', goal: 3, xp: 10, ev: 'analyze', href: 'practice/', hint: 'Open 3 different charts in the practice account' },
+    { id: 'trade', label: 'Make 1 Trade War trade', goal: 1, xp: 10, ev: 'trade', href: 'practice/' },
+    { id: 'analyze', label: 'Analyze 3 stocks', goal: 3, xp: 10, ev: 'analyze', href: 'practice/', hint: 'Open 3 different charts in Trade War or the Real Trade Journal' },
     { id: 'grade', label: 'Complete a Grade the Setup round', goal: 1, xp: 10, ev: 'grade', href: 'games/grade-the-setup.html' },
     { id: 'news', label: 'Check the market news', goal: 1, xp: 5, ev: 'news', href: 'dashboard.html', hint: 'Open a headline in the Command Center' },
     { id: 'xp', label: 'Earn 100 XP', goal: 100, xp: 20, ev: 'xp' }
   ];
   var WEEKLY = [
-    { id: 'trades10', label: 'Make 10 practice trades', goal: 10, xp: 40, ev: 'trade', href: 'practice/' },
+    { id: 'trades10', label: 'Make 10 Trade War trades', goal: 10, xp: 40, ev: 'trade', href: 'practice/' },
     { id: 'wins3', label: 'Close 3 winning trades', goal: 3, xp: 50, ev: 'win', href: 'practice/' },
     { id: 'grade10', label: 'Grade 10 setups', goal: 10, xp: 40, ev: 'grade', href: 'games/grade-the-setup.html' },
     { id: 'days5', label: 'Keep your streak 5 days this week', goal: 5, xp: 75, ev: 'mday' },
@@ -186,7 +186,7 @@
   // test(ctx): ctx carries whatever the calling page knows (the practice page
   // passes account stats); missing data just means "not yet".
   var A = [
-    ['first-trade', 'First Trade', 'Place your first practice trade', '🎯', 25, 'Trading', function (c) { return c.fills >= 1; }],
+    ['first-trade', 'First Trade', 'Place your first Trade War trade', '🎯', 25, 'Trading', function (c) { return c.fills >= 1; }],
     ['first-win', 'First Win', 'Close a trade in profit', '✅', 25, 'Trading', function (c) { return c.wins >= 1; }],
     ['perfect-exit', 'Perfect Exit', 'Get taken out at your take-profit', '🎯', 50, 'Trading', function (c) { return c.tpExits >= 1; }],
     ['hot-hand', 'Hot Hand', '5 winning trades in a row', '🔥', 50, 'Trading', function (c) { return c.bestWinStreak >= 5; }],
@@ -256,7 +256,7 @@
     var css = '.zp-stack{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(420px,calc(100vw - 32px));}' +
       '.zp-toast{pointer-events:auto;width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:var(--surface,#151922);color:var(--ink,#f4f5f7);border:1px solid var(--zp-c,#d9a441);box-shadow:0 12px 34px rgba(0,0,0,.45),0 0 24px -8px var(--zp-c,#d9a441);font:500 .86rem var(--sans,system-ui,sans-serif);animation:zp-in .35s cubic-bezier(.2,1.3,.4,1);transition:opacity .4s,transform .4s;}' +
       '.zp-toast em{margin-left:auto;font-style:normal;font:700 .78rem var(--mono,ui-monospace,monospace);color:var(--zp-c,#d9a441);white-space:nowrap;}' +
-      '.zp-toast b{margin-right:4px;} .zp-toast.is-out{opacity:0;transform:translateY(-8px);} .zp-toast.k-mission{--zp-c:#3ecb7c;} .zp-toast.k-streak{--zp-c:#ff8a3d;} .zp-toast.k-ach{--zp-c:#d9a441;}' +
+      '.zp-toast b{margin-right:4px;} .zp-toast.is-out{opacity:0;transform:translateY(-8px);} .zp-toast.k-mission{--zp-c:#3ecb7c;} .zp-toast.k-streak{--zp-c:#ff8a3d;} .zp-toast.k-ach{--zp-c:#d9a441;} .zp-toast.k-war{--zp-c:#4c8dff;} .zp-toast.k-real{--zp-c:#2fd3a4;} .zp-toast.k-xp{--zp-c:#b9a8ff;}' +
       '.zp-ico{font-size:1.3rem;} @keyframes zp-in{from{opacity:0;transform:translateY(-10px) scale(.96);}to{opacity:1;transform:none;}}' +
       '.zp-badge{display:inline-flex;align-items:center;justify-content:center;width:var(--zp-s);height:var(--zp-s);font-size:calc(var(--zp-s) * .5);line-height:1;flex:none;' +
       'clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);background:linear-gradient(135deg,#ffd45c,#b07a12);box-shadow:inset 0 0 0 2px rgba(255,255,255,.2);}' +
@@ -275,7 +275,12 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectStyle); else injectStyle();
   // "Earn N XP" missions complete as XP lands, whichever page earned it
-  document.addEventListener('zelos:xp', function () { evaluateMissions(); });
+  document.addEventListener('zelos:xp', function (e) {
+    var d = e.detail || {};
+    // missions and achievements announce themselves; everything else gets a small labeled XP toast
+    if (d.amount && d.type !== 'mission' && d.type !== 'achievement' && d.type !== 'daily-checkin') toast('<em style="margin:0">+' + d.amount + ' XP</em> ' + esc(d.label || ''), d.source === 'real' ? 'real' : d.source === 'trade-war' ? 'war' : 'xp');
+    evaluateMissions();
+  });
   window.addEventListener('storage', function (e) { if (e.key === KEY) { st = load(); try { document.dispatchEvent(new CustomEvent('zelos:progress')); } catch (er) {} } });
 
   global.ZelosProgress = {

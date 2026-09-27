@@ -1,5 +1,5 @@
 /*!
- * Zelos $10,000 Practice Account.
+ * Zelos Trade War: the $10,000 virtual account (PRACTICE mode).
  *
  * A persistent simulated brokerage account: real prices, virtual money.
  *
@@ -208,9 +208,12 @@
       resets: acct.resets, updatedAt: Date.now() };
   }
   function round2(x) { return Math.round(x * 100) / 100; }
-  function recordTrade(t) { t.epoch = acct.epoch; acct.trades.push(t); }
+  function recordTrade(t) { t.epoch = acct.epoch; t.mode = MODE; acct.trades.push(t); }
   // every fill: lifetime counters, XP (first 10 trades and 10 wins a day) and missions
   var PROG = window.ZelosProgress || null;
+  // every Trade War record is PRACTICE mode: virtual money, never mixed with REAL (see zelos-modes.js)
+  var MODE = 'PRACTICE';
+  function modeTag(short) { return window.ZelosModes ? ZelosModes.tag(MODE, short) : '<span class="zm-tag is-war">' + (short ? 'VIRTUAL' : 'TRADE WAR — VIRTUAL') + '</span>'; }
   function onActivity(sym, pnl, extra) {
     var L = acct.life, today = todayNY(); extra = extra || {};
     L.fills = (L.fills || 0) + 1;
@@ -220,6 +223,11 @@
     if (extra.tp) L.tpExits = (L.tpExits || 0) + 1;
     var d = acct.dayFills && acct.dayFills.date === today ? acct.dayFills : (acct.dayFills = { date: today, n: 0, w: 0 });
     d.n += 1;
+    if (L.tradeDay !== today) {
+      var y = new Date(today + 'T12:00:00Z'); y.setUTCDate(y.getUTCDate() - 1);
+      L.tradeStreak = L.tradeDay === y.toISOString().slice(0, 10) ? (L.tradeStreak || 0) + 1 : 1;
+      L.tradeDay = today; L.bestTradeStreak = Math.max(L.bestTradeStreak || 0, L.tradeStreak);
+    }
     if (window.ZelosXP && d.n <= 10) ZelosXP.award('practice-trade', today + ':' + d.n);
     if (PROG) PROG.track('trade');
     if (pnl != null && pnl > 0.005) {
@@ -232,6 +240,10 @@
   // $10,000 but what it wiped out still counts against you, so resets never
   // look like gains on a leaderboard or in a challenge.
   function netPnl() { return equity() - START_CASH + acct.resetHistory.reduce(function (t, r) { return t + (r.equityBefore - START_CASH); }, 0); }
+  function tradeStreakNow() {
+    var L = acct.life, t = todayNY(), y = new Date(t + 'T12:00:00Z'); y.setUTCDate(y.getUTCDate() - 1);
+    return L.tradeDay === t || L.tradeDay === y.toISOString().slice(0, 10) ? (L.tradeStreak || 0) : 0;
+  }
   function winStreakBest(list) { var best = 0, cur = 0; list.forEach(function (t) { if (t.pnl > 0) { cur++; best = Math.max(best, cur); } else if (t.pnl < 0) cur = 0; }); return best; }
   var xpNow = null, referralCount = 0;
 
@@ -363,9 +375,9 @@
 
   // ------------------------------------------------------------ notifications
   function notify(title, body) {
-    toast('<b>' + esc(title) + '</b><br>' + esc(body));
+    toast('<span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> <b>' + esc(title) + '</b><br>' + esc(body));
     try {
-      if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body: body, icon: '../icons/icon-192.png', tag: 'zelos-' + title });
+      if ('Notification' in window && Notification.permission === 'granted') new Notification('Trade War (virtual): ' + title, { body: body, icon: '../icons/icon-192.png', tag: 'zelos-' + title });
     } catch (e) {}
   }
   function alertFill(o, qty, px, pnl) {
@@ -616,7 +628,7 @@
     var h = '', today = todayNY();
     if (tab === 'positions') {
       var syms = Object.keys(acct.positions);
-      h = syms.length ? '<table class="pt-table"><thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Price</th><th>Market value</th><th>Today</th><th>Total P&amp;L</th><th></th></tr></thead><tbody>' +
+      h = syms.length ? '<div class="pt-subhead">Stocks ' + modeTag() + '</div><table class="pt-table"><thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Price</th><th>Market value</th><th>Today</th><th>Total P&amp;L</th><th></th></tr></thead><tbody>' +
         syms.map(function (s) {
           var p = acct.positions[s], px = price(s), pc = prevClose(s), mv = p.qty * px, pl = (px - p.avg) * p.qty, base = p.openedDay === today ? p.avg : pc, dp = (px - base) * p.qty;
           return '<tr><td><button class="pt-link" data-sym="' + s + '">' + s + '</button></td><td>' + p.qty + '</td><td>' + fmt(p.avg) + '</td><td>' + fmt(px) + '</td><td>' + money(mv) + '</td>' +
@@ -624,7 +636,7 @@
             '<td><button class="pt-mini" data-close="' + s + '">Sell all</button></td></tr>';
         }).join('') + '</tbody></table>' : '';
       if (acct.options.length) {
-        h += '<div class="pt-subhead">Options <small>modeled prices</small></div><table class="pt-table"><thead><tr><th>Contract</th><th>Qty</th><th>Avg</th><th>Mark</th><th>Value</th><th>P&amp;L</th><th>Expires</th><th></th></tr></thead><tbody>' +
+        h += '<div class="pt-subhead">Options ' + modeTag() + ' <small>modeled prices</small></div><table class="pt-table"><thead><tr><th>Contract</th><th>Qty</th><th>Avg</th><th>Mark</th><th>Value</th><th>P&amp;L</th><th>Expires</th><th></th></tr></thead><tbody>' +
           acct.options.map(function (o) {
             var m = optionMark(o), pl = (m - o.avg) * 100 * o.qty;
             return '<tr><td><button class="pt-link" data-optsym="' + o.id + '">' + esc(OPT.label(o)) + '</button></td><td>' + o.qty + '</td><td>' + o.avg.toFixed(2) + '</td><td>' + m.toFixed(2) + '</td><td>' + money(m * 100 * o.qty) + '</td>' +
@@ -643,9 +655,9 @@
         }).join('') + '</tbody></table>' : '<p class="pt-empty">No open orders.</p>';
     } else if (tab === 'history') {
       var tr = acct.trades.slice(-150).reverse();
-      h = tr.length ? '<table class="pt-table"><thead><tr><th>Closed</th><th>Position</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Invested</th><th>P&amp;L</th><th>%</th></tr></thead><tbody>' +
+      h = tr.length ? '<table class="pt-table"><thead><tr><th>Closed</th><th>Type</th><th>Position</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Invested</th><th>P&amp;L</th><th>%</th></tr></thead><tbody>' +
         tr.map(function (t) {
-          return '<tr><td>' + (t.closeDay || '') + (t.epoch !== acct.epoch ? ' <small>(before reset)</small>' : '') + '</td><td>' + esc(t.label) + (t.note ? ' <small>· ' + esc(t.note) + '</small>' : '') + '</td><td>' + t.qty + '</td><td>' + fmt(t.entry) + '</td><td>' + fmt(t.exit) + '</td><td>' + money(t.invested) + '</td>' +
+          return '<tr><td>' + (t.closeDay || '') + (t.epoch !== acct.epoch ? ' <small>(before reset)</small>' : '') + '</td><td>' + modeTag() + '</td><td>' + esc(t.label) + (t.note ? ' <small>· ' + esc(t.note) + '</small>' : '') + '</td><td>' + t.qty + '</td><td>' + fmt(t.entry) + '</td><td>' + fmt(t.exit) + '</td><td>' + money(t.invested) + '</td>' +
             '<td class="' + (t.pnl >= 0 ? 'up' : 'dn') + '">' + signed(t.pnl) + '</td><td class="' + (t.pct >= 0 ? 'up' : 'dn') + '">' + pct(t.pct) + '</td></tr>';
         }).join('') + '</tbody></table>' : '<p class="pt-empty">Closed trades show up here with entry, exit and P&amp;L.</p>';
       var done = acct.orders.filter(function (o) { return o.status !== 'open' && o.status !== 'filled'; }).slice(-20).reverse();
@@ -717,7 +729,7 @@
     h += '<section class="pt-prog-card"><h3>Invite friends</h3>';
     if (currentUser && S) {
       var tier = S.referralTier(referralCount), nt = S.nextTier(referralCount);
-      h += '<p class="pt-fine">When a friend opens their practice account from your link, you both get <b>+50 XP</b>. ' + referralCount + ' friend' + (referralCount === 1 ? '' : 's') + ' joined so far' +
+      h += '<p class="pt-fine">When a friend joins Trade War from your link, you both get <b>+50 XP</b>. ' + referralCount + ' friend' + (referralCount === 1 ? '' : 's') + ' joined so far' +
         (tier ? ' · ' + tier.icon + ' <b>' + tier.name + '</b>' : '') + (nt ? ' · ' + (nt - referralCount) + ' more for ' + (S.referralTier(nt).name) : '') + '.</p>' +
         '<div class="pt-invite"><input readonly id="ptInvite" value="' + esc(S.links(currentUser.uid).invite()) + '"><button class="pt-mini" type="button" data-act="invite">Copy link</button></div>';
     } else h += '<p class="pt-fine">Sign in with Google to get your invite link. Bronze at 1 friend, Silver at 3, Gold at 10, Diamond at 25.</p><button class="pt-mini" type="button" data-act="signin">Sign in</button>';
@@ -731,7 +743,7 @@
     var st = stats(), lv = levelOf(xpNow || 0), best = st.best[0];
     var url = currentUser ? S.links(currentUser.uid).profile() + '&ref=' + encodeURIComponent(currentUser.uid) : 'https://agentictrading.info/practice/';
     var eq = equity();
-    S.shareCard({ name: playerName(), equity: eq, headline: eq >= START_CASH ? 'I grew my $10,000 Practice Account to' : 'My $10,000 Practice Account is at',
+    S.shareCard({ name: playerName(), equity: eq, headline: eq >= START_CASH ? 'I grew my $10,000 Trade War account to' : 'My $10,000 Trade War account is at',
       cta: 'Can you beat me? Challenge me on AgenticTrading.info', level: lv ? 'Lv ' + lv.level + ' ' + lv.name : null, xp: xpNow, winRate: st.trades ? st.winRate : null,
       best: best ? '+$' + Math.round(best.pnl).toLocaleString('en-US') + ' ' + best.sym : null }, url).then(function (r) {
       if (r === 'downloaded') toast('Card saved as an image and your link is copied. Paste both into a text, Discord or social post.');
@@ -740,7 +752,7 @@
   function challengeFriend() {
     var S = window.ZelosSocial;
     if (!S || !S.init()) return toast('Challenges need the live site.', true);
-    if (!currentUser) return needSignIn('Sign in with Google to challenge a friend. Your stats need to be public so there\'s something to compete with.');
+    if (!currentUser) return needSignIn('Sign in with Google to challenge a friend in Trade War. Your stats need to be public so there\'s something to compete with.');
     if (acct.publicProfile === false) return toast('Turn on "Show my stats on the leaderboard" in Performance first, so your friend can see the scores.', true);
     var se = PROG && PROG.season();
     $('ptModalTitle').textContent = 'Challenge a friend';
@@ -760,7 +772,7 @@
           var link = S.links(currentUser.uid).challenge(id);
           $('ptModalTitle').textContent = 'Challenge ready';
           $('ptModalText').innerHTML = 'Send this link to a friend. The clock starts when they accept.<span class="pt-invite"><input readonly value="' + esc(link) + '"><button class="pt-mini" type="button" id="ptChCopy">Copy</button></span>';
-          $('ptChCopy').onclick = function () { S.shareLink('Practice Account challenge', playerName() + ' challenged you to see who can grow $10,000 the most.', link).then(function (r) { if (r === 'copied') toast('Link copied.'); }); };
+          $('ptChCopy').onclick = function () { S.shareLink('Trade War challenge', playerName() + ' challenged you to a Trade War: who can grow $10,000 (virtual) the most?', link).then(function (r) { if (r === 'copied') toast('Link copied.'); }); };
           $('ptModalGo').disabled = false; $('ptModalGo').textContent = 'Open challenge page';
           $('ptModalGo').onclick = function () { location.href = 'challenge.html?c=' + encodeURIComponent(id); };
         }).catch(function (e) { $('ptModalGo').disabled = false; toast(esc(e.message || e), true); });
@@ -817,6 +829,8 @@
       bestTrades: st.best.map(function (x) { return { sym: x.sym, label: x.label, kind: x.kind, qty: x.qty, invested: round2(x.invested), pnl: round2(x.pnl), pct: round2(x.pct), entry: round2(x.entry), exit: round2(x.exit), openDay: x.openDay || null, closeDay: x.closeDay || null }; }),
       topStocks: st.topStocks, since: acct.createdAt, updatedAt: Date.now(),
       // progression + social (see zelos-progress.js / zelos-social.js)
+      mode: MODE, photo: currentUser.photoURL && /^https:/.test(currentUser.photoURL) ? currentUser.photoURL : null,
+      virtualTrades: acct.life.fills || 0, tradeStreak: tradeStreakNow(), bestTradeStreak: acct.life.bestTradeStreak || 0,
       netPnl: round2(netPnl()), xp: xpNow || 0, level: lv ? lv.level : 0, levelName: lv ? lv.name : '', streak: PROG ? PROG.streak() : 0,
       achievements: PROG ? Object.keys(PROG.unlocked()) : [], referrals: referralCount, winStreakBest: winStreakBest(acct.trades),
       mostTraded: st.mostTraded, recovering: acct.recovery ? { low: acct.recovery.low, since: acct.recovery.since } : null,
@@ -827,7 +841,7 @@
   // ------------------------------------------------------------ reset
   function askReset() {
     if (equity() >= RESET_BELOW) return toast('Reset unlocks once the account is below ' + money(RESET_BELOW, 0) + '.', true);
-    $('ptModalTitle').textContent = 'Reset your practice account?';
+    $('ptModalTitle').textContent = 'Reset your Trade War account?';
     $('ptModalText').innerHTML = 'Your account goes back to <b>$10,000</b>: open positions, options and orders are cleared. Your trade history stays, and this counts as <b>reset #' + (acct.resets + 1) + '</b> on your public stats.';
     $('ptModalGo').textContent = 'Reset to $10,000';
     $('ptModalGo').disabled = false; $('ptConfirm').hidden = false; $('ptModalGo').focus();
@@ -856,7 +870,7 @@
   function renderAgents() {
     if (!agentAlerts) { loadAgents(); if (!agentAlerts) return '<p class="pt-empty">Loading the latest agent signals…</p>'; }
     if (!agentAlerts.length) return '<p class="pt-empty">Agent signals load from the live alert feed. They\'re not reachable right now.</p>';
-    return '<p class="pt-fine" style="margin-bottom:10px">Test a Zelos agent with virtual money: each card is that agent\'s latest qualified setup. <b>Paper trade</b> loads it into your ticket with its stop and target; you still review and place the order.</p><div class="pt-agents">' +
+    return '<p class="pt-fine" style="margin-bottom:10px">Test a Zelos agent in Trade War with virtual money: each card is that agent\'s latest qualified setup. <b>Trade it in Trade War</b> loads it into your ticket with its stop and target; you still review and place the order.</p><div class="pt-agents">' +
       agentAlerts.map(function (a) {
         var name = AGENTS[a.strategy], own = ownedSkills.indexOf(a.strategy) !== -1;
         var badge = '<span class="pt-abadge' + (own ? ' is-own' : '') + '">' + (own ? 'Your agent' : 'Preview') + '</span>';
@@ -867,7 +881,7 @@
           '<div class="pt-aticker">' + esc(a.ticker) + ' <small>' + esc(a.setupLabel || a.direction || '') + '</small></div>' +
           (a.entry ? '<div class="pt-alevels"><span>Entry <b>' + fmt(a.entry) + '</b></span><span>Stop <b>' + fmt(a.stop) + '</b></span><span>Target <b>' + fmt(a.target1) + '</b></span>' + (rr ? '<span>R:R <b>' + rr.toFixed(1) + '</b></span>' : '') + '</div>' : '') +
           (isOpt && a.optionsRule ? '<p class="pt-fine">' + esc(a.optionsRule) + '</p>' : '') +
-          (inU ? '<button class="pt-mini pt-abtn" data-agent="' + a.strategy + '">' + (isOpt ? 'Open in options &rarr;' : 'Paper trade this &rarr;') + '</button>'
+          (inU ? '<button class="pt-mini pt-abtn" data-agent="' + a.strategy + '">' + (isOpt ? 'Open in options &rarr;' : 'Trade it in Trade War &rarr;') + '</button>'
             : '<p class="pt-fine">' + esc(a.ticker) + ' isn\'t in the practice stock list yet.</p>') +
           (own ? '' : '<a class="pt-fine pt-alink" href="../arsenal.html">Get the ' + name + ' agent</a>') + '</div>';
       }).join('') + '</div>';

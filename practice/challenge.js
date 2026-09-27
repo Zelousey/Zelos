@@ -32,8 +32,8 @@
   // ------------------------------------------------------------ hub (no ?c)
   function hub(user) {
     var h = '<div class="ch-hero"><span class="pt-kicker">Friend challenges</span><h1>Who can grow $10,000 the most?</h1>' +
-      '<p>Challenge a friend with your practice accounts. You both start from where you are now; the bigger percentage gain wins. Resets never count as growth.</p></div>';
-    if (!user) { body(h + '<div class="pt-card ch-card">' + signInBtn() + '<p class="pt-fine">You need a signed-in practice account (with "Show my stats" on) to challenge anyone.</p></div>'); return wireSignIn(); }
+      '<p>Challenge a friend in Trade War with your $10,000 virtual accounts. You both start from where you are now; the bigger percentage gain wins. Resets never count as growth.</p></div>';
+    if (!user) { body(h + '<div class="pt-card ch-card">' + signInBtn() + '<p class="pt-fine">You need to be signed in to Trade War (with "Show my stats" on) to challenge anyone.</p></div>'); return wireSignIn(); }
     var se = P && P.season();
     h += '<div class="pt-card ch-card"><h2>Start a challenge</h2><div class="pt-ch-days">' +
       [['7', '7 days'], ['30', '30 days']].concat(se ? [['season', 'Rest of ' + se.name]] : []).map(function (d, k) { return '<label><input type="radio" name="chDays" value="' + d[0] + '"' + (k === 0 ? ' checked' : '') + '> ' + d[1] + '</label>'; }).join('') +
@@ -45,7 +45,7 @@
       if (v === 'season' && se) { endAt = new Date(se.end + 'T21:00:00Z').getTime(); days = Math.max(1, Math.round((endAt - Date.now()) / 864e5)); }
       this.disabled = true;
       S.createChallenge({ days: days, endAt: endAt, season: v === 'season' && se ? se.id : null }).then(function (id) { location.search = '?c=' + encodeURIComponent(id); })
-        .catch(function (e) { $('chCreate').disabled = false; $('chMsg').innerHTML = esc(e.message || e) + ' <a href="./">Open the practice account &rarr;</a>'; });
+        .catch(function (e) { $('chCreate').disabled = false; $('chMsg').innerHTML = esc(e.message || e) + ' <a href="./">Enter Trade War &rarr;</a>'; });
     };
     S.myChallenges(user.uid).then(function (list) {
       if (!list.length) { $('chList').innerHTML = '<p class="pt-empty">No challenges yet.</p>'; return; }
@@ -80,13 +80,13 @@
     var mine = user && user.uid === ch.creator, link = S.links(ch.creator).challenge(ch.id);
     var h = '<div class="ch-hero"><span class="pt-kicker">Friend challenge · ' + (ch.season ? 'rest of the season' : ch.days + ' days') + '</span>' +
       '<h1>' + esc(ch.creatorName) + ' challenged ' + (ch.target ? esc(ch.targetName || 'you') : 'you') + ' to see who can grow $10,000 the most.</h1>' +
-      '<p>Both practice accounts start the clock at their current value. The bigger percentage gain after ' + (ch.season ? 'the season ends' : ch.days + ' days') + ' wins. Resets don\'t count as growth.</p></div><div class="pt-card ch-card">';
+      '<p>Both Trade War accounts (virtual money) start the clock at their current value. The bigger percentage gain after ' + (ch.season ? 'the season ends' : ch.days + ' days') + ' wins. Resets don\'t count as growth.</p></div><div class="pt-card ch-card">';
     if (mine) {
       h += '<h2>Waiting for ' + (ch.target ? esc(ch.targetName) : 'a friend') + ' to accept</h2><p class="pt-fine">Send this link. The clock starts the moment they accept.</p>' +
         '<div class="pt-invite"><input readonly value="' + esc(link) + '"><button class="pt-mini pt-soc" type="button" id="chShare">Share link</button></div>' +
         '<button class="pt-mini" type="button" id="chCancel">Cancel challenge</button>';
     } else if (!user) {
-      h += '<h2>Accept the challenge</h2>' + signInBtn('Sign in with Google to accept') + '<p class="pt-fine">New here? You get a free $10,000 practice account with real stock prices. Sign in, then open the practice account once so your stats exist.</p>';
+      h += '<h2>Accept the challenge</h2>' + signInBtn('Sign in with Google to accept') + '<p class="pt-fine">New here? You get a free $10,000 Trade War account (virtual money, real stock prices). Sign in, then open the practice account once so your stats exist.</p>';
     } else if (ch.target && ch.target !== user.uid) {
       h += '<p class="pt-empty">This challenge was sent to ' + esc(ch.targetName || 'someone else') + '.</p>';
     } else {
@@ -94,11 +94,11 @@
     }
     body(h + '</div>');
     wireSignIn();
-    if ($('chShare')) $('chShare').onclick = function () { var b = this; S.shareLink('Practice Account challenge', ch.creatorName + ' challenged you to see who can grow $10,000 the most.', link).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
+    if ($('chShare')) $('chShare').onclick = function () { var b = this; S.shareLink('Trade War challenge', ch.creatorName + ' challenged you to a Trade War: who can grow $10,000 (virtual) the most?', link).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
     if ($('chCancel')) $('chCancel').onclick = function () { if (confirm('Cancel this challenge?')) S.cancelChallenge(ch.id); };
     if ($('chAccept')) $('chAccept').onclick = function () {
       this.disabled = true;
-      S.acceptChallenge(ch).catch(function (e) { $('chAccept').disabled = false; $('chMsg').innerHTML = esc(e.message || e) + ' <a href="./">Open the practice account &rarr;</a>'; });
+      S.acceptChallenge(ch).catch(function (e) { $('chAccept').disabled = false; $('chMsg').innerHTML = esc(e.message || e) + ' <a href="./">Enter Trade War &rarr;</a>'; });
     };
   }
   function card(r, isLeader, finished) {
@@ -125,9 +125,9 @@
     }
     h += '<div class="ch-grid">' + card(a, lead && lead.uid === a.uid, finished) + (b ? card(b, lead && lead.uid === b.uid, finished) : '') + '</div>';
     var link = S.links(ch.creator).challenge(ch.id);
-    h += '<div class="ch-foot"><button class="pt-mini pt-soc" type="button" id="chShare">Share this challenge</button><a class="pt-mini" href="./">Trade in your practice account &rarr;</a><a class="pt-mini" href="challenge.html">All challenges</a></div>';
+    h += '<div class="ch-foot"><button class="pt-mini pt-soc" type="button" id="chShare">Share this challenge</button><a class="pt-mini" href="./">Trade in Trade War &rarr;</a><a class="pt-mini" href="challenge.html">All challenges</a></div>';
     body(h);
-    $('chShare').onclick = function () { var btn = this; S.shareLink('Practice Account challenge', a.name + ' vs ' + (b ? b.name : '') + ': who can grow $10,000 the most?', link).then(function (r) { if (r === 'copied') btn.textContent = 'Copied ✓'; }); };
+    $('chShare').onclick = function () { var btn = this; S.shareLink('Trade War challenge', a.name + ' vs ' + (b ? b.name : '') + ': who can grow $10,000 the most?', link).then(function (r) { if (r === 'copied') btn.textContent = 'Copied ✓'; }); };
     if (finished) S.settle(ch, st);
   }
 

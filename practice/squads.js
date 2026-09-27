@@ -21,8 +21,8 @@
 
   function hub(user) {
     var h = '<div class="ch-hero"><span class="pt-kicker">Trading Squads</span><h1>Compete with your friends</h1>' +
-      '<p>Make a private squad, send the invite link, and get your own leaderboard of practice accounts. Squad owners can run competitions for a week or a month.</p></div>';
-    if (!user) { body(h + '<div class="pt-card ch-card"><button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google</button><p class="pt-fine">Squads use your signed-in practice account.</p></div>'); $('sqSignIn').onclick = signIn; return; }
+      '<p>Make a private squad, send the invite link, and get your own leaderboard of Trade War accounts (virtual money). Squad owners can run competitions for a week or a month.</p></div>';
+    if (!user) { body(h + '<div class="pt-card ch-card"><button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google</button><p class="pt-fine">Squads use your signed-in Trade War account.</p></div>'); $('sqSignIn').onclick = signIn; return; }
     h += '<div class="pt-card ch-card"><h2>Create a squad</h2><div class="pt-invite"><input id="sqName" maxlength="32" placeholder="Squad name, e.g. Tuesday Traders"><button class="pt-btn pt-btn-go" type="button" id="sqCreate">Create</button></div><p class="pt-fine" id="sqMsg"></p></div>' +
       '<div class="pt-card ch-card"><h2>Your squads</h2><div id="sqList"><p class="pt-empty">Loading…</p></div></div>';
     body(h);
@@ -61,7 +61,7 @@
       (sq.comp ? '<p>' + (compOn ? '🏁 <b>Squad competition:</b> ' + Math.ceil((sq.comp.end - Date.now()) / 864e5) + ' days left. Biggest % growth since it started wins.' : '🏁 Competition finished ' + new Date(sq.comp.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '.') + '</p>' : '') + '</div>';
     if (!isMember) {
       h += '<div class="pt-card ch-card"><h2>You\'re invited</h2>' + (user ? '<button class="pt-btn pt-btn-go" type="button" id="sqJoin">Join ' + esc(sq.name) + '</button>' : '<button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google to join</button>') +
-        '<p class="pt-fine" id="sqMsg">Members see each other\'s practice-account balance, growth and XP. Open your practice account once so your stats exist.</p></div>';
+        '<p class="pt-fine" id="sqMsg">Members see each other\'s Trade War (virtual) balance, growth and XP. Enter Trade War once so your stats exist.</p></div>';
     }
     var tabs = (sq.comp ? [['comp', compOn ? 'Competition' : 'Last competition']] : []).concat([['all', 'All-time'], ['week', 'This week'], ['month', 'This month']]).concat(P && P.season() ? [['season', P.season().name]] : []);
     h += '<div class="pt-card ch-card"><div class="lb-subtabs">' + tabs.map(function (t) { return '<button type="button" data-b="' + t[0] + '" class="' + (board === t[0] ? 'is-on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>';
@@ -86,7 +86,7 @@
     document.querySelectorAll('[data-b]').forEach(function (b) { b.onclick = function () { board = b.getAttribute('data-b'); render(user); }; });
     if ($('sqSignIn')) $('sqSignIn').onclick = signIn;
     if ($('sqJoin')) $('sqJoin').onclick = function () { this.disabled = true; S.joinSquad(sq).catch(function (e) { $('sqJoin').disabled = false; $('sqMsg').textContent = e.message || e; }); };
-    if ($('sqShare')) $('sqShare').onclick = function () { var b = this; S.shareLink('Join my Trading Squad', 'Join ' + sq.name + ' on AgenticTrading.info and compete with $10,000 practice accounts.', link).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
+    if ($('sqShare')) $('sqShare').onclick = function () { var b = this; S.shareLink('Join my Trading Squad', 'Join ' + sq.name + ' on AgenticTrading.info and compete with $10,000 Trade War accounts.', link).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
     if ($('sqLeave')) $('sqLeave').onclick = function () { if (confirm('Leave ' + sq.name + '?')) S.leaveSquad(sq).then(function () { location.search = ''; }); };
     if ($('sqEnd')) $('sqEnd').onclick = function () { if (confirm('End the competition now?')) S.endSquadComp(sq); };
     document.querySelectorAll('[data-comp]').forEach(function (b) { b.onclick = function () { b.disabled = true; board = 'comp'; S.startSquadComp(sq, +b.getAttribute('data-comp')); }; });

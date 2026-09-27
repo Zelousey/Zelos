@@ -69,3 +69,11 @@ final top 10 per category at the end date (a scheduled function), award "Season 
 
 Today a player is either public (profile + leaderboards) or private (profile deleted).
 A middle option could show a profile only to friends and squad mates.
+
+## Verified real trades
+
+Real Trading status today comes from trades users log themselves (server-timestamped,
+can't be backdated, but self-reported). A "Verified Real Trader" badge would need
+documented trades: broker statement / trade-confirmation upload reviewed by a
+Cloud Function, or a read-only brokerage data connection (e.g. an aggregator
+with OAuth). Neither exists yet; the profile never implies profitability either way.

@@ -442,3 +442,37 @@ body.pt-fullport .pt-acct span{ border-color:var(--pt-glow); }
   .sq-xp{ display:none; }
   .ch-row{ grid-template-columns:minmax(0, 1fr) auto; } .ch-row span:nth-child(2){ display:none; }
 }
+
+/* ---- trader profile: identity + Real Trading / Trade War side by side ---- */
+.pf-photo{ width:64px; height:64px; border-radius:50%; object-fit:cover; flex:none; border:2px solid var(--border); }
+.pf-id .pf-badge + div, .pf-photo + .pf-badge{ margin-left:-4px; }
+.pf-ident{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+.pf-ident .zm-tag{ font-size:0.68rem; padding:3px 9px; }
+.pf-count{ font:600 0.74rem var(--mono); color:var(--muted); }
+.pf-modes{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+.pf-mode{ border-top:3px solid var(--border); }
+.pf-mode.is-real{ border-top-color:#2fd3a4; } .pf-mode.is-war{ border-top-color:#4c8dff; }
+.pf-mode h2{ display:flex; align-items:center; gap:8px; }
+.pf-real-status{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:var(--radius-sm); background:var(--bg-soft); margin-bottom:10px; }
+.pf-real-status.is-active b{ color:#2fd3a4; } .pf-real-status small{ color:var(--muted); font-size:0.72rem; }
+.pf-mini{ display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:6px; margin-bottom:10px; }
+.pf-mini span{ border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:6px 8px; min-width:0; }
+.pf-mini small{ display:block; font:0.58rem var(--mono); letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+.pf-mini b{ font:700 0.88rem var(--mono); }
+.pf-favs{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 8px; }
+.pf-favs small{ font:0.62rem var(--mono); text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-right:4px; }
+.pf-favs b{ font:700 0.74rem var(--mono); border:1px solid var(--border); border-radius:3px; padding:1px 6px; }
+.pf-war-bal{ display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+.pf-war-bal b{ font:800 1.6rem var(--mono); } .pf-war-bal span{ font:600 0.84rem var(--mono); }
+.pf-section{ font-size:1rem; display:flex; align-items:center; gap:8px; margin:20px 0 10px; }
+@media (max-width:760px){ .pf-modes{ grid-template-columns:1fr; } .pf-photo{ width:48px; height:48px; } }
+
+/* ---- trading-mode tags (also injected by zelos-modes.js; here so they paint immediately) ---- */
+.zm-tag{ display:inline-flex; align-items:center; gap:4px; font:700 0.6rem var(--mono); letter-spacing:0.06em; text-transform:uppercase; padding:2px 7px; border-radius:3px; border:1px solid; white-space:nowrap; vertical-align:middle; line-height:1.5; }
+.zm-tag.is-war{ color:#6ea8ff; border-color:rgba(76,141,255,0.55); background:rgba(76,141,255,0.12); }
+.zm-tag.is-real{ color:#2fd3a4; border-color:rgba(47,211,164,0.55); background:rgba(47,211,164,0.1); }
+.pt-gate-card > .zm-tag{ align-self:flex-start; font-size:0.66rem; padding:3px 9px; }
+.pt-gate-start{ display:flex; align-items:baseline; gap:10px; padding:12px 14px; border:1px solid rgba(76,141,255,0.45); border-radius:8px; background:rgba(76,141,255,0.08); }
+.pt-gate-start b{ font:800 1.8rem var(--mono); color:#6ea8ff; }
+.pt-gate-start span{ color:var(--ink-2); font-size:0.92rem; }
+.pt-kicker .zm-tag{ font-size:0.62rem; }

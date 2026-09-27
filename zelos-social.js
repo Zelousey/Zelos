@@ -1,5 +1,5 @@
 /*!
- * Zelos — social layer for the $10,000 Practice Account.
+ * Zelos — social layer for Trade War (the $10,000 virtual account).
  *
  * Friend challenges, Trading Squads, friends, referrals and shareable
  * account cards. Everything reads the public practice profile each player
@@ -83,7 +83,7 @@
   function createChallenge(opts) {
     var u = me(); if (!u) return Promise.reject(new Error('Sign in with Google on the practice page first.'));
     return profile(u.uid).then(function (p) {
-      if (!p) throw new Error('Open your practice account (and keep "Show my stats" on) so there are numbers to compete with.');
+      if (!p) throw new Error('Enter Trade War once (and keep "Show my stats" on) so there are numbers to compete with.');
       var id = newId(), days = opts.days;
       var doc = { creator: u.uid, creatorName: p.name || 'Trader', target: opts.target || null, targetName: opts.targetName || null,
         opponent: null, opponentName: null, days: days, season: opts.season || null, status: 'open', createdAt: now(), startAt: null, endAt: opts.endAt || null, base: {} };
@@ -101,7 +101,7 @@
     if (u.uid === ch.creator) return Promise.reject(new Error('That\'s your own challenge. Send the link to a friend.'));
     if (ch.target && ch.target !== u.uid) return Promise.reject(new Error('This challenge was sent to someone else.'));
     return profiles([u.uid, ch.creator]).then(function (m) {
-      if (!m[u.uid]) throw new Error('Open your practice account (and keep "Show my stats" on) before accepting.');
+      if (!m[u.uid]) throw new Error('Enter Trade War once (and keep "Show my stats" on) before accepting.');
       var start = now(), base = {}; base[ch.creator] = baseFor(m[ch.creator]); base[u.uid] = baseFor(m[u.uid]);
       return db.collection('challenges').doc(ch.id).update({
         opponent: u.uid, opponentName: m[u.uid].name || 'Trader', status: 'active', startAt: start,
@@ -230,9 +230,11 @@
     if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
     return new Promise(function (res) { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); res(); });
   }
+  // +10 XP "Shared Trade War", once a day
+  function shareXp(r) { if (r !== 'cancelled' && global.ZelosXP) ZelosXP.award('share', dayOf(now())); return r; }
   function shareLink(title, text, url) {
-    if (navigator.share) return navigator.share({ title: title, text: text, url: url }).then(function () { return 'shared'; }).catch(function () { return copy(url).then(function () { return 'copied'; }); });
-    return copy(text + ' ' + url).then(function () { return 'copied'; });
+    if (navigator.share) return navigator.share({ title: title, text: text, url: url }).then(function () { return 'shared'; }).catch(function () { return copy(url).then(function () { return 'copied'; }); }).then(shareXp);
+    return copy(text + ' ' + url).then(function () { return 'copied'; }).then(shareXp);
   }
   // A 1200x630 account card (drawn on canvas, so it works offline and needs no server)
   function card(d) {
@@ -242,9 +244,9 @@
     // faint rising candles
     c.globalAlpha = 0.09; for (var i = 0; i < 26; i++) { var x = 40 + i * 44, h = 60 + (i * 37 % 140), y = 470 - i * 9 - h / 2; c.fillStyle = i % 4 === 3 ? '#e0483f' : '#3ecb7c'; c.fillRect(x, y, 20, h); c.fillRect(x + 9, y - 22, 2, h + 44); } c.globalAlpha = 1;
     var glow = c.createRadialGradient(W - 200, 120, 10, W - 200, 120, 420); glow.addColorStop(0, up ? 'rgba(62,203,124,0.25)' : 'rgba(224,72,63,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = glow; c.fillRect(0, 0, W, H);
-    c.fillStyle = '#4c8dff'; c.font = '700 26px "IBM Plex Mono", ui-monospace, monospace'; c.fillText('AGENTICTRADING.INFO · $10,000 PRACTICE ACCOUNT', 64, 82);
+    c.fillStyle = '#4c8dff'; c.font = '700 26px "IBM Plex Mono", ui-monospace, monospace'; c.fillText('AGENTICTRADING.INFO · TRADE WAR', 64, 82);
     c.fillStyle = '#f4f6fb'; c.font = '800 54px system-ui, -apple-system, "Segoe UI", sans-serif'; c.fillText(String(d.name || 'Trader').slice(0, 24), 64, 158);
-    c.fillStyle = '#9aa3b2'; c.font = '500 30px system-ui, sans-serif'; c.fillText(d.headline || ('I grew my $10,000 Practice Account to'), 64, 236);
+    c.fillStyle = '#9aa3b2'; c.font = '500 30px system-ui, sans-serif'; c.fillText(d.headline || ('I grew my $10,000 Trade War account to'), 64, 236);
     c.fillStyle = col; c.font = '800 118px "IBM Plex Mono", ui-monospace, monospace'; c.fillText('$' + Math.round(d.equity).toLocaleString('en-US'), 60, 352);
     var pct = (d.equity / START - 1) * 100;
     c.font = '700 40px "IBM Plex Mono", ui-monospace, monospace'; c.fillText((pct >= 0 ? '+' : '') + pct.toFixed(1) + '%', 64, 414);
@@ -255,20 +257,21 @@
       c.fillStyle = '#f4f6fb'; c.font = '700 28px "IBM Plex Mono", monospace'; c.fillText(String(s[1]).slice(0, 14), x + 16, 522);
     });
     c.fillStyle = '#f4f6fb'; c.font = '800 34px system-ui, sans-serif'; c.fillText(d.cta || 'Can you beat me?', 64, 592);
-    c.fillStyle = '#8a93a3'; c.font = '500 20px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('Virtual money · practice account', W - 64, 592); c.textAlign = 'left';
+    c.fillStyle = '#8a93a3'; c.font = '500 20px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('TRADE WAR · VIRTUAL MONEY', W - 64, 592); c.textAlign = 'left';
     return cv;
   }
-  function shareCard(d, url) {
-    var cv = card(d), text = (d.headline || 'I grew my $10,000 Practice Account to') + ' $' + Math.round(d.equity).toLocaleString('en-US') + '. ' + (d.cta || 'Can you beat me?');
+  function shareCard(d, url) { return shareCardRaw(d, url).then(shareXp); }
+  function shareCardRaw(d, url) {
+    var cv = card(d), text = (d.headline || 'I grew my $10,000 Trade War account to') + ' $' + Math.round(d.equity).toLocaleString('en-US') + '. ' + (d.cta || 'Can you beat me?');
     return new Promise(function (resolve) {
       cv.toBlob(function (blob) {
-        var file = blob && global.File ? new File([blob], 'zelos-practice-account.png', { type: 'image/png' }) : null;
+        var file = blob && global.File ? new File([blob], 'zelos-trade-war.png', { type: 'image/png' }) : null;
         if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({ files: [file], title: 'My Practice Account', text: text + ' ' + url }).then(function () { resolve('shared'); }).catch(function () { resolve('cancelled'); });
+          navigator.share({ files: [file], title: 'My Trade War account', text: text + ' ' + url }).then(function () { resolve('shared'); }).catch(function () { resolve('cancelled'); });
           return;
         }
         // desktop: download the image and copy the link to paste next to it
-        var a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = 'zelos-practice-account.png'; document.body.appendChild(a); a.click(); a.remove();
+        var a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = 'zelos-trade-war.png'; document.body.appendChild(a); a.click(); a.remove();
         copy(text + ' ' + url).then(function () { resolve('downloaded'); });
       }, 'image/png');
     });

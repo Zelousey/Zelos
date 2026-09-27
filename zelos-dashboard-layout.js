@@ -13,6 +13,13 @@
  * dashboard once a real account's user doc loads) to users/{uid}.dashboardLayout
  * in Firestore, so it follows the person across devices. Whichever copy has
  * the newer updatedAt wins.
+ *
+ * Modes: the layout also remembers which experience the person uses the
+ * dashboard for — 'real' (Real Trading) or 'war' (Trade War) — and keeps a
+ * separate arrangement for each ({ mode, saved: { real: {...}, war: {...} } }).
+ * The first switch into a mode starts from window.ZELOS_DASH_PRESETS[mode]
+ * ({ order: [...ids first], hide: [...ids] }); after that, edits made in a mode
+ * stay with that mode. setMode() fires a `zelos:dashmode` event.
  */
 (function (global) {
   'use strict';
@@ -38,7 +45,7 @@
   // fills in widgets added to the page after a layout was saved, drops unknown ids
   function sanitize(l) {
     if (!l || !Array.isArray(l.order)) return JSON.parse(JSON.stringify(defaults));
-    var out = { order: [], hidden: [], size: {}, updatedAt: +l.updatedAt || 0 };
+    var out = { order: [], hidden: [], size: {}, updatedAt: +l.updatedAt || 0, mode: l.mode === 'real' || l.mode === 'war' ? l.mode : null, saved: l.saved && typeof l.saved === 'object' ? l.saved : {} };
     l.order.forEach(function (id) { if (cards[id] && out.order.indexOf(id) === -1) out.order.push(id); });
     defaults.order.forEach(function (id) { if (out.order.indexOf(id) === -1) out.order.push(id); });
     (l.hidden || []).forEach(function (id) { if (cards[id] && out.hidden.indexOf(id) === -1) out.hidden.push(id); });
@@ -217,11 +224,35 @@
   // ------------------------------------------------------------ account sync
   // remote: the saved users/{uid}.dashboardLayout (or null); fn: persists a layout
   // to the account (or null when signed out, which keeps saving to this device only)
+  // ---- modes
+  function preset(mode) {
+    var pr = (global.ZELOS_DASH_PRESETS || {})[mode] || {}, order = [], hidden = [];
+    (pr.order || []).forEach(function (id) { if (cards[id] && order.indexOf(id) === -1) order.push(id); });
+    defaults.order.forEach(function (id) { if (order.indexOf(id) === -1) order.push(id); });
+    (pr.hide || []).forEach(function (id) { if (cards[id]) hidden.push(id); });
+    var size = {}; order.forEach(function (id) { size[id] = JSON.parse(JSON.stringify(((pr.size || {})[id] ? { w: pr.size[id], h: null } : null) || defaults.size[id])); });
+    return { order: order, hidden: hidden, size: size };
+  }
+  function setMode(mode) {
+    if (!grid || (mode !== 'real' && mode !== 'war')) return;
+    if (layout.mode === mode) return;
+    layout.saved = layout.saved || {};
+    if (layout.mode) layout.saved[layout.mode] = { order: layout.order.slice(), hidden: layout.hidden.slice(), size: JSON.parse(JSON.stringify(layout.size)) };
+    var next = layout.saved[mode] ? sanitize({ order: layout.saved[mode].order, hidden: layout.saved[mode].hidden, size: layout.saved[mode].size }) : preset(mode);
+    layout.order = next.order; layout.hidden = next.hidden; layout.size = next.size; layout.mode = mode;
+    apply(); save();
+    if (editing) Object.keys(cards).forEach(function (id) { removeChrome(cards[id]); addChrome(cards[id]); });
+    try { document.dispatchEvent(new CustomEvent('zelos:dashmode', { detail: { mode: mode } })); } catch (e) {}
+  }
+  function getMode() { return layout ? layout.mode : null; }
+
   function syncRemote(remote, fn) {
     if (!grid) return;
     saver = fn;
     if (remote && (+remote.updatedAt || 0) > (layout.updatedAt || 0)) {
+      var before = layout.mode;
       layout = sanitize(remote); write(layout); apply();
+      if (layout.mode !== before) try { document.dispatchEvent(new CustomEvent('zelos:dashmode', { detail: { mode: layout.mode } })); } catch (e) {}
     } else if (fn && layout.updatedAt && (!remote || (+remote.updatedAt || 0) < layout.updatedAt)) {
       // this device has newer edits than the account copy (e.g. made while signed out)
       Promise.resolve(fn(JSON.parse(JSON.stringify(layout)))).catch(function () {});
@@ -235,7 +266,11 @@
     apply();
     $('dashCustomize').addEventListener('click', function () { setEditing(!editing); });
     $('dashReset').addEventListener('click', function () {
-      layout = JSON.parse(JSON.stringify(defaults)); apply(); save();
+      // reset returns the current mode to its preset (or the full default layout if no mode is chosen)
+      var m = layout.mode, saved = layout.saved || {};
+      if (m) { delete saved[m]; var pr = preset(m); layout.order = pr.order; layout.hidden = pr.hidden; layout.size = pr.size; layout.saved = saved; }
+      else layout = JSON.parse(JSON.stringify(defaults));
+      apply(); save();
       if (editing) Object.keys(cards).forEach(function (id) { removeChrome(cards[id]); addChrome(cards[id]); });
     });
     var addBtn = $('dashAddBtn'), menu = $('dashAddMenu');
@@ -259,6 +294,6 @@
     global.addEventListener('resize', function () { if (cols() !== lastCols) { lastCols = cols(); apply(); } });
   }
 
-  global.ZelosDashLayout = { syncRemote: syncRemote, setEditing: function (on) { setEditing(!!on); } };
+  global.ZelosDashLayout = { syncRemote: syncRemote, setEditing: function (on) { setEditing(!!on); }, setMode: setMode, getMode: getMode };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);

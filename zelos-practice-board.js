@@ -1,5 +1,5 @@
 /*!
- * Zelos — Practice Account leaderboards (leaderboard.html#practice).
+ * Zelos — Trade War leaderboards (virtual accounts only) (leaderboard.html#practice).
  *
  *   All-time   by current balance
  *   Weekly     % growth this week   (practiceProfiles.p.<weekKey>.pct)
@@ -41,25 +41,27 @@
   function row(r, i, main, sub, meUid) {
     var lv = L ? L.levelForXp(r.xp || 0) : null;
     return '<a class="board-row pb-row' + (r.uid === meUid ? ' is-me' : '') + '" href="practice/profile.html?u=' + encodeURIComponent(r.uid) + '"><span class="board-rank">' + (i + 1) + '</span>' +
-      '<span class="board-name">' + (lv && L ? L.badge(lv, 20) + ' ' : '') + esc(r.name || 'Trader') + '</span>' +
+      '<span class="board-name">' + (r.photo ? '<img class="pb-photo" src="' + esc(r.photo) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="pb-photo pb-initial">' + esc(String(r.name || 'T').charAt(0).toUpperCase()) + '</span>') +
+        (lv && L ? L.badge(lv, 20) + ' ' : '') + esc(r.name || 'Trader') + '</span>' +
       '<span class="board-sub">' + sub + '</span><span class="board-score">' + main + '</span><span class="board-go">Stats &rarr;</span></a>';
   }
   function stdSub(r, extra) {
     var g = +r.growthPct || 0;
-    return (extra || '') + '<span class="' + (g >= 0 ? 'up' : 'dn') + '">' + pct(g) + '</span>' +
+    var pnl = r.netPnl != null ? r.netPnl : (r.equity || 10000) - 10000;
+    return (extra || '') + '<span class="' + (g >= 0 ? 'up' : 'dn') + '">' + pct(g) + '</span><span class="board-pnl ' + (pnl >= 0 ? 'up' : 'dn') + '">' + signedMoney(pnl) + ' P&amp;L</span>' +
       '<span class="board-xp">Lv ' + (L ? L.levelForXp(r.xp || 0).level : 0) + ' · ' + Math.round(r.xp || 0).toLocaleString('en-US') + ' XP</span>' +
-      (r.streak ? '<span class="board-streak">🔥' + r.streak + '</span>' : '') +
+      ((r.streak || r.tradeStreak) ? '<span class="board-streak">🔥' + Math.max(r.streak || 0, r.tradeStreak || 0) + '</span>' : '') +
       '<span class="board-resets">' + (r.resets || 0) + ' reset' + (r.resets === 1 ? '' : 's') + '</span><span class="board-trades">' + (r.trades || 0) + ' trades · ' + (r.trades ? (r.winRate || 0) + '% win' : '–') + '</span>';
   }
   function paint(rows, main, sub, note) {
     var meU = global.firebase && firebase.auth().currentUser;
     var meUid = meU && !meU.isAnonymous ? meU.uid : null;
-    el.board.innerHTML = head() + (note ? '<p class="pb-note">' + note + '</p>' : '') +
+    el.board.innerHTML = head() + '<p class="pb-note"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> Ranked on virtual $10,000 accounts only; real trading is never mixed in.</p>' + (note ? '<p class="pb-note">' + note + '</p>' : '') +
       (rows.length ? rows.map(function (r, i) { return row(r, i, main(r), sub(r), meUid); }).join('') : '<div class="board-empty">' + emptyText() + '</div>');
   }
   function emptyText() {
     if (state.tab === 'friends') return 'Add friends from their profile pages, accept a challenge or join a squad, and they show up here.';
-    if (state.tab === 'all') return 'No practice accounts yet. Sign in on the practice page and place a trade to show up here.';
+    if (state.tab === 'all') return 'No Trade War accounts yet. Sign in in Trade War and place a trade to show up here.';
     return 'Nobody has traded this period yet. Be the first on the board.';
   }
   function query(field, main, sub, note) {

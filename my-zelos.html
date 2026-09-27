@@ -114,6 +114,9 @@
   .empty{ color:var(--muted); font-size:0.88rem; padding:6px 0; }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
   .user-chip{ font-family:var(--mono); font-size:0.78rem; color:var(--muted); white-space:nowrap; }
+  .activity-src{ font:600 0.6rem var(--mono); letter-spacing:0.05em; text-transform:uppercase; padding:1px 6px; border-radius:3px; margin-left:6px; border:1px solid var(--border); color:var(--muted); }
+  .activity-src.src-trade-war{ color:#6ea8ff; border-color:rgba(76,141,255,.5); }
+  .activity-src.src-real{ color:#2fd3a4; border-color:rgba(47,211,164,.5); }
 </style>
 </head>
 <body class="zt zt-body">
@@ -138,7 +141,7 @@
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="practice/index.html">Practice Account<small>$10,000 paper trading, live prices</small></a>
+          <a href="practice/index.html">Trade War<small>$10,000 virtual account &middot; compete with friends</small></a><a href="real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
           <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
           <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
           <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
@@ -177,7 +180,7 @@
       <a href="options-scanner.html">Options Scanner</a>
       <a href="arsenal.html">Full Arsenal</a>
       <div class="nav-mobile-label">Market</div>
-      <a href="practice/index.html">Practice Account</a>
+      <a href="practice/index.html">Trade War</a><a href="real/index.html">Real Trade Journal</a>
       <a href="market-3d.html">Market 3D</a>
       <a href="live-chart.html">Live Chart</a>
       <a href="daily-market.html">Daily Market</a>
@@ -351,15 +354,18 @@
     'alert-open': 'Opened an alert',
     'daily-checkin': 'Checked in',
     'arcade-play': 'Played an Arcade game',
-    'practice-trade': 'Practice Account trade',
-    'practice-win': 'Closed a practice trade in profit',
+    'practice-trade': 'Trade War trade (virtual)',
+    'practice-win': 'Trade War win (virtual)',
     'grade-setup': 'Finished Grade the Setup',
     'mission': 'Completed a mission',
     'achievement': 'Unlocked an achievement',
     'challenge-join': 'Joined a friend challenge',
     'challenge-win': 'Won a friend challenge',
     'referral': 'A friend joined from your invite',
-    'referral-welcome': 'Joined from a friend\'s invite'
+    'referral-welcome': 'Joined from a friend\'s invite',
+    'real-trade': 'Real Trading Activity',
+    'trading-tools': 'Used trading tools',
+    'share': 'Shared Trade War'
   };
 
   var cfg = window.ZELOS_FIREBASE_CONFIG;
@@ -540,7 +546,8 @@
         var a = doc.data();
         rows.push(
           '<div class="activity-row">' +
-            '<span class="activity-what">' + (ACTIVITY_LABEL[a.type] || a.type) + '</span>' +
+            '<span class="activity-what">' + (a.label || ACTIVITY_LABEL[a.type] || a.type) + ' <small class="activity-src src-' + (a.source || (window.ZelosXP && ZelosXP.source ? ZelosXP.source(a.type).id : 'platform')) + '">' +
+              (window.ZelosXP && ZelosXP.source ? (ZelosXP.SOURCE_NAMES[a.source] || ZelosXP.source(a.type).name) : '') + '</small></span>' +
             '<span class="activity-xp">+' + (a.xp || 0) + ' XP</span>' +
             '<span class="activity-when">' + fmtWhen(a.createdAt) + '</span>' +
           '</div>'

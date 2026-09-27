@@ -62,6 +62,12 @@ service cloud.firestore {
       match /activity/{activityId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      // Real Trade Journal (REAL mode): trades this person made at their own
+      // broker, logged by them. Private: only the owner, from a real account.
+      match /realTrades/{tradeId} {
+        allow read, write: if isRealAccount() && request.auth.uid == userId;
+      }
     }
 
     // "Vote for the next strategy" on the Upcoming Strategies section: one doc
@@ -77,7 +83,8 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // $10,000 Practice Account public profiles (leaderboard + practice/profile.html).
+    // Trade War public profiles: the $10,000 virtual account (PRACTICE mode),
+    // for the Trade War leaderboards + practice/profile.html.
     // One doc per signed-in player, keyed by their uid, holding ONLY public
     // numbers: display name, balance, growth, resets, closed-trade stats. No
     // email or login details are ever written here. Anyone can read (the
@@ -94,7 +101,29 @@ service cloud.firestore {
         && request.resource.data.equity is number;
     }
 
-    // ---- Practice Account social layer (zelos-social.js) ----
+    // Public trader identity (profile page): display name, photo, and whatever
+    // real-trading statistics the owner chose to show (never dollar amounts).
+    match /traders/{userId} {
+      allow read: if true;
+      allow delete: if isRealAccount() && request.auth.uid == userId;
+      allow create, update: if isRealAccount() && request.auth.uid == userId
+        && request.resource.data.name is string && request.resource.data.name.size() <= 24;
+
+      // One entry per logged real trade: ticker + a server timestamp that must
+      // equal the write time, so entries can't be backdated or edited. The
+      // "Real Trading: Active / Experience" status is computed from these.
+      match /realLog/{logId} {
+        allow read: if true;
+        allow create: if isRealAccount() && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly(['sym', 'createdAt'])
+          && request.resource.data.sym is string && request.resource.data.sym.size() >= 1 && request.resource.data.sym.size() <= 10
+          && request.resource.data.createdAt == request.time;
+        allow delete: if isRealAccount() && request.auth.uid == userId;
+        allow update: if false;
+      }
+    }
+
+    // ---- Trade War social layer (zelos-social.js) ----
     // Virtual money only; same client-side trust trade-off as XP above.
 
     // Friend challenges. Public read so a shared link opens for anyone. Only a

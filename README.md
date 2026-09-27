@@ -75,7 +75,11 @@ secrets described there.
 - Scores can carry an optional `ref` (Chart Replay sends its chart seed) so a leaderboard row opens that exact chart. The rule for `ref` is in `database.rules.json`; until it's pasted into the console, `leaderboard.js` retries the push without `ref`, so scores still post.
 - Engine features the games use: forecast boxes (`chart.box`), draggable stop/target handles (`chart.handles` + `onDrag`), on-chart prompts (`chart.prompt`), the "what happened next" banner and bar-by-bar `chart.reveal()`.
 
-## $10,000 Practice Account
+## Trade War (virtual) and Real Trading
+
+One account, two modes that never mix: **Trade War** (`practice/`, the $10,000 virtual account, `PRACTICE`) and the **Real Trade Journal** (`real/`, trades logged from your own broker, `REAL`). Modes and tags: `zelos-modes.js`. Full notes: `docs/practice-account.md`.
+
+### Trade War details
 
 - `practice/index.html`: paper trading on 50 real stocks and ETFs with live prices, a full chart (13 toggleable indicators, SL/TP forecast boxes), market/limit/stop/bracket orders, simulated options (long calls/puts, modeled prices) and agent signals. Built by `python3 scripts/build_practice.py`; logic in `practice/practice.js`, chart in `practice/practice-chart.js`, option pricing in `practice/practice-options.js`.
 - The stock list is `data/practice-universe.json` (single source of truth; the build copies it to `functions/practice_universe.json` for the price function). Extra price history lives in `data/practice-extra.json`.

@@ -32,6 +32,9 @@
  *   challenge-win    +150  won a friend challenge (per challenge)
  *   referral         +50   a friend you invited opened their practice account (per friend)
  *   referral-welcome +50   you joined through a friend's invite link (once)
+ *   real-trade       +10   logged a trade in the Real Trade Journal (first 3 a day)
+ *   trading-tools    +5    used the real-trading tools (watchlist, journal) — once a day
+ *   share            +10   shared a Trade War challenge or account card — once a day
  * Variable amounts (caller passes the amount, capped here):
  *   mission          up to 300   daily / weekly missions, mission-streak rewards
  *   achievement      up to 500   badges (First Trade, $25K Club, ...)
@@ -72,7 +75,19 @@
 (function () {
   var POINTS = { 'alert-open': 5, 'daily-checkin': 3, 'arcade-play': 5,
     'practice-trade': 5, 'practice-win': 10, 'grade-setup': 10, 'challenge-join': 25, 'challenge-win': 150,
-    'referral': 50, 'referral-welcome': 50 };
+    'referral': 50, 'referral-welcome': 50, 'real-trade': 10, 'trading-tools': 5, 'share': 10 };
+  // Where each award came from. One XP total, but every entry is labeled so a
+  // profile never mixes up Trade War (virtual), Real Trading and training.
+  // [source, label]; the activity ledger stores both, and pages show "+10 XP — Trade War Win".
+  var SOURCES = {
+    'alert-open': ['real', 'Opened an alert'], 'daily-checkin': ['platform', 'Daily check-in'], 'arcade-play': ['training', 'Arcade game'],
+    'practice-trade': ['trade-war', 'Trade War trade'], 'practice-win': ['trade-war', 'Trade War win'], 'grade-setup': ['training', 'Completed Grade Setup'],
+    'challenge-join': ['trade-war', 'Trade War challenge'], 'challenge-win': ['trade-war', 'Won a Trade War challenge'],
+    'referral': ['social', 'Friend joined'], 'referral-welcome': ['social', 'Joined from an invite'],
+    'real-trade': ['real', 'Real Trading Activity'], 'trading-tools': ['real', 'Used trading tools'], 'share': ['social', 'Shared Trade War'],
+    'mission': ['missions', 'Mission'], 'achievement': ['achievements', 'Achievement']
+  };
+  var SOURCE_NAMES = { 'trade-war': 'Trade War', real: 'Real Trading', training: 'Training', social: 'Social', missions: 'Missions', achievements: 'Achievements', platform: 'Platform' };
   // types whose amount the caller chooses, with a hard cap so a bad call can't mint a fortune
   var VARIABLE = { 'mission': 300, 'achievement': 500 };
 
@@ -92,7 +107,8 @@
     if (!l.week || l.week.key !== wk) l.week = { key: wk, xp: 0 };
     l.day.xp += amount; l.week.xp += amount;
     try { localStorage.setItem(LOG_KEY, JSON.stringify(l)); } catch (e) {}
-    try { document.dispatchEvent(new CustomEvent('zelos:xp', { detail: { type: type, amount: amount, day: l.day.xp, week: l.week.xp } })); } catch (e) {}
+    var src = SOURCES[type] || ['platform', type];
+    try { document.dispatchEvent(new CustomEvent('zelos:xp', { detail: { type: type, amount: amount, source: src[0], label: src[1], day: l.day.xp, week: l.week.xp } })); } catch (e) {}
   }
 
   // Level-ups get a full-screen celebration (zelos-levels.js) on whatever page
@@ -211,8 +227,9 @@
 
           if (!eventDoc.exists) {
             updates.xp = (data.xp || 0) + amount;
+            var src = SOURCES[type] || ['platform', type];
             tx.set(eventRef, {
-              type: type, refId: dedupKey, xp: amount,
+              type: type, refId: dedupKey, xp: amount, source: src[0], label: src[1],
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             awardedThisCall = true;
@@ -250,6 +267,8 @@
     isRealAccount: function () { return ensureInit() && !!auth.currentUser && !auth.currentUser.isAnonymous; },
     award: award,
     points: function (type) { return POINTS[type] || 0; },
+    source: function (type) { var s = SOURCES[type] || ['platform', type]; return { id: s[0], name: SOURCE_NAMES[s[0]] || s[0], label: s[1] }; },
+    SOURCE_NAMES: SOURCE_NAMES,
     weekKey: weekKey,
     onChange: function (cb) {
       if (!ensureInit()) return function () {};
