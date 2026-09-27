@@ -7,122 +7,91 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
+
   gtag('config', 'G-Y4B3ZC5XRX');
 </script>
 <meta charset="utf-8">
+<meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Free Trading Games on Real Charts: Simulator &amp; Daily Challenge | Zelos Arcade</title>
-<link rel="icon" href="favicon-arcade.ico" sizes="any">
-<link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="manifest" href="manifest.json">
+<title>Friend Challenge: Who Can Grow $10,000 the Most? | Zelos</title>
+<link rel="icon" href="../favicon-arcade.ico" sizes="any">
+<link rel="icon" href="../favicon-arcade.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<link rel="manifest" href="../manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
-<link rel="canonical" href="https://agentictrading.info/arcade.html">
+<meta name="description" content="Challenge a friend in Trade War: $10,000 virtual accounts, live head-to-head growth, balances and XP. Virtual money, real stock prices.">
+<link rel="canonical" href="https://agentictrading.info/practice/challenge.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Arcade">
-<meta property="og:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
-<meta property="og:url" content="https://agentictrading.info/arcade.html">
+<meta property="og:title" content="Friend Challenge: Who Can Grow $10,000 the Most? | Zelos">
+<meta property="og:description" content="Challenge a friend in Trade War: $10,000 virtual accounts, live head-to-head growth, balances and XP. Virtual money, real stock prices.">
+<meta property="og:url" content="https://agentictrading.info/practice/challenge.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Arcade">
-<meta name="twitter:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
+<meta name="twitter:title" content="Friend Challenge: Who Can Grow $10,000 the Most? | Zelos">
+<meta name="twitter:description" content="Challenge a friend in Trade War: $10,000 virtual accounts, live head-to-head growth, balances and XP. Virtual money, real stock prices.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
-<link rel="stylesheet" href="zelos-theme.css">
+<link rel="stylesheet" href="../zelos-theme.css">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
   [hidden]{ display:none !important; }
-
-  .games{ display:flex; flex-direction:column; gap:14px; margin-top:22px; }
-  .game-row{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
-  .game-head{ display:flex; align-items:center; gap:14px; }
-  .game-icon{
-    flex:none; width:48px; height:48px; border-radius:3px;
-    display:flex; align-items:center; justify-content:center; font-size:1.4rem;
-    background:var(--surface-2); border:1px solid var(--border);
-  }
-  .game-icon.accent{ background:var(--accent-soft); border-color:var(--accent-line); }
-  .game-icon.gold{ background:var(--gold-soft); border-color:var(--gold); }
-  .game-icon.violet{ background:var(--violet-soft); border-color:var(--violet); }
-  .game-tag{ font-family:var(--mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
-  .game-head h3{ font-size:1.08rem; font-weight:700; margin:2px 0 0; }
-  .game-row p{ margin-top:12px; color:var(--muted); font-size:0.88rem; max-width:46ch; }
-
-  .board-link{
-    margin-top:16px; display:flex; align-items:center; gap:10px;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:14px 16px; text-decoration:none; color:var(--ink); font-weight:600; font-size:0.9rem;
-  }
-  .board-link:hover{ border-color:var(--accent-line); }
-  .board-link-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; animation:board-link-pulse 1.8s ease-in-out infinite; }
-  @keyframes board-link-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  @media (prefers-reduced-motion: reduce){ .board-link-dot{ animation:none; } }
-  .board-link-arrow{ margin-left:auto; color:var(--muted); }
-
-  .note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
-  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
-  .fine a, .note a{ color:var(--accent); }
-  .daily-card{ display:flex; flex-direction:column; gap:6px; margin-top:22px; padding:20px; text-decoration:none; color:var(--ink);
-    border:1px solid var(--accent-line); border-radius:var(--radius); background:linear-gradient(135deg, var(--accent-soft), var(--surface)); }
-  .daily-card strong{ font-size:1.15rem; }
-  .daily-kicker{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:0.7rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); }
-  .daily-sub{ color:var(--muted); font-size:0.88rem; }
 </style>
+<link rel="stylesheet" href="../zelos-theme.css">
+<link rel="stylesheet" href="practice.css">
 </head>
 <body class="zt zt-body">
 
 <nav class="site-nav">
   <div class="shell">
-    <a class="nav-brand" href="index.html"><span class="mark-dot"></span>Zelos</a>
+    <a class="nav-brand" href="../index.html"><span class="mark-dot"></span>Zelos</a>
 
     <div class="nav-primary" id="navPrimary">
-      <a class="nav-link" href="index.html">Home</a>
-      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <a class="nav-link" href="../index.html">Home</a>
+      <a class="nav-link" href="../dashboard.html">Dashboard</a>
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
-          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
-          <a href="options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <a href="../swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="../breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="../options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
           <hr>
-          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
+          <a href="../arsenal.html">Full Arsenal<small>Everything you own</small></a>
         </div>
       </div>
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="practice/index.html">Trade War<small>$10,000 virtual account &middot; compete with friends</small></a><a href="real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
-          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
-          <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
-          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
-          <a href="alert-history.html">Alert History<small>Every alert, archived</small></a>
+          <a href="../practice/index.html">Trade War<small>$10,000 virtual account &middot; compete with friends</small></a><a href="../real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
+          <a href="../market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <a href="../live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
+          <a href="../daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="../alert-history.html">Alert History<small>Every alert, archived</small></a>
         </div>
       </div>
 
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Arcade <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="arcade.html">Arcade Hub<small>Every training game</small></a>
-          <a href="games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
-          <a href="games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
-          <a href="games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
+          <a href="../arcade.html">Arcade Hub<small>Every training game</small></a>
+          <a href="../games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
+          <a href="../games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
+          <a href="../games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
           <hr>
-          <a href="leaderboard.html">Leaderboard<small>Top scores in every game</small></a>
+          <a href="../leaderboard.html">Leaderboard<small>Top scores in every game</small></a>
         </div>
       </div>
-      <a class="nav-link" href="alert-history.html">Alerts</a>
-      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
-      <a class="nav-link" href="index.html#why-zelos">About</a>
+      <a class="nav-link" href="../alert-history.html">Alerts</a>
+      <a class="nav-link" href="../learn/index.html">Learn</a>
+      <a class="nav-link" href="../index.html#why-zelos">About</a>
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
@@ -132,106 +101,61 @@
     </div>
 
     <div class="nav-mobile-panel" id="navMobilePanel">
-      <a href="index.html">Home</a>
-      <a href="dashboard.html">Dashboard</a>
+      <a href="../index.html">Home</a>
+      <a href="../dashboard.html">Dashboard</a>
       <div class="nav-mobile-label">Strategies</div>
-      <a href="swing-trader.html">Swing Trader</a>
-      <a href="breakout-rider.html">Breakout Rider</a>
-      <a href="options-scanner.html">Options Scanner</a>
-      <a href="arsenal.html">Full Arsenal</a>
+      <a href="../swing-trader.html">Swing Trader</a>
+      <a href="../breakout-rider.html">Breakout Rider</a>
+      <a href="../options-scanner.html">Options Scanner</a>
+      <a href="../arsenal.html">Full Arsenal</a>
       <div class="nav-mobile-label">Market</div>
-      <a href="practice/index.html">Trade War</a><a href="real/index.html">Real Trade Journal</a>
-      <a href="market-3d.html">Market 3D</a>
-      <a href="live-chart.html">Live Chart</a>
-      <a href="daily-market.html">Daily Market</a>
-      <a href="alert-history.html">Alert History</a>
+      <a href="../practice/index.html">Trade War</a><a href="../real/index.html">Real Trade Journal</a>
+      <a href="../market-3d.html">Market 3D</a>
+      <a href="../live-chart.html">Live Chart</a>
+      <a href="../daily-market.html">Daily Market</a>
+      <a href="../alert-history.html">Alert History</a>
       <div class="nav-mobile-label">Arcade</div>
-      <a href="arcade.html">Arcade Hub</a>
-      <a href="leaderboard.html">Leaderboard</a>
+      <a href="../arcade.html">Arcade Hub</a>
+      <a href="../leaderboard.html">Leaderboard</a>
       <div class="nav-mobile-label">More</div>
-      <a href="alert-history.html">Alerts</a>
-      <a href="ai-knowledge-catalog.html">Knowledge</a>
-      <a href="index.html#why-zelos">About</a>
+      <a href="../alert-history.html">Alerts</a>
+      <a href="../learn/index.html">Learn</a>
+      <a href="../ai-knowledge-catalog.html">Knowledge</a>
+      <a href="../index.html#why-zelos">About</a>
     </div>
   </div>
 </nav>
 
-<section class="section-tight">
-  <div class="shell-narrow">
-    <div>
-      <p class="eyebrow">Free training games · real charts</p>
-      <h1 style="font-size:1.6rem; margin-top:6px;">Zelos Arcade</h1>
-      <p class="status-line" style="margin-top:6px;">Practice the skills that actually matter in trading (reading a setup, placing a stop, managing risk) on real historical stock charts with the ticker hidden. No account, no money, no cost.</p>
-    </div>
-
-    <a class="daily-card" href="games/daily-challenge.html">
-      <span class="daily-kicker"><span class="board-link-dot"></span>Daily Challenge · <span id="dcToday">today</span></span>
-      <strong>Five real charts. Same five for everyone. One try.</strong>
-      <span class="daily-sub">Grade three setups, place two stops, share your grid. New puzzle at midnight ET. <span id="dcState"></span></span>
-      <span class="btn btn-primary" style="margin-top:12px; align-self:flex-start;">Play today's challenge &rarr;</span>
-    </a>
-
-    <div class="games">
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon accent">📈</div>
-          <div><div class="game-tag">Flagship · simulator</div><h3>Chart Replay</h3></div>
-        </div>
-        <p>A hidden ticker, 60 bars you haven't seen. Trade it bar by bar with a $10,000 practice account. Every trade needs a stop, and you're scored on R-multiples and discipline.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/chart-replay.html">Start a replay &rarr;</a></div>
-      </div>
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon gold">✅</div>
-          <div><div class="game-tag">Drill · 8 rounds</div><h3>Grade the Setup</h3></div>
-        </div>
-        <p>Run the four-point swing checklist (trend, support, volume, reward:risk) on a real chart, make the call, then see what happened next.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/grade-the-setup.html">Play &rarr;</a></div>
-      </div>
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon violet">🛑</div>
-          <div><div class="game-tag">Drill · 8 rounds</div><h3>Where's the Stop?</h3></div>
-        </div>
-        <p>You're long at the close. Tap where your stop-loss belongs. Too tight gets shaken out; too wide wastes your size. Graded on structure, not luck.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/stop-drill.html">Play &rarr;</a></div>
-      </div>
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon accent">🐂</div>
-          <div><div class="game-tag">Quick practice</div><h3>Setup Spotter</h3></div>
-        </div>
-        <p>A chart flashes up: real setup or noise? Call it before the clock runs out.</p>
-        <div style="margin-top:14px;"><a class="btn" href="games/setup-spotter.html">Play &rarr;</a></div>
-      </div>
-    </div>
-
-    <a class="board-link" href="leaderboard.html">
-      <span class="board-link-dot"></span>
-      <span>See the live leaderboard</span>
-      <span class="board-link-arrow">&rarr;</span>
-    </a>
-    <p class="fine" style="margin-top:14px;">Classic arcade: <a href="games/bull-run.html">Bull Run</a> · <a href="games/buy-the-dip.html">Buy the Dip</a></p>
-    <div class="note">
-      Charts are real historical daily bars for widely traded US stocks and ETFs; the games themselves are practice only, with no real money and no account. Zelos itself is a rule-based scan, not personalized investment advice. New to the terms? Start with <a href="learn/index.html">Learn</a>.
-    </div>
-  </div>
-</section>
+<main class="pt-shell ch-shell"><nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; <a href="challenge.html">Challenges</a> &middot; <a href="squads.html">Squads</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav><div id="chBody"><p class="pt-empty">Loading…</p></div><p class="pt-fine pf-fine">Trade War challenges use virtual money. Scores are growth since the challenge started, in net P&amp;L: resets never count as gains.</p></main>
 
 <footer class="site-footer">
   <div class="shell">
     <div class="footer-grid">
-      <a class="footer-brand" href="index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
+      <a class="footer-brand" href="../index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
       <div class="footer-links">
-        <a href="index.html">Home</a>
-        <a href="arsenal.html">Strategies</a>
-        <a href="alert-history.html">Alerts</a>
-        <a href="terms.html">Terms</a>
+        <a href="../index.html">Home</a>
+        <a href="../arsenal.html">Strategies</a>
+        <a href="../alert-history.html">Alerts</a>
+        <a href="../terms.html">Terms</a>
       </div>
     </div>
     <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
   </div>
 </footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script src="../zelos-mood.js"></script>
+<script src="../zelos-xp.js"></script>
+<script src="../leaderboard.js"></script>
+<script src="../zelos-modes.js"></script>
+<script src="../zelos-levels.js"></script>
+<script src="../zelos-progress.js"></script>
+<script src="../zelos-social.js"></script>
+<script src="challenge.js"></script>
 
 <script>
 (function(){
@@ -265,25 +189,8 @@
 })();
 </script>
 
-<script>
-(function(){
-  try {
-    var d = new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    document.getElementById('dcToday').textContent = d;
-    var done = JSON.parse(localStorage.getItem('zdc-' + d) || 'null');
-    var st = JSON.parse(localStorage.getItem('zdc-streak') || 'null');
-    if (done) document.getElementById('dcState').textContent = 'You scored ' + done.total + '/500 today' + (st && st.n > 1 ? ' · ' + st.n + '-day streak' : '') + '.';
-  } catch (e) {}
-})();
-</script>
-<script src="zelos-theme-toggle.js"></script>
+<script src="../zelos-theme-toggle.js"></script>
 
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="zelos-mood.js"></script>
-<script src="zelos-xp.js"></script>
 <script>
 (function(){
   // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
@@ -355,7 +262,7 @@
 
     var pop = document.getElementById('authPop');
     var mode = 'signin';
-    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = 'dashboard.html'; } }
+    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = '../dashboard.html'; } }
     function setMsg(text, isError){
       var el = document.getElementById('authMsg');
       el.textContent = text || '';
@@ -402,8 +309,8 @@
         '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
         '<span class="nav-drop-caret">&#9662;</span></button>' +
         '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
-          '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
-          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<a href="../dashboard.html">Dashboard</a><a href="../my-zelos.html">My Zelos</a><a href="../arsenal.html">Arsenal</a>' +
+          '<a href="../alert-history.html">Alert History</a><a href="../leaderboard.html">Leaderboard</a><a href="../arcade.html">Arcade</a>' +
           '<hr><a href="#" id="signOutLink">Sign out</a>' +
         '</div></div>';
     wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));

@@ -30,7 +30,13 @@
     { level: 2, xp: 50,   name: 'Silver',          title: 'Setup Hunter',   colors: ['#e3e8ef', '#8a95a5', '#ffffff'] },
     { level: 3, xp: 150,  name: 'Gold',            title: 'Risk Manager',   colors: ['#ffd45c', '#b07a12', '#fff4c7'] },
     { level: 4, xp: 400,  name: 'Platinum',        title: 'Strategist',     colors: ['#7fb0ff', '#2a58c9', '#e6f0ff'] },
-    { level: 5, xp: 1000, name: 'Diamond',         title: 'Agentic Trader', colors: ['#b9a8ff', '#5b3fd6', '#f1ecff'] }
+    { level: 5, xp: 1000, name: 'Diamond',         title: 'Agentic Trader', colors: ['#b9a8ff', '#5b3fd6', '#f1ecff'] },
+    // Practice Account trading, missions and challenges pay XP too, so the ladder keeps going
+    { level: 6, xp: 2000,  name: 'Master',   title: 'Market Master',   colors: ['#ff8a5c', '#b8361a', '#ffe1d3'] },
+    { level: 7, xp: 3500,  name: 'Elite',    title: 'Elite Operator',  colors: ['#4fe0c1', '#0f8a74', '#dcfff6'] },
+    { level: 8, xp: 6000,  name: 'Legend',   title: 'Trading Legend',  colors: ['#ff6fb5', '#a11d62', '#ffe0f0'] },
+    { level: 9, xp: 10000, name: 'Titan',    title: 'Titan of Tape',   colors: ['#ffe27a', '#8a6a00', '#fffbe6'] },
+    { level: 10, xp: 16000, name: 'Zelos',   title: 'Zelos Champion',  colors: ['#9fd3ff', '#1c4f9c', '#ffffff'] }
   ];
 
   function levelForXp(xp) {
@@ -74,10 +80,12 @@
     });
     if (n > 0) s += '<path d="M18 30 L28 22 L34 26 L46 15" fill="none" stroke="' + c[2] + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
       '<path d="M41 14.5 L46.5 14.5 L46.5 20" fill="none" stroke="' + c[2] + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-    // level pips along the bottom rim
+    // levels past Diamond get a star crest above the emblem
+    if (n >= 6) s += '<path d="M32 0.5 L33.6 4 L37.4 4.3 L34.5 6.7 L35.4 10.4 L32 8.4 L28.6 10.4 L29.5 6.7 L26.6 4.3 L30.4 4 Z" fill="' + c[2] + '" stroke="' + c[1] + '" stroke-width="0.6"/>';
+    // level pips along the bottom rim (past 5, the pips restart in the new tier's color)
     for (var p = 0; p < 5; p++) {
       var px = 22 + p * 5;
-      s += '<circle cx="' + px + '" cy="49" r="1.6" fill="' + (p < n ? c[2] : '#4a505c') + '"/>';
+      s += '<circle cx="' + px + '" cy="49" r="1.6" fill="' + (p < (n > 5 ? n - 5 : n) ? c[2] : '#4a505c') + '"/>';
     }
     return s + '</svg>';
   }

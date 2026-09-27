@@ -76,6 +76,21 @@
   .board-score{ font-family:var(--mono); font-weight:700; font-size:0.96rem; color:var(--accent); font-variant-numeric:tabular-nums; }
   .board-sub{ display:flex; gap:12px; font-family:var(--mono); font-size:0.74rem; color:var(--muted); white-space:nowrap; }
   .board-sub .up{ color:var(--bull); } .board-sub .dn{ color:var(--danger); }
+  .pb-tabs, .pb-cats{ display:flex; gap:4px; flex-wrap:wrap; padding:4px 4px 8px; }
+  .pb-tabs button, .pb-cats button{ font:600 0.74rem var(--mono); padding:6px 10px; border-radius:3px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); cursor:pointer; }
+  .pb-cats button{ font-size:0.68rem; padding:4px 8px; }
+  .pb-tabs button.is-on, .pb-cats button.is-on{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
+  .pb-season{ padding:2px 8px 6px; font-size:0.84rem; } .pb-season span{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-left:6px; }
+  .pb-note{ font-size:0.74rem; color:var(--muted); margin:0; padding:2px 10px 8px; }
+  .pb-row.is-me{ background:var(--accent-soft); }
+  .pb-photo{ width:24px; height:24px; border-radius:50%; object-fit:cover; flex:none; }
+  .pb-initial{ display:inline-flex; align-items:center; justify-content:center; background:var(--surface-2); border:1px solid var(--border); font:700 0.7rem var(--mono); color:var(--muted); }
+  .board-sub .board-pnl{ font-weight:600; }
+  .pb-virtual{ font-size:0.72rem; color:var(--muted); padding:0 10px 6px; }
+  .pb-row .board-name{ display:flex; align-items:center; gap:6px; }
+  .board-sub .board-xp, .board-sub .board-trades{ color:var(--muted); }
+  @media (max-width:900px){ .board-sub .board-trades, .board-sub .board-xp{ display:none; } }
+  @media (max-width:560px){ .board-sub .board-streak, .board-sub .pb-per{ display:none; } .pb-row .board-go{ display:none; } }
   .board-cols{ display:flex; gap:12px; padding:4px 12px 8px; font-family:var(--mono); font-size:0.62rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border-soft); }
   .board-cols span:first-child{ width:1.8em; } .board-cols .grow{ flex:1; }
   @media (max-width:560px){ .board-sub .board-resets{ display:none; } }
@@ -108,7 +123,7 @@
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="practice/index.html">Practice Account<small>$10,000 paper trading, live prices</small></a>
+          <a href="practice/index.html">Trade War<small>$10,000 virtual account &middot; compete with friends</small></a><a href="real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
           <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
           <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
           <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
@@ -147,7 +162,7 @@
       <a href="options-scanner.html">Options Scanner</a>
       <a href="arsenal.html">Full Arsenal</a>
       <div class="nav-mobile-label">Market</div>
-      <a href="practice/index.html">Practice Account</a>
+      <a href="practice/index.html">Trade War</a><a href="real/index.html">Real Trade Journal</a>
       <a href="market-3d.html">Market 3D</a>
       <a href="live-chart.html">Live Chart</a>
       <a href="daily-market.html">Daily Market</a>
@@ -169,7 +184,7 @@
     <div>
       <p class="eyebrow live"><span class="live-dot" id="liveDot"></span>Live</p>
       <h1 style="font-size:1.5rem; margin-top:6px;">Leaderboard</h1>
-      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Arcade game and the $10,000 Practice Account, updating in real time &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
+      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Arcade game and Trade War (virtual $10,000 accounts), updating in real time &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
     </div>
 
     <div class="lb-sections" id="tabs">
@@ -183,9 +198,9 @@
         </div>
       </div>
       <div class="lb-section">
-        <div class="lb-section-label">$10,000 Practice Account &middot; live prices</div>
-        <div class="tabs" role="tablist" aria-label="Practice account board">
-          <button class="tab" type="button" role="tab" data-game="practice" aria-selected="false">💼 Practice Account</button>
+        <div class="lb-section-label">Trade War &middot; virtual $10,000 accounts</div>
+        <div class="tabs" role="tablist" aria-label="Trade War board">
+          <button class="tab" type="button" role="tab" data-game="practice" aria-selected="false">⚔️ Trade War</button>
         </div>
       </div>
       <div class="lb-section">
@@ -415,6 +430,11 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="leaderboard.js"></script>
+<script src="zelos-modes.js"></script>
+<script src="zelos-levels.js"></script>
+<script src="zelos-progress.js"></script>
+<script src="zelos-social.js"></script>
+<script src="zelos-practice-board.js"></script>
 <script>
 (function(){
   var board = document.getElementById('board');
@@ -453,35 +473,15 @@
     }).join('');
   }
 
-  // Practice Account board: public profiles published by signed-in players (practiceProfiles/{uid})
-  function money(v){ return '$' + Math.round(+v || 0).toLocaleString('en-US'); }
-  function loadPractice(){
-    document.getElementById('boardTitle').textContent = '💼 Practice Account · by balance';
-    var play = document.getElementById('boardPlay'); play.href = 'practice/'; play.innerHTML = 'Open the practice account &rarr;';
-    var fb = window.firebase, cfg = window.ZELOS_FIREBASE_CONFIG;
-    if (!fb || !cfg || !cfg.projectId) { boardEmpty.textContent = 'The practice leaderboard needs the live site.'; return function(){}; }
-    try { if (!fb.apps.length) fb.initializeApp(cfg); } catch(e){}
-    return fb.firestore().collection('practiceProfiles').orderBy('equity', 'desc').limit(50).onSnapshot(function(snap){
-      var rows = []; snap.forEach(function(d){ var r = d.data(); r.uid = d.id; rows.push(r); });
-      if (!rows.length){ board.innerHTML = ''; boardEmpty.textContent = 'No practice accounts yet. Sign in on the practice page and place a trade to show up here.'; board.appendChild(boardEmpty); return; }
-      board.innerHTML = '<div class="board-cols"><span>#</span><span class="grow">Trader</span><span>Growth · resets · trades</span><span>Balance</span></div>' + rows.map(function(r, i){
-        var g = +r.growthPct || 0;
-        return '<a class="board-row" href="practice/profile.html?u=' + encodeURIComponent(r.uid) + '"><span class="board-rank">' + (i + 1) + '</span>' +
-          '<span class="board-name">' + esc(r.name || 'Trader') + '</span>' +
-          '<span class="board-sub"><span class="' + (g >= 0 ? 'up' : 'dn') + '">' + (g >= 0 ? '+' : '') + g.toFixed(1) + '%</span>' +
-          '<span class="board-resets">' + (r.resets || 0) + ' reset' + (r.resets === 1 ? '' : 's') + '</span><span>' + (r.trades || 0) + ' trades</span></span>' +
-          '<span class="board-score">' + money(r.equity) + '</span><span class="board-go">Stats &rarr;</span></a>';
-      }).join('');
-    }, function(){ board.innerHTML = ''; boardEmpty.textContent = 'The practice leaderboard isn\'t reachable right now.'; board.appendChild(boardEmpty); });
-  }
-
   function loadBoard(key){
     if (key === 'practice') {
       currentGame = 'practice';
       tabs.forEach(function(t){ t.setAttribute('aria-selected', String(t.getAttribute('data-game') === key)); });
       if (unsubscribe) { unsubscribe(); unsubscribe = null; }
       board.hidden = false; board.innerHTML = ''; boardEmpty.textContent = 'Loading…'; board.appendChild(boardEmpty);
-      unsubscribe = loadPractice();
+      document.getElementById('boardTitle').textContent = '⚔️ Trade War · virtual accounts';
+      var play = document.getElementById('boardPlay'); play.href = 'practice/'; play.innerHTML = 'Enter Trade War &rarr;';
+      unsubscribe = window.ZelosPracticeBoard ? ZelosPracticeBoard.mount({ board: board }) : function(){};
       return;
     }
     currentGame = boardId(key);
@@ -508,7 +508,7 @@
   });
 
   // deep links: leaderboard.html#grade-the-setup etc.
-  var hash = (location.hash || '').slice(1);
+  var hash = (location.hash || '').slice(1).split(':')[0];
   var initial = document.querySelector('.tab[data-game="' + hash.replace(/[^\w-]/g, '') + '"]') ? hash : 'chart-replay';
 
   if (LB && LB.isConfigured()){

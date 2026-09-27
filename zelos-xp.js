@@ -23,6 +23,22 @@
  *   daily-checkin +3   (once per calendar day — dedup by date, ET)
  *   arcade-play   +5   (once per calendar day, any game — dedup by date, ET)
  *
+ * Practice Account and social XP (callers build the refId, including any daily
+ * cap, e.g. "2026-09-28:3" for the 3rd trade of the day):
+ *   practice-trade   +5    a filled practice order (first 10 a day)
+ *   practice-win     +10   a closed trade in profit (first 10 a day)
+ *   grade-setup      +10   a finished Grade the Setup game (first 5 a day)
+ *   challenge-join   +25   created or accepted a friend challenge (per challenge)
+ *   challenge-win    +150  won a friend challenge (per challenge)
+ *   referral         +50   a friend you invited opened their practice account (per friend)
+ *   referral-welcome +50   you joined through a friend's invite link (once)
+ *   real-trade       +10   logged a trade in the Real Trade Journal (first 3 a day)
+ *   trading-tools    +5    used the real-trading tools (watchlist, journal) — once a day
+ *   share            +10   shared a Trade War challenge or account card — once a day
+ * Variable amounts (caller passes the amount, capped here):
+ *   mission          up to 300   daily / weekly missions, mission-streak rewards
+ *   achievement      up to 500   badges (First Trade, $25K Club, ...)
+ *
  * Streaks track "opened at least one alert today" specifically (per product
  * decision — daily check-ins and arcade play earn XP but don't feed the
  * streak). The streak updates at most once per day, the first time
@@ -57,7 +73,43 @@
  * XP awarding itself does NOT need that check; award() below works for anon users on purpose.
  */
 (function () {
-  var POINTS = { 'alert-open': 5, 'daily-checkin': 3, 'arcade-play': 5 };
+  var POINTS = { 'alert-open': 5, 'daily-checkin': 3, 'arcade-play': 5,
+    'practice-trade': 5, 'practice-win': 10, 'grade-setup': 10, 'challenge-join': 25, 'challenge-win': 150,
+    'referral': 50, 'referral-welcome': 50, 'real-trade': 10, 'trading-tools': 5, 'share': 10 };
+  // Where each award came from. One XP total, but every entry is labeled so a
+  // profile never mixes up Trade War (virtual), Real Trading and training.
+  // [source, label]; the activity ledger stores both, and pages show "+10 XP — Trade War Win".
+  var SOURCES = {
+    'alert-open': ['real', 'Opened an alert'], 'daily-checkin': ['platform', 'Daily check-in'], 'arcade-play': ['training', 'Arcade game'],
+    'practice-trade': ['trade-war', 'Trade War trade'], 'practice-win': ['trade-war', 'Trade War win'], 'grade-setup': ['training', 'Completed Grade Setup'],
+    'challenge-join': ['trade-war', 'Trade War challenge'], 'challenge-win': ['trade-war', 'Won a Trade War challenge'],
+    'referral': ['social', 'Friend joined'], 'referral-welcome': ['social', 'Joined from an invite'],
+    'real-trade': ['real', 'Real Trading Activity'], 'trading-tools': ['real', 'Used trading tools'], 'share': ['social', 'Shared Trade War'],
+    'mission': ['missions', 'Mission'], 'achievement': ['achievements', 'Achievement']
+  };
+  var SOURCE_NAMES = { 'trade-war': 'Trade War', real: 'Real Trading', training: 'Training', social: 'Social', missions: 'Missions', achievements: 'Achievements', platform: 'Platform' };
+  // types whose amount the caller chooses, with a hard cap so a bad call can't mint a fortune
+  var VARIABLE = { 'mission': 300, 'achievement': 500 };
+
+  // Local tally of XP earned today / this week (ET), for the "Earn N XP" missions
+  // in zelos-progress.js. Browser-local on purpose: it's a mission counter, not a balance.
+  var LOG_KEY = 'zelosXpLog';
+  function weekKey(dateStr) {
+    var d = new Date(dateStr + 'T12:00:00Z'), day = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - day + 3);
+    var y = d.getUTCFullYear(), first = new Date(Date.UTC(y, 0, 4));
+    return y + '_' + String(1 + Math.round(((d - first) / 864e5 - 3 + ((first.getUTCDay() + 6) % 7)) / 7)).padStart(2, '0');
+  }
+  function logXp(amount, type) {
+    var today = dateStrET(0), wk = weekKey(today), l;
+    try { l = JSON.parse(localStorage.getItem(LOG_KEY) || '{}'); } catch (e) { l = {}; }
+    if (!l.day || l.day.date !== today) l.day = { date: today, xp: 0 };
+    if (!l.week || l.week.key !== wk) l.week = { key: wk, xp: 0 };
+    l.day.xp += amount; l.week.xp += amount;
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(l)); } catch (e) {}
+    var src = SOURCES[type] || ['platform', type];
+    try { document.dispatchEvent(new CustomEvent('zelos:xp', { detail: { type: type, amount: amount, source: src[0], label: src[1], day: l.day.xp, week: l.week.xp } })); } catch (e) {}
+  }
 
   // Level-ups get a full-screen celebration (zelos-levels.js) on whatever page
   // the XP was earned. Loaded lazily, from the same folder as this file, so
@@ -139,18 +191,26 @@
     return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); // -> "YYYY-MM-DD"
   }
 
-  function award(type, refId, cb) {
+  function award(type, refId, cb, amount) {
     cb = cb || function () {};
     if (!ensureInit()) return cb(false);
-    if (!POINTS.hasOwnProperty(type)) return cb(false);
+    if (VARIABLE.hasOwnProperty(type)) {
+      amount = Math.round(+amount || 0);
+      if (!(amount > 0)) return cb(false);
+      amount = Math.min(amount, VARIABLE[type]);
+    } else if (POINTS.hasOwnProperty(type)) amount = POINTS[type];
+    else return cb(false);
     ensureAnonAuth().then(function (user) {
+      // whoever is signed in right now: after a guest signs in with Google on
+      // the same page, XP must land on the real account, not the guest uid
+      // this promise first resolved with
+      user = auth.currentUser || user;
       if (!user) return cb(false);
-      awardForUser(type, refId, user, cb);
+      awardForUser(type, refId, user, cb, amount);
     });
   }
 
-  function awardForUser(type, refId, user, cb) {
-    var amount = POINTS[type];
+  function awardForUser(type, refId, user, cb, amount) {
     var dedupKey = (refId === undefined || refId === null || refId === '') ? dateStrET(0) : String(refId);
     var eventId = type + ':' + dedupKey;
     var userRef = db.collection('users').doc(user.uid);
@@ -167,8 +227,9 @@
 
           if (!eventDoc.exists) {
             updates.xp = (data.xp || 0) + amount;
+            var src = SOURCES[type] || ['platform', type];
             tx.set(eventRef, {
-              type: type, refId: dedupKey, xp: amount,
+              type: type, refId: dedupKey, xp: amount, source: src[0], label: src[1],
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             awardedThisCall = true;
@@ -192,7 +253,7 @@
         });
       });
     }).then(function (result) {
-      if (result.awarded) maybeCelebrate(result.before, result.xp);
+      if (result.awarded) { maybeCelebrate(result.before, result.xp); logXp(amount, type); }
       cb(result.awarded, { xp: result.xp, streakDays: result.streakDays });
     }).catch(function (e) {
       console.warn('[ZelosXP] award failed:', type, refId, e);
@@ -205,6 +266,10 @@
     isSignedIn: function () { return ensureInit() && !!auth.currentUser; },
     isRealAccount: function () { return ensureInit() && !!auth.currentUser && !auth.currentUser.isAnonymous; },
     award: award,
+    points: function (type) { return POINTS[type] || 0; },
+    source: function (type) { var s = SOURCES[type] || ['platform', type]; return { id: s[0], name: SOURCE_NAMES[s[0]] || s[0], label: s[1] }; },
+    SOURCE_NAMES: SOURCE_NAMES,
+    weekKey: weekKey,
     onChange: function (cb) {
       if (!ensureInit()) return function () {};
       return auth.onAuthStateChanged(cb);

@@ -133,6 +133,18 @@
      as its content needs, so short and tall widgets pack together like
      columns instead of leaving gaps. ---- */
   .dash-toolbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:20px; }
+  .dash-mode{ display:inline-flex; gap:2px; padding:3px; background:var(--surface); border:1px solid var(--border); border-radius:8px; }
+  .dash-mode button{ font:600 0.82rem var(--sans); padding:7px 12px; border:none; border-radius:6px; background:none; color:var(--muted); cursor:pointer; }
+  .dash-mode button[aria-selected="true"][data-mode="real"]{ background:rgba(47,211,164,0.14); color:#2fd3a4; }
+  .dash-mode button[aria-selected="true"][data-mode="war"]{ background:rgba(76,141,255,0.16); color:#6ea8ff; }
+  .dash-chooser{ margin-top:18px; padding:18px; border:1px solid var(--accent-line); border-radius:var(--radius); background:var(--surface); }
+  .dash-chooser > p{ color:var(--muted); font-size:0.88rem; margin:4px 0 12px; }
+  .dash-chooser-opts{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .dash-chooser-opts button{ text-align:left; display:flex; flex-direction:column; gap:6px; padding:14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--ink); cursor:pointer; font:inherit; }
+  .dash-chooser-opts button:hover{ border-color:var(--accent); }
+  .dash-chooser-opts button .zm-tag{ align-self:flex-start; }
+  .dash-chooser-opts small{ color:var(--muted); font-size:0.8rem; line-height:1.45; }
+  @media (max-width:640px){ .dash-chooser-opts{ grid-template-columns:1fr; } }
   .dash-edit-tools{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .dash-edit-hint{ font-size:0.76rem; color:var(--muted); }
   .dash-save-note{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-left:auto; }
@@ -289,6 +301,28 @@
   .hub-filter button{ font:600 0.68rem var(--mono); padding:4px 8px; border-radius:3px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); cursor:pointer; }
   .hub-filter button.is-on{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
   .hub-scroll{ max-height:420px; overflow:auto; }
+  .hub-trader{ display:flex; gap:12px; align-items:center; }
+  .hub-trader b{ font-size:1.05rem; } .hub-trader small{ display:block; font:0.68rem var(--mono); color:var(--muted); }
+  .hub-xpbar{ height:8px; border-radius:999px; background:var(--border-soft); overflow:hidden; margin:10px 0 4px; }
+  .hub-xpbar i{ display:block; height:100%; background:linear-gradient(90deg, var(--accent), #b9a8ff); }
+  .hub-streak{ font:700 0.8rem var(--mono); color:#ff8a3d; }
+  .hub-ms{ list-style:none; margin:0; padding:0; }
+  .hub-ms li{ display:flex; align-items:center; gap:8px; padding:6px 0; border-top:1px solid var(--border-soft); font-size:0.82rem; }
+  .hub-ms li:first-child{ border-top:none; }
+  .hub-ms a{ color:var(--ink); text-decoration:none; flex:1; min-width:0; }
+  .hub-ms a:hover{ color:var(--accent); }
+  .hub-ms .ck{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--border); flex:none; font-size:0.62rem; display:inline-flex; align-items:center; justify-content:center; color:#04160b; }
+  .hub-ms li.done .ck{ background:var(--bull); border-color:var(--bull); }
+  .hub-ms li.done a{ color:var(--muted); text-decoration:line-through; }
+  .hub-ms small{ font:0.7rem var(--mono); color:var(--muted); } .hub-ms em{ font:700 0.68rem var(--mono); font-style:normal; color:#d9a441; }
+  .hub-ch{ display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid var(--border-soft); font-size:0.82rem; color:var(--ink); text-decoration:none; }
+  .hub-ch:first-child{ border-top:none; } .hub-ch:hover{ color:var(--accent); } .hub-ch small{ font:0.7rem var(--mono); color:var(--muted); white-space:nowrap; }
+  .hub-ch.inc{ color:#ff8a3d; }
+  .hub-achs{ display:flex; flex-wrap:wrap; gap:6px; }
+  .hub-sub{ font:600 0.6rem var(--mono); letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin:10px 0 2px; }
+  .hub-btns{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .hub-btns a{ font:600 0.72rem var(--sans); padding:5px 10px; border-radius:3px; border:1px solid var(--border); color:var(--ink); text-decoration:none; }
+  .hub-btns a:hover{ border-color:var(--accent); color:var(--accent); }
 </style>
 </head>
 <body class="zt zt-body">
@@ -341,7 +375,7 @@
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="practice/index.html">Practice Account<small>$10,000 paper trading, live prices</small></a>
+          <a href="practice/index.html">Trade War<small>$10,000 virtual account &middot; compete with friends</small></a><a href="real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
           <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
           <a href="live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
           <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
@@ -380,7 +414,7 @@
       <a href="options-scanner.html">Options Scanner</a>
       <a href="arsenal.html">Full Arsenal</a>
       <div class="nav-mobile-label">Market</div>
-      <a href="practice/index.html">Practice Account</a>
+      <a href="practice/index.html">Trade War</a><a href="real/index.html">Real Trade Journal</a>
       <a href="market-3d.html">Market 3D</a>
       <a href="live-chart.html">Live Chart</a>
       <a href="daily-market.html">Daily Market</a>
@@ -412,7 +446,20 @@
       </div>
     </div>
 
+    <div class="dash-chooser" id="dashChooser" hidden>
+      <b>How do you use AgenticTrading.info?</b>
+      <p>Pick what your Command Center should put first. Same account, XP and profile either way, and you can switch any time.</p>
+      <div class="dash-chooser-opts">
+        <button type="button" data-pick="real"><span class="zm-tag is-real">REAL TRADING</span><b>A serious trading dashboard</b><small>Watchlist, real prices, charts, news, agent signals and your Real Trade Journal.</small></button>
+        <button type="button" data-pick="war"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span><b>Compete with friends using fake money</b><small>Your $10,000 virtual account, leaderboards, challenges, XP, missions and streaks.</small></button>
+      </div>
+    </div>
+
     <div class="dash-toolbar" id="dashToolbar">
+      <div class="dash-mode" role="tablist" aria-label="Dashboard mode">
+        <button type="button" role="tab" data-mode="real" aria-selected="false">📈 Real Trading</button>
+        <button type="button" role="tab" data-mode="war" aria-selected="false">⚔️ Trade War</button>
+      </div>
       <button class="btn btn-sm" id="dashCustomize" type="button" aria-pressed="false">&#9998; Customize dashboard</button>
       <div class="dash-edit-tools" id="dashEditTools" hidden>
         <div class="dash-add">
@@ -426,14 +473,44 @@
     </div>
 
     <div class="dash-grid" id="dashGrid">
-      <div data-widget="practice" data-title="Practice Account P&amp;L" data-w="3" class="card">
-        <div class="card-head"><h2>Practice Account</h2><a href="practice/">Trade &rarr;</a></div>
+      <div data-widget="realtrades" data-title="Real trades" data-w="6" class="card">
+        <div class="card-head"><h2>Real trades <span class="zm-tag is-real">REAL</span></h2><a href="real/">Journal &rarr;</a></div>
+        <div id="hubReal"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="boards" data-title="Trade War leaderboard" data-w="3" class="card">
+        <div class="card-head"><h2>Leaderboard <span class="zm-tag is-war">TRADE WAR</span></h2><a href="leaderboard.html#practice">All &rarr;</a></div>
+        <div id="hubBoards"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="trader" data-title="Your trader card" data-w="3" class="card">
+        <div class="card-head"><h2>Your trader card</h2><a href="practice/?tab=progress">XP &rarr;</a></div>
+        <div id="hubTrader"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="missions" data-title="Daily missions" data-w="3" class="card">
+        <div class="card-head"><h2>Daily missions</h2><span class="hub-streak" id="hubStreak"></span></div>
+        <div id="hubMissions"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="challenges" data-title="Challenges &amp; squads" data-w="3" class="card">
+        <div class="card-head"><h2>Challenges</h2><a href="practice/challenge.html">All &rarr;</a></div>
+        <div id="hubChallenges"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="achievements" data-title="Achievements" data-w="3" class="card">
+        <div class="card-head"><h2>Achievements</h2><a href="practice/?tab=progress">All &rarr;</a></div>
+        <div id="hubAchievements"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="practice" data-title="Trade War account" data-w="3" class="card">
+        <div class="card-head"><h2>Trade War <span class="zm-tag is-war">VIRTUAL</span></h2><a href="practice/">Trade &rarr;</a></div>
         <div id="hubPractice"><div class="empty">Loading…</div></div>
       </div>
 
       <div data-widget="watchnews" data-title="Watchlist news" data-w="6" class="card">
         <div class="card-head"><h2>Watchlist news</h2></div>
-        <div class="card-sub">Headlines for the tickers you watch and hold in the practice account.</div>
+        <div class="card-sub">Headlines for the tickers you watch, hold in Trade War or logged as real trades.</div>
         <div id="hubWatchNews"><div class="empty">Loading…</div></div>
       </div>
 
@@ -645,12 +722,24 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="zelos-mood.js"></script>
+<script>
+  // Command Center presets per mode (zelos-dashboard-layout.js): ids listed first, then everything else; `hide` starts removed.
+  window.ZELOS_DASH_PRESETS = {
+    real: { order: ['watchlist', 'realtrades', 'status', 'viz', 'sectors', 'watchnews', 'trending', 'pulse', 'agents', 'active', 'exchanges', 'trader', 'skills'],
+            hide: ['practice', 'boards', 'missions', 'challenges', 'achievements', 'progress'] },
+    war: { order: ['practice', 'trader', 'boards', 'missions', 'challenges', 'achievements', 'trending', 'watchnews', 'status', 'sectors'],
+           hide: ['viz', 'exchanges', 'agents', 'pulse', 'active', 'skills', 'watchlist', 'realtrades', 'progress'] }
+  };
+</script>
+<script src="zelos-modes.js"></script>
 <script src="zelos-dashboard-layout.js"></script>
 <script src="zelos-levels.js"></script>
 <script src="zelos-xp.js"></script>
 
 <!-- 3D globe — see zelos-globe.js. Only mounted while the Globe pane is visible. -->
 <script src="zelos-globe.js"></script>
+<script src="zelos-progress.js"></script>
+<script src="zelos-social.js"></script>
 <script src="zelos-dash-hub.js"></script>
 
 <script>
@@ -1055,7 +1144,7 @@
     document.getElementById('progressBlock').innerHTML =
       '<div class="progress-stats">' +
         '<div class="stat"><span class="num">' + xp + '</span><span class="lbl">XP</span></div>' +
-        '<div class="stat"><span class="num">' + streak + '</span><span class="lbl">Day streak</span></div>' +
+        '<div class="stat"><span class="num">' + streak + '</span><span class="lbl">Alert streak</span></div>' +
       '</div>' +
       '<div class="level-row">' +
         '<span class="level-badge">' + ZL.badge(level, 44) + '</span>' +
@@ -1063,7 +1152,7 @@
       '</div>' +
       '<div class="level-bar"><div class="level-bar-fill" style="width:' + pct + '%;"></div></div>' +
       '<div class="level-next">' + nextTxt + '</div>' +
-      '<div class="progress-note">Streaks track opening at least one alert each day. XP also comes from checking in and playing Arcade games — small amounts, never required.</div>';
+      '<div class="progress-note">The alert streak counts days you open at least one alert; your mission streak (🔥 on the trader card) counts days you finish 2 daily missions. XP comes from practice trades, wins, missions, achievements, challenges, check-ins and the Arcade.</div>';
   }
 
   function renderWatchlist(user, data){
@@ -1090,6 +1179,8 @@
       if (!t) return;
       userDocRef(user.uid).update({ watchlist: firebase.firestore.FieldValue.arrayUnion(t) });
       input.value = '';
+      // +5 XP "Used trading tools" (Real Trading), once a day
+      if (window.ZelosXP) ZelosXP.award('trading-tools', new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }));
     });
   }
 

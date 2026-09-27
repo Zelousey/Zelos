@@ -1,4 +1,46 @@
-# $10,000 Practice Account: setup and how it works
+# Trade War and Real Trading: setup and how it works
+
+AgenticTrading.info has **one account** (XP, levels, streaks, achievements,
+friends, profile) and **two trading modes** whose money and statistics never mix:
+
+| Mode | Where | Tag | Data |
+| --- | --- | --- | --- |
+| `PRACTICE`: **Trade War** | `practice/` | TRADE WAR — VIRTUAL | the $10,000 virtual account (localStorage + `users/{uid}.practice`), public stats in `practiceProfiles/{uid}` |
+| `REAL`: **Real Trading** | `real/` (Real Trade Journal) | REAL TRADE | trades the person made at their own broker, logged by them: `users/{uid}/realTrades` (private) |
+
+Mode definitions and tags live in `zelos-modes.js`. Every trade record carries
+`mode`. XP awards record their source (`trade-war`, `real`, `training`,
+`social`, `missions`, `achievements`, `platform`) in the activity ledger, so
+profiles and the XP feed label where each point came from.
+
+The Trade War page is still at `practice/` (URLs and Firestore names kept); only
+the name on screen changed. Earlier sections below call it the practice account.
+
+## Real Trading (the journal)
+
+- `real/index.html` (built by `scripts/build_real.py`, logic in `real/real.js`).
+  Sign-in required. Log a trade (ticker, long/short, shares, entry, optional exit),
+  close it later, see live P&L for the 50 Trade War symbols.
+- **Real Trading status** ("Active", "Active · Experienced", "Experience",
+  "Inactive") is computed on the profile from `traders/{uid}/realLog`: one entry
+  per logged trade, holding only the ticker and a server timestamp the rules force
+  to equal the write time, so it can't be backdated or edited. Active = a trade
+  logged in the last 30 days; Experienced = 10+ trades on 5+ days, first 14+ days
+  ago. It measures activity, never profitability. Users can switch the log off.
+- `traders/{uid}` is the public identity: name, photo, XP, streak, owned Zelos
+  skills and, only if the user opts in, real-trade statistics without dollar
+  amounts (closed trades, win rate, average % per trade).
+- XP: +10 "Real Trading Activity" per logged/closed trade (3 a day), +5 "Used
+  trading tools" once a day (journal or watchlist).
+
+## Command Center modes
+
+The dashboard asks once "How do you use AgenticTrading.info?" and has a Real
+Trading / Trade War switch. Each mode starts from a preset
+(`window.ZELOS_DASH_PRESETS` in `dashboard.html`) and then keeps its own
+customized layout (`zelos-dashboard-layout.js`, synced in
+`users/{uid}.dashboardLayout`).
+
 
 The practice account (`practice/index.html`) works right away on the latest daily
 closes. Live prices need the `refresh_quotes` Cloud Function turned on once.
@@ -135,6 +177,42 @@ details. Turning off "Show my stats on the leaderboard" deletes the doc.
 - **Indicators.** Defined in the `INDICATORS` registry in
   `practice/practice-chart.js`. A new indicator is one entry there (compute
   function plus how to draw it: overlay, band or pane).
+
+## XP, missions, achievements and the social layer
+
+All client-side, on top of the same Firebase project. No new Cloud Functions.
+
+- **XP and levels** (`zelos-xp.js`, `zelos-levels.js`): practice trades (+5, first 10 a
+  day), winning trades (+10, first 10 a day), finished Grade the Setup games (+10, 5 a
+  day), missions, achievements, challenges and referrals. Levels run 0 to 10 (Diamond
+  is 5; Master, Elite, Legend, Titan and Zelos come after).
+- **Missions and streaks** (`zelos-progress.js`): 5 daily and 5 weekly missions. Finishing
+  any 2 daily missions keeps the mission streak (rewards at 3, 7, 14 and 30 days).
+- **Achievements** (`zelos-progress.js`, `ACHIEVEMENTS`): 23 badges plus 2 per season.
+  Add one with a line in that list; `test(ctx)` gets the practice account's stats.
+- **Recovery goals**: below $9,500 the practice page shows "Recover $X → $10,000".
+  Getting back from $9,000 or lower without a reset earns Comeback Kid.
+- **Net P&L**: account value minus $10,000 plus everything resets wiped out. Weekly,
+  monthly, season, challenge and squad scores all use it, so a reset never counts as
+  growth. Reset history stays separate.
+- **Leaderboards** (`leaderboard.html#practice`, `zelos-practice-board.js`): All-time,
+  Weekly, Monthly, Season (six categories) and Friends. Period numbers live in each
+  profile's `p` map; single-field ordering only, so no Firestore indexes to create.
+- **Seasons**: defined in `SEASONS` in `zelos-progress.js`. Season 1 (Agentic Trading
+  Championship) runs 2026-09-27 to 2026-12-31. Add the next one there.
+- **Friend challenges** (`practice/challenge.html`), **Trading Squads**
+  (`practice/squads.html`), **friends** (`users/{uid}.friends`), **referrals**
+  (`referrals/{uid}`, links like `practice/?ref=<uid>`) and **share cards** (a PNG drawn
+  in the browser) are in `zelos-social.js`.
+
+These need the `challenges`, `squads` and `referrals` blocks in `firestore.rules`.
+Paste the whole file into the Firestore console and publish (same as before).
+
+Limits: everything is computed in the browser, so like XP a determined person could
+edit their own numbers. It's virtual money, so that's accepted. Weekly and monthly
+baselines start at each player's first visit in the period. A challenge's final
+result uses each player's end-of-day history, so it settles once someone opens it
+after the end date.
 
 ## Changing the stock list
 

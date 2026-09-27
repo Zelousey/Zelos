@@ -79,7 +79,7 @@ def drill_page(path, game_id, title, h1, kicker, lede, rounds, howto, seo_title,
   }}
   start();
 }})();'''
-    scripts = '<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n'
+    scripts = '<script src="../zelos-progress.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n'
     render(path, seo_title, desc, body, HEAD, scripts,
            jsonld=[game_ld(title, path, desc), breadcrumbs([('Zelos', ''), ('Arcade', 'arcade.html'), (title, None)])])
 
@@ -173,7 +173,7 @@ def main():
 })();'''
     desc = 'A free daily trading puzzle: five real historical stock charts, the same for everyone. Grade three setups, place two stops, share your score grid.'
     render('games/daily-challenge.html', 'Zelos Daily Challenge: A Daily Trading Chart Puzzle', desc, body, HEAD,
-           '<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n',
+           '<script src="../zelos-progress.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n',
            jsonld=[game_ld('Zelos Daily Challenge', 'games/daily-challenge.html', desc),
                    breadcrumbs([('Zelos', ''), ('Arcade', 'arcade.html'), ('Daily Challenge', None)])])
 
@@ -245,7 +245,7 @@ def main():
 </main>'''
     desc = 'Free stock trading simulator: replay a hidden real chart bar by bar with a $10,000 practice account. Every trade needs a stop; scored on R-multiples and discipline.'
     render('games/chart-replay.html', 'Chart Replay: Free Stock Trading Simulator on Real Charts | Zelos', desc, body, HEAD,
-           '<script src="zelos-chart-engine.js"></script>\n<script>\n' + src('drill-common.js') + '\n' + src('chart-replay.js') + '\n</script>\n',
+           '<script src="../zelos-progress.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + src('drill-common.js') + '\n' + src('chart-replay.js') + '\n</script>\n',
            jsonld=[game_ld('Zelos Chart Replay', 'games/chart-replay.html', desc),
                    breadcrumbs([('Zelos', ''), ('Arcade', 'arcade.html'), ('Chart Replay', None)])])
     print('built games')

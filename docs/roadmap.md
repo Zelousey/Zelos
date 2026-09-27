@@ -51,3 +51,29 @@ options feed could replace `ZelosOptions.quote` without touching the rest of the
 Adding a provider means a pair of fetch functions returning the same item shape and
 pointing `NEWS_PROVIDER` at them. Robinhood has no public news embed, so it isn't an
 option here.
+
+## Server-verified competitions
+
+Challenges, squads, season boards and XP are computed in each player's browser
+(virtual money, so tampering is an accepted risk). For prize-bearing competitions,
+move scoring to a scheduled Cloud Function that recomputes each player's net P&L from
+their saved trades and quotes and writes the official standings.
+
+## Season-end rewards
+
+Seasons already give fresh rankings and two badges each. Next: freeze each season's
+final top 10 per category at the end date (a scheduled function), award "Season 1 Top
+10" style badges, and keep a hall of fame page.
+
+## Private profile levels
+
+Today a player is either public (profile + leaderboards) or private (profile deleted).
+A middle option could show a profile only to friends and squad mates.
+
+## Verified real trades
+
+Real Trading status today comes from trades users log themselves (server-timestamped,
+can't be backdated, but self-reported). A "Verified Real Trader" badge would need
+documented trades: broker statement / trade-confirmation upload reviewed by a
+Cloud Function, or a read-only brokerage data connection (e.g. an aggregator
+with OAuth). Neither exists yet; the profile never implies profitability either way.

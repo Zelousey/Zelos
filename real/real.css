@@ -1,0 +1,24 @@
+/* Real Trade Journal (REAL mode). Shares practice.css; accents in the REAL teal. */
+.rj-shell{ max-width:1200px; }
+.rj-status{ display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); margin-bottom:14px; flex-wrap:wrap; }
+.rj-status > div{ flex:1; min-width:200px; display:flex; flex-direction:column; }
+.rj-status small{ color:var(--muted); font-size:0.76rem; }
+.rj-status-dot{ width:12px; height:12px; border-radius:50%; background:var(--muted-2, #555); flex:none; }
+.rj-status.is-active{ border-color:rgba(47,211,164,0.55); }
+.rj-status.is-active .rj-status-dot{ background:#2fd3a4; box-shadow:0 0 0 4px rgba(47,211,164,0.18); }
+.rj-status.is-inactive .rj-status-dot{ background:#e8b23d; }
+.rj-status a.pt-mini{ text-decoration:none; }
+.rj-stats{ margin-bottom:14px; }
+.rj-stats small small{ text-transform:none; letter-spacing:0; }
+.rj-grid{ display:grid; grid-template-columns:minmax(0, 360px) minmax(0, 1fr); gap:14px; align-items:start; }
+.rj-grid h2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.rj-fields{ display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
+.rj-fields .pt-field{ margin-top:10px; }
+.rj-wide{ grid-column:1 / -1; }
+.rj-closed{ grid-column:1 / -1; margin-top:12px; font-size:0.86rem; }
+.rj-log{ width:100%; margin-top:14px; padding:12px; font-size:0.95rem; background:linear-gradient(180deg, #37dcae, #1fae86); border-color:#1a9c78; color:#03170f; }
+.rj-log:hover{ filter:brightness(1.06); }
+.rj-log:disabled{ opacity:0.5; }
+.pt-check small{ color:var(--muted); font-size:0.74rem; }
+.ch-card .pt-check{ margin-top:8px; font-size:0.86rem; align-items:flex-start; }
+@media (max-width:900px){ .rj-grid{ grid-template-columns:1fr; } }

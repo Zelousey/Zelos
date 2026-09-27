@@ -1,4 +1,4 @@
-"""Builds the $10,000 Practice Account page: practice/index.html.
+"""Builds Trade War (the $10,000 virtual account, PRACTICE mode): practice/index.html + profile, challenge, squads pages.
 
     python3 scripts/build_practice.py
 
@@ -21,8 +21,9 @@ HEAD = '<link rel="stylesheet" href="../zelos-theme.css">\n<link rel="stylesheet
 BODY = '''<main class="pt-shell">
   <div class="pt-top">
     <div class="pt-title">
-      <span class="pt-kicker">Practice account &middot; <span id="ptUser">Guest</span></span>
-      <h1>$10,000 Practice Account</h1>
+      <span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> &middot; <span id="ptUser">Guest</span></span>
+      <h1>Trade War</h1>
+      <span class="pt-lvl" id="ptLevel" hidden></span>
     </div>
     <div class="pt-acct">
       <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
@@ -42,6 +43,8 @@ BODY = '''<main class="pt-shell">
     <span><b>Account below $2,500.</b> You can start over at $10,000. Your trade history is kept and the reset shows on your stats.</span>
     <button class="pt-btn" type="button" id="ptResetBtn">Reset account</button>
   </div>
+
+  <div class="pt-recovery" id="ptRecovery" hidden></div>
 
   <div class="pt-grid">
     <aside class="pt-card pt-watch-card" aria-label="Stocks">
@@ -140,7 +143,7 @@ BODY = '''<main class="pt-shell">
           </div>
           <p class="pt-fine" id="ptOptNote"></p>
         </div>
-        <p class="pt-fine">Practice only. Long positions, cash account, no fees. Prices are real; your money isn't.</p>
+        <p class="pt-fine"><b>Trade War: virtual money.</b> Long positions, cash account, no fees. Prices are real; your money isn't. Made a real trade? Log it in the <a href="../real/">Real Trade Journal</a>.</p>
       </section>
     </div>
   </div>
@@ -152,12 +155,16 @@ BODY = '''<main class="pt-shell">
       <button class="pt-tab" type="button" role="tab" data-tab="history" aria-selected="false">History</button>
       <button class="pt-tab" type="button" role="tab" data-tab="agents" aria-selected="false">Agent signals</button>
       <button class="pt-tab" type="button" role="tab" data-tab="performance" aria-selected="false">Performance</button>
+      <button class="pt-tab" type="button" role="tab" data-tab="progress" aria-selected="false">XP &amp; missions</button>
     </div>
     <div class="pt-table-wrap" id="ptTabBody"></div>
   </section>
 
   <section class="pt-about">
-    <h2>How the practice account works</h2>
+    <h2>How Trade War works</h2>
+    <p><b>Trade War is virtual.</b> Every trade here uses virtual money from a $10,000 starting balance, marked <b>TRADE WAR — VIRTUAL</b>. Your
+    real trades live separately in the <a href="../real/">Real Trade Journal</a>, marked <b>REAL TRADE</b>. The two never mix: Trade War
+    leaderboards only rank virtual accounts, and your profile shows each side on its own. Both earn XP on the same account.</p>
     <p><b>Prices are real.</b> During market hours (9:30 am to 4:00 pm Eastern, weekdays) quotes update about once a minute. Outside those hours
     you see the latest close, and market orders wait for the next open, just like at a real broker.</p>
     <p><b>Orders.</b> Market orders fill at the current price. Limit orders fill at your price or better. Stop orders trigger when price
@@ -176,27 +183,28 @@ BODY = '''<main class="pt-shell">
     If the account drops below $2,500 you can reset it to $10,000; resets are counted on your stats.
     Want to train your eye first? Try <a href="../games/chart-replay.html">Chart Replay</a> or
     <a href="../games/grade-the-setup.html">Grade the Setup</a>.</p>
-    <p class="pt-fine">Paper trading for practice and education only. Not investment advice, no real orders, no brokerage connection.
+    <p class="pt-fine">Trade War is virtual trading for practice, competition and education only. Not investment advice, no real orders, no brokerage connection.
     Quotes may be delayed or briefly unavailable; holidays aren't modelled.</p>
   </section>
 </main>
 
-<div class="pt-vmoney" aria-hidden="true">Practice account &middot; virtual money</div>
+<div class="pt-vmoney" aria-hidden="true">Trade War &middot; virtual money</div>
 
 <div class="pt-gate" id="ptGate" hidden role="dialog" aria-modal="true" aria-labelledby="ptGateTitle">
   <div class="pt-gate-card">
-    <span class="pt-kicker">Paper trading &middot; live prices</span>
-    <h2 id="ptGateTitle">You're entering the $10,000 Practice Account</h2>
-    <p>Real stocks, real prices, virtual money. Nothing here touches a real brokerage account.</p>
+    <span class="zm-tag is-war">TRADE WAR — VIRTUAL</span>
+    <h2 id="ptGateTitle">You're entering Trade War</h2>
+    <div class="pt-gate-start"><b>$10,000</b><span>virtual starting balance</span></div>
+    <p><b>All trades in Trade War use virtual money.</b> Real stock prices, no real money, and nothing here touches a brokerage account.</p>
     <div class="pt-gate-who">
       <span class="pt-gate-av" aria-hidden="true">&#9679;</span>
       <span><b id="ptGateName">Guest</b><small id="ptGateWho">Guest · saved in this browser only</small></span>
       <button class="pt-linkbtn" type="button" id="ptGateRename" hidden>Rename</button>
     </div>
-    <div class="pt-gate-bal"><small>Account value</small><b id="ptGateBal">$10,000.00</b></div>
+    <div class="pt-gate-bal"><small>Your Trade War account</small><b id="ptGateBal">$10,000.00</b></div>
     <button class="pt-btn pt-gate-google" type="button" id="ptGateGoogle"><svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>Continue with Google</button>
-    <button class="pt-btn pt-btn-go pt-gate-enter" type="button" id="ptGateEnter">Enter practice account</button>
-    <small class="pt-gate-fine">Sign in to save your account everywhere and appear on the leaderboard. Only your display name and trading stats are public.</small>
+    <button class="pt-btn pt-btn-go pt-gate-enter" type="button" id="ptGateEnter">Enter Trade War</button>
+    <small class="pt-gate-fine">Sign in to save your account everywhere and appear on the Trade War leaderboards. Only your display name and virtual trading stats are public. Same account, XP and profile as the rest of AgenticTrading.info.</small>
   </div>
 </div>
 
@@ -213,36 +221,60 @@ BODY = '''<main class="pt-shell">
 
 
 PROFILE_BODY = '''<main class="pt-shell pf-shell">
-  <nav class="pf-crumbs"><a href="../leaderboard.html#practice">&larr; Practice leaderboard</a> &middot; <a href="./">Open the practice account</a></nav>
+  <nav class="pf-crumbs"><a href="../leaderboard.html#practice">&larr; Trade War leaderboard</a> &middot; <a href="./">Enter Trade War</a> &middot; <a href="../real/">Real Trade Journal</a></nav>
   <div id="pfBody"><p class="pt-empty">Loading profile…</p></div>
-  <p class="pt-fine pf-fine">Public practice-account stats only: display name, balance and closed trades with virtual money. No email, login or
-  personal details are shown. Players can make their stats private any time from the Performance tab.</p>
+  <p class="pt-fine pf-fine">Public stats only. Trade War numbers are virtual money; Real Trading status comes from trades logged in the Real Trade
+  Journal (self-reported, timestamped, never dollar amounts) and never implies profitability. The two are never combined. No email, login or personal
+  details are shown. Trade War stats can be made private in Trade War's Performance tab; real-trade stats in the Real Trade Journal.</p>
 </main>'''
 
 
+SOCIAL_SCRIPTS = ('<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
+                  '<script src="../zelos-social.js"></script>\n')
+CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; <a href="challenge.html">Challenges</a> &middot; '
+          '<a href="squads.html">Squads</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav>')
+
+
+def build_social_pages():
+    render('practice/challenge.html', 'Friend Challenge: Who Can Grow $10,000 the Most? | Zelos',
+           'Challenge a friend in Trade War: $10,000 virtual accounts, live head-to-head growth, balances and XP. Virtual money, real stock prices.',
+           '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="chBody"><p class="pt-empty">Loading…</p></div>'
+           '<p class="pt-fine pf-fine">Trade War challenges use virtual money. Scores are growth since the challenge started, in net P&amp;L: resets never count as gains.</p></main>',
+           HEAD, SOCIAL_SCRIPTS + '<script src="challenge.js"></script>\n', robots='noindex')
+    render('practice/squads.html', 'Trading Squads: Private Practice-Account Leaderboards | Zelos',
+           'Create a private Trading Squad, invite friends with a link and compete on your own leaderboard of $10,000 Trade War accounts.',
+           '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="sqBody"><p class="pt-empty">Loading…</p></div>'
+           '<p class="pt-fine pf-fine">Squads are private: only people with the invite link can see one. Members see each other\'s public Trade War (virtual) stats only.</p></main>',
+           HEAD, SOCIAL_SCRIPTS + '<script src="squads.js"></script>\n', robots='noindex')
+    print('built practice/challenge.html, practice/squads.html')
+
+
 def build_profile():
-    desc = 'Public stats for a Zelos $10,000 Practice Account: balance, growth, resets, win rate and best trades with virtual money.'
-    scripts = '<script src="profile.js"></script>\n'
-    render('practice/profile.html', 'Practice Account Profile | Zelos', desc, PROFILE_BODY, HEAD, scripts, robots='noindex')
+    desc = 'A Zelos trader profile: level, XP and streak, Real Trading activity, and Trade War (virtual $10,000 account) stats kept separately.'
+    scripts = ('<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
+               '<script src="profile.js"></script>\n')
+    render('practice/profile.html', 'Trader Profile | Zelos', desc, PROFILE_BODY, HEAD, scripts, robots='noindex')
     print('built practice/profile.html')
 
 
 def main():
-    desc = ('Free $10,000 practice trading account: trade 50 real stocks and ETFs at live prices with paper money. Candlestick charts with 13 '
+    desc = ('Trade War: a free $10,000 virtual trading account. Trade 50 real stocks and ETFs at live prices with virtual money and compete with friends. Candlestick charts with 13 '
             'indicators, market, limit, stop and bracket orders, simulated options, agent signals and a public leaderboard.')
     ld = {
-        '@context': 'https://schema.org', '@type': 'WebApplication', 'name': 'Zelos $10,000 Practice Account',
+        '@context': 'https://schema.org', '@type': 'WebApplication', 'name': 'Zelos Trade War ($10,000 virtual trading account)',
         'url': SITE + '/practice/', 'description': desc, 'applicationCategory': 'FinanceApplication',
         'operatingSystem': 'Web browser', 'isAccessibleForFree': True,
         'offers': {'@type': 'Offer', 'price': 0, 'priceCurrency': 'USD'},
         'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
     }
-    scripts = ('<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
+    scripts = ('<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
+               '<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
                '<script src="practice.js"></script>\n')
-    render('practice/index.html', '$10,000 Practice Account: Free Paper Trading with Live Prices | Zelos', desc, BODY, HEAD, scripts,
-           jsonld=[ld, breadcrumbs([('Zelos', ''), ('Practice Account', None)])])
+    render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos', desc, BODY, HEAD, scripts,
+           jsonld=[ld, breadcrumbs([('Zelos', ''), ('Trade War', None)])])
     print('built practice/index.html')
     build_profile()
+    build_social_pages()
     # the price function reads the same stock list, so it can never drift from the page
     shutil.copyfile(os.path.join(ROOT, 'data', 'practice-universe.json'), os.path.join(ROOT, 'functions', 'practice_universe.json'))
     print('copied data/practice-universe.json -> functions/practice_universe.json')

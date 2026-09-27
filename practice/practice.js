@@ -1,5 +1,5 @@
 /*!
- * Zelos $10,000 Practice Account.
+ * Zelos Trade War: the $10,000 virtual account (PRACTICE mode).
  *
  * A persistent simulated brokerage account: real prices, virtual money.
  *
@@ -132,7 +132,18 @@
   function fresh() {
     return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
       resets: 0, resetHistory: [], epoch: 0, epochStartedAt: Date.now(), peakEquity: START_CASH, publicProfile: true, displayName: '',
+      life: null, periods: {}, hist: {}, recovery: null,
       createdAt: Date.now(), updatedAt: Date.now() };
+  }
+  // lifetime counters for XP and achievements (survive resets); seeded from history for older accounts
+  function seedLife(a) {
+    if (a.life) return a;
+    var syms = [];
+    (a.trades || []).concat(a.fills || []).forEach(function (t) { if (t.sym && syms.indexOf(t.sym) === -1) syms.push(t.sym); });
+    a.life = { peak: Math.max(START_CASH, a.peakEquity || 0), fills: (a.fills || []).length, tpExits: (a.fills || []).filter(function (f) { return f.role === 'tp'; }).length,
+      comebacks: 0, optionTrades: (a.trades || []).filter(function (t) { return t.kind === 'option'; }).length + (a.options || []).length,
+      agentTrades: (a.orders || []).filter(function (o) { return o.agent && o.status === 'filled'; }).length, symbols: syms };
+    return a;
   }
   // v1 accounts (before options/resets) keep everything; closed trades are rebuilt from their sell fills
   function migrate(a) {
@@ -147,7 +158,7 @@
     });
     return b;
   }
-  function load() { try { return migrate(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch (e) { return fresh(); } }
+  function load() { try { return seedLife(migrate(JSON.parse(localStorage.getItem(KEY) || 'null'))); } catch (e) { return seedLife(fresh()); } }
   function save() {
     acct.updatedAt = Date.now();
     if (acct.fills.length > MAX_FILLS) acct.fills = acct.fills.slice(-MAX_FILLS);
@@ -155,6 +166,7 @@
     if (acct.orders.length > MAX_ORDERS) acct.orders = acct.orders.filter(function (o) { return o.status === 'open'; }).concat(acct.orders.filter(function (o) { return o.status !== 'open'; }).slice(-MAX_ORDERS));
     acct.summary = summary();
     try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {}
+    setTimeout(checkAch, 0);
     if (currentUser && db) {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(function () {
@@ -196,7 +208,44 @@
       resets: acct.resets, updatedAt: Date.now() };
   }
   function round2(x) { return Math.round(x * 100) / 100; }
-  function recordTrade(t) { t.epoch = acct.epoch; acct.trades.push(t); }
+  function recordTrade(t) { t.epoch = acct.epoch; t.mode = MODE; acct.trades.push(t); }
+  // every fill: lifetime counters, XP (first 10 trades and 10 wins a day) and missions
+  var PROG = window.ZelosProgress || null;
+  // every Trade War record is PRACTICE mode: virtual money, never mixed with REAL (see zelos-modes.js)
+  var MODE = 'PRACTICE';
+  function modeTag(short) { return window.ZelosModes ? ZelosModes.tag(MODE, short) : '<span class="zm-tag is-war">' + (short ? 'VIRTUAL' : 'TRADE WAR — VIRTUAL') + '</span>'; }
+  function onActivity(sym, pnl, extra) {
+    var L = acct.life, today = todayNY(); extra = extra || {};
+    L.fills = (L.fills || 0) + 1;
+    if (L.symbols.indexOf(sym) === -1) L.symbols.push(sym);
+    if (extra.option) L.optionTrades = (L.optionTrades || 0) + 1;
+    if (extra.agent) L.agentTrades = (L.agentTrades || 0) + 1;
+    if (extra.tp) L.tpExits = (L.tpExits || 0) + 1;
+    var d = acct.dayFills && acct.dayFills.date === today ? acct.dayFills : (acct.dayFills = { date: today, n: 0, w: 0 });
+    d.n += 1;
+    if (L.tradeDay !== today) {
+      var y = new Date(today + 'T12:00:00Z'); y.setUTCDate(y.getUTCDate() - 1);
+      L.tradeStreak = L.tradeDay === y.toISOString().slice(0, 10) ? (L.tradeStreak || 0) + 1 : 1;
+      L.tradeDay = today; L.bestTradeStreak = Math.max(L.bestTradeStreak || 0, L.tradeStreak);
+    }
+    if (window.ZelosXP && d.n <= 10) ZelosXP.award('practice-trade', today + ':' + d.n);
+    if (PROG) PROG.track('trade');
+    if (pnl != null && pnl > 0.005) {
+      d.w += 1;
+      if (window.ZelosXP && d.w <= 10) ZelosXP.award('practice-win', today + ':' + d.w);
+      if (PROG) PROG.track('win');
+    }
+  }
+  // Net P&L: growth that was actually traded. A reset refills the account to
+  // $10,000 but what it wiped out still counts against you, so resets never
+  // look like gains on a leaderboard or in a challenge.
+  function netPnl() { return equity() - START_CASH + acct.resetHistory.reduce(function (t, r) { return t + (r.equityBefore - START_CASH); }, 0); }
+  function tradeStreakNow() {
+    var L = acct.life, t = todayNY(), y = new Date(t + 'T12:00:00Z'); y.setUTCDate(y.getUTCDate() - 1);
+    return L.tradeDay === t || L.tradeDay === y.toISOString().slice(0, 10) ? (L.tradeStreak || 0) : 0;
+  }
+  function winStreakBest(list) { var best = 0, cur = 0; list.forEach(function (t) { if (t.pnl > 0) { cur++; best = Math.max(best, cur); } else if (t.pnl < 0) cur = 0; }); return best; }
+  var xpNow = null, referralCount = 0;
 
   // ------------------------------------------------------------ stock orders + fills
   function fill(o, px, when) {
@@ -210,6 +259,7 @@
       acct.positions[sym] = p;
       acct.fills.push({ id: uid(), sym: sym, side: 'buy', qty: qty, price: px, day: day, at: Date.now(), orderId: o.id, type: o.type });
       o.status = 'filled'; o.fillPrice = px; o.filledAt = Date.now(); o.filledDay = day;
+      onActivity(sym, null, { agent: !!o.agent });
       if (o.bracket && (o.bracket.sl || o.bracket.tp)) {
         var group = uid();
         if (o.bracket.sl) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'stop', qty: qty, stop: o.bracket.sl, tif: 'gtc', oco: group, parent: o.id, role: 'sl', placedOpen: marketOpen() }));
@@ -226,6 +276,7 @@
       acct.fills.push({ id: uid(), sym: sym, side: 'sell', qty: qty, price: px, day: day, at: Date.now(), orderId: o.id, type: o.type, pnl: pnl, role: o.role || null, dayBase: pos.openedDay === day ? pos.avg : pc });
       o.status = 'filled'; o.fillPrice = px; o.filledAt = Date.now(); o.filledDay = day; o.qty = qty;
       if (pos.qty <= 0) delete acct.positions[sym];
+      onActivity(sym, pnl, { tp: o.role === 'tp' });
       if (o.role === 'tp' || o.role === 'sl' || o.type === 'stop') alertFill(o, qty, px, pnl);
       acct.orders.forEach(function (x) {
         if (x.status !== 'open' || x.side !== 'sell' || x.sym !== sym) return;
@@ -293,6 +344,7 @@
     if (pos) { pos.avg = (pos.avg * pos.qty + c.ask * qty) / (pos.qty + qty); pos.qty += qty; }
     else acct.options.push({ id: uid(), cid: cid, sym: c.sym, type: c.type, strike: c.strike, exp: c.exp, qty: qty, avg: c.ask, openDay: todayNY(), agent: c.agent || null });
     acct.fills.push({ id: uid(), sym: c.sym, side: 'buy', qty: qty, price: c.ask, day: todayNY(), at: Date.now(), option: cid, type: 'option' });
+    onActivity(c.sym, null, { option: true, agent: !!c.agent });
     return null;
   }
   function sellOption(pos, qty, bid, why) {
@@ -301,6 +353,7 @@
     acct.cash += proceeds; acct.realized += pnl;
     recordTrade({ kind: 'option', sym: pos.sym, label: OPT.label(pos), qty: qty, entry: pos.avg, exit: bid, invested: pos.avg * 100 * qty, pnl: pnl, pct: pos.avg ? (bid / pos.avg - 1) * 100 : 0, openDay: pos.openDay, closeDay: todayNY(), note: why || null });
     acct.fills.push({ id: uid(), sym: pos.sym, side: 'sell', qty: qty, price: bid, day: todayNY(), at: Date.now(), option: pos.cid, type: 'option', pnl: pnl });
+    onActivity(pos.sym, pnl, {});
     pos.qty -= qty;
     if (pos.qty <= 0) acct.options = acct.options.filter(function (o) { return o !== pos; });
     return pnl;
@@ -322,9 +375,9 @@
 
   // ------------------------------------------------------------ notifications
   function notify(title, body) {
-    toast('<b>' + esc(title) + '</b><br>' + esc(body));
+    toast('<span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> <b>' + esc(title) + '</b><br>' + esc(body));
     try {
-      if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body: body, icon: '../icons/icon-192.png', tag: 'zelos-' + title });
+      if ('Notification' in window && Notification.permission === 'granted') new Notification('Trade War (virtual): ' + title, { body: body, icon: '../icons/icon-192.png', tag: 'zelos-' + title });
     } catch (e) {}
   }
   function alertFill(o, qty, px, pnl) {
@@ -342,6 +395,7 @@
 
   // ------------------------------------------------------------ UI state
   var sel = 'NVDA', side = 'buy', chart = null, ticket = { type: 'market', qtyMode: 'shares', mode: 'stock' }, tab = 'positions';
+  try { var qTab = new URLSearchParams(location.search).get('tab'); if (/^(positions|orders|history|agents|performance|progress)$/.test(qTab)) tab = qTab; } catch (e) {}
   var opt = { type: 'call', exp: null, pick: null }, agentAlerts = null, forecastOn = false;
 
   function renderWatch() {
@@ -381,6 +435,7 @@
     $('ptBP').textContent = money(buyingPower());
     $('ptUser').textContent = playerName();
     $('ptResetBanner').hidden = eq >= RESET_BELOW;
+    renderLevelChip(); renderRecovery();
     var st = $('ptFeed'), txt, cls;
     if (feed.state === 'live' && marketOpen()) { txt = 'Live · updated ' + ago(feed.updatedAt); cls = 'is-live'; }
     else if (feed.state === 'live' || feed.state === 'closed') { txt = 'Market closed · prices as of ' + asOf(feed.updatedAt); cls = 'is-closed'; }
@@ -391,6 +446,23 @@
     $('ptClock').textContent = marketOpen() ? 'Market open' : 'Market closed';
     $('ptClock').className = 'pt-clock ' + (marketOpen() ? 'is-open' : '');
     renderBell();
+  }
+  function levelOf(xp) { return window.ZelosLevels ? ZelosLevels.levelForXp(xp || 0) : null; }
+  function renderLevelChip() {
+    var el = $('ptLevel'); if (!el) return;
+    if (xpNow == null) { el.hidden = true; return; }
+    var lv = levelOf(xpNow), sk = PROG ? PROG.streak() : 0;
+    el.hidden = false;
+    el.innerHTML = (lv && window.ZelosLevels ? ZelosLevels.badge(lv, 18) : '') + '<b>Lv ' + (lv ? lv.level : 0) + '</b> ' + (lv ? esc(lv.name) : '') + ' · ' + xpNow.toLocaleString('en-US') + ' XP' + (sk ? ' · <span title="Mission streak">🔥 ' + sk + '</span>' : '');
+  }
+  function renderRecovery() {
+    var el = $('ptRecovery'); if (!el) return;
+    var r = acct.recovery; if (!r) { el.hidden = true; return; }
+    var eq = equity(), span = START_CASH - r.low, pctBack = span > 0 ? Math.max(0, Math.min(100, (eq - r.low) / span * 100)) : 0;
+    el.hidden = false;
+    el.innerHTML = '<div class="pt-rec-head"><span><b>Recovery goal</b> ' + money(r.low, 0) + ' &rarr; ' + money(START_CASH, 0) + '</span><span>' + money(eq) + ' · ' + pctBack.toFixed(0) + '% back</span></div>' +
+      '<div class="pt-rec-bar"><i style="width:' + pctBack.toFixed(1) + '%"></i></div>' +
+      '<small>Win it back to ' + money(START_CASH, 0) + ' without a reset' + (r.low <= START_CASH * 0.9 ? ' to earn <b>Comeback Kid</b>' : '') + '. Resets are counted separately and never count as growth.</small>';
   }
   function ago(iso) { if (!iso) return '–'; var s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000)); return s < 60 ? s + 's ago' : Math.round(s / 60) + 'm ago'; }
   function asOf(iso) { if (!iso) return 'last close'; try { return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET'; } catch (e) { return iso; } }
@@ -556,7 +628,7 @@
     var h = '', today = todayNY();
     if (tab === 'positions') {
       var syms = Object.keys(acct.positions);
-      h = syms.length ? '<table class="pt-table"><thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Price</th><th>Market value</th><th>Today</th><th>Total P&amp;L</th><th></th></tr></thead><tbody>' +
+      h = syms.length ? '<div class="pt-subhead">Stocks ' + modeTag() + '</div><table class="pt-table"><thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Price</th><th>Market value</th><th>Today</th><th>Total P&amp;L</th><th></th></tr></thead><tbody>' +
         syms.map(function (s) {
           var p = acct.positions[s], px = price(s), pc = prevClose(s), mv = p.qty * px, pl = (px - p.avg) * p.qty, base = p.openedDay === today ? p.avg : pc, dp = (px - base) * p.qty;
           return '<tr><td><button class="pt-link" data-sym="' + s + '">' + s + '</button></td><td>' + p.qty + '</td><td>' + fmt(p.avg) + '</td><td>' + fmt(px) + '</td><td>' + money(mv) + '</td>' +
@@ -564,7 +636,7 @@
             '<td><button class="pt-mini" data-close="' + s + '">Sell all</button></td></tr>';
         }).join('') + '</tbody></table>' : '';
       if (acct.options.length) {
-        h += '<div class="pt-subhead">Options <small>modeled prices</small></div><table class="pt-table"><thead><tr><th>Contract</th><th>Qty</th><th>Avg</th><th>Mark</th><th>Value</th><th>P&amp;L</th><th>Expires</th><th></th></tr></thead><tbody>' +
+        h += '<div class="pt-subhead">Options ' + modeTag() + ' <small>modeled prices</small></div><table class="pt-table"><thead><tr><th>Contract</th><th>Qty</th><th>Avg</th><th>Mark</th><th>Value</th><th>P&amp;L</th><th>Expires</th><th></th></tr></thead><tbody>' +
           acct.options.map(function (o) {
             var m = optionMark(o), pl = (m - o.avg) * 100 * o.qty;
             return '<tr><td><button class="pt-link" data-optsym="' + o.id + '">' + esc(OPT.label(o)) + '</button></td><td>' + o.qty + '</td><td>' + o.avg.toFixed(2) + '</td><td>' + m.toFixed(2) + '</td><td>' + money(m * 100 * o.qty) + '</td>' +
@@ -583,9 +655,9 @@
         }).join('') + '</tbody></table>' : '<p class="pt-empty">No open orders.</p>';
     } else if (tab === 'history') {
       var tr = acct.trades.slice(-150).reverse();
-      h = tr.length ? '<table class="pt-table"><thead><tr><th>Closed</th><th>Position</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Invested</th><th>P&amp;L</th><th>%</th></tr></thead><tbody>' +
+      h = tr.length ? '<table class="pt-table"><thead><tr><th>Closed</th><th>Type</th><th>Position</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Invested</th><th>P&amp;L</th><th>%</th></tr></thead><tbody>' +
         tr.map(function (t) {
-          return '<tr><td>' + (t.closeDay || '') + (t.epoch !== acct.epoch ? ' <small>(before reset)</small>' : '') + '</td><td>' + esc(t.label) + (t.note ? ' <small>· ' + esc(t.note) + '</small>' : '') + '</td><td>' + t.qty + '</td><td>' + fmt(t.entry) + '</td><td>' + fmt(t.exit) + '</td><td>' + money(t.invested) + '</td>' +
+          return '<tr><td>' + (t.closeDay || '') + (t.epoch !== acct.epoch ? ' <small>(before reset)</small>' : '') + '</td><td>' + modeTag() + '</td><td>' + esc(t.label) + (t.note ? ' <small>· ' + esc(t.note) + '</small>' : '') + '</td><td>' + t.qty + '</td><td>' + fmt(t.entry) + '</td><td>' + fmt(t.exit) + '</td><td>' + money(t.invested) + '</td>' +
             '<td class="' + (t.pnl >= 0 ? 'up' : 'dn') + '">' + signed(t.pnl) + '</td><td class="' + (t.pct >= 0 ? 'up' : 'dn') + '">' + pct(t.pct) + '</td></tr>';
         }).join('') + '</tbody></table>' : '<p class="pt-empty">Closed trades show up here with entry, exit and P&amp;L.</p>';
       var done = acct.orders.filter(function (o) { return o.status !== 'open' && o.status !== 'filled'; }).slice(-20).reverse();
@@ -594,6 +666,8 @@
       }).join('') + '</tbody></table>';
     } else if (tab === 'agents') {
       h = renderAgents();
+    } else if (tab === 'progress') {
+      h = renderProgress();
     } else {
       var st = stats(), eq = equity(), days = Object.keys(acct.equityDays).sort();
       h = '<div class="pt-perf">' +
@@ -609,6 +683,7 @@
         '<div class="pt-perf-foot">' +
         '<label class="pt-check"><input type="checkbox" id="ptPublic"' + (acct.publicProfile !== false ? ' checked' : '') + '> Show my stats on the leaderboard' + (currentUser ? '' : ' <small>(sign in to appear)</small>') + '</label>' +
         (currentUser && acct.publicProfile !== false ? '<a class="pt-mini" href="profile.html?u=' + encodeURIComponent(currentUser.uid) + '">View my public profile &rarr;</a>' : '') +
+        '<button class="pt-mini pt-soc" type="button" data-act="share">Share my account</button><button class="pt-mini pt-soc" type="button" data-act="challenge">Challenge a friend</button>' +
         (eq < RESET_BELOW ? '<button class="pt-reset" id="ptReset" type="button">Reset account to $10,000</button>' : '<span class="pt-fine">Reset unlocks if the account falls below ' + money(RESET_BELOW, 0) + '.</span>') + '</div>' +
         (acct.resetHistory.length ? '<div class="pt-subhead">Reset history</div><table class="pt-table"><tbody>' + acct.resetHistory.slice().reverse().map(function (r, k) {
           return '<tr><td>#' + (acct.resetHistory.length - k) + '</td><td>' + r.day + '</td><td>Account was at ' + money(r.equityBefore) + '</td></tr>';
@@ -620,6 +695,89 @@
       var r = $('ptReset'); if (r) r.addEventListener('click', askReset);
       $('ptPublic').addEventListener('change', function () { acct.publicProfile = this.checked; save(); renderTabs(); toast(this.checked ? 'Your stats will show on the leaderboard.' : 'Your stats are private now and removed from the leaderboard.'); });
     }
+  }
+  // ------------------------------------------------------------ progress tab: level, missions, achievements, invites
+  function renderProgress() {
+    var xp = xpNow || 0, lv = levelOf(xp), L = window.ZelosLevels, nx = L ? L.nextLevelForXp(xp) : null;
+    var pctLv = lv && nx ? Math.max(0, Math.min(100, (xp - lv.xp) / (nx.xp - lv.xp) * 100)) : 100;
+    var m = PROG ? PROG.missions() : null, un = PROG ? PROG.unlocked() : {};
+    var h = '<div class="pt-prog"><section class="pt-prog-card pt-lvl-card">' + (L && lv ? L.badge(lv, 64) : '') +
+      '<div class="pt-lvl-main"><small>Level ' + (lv ? lv.level : 0) + (lv ? ' · ' + esc(lv.title) : '') + '</small><b>' + (lv ? esc(lv.name) : 'Getting started') + '</b>' +
+      '<div class="pt-xpbar"><i style="width:' + pctLv.toFixed(1) + '%"></i></div>' +
+      '<span>' + xp.toLocaleString('en-US') + ' XP' + (nx ? ' · ' + (nx.xp - xp).toLocaleString('en-US') + ' to Level ' + nx.level + ' (' + esc(nx.name) + ')' : ' · top level') + '</span></div>' +
+      (m ? '<div class="pt-streak"><b>🔥 ' + m.streak.days + '</b><small>day streak</small><span>Best ' + m.streak.best + '</span></div>' : '') + '</section>';
+    if (xpNow == null) h += '<p class="pt-fine">XP is loading. Every trade, win, mission and achievement earns XP, even as a guest; sign in to keep it on every device.</p>';
+    if (m) {
+      var row = function (x) {
+        return '<li class="' + (x.done ? 'is-done' : '') + '"><span class="pt-mcheck">' + (x.done ? '&#10003;' : '') + '</span><span class="pt-mlabel">' + esc(x.label) +
+          (x.hint && !x.done ? '<small>' + esc(x.hint) + '</small>' : '') + '</span><span class="pt-mprog">' + x.count + '/' + x.goal + '</span><em>+' + x.xp + '</em></li>';
+      };
+      h += '<div class="pt-prog-cols"><section class="pt-prog-card"><h3>Daily missions <small>' + m.streak.doneToday + ' done · ' + m.streak.need + ' keep your streak</small></h3><ul class="pt-missions">' + m.daily.map(row).join('') + '</ul></section>' +
+        '<section class="pt-prog-card"><h3>Weekly missions</h3><ul class="pt-missions">' + m.weekly.map(row).join('') + '</ul>' +
+        '<p class="pt-fine">Streak rewards: 3 days +25 XP · 7 days +75 · 14 days +150 · 30 days +300.</p></section></div>';
+    }
+    if (PROG) {
+      var groups = {}; PROG.ACHIEVEMENTS.forEach(function (a) { (groups[a.group] = groups[a.group] || []).push(a); });
+      var got = Object.keys(un).length;
+      h += '<section class="pt-prog-card"><h3>Achievements <small>' + got + ' of ' + PROG.ACHIEVEMENTS.length + '</small></h3>' + Object.keys(groups).map(function (g) {
+        return '<div class="pt-subhead">' + esc(g) + '</div><div class="pt-achs">' + groups[g].map(function (a) {
+          return '<div class="pt-ach' + (un[a.id] ? ' is-on' : '') + '">' + PROG.badge(a.id, 40, !un[a.id]) + '<span><b>' + esc(a.label) + '</b><small>' + esc(a.desc) + '</small></span><em>+' + a.xp + '</em></div>';
+        }).join('') + '</div>';
+      }).join('') + '</section>';
+    }
+    var S = window.ZelosSocial;
+    h += '<section class="pt-prog-card"><h3>Invite friends</h3>';
+    if (currentUser && S) {
+      var tier = S.referralTier(referralCount), nt = S.nextTier(referralCount);
+      h += '<p class="pt-fine">When a friend joins Trade War from your link, you both get <b>+50 XP</b>. ' + referralCount + ' friend' + (referralCount === 1 ? '' : 's') + ' joined so far' +
+        (tier ? ' · ' + tier.icon + ' <b>' + tier.name + '</b>' : '') + (nt ? ' · ' + (nt - referralCount) + ' more for ' + (S.referralTier(nt).name) : '') + '.</p>' +
+        '<div class="pt-invite"><input readonly id="ptInvite" value="' + esc(S.links(currentUser.uid).invite()) + '"><button class="pt-mini" type="button" data-act="invite">Copy link</button></div>';
+    } else h += '<p class="pt-fine">Sign in with Google to get your invite link. Bronze at 1 friend, Silver at 3, Gold at 10, Diamond at 25.</p><button class="pt-mini" type="button" data-act="signin">Sign in</button>';
+    h += '<div class="pt-soc-row"><button class="pt-mini pt-soc" type="button" data-act="share">Share my account</button><button class="pt-mini pt-soc" type="button" data-act="challenge">Challenge a friend</button>' +
+      '<a class="pt-mini" href="squads.html">Trading Squads &rarr;</a><a class="pt-mini" href="../leaderboard.html#practice">Leaderboards &rarr;</a></div></section></div>';
+    return h;
+  }
+  function needSignIn(why) { toast(why || 'Sign in with Google first.', true); $('ptGate').hidden = false; renderGate(); }
+  function shareAccount() {
+    var S = window.ZelosSocial; if (!S) return;
+    var st = stats(), lv = levelOf(xpNow || 0), best = st.best[0];
+    var url = currentUser ? S.links(currentUser.uid).profile() + '&ref=' + encodeURIComponent(currentUser.uid) : 'https://agentictrading.info/practice/';
+    var eq = equity();
+    S.shareCard({ name: playerName(), equity: eq, headline: eq >= START_CASH ? 'I grew my $10,000 Trade War account to' : 'My $10,000 Trade War account is at',
+      cta: 'Can you beat me? Challenge me on AgenticTrading.info', level: lv ? 'Lv ' + lv.level + ' ' + lv.name : null, xp: xpNow, winRate: st.trades ? st.winRate : null,
+      best: best ? '+$' + Math.round(best.pnl).toLocaleString('en-US') + ' ' + best.sym : null }, url).then(function (r) {
+      if (r === 'downloaded') toast('Card saved as an image and your link is copied. Paste both into a text, Discord or social post.');
+    });
+  }
+  function challengeFriend() {
+    var S = window.ZelosSocial;
+    if (!S || !S.init()) return toast('Challenges need the live site.', true);
+    if (!currentUser) return needSignIn('Sign in with Google to challenge a friend in Trade War. Your stats need to be public so there\'s something to compete with.');
+    if (acct.publicProfile === false) return toast('Turn on "Show my stats on the leaderboard" in Performance first, so your friend can see the scores.', true);
+    var se = PROG && PROG.season();
+    $('ptModalTitle').textContent = 'Challenge a friend';
+    $('ptModalText').innerHTML = 'Who can grow their $10,000 the most? You both start from your current accounts; whoever gains the bigger percentage wins. Resets don\'t count as growth.' +
+      '<span class="pt-ch-days">' + [['7', '7 days'], ['30', '30 days']].concat(se ? [['season', 'Rest of ' + se.name]] : []).map(function (d, k) {
+        return '<label><input type="radio" name="ptChDays" value="' + d[0] + '"' + (k === 0 ? ' checked' : '') + '> ' + d[1] + '</label>';
+      }).join('') + '</span>';
+    $('ptModalGo').textContent = 'Create challenge link'; $('ptModalGo').disabled = false;
+    $('ptConfirm').hidden = false;
+    $('ptModalGo').onclick = function () {
+      var v = (document.querySelector('[name="ptChDays"]:checked') || {}).value || '7', endAt = null, days = +v;
+      if (v === 'season' && se) { endAt = new Date(se.end + 'T21:00:00Z').getTime(); days = Math.max(1, Math.round((endAt - Date.now()) / 864e5)); }
+      $('ptModalGo').disabled = true;
+      save(); publishProfile();
+      setTimeout(function () {
+        S.createChallenge({ days: days, endAt: endAt, season: v === 'season' && se ? se.id : null }).then(function (id) {
+          var link = S.links(currentUser.uid).challenge(id);
+          $('ptModalTitle').textContent = 'Challenge ready';
+          $('ptModalText').innerHTML = 'Send this link to a friend. The clock starts when they accept.<span class="pt-invite"><input readonly value="' + esc(link) + '"><button class="pt-mini" type="button" id="ptChCopy">Copy</button></span>';
+          $('ptChCopy').onclick = function () { S.shareLink('Trade War challenge', playerName() + ' challenged you to a Trade War: who can grow $10,000 (virtual) the most?', link).then(function (r) { if (r === 'copied') toast('Link copied.'); }); };
+          $('ptModalGo').disabled = false; $('ptModalGo').textContent = 'Open challenge page';
+          $('ptModalGo').onclick = function () { location.href = 'challenge.html?c=' + encodeURIComponent(id); };
+        }).catch(function (e) { $('ptModalGo').disabled = false; toast(esc(e.message || e), true); });
+      }, 600);
+    };
   }
   function drawCurve() {
     var cv = $('ptCurve'); if (!cv) return;
@@ -639,14 +797,15 @@
   // ------------------------------------------------------------ stats + public profile
   function stats() {
     var t = acct.trades, wins = t.filter(function (x) { return x.pnl > 0; }), losses = t.filter(function (x) { return x.pnl < 0; });
-    var bySym = {};
-    t.forEach(function (x) { bySym[x.sym] = (bySym[x.sym] || 0) + x.pnl; });
+    var bySym = {}, cnt = {};
+    t.forEach(function (x) { bySym[x.sym] = (bySym[x.sym] || 0) + x.pnl; cnt[x.sym] = (cnt[x.sym] || 0) + 1; });
     return {
       trades: t.length, wins: wins.length, losses: losses.length, winRate: t.length ? Math.round(wins.length / t.length * 100) : 0,
       avgWin: wins.length ? wins.reduce(function (a, x) { return a + x.pnl; }, 0) / wins.length : 0,
       avgLoss: losses.length ? losses.reduce(function (a, x) { return a + x.pnl; }, 0) / losses.length : 0,
       best: wins.slice().sort(function (a, b) { return b.pnl - a.pnl; }).slice(0, 10),
-      topStocks: Object.keys(bySym).map(function (s) { return { sym: s, pnl: round2(bySym[s]) }; }).filter(function (x) { return x.pnl > 0; }).sort(function (a, b) { return b.pnl - a.pnl; }).slice(0, 5)
+      topStocks: Object.keys(bySym).map(function (s) { return { sym: s, pnl: round2(bySym[s]) }; }).filter(function (x) { return x.pnl > 0; }).sort(function (a, b) { return b.pnl - a.pnl; }).slice(0, 5),
+      mostTraded: Object.keys(cnt).map(function (s) { return { sym: s, trades: cnt[s], pnl: round2(bySym[s] || 0) }; }).sort(function (a, b) { return b.trades - a.trades; }).slice(0, 5)
     };
   }
   function playerName() {
@@ -660,7 +819,7 @@
     if (!currentUser || !db) return;
     var ref = db.collection('practiceProfiles').doc(currentUser.uid);
     if (acct.publicProfile === false) { ref.delete().catch(function () {}); return; }
-    var st = stats(), eq = equity();
+    var st = stats(), eq = equity(), lv = window.ZelosLevels && xpNow != null ? ZelosLevels.levelForXp(xpNow) : null;
     ref.set({
       name: String(playerName()).slice(0, 24), equity: round2(eq), start: START_CASH, growthPct: round2((eq / START_CASH - 1) * 100),
       peakEquity: round2(acct.peakEquity || eq), resets: acct.resets || 0,
@@ -668,22 +827,29 @@
       trades: st.trades, wins: st.wins, losses: st.losses, winRate: st.winRate, avgWin: round2(st.avgWin), avgLoss: round2(st.avgLoss),
       realized: round2(acct.realized),
       bestTrades: st.best.map(function (x) { return { sym: x.sym, label: x.label, kind: x.kind, qty: x.qty, invested: round2(x.invested), pnl: round2(x.pnl), pct: round2(x.pct), entry: round2(x.entry), exit: round2(x.exit), openDay: x.openDay || null, closeDay: x.closeDay || null }; }),
-      topStocks: st.topStocks, since: acct.createdAt, updatedAt: Date.now()
+      topStocks: st.topStocks, since: acct.createdAt, updatedAt: Date.now(),
+      // progression + social (see zelos-progress.js / zelos-social.js)
+      mode: MODE, photo: currentUser.photoURL && /^https:/.test(currentUser.photoURL) ? currentUser.photoURL : null,
+      virtualTrades: acct.life.fills || 0, tradeStreak: tradeStreakNow(), bestTradeStreak: acct.life.bestTradeStreak || 0,
+      netPnl: round2(netPnl()), xp: xpNow || 0, level: lv ? lv.level : 0, levelName: lv ? lv.name : '', streak: PROG ? PROG.streak() : 0,
+      achievements: PROG ? Object.keys(PROG.unlocked()) : [], referrals: referralCount, winStreakBest: winStreakBest(acct.trades),
+      mostTraded: st.mostTraded, recovering: acct.recovery ? { low: acct.recovery.low, since: acct.recovery.since } : null,
+      p: periodStats(), h: acct.hist
     }).catch(function () {});
   }
 
   // ------------------------------------------------------------ reset
   function askReset() {
     if (equity() >= RESET_BELOW) return toast('Reset unlocks once the account is below ' + money(RESET_BELOW, 0) + '.', true);
-    $('ptModalTitle').textContent = 'Reset your practice account?';
+    $('ptModalTitle').textContent = 'Reset your Trade War account?';
     $('ptModalText').innerHTML = 'Your account goes back to <b>$10,000</b>: open positions, options and orders are cleared. Your trade history stays, and this counts as <b>reset #' + (acct.resets + 1) + '</b> on your public stats.';
     $('ptModalGo').textContent = 'Reset to $10,000';
-    $('ptConfirm').hidden = false; $('ptModalGo').focus();
+    $('ptModalGo').disabled = false; $('ptConfirm').hidden = false; $('ptModalGo').focus();
     $('ptModalGo').onclick = function () {
       $('ptConfirm').hidden = true;
       acct.resetHistory.push({ at: Date.now(), day: todayNY(), equityBefore: round2(equity()) });
       acct.resets += 1; acct.epoch += 1; acct.epochStartedAt = Date.now();
-      acct.cash = START_CASH; acct.positions = {}; acct.options = []; acct.equityDays = {}; acct.peakEquity = START_CASH; acct.realized = 0;
+      acct.cash = START_CASH; acct.positions = {}; acct.options = []; acct.equityDays = {}; acct.peakEquity = START_CASH; acct.realized = 0; acct.recovery = null;
       acct.orders.forEach(function (o) { if (o.status === 'open') { o.status = 'cancelled'; o.note = 'Account reset'; } });
       save(); renderAll(); toast('Account reset to $10,000. Reset #' + acct.resets + ' recorded.');
     };
@@ -704,7 +870,7 @@
   function renderAgents() {
     if (!agentAlerts) { loadAgents(); if (!agentAlerts) return '<p class="pt-empty">Loading the latest agent signals…</p>'; }
     if (!agentAlerts.length) return '<p class="pt-empty">Agent signals load from the live alert feed. They\'re not reachable right now.</p>';
-    return '<p class="pt-fine" style="margin-bottom:10px">Test a Zelos agent with virtual money: each card is that agent\'s latest qualified setup. <b>Paper trade</b> loads it into your ticket with its stop and target; you still review and place the order.</p><div class="pt-agents">' +
+    return '<p class="pt-fine" style="margin-bottom:10px">Test a Zelos agent in Trade War with virtual money: each card is that agent\'s latest qualified setup. <b>Trade it in Trade War</b> loads it into your ticket with its stop and target; you still review and place the order.</p><div class="pt-agents">' +
       agentAlerts.map(function (a) {
         var name = AGENTS[a.strategy], own = ownedSkills.indexOf(a.strategy) !== -1;
         var badge = '<span class="pt-abadge' + (own ? ' is-own' : '') + '">' + (own ? 'Your agent' : 'Preview') + '</span>';
@@ -715,7 +881,7 @@
           '<div class="pt-aticker">' + esc(a.ticker) + ' <small>' + esc(a.setupLabel || a.direction || '') + '</small></div>' +
           (a.entry ? '<div class="pt-alevels"><span>Entry <b>' + fmt(a.entry) + '</b></span><span>Stop <b>' + fmt(a.stop) + '</b></span><span>Target <b>' + fmt(a.target1) + '</b></span>' + (rr ? '<span>R:R <b>' + rr.toFixed(1) + '</b></span>' : '') + '</div>' : '') +
           (isOpt && a.optionsRule ? '<p class="pt-fine">' + esc(a.optionsRule) + '</p>' : '') +
-          (inU ? '<button class="pt-mini pt-abtn" data-agent="' + a.strategy + '">' + (isOpt ? 'Open in options &rarr;' : 'Paper trade this &rarr;') + '</button>'
+          (inU ? '<button class="pt-mini pt-abtn" data-agent="' + a.strategy + '">' + (isOpt ? 'Open in options &rarr;' : 'Trade it in Trade War &rarr;') + '</button>'
             : '<p class="pt-fine">' + esc(a.ticker) + ' isn\'t in the practice stock list yet.</p>') +
           (own ? '' : '<a class="pt-fine pt-alink" href="../arsenal.html">Get the ' + name + ' agent</a>') + '</div>';
       }).join('') + '</div>';
@@ -750,6 +916,7 @@
   function selectSymbol(sym) {
     if (sym === sel) return renderAll();
     sel = sym;
+    if (PROG) PROG.track('analyze', sym);
     buildSeries(sym);
     var p = price(sym);
     $('ptLimit').value = p ? fmt(p) : ''; $('ptStopPx').value = p ? fmt(p) : '';
@@ -814,7 +981,7 @@
     $('ptModalTitle').textContent = 'Confirm order';
     $('ptModalText').innerHTML = '<b>' + esc(desc) + '</b><br>' + esc($('ptWhen').textContent) + (side === 'buy' ? '<br>Estimated ' + money(q * (o.limit || o.stop || px)) + ' of your ' + money(buyingPower()) + ' buying power.' : '');
     $('ptModalGo').textContent = side === 'buy' ? 'Place buy order' : 'Place sell order';
-    $('ptConfirm').hidden = false; $('ptModalGo').focus();
+    $('ptModalGo').disabled = false; $('ptConfirm').hidden = false; $('ptModalGo').focus();
     $('ptModalGo').onclick = function () { $('ptConfirm').hidden = true; place(o); };
   }
   function place(f) {
@@ -829,7 +996,72 @@
     $('ptQty').value = ''; ticket.agent = null;
     renderTicket();
   }
-  function snapshotEquity() { acct.equityDays[todayNY()] = Math.round(equity() * 100) / 100; }
+  function snapshotEquity() {
+    var today = todayNY(), eq = equity(), n = round2(netPnl());
+    acct.equityDays[today] = round2(eq);
+    var L = acct.life; if (eq > (L.peak || 0)) L.peak = round2(eq);
+    // weekly / monthly / season baselines: the first time a period is seen
+    if (PROG) {
+      var keys = PROG.periodKeys(today), keep = {};
+      [keys.w, keys.m, keys.s].forEach(function (k) {
+        if (!k) return;
+        var b = acct.periods[k] || { net0: n, eq0: round2(eq), xp0: null, at: today };
+        if (b.xp0 == null && xpNow != null) b.xp0 = xpNow;
+        keep[k] = b;
+      });
+      acct.periods = keep;
+    }
+    // end-of-day history (net P&L, XP, value) so challenges and squads can freeze a result at their end date
+    acct.hist['d' + today.replace(/-/g, '')] = { n: n, x: xpNow || 0, e: round2(eq) };
+    var hk = Object.keys(acct.hist).sort(); if (hk.length > 90) hk.slice(0, hk.length - 90).forEach(function (k) { delete acct.hist[k]; });
+    // recovery goals: down 5% or more → work back to $10,000 instead of feeling finished
+    var r = acct.recovery;
+    if (r && r.epoch !== acct.epoch) r = acct.recovery = null;
+    if (!r && eq < START_CASH * 0.95) r = acct.recovery = { low: round2(eq), since: today, epoch: acct.epoch, halfway: false };
+    if (r) {
+      r.low = round2(Math.min(r.low, eq));
+      if (!r.halfway && r.low < START_CASH * 0.95 && eq >= r.low + (START_CASH - r.low) / 2) { r.halfway = true; toast('<b>Halfway back.</b> You\'ve recovered half of what the account lost. Keep going.'); }
+      if (eq >= START_CASH) {
+        if (r.low <= START_CASH * 0.9) { L.comebacks = (L.comebacks || 0) + 1; toast('<b>Comeback complete!</b> From ' + money(r.low) + ' back to ' + money(START_CASH) + ' without a reset.'); }
+        acct.recovery = null;
+      }
+    }
+  }
+  // what the achievements check sees
+  function achCtx() {
+    var L = acct.life, s = PROG && PROG.season(), c = {
+      fills: L.fills, wins: acct.trades.filter(function (t) { return t.pnl > 0; }).length, tpExits: L.tpExits, bestWinStreak: winStreakBest(acct.trades),
+      symbols: L.symbols.length, optionTrades: L.optionTrades, agentTrades: L.agentTrades, trades: acct.trades.length, peak: L.peak, comebacks: L.comebacks,
+      referrals: referralCount, seasonTraded: {}, seasonPct: {}
+    };
+    if (PROG) PROG.SEASONS.forEach(function (se) {
+      c.seasonTraded[se.id] = acct.fills.some(function (f) { return f.day >= se.start && f.day <= se.end; }) || acct.trades.some(function (t) { return t.closeDay >= se.start && t.closeDay <= se.end; });
+    });
+    if (s && acct.periods[s.id]) { var b = acct.periods[s.id]; c.seasonPct[s.id] = (netPnl() - b.net0) / b.eq0 * 100; }
+    return c;
+  }
+  function checkAch() { if (PROG && UNIVERSE.length) PROG.checkAchievements(achCtx()); }
+  // weekly / monthly / season numbers for the public profile and the period leaderboards
+  function periodStats() {
+    var out = {}, n = netPnl(); if (!PROG) return out;
+    var keys = PROG.periodKeys(todayNY());
+    Object.keys(acct.periods).forEach(function (k) {
+      var b = acct.periods[k], pnl = n - b.net0, row = { pnl: round2(pnl), pct: round2(pnl / (b.eq0 || START_CASH) * 100) };
+      if (k === keys.s) {
+        var se = PROG.SEASONS.filter(function (x) { return x.id === k; })[0], ts = acct.trades.filter(function (t) { return t.closeDay >= se.start && t.closeDay <= se.end; }), bySym = {};
+        ts.forEach(function (t) { bySym[t.sym] = (bySym[t.sym] || 0) + t.pnl; });
+        var top = Object.keys(bySym).sort(function (a, b2) { return bySym[b2] - bySym[a]; })[0];
+        row.xp = xpNow != null && b.xp0 != null ? xpNow - b.xp0 : 0;
+        row.bestWin = round2(Math.max(0, Math.max.apply(null, ts.map(function (t) { return t.pnl; }).concat([0]))));
+        row.bestPct = round2(Math.max(0, Math.max.apply(null, ts.filter(function (t) { return t.pnl > 0; }).map(function (t) { return t.pct; }).concat([0]))));
+        row.winStreak = winStreakBest(ts);
+        row.topStock = top && bySym[top] > 0 ? top : null; row.topStockPnl = top && bySym[top] > 0 ? round2(bySym[top]) : 0;
+        row.trades = ts.length;
+      }
+      out[k] = row;
+    });
+    return out;
+  }
 
   // ------------------------------------------------------------ entry gate
   function showGate() {
@@ -856,6 +1088,7 @@
     var changed = processOrders();
     snapshotEquity();
     if (changed) save();
+    checkAch();
     renderAll();
   }
 
@@ -895,6 +1128,11 @@
         $('ptOptQty').value = o.qty; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' });
       }
       if (ag) useAgent(ag);
+      var act = tg.getAttribute('data-act');
+      if (act === 'share') shareAccount();
+      if (act === 'challenge') challengeFriend();
+      if (act === 'signin') needSignIn('Sign in with Google to get your invite link.');
+      if (act === 'invite' && window.ZelosSocial) ZelosSocial.shareLink('Join me on AgenticTrading.info', 'Trade real stocks with $10,000 of virtual money and see if you can beat me.', $('ptInvite').value).then(function (r) { if (r === 'copied') toast('Invite link copied.'); });
     });
     // toolbar: timeframe, ranges, indicators, forecast, colors
     menu('ptTfBtn', 'ptTfMenu'); menu('ptIndBtn', 'ptIndMenu'); menu('ptColorsBtn', 'ptColorPop');
@@ -947,6 +1185,8 @@
       if (Notification.permission === 'denied') return toast('Notifications are blocked for this site in your browser settings.', true);
       Notification.requestPermission().then(function () { renderBell(); if (Notification.permission === 'granted') toast('You\'ll get a pop-up when a take profit or stop loss hits while this tab is open.'); });
     });
+    // missions / achievements changed (here or in another tab)
+    document.addEventListener('zelos:progress', function () { if (!UNIVERSE.length) return; renderLevelChip(); if (tab === 'progress') renderTabs(); });
     // entry gate
     $('ptGateEnter').addEventListener('click', function () { $('ptGate').hidden = true; try { sessionStorage.setItem('zelosPracticeEntered', '1'); } catch (e) {} });
     $('ptGateGoogle').addEventListener('click', function () {
@@ -992,14 +1232,29 @@
           if (UNIVERSE.length) tick();
         }, function () {});
         watchIntraday();
+        var xpUnsub = null;
         firebase.auth().onAuthStateChanged(function (user) {
+          // XP accrues to whoever is signed in, guests included (zelos-xp.js signs them in anonymously)
+          if (xpUnsub) { xpUnsub(); xpUnsub = null; }
+          if (user) xpUnsub = db.collection('users').doc(user.uid).onSnapshot(function (d) {
+            var data = d.exists ? d.data() : {}, before = xpNow;
+            xpNow = data.xp || 0;
+            if (before == null && UNIVERSE.length) { snapshotEquity(); }
+            if (before !== xpNow && currentUser && UNIVERSE.length) save(); // republish XP / level on the public profile
+            if (UNIVERSE.length) { renderHeader(); if (tab === 'progress') renderTabs(); }
+          }, function () {});
           currentUser = user && !user.isAnonymous ? user : null;
+          if (PROG) { if (currentUser) PROG.attach(db, currentUser.uid); else PROG.detach(); }
+          if (currentUser && window.ZelosSocial && ZelosSocial.init()) {
+            ZelosSocial.claimReferral(currentUser);
+            ZelosSocial.myReferrals(currentUser.uid).then(function (ids) { if (ids.length !== referralCount) { referralCount = ids.length; checkAch(); save(); } });
+          }
           $('ptSync').textContent = currentUser ? 'Saved to your account' : 'Saved in this browser · sign in to keep it everywhere';
           if (!currentUser) { renderGate(); if (UNIVERSE.length) renderHeader(); return; }
           db.collection('users').doc(currentUser.uid).get().then(function (doc) {
             var data = doc.exists ? doc.data() : {};
             ownedSkills = data.ownedSkills || [];
-            var remote = data.practice ? migrate(data.practice) : null;
+            var remote = data.practice ? seedLife(migrate(data.practice)) : null;
             if (remote && (remote.updatedAt || 0) > (acct.updatedAt || 0)) { acct = remote; try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} }
             save(); renderGate(); if (UNIVERSE.length) tick();
           }).catch(function () {});
