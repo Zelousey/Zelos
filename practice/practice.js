@@ -1,28 +1,32 @@
 /*!
  * Zelos $10,000 Practice Account.
  *
- * Prices: live quotes that the refresh_quotes Cloud Function pulls from
- * Finnhub every minute into Firestore markets/quotes, on top of daily bars
- * (data/game-charts.json plus markets/dailyBars). With no live feed, it
- * falls back to the latest daily close and says so.
+ * A persistent simulated brokerage account: real prices, virtual money.
  *
- * Orders: market, limit and stop, day or good-til-cancelled, with an optional
- * stop-loss / take-profit bracket (one cancels the other). Long positions
- * only, cash account, no fees. Orders fill on live price ticks while the page
- * is open, and are caught up against the daily bars when you come back.
+ * Prices: live quotes the refresh_quotes Cloud Function pulls from Finnhub
+ * into Firestore markets/quotes every minute in market hours, on top of daily
+ * history (data/game-charts.json + data/practice-extra.json + markets/dailyBars).
+ * With no live feed it falls back to the latest close and says so.
  *
- * Saved in this browser, and to users/{uid}.practice when signed in.
+ * Stocks: market / limit / stop orders, day or GTC, optional stop-loss +
+ * take-profit bracket (one cancels the other), long only, no fees. Orders fill
+ * on live ticks while the page is open and are caught up against daily bars
+ * when you come back.
+ *
+ * Options: long calls/puts priced by a model (practice-options.js), traded in
+ * market hours, settled at intrinsic value at expiration.
+ *
+ * Persistence: localStorage, plus users/{uid}.practice for signed-in users.
+ * Public stats go to practiceProfiles/{uid} (leaderboard + profile page)
+ * unless the player turns that off. Resets are only offered below $2,500,
+ * are counted, and are kept in a history.
  */
 (function () {
   'use strict';
-  var START_CASH = 10000, KEY = 'zelosPractice-v1', MAX_FILLS = 500, MAX_ORDERS = 400;
-  var NAMES = {
-    AAPL: 'Apple', AMZN: 'Amazon', MSFT: 'Microsoft', GOOGL: 'Alphabet', NFLX: 'Netflix', CRWD: 'CrowdStrike', UBER: 'Uber', SMCI: 'Super Micro',
-    AVGO: 'Broadcom', SOFI: 'SoFi', NVDA: 'NVIDIA', AMD: 'AMD', TSLA: 'Tesla', META: 'Meta', PLTR: 'Palantir', COIN: 'Coinbase', SHOP: 'Shopify',
-    MU: 'Micron', SPY: 'S&P 500 ETF', QQQ: 'Nasdaq 100 ETF', JPM: 'JPMorgan', XOM: 'Exxon Mobil', LLY: 'Eli Lilly', COST: 'Costco', HOOD: 'Robinhood',
-    ANET: 'Arista', DKNG: 'DraftKings', RBLX: 'Roblox', SNOW: 'Snowflake', ABNB: 'Airbnb'
-  };
-  var TC = window.ZelosTradeChart, fmt = TC.fmt;
+  var START_CASH = 10000, RESET_BELOW = 2500, KEY = 'zelosPractice-v1';
+  var MAX_FILLS = 600, MAX_ORDERS = 400, MAX_TRADES = 1000;
+  var TC = window.ZelosTradeChart, OPT = window.ZelosOptions, fmt = TC.fmt;
+  var NAMES = {}, GROUPS = {}, UNIVERSE = [];
   var $ = function (id) { return document.getElementById(id); };
   function money(n, d) { if (n == null || isNaN(n)) return '–'; var s = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: d == null ? 2 : d, maximumFractionDigits: d == null ? 2 : d }); return (n < 0 ? '-$' : '$') + s; }
   function signed(n, d) { return (n >= 0 ? '+' : '') + money(n, d); }
@@ -41,12 +45,7 @@
   function addDays(ds, n) { var d = new Date(ds + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   function nextSession(ds) { var d = addDays(ds, 1); while ([0, 6].indexOf(new Date(d + 'T12:00:00Z').getUTCDay()) !== -1) d = addDays(d, 1); return d; }
   function todayNY() { return nyParts().date; }
-  // the session an order placed right now will trade in
-  function activeSession() {
-    var p = nyParts();
-    if (!isWeekend(p.wd) && p.min < 960) return p.date;
-    return nextSession(p.date);
-  }
+  function activeSession() { var p = nyParts(); if (!isWeekend(p.wd) && p.min < 960) return p.date; return nextSession(p.date); }
 
   // ------------------------------------------------------------ data
   var hist = {}, extra = {}, quotes = {}, feed = { state: 'loading' }, series = {}, intraday = {}, intradayUnsub = null, intradaySym = null;
@@ -74,17 +73,15 @@
     return s.c[s.n - 2];
   }
   function isLiveTick(sym) { return feed.state === 'live' && quotes[sym] && marketOpen(); }
+  function vol(sym) { var s = series[sym]; return s ? OPT.histVol(s.c, 20) : 0.4; }
 
   // ------------------------------------------------------------ timeframes
-  // Daily bars drive prices and orders. The chart can also show weekly bars
-  // (built from daily) and 5m / 15m / 1h bars (built from the live feed's
-  // 5-minute bars, markets/intraday_<SYM>).
   var TF = {
-    '5m': { label: '5m', intraday: 5, ranges: [['1D', 78], ['2D', 156], ['5D', 390]], def: 78 },
-    '15m': { label: '15m', intraday: 15, ranges: [['1D', 26], ['2D', 52], ['5D', 130]], def: 52 },
-    '1h': { label: '1H', intraday: 60, ranges: [['1D', 7], ['5D', 35]], def: 35 },
-    'D': { label: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
-    'W': { label: 'W', ranges: [['6M', 26], ['1Y', 52], ['All', 'all']], def: 52 }
+    '5m': { label: '5 minutes', short: '5m', intraday: 5, ranges: [['1D', 78], ['2D', 156], ['5D', 390]], def: 78 },
+    '15m': { label: '15 minutes', short: '15m', intraday: 15, ranges: [['1D', 26], ['2D', 52], ['5D', 130]], def: 52 },
+    '1h': { label: '1 hour', short: '1H', intraday: 60, ranges: [['1D', 7], ['5D', 35]], def: 35 },
+    'D': { label: 'Daily', short: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
+    'W': { label: 'Weekly', short: 'W', ranges: [['6M', 26], ['1Y', 52], ['All', 'all']], def: 52 }
   };
   var tf = 'D', rangeSel = null;
   function fromRows(rows, key, extraProps) {
@@ -129,36 +126,55 @@
       renderQuote();
     }, function () {});
   }
-  function renderRanges() {
-    var def = rangeSel || TF[tf].def;
-    $('ptRanges').innerHTML = TF[tf].ranges.map(function (r) {
-      return '<button class="pt-chip' + (String(r[1]) === String(def) ? ' is-on' : '') + '" type="button" data-range="' + r[1] + '">' + r[0] + '</button>';
-    }).join('');
-    document.querySelectorAll('[data-tf]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-tf') === tf); b.setAttribute('aria-pressed', String(b.getAttribute('data-tf') === tf)); });
-  }
 
   // ------------------------------------------------------------ account state
-  var acct = null, currentUser = null, db = null, saveTimer = null;
-  function fresh() { return { v: 1, cash: START_CASH, positions: {}, orders: [], fills: [], realized: 0, equityDays: {}, createdAt: Date.now(), updatedAt: Date.now() }; }
-  function load() { try { var a = JSON.parse(localStorage.getItem(KEY) || 'null'); if (a && a.v === 1) return a; } catch (e) {} return fresh(); }
+  var acct = null, currentUser = null, db = null, saveTimer = null, ownedSkills = [];
+  function fresh() {
+    return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
+      resets: 0, resetHistory: [], epoch: 0, epochStartedAt: Date.now(), peakEquity: START_CASH, publicProfile: true, displayName: '',
+      createdAt: Date.now(), updatedAt: Date.now() };
+  }
+  // v1 accounts (before options/resets) keep everything; closed trades are rebuilt from their sell fills
+  function migrate(a) {
+    if (!a) return fresh();
+    if (a.v === 2) { var f = fresh(); Object.keys(f).forEach(function (k) { if (a[k] == null) a[k] = f[k]; }); return a; }
+    var b = fresh();
+    Object.keys(a).forEach(function (k) { b[k] = a[k]; });
+    b.v = 2; b.options = b.options || []; b.resets = b.resets || 0; b.resetHistory = b.resetHistory || []; b.epoch = 0;
+    b.trades = (a.fills || []).filter(function (f) { return f.side === 'sell' && f.pnl != null; }).map(function (f) {
+      var entry = f.price - f.pnl / f.qty;
+      return { kind: 'stock', sym: f.sym, label: f.sym, qty: f.qty, entry: entry, exit: f.price, invested: entry * f.qty, pnl: f.pnl, pct: (f.price / entry - 1) * 100, openDay: null, closeDay: f.day, epoch: 0 };
+    });
+    return b;
+  }
+  function load() { try { return migrate(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch (e) { return fresh(); } }
   function save() {
     acct.updatedAt = Date.now();
     if (acct.fills.length > MAX_FILLS) acct.fills = acct.fills.slice(-MAX_FILLS);
+    if (acct.trades.length > MAX_TRADES) acct.trades = acct.trades.slice(-MAX_TRADES);
     if (acct.orders.length > MAX_ORDERS) acct.orders = acct.orders.filter(function (o) { return o.status === 'open'; }).concat(acct.orders.filter(function (o) { return o.status !== 'open'; }).slice(-MAX_ORDERS));
+    acct.summary = summary();
     try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {}
     if (currentUser && db) {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(function () {
         db.collection('users').doc(currentUser.uid).set({ practice: JSON.parse(JSON.stringify(acct)) }, { merge: true }).catch(function () {});
-      }, 800);
+        publishProfile();
+      }, 900);
     }
   }
 
-  function positionValue() { var t = 0; Object.keys(acct.positions).forEach(function (s) { t += acct.positions[s].qty * (price(s) || acct.positions[s].avg); }); return t; }
-  function equity() { return acct.cash + positionValue(); }
-  function reservedCash() {
-    return acct.orders.reduce(function (t, o) { return o.status === 'open' && o.side === 'buy' ? t + o.qty * (o.limit || o.stop || price(o.sym) || 0) : t; }, 0);
+  function optionMark(o) { var S = price(o.sym); if (S == null) return o.avg; return OPT.quote(o.type, S, o.strike, o.exp, todayNY(), vol(o.sym)).mid; }
+  function stockValue() { var t = 0; Object.keys(acct.positions).forEach(function (s) { t += acct.positions[s].qty * (price(s) || acct.positions[s].avg); }); return t; }
+  function optionsValue() { return acct.options.reduce(function (t, o) { return t + o.qty * 100 * optionMark(o); }, 0); }
+  function equity() { return acct.cash + stockValue() + optionsValue(); }
+  function openPnl() {
+    var t = 0;
+    Object.keys(acct.positions).forEach(function (s) { var p = acct.positions[s]; t += p.qty * ((price(s) || p.avg) - p.avg); });
+    acct.options.forEach(function (o) { t += o.qty * 100 * (optionMark(o) - o.avg); });
+    return t;
   }
+  function reservedCash() { return acct.orders.reduce(function (t, o) { return o.status === 'open' && o.side === 'buy' ? t + o.qty * (o.limit || o.stop || price(o.sym) || 0) : t; }, 0); }
   function buyingPower() { return Math.max(0, acct.cash - reservedCash()); }
   function reservedShares(sym) { return acct.orders.reduce(function (t, o) { return o.status === 'open' && o.side === 'sell' && o.sym === sym && !o.oco ? t + o.qty : t; }, 0); }
   function dayPnl() {
@@ -166,14 +182,23 @@
     Object.keys(acct.positions).forEach(function (s) {
       var p = acct.positions[s], px = price(s), pc = prevClose(s);
       if (px == null) return;
-      var base = p.openedDay === today || pc == null ? p.avg : pc;
-      t += p.qty * (px - base);
+      t += p.qty * (px - (p.openedDay === today || pc == null ? p.avg : pc));
     });
     acct.fills.forEach(function (f) { if (f.side === 'sell' && f.day === today && f.dayBase != null) t += f.qty * (f.price - f.dayBase); });
     return t;
   }
+  function summary() {
+    var eq = equity();
+    return { equity: round2(eq), day: round2(dayPnl()), total: round2(eq - START_CASH), open: round2(openPnl()), cash: round2(acct.cash),
+      positions: Object.keys(acct.positions).map(function (s) { return { sym: s, qty: acct.positions[s].qty, avg: acct.positions[s].avg, openedDay: acct.positions[s].openedDay }; }),
+      optionsValue: round2(optionsValue()), optionsCost: round2(acct.options.reduce(function (t, o) { return t + o.qty * 100 * o.avg; }, 0)),
+      date: todayNY(), realizedToday: round2(acct.fills.reduce(function (t, f) { return f.side === 'sell' && f.day === todayNY() && f.dayBase != null ? t + f.qty * (f.price - f.dayBase) : t; }, 0)),
+      resets: acct.resets, updatedAt: Date.now() };
+  }
+  function round2(x) { return Math.round(x * 100) / 100; }
+  function recordTrade(t) { t.epoch = acct.epoch; acct.trades.push(t); }
 
-  // ------------------------------------------------------------ orders + fills
+  // ------------------------------------------------------------ stock orders + fills
   function fill(o, px, when) {
     var sym = o.sym, qty = o.qty, day = when || todayNY();
     if (o.side === 'buy') {
@@ -187,21 +212,21 @@
       o.status = 'filled'; o.fillPrice = px; o.filledAt = Date.now(); o.filledDay = day;
       if (o.bracket && (o.bracket.sl || o.bracket.tp)) {
         var group = uid();
-        if (o.bracket.sl) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'stop', qty: qty, stop: o.bracket.sl, tif: 'gtc', oco: group, parent: o.id, placedOpen: marketOpen() }));
-        if (o.bracket.tp) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'limit', qty: qty, limit: o.bracket.tp, tif: 'gtc', oco: group, parent: o.id, placedOpen: marketOpen() }));
+        if (o.bracket.sl) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'stop', qty: qty, stop: o.bracket.sl, tif: 'gtc', oco: group, parent: o.id, role: 'sl', placedOpen: marketOpen() }));
+        if (o.bracket.tp) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'limit', qty: qty, limit: o.bracket.tp, tif: 'gtc', oco: group, parent: o.id, role: 'tp', placedOpen: marketOpen() }));
       }
     } else {
       var pos = acct.positions[sym];
       if (!pos || pos.qty <= 0) { o.status = 'cancelled'; o.note = 'No shares left to sell'; return; }
       qty = Math.min(qty, pos.qty);
-      var pc = prevClose(sym);
-      var pnl = (px - pos.avg) * qty;
+      var pc = prevClose(sym), pnl = (px - pos.avg) * qty;
       acct.cash += qty * px; acct.realized += pnl;
+      recordTrade({ kind: 'stock', sym: sym, label: sym, qty: qty, entry: pos.avg, exit: px, invested: pos.avg * qty, pnl: pnl, pct: (px / pos.avg - 1) * 100, openDay: pos.openedDay, closeDay: day });
       pos.qty -= qty;
-      acct.fills.push({ id: uid(), sym: sym, side: 'sell', qty: qty, price: px, day: day, at: Date.now(), orderId: o.id, type: o.type, pnl: pnl, dayBase: pos.openedDay === day ? pos.avg : pc });
+      acct.fills.push({ id: uid(), sym: sym, side: 'sell', qty: qty, price: px, day: day, at: Date.now(), orderId: o.id, type: o.type, pnl: pnl, role: o.role || null, dayBase: pos.openedDay === day ? pos.avg : pc });
       o.status = 'filled'; o.fillPrice = px; o.filledAt = Date.now(); o.filledDay = day; o.qty = qty;
       if (pos.qty <= 0) delete acct.positions[sym];
-      // one-cancels-other, and never leave sell orders for shares you no longer have
+      if (o.role === 'tp' || o.role === 'sl' || o.type === 'stop') alertFill(o, qty, px, pnl);
       acct.orders.forEach(function (x) {
         if (x.status !== 'open' || x.side !== 'sell' || x.sym !== sym) return;
         if ((o.oco && x.oco === o.oco) || !acct.positions[sym]) { x.status = 'cancelled'; x.note = o.oco && x.oco === o.oco ? 'Other side of the bracket filled' : 'Position closed'; }
@@ -210,11 +235,11 @@
     }
   }
   function newOrder(f) {
-    var open = marketOpen();
     return {
       id: uid(), sym: f.sym, side: f.side, type: f.type, qty: f.qty, limit: f.limit || null, stop: f.stop || null,
-      tif: f.tif || 'day', status: 'open', createdAt: Date.now(), createdDay: todayNY(), placedOpen: f.placedOpen != null ? f.placedOpen : open,
-      session: activeSession(), bracket: f.bracket || null, oco: f.oco || null, parent: f.parent || null, fullPort: !!f.fullPort
+      tif: f.tif || 'day', status: 'open', createdAt: Date.now(), createdDay: todayNY(), placedOpen: f.placedOpen != null ? f.placedOpen : marketOpen(),
+      session: activeSession(), bracket: f.bracket || null, oco: f.oco || null, parent: f.parent || null, role: f.role || null,
+      fullPort: !!f.fullPort, agent: f.agent || null
     };
   }
   function triggerOnPrice(o, p) {
@@ -223,28 +248,23 @@
     if (o.type === 'stop') return o.side === 'sell' ? (p <= o.stop ? p : null) : (p >= o.stop ? p : null);
     return null;
   }
-  function triggerOnBar(o, b) { // b = { o, h, l }
+  function triggerOnBar(o, b) {
     if (o.type === 'market') return b.o;
     if (o.type === 'limit') return o.side === 'buy' ? (b.o <= o.limit ? b.o : b.l <= o.limit ? o.limit : null) : (b.o >= o.limit ? b.o : b.h >= o.limit ? o.limit : null);
     if (o.type === 'stop') return o.side === 'sell' ? (b.o <= o.stop ? b.o : b.l <= o.stop ? o.stop : null) : (b.o >= o.stop ? b.o : b.h >= o.stop ? o.stop : null);
     return null;
   }
-  // Works every open order against (1) whole trading days it has been live
-  // for since it was placed, then (2) the current live price.
   function processOrders() {
     var changed = false, today = todayNY(), p = nyParts(), open = marketOpen();
     acct.orders.forEach(function (o) {
       if (o.status !== 'open') return;
       var s = series[o.sym]; if (!s || !s.n) return;
-      // bars that started after the order was placed; a same-day order placed
-      // mid-session can't use that day's bar (its high/low may be from before)
       var firstDay = o.placedOpen ? nextSession(o.createdDay) : o.session;
       for (var i = 0; i < s.n && o.status === 'open'; i++) {
         var d = s.d[i];
         if (d < firstDay) continue;
         if (o.tif === 'day' && d > o.session) break;
         if (s.live && i === s.n - 1 && d === today && open) {
-          // today's live bar: fine for orders waiting since before the open
           var px0 = triggerOnBar(o, { o: s.o[i], h: s.h[i], l: s.l[i] });
           if (px0 != null) { fill(o, px0, d); changed = true; }
           break;
@@ -253,38 +273,97 @@
         if (px != null) { fill(o, px, d); changed = true; }
       }
       if (o.status !== 'open') return;
-      if (isLiveTick(o.sym) && (o.session <= today)) {
+      if (isLiveTick(o.sym) && o.session <= today) {
         var tp = triggerOnPrice(o, price(o.sym));
         if (tp != null) { fill(o, tp, today); changed = true; return; }
       }
-      // day orders die at the close of their session
       var sessionOver = today > o.session || (today === o.session && p.min >= 960);
       if (o.tif === 'day' && sessionOver) { o.status = 'expired'; o.note = 'Day order expired at the close'; changed = true; }
+    });
+    if (settleExpiredOptions()) changed = true;
+    return changed;
+  }
+
+  // ------------------------------------------------------------ options
+  function buyOption(c, qty) {
+    var cost = c.ask * 100 * qty;
+    if (cost > buyingPower() + 0.005) return 'Not enough buying power: that costs ' + money(cost) + ', you have ' + money(buyingPower()) + '.';
+    acct.cash -= cost;
+    var cid = OPT.contractId(c.sym, c.type, c.strike, c.exp), pos = acct.options.filter(function (o) { return o.cid === cid; })[0];
+    if (pos) { pos.avg = (pos.avg * pos.qty + c.ask * qty) / (pos.qty + qty); pos.qty += qty; }
+    else acct.options.push({ id: uid(), cid: cid, sym: c.sym, type: c.type, strike: c.strike, exp: c.exp, qty: qty, avg: c.ask, openDay: todayNY(), agent: c.agent || null });
+    acct.fills.push({ id: uid(), sym: c.sym, side: 'buy', qty: qty, price: c.ask, day: todayNY(), at: Date.now(), option: cid, type: 'option' });
+    return null;
+  }
+  function sellOption(pos, qty, bid, why) {
+    qty = Math.min(qty, pos.qty);
+    var proceeds = bid * 100 * qty, pnl = (bid - pos.avg) * 100 * qty;
+    acct.cash += proceeds; acct.realized += pnl;
+    recordTrade({ kind: 'option', sym: pos.sym, label: OPT.label(pos), qty: qty, entry: pos.avg, exit: bid, invested: pos.avg * 100 * qty, pnl: pnl, pct: pos.avg ? (bid / pos.avg - 1) * 100 : 0, openDay: pos.openDay, closeDay: todayNY(), note: why || null });
+    acct.fills.push({ id: uid(), sym: pos.sym, side: 'sell', qty: qty, price: bid, day: todayNY(), at: Date.now(), option: pos.cid, type: 'option', pnl: pnl });
+    pos.qty -= qty;
+    if (pos.qty <= 0) acct.options = acct.options.filter(function (o) { return o !== pos; });
+    return pnl;
+  }
+  // at expiration a long option is worth exactly its intrinsic value
+  function settleExpiredOptions() {
+    var today = todayNY(), p = nyParts(), changed = false;
+    acct.options.slice().forEach(function (o) {
+      var done = today > o.exp || (today === o.exp && p.min >= 960);
+      if (!done) return;
+      var S = price(o.sym); if (S == null) return;
+      var intrinsic = Math.max(0, o.type === 'call' ? S - o.strike : o.strike - S);
+      var pnl = sellOption(o, o.qty, round2(intrinsic), intrinsic > 0 ? 'Expired in the money' : 'Expired worthless');
+      notify('Option expired: ' + OPT.label(o), (intrinsic > 0 ? 'Settled at $' + intrinsic.toFixed(2) + ' · ' : 'Expired worthless · ') + signed(pnl));
+      changed = true;
     });
     return changed;
   }
 
+  // ------------------------------------------------------------ notifications
+  function notify(title, body) {
+    toast('<b>' + esc(title) + '</b><br>' + esc(body));
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body: body, icon: '../icons/icon-192.png', tag: 'zelos-' + title });
+    } catch (e) {}
+  }
+  function alertFill(o, qty, px, pnl) {
+    var kind = o.role === 'tp' ? 'Take profit hit' : o.role === 'sl' || o.type === 'stop' ? 'Stop loss hit' : 'Order filled';
+    notify(kind + ': ' + o.sym, 'Sold ' + qty + ' @ $' + px.toFixed(2) + ' · ' + signed(pnl));
+  }
+  function renderBell() {
+    var b = $('ptBell'); if (!b) return;
+    var ok = 'Notification' in window;
+    var on = ok && Notification.permission === 'granted';
+    b.classList.toggle('is-on', on);
+    b.title = !ok ? 'This browser doesn\'t support notifications' : on ? 'Notifications on: you\'ll get a pop-up when a take profit or stop loss hits' : 'Get a pop-up when a take profit or stop loss hits';
+    b.innerHTML = (on ? '&#128276;' : '&#128277;') + '<span>' + (on ? 'Alerts on' : 'Alerts') + '</span>';
+  }
+
   // ------------------------------------------------------------ UI state
-  var sel = 'AAPL', side = 'buy', chart = null, ticket = { type: 'market', qtyMode: 'shares' }, tab = 'positions';
+  var sel = 'NVDA', side = 'buy', chart = null, ticket = { type: 'market', qtyMode: 'shares', mode: 'stock' }, tab = 'positions';
+  var opt = { type: 'call', exp: null, pick: null }, agentAlerts = null, forecastOn = false;
 
   function renderWatch() {
-    var q = ($('ptSearch').value || '').trim().toUpperCase();
-    $('ptWatch').innerHTML = Object.keys(NAMES).filter(function (s) { return !q || s.indexOf(q) === 0 || NAMES[s].toUpperCase().indexOf(q) !== -1; }).map(function (s) {
-      var px = price(s), pc = prevClose(s), ch = px != null && pc ? (px / pc - 1) * 100 : 0, held = acct.positions[s];
-      return '<button type="button" class="pt-wrow' + (s === sel ? ' is-sel' : '') + '" data-sym="' + s + '">' +
+    var q = ($('ptSearch').value || '').trim().toUpperCase(), lastG = null, h = '';
+    UNIVERSE.forEach(function (u) {
+      var s = u.sym;
+      if (q && s.indexOf(q) !== 0 && NAMES[s].toUpperCase().indexOf(q) === -1) return;
+      if (!q && u.group !== lastG) { h += '<div class="pt-wgroup">' + esc(u.group) + '</div>'; lastG = u.group; }
+      var px = price(s), pc = prevClose(s), ch = px != null && pc ? (px / pc - 1) * 100 : 0, held = acct.positions[s] || acct.options.some(function (o) { return o.sym === s; });
+      h += '<button type="button" class="pt-wrow' + (s === sel ? ' is-sel' : '') + '" data-sym="' + s + '">' +
         '<span class="pt-wsym">' + s + (held ? '<i class="pt-held" title="You hold this"></i>' : '') + '<small>' + esc(NAMES[s]) + '</small></span>' +
         '<span class="pt-wpx">' + fmt(px) + '<small class="' + (ch >= 0 ? 'up' : 'dn') + '">' + pct(ch) + '</small></span></button>';
-    }).join('');
+    });
+    $('ptWatch').innerHTML = h || '<p class="pt-empty">No match.</p>';
   }
-  // Full Port: the page glows green or red with the account, brighter the further it swings
-  // (open P&L while holding, total return while flat), same as Chart Replay's Full Port
+
   function fullPortGlow() {
     var on = !!acct.fullPort;
     document.body.classList.toggle('pt-fullport', on);
     if (!on) return;
-    var eq = equity(), cost = 0, held = Object.keys(acct.positions);
-    held.forEach(function (sy) { cost += acct.positions[sy].qty * acct.positions[sy].avg; });
-    var move = held.length ? (positionValue() - cost) / Math.max(1, eq) : eq / START_CASH - 1;
+    var eq = equity(), held = Object.keys(acct.positions).length + acct.options.length;
+    var move = held ? openPnl() / Math.max(1, eq) : eq / START_CASH - 1;
     var k = Math.min(1, 0.3 + Math.abs(move) * 12), rgb = move >= 0 ? '62,203,124' : '224,72,63', st = document.body.style;
     st.setProperty('--pt-glow', 'rgba(' + rgb + ',' + (0.25 + 0.55 * k).toFixed(2) + ')');
     st.setProperty('--pt-glow-soft', 'rgba(' + rgb + ',' + (0.08 + 0.22 * k).toFixed(2) + ')');
@@ -293,91 +372,114 @@
   }
   function renderHeader() {
     fullPortGlow();
-    var eq = equity(), tot = eq - START_CASH, dp = dayPnl();
+    var eq = equity(), tot = eq - START_CASH, dp = dayPnl(), op = openPnl();
+    if (eq > (acct.peakEquity || 0)) acct.peakEquity = round2(eq);
     $('ptEquity').textContent = money(eq);
     $('ptTotal').textContent = signed(tot) + ' (' + pct(tot / START_CASH * 100) + ')'; $('ptTotal').className = tot >= 0 ? 'up' : 'dn';
     $('ptDay').textContent = signed(dp); $('ptDay').className = dp >= 0 ? 'up' : 'dn';
-    $('ptCash').textContent = money(acct.cash);
+    $('ptOpen').textContent = signed(op); $('ptOpen').className = op >= 0 ? 'up' : 'dn';
     $('ptBP').textContent = money(buyingPower());
-    // feed status
+    $('ptUser').textContent = playerName();
+    $('ptResetBanner').hidden = eq >= RESET_BELOW;
     var st = $('ptFeed'), txt, cls;
-    if (feed.state === 'live' && marketOpen()) { txt = 'Live prices · updated ' + ago(feed.updatedAt); cls = 'is-live'; }
+    if (feed.state === 'live' && marketOpen()) { txt = 'Live · updated ' + ago(feed.updatedAt); cls = 'is-live'; }
     else if (feed.state === 'live' || feed.state === 'closed') { txt = 'Market closed · prices as of ' + asOf(feed.updatedAt); cls = 'is-closed'; }
-    else if (feed.state === 'error') { txt = feed.error === 'auth' ? 'Live feed error: the price service rejected the API key. Using last close.' : 'Live feed unavailable right now · using last close'; cls = 'is-error'; }
-    else if (feed.state === 'none') { txt = 'Live feed not connected yet · using latest close (' + (series[sel] ? series[sel].d[series[sel].n - 1] : '') + ')'; cls = 'is-closed'; }
-    else { txt = 'Connecting to live prices…'; cls = ''; }
+    else if (feed.state === 'error') { txt = feed.error === 'auth' ? 'Live feed error (API key rejected) · last close' : 'Live feed unavailable · last close'; cls = 'is-error'; }
+    else if (feed.state === 'none') { txt = 'Delayed · latest close ' + (series[sel] ? series[sel].d[series[sel].n - 1] : ''); cls = 'is-closed'; }
+    else { txt = 'Connecting…'; cls = ''; }
     st.textContent = txt; st.className = 'pt-feed ' + cls;
     $('ptClock').textContent = marketOpen() ? 'Market open' : 'Market closed';
     $('ptClock').className = 'pt-clock ' + (marketOpen() ? 'is-open' : '');
+    renderBell();
   }
   function ago(iso) { if (!iso) return '–'; var s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000)); return s < 60 ? s + 's ago' : Math.round(s / 60) + 'm ago'; }
   function asOf(iso) { if (!iso) return 'last close'; try { return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET'; } catch (e) { return iso; } }
 
+  // forecast boxes: the ticket's bracket, else the open position's bracket, else a 2:1 ATR suggestion
+  function forecast() {
+    if (!forecastOn) return null;
+    var px = price(sel); if (px == null) return null;
+    if (ticket.mode === 'stock' && side === 'buy' && $('ptUseBracket').checked && (+$('ptSL').value || +$('ptTP').value)) {
+      var e = ticket.type === 'limit' ? +$('ptLimit').value || px : ticket.type === 'stop' ? +$('ptStopPx').value || px : px;
+      return { entry: e, sl: +$('ptSL').value || null, tp: +$('ptTP').value || null, label: 'Your plan' };
+    }
+    var pos = acct.positions[sel];
+    if (pos) {
+      var sl = null, tp = null;
+      acct.orders.forEach(function (o) { if (o.status === 'open' && o.sym === sel && o.side === 'sell') { if (o.type === 'stop') sl = o.stop; if (o.type === 'limit') tp = o.limit; } });
+      if (sl || tp) return { entry: pos.avg, sl: sl, tp: tp, label: 'Open position' };
+    }
+    var s = series[sel], a = s && s.n > 15 ? atrOf(s) : px * 0.02;
+    return { entry: px, sl: round2(px - 1.5 * a), tp: round2(px + 3 * a), label: 'Suggested (1.5 ATR stop, 2:1)' };
+  }
+  function atrOf(s) { var n = 14, prev = null; for (var i = 1; i < s.n; i++) { var tr = Math.max(s.h[i] - s.l[i], Math.abs(s.h[i] - s.c[i - 1]), Math.abs(s.l[i] - s.c[i - 1])); prev = prev == null ? tr : (prev * (n - 1) + tr) / n; } return prev; }
+
   function renderQuote() {
     var s = series[sel]; if (!s) return;
     var px = price(sel), pc = prevClose(sel), ch = px - pc, chp = pc ? ch / pc * 100 : 0;
-    $('ptSym').textContent = sel; $('ptName').textContent = NAMES[sel];
+    $('ptSym').textContent = sel; $('ptName').textContent = NAMES[sel] || '';
     $('ptPx').textContent = fmt(px);
     $('ptChg').textContent = (ch >= 0 ? '+' : '') + fmt(ch) + ' (' + pct(chp) + ')'; $('ptChg').className = ch >= 0 ? 'up' : 'dn';
     var i = s.n - 1, hi52 = Math.max.apply(null, s.h.slice(-252)), lo52 = Math.min.apply(null, s.l.slice(-252));
     var avgV = s.v.slice(-21, -1).filter(Boolean); avgV = avgV.length ? avgV.reduce(function (a, b) { return a + b; }, 0) / avgV.length : null;
     $('ptStats').innerHTML = [
       ['Open', fmt(s.o[i])], ['High', fmt(s.h[i])], ['Low', fmt(s.l[i])], ['Prev close', fmt(pc)],
-      ['52-wk high', fmt(hi52)], ['52-wk low', fmt(lo52)], ['Avg volume', TC.fmtVol(avgV)], ['RSI 14', fmt(s.rsi[i], 1)]
+      ['52-wk high', fmt(hi52)], ['52-wk low', fmt(lo52)], ['Avg volume', TC.fmtVol(avgV)], ['Volatility', (vol(sel) / 1.1 * 100).toFixed(0) + '%']
     ].map(function (r) { return '<span><small>' + r[0] + '</small><b>' + r[1] + '</b></span>'; }).join('');
-    // chart overlays: cost basis, open orders, your fills
+    var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#f4f5f7';
     var lines = [], pos = acct.positions[sel];
-    if (pos) lines.push({ price: pos.avg, color: 'var(--ink)', label: 'AVG COST ' + pos.qty + ' sh', dash: [6, 3] });
+    if (pos) lines.push({ price: pos.avg, color: ink, label: 'AVG COST ' + pos.qty + ' sh', dash: [6, 3] });
     acct.orders.forEach(function (o) {
       if (o.status !== 'open' || o.sym !== sel || o.type === 'market') return;
-      var lvl = o.limit || o.stop;
-      var col = o.type === 'stop' ? '#e8b23d' : o.side === 'buy' ? '#3ecb7c' : '#e0483f';
-      lines.push({ price: lvl, color: col, label: (o.side === 'buy' ? 'BUY ' : 'SELL ') + o.type.toUpperCase() + ' ' + o.qty });
+      var col = o.role === 'tp' ? '#3ecb7c' : o.role === 'sl' ? '#e0483f' : o.type === 'stop' ? '#e8b23d' : o.side === 'buy' ? '#3ecb7c' : '#e0483f';
+      lines.push({ price: o.limit || o.stop, color: col, label: (o.role === 'tp' ? 'TAKE PROFIT ' : o.role === 'sl' ? 'STOP LOSS ' : (o.side === 'buy' ? 'BUY ' : 'SELL ') + o.type.toUpperCase() + ' ') + o.qty });
     });
-    lines.forEach(function (l) { if (l.color.indexOf('var(') === 0) l.color = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#f4f5f7'; });
     chart.lines = lines;
+    chart.forecast = forecast();
     var ds = displaySeries();
-    chart.marks = !ds || ds.intraday ? [] : acct.fills.filter(function (f) { return f.sym === sel; }).map(function (f) {
+    chart.marks = !ds || ds.intraday ? [] : acct.fills.filter(function (f) { return f.sym === sel && !f.option; }).map(function (f) {
       return { i: ds.d.indexOf(tf === 'W' ? weekKey(f.day) : f.day), price: f.price, side: f.side };
     }).filter(function (m) { return m.i >= 0; });
     chart.lastPrice = px;
     chart.empty = null;
     if (!ds || !ds.n) {
       chart.empty = ds && ds.intraday
-        ? 'Intraday bars are built from the live price feed during market hours (9:30 am to 4:00 pm Eastern). They start filling in at the next open and keep the last 5 sessions. Daily and weekly charts are available now.'
+        ? 'Intraday bars are built from the live price feed during market hours (9:30 am to 4:00 pm Eastern) and keep the last 5 sessions. Daily and weekly charts are available now.'
         : 'Loading chart…';
       chart.s = null; chart.draw(); return;
     }
-    var fresh = !chart.s || chart.s.key !== ds.key;
+    var freshKey = !chart.s || chart.s.key !== ds.key;
     chart.setSeries(ds, rangeSel || TF[tf].def);
-    if (fresh && rangeSel) chart.setRange(rangeSel);
+    if (freshKey && rangeSel) chart.setRange(rangeSel);
     chart.draw();
   }
 
+  // ------------------------------------------------------------ ticket (stocks + options)
   function renderTicket() {
-    var px = price(sel), pos = acct.positions[sel];
+    document.querySelectorAll('[data-mode]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-mode') === ticket.mode); b.setAttribute('aria-selected', String(b.getAttribute('data-mode') === ticket.mode)); });
+    $('ptStockTicket').hidden = ticket.mode !== 'stock'; $('ptOptTicket').hidden = ticket.mode !== 'options';
     $('ptBuy').classList.toggle('is-on', side === 'buy'); $('ptSell').classList.toggle('is-on', side === 'sell');
     $('ptBuy').setAttribute('aria-pressed', String(side === 'buy')); $('ptSell').setAttribute('aria-pressed', String(side === 'sell'));
+    if (ticket.mode === 'options') return renderOptTicket();
+    var px = price(sel), pos = acct.positions[sel];
     $('ptLimitRow').hidden = ticket.type !== 'limit'; $('ptStopRow').hidden = ticket.type !== 'stop';
     $('ptBracket').hidden = side !== 'buy';
     $('ptQtyLabel').textContent = acct.fullPort ? 'Shares (Full Port: all in)' : ticket.qtyMode === 'shares' ? 'Shares' : 'Amount ($)';
-    $('ptFullPort').checked = !!acct.fullPort;
-    $('ptFullWarn').hidden = !acct.fullPort;
-    $('ptQtyMode').hidden = !!acct.fullPort;
-    $('ptQty').disabled = !!acct.fullPort;
+    $('ptFullPort').checked = !!acct.fullPort; $('ptFullWarn').hidden = !acct.fullPort;
+    $('ptQtyMode').hidden = !!acct.fullPort; $('ptQty').disabled = !!acct.fullPort;
     if (acct.fullPort) $('ptQty').value = fullQty() || '';
     var q = orderQty(), est = q * (ticket.type === 'limit' ? +$('ptLimit').value || px : ticket.type === 'stop' ? +$('ptStopPx').value || px : px);
     var have = pos ? pos.qty - reservedShares(sel) : 0;
-    var msg = '';
-    if (side === 'buy') msg = 'Buying power ' + money(buyingPower()) + (q ? ' · est. cost ' + money(est) : '');
-    else msg = pos ? 'You can sell ' + have + ' share' + (have === 1 ? '' : 's') + (q ? ' · est. proceeds ' + money(est) : '') : 'You don\'t hold ' + sel + ' yet.';
-    $('ptEst').textContent = msg;
+    $('ptEst').innerHTML = side === 'buy' ? '<span>Buying power</span><b>' + money(buyingPower()) + '</b>' + (q ? '<span>Est. cost</span><b>' + money(est) + '</b>' : '')
+      : (pos ? '<span>Shares available</span><b>' + have + '</b>' + (q ? '<span>Est. proceeds</span><b>' + money(est) + '</b>' : '') : '<span>You don\'t hold ' + sel + '</span>');
     var open = marketOpen(), liveOk = feed.state === 'live';
     $('ptWhen').textContent = ticket.type === 'market'
       ? (open ? (liveOk ? 'Fills right away at the live price.' : 'Fills right away at the last price shown.') : 'Market is closed: fills at the next open.')
       : (ticket.type === 'limit' ? (side === 'buy' ? 'Fills at your price or lower.' : 'Fills at your price or higher.') : (side === 'sell' ? 'Sells if price drops to your stop (can fill lower on a gap).' : 'Buys if price rises to your stop.'));
-    $('ptSubmit').textContent = (side === 'buy' ? 'Review buy' : 'Review sell') + (q ? ' · ' + q + ' ' + sel : '');
+    var typeTxt = ticket.type === 'market' ? 'Market' : ticket.type === 'limit' ? 'Limit ' + fmt(+$('ptLimit').value) : 'Stop ' + fmt(+$('ptStopPx').value);
+    $('ptSubmit').innerHTML = '<span class="pt-sub-main">' + (side === 'buy' ? 'Buy ' : 'Sell ') + sel + '</span><span class="pt-sub-meta">' + typeTxt + (q ? ' · ' + q + ' sh · ' + money(est) : '') + '</span>';
     $('ptSubmit').className = 'pt-submit ' + (side === 'buy' ? 'is-buy' : 'is-sell');
+    if (forecastOn) { chart.forecast = forecast(); chart.draw(); }
   }
   function fullQty() {
     if (side === 'sell') { var p = acct.positions[sel]; return p ? Math.max(0, p.qty - reservedShares(sel)) : 0; }
@@ -392,52 +494,132 @@
     return px ? Math.floor(v / px) : 0;
   }
 
+  function optChain() {
+    var S = price(sel), today = todayNY(); if (S == null) return null;
+    var exps = OPT.expirations(today);
+    if (!opt.exp || exps.indexOf(opt.exp) === -1) opt.exp = exps.filter(function (e) { return OPT.daysTo(e, today) >= 21; })[0] || exps[0];
+    var sig = vol(sel);
+    return { S: S, exps: exps, rows: OPT.strikes(S, 17).map(function (K) { var q = OPT.quote(opt.type, S, K, opt.exp, today, sig); q.strike = K; return q; }), sig: sig };
+  }
+  function renderOptTicket() {
+    var ch = optChain(); if (!ch) return;
+    var today = todayNY();
+    $('ptOptExp').innerHTML = ch.exps.map(function (e) { var d = OPT.daysTo(e, today); return '<option value="' + e + '"' + (e === opt.exp ? ' selected' : '') + '>' + e.slice(5).replace('-', '/') + ' · ' + d + 'd</option>'; }).join('');
+    document.querySelectorAll('[data-otype]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-otype') === opt.type); });
+    var atm = ch.rows.reduce(function (a, r) { return Math.abs(r.strike - ch.S) < Math.abs(a.strike - ch.S) ? r : a; }, ch.rows[0]);
+    var chainKey = sel + opt.type + opt.exp, keepTop = $('ptChain').getAttribute('data-key') === chainKey ? $('ptChain').scrollTop : null;
+    $('ptChain').innerHTML = '<table class="pt-chain"><thead><tr><th>Strike</th><th>Bid</th><th>Ask</th><th>Delta</th></tr></thead><tbody>' + ch.rows.map(function (r) {
+      var itm = opt.type === 'call' ? r.strike < ch.S : r.strike > ch.S, on = opt.pick && opt.pick.strike === r.strike && opt.pick.exp === opt.exp && opt.pick.type === opt.type;
+      return '<tr class="' + (itm ? 'itm ' : '') + (r === atm ? 'atm ' : '') + (on ? 'is-sel' : '') + '" data-strike="' + r.strike + '"><td>' + r.strike + '</td><td>' + r.bid.toFixed(2) + '</td><td>' + r.ask.toFixed(2) + '</td><td>' + r.delta.toFixed(2) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+    $('ptChain').setAttribute('data-key', chainKey);
+    if (keepTop != null) $('ptChain').scrollTop = keepTop;
+    else { var ar = $('ptChain').querySelector('tr.atm'); if (ar) $('ptChain').scrollTop = Math.max(0, ar.offsetTop - $('ptChain').clientHeight / 2); }
+    var held = acct.options.filter(function (o) { return o.sym === sel; });
+    var pick = opt.pick && opt.pick.exp === opt.exp && opt.pick.type === opt.type ? ch.rows.filter(function (r) { return r.strike === opt.pick.strike; })[0] : null;
+    var q = Math.max(1, Math.floor(+$('ptOptQty').value || 1));
+    if (pick) {
+      var c = { sym: sel, type: opt.type, strike: pick.strike, exp: opt.exp };
+      var cid = OPT.contractId(sel, opt.type, pick.strike, opt.exp), mine = acct.options.filter(function (o) { return o.cid === cid; })[0];
+      $('ptOptPick').innerHTML = '<b>' + esc(OPT.label(c)) + '</b><span>Bid ' + pick.bid.toFixed(2) + ' · Ask ' + pick.ask.toFixed(2) + ' · Δ ' + pick.delta.toFixed(2) + ' · ' + pick.dte + ' days</span>' +
+        '<span>Break-even ' + fmt(opt.type === 'call' ? pick.strike + pick.ask : pick.strike - pick.ask) + (mine ? ' · you hold ' + mine.qty : '') + '</span>';
+      $('ptOptBuy').disabled = false; $('ptOptSell').disabled = !mine;
+      $('ptOptBuy').innerHTML = '<span class="pt-sub-main">Buy to open</span><span class="pt-sub-meta">' + q + ' × $' + (pick.ask * 100).toFixed(0) + ' = ' + money(pick.ask * 100 * q) + '</span>';
+      $('ptOptSell').innerHTML = '<span class="pt-sub-main">Sell to close</span><span class="pt-sub-meta">' + (mine ? Math.min(q, mine.qty) + ' × $' + (pick.bid * 100).toFixed(0) : 'none held') + '</span>';
+    } else {
+      $('ptOptPick').innerHTML = '<span>Pick a strike from the chain. Highlighted rows are in the money; the outlined row is at the money.</span>';
+      $('ptOptBuy').disabled = true; $('ptOptSell').disabled = true;
+      $('ptOptBuy').innerHTML = '<span class="pt-sub-main">Buy to open</span>'; $('ptOptSell').innerHTML = '<span class="pt-sub-main">Sell to close</span>';
+    }
+    $('ptOptNote').textContent = (marketOpen() ? '' : 'Options trade 9:30 am to 4:00 pm Eastern. ') + 'Option prices are modeled (Black-Scholes on ' + sel + '\'s recent volatility, ' + (ch.sig * 100).toFixed(0) + '%), not live exchange quotes.' + (held.length ? ' You hold ' + held.length + ' ' + sel + ' contract' + (held.length === 1 ? '' : 's') + '.' : '');
+  }
+  function optTrade(action) {
+    if (!marketOpen()) return toast('Options trade during market hours (9:30 am to 4:00 pm Eastern).', true);
+    var ch = optChain(); if (!ch || !opt.pick) return;
+    var row = ch.rows.filter(function (r) { return r.strike === opt.pick.strike; })[0]; if (!row) return;
+    var q = Math.max(1, Math.floor(+$('ptOptQty').value || 1)), c = { sym: sel, type: opt.type, strike: row.strike, exp: opt.exp, ask: row.ask, agent: opt.agent || null };
+    if (action === 'buy') {
+      var err = buyOption(c, q); if (err) return toast(err, true);
+      toast('Bought ' + q + ' ' + esc(OPT.label(c)) + ' @ ' + row.ask.toFixed(2));
+    } else {
+      var cid = OPT.contractId(sel, opt.type, row.strike, opt.exp), mine = acct.options.filter(function (o) { return o.cid === cid; })[0];
+      if (!mine) return;
+      var pnl = sellOption(mine, q, row.bid, 'Sold to close');
+      toast('Sold ' + esc(OPT.label(c)) + ' @ ' + row.bid.toFixed(2) + ' · ' + signed(pnl));
+    }
+    save(); renderAll();
+  }
+
+  // ------------------------------------------------------------ lower tabs
   function renderTabs() {
     document.querySelectorAll('.pt-tab').forEach(function (t) { t.setAttribute('aria-selected', String(t.getAttribute('data-tab') === tab)); });
-    var h = '';
+    var h = '', today = todayNY();
     if (tab === 'positions') {
       var syms = Object.keys(acct.positions);
       h = syms.length ? '<table class="pt-table"><thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Price</th><th>Market value</th><th>Today</th><th>Total P&amp;L</th><th></th></tr></thead><tbody>' +
         syms.map(function (s) {
-          var p = acct.positions[s], px = price(s), pc = prevClose(s), mv = p.qty * px, pl = (px - p.avg) * p.qty, base = p.openedDay === todayNY() ? p.avg : pc, dp = (px - base) * p.qty;
+          var p = acct.positions[s], px = price(s), pc = prevClose(s), mv = p.qty * px, pl = (px - p.avg) * p.qty, base = p.openedDay === today ? p.avg : pc, dp = (px - base) * p.qty;
           return '<tr><td><button class="pt-link" data-sym="' + s + '">' + s + '</button></td><td>' + p.qty + '</td><td>' + fmt(p.avg) + '</td><td>' + fmt(px) + '</td><td>' + money(mv) + '</td>' +
             '<td class="' + (dp >= 0 ? 'up' : 'dn') + '">' + signed(dp) + '</td><td class="' + (pl >= 0 ? 'up' : 'dn') + '">' + signed(pl) + ' (' + pct(pl / (p.avg * p.qty) * 100) + ')</td>' +
             '<td><button class="pt-mini" data-close="' + s + '">Sell all</button></td></tr>';
-        }).join('') + '</tbody></table>' : '<p class="pt-empty">No positions yet. Pick a stock on the left and place your first order.</p>';
+        }).join('') + '</tbody></table>' : '';
+      if (acct.options.length) {
+        h += '<div class="pt-subhead">Options <small>modeled prices</small></div><table class="pt-table"><thead><tr><th>Contract</th><th>Qty</th><th>Avg</th><th>Mark</th><th>Value</th><th>P&amp;L</th><th>Expires</th><th></th></tr></thead><tbody>' +
+          acct.options.map(function (o) {
+            var m = optionMark(o), pl = (m - o.avg) * 100 * o.qty;
+            return '<tr><td><button class="pt-link" data-optsym="' + o.id + '">' + esc(OPT.label(o)) + '</button></td><td>' + o.qty + '</td><td>' + o.avg.toFixed(2) + '</td><td>' + m.toFixed(2) + '</td><td>' + money(m * 100 * o.qty) + '</td>' +
+              '<td class="' + (pl >= 0 ? 'up' : 'dn') + '">' + signed(pl) + '</td><td>' + o.exp + ' (' + OPT.daysTo(o.exp, today) + 'd)</td><td><button class="pt-mini" data-optclose="' + o.id + '">Close</button></td></tr>';
+          }).join('') + '</tbody></table>';
+      }
+      if (!h) h = '<p class="pt-empty">No positions yet. Pick a stock on the left and place your first order.</p>';
     } else if (tab === 'orders') {
       var open = acct.orders.filter(function (o) { return o.status === 'open'; });
       h = open.length ? '<table class="pt-table"><thead><tr><th>Placed</th><th>Symbol</th><th>Side</th><th>Type</th><th>Qty</th><th>Price</th><th>Time in force</th><th></th></tr></thead><tbody>' +
         open.slice().reverse().map(function (o) {
           return '<tr><td>' + new Date(o.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '</td><td><button class="pt-link" data-sym="' + o.sym + '">' + o.sym + '</button></td>' +
-            '<td class="' + (o.side === 'buy' ? 'up' : 'dn') + '">' + o.side.toUpperCase() + '</td><td>' + o.type + (o.oco ? ' (bracket)' : '') + '</td><td>' + o.qty + '</td>' +
+            '<td class="' + (o.side === 'buy' ? 'up' : 'dn') + '">' + o.side.toUpperCase() + '</td><td>' + (o.role === 'tp' ? 'take profit' : o.role === 'sl' ? 'stop loss' : o.type) + '</td><td>' + o.qty + '</td>' +
             '<td>' + (o.type === 'market' ? 'market' : fmt(o.limit || o.stop)) + '</td><td>' + (o.tif === 'gtc' ? 'Good til cancelled' : 'Day (' + o.session + ')') + '</td>' +
             '<td><button class="pt-mini" data-cancel="' + o.id + '">Cancel</button></td></tr>';
         }).join('') + '</tbody></table>' : '<p class="pt-empty">No open orders.</p>';
     } else if (tab === 'history') {
-      var done = acct.orders.filter(function (o) { return o.status !== 'open'; }).slice(-100).reverse();
-      h = done.length ? '<table class="pt-table"><thead><tr><th>Date</th><th>Symbol</th><th>Side</th><th>Type</th><th>Qty</th><th>Status</th><th>Fill</th><th>P&amp;L</th></tr></thead><tbody>' +
-        done.map(function (o) {
-          var f = acct.fills.filter(function (x) { return x.orderId === o.id; })[0];
-          return '<tr><td>' + (o.filledDay || o.createdDay) + '</td><td>' + o.sym + '</td><td class="' + (o.side === 'buy' ? 'up' : 'dn') + '">' + o.side.toUpperCase() + '</td><td>' + o.type + (o.fullPort ? ' <small class="pt-fp-tag">FULL PORT</small>' : '') + '</td><td>' + o.qty + '</td>' +
-            '<td>' + o.status + (o.note ? ' <small>· ' + esc(o.note) + '</small>' : '') + '</td><td>' + (o.fillPrice ? fmt(o.fillPrice) : '–') + '</td>' +
-            '<td class="' + (f && f.pnl != null ? (f.pnl >= 0 ? 'up' : 'dn') : '') + '">' + (f && f.pnl != null ? signed(f.pnl) : '–') + '</td></tr>';
-        }).join('') + '</tbody></table>' : '<p class="pt-empty">Nothing yet. Filled, cancelled and expired orders show up here.</p>';
+      var tr = acct.trades.slice(-150).reverse();
+      h = tr.length ? '<table class="pt-table"><thead><tr><th>Closed</th><th>Position</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Invested</th><th>P&amp;L</th><th>%</th></tr></thead><tbody>' +
+        tr.map(function (t) {
+          return '<tr><td>' + (t.closeDay || '') + (t.epoch !== acct.epoch ? ' <small>(before reset)</small>' : '') + '</td><td>' + esc(t.label) + (t.note ? ' <small>· ' + esc(t.note) + '</small>' : '') + '</td><td>' + t.qty + '</td><td>' + fmt(t.entry) + '</td><td>' + fmt(t.exit) + '</td><td>' + money(t.invested) + '</td>' +
+            '<td class="' + (t.pnl >= 0 ? 'up' : 'dn') + '">' + signed(t.pnl) + '</td><td class="' + (t.pct >= 0 ? 'up' : 'dn') + '">' + pct(t.pct) + '</td></tr>';
+        }).join('') + '</tbody></table>' : '<p class="pt-empty">Closed trades show up here with entry, exit and P&amp;L.</p>';
+      var done = acct.orders.filter(function (o) { return o.status !== 'open' && o.status !== 'filled'; }).slice(-20).reverse();
+      if (done.length) h += '<div class="pt-subhead">Cancelled &amp; expired orders</div><table class="pt-table"><tbody>' + done.map(function (o) {
+        return '<tr><td>' + o.createdDay + '</td><td>' + o.sym + '</td><td>' + o.side + ' ' + o.type + ' ' + o.qty + '</td><td>' + o.status + (o.note ? ' <small>· ' + esc(o.note) + '</small>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    } else if (tab === 'agents') {
+      h = renderAgents();
     } else {
-      var sells = acct.fills.filter(function (f) { return f.side === 'sell'; }), wins = sells.filter(function (f) { return f.pnl > 0; });
-      var days = Object.keys(acct.equityDays).sort();
+      var st = stats(), eq = equity(), days = Object.keys(acct.equityDays).sort();
       h = '<div class="pt-perf">' +
-        '<span><small>Account value</small><b>' + money(equity()) + '</b></span>' +
-        '<span><small>Total return</small><b class="' + (equity() >= START_CASH ? 'up' : 'dn') + '">' + pct((equity() / START_CASH - 1) * 100) + '</b></span>' +
+        '<span><small>Account value</small><b>' + money(eq) + '</b></span>' +
+        '<span><small>Growth this account</small><b class="' + (eq >= START_CASH ? 'up' : 'dn') + '">' + pct((eq / START_CASH - 1) * 100) + '</b></span>' +
         '<span><small>Realized P&amp;L</small><b class="' + (acct.realized >= 0 ? 'up' : 'dn') + '">' + signed(acct.realized) + '</b></span>' +
-        '<span><small>Closed trades</small><b>' + sells.length + '</b></span>' +
-        '<span><small>Win rate</small><b>' + (sells.length ? Math.round(wins.length / sells.length * 100) + '%' : '–') + '</b></span>' +
-        '<span><small>Full Port trades</small><b>' + acct.orders.filter(function (o) { return o.fullPort && o.status === 'filled' && o.side === 'buy'; }).length + '</b></span>' +
-        '<span><small>Since</small><b>' + new Date(acct.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</b></span></div>' +
+        '<span><small>Closed trades</small><b>' + st.trades + '</b></span>' +
+        '<span><small>Win rate</small><b>' + (st.trades ? st.winRate + '%' : '–') + '</b></span>' +
+        '<span><small>Wins / losses</small><b>' + st.wins + ' / ' + st.losses + '</b></span>' +
+        '<span><small>Peak value</small><b>' + money(acct.peakEquity || START_CASH) + '</b></span>' +
+        '<span><small>Resets</small><b>' + acct.resets + '</b></span></div>' +
         (days.length > 1 ? '<canvas class="pt-curve" id="ptCurve"></canvas>' : '<p class="pt-empty">Your account-value curve fills in as the days go by.</p>') +
-        '<button class="pt-reset" id="ptReset" type="button">Reset account to $10,000</button>';
+        '<div class="pt-perf-foot">' +
+        '<label class="pt-check"><input type="checkbox" id="ptPublic"' + (acct.publicProfile !== false ? ' checked' : '') + '> Show my stats on the leaderboard' + (currentUser ? '' : ' <small>(sign in to appear)</small>') + '</label>' +
+        (currentUser && acct.publicProfile !== false ? '<a class="pt-mini" href="profile.html?u=' + encodeURIComponent(currentUser.uid) + '">View my public profile &rarr;</a>' : '') +
+        (eq < RESET_BELOW ? '<button class="pt-reset" id="ptReset" type="button">Reset account to $10,000</button>' : '<span class="pt-fine">Reset unlocks if the account falls below ' + money(RESET_BELOW, 0) + '.</span>') + '</div>' +
+        (acct.resetHistory.length ? '<div class="pt-subhead">Reset history</div><table class="pt-table"><tbody>' + acct.resetHistory.slice().reverse().map(function (r, k) {
+          return '<tr><td>#' + (acct.resetHistory.length - k) + '</td><td>' + r.day + '</td><td>Account was at ' + money(r.equityBefore) + '</td></tr>';
+        }).join('') + '</tbody></table>' : '');
     }
     $('ptTabBody').innerHTML = h;
-    if (tab === 'performance') { drawCurve(); var r = $('ptReset'); if (r) r.addEventListener('click', resetAcct); }
+    if (tab === 'performance') {
+      drawCurve();
+      var r = $('ptReset'); if (r) r.addEventListener('click', askReset);
+      $('ptPublic').addEventListener('change', function () { acct.publicProfile = this.checked; save(); renderTabs(); toast(this.checked ? 'Your stats will show on the leaderboard.' : 'Your stats are private now and removed from the leaderboard.'); });
+    }
   }
   function drawCurve() {
     var cv = $('ptCurve'); if (!cv) return;
@@ -447,19 +629,124 @@
     var lo = Math.min.apply(null, vals.concat([START_CASH])), hi = Math.max.apply(null, vals.concat([START_CASH])), pad = (hi - lo) * 0.1 || 50;
     lo -= pad; hi += pad;
     var X = function (i) { return 8 + i / (vals.length - 1) * (W - 16); }, Y = function (v) { return 8 + (hi - v) / (hi - lo) * (H - 16); };
-    var up = vals[vals.length - 1] >= START_CASH, col = up ? '#3ecb7c' : '#e0483f';
+    var col = vals[vals.length - 1] >= START_CASH ? '#3ecb7c' : '#e0483f';
     c.strokeStyle = 'rgba(127,127,127,0.4)'; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(8, Y(START_CASH)); c.lineTo(W - 8, Y(START_CASH)); c.stroke(); c.setLineDash([]);
     c.beginPath(); vals.forEach(function (v, i) { if (i) c.lineTo(X(i), Y(v)); else c.moveTo(X(i), Y(v)); });
     c.strokeStyle = col; c.lineWidth = 2; c.stroke();
     c.lineTo(X(vals.length - 1), H - 8); c.lineTo(X(0), H - 8); c.closePath(); c.globalAlpha = 0.12; c.fillStyle = col; c.fill(); c.globalAlpha = 1;
   }
-  function resetAcct() {
-    if (!confirm('Reset your practice account to $10,000? This clears every position, order and trade.')) return;
-    acct = fresh(); save(); renderAll();
-    toast('Account reset to $10,000.');
+
+  // ------------------------------------------------------------ stats + public profile
+  function stats() {
+    var t = acct.trades, wins = t.filter(function (x) { return x.pnl > 0; }), losses = t.filter(function (x) { return x.pnl < 0; });
+    var bySym = {};
+    t.forEach(function (x) { bySym[x.sym] = (bySym[x.sym] || 0) + x.pnl; });
+    return {
+      trades: t.length, wins: wins.length, losses: losses.length, winRate: t.length ? Math.round(wins.length / t.length * 100) : 0,
+      avgWin: wins.length ? wins.reduce(function (a, x) { return a + x.pnl; }, 0) / wins.length : 0,
+      avgLoss: losses.length ? losses.reduce(function (a, x) { return a + x.pnl; }, 0) / losses.length : 0,
+      best: wins.slice().sort(function (a, b) { return b.pnl - a.pnl; }).slice(0, 10),
+      topStocks: Object.keys(bySym).map(function (s) { return { sym: s, pnl: round2(bySym[s]) }; }).filter(function (x) { return x.pnl > 0; }).sort(function (a, b) { return b.pnl - a.pnl; }).slice(0, 5)
+    };
+  }
+  function playerName() {
+    if (acct && acct.displayName) return acct.displayName;
+    if (currentUser && currentUser.displayName) return currentUser.displayName.split(' ')[0];
+    if (currentUser) return 'Trader-' + currentUser.uid.slice(0, 4);
+    return 'Guest';
+  }
+  // Public, leaderboard-facing numbers only. Never email, login or order details.
+  function publishProfile() {
+    if (!currentUser || !db) return;
+    var ref = db.collection('practiceProfiles').doc(currentUser.uid);
+    if (acct.publicProfile === false) { ref.delete().catch(function () {}); return; }
+    var st = stats(), eq = equity();
+    ref.set({
+      name: String(playerName()).slice(0, 24), equity: round2(eq), start: START_CASH, growthPct: round2((eq / START_CASH - 1) * 100),
+      peakEquity: round2(acct.peakEquity || eq), resets: acct.resets || 0,
+      resetHistory: acct.resetHistory.slice(-20).map(function (r) { return { day: r.day, equityBefore: r.equityBefore }; }),
+      trades: st.trades, wins: st.wins, losses: st.losses, winRate: st.winRate, avgWin: round2(st.avgWin), avgLoss: round2(st.avgLoss),
+      realized: round2(acct.realized),
+      bestTrades: st.best.map(function (x) { return { sym: x.sym, label: x.label, kind: x.kind, qty: x.qty, invested: round2(x.invested), pnl: round2(x.pnl), pct: round2(x.pct), entry: round2(x.entry), exit: round2(x.exit), openDay: x.openDay || null, closeDay: x.closeDay || null }; }),
+      topStocks: st.topStocks, since: acct.createdAt, updatedAt: Date.now()
+    }).catch(function () {});
   }
 
-  // switching stocks: prices typed for the old one make no sense for the new one
+  // ------------------------------------------------------------ reset
+  function askReset() {
+    if (equity() >= RESET_BELOW) return toast('Reset unlocks once the account is below ' + money(RESET_BELOW, 0) + '.', true);
+    $('ptModalTitle').textContent = 'Reset your practice account?';
+    $('ptModalText').innerHTML = 'Your account goes back to <b>$10,000</b>: open positions, options and orders are cleared. Your trade history stays, and this counts as <b>reset #' + (acct.resets + 1) + '</b> on your public stats.';
+    $('ptModalGo').textContent = 'Reset to $10,000';
+    $('ptConfirm').hidden = false; $('ptModalGo').focus();
+    $('ptModalGo').onclick = function () {
+      $('ptConfirm').hidden = true;
+      acct.resetHistory.push({ at: Date.now(), day: todayNY(), equityBefore: round2(equity()) });
+      acct.resets += 1; acct.epoch += 1; acct.epochStartedAt = Date.now();
+      acct.cash = START_CASH; acct.positions = {}; acct.options = []; acct.equityDays = {}; acct.peakEquity = START_CASH; acct.realized = 0;
+      acct.orders.forEach(function (o) { if (o.status === 'open') { o.status = 'cancelled'; o.note = 'Account reset'; } });
+      save(); renderAll(); toast('Account reset to $10,000. Reset #' + acct.resets + ' recorded.');
+    };
+  }
+
+  // ------------------------------------------------------------ agent signals
+  var AGENTS = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner' };
+  function loadAgents() {
+    if (!db) { agentAlerts = []; return; }
+    try { var q = db.collection('alerts').orderBy('createdAt', 'desc').limit(40); } catch (e) { agentAlerts = []; return; }
+    q.get().then(function (snap) {
+      var latest = {};
+      snap.forEach(function (d) { var a = d.data(); a.id = d.id; if (AGENTS[a.strategy] && !latest[a.strategy] && a.status === 'qualified') latest[a.strategy] = a; });
+      agentAlerts = Object.keys(AGENTS).map(function (k) { return latest[k] || { strategy: k, none: true }; });
+      if (tab === 'agents') renderTabs();
+    }).catch(function () { agentAlerts = []; if (tab === 'agents') renderTabs(); });
+  }
+  function renderAgents() {
+    if (!agentAlerts) { loadAgents(); if (!agentAlerts) return '<p class="pt-empty">Loading the latest agent signals…</p>'; }
+    if (!agentAlerts.length) return '<p class="pt-empty">Agent signals load from the live alert feed. They\'re not reachable right now.</p>';
+    return '<p class="pt-fine" style="margin-bottom:10px">Test a Zelos agent with virtual money: each card is that agent\'s latest qualified setup. <b>Paper trade</b> loads it into your ticket with its stop and target; you still review and place the order.</p><div class="pt-agents">' +
+      agentAlerts.map(function (a) {
+        var name = AGENTS[a.strategy], own = ownedSkills.indexOf(a.strategy) !== -1;
+        var badge = '<span class="pt-abadge' + (own ? ' is-own' : '') + '">' + (own ? 'Your agent' : 'Preview') + '</span>';
+        if (a.none) return '<div class="pt-agent"><div class="pt-ahead"><b>' + name + '</b>' + badge + '</div><p class="pt-fine">No qualified setup in the latest scans.</p></div>';
+        var inU = !!NAMES[a.ticker], isOpt = a.strategy === 'options-scanner';
+        var rr = a.entry && a.stop && a.target1 ? Math.abs(a.target1 - a.entry) / Math.abs(a.entry - a.stop) : null;
+        return '<div class="pt-agent"><div class="pt-ahead"><b>' + name + '</b>' + badge + '</div>' +
+          '<div class="pt-aticker">' + esc(a.ticker) + ' <small>' + esc(a.setupLabel || a.direction || '') + '</small></div>' +
+          (a.entry ? '<div class="pt-alevels"><span>Entry <b>' + fmt(a.entry) + '</b></span><span>Stop <b>' + fmt(a.stop) + '</b></span><span>Target <b>' + fmt(a.target1) + '</b></span>' + (rr ? '<span>R:R <b>' + rr.toFixed(1) + '</b></span>' : '') + '</div>' : '') +
+          (isOpt && a.optionsRule ? '<p class="pt-fine">' + esc(a.optionsRule) + '</p>' : '') +
+          (inU ? '<button class="pt-mini pt-abtn" data-agent="' + a.strategy + '">' + (isOpt ? 'Open in options &rarr;' : 'Paper trade this &rarr;') + '</button>'
+            : '<p class="pt-fine">' + esc(a.ticker) + ' isn\'t in the practice stock list yet.</p>') +
+          (own ? '' : '<a class="pt-fine pt-alink" href="../arsenal.html">Get the ' + name + ' agent</a>') + '</div>';
+      }).join('') + '</div>';
+  }
+  function useAgent(strategy) {
+    var a = (agentAlerts || []).filter(function (x) { return x.strategy === strategy; })[0]; if (!a || !NAMES[a.ticker]) return;
+    selectSymbol(a.ticker);
+    if (strategy === 'options-scanner') {
+      ticket.mode = 'options'; opt.type = /put/.test(a.direction || '') ? 'put' : 'call';
+      var today = todayNY(), exps = OPT.expirations(today);
+      opt.exp = exps.filter(function (e) { var d = OPT.daysTo(e, today); return d >= 30 && d <= 45; })[0] || exps.filter(function (e) { return OPT.daysTo(e, today) >= 21; })[0];
+      var S = price(a.ticker), ks = OPT.strikes(S, 17);
+      var otm = opt.type === 'call' ? ks.filter(function (k) { return k > S; })[0] : ks.filter(function (k) { return k < S; }).pop();
+      opt.pick = { strike: otm, exp: opt.exp, type: opt.type }; opt.agent = strategy;
+      renderAll(); toast('Loaded the Options Scanner idea: 1 strike out of the money, 30–45 days. Review it in the ticket.');
+    } else {
+      ticket.mode = 'stock'; side = 'buy'; acct.fullPort = false;
+      var px = price(a.ticker);
+      ticket.type = a.entry && Math.abs(a.entry - px) / px > 0.01 ? 'limit' : 'market';
+      document.querySelector('[name="ptType"][value="' + ticket.type + '"]').checked = true;
+      $('ptLimit').value = fmt(a.entry || px);
+      $('ptUseBracket').checked = true; $('ptBracketFields').hidden = false;
+      $('ptSL').value = a.stop ? fmt(a.stop) : ''; $('ptTP').value = a.target1 ? fmt(a.target1) : '';
+      ticket.agent = strategy;
+      forecastOn = true; syncForecastChip();
+      renderAll(); toast('Loaded the ' + AGENTS[strategy] + ' setup on ' + a.ticker + ' with its stop and target. Set a size and review.');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ------------------------------------------------------------ misc UI
   function selectSymbol(sym) {
     if (sym === sel) return renderAll();
     sel = sym;
@@ -468,24 +755,44 @@
     $('ptLimit').value = p ? fmt(p) : ''; $('ptStopPx').value = p ? fmt(p) : '';
     if ($('ptUseBracket').checked && p) { $('ptSL').value = fmt(p * 0.95); $('ptTP').value = fmt(p * 1.10); }
     else { $('ptSL').value = ''; $('ptTP').value = ''; }
+    opt.pick = null; opt.agent = null; ticket.agent = null;
     watchIntraday();
     renderAll();
   }
-
-  function renderAll() {
-    renderHeader(); renderWatch(); renderQuote(); renderTicket(); renderTabs();
-  }
-
+  function renderAll() { renderHeader(); renderWatch(); renderQuote(); renderTicket(); renderTabs(); }
   function toast(t, bad) {
     var el = document.createElement('div'); el.className = 'pt-toast' + (bad ? ' is-bad' : ''); el.innerHTML = t;
-    document.body.appendChild(el); setTimeout(function () { el.classList.add('is-out'); }, 3200); setTimeout(function () { el.remove(); }, 3700);
+    document.body.appendChild(el); setTimeout(function () { el.classList.add('is-out'); }, 3600); setTimeout(function () { el.remove(); }, 4100);
+  }
+  function syncForecastChip() { var b = $('ptForecast'); b.classList.toggle('is-on', forecastOn); b.setAttribute('aria-pressed', String(forecastOn)); }
+  function renderTfMenu() {
+    $('ptTfBtn').innerHTML = TF[tf].short + ' <span class="pt-caret">&#9662;</span>';
+    $('ptTfMenu').innerHTML = Object.keys(TF).map(function (k) { return '<button type="button" role="menuitemradio" aria-checked="' + (k === tf) + '" data-tf="' + k + '"' + (k === tf ? ' class="is-on"' : '') + '><b>' + TF[k].short + '</b>' + TF[k].label + (TF[k].intraday ? '<small>live feed</small>' : '') + '</button>'; }).join('');
+    var def = rangeSel || TF[tf].def;
+    $('ptRanges').innerHTML = TF[tf].ranges.map(function (r) { return '<button class="' + (String(r[1]) === String(def) ? 'is-on' : '') + '" type="button" data-range="' + r[1] + '">' + r[0] + '</button>'; }).join('');
+  }
+  function renderIndMenu() {
+    var groups = {};
+    TC.INDICATORS.forEach(function (d) { (groups[d.group] = groups[d.group] || []).push(d); });
+    $('ptIndMenu').innerHTML = Object.keys(groups).map(function (g) {
+      return '<div class="pt-menu-group">' + esc(g) + '</div>' + groups[g].map(function (d) {
+        return '<label class="pt-menu-check"><input type="checkbox" data-ind="' + d.id + '"' + (chart.show[d.id] ? ' checked' : '') + '> ' + esc(d.label) + '</label>';
+      }).join('');
+    }).join('') + '<small>Up to 3 indicator panels show at once.</small>';
+    var n = TC.INDICATORS.filter(function (d) { return chart.show[d.id]; }).length;
+    $('ptIndBtn').innerHTML = 'Indicators' + (n ? ' <em>' + n + '</em>' : '') + ' <span class="pt-caret">&#9662;</span>';
+  }
+  function menu(btnId, menuId) {
+    var btn = $(btnId), m = $(menuId);
+    btn.addEventListener('click', function (e) { e.stopPropagation(); var open = m.hidden; document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); m.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+    m.addEventListener('click', function (e) { e.stopPropagation(); });
   }
 
-  // ------------------------------------------------------------ placing orders
+  // ------------------------------------------------------------ placing stock orders
   function review() {
     var q = orderQty(), px = price(sel);
     if (!q) return toast('Enter how many shares (or dollars) first.', true);
-    var o = { sym: sel, side: side, type: ticket.type, qty: q, tif: $('ptTif').value, fullPort: !!acct.fullPort };
+    var o = { sym: sel, side: side, type: ticket.type, qty: q, tif: $('ptTif').value, fullPort: !!acct.fullPort, agent: ticket.agent || null };
     if (o.type === 'limit') { o.limit = +(+$('ptLimit').value).toFixed(2); if (!(o.limit > 0)) return toast('Enter a limit price.', true); }
     if (o.type === 'stop') { o.stop = +(+$('ptStopPx').value).toFixed(2); if (!(o.stop > 0)) return toast('Enter a stop price.', true); }
     if (o.type === 'market') o.tif = 'day';
@@ -504,31 +811,51 @@
     }
     var desc = (o.fullPort ? 'FULL PORT · ' : '') + (side === 'buy' ? 'Buy ' : 'Sell ') + q + ' ' + sel + ' · ' + (o.type === 'market' ? 'market order' : o.type + ' @ ' + fmt(o.limit || o.stop)) +
       (o.bracket ? ' · stop-loss ' + (o.bracket.sl ? fmt(o.bracket.sl) : 'none') + ', take-profit ' + (o.bracket.tp ? fmt(o.bracket.tp) : 'none') : '');
-    $('ptConfirmText').innerHTML = '<b>' + esc(desc) + '</b><br>' + esc($('ptWhen').textContent) + (side === 'buy' ? '<br>Estimated ' + money(q * (o.limit || o.stop || px)) + ' of your ' + money(buyingPower()) + ' buying power.' : '');
-    $('ptConfirm').hidden = false; $('ptConfirmGo').focus();
-    $('ptConfirmGo').onclick = function () { $('ptConfirm').hidden = true; place(o); };
+    $('ptModalTitle').textContent = 'Confirm order';
+    $('ptModalText').innerHTML = '<b>' + esc(desc) + '</b><br>' + esc($('ptWhen').textContent) + (side === 'buy' ? '<br>Estimated ' + money(q * (o.limit || o.stop || px)) + ' of your ' + money(buyingPower()) + ' buying power.' : '');
+    $('ptModalGo').textContent = side === 'buy' ? 'Place buy order' : 'Place sell order';
+    $('ptConfirm').hidden = false; $('ptModalGo').focus();
+    $('ptModalGo').onclick = function () { $('ptConfirm').hidden = true; place(o); };
   }
   function place(f) {
     var o = newOrder(f);
     acct.orders.push(o);
-    // market orders during the session fill now at the price on screen
     if (o.type === 'market' && marketOpen()) fill(o, price(o.sym), todayNY());
     else processOrders();
     save(); renderAll();
     if (o.status === 'filled') toast((o.side === 'buy' ? 'Bought ' : 'Sold ') + o.qty + ' ' + o.sym + ' @ ' + fmt(o.fillPrice));
     else if (o.status === 'open') toast('Order placed: ' + o.side + ' ' + o.qty + ' ' + o.sym + (o.type === 'market' ? ' at the next open' : ' ' + o.type + ' @ ' + fmt(o.limit || o.stop)));
     else toast('Order ' + o.status + (o.note ? ': ' + esc(o.note) : ''), true);
-    $('ptQty').value = '';
+    $('ptQty').value = ''; ticket.agent = null;
     renderTicket();
   }
   function snapshotEquity() { acct.equityDays[todayNY()] = Math.round(equity() * 100) / 100; }
 
+  // ------------------------------------------------------------ entry gate
+  function showGate() {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+    var entered = false; try { entered = sessionStorage.getItem('zelosPracticeEntered') === '1'; } catch (e) {}
+    if (entered || nav.type === 'reload' || nav.type === 'back_forward') { $('ptGate').hidden = true; return; }
+    $('ptGate').hidden = false;
+    renderGate();
+    setTimeout(function () { try { $('ptGateEnter').focus(); } catch (e) {} }, 50);
+  }
+  function renderGate() {
+    if ($('ptGate').hidden) return;
+    $('ptGateName').textContent = playerName();
+    $('ptGateWho').textContent = currentUser ? 'Signed in · your account is saved and follows you to any device' : 'Guest · saved in this browser only';
+    $('ptGateGoogle').hidden = !!currentUser || !window.firebase;
+    $('ptGateRename').hidden = !currentUser;
+    var eq = equity();
+    $('ptGateBal').textContent = money(eq);
+  }
+
   // ------------------------------------------------------------ wiring
   function tick() {
-    Object.keys(NAMES).forEach(buildSeries);
+    UNIVERSE.forEach(function (u) { buildSeries(u.sym); });
     var changed = processOrders();
     snapshotEquity();
-    if (changed) { save(); var last = acct.fills[acct.fills.length - 1]; if (last && Date.now() - last.at < 5000) toast('Filled: ' + (last.side === 'buy' ? 'bought ' : 'sold ') + last.qty + ' ' + last.sym + ' @ ' + fmt(last.price)); }
+    if (changed) save();
     renderAll();
   }
 
@@ -537,111 +864,149 @@
     chart = new TC.TradeChart($('ptChart'));
     $('ptWatch').addEventListener('click', function (e) { var b = e.target.closest('[data-sym]'); if (b) selectSymbol(b.getAttribute('data-sym')); });
     $('ptSearch').addEventListener('input', renderWatch);
+    document.querySelectorAll('[data-mode]').forEach(function (b) { b.addEventListener('click', function () { ticket.mode = b.getAttribute('data-mode'); renderTicket(); }); });
     $('ptBuy').addEventListener('click', function () { side = 'buy'; renderTicket(); });
     $('ptSell').addEventListener('click', function () { side = 'sell'; renderTicket(); });
     document.querySelectorAll('[name="ptType"]').forEach(function (r) { r.addEventListener('change', function () { ticket.type = r.value; if (r.value !== 'market' && !$('ptLimit').value) { $('ptLimit').value = fmt(price(sel)); $('ptStopPx').value = fmt(price(sel)); } renderTicket(); }); });
     $('ptQtyMode').addEventListener('click', function () { ticket.qtyMode = ticket.qtyMode === 'shares' ? 'dollars' : 'shares'; this.textContent = ticket.qtyMode === 'shares' ? 'Use $ amount' : 'Use shares'; $('ptQty').value = ''; renderTicket(); });
-    ['ptQty', 'ptLimit', 'ptStopPx', 'ptTif'].forEach(function (id) { $(id).addEventListener('input', renderTicket); });
-    $('ptUseBracket').addEventListener('change', function () { $('ptBracketFields').hidden = !this.checked; if (this.checked && !$('ptSL').value) { var p = price(sel); $('ptSL').value = fmt(p * 0.95); $('ptTP').value = fmt(p * 1.10); } });
+    ['ptQty', 'ptLimit', 'ptStopPx', 'ptTif', 'ptSL', 'ptTP'].forEach(function (id) { $(id).addEventListener('input', renderTicket); });
+    $('ptUseBracket').addEventListener('change', function () { $('ptBracketFields').hidden = !this.checked; if (this.checked && !$('ptSL').value) { var p = price(sel); $('ptSL').value = fmt(p * 0.95); $('ptTP').value = fmt(p * 1.10); } renderTicket(); });
     $('ptSubmit').addEventListener('click', review);
-    $('ptConfirmCancel').addEventListener('click', function () { $('ptConfirm').hidden = true; });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('ptConfirm').hidden = true; });
+    // options ticket
+    document.querySelectorAll('[data-otype]').forEach(function (b) { b.addEventListener('click', function () { opt.type = b.getAttribute('data-otype'); opt.pick = null; renderTicket(); }); });
+    $('ptOptExp').addEventListener('change', function () { opt.exp = this.value; opt.pick = null; renderTicket(); });
+    $('ptChain').addEventListener('click', function (e) { var tr = e.target.closest('[data-strike]'); if (!tr) return; opt.pick = { strike: +tr.getAttribute('data-strike'), exp: opt.exp, type: opt.type }; renderTicket(); });
+    $('ptOptQty').addEventListener('input', renderTicket);
+    $('ptOptBuy').addEventListener('click', function () { optTrade('buy'); });
+    $('ptOptSell').addEventListener('click', function () { optTrade('sell'); });
+    // modal
+    $('ptModalCancel').addEventListener('click', function () { $('ptConfirm').hidden = true; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('ptConfirm').hidden = true; document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); } });
     document.querySelectorAll('.pt-tab').forEach(function (t) { t.addEventListener('click', function () { tab = t.getAttribute('data-tab'); renderTabs(); }); });
     $('ptTabBody').addEventListener('click', function (e) {
-      var s = e.target.getAttribute('data-sym'), c = e.target.getAttribute('data-cancel'), cl = e.target.getAttribute('data-close');
+      var tg = e.target.closest('button,a'); if (!tg) return;
+      var s = tg.getAttribute('data-sym'), c = tg.getAttribute('data-cancel'), cl = tg.getAttribute('data-close'), oc = tg.getAttribute('data-optclose'), os = tg.getAttribute('data-optsym'), ag = tg.getAttribute('data-agent');
       if (s) { selectSymbol(s); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       if (c) { acct.orders.forEach(function (o) { if (o.id === c && o.status === 'open') { o.status = 'cancelled'; o.note = 'Cancelled by you'; } }); save(); renderAll(); toast('Order cancelled.'); }
-      if (cl) { selectSymbol(cl); side = 'sell'; ticket.type = 'market'; document.querySelector('[name="ptType"][value="market"]').checked = true; ticket.qtyMode = 'shares'; $('ptQtyMode').textContent = 'Use $ amount'; $('ptQty').value = acct.positions[cl].qty - reservedShares(cl); renderAll(); review(); }
+      if (cl) { selectSymbol(cl); ticket.mode = 'stock'; side = 'sell'; ticket.type = 'market'; document.querySelector('[name="ptType"][value="market"]').checked = true; ticket.qtyMode = 'shares'; $('ptQtyMode').textContent = 'Use $ amount'; $('ptQty').value = acct.positions[cl].qty - reservedShares(cl); renderAll(); review(); }
+      if (oc || os) {
+        var o = acct.options.filter(function (x) { return x.id === (oc || os); })[0]; if (!o) return;
+        selectSymbol(o.sym); ticket.mode = 'options'; opt.type = o.type; opt.exp = o.exp; opt.pick = { strike: o.strike, exp: o.exp, type: o.type };
+        $('ptOptQty').value = o.qty; renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (ag) useAgent(ag);
+    });
+    // toolbar: timeframe, ranges, indicators, forecast, colors
+    menu('ptTfBtn', 'ptTfMenu'); menu('ptIndBtn', 'ptIndMenu'); menu('ptColorsBtn', 'ptColorPop');
+    document.addEventListener('click', function () { document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); });
+    $('ptTfMenu').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-tf]'); if (!b) return;
+      tf = b.getAttribute('data-tf'); rangeSel = null; $('ptTfMenu').hidden = true;
+      try { localStorage.setItem('zelosPracticeTf', tf); } catch (err) {}
+      watchIntraday(); renderTfMenu(); renderQuote();
     });
     $('ptRanges').addEventListener('click', function (e) {
       var b = e.target.closest('[data-range]'); if (!b) return;
       var r = b.getAttribute('data-range'); rangeSel = r === 'all' ? 'all' : +r;
-      chart.setRange(rangeSel); renderRanges();
-    });
-    document.querySelectorAll('[data-tf]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        tf = b.getAttribute('data-tf'); rangeSel = null;
-        try { localStorage.setItem('zelosPracticeTf', tf); } catch (err) {}
-        watchIntraday(); renderRanges(); renderQuote();
-      });
+      chart.setRange(rangeSel); renderTfMenu();
     });
     try { var savedTf = localStorage.getItem('zelosPracticeTf'); if (TF[savedTf]) tf = savedTf; } catch (err) {}
-    renderRanges();
-    // candle colors
+    renderTfMenu(); renderIndMenu();
+    $('ptIndMenu').addEventListener('change', function (e) { var id = e.target.getAttribute('data-ind'); if (!id) return; chart.toggle(id, e.target.checked); renderIndMenu(); });
+    try { forecastOn = localStorage.getItem('zelosPracticeForecast') === '1'; } catch (err) {}
+    syncForecastChip();
+    $('ptForecast').addEventListener('click', function () {
+      forecastOn = !forecastOn; syncForecastChip();
+      try { localStorage.setItem('zelosPracticeForecast', forecastOn ? '1' : '0'); } catch (err) {}
+      renderQuote();
+    });
     function paintColors() {
       var c = chart.colors;
       $('ptColorUp').value = c.up; $('ptColorDown').value = c.down;
       $('ptColorSwatch').style.background = 'linear-gradient(135deg, ' + c.up + ' 50%, ' + c.down + ' 50%)';
       document.querySelectorAll('[data-preset]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-preset') === c.id); });
     }
-    $('ptColorPresets').innerHTML = TC.PRESETS.map(function (p) {
-      return '<button type="button" class="pt-preset" data-preset="' + p.id + '"><i style="background:' + p.up + '"></i><i style="background:' + p.down + '"></i>' + esc(p.name) + '</button>';
-    }).join('');
+    $('ptColorPresets').innerHTML = TC.PRESETS.map(function (p) { return '<button type="button" class="pt-preset" data-preset="' + p.id + '"><i style="background:' + p.up + '"></i><i style="background:' + p.down + '"></i>' + esc(p.name) + '</button>'; }).join('');
     $('ptColorPresets').addEventListener('click', function (e) {
       var b = e.target.closest('[data-preset]'); if (!b) return;
       var p = TC.PRESETS.filter(function (x) { return x.id === b.getAttribute('data-preset'); })[0];
       chart.colors = { id: p.id, up: p.up, down: p.down }; TC.saveColors(chart.colors); paintColors(); chart.draw();
     });
-    ['ptColorUp', 'ptColorDown'].forEach(function (id) {
-      $(id).addEventListener('input', function () {
-        chart.colors = { id: 'custom', up: $('ptColorUp').value, down: $('ptColorDown').value }; TC.saveColors(chart.colors); paintColors(); chart.draw();
-      });
-    });
-    $('ptColorsBtn').addEventListener('click', function (e) { e.stopPropagation(); var pop = $('ptColorPop'); pop.hidden = !pop.hidden; this.setAttribute('aria-expanded', String(!pop.hidden)); });
-    document.addEventListener('click', function (e) { var pop = $('ptColorPop'); if (!pop.hidden && !pop.contains(e.target)) { pop.hidden = true; $('ptColorsBtn').setAttribute('aria-expanded', 'false'); } });
+    ['ptColorUp', 'ptColorDown'].forEach(function (id) { $(id).addEventListener('input', function () { chart.colors = { id: 'custom', up: $('ptColorUp').value, down: $('ptColorDown').value }; TC.saveColors(chart.colors); paintColors(); chart.draw(); }); });
     paintColors();
-    // Full Port
+    $('ptZoomIn').addEventListener('click', function () { chart.zoom(1 / 1.3); });
+    $('ptZoomOut').addEventListener('click', function () { chart.zoom(1.3); });
+    // Full Port, reset banner, notifications
     $('ptFullPort').addEventListener('change', function () {
       acct.fullPort = this.checked; save(); renderAll();
       toast(this.checked ? '<b>Full Port on.</b> Every order now uses your entire buying power (or your whole position when selling).' : 'Full Port off.', this.checked);
     });
-    document.querySelectorAll('[data-ind]').forEach(function (b) {
-      var k = b.getAttribute('data-ind'); b.classList.toggle('is-on', !!chart.show[k]);
-      b.addEventListener('click', function () { chart.show[k] = !chart.show[k]; b.classList.toggle('is-on', chart.show[k]); chart.draw(); });
+    $('ptResetBtn').addEventListener('click', askReset);
+    $('ptBell').addEventListener('click', function () {
+      if (!('Notification' in window)) return toast('This browser doesn\'t support notifications.', true);
+      if (Notification.permission === 'denied') return toast('Notifications are blocked for this site in your browser settings.', true);
+      Notification.requestPermission().then(function () { renderBell(); if (Notification.permission === 'granted') toast('You\'ll get a pop-up when a take profit or stop loss hits while this tab is open.'); });
     });
-    $('ptZoomIn').addEventListener('click', function () { chart.zoom(1 / 1.3); });
-    $('ptZoomOut').addEventListener('click', function () { chart.zoom(1.3); });
+    // entry gate
+    $('ptGateEnter').addEventListener('click', function () { $('ptGate').hidden = true; try { sessionStorage.setItem('zelosPracticeEntered', '1'); } catch (e) {} });
+    $('ptGateGoogle').addEventListener('click', function () {
+      if (!window.firebase) return;
+      firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { toast('Sign-in didn\'t finish: ' + esc(e.message || e), true); });
+    });
+    $('ptGateRename').addEventListener('click', function () {
+      var n = prompt('Display name for the leaderboard (no email or real name needed):', playerName());
+      if (n == null) return; n = n.replace(/[<>]/g, '').trim().slice(0, 24); if (!n) return;
+      acct.displayName = n; save(); renderGate(); renderHeader();
+    });
 
-    fetch('../data/game-charts.json').then(function (r) { return r.json(); }).then(function (j) {
-      hist = j.symbols; tick();
+    // universe + history
+    Promise.all([
+      fetch('../data/practice-universe.json').then(function (r) { return r.json(); }),
+      fetch('../data/game-charts.json').then(function (r) { return r.json(); }),
+      fetch('../data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; })
+    ]).then(function (res) {
+      UNIVERSE = res[0].symbols; UNIVERSE.forEach(function (u) { NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
+      hist = {}; [res[1].symbols, res[2].symbols].forEach(function (src) { Object.keys(src).forEach(function (k) { hist[k] = src[k]; }); });
+      if (!NAMES[sel]) sel = UNIVERSE[0].sym;
+      tick(); showGate();
     }).catch(function () { toast('Couldn\'t load price history. Refresh to try again.', true); });
 
-    // live data + account sync (Firestore)
     var cfg = window.ZELOS_FIREBASE_CONFIG;
     if (window.firebase && cfg && cfg.projectId) {
       try {
         if (!firebase.apps.length) firebase.initializeApp(cfg);
         db = firebase.firestore();
         db.collection('markets').doc('quotes').onSnapshot(function (snap) {
-          if (!snap.exists) { feed = { state: 'none' }; return tick(); }
+          if (!snap.exists) { feed = { state: 'none' }; if (UNIVERSE.length) tick(); return; }
           var d = snap.data() || {};
           quotes = {};
           Object.keys(d.quotes || {}).forEach(function (s) { var q = d.quotes[s]; q.date = q.t ? nyParts(new Date(q.t * 1000)).date : d.date; quotes[s] = q; });
-          var fresh = d.updatedAt && Date.now() - new Date(d.updatedAt).getTime() < 3 * 60 * 1000;
-          // on an error the last good prices stay on screen; the header says what's wrong
-          feed = { state: d.error ? 'error' : fresh ? 'live' : 'closed', error: d.error, updatedAt: d.updatedAt };
-          tick();
-        }, function () { feed = { state: 'none' }; tick(); });
+          var freshQ = d.updatedAt && Date.now() - new Date(d.updatedAt).getTime() < 3 * 60 * 1000;
+          feed = { state: d.error ? 'error' : freshQ ? 'live' : 'closed', error: d.error, updatedAt: d.updatedAt };
+          if (UNIVERSE.length) tick();
+        }, function () { feed = { state: 'none' }; if (UNIVERSE.length) tick(); });
         db.collection('markets').doc('dailyBars').onSnapshot(function (snap) {
           var b = (snap.exists && snap.data().bars) || {};
           extra = {};
           Object.keys(b).forEach(function (s) { extra[s] = (b[s] || []).map(function (r) { var p = String(r).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], +p[5] || 0]; }); });
-          tick();
+          if (UNIVERSE.length) tick();
         }, function () {});
         watchIntraday();
         firebase.auth().onAuthStateChanged(function (user) {
           currentUser = user && !user.isAnonymous ? user : null;
           $('ptSync').textContent = currentUser ? 'Saved to your account' : 'Saved in this browser · sign in to keep it everywhere';
-          if (!currentUser) return;
+          if (!currentUser) { renderGate(); if (UNIVERSE.length) renderHeader(); return; }
           db.collection('users').doc(currentUser.uid).get().then(function (doc) {
-            var remote = doc.exists && doc.data().practice;
-            if (remote && remote.v === 1 && (remote.updatedAt || 0) > (acct.updatedAt || 0)) { acct = remote; try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} tick(); }
-            else save();
+            var data = doc.exists ? doc.data() : {};
+            ownedSkills = data.ownedSkills || [];
+            var remote = data.practice ? migrate(data.practice) : null;
+            if (remote && (remote.updatedAt || 0) > (acct.updatedAt || 0)) { acct = remote; try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} }
+            save(); renderGate(); if (UNIVERSE.length) tick();
           }).catch(function () {});
         });
       } catch (e) { feed = { state: 'none' }; }
     } else feed = { state: 'none' };
-    setInterval(function () { renderHeader(); if (marketOpen()) tick(); }, 15000);
+    setInterval(function () { if (!UNIVERSE.length) return; renderHeader(); if (marketOpen()) tick(); }, 15000);
   }
   document.addEventListener('DOMContentLoaded', start);
 })();

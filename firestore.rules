@@ -72,6 +72,24 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // $10,000 Practice Account public profiles (leaderboard + practice/profile.html).
+    // One doc per signed-in player, keyed by their uid, holding ONLY public
+    // numbers: display name, balance, growth, resets, closed-trade stats. No
+    // email or login details are ever written here. Anyone can read (the
+    // leaderboard works signed out); only the owner can write or delete their
+    // own doc, and only from a real (non-anonymous) account. A player who turns
+    // their stats private deletes the doc. Same client-side trust trade-off as
+    // XP above: it's virtual money, so a determined person could inflate their
+    // own numbers via devtools.
+    match /practiceProfiles/{userId} {
+      allow read: if true;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null && request.auth.uid == userId
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && request.resource.data.name is string && request.resource.data.name.size() <= 24
+        && request.resource.data.equity is number;
+    }
+
     // Unclaimed Gumroad purchases, keyed by the lowercased email used at checkout.
     // Written only by the gumroad_ping Cloud Function (Admin SDK, bypasses these
     // rules). A signed-in person may read and delete only the doc matching their

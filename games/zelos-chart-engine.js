@@ -268,7 +268,9 @@
     return best;
   };
   Chart.prototype.needsAnim = function () {
-    return !REDUCED && !!(this.prompt || this.banner || this.handles.some(function (h) { return h.pulse; }));
+    var now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    return !REDUCED && !!(this.prompt || this.banner || this.handles.some(function (h) { return h.pulse; }) ||
+      this.marks.some(function (m) { return m.flash && now - m.flash < 1600; }));
   };
   Chart.prototype.draw = function () {
     var c = this.ctx, s = this.s; if (!s || !this.W) return;
@@ -361,10 +363,15 @@
       c.save(); c.globalAlpha = 0.12; c.fillStyle = acc; c.fillRect(X(this.revealTo) - bw / 2, L.y0, bw, L.vy1 - L.y0); c.restore();
     }
     // horizontal lines: thin line + small name at the right end, price tag in the gutter
+    var leftYs = []; // left-side labels already drawn, so near-equal prices don't print on top of each other
     this.lines.concat(this.pickLine ? [this.pickLine] : []).forEach(function (ln) {
       var y = Y(ln.price);
       c.strokeStyle = ln.color; c.lineWidth = ln.w || 1; c.globalAlpha = 0.85; c.setLineDash(ln.dash || []); c.beginPath(); c.moveTo(L.x0, y); c.lineTo(bx0 != null ? bx0 : L.x1, y); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
-      if (ln.label && bx0 == null) { c.font = '600 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = ln.color; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(ln.label, L.x1 - 4, y - 2); c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace'; }
+      if (ln.label && ln.labelLeft) {
+        var below = leftYs.some(function (v) { return Math.abs(v - y) < 12; }); leftYs.push(y);
+        c.font = '700 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = ln.color; c.textBaseline = below ? 'top' : 'bottom'; c.fillText(ln.label, L.x0 + 4, below ? y + 3 : y - 2); c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+      }
+      else if (ln.label && bx0 == null) { c.font = '600 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = ln.color; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(ln.label, L.x1 - 4, y - 2); c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace'; }
       c.fillStyle = ln.color; c.fillRect(L.x1 + 1, y - 8, 60, 16);
       c.fillStyle = tagInk; c.fillText(fmt(ln.price), L.x1 + 6, y);
     });
@@ -382,9 +389,22 @@
       c.fillStyle = tagInk; c.fillText(fmt(h.price), L.x1 + 6, y);
     });
     // markers
+    var nowMs = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     this.marks.forEach(function (m) {
       if (m.i > lastShown) return;
       var x = X(m.i), y = Y(m.price), dir = m.type === 'buy' ? 1 : -1;
+      // target-hit burst: two expanding rings and a glow, about 1.5s
+      if (m.flash && !REDUCED) {
+        var ft = (nowMs - m.flash) / 1500;
+        if (ft >= 0 && ft < 1) {
+          [0, 0.25].forEach(function (off) {
+            var tt = ft - off; if (tt < 0) return;
+            c.save(); c.globalAlpha = Math.max(0, 1 - tt) * 0.9; c.strokeStyle = m.color || bull; c.lineWidth = 2.5 * (1 - tt) + 0.5;
+            c.beginPath(); c.arc(x, y, 6 + 38 * tt, 0, Math.PI * 2); c.stroke(); c.restore();
+          });
+          c.save(); c.globalAlpha = 0.35 * (1 - ft); c.fillStyle = m.color || bull; c.beginPath(); c.arc(x, y, 10 + 8 * Math.sin(ft * Math.PI), 0, Math.PI * 2); c.fill(); c.restore();
+        }
+      }
       c.fillStyle = m.color || (m.type === 'buy' ? bull : bear);
       c.beginPath(); c.moveTo(x, y + dir * 4); c.lineTo(x - 5, y + dir * 13); c.lineTo(x + 5, y + dir * 13); c.closePath(); c.fill();
       if (m.label) {
@@ -631,10 +651,15 @@
         if (!marked && out.kind !== 'open' && k === i + out.day) {
           marked = true;
           var px = out.kind === 'target' ? plan.target : Math.min(plan.stop, s.o[k]);
-          ch.marks.push({ i: k, price: px, type: out.kind === 'target' ? 'sell' : 'buy', color: out.kind === 'target' ? green : red, label: out.kind === 'target' ? 'TARGET HIT' : 'STOPPED' });
+          ch.marks.push({ i: k, price: px, type: out.kind === 'target' ? 'sell' : 'buy', color: out.kind === 'target' ? green : red, label: out.kind === 'target' ? 'TARGET HIT ✓' : 'STOPPED',
+            flash: out.kind === 'target' ? (typeof performance !== 'undefined' ? performance.now() : Date.now()) : null });
+          if (out.kind === 'target') wrap.classList.add('zg-tp-hit');
         }
       }, function () {
-        ch.banner = null; ch.draw();
+        ch.banner = null;
+        var lost = out.kind === 'stop' || (out.kind === 'open' && out.r < 0);
+        var why = lost ? explainLoss(out, ref) : '';
+        ch.draw();
         var outTxt = out.kind === 'target' ? '<b class="up">hit your target on day ' + out.day + ' (+' + fmt(out.r, 1) + 'R)</b>'
           : out.kind === 'stop' ? '<b class="dn">stopped you out on day ' + out.day + ' (' + fmt(out.r, 1) + 'R' + (out.gap ? ', gapped through the stop' : '') + ')</b>'
           : '<b>was still open after 20 days (' + (out.r >= 0 ? '+' : '') + fmt(out.r, 1) + 'R)</b>';
@@ -643,6 +668,7 @@
           '<div class="zg-next-head"><span class="zg-next-dot"></span>What happened next</div>' +
           '<p>This was <b>' + s.sym + '</b>, ' + monthYear(s.d[i]) + '. Your plan ' + outTxt + '. The checklist\'s own plan (stop ' + fmt(ev.stop) + ', target ' + fmt(ev.target) + ') ' + refTxt + '.</p>' +
           '<div class="zg-verdict ' + grade + '">' + (finalRight ? 'Right call.' : 'Wrong call.') + ' The checklist says <b>' + (ev.qualifies ? 'qualifies' : 'pass') + '</b>. +' + pts + ' / ' + MAX + '</div>' +
+          why +
           '<ul class="zg-plan-notes"><li class="' + (pg.stop ? 'ok' : 'miss') + '">' + (pg.stop ? '✓ ' : '✗ ') + pg.sTxt + '</li><li class="' + (pg.target ? 'ok' : 'miss') + '">' + (pg.target ? '✓ ' : '✗ ') + pg.tTxt + '</li></ul>' +
           '<p class="zg-fine">Outcomes vary even for textbook setups. Points are for planning and following the checklist, not for guessing the future.</p>';
         var next = el('button', 'zg-btn zg-btn-primary zg-pulse', meta.nextLabel || 'Next &rarr;'); next.type = 'button';
@@ -650,6 +676,33 @@
         result.appendChild(next);
         try { next.focus({ preventScroll: true }); } catch (e) {}
       });
+    }
+    // A losing round: draw where the stop and target should have been, and say why it failed
+    function explainLoss(out, ref) {
+      var endK = out.kind === 'stop' ? i + out.day : Math.min(s.n - 1, i + 20);
+      var lowAfter = minRange(s.l, i + 1, endK);
+      ch.zones = [{ lo: zoneLo, hi: zoneHi, color: 'rgba(224,72,63,0.10)' }];
+      ch.lines = [
+        { price: ev.stop, color: red, label: 'SHOULD-BE STOP ' + fmt(ev.stop) + ' (under swing low)', dash: [6, 4], labelLeft: true, w: 1.6 },
+        { price: ev.target, color: green, label: 'SHOULD-BE TARGET ' + fmt(ev.target) + ' (recent high)', dash: [6, 4], labelLeft: true, w: 1.6 },
+        { price: swing, color: cssVar('--gold', '#d9a441'), label: 'SWING LOW ' + fmt(swing), dash: [2, 3], labelLeft: true }
+      ];
+      var failed = qs.filter(function (q) { return !ev[q[0]]; }).map(function (q) { return q[1].toLowerCase(); });
+      var pts = [];
+      if (plan.stop > zoneHi && (ref.kind !== 'stop' || ref.day > out.day)) {
+        pts.push('<b>Your stop was inside normal noise.</b> Price dipped to ' + fmt(lowAfter) + ', which took out your stop at ' + fmt(plan.stop) +
+          ' but ' + (lowAfter > ev.stop ? 'never reached' : 'only later reached') + ' the structural stop at ' + fmt(ev.stop) + ' just under the swing low. ' +
+          (ref.kind === 'target' ? 'With that stop the trade went on to hit its target (+' + fmt(ref.r, 1) + 'R).' : 'A wider stop and smaller size would have kept you in.'));
+      } else if (ref.kind === 'stop') {
+        pts.push('<b>The setup itself failed.</b> Price broke below the 10-day swing low (' + fmt(swing) + ') and even the structural stop at ' + fmt(ev.stop) +
+          ' was hit. When the swing low breaks, the pullback has turned into a downtrend, and taking the small loss is the plan working.');
+      } else {
+        pts.push('<b>It never got going.</b> Price drifted against you without reaching the target at ' + fmt(ev.target) + '.');
+      }
+      if (failed.length) pts.push('The checklist flagged it: <b>' + failed.join(', ') + '</b> ' + (failed.length === 1 ? 'was' : 'were') + ' missing, which is why it says <b>pass</b>.');
+      else pts.push('Every checklist item passed, so this was a good trade that lost. That happens; over many trades the edge comes from the 2:1 targets.');
+      pts.push('The dashed lines on the chart show where the stop and target belonged; the red band is the stop zone.');
+      return '<div class="zg-why"><div class="zg-why-head">Why this one lost</div>' + pts.map(function (t) { return '<p>' + t + '</p>'; }).join('') + '</div>';
     }
     bTake.addEventListener('click', function () { submit(true); });
     bPass.addEventListener('click', function () { submit(false); });

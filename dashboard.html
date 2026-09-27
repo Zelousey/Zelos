@@ -264,6 +264,31 @@
   .trade-foot{ display:flex; flex-direction:column; gap:2px; margin-top:10px; font-size:0.74rem; color:var(--muted); }
   .trade-rr{ font-family:var(--mono); color:var(--ink-2); }
 
+  /* ---- trading hub widgets: practice P&L, watchlist news, trending news (zelos-dash-hub.js) ---- */
+  .hub-pnl-main{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .hub-pnl-main b{ font:700 1.7rem var(--mono); }
+  .hub-pnl-grid{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin:10px 0; }
+  .hub-pnl-grid span{ border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:6px 8px; min-width:0; }
+  .hub-pnl-grid small, .hub-pnl-main small{ display:block; font-family:var(--mono); font-size:0.58rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+  .hub-pnl-grid b{ font:700 0.88rem var(--mono); white-space:nowrap; }
+  .hub-pos{ display:flex; justify-content:space-between; gap:8px; font:0.8rem var(--mono); padding:5px 0; border-top:1px solid var(--border-soft); }
+  .hub-pos small{ color:var(--muted); }
+  .hub-up{ color:var(--bull) !important; } .hub-dn{ color:var(--danger) !important; }
+  .hub-foot{ display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:0.72rem; color:var(--muted); }
+  .hub-foot a{ color:var(--accent); text-decoration:none; font-weight:600; }
+  .hub-news{ display:flex; flex-direction:column; }
+  .hub-news a{ display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--border-soft); color:var(--ink); text-decoration:none; }
+  .hub-news a:first-child{ border-top:none; }
+  .hub-news a:hover .hub-h{ color:var(--accent); }
+  .hub-news img{ width:64px; height:46px; object-fit:cover; border-radius:4px; flex:none; background:var(--surface-2); }
+  .hub-news-body{ min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .hub-h{ font-size:0.86rem; font-weight:600; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .hub-meta{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font:0.68rem var(--mono); color:var(--muted); }
+  .hub-tk{ font:700 0.66rem var(--mono); color:var(--accent); background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:3px; padding:1px 5px; }
+  .hub-filter{ display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
+  .hub-filter button{ font:600 0.68rem var(--mono); padding:4px 8px; border-radius:3px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); cursor:pointer; }
+  .hub-filter button.is-on{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
+  .hub-scroll{ max-height:420px; overflow:auto; }
 </style>
 </head>
 <body class="zt zt-body">
@@ -401,6 +426,22 @@
     </div>
 
     <div class="dash-grid" id="dashGrid">
+      <div data-widget="practice" data-title="Practice Account P&amp;L" data-w="3" class="card">
+        <div class="card-head"><h2>Practice Account</h2><a href="practice/">Trade &rarr;</a></div>
+        <div id="hubPractice"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="watchnews" data-title="Watchlist news" data-w="6" class="card">
+        <div class="card-head"><h2>Watchlist news</h2></div>
+        <div class="card-sub">Headlines for the tickers you watch and hold in the practice account.</div>
+        <div id="hubWatchNews"><div class="empty">Loading…</div></div>
+      </div>
+
+      <div data-widget="trending" data-title="Trending market news" data-w="3" class="card">
+        <div class="card-head"><h2>Trending news</h2></div>
+        <div id="hubTrending"><div class="empty">Loading…</div></div>
+      </div>
+
       <div data-widget="status" data-title="Market status" data-w="3" class="card">
         <div class="card-head"><h2>Market status</h2></div>
         <div class="status-line" id="marketStatus">Loading…</div>
@@ -610,6 +651,7 @@
 
 <!-- 3D globe — see zelos-globe.js. Only mounted while the Globe pane is visible. -->
 <script src="zelos-globe.js"></script>
+<script src="zelos-dash-hub.js"></script>
 
 <script>
 (function(){
@@ -1157,6 +1199,8 @@
         renderWatchlist(user, data);
         renderSkills(user, data);
         renderAgentToggles(user, data);
+        // trading hub widgets (zelos-dash-hub.js) read the watchlist + synced practice account from here
+        try { document.dispatchEvent(new CustomEvent('zelos:userdoc', { detail: data })); } catch (e) {}
         // saved dashboard layout follows the account across devices
         if (window.ZelosDashLayout) ZelosDashLayout.syncRemote(data.dashboardLayout || null, function(layout){
           return userDocRef(user.uid).set({ dashboardLayout: layout }, { merge:true });
@@ -1180,6 +1224,7 @@
       if (user && !user.isAnonymous) { renderSignedIn(user); watchUserDoc(user); }
       else {
         renderSignedOut(); renderSignedOutBlocks();
+        try { document.dispatchEvent(new CustomEvent('zelos:userdoc', { detail: null })); } catch (e) {}
         if (window.ZelosDashLayout) ZelosDashLayout.syncRemote(null, null);
         if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
       }
