@@ -4,6 +4,10 @@
  *   Practice Account P&L  #hubPractice    balance, today, total, open P&L, top positions
  *   Watchlist news        #hubWatchNews   headlines for watched + held tickers
  *   Trending news         #hubTrending    general market headlines
+ *   Trader card           #hubTrader      XP, level, streak, leaderboard + friends rank
+ *   Daily missions        #hubMissions    today's missions, weekly progress, streak (zelos-progress.js)
+ *   Challenges            #hubChallenges  active + incoming friend challenges, squads (zelos-social.js)
+ *   Achievements          #hubAchievements unlocked badges
  *
  * Practice numbers come from the account summary the practice page saves
  * (localStorage zelosPractice-v1, or users/{uid}.practice when signed in,
@@ -130,13 +134,95 @@
       attribution();
   }
 
+  // ---------------------------------------------------------------- progression + social
+  var P = window.ZelosProgress, S = window.ZelosSocial, L = window.ZelosLevels, ranks = null, challenges = null, squads = null, attached = null;
+  function realUser() { var u = window.firebase && firebase.apps.length && firebase.auth().currentUser; return u && !u.isAnonymous ? u : null; }
+  function renderTrader() {
+    var el = $('hubTrader'); if (!el) return;
+    var u = realUser(), xp = userDoc ? userDoc.xp || 0 : null, sk = P ? P.streak() : 0;
+    if (xp == null) {
+      el.innerHTML = '<p class="card-sub" style="margin:0">Earn XP for trades, wins, missions and achievements, climb levels and the leaderboards.</p>' +
+        (sk ? '<p class="hub-streak" style="margin:8px 0 0">🔥 ' + sk + '-day mission streak</p>' : '') + '<div class="hub-btns"><a href="practice/">Open the practice account</a></div>';
+      return;
+    }
+    var lv = L ? L.levelForXp(xp) : null, nx = L ? L.nextLevelForXp(xp) : null, pctLv = lv && nx ? (xp - lv.xp) / (nx.xp - lv.xp) * 100 : 100;
+    el.innerHTML = '<div class="hub-trader">' + (L && lv ? L.badge(lv, 48) : '') + '<span><small>Level ' + (lv ? lv.level : 0) + ' · ' + esc(lv ? lv.title : '') + '</small><b>' + esc(lv ? lv.name : '') + '</b></span></div>' +
+      '<div class="hub-xpbar"><i style="width:' + Math.max(0, Math.min(100, pctLv)).toFixed(1) + '%"></i></div><small style="font:0.72rem var(--mono);color:var(--muted)">' + xp.toLocaleString('en-US') + ' XP' + (nx ? ' · ' + (nx.xp - xp) + ' to ' + esc(nx.name) : '') + '</small>' +
+      '<div class="hub-pnl-grid" style="margin-bottom:0"><span><small>Streak</small><b>' + (sk ? '🔥 ' + sk : '0') + '</b></span>' +
+      '<span><small>Leaderboard</small><b>' + (ranks && ranks.global ? '#' + ranks.global : ranks && ranks.globalOut ? '100+' : '–') + '</b></span>' +
+      '<span><small>Friends</small><b>' + (ranks && ranks.friends ? '#' + ranks.friends + '/' + ranks.friendsOf : '–') + '</b></span></div>' +
+      '<div class="hub-btns">' + (u ? '<a href="practice/profile.html?u=' + encodeURIComponent(u.uid) + '">My profile</a>' : '') + '<a href="leaderboard.html#practice">Leaderboards</a></div>';
+  }
+  function loadRanks(u) {
+    if (!S || !S.init() || !u) return;
+    var db = firebase.firestore();
+    Promise.all([
+      db.collection('practiceProfiles').orderBy('equity', 'desc').limit(100).get().then(function (snap) { var i = 0, at = 0; snap.forEach(function (d) { i++; if (d.id === u.uid) at = i; }); return { at: at, n: i }; }).catch(function (e) { console.warn('[hub] rank query failed', e && e.message); return null; }),
+      Promise.all([S.friends(), S.mySquads(u.uid)]).then(function (r) { squads = r[1]; var ids = [u.uid].concat(r[0]); r[1].forEach(function (q) { ids = ids.concat(q.members); }); return S.profiles(ids); }).catch(function (e) { console.warn('[hub] friends rank failed', e && e.message); return {}; })
+    ]).then(function (r) {
+      var g = r[0], m = r[1] || {}, list = Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return (b.growthPct || 0) - (a.growthPct || 0); });
+      var fi = list.map(function (p) { return p.uid; }).indexOf(u.uid);
+      ranks = { global: g && g.at ? g.at : null, globalOut: g && !g.at && g.n >= 100, friends: fi >= 0 && list.length > 1 ? fi + 1 : null, friendsOf: list.length };
+      renderTrader(); renderChallenges();
+    });
+  }
+  function renderMissions() {
+    var el = $('hubMissions'); if (!el || !P) return;
+    var m = P.missions(), wk = m.weekly.filter(function (x) { return x.done; }).length;
+    $('hubStreak').textContent = m.streak.days ? '🔥 ' + m.streak.days + ' day' + (m.streak.days === 1 ? '' : 's') : '';
+    el.innerHTML = '<ul class="hub-ms">' + m.daily.map(function (x) {
+      return '<li class="' + (x.done ? 'done' : '') + '"><span class="ck">' + (x.done ? '&#10003;' : '') + '</span>' + (x.href ? '<a href="' + esc(x.href) + '">' + esc(x.label) + '</a>' : '<a>' + esc(x.label) + '</a>') +
+        '<small>' + x.count + '/' + x.goal + '</small><em>+' + x.xp + '</em></li>';
+    }).join('') + '</ul><div class="hub-foot"><span>' + m.streak.doneToday + ' done · ' + m.streak.need + ' keep your streak · weekly ' + wk + '/' + m.weekly.length + '</span><a href="practice/?tab=progress">Weekly &rarr;</a></div>';
+  }
+  function renderChallenges() {
+    var el = $('hubChallenges'); if (!el) return;
+    var u = realUser();
+    if (!u) { el.innerHTML = '<p class="card-sub" style="margin:0">Challenge a friend to see who can grow $10,000 the most, or start a private Trading Squad.</p><div class="hub-btns"><a href="practice/challenge.html">Friend challenges</a><a href="practice/squads.html">Squads</a></div>'; return; }
+    if (!challenges) { el.innerHTML = '<div class="empty">Loading…</div>'; return; }
+    var now = Date.now(), live = challenges.filter(function (c) { return c.status === 'active' && (!c.endAt || now < c.endAt + 7 * 864e5); }), inc = challenges.filter(function (c) { return c.status === 'open' && c.target === u.uid; });
+    var mineOpen = challenges.filter(function (c) { return c.status === 'open' && c.creator === u.uid; });
+    var row = function (c, cls, right) {
+      var other = c.creator === u.uid ? (c.opponentName || c.targetName || 'waiting for a friend') : c.creatorName;
+      return '<a class="hub-ch ' + (cls || '') + '" href="practice/challenge.html?c=' + encodeURIComponent(c.id) + '"><span>⚔️ vs ' + esc(other) + '</span><small>' + right + '</small></a>';
+    };
+    var h = inc.map(function (c) { return row(c, 'inc', 'challenged you'); }).join('') +
+      live.map(function (c) { var d = Math.ceil((c.endAt - now) / 864e5); return row(c, '', d > 0 ? d + 'd left' : 'finished'); }).join('') +
+      mineOpen.slice(0, 2).map(function (c) { return row(c, '', 'waiting'); }).join('');
+    el.innerHTML = (h || '<p class="card-sub" style="margin:0">No active challenges.</p>') +
+      '<div class="hub-btns"><a href="practice/challenge.html">+ Challenge a friend</a><a href="practice/squads.html">' + (squads && squads.length ? '👥 ' + squads.length + ' squad' + (squads.length === 1 ? '' : 's') : 'Squads') + '</a></div>';
+  }
+  function renderAchievements() {
+    var el = $('hubAchievements'); if (!el || !P) return;
+    var un = P.unlocked(), ids = Object.keys(un).sort(function (a, b) { return un[b] - un[a]; }), all = P.ACHIEVEMENTS.length;
+    var next = P.ACHIEVEMENTS.filter(function (a) { return !un[a.id]; }).slice(0, 3);
+    el.innerHTML = '<p class="card-sub" style="margin:0 0 8px">' + ids.length + ' of ' + all + ' unlocked</p>' +
+      (ids.length ? '<div class="hub-achs">' + ids.slice(0, 12).map(function (id) { return P.badge(id, 34); }).join('') + '</div>' : '') +
+      (next.length ? '<div class="hub-foot" style="display:block"><span>Next up: ' + next.map(function (a) { return esc(a.label) + ' (' + esc(a.desc) + ')'; }).join(' · ') + '</span></div>' : '');
+  }
+  function renderSocial() { renderTrader(); renderMissions(); renderChallenges(); renderAchievements(); }
+  function onUser(u) {
+    if (!u) { attached = null; if (P) P.detach(); challenges = null; ranks = null; renderSocial(); return; }
+    if (attached === u.uid) return;
+    attached = u.uid;
+    if (P) P.attach(firebase.firestore(), u.uid);
+    if (S && S.init()) {
+      S.myChallenges(u.uid).then(function (c) { challenges = c; renderChallenges(); });
+      S.myReferrals(u.uid);
+      loadRanks(u);
+    }
+  }
+
   // ---------------------------------------------------------------- wiring
-  function renderAll() { renderPractice(); renderWatchNews(); renderTrending(); }
-  document.addEventListener('zelos:userdoc', function (e) { userDoc = e.detail || null; renderPractice(); renderWatchNews(); });
+  function renderAll() { renderPractice(); renderWatchNews(); renderTrending(); renderSocial(); }
+  document.addEventListener('zelos:userdoc', function (e) { userDoc = e.detail || null; renderPractice(); renderWatchNews(); renderTrader(); onUser(userDoc ? realUser() : null); });
+  document.addEventListener('zelos:progress', function () { renderMissions(); renderAchievements(); renderTrader(); });
   document.addEventListener('DOMContentLoaded', function () {
     renderAll();
     var w = $('hubWatchNews');
     if (w) w.addEventListener('click', function (e) { var b = e.target.closest('[data-f]'); if (b) { newsFilter = b.getAttribute('data-f'); renderWatchNews(); } });
+    // opening a headline completes the "Check the market news" mission
+    document.addEventListener('click', function (e) { if (e.target.closest('.hub-news a') && P) P.track('news'); });
     window.addEventListener('storage', function (e) { if (e.key === PKEY) renderAll(); });
     var cfg = window.ZELOS_FIREBASE_CONFIG;
     if (!window.firebase || !cfg || !cfg.projectId) return;

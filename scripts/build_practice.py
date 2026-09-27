@@ -23,6 +23,7 @@ BODY = '''<main class="pt-shell">
     <div class="pt-title">
       <span class="pt-kicker">Practice account &middot; <span id="ptUser">Guest</span></span>
       <h1>$10,000 Practice Account</h1>
+      <span class="pt-lvl" id="ptLevel" hidden></span>
     </div>
     <div class="pt-acct">
       <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
@@ -42,6 +43,8 @@ BODY = '''<main class="pt-shell">
     <span><b>Account below $2,500.</b> You can start over at $10,000. Your trade history is kept and the reset shows on your stats.</span>
     <button class="pt-btn" type="button" id="ptResetBtn">Reset account</button>
   </div>
+
+  <div class="pt-recovery" id="ptRecovery" hidden></div>
 
   <div class="pt-grid">
     <aside class="pt-card pt-watch-card" aria-label="Stocks">
@@ -152,6 +155,7 @@ BODY = '''<main class="pt-shell">
       <button class="pt-tab" type="button" role="tab" data-tab="history" aria-selected="false">History</button>
       <button class="pt-tab" type="button" role="tab" data-tab="agents" aria-selected="false">Agent signals</button>
       <button class="pt-tab" type="button" role="tab" data-tab="performance" aria-selected="false">Performance</button>
+      <button class="pt-tab" type="button" role="tab" data-tab="progress" aria-selected="false">XP &amp; missions</button>
     </div>
     <div class="pt-table-wrap" id="ptTabBody"></div>
   </section>
@@ -220,9 +224,30 @@ PROFILE_BODY = '''<main class="pt-shell pf-shell">
 </main>'''
 
 
+SOCIAL_SCRIPTS = ('<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
+                  '<script src="../zelos-social.js"></script>\n')
+CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Practice account</a> &middot; <a href="challenge.html">Challenges</a> &middot; '
+          '<a href="squads.html">Squads</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav>')
+
+
+def build_social_pages():
+    render('practice/challenge.html', 'Friend Challenge: Who Can Grow $10,000 the Most? | Zelos',
+           'Challenge a friend with your $10,000 practice accounts: live head-to-head growth, balances and XP. Virtual money, real stock prices.',
+           '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="chBody"><p class="pt-empty">Loading…</p></div>'
+           '<p class="pt-fine pf-fine">Practice accounts use virtual money. Scores are growth since the challenge started, in net P&amp;L: resets never count as gains.</p></main>',
+           HEAD, SOCIAL_SCRIPTS + '<script src="challenge.js"></script>\n', robots='noindex')
+    render('practice/squads.html', 'Trading Squads: Private Practice-Account Leaderboards | Zelos',
+           'Create a private Trading Squad, invite friends with a link and compete on your own leaderboard of $10,000 practice accounts.',
+           '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="sqBody"><p class="pt-empty">Loading…</p></div>'
+           '<p class="pt-fine pf-fine">Squads are private: only people with the invite link can see one. Members see each other\'s public practice stats only.</p></main>',
+           HEAD, SOCIAL_SCRIPTS + '<script src="squads.js"></script>\n', robots='noindex')
+    print('built practice/challenge.html, practice/squads.html')
+
+
 def build_profile():
     desc = 'Public stats for a Zelos $10,000 Practice Account: balance, growth, resets, win rate and best trades with virtual money.'
-    scripts = '<script src="profile.js"></script>\n'
+    scripts = ('<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
+               '<script src="profile.js"></script>\n')
     render('practice/profile.html', 'Practice Account Profile | Zelos', desc, PROFILE_BODY, HEAD, scripts, robots='noindex')
     print('built practice/profile.html')
 
@@ -237,12 +262,14 @@ def main():
         'offers': {'@type': 'Offer', 'price': 0, 'priceCurrency': 'USD'},
         'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
     }
-    scripts = ('<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
+    scripts = ('<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
+               '<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
                '<script src="practice.js"></script>\n')
     render('practice/index.html', '$10,000 Practice Account: Free Paper Trading with Live Prices | Zelos', desc, BODY, HEAD, scripts,
            jsonld=[ld, breadcrumbs([('Zelos', ''), ('Practice Account', None)])])
     print('built practice/index.html')
     build_profile()
+    build_social_pages()
     # the price function reads the same stock list, so it can never drift from the page
     shutil.copyfile(os.path.join(ROOT, 'data', 'practice-universe.json'), os.path.join(ROOT, 'functions', 'practice_universe.json'))
     print('copied data/practice-universe.json -> functions/practice_universe.json')

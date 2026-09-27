@@ -17,6 +17,7 @@ function zgRunDrill(cfg) {
     host._locked = false;
     (kind === 'grade' ? ZC.gradeRound : ZC.stopRound)(host, cfg.data, cfg.rand, meta, function (res) {
       results.push(res);
+      if (kind === 'grade' && window.ZelosProgress) ZelosProgress.track('grade');
       total += cfg.normalize ? Math.round(res.points / res.max * 100) : res.points;
       max += cfg.normalize ? 100 : res.max;
       window.scrollTo({ top: document.getElementById('zgTop').offsetTop - 10, behavior: 'smooth' });
@@ -26,6 +27,7 @@ function zgRunDrill(cfg) {
   function finish() {
     paint();
     var grid = results.map(function (r) { return r.grade === 'g' ? '🟩' : r.grade === 'y' ? '🟨' : '🟥'; }).join('');
+    if (rounds.indexOf('grade') !== -1 && window.ZelosProgress) ZelosProgress.gradeGameDone();
     cfg.onFinish({ total: total, max: max, grid: grid, results: results, host: host });
   }
   next();

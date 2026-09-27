@@ -136,6 +136,42 @@ details. Turning off "Show my stats on the leaderboard" deletes the doc.
   `practice/practice-chart.js`. A new indicator is one entry there (compute
   function plus how to draw it: overlay, band or pane).
 
+## XP, missions, achievements and the social layer
+
+All client-side, on top of the same Firebase project. No new Cloud Functions.
+
+- **XP and levels** (`zelos-xp.js`, `zelos-levels.js`): practice trades (+5, first 10 a
+  day), winning trades (+10, first 10 a day), finished Grade the Setup games (+10, 5 a
+  day), missions, achievements, challenges and referrals. Levels run 0 to 10 (Diamond
+  is 5; Master, Elite, Legend, Titan and Zelos come after).
+- **Missions and streaks** (`zelos-progress.js`): 5 daily and 5 weekly missions. Finishing
+  any 2 daily missions keeps the mission streak (rewards at 3, 7, 14 and 30 days).
+- **Achievements** (`zelos-progress.js`, `ACHIEVEMENTS`): 23 badges plus 2 per season.
+  Add one with a line in that list; `test(ctx)` gets the practice account's stats.
+- **Recovery goals**: below $9,500 the practice page shows "Recover $X → $10,000".
+  Getting back from $9,000 or lower without a reset earns Comeback Kid.
+- **Net P&L**: account value minus $10,000 plus everything resets wiped out. Weekly,
+  monthly, season, challenge and squad scores all use it, so a reset never counts as
+  growth. Reset history stays separate.
+- **Leaderboards** (`leaderboard.html#practice`, `zelos-practice-board.js`): All-time,
+  Weekly, Monthly, Season (six categories) and Friends. Period numbers live in each
+  profile's `p` map; single-field ordering only, so no Firestore indexes to create.
+- **Seasons**: defined in `SEASONS` in `zelos-progress.js`. Season 1 (Agentic Trading
+  Championship) runs 2026-09-27 to 2026-12-31. Add the next one there.
+- **Friend challenges** (`practice/challenge.html`), **Trading Squads**
+  (`practice/squads.html`), **friends** (`users/{uid}.friends`), **referrals**
+  (`referrals/{uid}`, links like `practice/?ref=<uid>`) and **share cards** (a PNG drawn
+  in the browser) are in `zelos-social.js`.
+
+These need the `challenges`, `squads` and `referrals` blocks in `firestore.rules`.
+Paste the whole file into the Firestore console and publish (same as before).
+
+Limits: everything is computed in the browser, so like XP a determined person could
+edit their own numbers. It's virtual money, so that's accepted. Weekly and monthly
+baselines start at each player's first visit in the period. A challenge's final
+result uses each player's end-of-day history, so it settles once someone opens it
+after the end date.
+
 ## Changing the stock list
 
 Edit `data/practice-universe.json` (symbol, name, group), then run

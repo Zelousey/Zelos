@@ -82,6 +82,7 @@ secrets described there.
 - Live quotes come from the `refresh_quotes` Cloud Function (Finnhub → Firestore `markets/quotes`); headlines from `refresh_news` (→ `markets/news`). Setup: `docs/practice-account.md`. Without them the page uses the latest daily close.
 - Accounts are saved in localStorage, and to `users/{uid}.practice` for signed-in users. Signed-in players publish public stats to `practiceProfiles/{uid}` (leaderboard + `practice/profile.html`).
 - The dashboard's Practice Account, Watchlist news and Trending news widgets live in `zelos-dash-hub.js`.
+- XP, levels, missions, achievements, seasons, recovery goals: `zelos-progress.js` (+ `zelos-xp.js`, `zelos-levels.js`). Challenges, squads, friends, referrals, share cards: `zelos-social.js`, pages `practice/challenge.html` and `practice/squads.html`. Practice leaderboards (all-time, weekly, monthly, season, friends): `zelos-practice-board.js`. Details: `docs/practice-account.md`.
 - What's next: `docs/roadmap.md`.
 - Timeframes: 5m / 15m / 1H (from the function's 5-minute bars in `markets/intraday_<SYM>`), D, W. Candle color presets and custom colors are saved as `zelosChartColors` in localStorage and also used by the Arcade charts. Full Port (all-in sizing plus the green/red glow) is a toggle on the order ticket.
 - The home page preview chart is real data: `python3 scripts/build_home_promo.py` redraws it from `data/game-charts.json`.

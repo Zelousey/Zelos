@@ -171,6 +171,7 @@
     <div class="pt-title">
       <span class="pt-kicker">Practice account &middot; <span id="ptUser">Guest</span></span>
       <h1>$10,000 Practice Account</h1>
+      <span class="pt-lvl" id="ptLevel" hidden></span>
     </div>
     <div class="pt-acct">
       <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
@@ -190,6 +191,8 @@
     <span><b>Account below $2,500.</b> You can start over at $10,000. Your trade history is kept and the reset shows on your stats.</span>
     <button class="pt-btn" type="button" id="ptResetBtn">Reset account</button>
   </div>
+
+  <div class="pt-recovery" id="ptRecovery" hidden></div>
 
   <div class="pt-grid">
     <aside class="pt-card pt-watch-card" aria-label="Stocks">
@@ -300,6 +303,7 @@
       <button class="pt-tab" type="button" role="tab" data-tab="history" aria-selected="false">History</button>
       <button class="pt-tab" type="button" role="tab" data-tab="agents" aria-selected="false">Agent signals</button>
       <button class="pt-tab" type="button" role="tab" data-tab="performance" aria-selected="false">Performance</button>
+      <button class="pt-tab" type="button" role="tab" data-tab="progress" aria-selected="false">XP &amp; missions</button>
     </div>
     <div class="pt-table-wrap" id="ptTabBody"></div>
   </section>
@@ -382,6 +386,9 @@
 <script src="../zelos-mood.js"></script>
 <script src="../zelos-xp.js"></script>
 <script src="../leaderboard.js"></script>
+<script src="../zelos-levels.js"></script>
+<script src="../zelos-progress.js"></script>
+<script src="../zelos-social.js"></script>
 <script src="practice-chart.js"></script>
 <script src="practice-options.js"></script>
 <script src="practice.js"></script>

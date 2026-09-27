@@ -11,30 +11,31 @@
   gtag('config', 'G-Y4B3ZC5XRX');
 </script>
 <meta charset="utf-8">
+<meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Daily Challenge: A Daily Trading Chart Puzzle</title>
+<title>Trading Squads: Private Practice-Account Leaderboards | Zelos</title>
 <link rel="icon" href="../favicon-arcade.ico" sizes="any">
 <link rel="icon" href="../favicon-arcade.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../icons/icon-180.png">
 <link rel="manifest" href="../manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="A free daily trading puzzle: five real historical stock charts, the same for everyone. Grade three setups, place two stops, share your score grid.">
-<link rel="canonical" href="https://agentictrading.info/games/daily-challenge.html">
+<meta name="description" content="Create a private Trading Squad, invite friends with a link and compete on your own leaderboard of $10,000 practice accounts.">
+<link rel="canonical" href="https://agentictrading.info/practice/squads.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Daily Challenge: A Daily Trading Chart Puzzle">
-<meta property="og:description" content="A free daily trading puzzle: five real historical stock charts, the same for everyone. Grade three setups, place two stops, share your score grid.">
-<meta property="og:url" content="https://agentictrading.info/games/daily-challenge.html">
+<meta property="og:title" content="Trading Squads: Private Practice-Account Leaderboards | Zelos">
+<meta property="og:description" content="Create a private Trading Squad, invite friends with a link and compete on your own leaderboard of $10,000 practice accounts.">
+<meta property="og:url" content="https://agentictrading.info/practice/squads.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Daily Challenge: A Daily Trading Chart Puzzle">
-<meta name="twitter:description" content="A free daily trading puzzle: five real historical stock charts, the same for everyone. Grade three setups, place two stops, share your score grid.">
+<meta name="twitter:title" content="Trading Squads: Private Practice-Account Leaderboards | Zelos">
+<meta name="twitter:description" content="Create a private Trading Squad, invite friends with a link and compete on your own leaderboard of $10,000 practice accounts.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="../zelos-theme.css">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -45,63 +46,7 @@
   [hidden]{ display:none !important; }
 </style>
 <link rel="stylesheet" href="../zelos-theme.css">
-<link rel="stylesheet" href="zelos-games.css">
-<script type="application/ld+json">
-{
- "@context": "https://schema.org",
- "@type": [
-  "VideoGame",
-  "LearningResource"
- ],
- "name": "Zelos Daily Challenge",
- "url": "https://agentictrading.info/games/daily-challenge.html",
- "description": "A free daily trading puzzle: five real historical stock charts, the same for everyone. Grade three setups, place two stops, share your score grid.",
- "genre": [
-  "Educational",
-  "Simulation"
- ],
- "gamePlatform": "Web browser",
- "applicationCategory": "Game",
- "isAccessibleForFree": true,
- "learningResourceType": "Interactive exercise",
- "teaches": "Trade planning, stop placement and risk management on real historical stock charts",
- "publisher": {
-  "@type": "Organization",
-  "name": "Zelos",
-  "url": "https://agentictrading.info/"
- },
- "offers": {
-  "@type": "Offer",
-  "price": 0,
-  "priceCurrency": "USD"
- }
-}
-</script>
-<script type="application/ld+json">
-{
- "@context": "https://schema.org",
- "@type": "BreadcrumbList",
- "itemListElement": [
-  {
-   "@type": "ListItem",
-   "position": 1,
-   "name": "Zelos",
-   "item": "https://agentictrading.info/"
-  },
-  {
-   "@type": "ListItem",
-   "position": 2,
-   "name": "Arcade",
-   "item": "https://agentictrading.info/arcade.html"
-  },
-  {
-   "@type": "ListItem",
-   "position": 3,
-   "name": "Daily Challenge"
-  }
- ]
-}
-</script>
+<link rel="stylesheet" href="practice.css">
 </head>
 <body class="zt zt-body">
 
@@ -181,23 +126,7 @@
   </div>
 </nav>
 
-<main class="zg-shell" id="zgTop">
-  <div class="zg-top">
-    <div><span class="zg-kicker" id="dcDate">Daily Challenge</span><h1>The Zelos Daily Challenge</h1>
-    <p>Five real charts, the same five for everyone today. Three setups to grade, two stops to place. One try per day. Share your grid.</p></div>
-    <div class="zg-stats"><div class="zg-stat"><small>Score</small><b id="zgScore">0</b></div>
-    <div class="zg-stat"><small>Streak</small><b id="zgStreak">0</b></div></div>
-  </div>
-  <div class="zg-progress" id="zgProgress"></div>
-  <section class="zg-panel" id="zgRound"><p class="zg-prompt">Loading today's charts…</p></section>
-  <div class="zg-cta"><span>Zelos runs this same checklist on the whole market every morning and publishes the setups that pass.</span><a class="zg-btn zg-btn-primary" href="../swing-trader.html">See Swing Trader &rarr;</a></div>
-  <section class="zg-howto"><h2>How it works</h2><p>A new challenge unlocks at midnight Eastern. Every round is scored out of 100:
-  grading rounds on the checklist (trend, support, volume, reward:risk) and your final call, stop rounds on placement plus outcome.
-  A perfect day is 500. Play at least once a day to keep your streak.</p>
-  <p>Practice without limits in <a href="grade-the-setup.html">Grade the Setup</a>, <a href="stop-drill.html">Where's the Stop?</a>
-  and <a href="chart-replay.html">Chart Replay</a>.</p></section>
-  <p class="zg-fine" style="margin-top:14px;">Real historical daily bars (split-adjusted) for 30 widely traded US stocks and ETFs, 2024 to 2026. Practice only: no real money, no account connection, not investment advice.</p>
-</main>
+<main class="pt-shell ch-shell"><nav class="pf-crumbs"><a href="./">&larr; Practice account</a> &middot; <a href="challenge.html">Challenges</a> &middot; <a href="squads.html">Squads</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav><div id="sqBody"><p class="pt-empty">Loading…</p></div><p class="pt-fine pf-fine">Squads are private: only people with the invite link can see one. Members see each other's public practice stats only.</p></main>
 
 <footer class="site-footer">
   <div class="shell">
@@ -222,106 +151,10 @@
 <script src="../zelos-mood.js"></script>
 <script src="../zelos-xp.js"></script>
 <script src="../leaderboard.js"></script>
+<script src="../zelos-levels.js"></script>
 <script src="../zelos-progress.js"></script>
-<script src="zelos-chart-engine.js"></script>
-<script>
-/* Shared runner for the round-based drills (Grade the Setup, Where's the Stop, Daily Challenge). */
-function zgRunDrill(cfg) {
-  var host = document.getElementById('zgRound'), prog = document.getElementById('zgProgress');
-  var scoreEl = document.getElementById('zgScore'), streakEl = document.getElementById('zgStreak');
-  var results = [], total = 0, max = 0, rounds = cfg.rounds;
-  prog.innerHTML = rounds.map(function () { return '<i></i>'; }).join('');
-  function paint() {
-    prog.querySelectorAll('i').forEach(function (d, k) { d.className = results[k] ? results[k].grade : (k === results.length ? 'now' : ''); });
-    if (scoreEl) scoreEl.textContent = total + (cfg.showMax ? ' / ' + max : '');
-  }
-  function next() {
-    paint();
-    var k = results.length;
-    if (k >= rounds.length) return finish();
-    var kind = rounds[k];
-    var meta = { no: 'Round ' + (k + 1) + ' of ' + rounds.length, label: kind === 'grade' ? 'Grade the setup' : 'Where\'s the stop?', nextLabel: k === rounds.length - 1 ? 'See results &rarr;' : 'Next round &rarr;' };
-    host._locked = false;
-    (kind === 'grade' ? ZC.gradeRound : ZC.stopRound)(host, cfg.data, cfg.rand, meta, function (res) {
-      results.push(res);
-      if (kind === 'grade' && window.ZelosProgress) ZelosProgress.track('grade');
-      total += cfg.normalize ? Math.round(res.points / res.max * 100) : res.points;
-      max += cfg.normalize ? 100 : res.max;
-      window.scrollTo({ top: document.getElementById('zgTop').offsetTop - 10, behavior: 'smooth' });
-      next();
-    });
-  }
-  function finish() {
-    paint();
-    var grid = results.map(function (r) { return r.grade === 'g' ? '🟩' : r.grade === 'y' ? '🟨' : '🟥'; }).join('');
-    if (rounds.indexOf('grade') !== -1 && window.ZelosProgress) ZelosProgress.gradeGameDone();
-    cfg.onFinish({ total: total, max: max, grid: grid, results: results, host: host });
-  }
-  next();
-}
-function zgLeaderboard(host, gameId, score, label, ref) {
-  var LB = window.ZelosLeaderboard;
-  var box = ZC.el('div', 'zg-lb');
-  host.appendChild(box);
-  if (!LB || !LB.isConfigured()) { box.innerHTML = '<p class="zg-fine">Leaderboard offline right now.</p>'; return; }
-  var form = ZC.el('div', 'zg-lb-form', '<input id="zgName" maxlength="20" placeholder="Your name" aria-label="Your name"><button class="zg-btn zg-btn-primary" id="zgSubmit" type="button">Post score</button>');
-  box.appendChild(form);
-  var list = ZC.el('div', '', '<b>Top scores' + (label ? ' · ' + label : '') + '</b> <a class="zg-lb-all" href="../leaderboard.html#' + (/^daily-/.test(gameId) ? 'daily' : gameId) + '">Full leaderboard &rarr;</a><ol id="zgTop5"><li>Loading…</li></ol>');
-  box.appendChild(list);
-  var inp = form.querySelector('input'); inp.value = LB.getName() || '';
-  form.querySelector('button').addEventListener('click', function () {
-    LB.setName(inp.value || 'Anon');
-    this.disabled = true; var b = this;
-    LB.submitScore(gameId, score, function (ok) { b.textContent = ok ? 'Posted ✓' : 'Couldn\'t post'; }, ref);
-  });
-  LB.topScores(gameId, 5, function (rows) {
-    var ol = document.getElementById('zgTop5'); if (!ol) return;
-    ol.innerHTML = rows && rows.length ? rows.map(function (r) {
-      var txt = String(r.name).replace(/[<>&"]/g, '') + ' · ' + LB.formatScore(gameId, r.score);
-      var href = LB.entryHref ? LB.entryHref(gameId, r, '../') : null;
-      return '<li>' + (href && r.ref ? '<a href="' + href.replace(/"/g, '') + '" title="Play this exact chart">' + txt + ' ↗</a>' : txt) + '</li>';
-    }).join('') : '<li>No scores yet. Be first.</li>';
-  });
-}
-
-(function(){
-  var day = ZC.etDateStr(), GAME = 'daily-' + day, KEY = 'zdc-' + day;
-  document.getElementById('dcDate').textContent = 'Daily Challenge · ' + day;
-  var streak = ZC.store('zdc-streak') || { n: 0, last: null };
-  document.getElementById('zgStreak').textContent = streak.n;
-  function endScreen(res){
-    var host = document.getElementById('zgRound');
-    host.innerHTML = '<div class="zg-end"><p class="zg-kicker">Daily Challenge · ' + day + '</p><h2>' + (res.total >= 400 ? 'Sharp.' : res.total >= 250 ? 'Solid day.' : 'Tough tape.') + '</h2>' +
-      '<div class="zg-big">' + res.total + ' <span style="font-size:1rem;color:var(--muted)">/ 500</span></div>' +
-      '<div class="zg-grid">' + res.grid + '</div>' +
-      '<p class="zg-fine">Streak: ' + streak.n + ' day' + (streak.n === 1 ? '' : 's') + '. Next challenge at midnight ET.</p>' +
-      (res.results ? '<p class="zg-fine">Today\'s charts: ' + res.results.map(function(r){ return r.sym + ' (' + ZC.monthYear(r.date) + ')'; }).join(', ') + '</p>' : '') +
-      '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="dcShare" type="button">Share my grid</button><a class="zg-btn zg-back" href="chart-replay.html">Play Chart Replay</a>' +
-      '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Arcade</a></div></div>';
-    document.getElementById('dcShare').addEventListener('click', function(){ var b=this;
-      ZC.share('Zelos Daily Challenge ' + day + '\n' + res.grid + '  ' + res.total + '/500' + (streak.n > 1 ? '  🔥' + streak.n : ''), 'https://agentictrading.info/games/daily-challenge.html')
-        .then(function(){ b.textContent = 'Copied ✓'; }); });
-    zgLeaderboard(host.querySelector('.zg-end'), GAME, res.total, 'today');
-  }
-  var done = ZC.store(KEY);
-  if (done) {
-    document.getElementById('zgScore').textContent = done.total;
-    return endScreen(done);
-  }
-  ZC.load().then(function(data){
-    zgRunDrill({ data: data, rand: ZC.rng('zelos-daily-' + day), rounds: ['grade','stop','grade','stop','grade'], normalize: true,
-      onFinish: function(res){
-        var y = ZC.etDateStr(new Date(Date.now() - 86400000));
-        streak = { n: streak.last === y ? streak.n + 1 : (streak.last === day ? streak.n : 1), last: day };
-        ZC.store('zdc-streak', streak);
-        document.getElementById('zgStreak').textContent = streak.n;
-        var saved = { total: res.total, grid: res.grid, results: res.results.map(function(r){ return { sym: r.sym, date: r.date }; }) };
-        ZC.store(KEY, saved);
-        endScreen(res);
-      } });
-  }).catch(function(){ document.getElementById('zgRound').innerHTML = '<p class="zg-prompt">Couldn\'t load chart data. Refresh to try again.</p>'; });
-})();
-</script>
+<script src="../zelos-social.js"></script>
+<script src="squads.js"></script>
 
 <script>
 (function(){
