@@ -744,7 +744,7 @@
     var url = currentUser ? S.links(currentUser.uid).profile() + '&ref=' + encodeURIComponent(currentUser.uid) : 'https://agentictrading.info/practice/';
     var eq = equity();
     S.shareCard({ name: playerName(), equity: eq, headline: eq >= START_CASH ? 'I grew my $10,000 Trade War account to' : 'My $10,000 Trade War account is at',
-      cta: 'Can you beat me? Challenge me on AgenticTrading.info', level: lv ? 'Lv ' + lv.level + ' ' + lv.name : null, xp: xpNow, winRate: st.trades ? st.winRate : null,
+      cta: 'Can you beat me? Take me on in Trade War', level: lv ? 'Lv ' + lv.level + ' ' + lv.name : null, xp: xpNow, winRate: st.trades ? st.winRate : null,
       best: best ? '+$' + Math.round(best.pnl).toLocaleString('en-US') + ' ' + best.sym : null }, url).then(function (r) {
       if (r === 'downloaded') toast('Card saved as an image and your link is copied. Paste both into a text, Discord or social post.');
     });
@@ -1132,7 +1132,7 @@
       if (act === 'share') shareAccount();
       if (act === 'challenge') challengeFriend();
       if (act === 'signin') needSignIn('Sign in with Google to get your invite link.');
-      if (act === 'invite' && window.ZelosSocial) ZelosSocial.shareLink('Join me on AgenticTrading.info', 'Trade real stocks with $10,000 of virtual money and see if you can beat me.', $('ptInvite').value).then(function (r) { if (r === 'copied') toast('Invite link copied.'); });
+      if (act === 'invite' && window.ZelosSocial) ZelosSocial.shareLink('Join me in Trade War', 'Trade real stocks with $10,000 of virtual money and see if you can beat me.', $('ptInvite').value).then(function (r) { if (r === 'copied') toast('Invite link copied.'); });
     });
     // toolbar: timeframe, ranges, indicators, forecast, colors
     menu('ptTfBtn', 'ptTfMenu'); menu('ptIndBtn', 'ptIndMenu'); menu('ptColorsBtn', 'ptColorPop');

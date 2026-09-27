@@ -242,8 +242,8 @@ def build_social_pages():
            '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="chBody"><p class="pt-empty">Loading…</p></div>'
            '<p class="pt-fine pf-fine">Trade War challenges use virtual money. Scores are growth since the challenge started, in net P&amp;L: resets never count as gains.</p></main>',
            HEAD, SOCIAL_SCRIPTS + '<script src="challenge.js"></script>\n', robots='noindex')
-    render('practice/squads.html', 'Trading Squads: Private Practice-Account Leaderboards | Zelos',
-           'Create a private Trading Squad, invite friends with a link and compete on your own leaderboard of $10,000 Trade War accounts.',
+    render('practice/squads.html', 'Join my Trading Squad: Private Trade War Leaderboard | Zelos',
+           'You\'re invited to a private Trading Squad: compete with friends on your own leaderboard of $10,000 Trade War accounts (virtual money).',
            '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="sqBody"><p class="pt-empty">Loading…</p></div>'
            '<p class="pt-fine pf-fine">Squads are private: only people with the invite link can see one. Members see each other\'s public Trade War (virtual) stats only.</p></main>',
            HEAD, SOCIAL_SCRIPTS + '<script src="squads.js"></script>\n', robots='noindex')
