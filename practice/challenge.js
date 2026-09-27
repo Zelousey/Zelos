@@ -23,10 +23,15 @@
     var s = Math.max(0, Math.round((ms - Date.now()) / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
     return d ? d + 'd ' + h + 'h' : h ? h + 'h ' + m + 'm' : m + 'm';
   }
-  function signInBtn(label) { return '<button class="pt-btn pt-btn-go" type="button" id="chSignIn">' + (label || 'Sign in with Google') + '</button>'; }
+  function signInBtn(label) { return '<button class="pt-btn pt-btn-go" type="button" id="chSignIn">' + (label || 'Sign in with Google') + '</button><p class="pt-auth-msg" id="chAuthMsg" role="alert" hidden></p>'; }
+  function authMsg(t) { var m = $('chAuthMsg'); if (m) { m.textContent = t; m.hidden = false; } else alert(t); }
   function wireSignIn() {
     var b = $('chSignIn'); if (!b) return;
-    b.onclick = function () { firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { alert(e.message || e); }); };
+    b.onclick = function () {
+      var m = $('chAuthMsg'); if (m) m.hidden = true;
+      if (window.ZelosSignIn) return ZelosSignIn.google(authMsg);
+      firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { authMsg(e.message || e); });
+    };
   }
 
   // ------------------------------------------------------------ hub (no ?c)
@@ -134,6 +139,7 @@
   function start() {
     if (!S || !S.init()) { body('<div class="pf-missing"><h1>Challenges need the live site</h1><p>Try again on agentictrading.info.</p></div>'); return; }
     var id = new URLSearchParams(location.search).get('c'), started = false;
+    if (window.ZelosSignIn) ZelosSignIn.finish(authMsg);
     firebase.auth().onAuthStateChanged(function (u) {
       var user = u && !u.isAnonymous ? u : null;
       if (id) { if (!started || user) { started = true; view(id, user); } return; }

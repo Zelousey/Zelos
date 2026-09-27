@@ -52,7 +52,7 @@
   function render() {
     if (!user) {
       $('rjBody').innerHTML = '<div class="pt-card ch-card"><h2>Sign in to keep a Real Trade Journal</h2><p class="pt-fine">Your real trades are private to your account. ' +
-        'Same account, XP and profile as Trade War; the money and statistics are kept completely separate.</p><button class="pt-btn pt-btn-go" type="button" id="rjSignIn">Sign in with Google</button></div>';
+        'Same account, XP and profile as Trade War; the money and statistics are kept completely separate.</p><button class="pt-btn pt-btn-go" type="button" id="rjSignIn">Sign in with Google</button><p class="pt-auth-msg" id="rjAuthMsg" role="alert" hidden></p></div>';
       $('rjSignIn').onclick = signIn; return;
     }
     var st = stats(), rs = M ? M.realStatus(logs) : null;
@@ -181,12 +181,18 @@
     return db.collection('traders').doc(user.uid).set(doc, { merge: true }).catch(function () {});
   }
 
-  function signIn() { firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { toast(esc(e.message || e), true); }); }
+  function authMsg(t) { var m = $('rjAuthMsg'); if (m) { m.textContent = t; m.hidden = false; } else toast(esc(t), true); }
+  function signIn() {
+    var m = $('rjAuthMsg'); if (m) m.hidden = true;
+    if (window.ZelosSignIn) return ZelosSignIn.google(authMsg);
+    firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { authMsg(e.message || e); });
+  }
   function start() {
     var cfg = window.ZELOS_FIREBASE_CONFIG;
     if (!window.firebase || !cfg || !cfg.projectId) { $('rjBody').innerHTML = '<p class="pt-empty">The journal needs the live site.</p>'; return; }
     if (!firebase.apps.length) firebase.initializeApp(cfg);
     db = firebase.firestore();
+    if (window.ZelosSignIn) ZelosSignIn.finish(authMsg);
     fetch('../data/practice-universe.json').then(function (r) { return r.json(); }).then(function (u) { u.symbols.forEach(function (x) { names[x.sym] = x.name; }); }).catch(function () {});
     db.collection('markets').doc('quotes').onSnapshot(function (s) { quotes = (s.exists && s.data().quotes) || {}; if (user) render(); }, function () {});
     var unsubs = [];

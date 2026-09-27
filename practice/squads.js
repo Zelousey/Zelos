@@ -17,12 +17,19 @@
   function pct(v) { return (v >= 0 ? '+' : '') + (+v || 0).toFixed(2) + '%'; }
   function cls(v) { return v >= 0 ? 'up' : 'dn'; }
   function body(h) { $('sqBody').innerHTML = h; }
-  function signIn() { firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { alert(e.message || e); }); }
+  // Google sign-in with a redirect fallback and readable errors (zelos-signin.js)
+  function signIn() {
+    var msg = $('sqAuthMsg'), show = function (t) { if (msg) { msg.textContent = t; msg.hidden = false; } else alert(t); };
+    if (msg) msg.hidden = true;
+    if (window.ZelosSignIn) return ZelosSignIn.google(show);
+    firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { show(e.message || e); });
+  }
+  var AUTH_MSG = '<p class="pt-auth-msg" id="sqAuthMsg" role="alert" hidden></p>';
 
   function hub(user) {
     var h = '<div class="ch-hero"><span class="pt-kicker">Trading Squads</span><h1>Compete with your friends</h1>' +
       '<p>Make a private squad, send the invite link, and get your own leaderboard of Trade War accounts (virtual money). Squad owners can run competitions for a week or a month.</p></div>';
-    if (!user) { body(h + '<div class="pt-card ch-card"><button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google</button><p class="pt-fine">Squads use your signed-in Trade War account.</p></div>'); $('sqSignIn').onclick = signIn; return; }
+    if (!user) { body(h + '<div class="pt-card ch-card"><button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google</button>' + AUTH_MSG + '<p class="pt-fine">Squads use your signed-in Trade War account.</p></div>'); $('sqSignIn').onclick = signIn; return; }
     h += '<div class="pt-card ch-card"><h2>Create a squad</h2><div class="pt-invite"><input id="sqName" maxlength="32" placeholder="Squad name, e.g. Tuesday Traders"><button class="pt-btn pt-btn-go" type="button" id="sqCreate">Create</button></div><p class="pt-fine" id="sqMsg"></p></div>' +
       '<div class="pt-card ch-card"><h2>Your squads</h2><div id="sqList"><p class="pt-empty">Loading…</p></div></div>';
     body(h);
@@ -60,7 +67,7 @@
     var h = '<div class="ch-hero"><span class="pt-kicker">Trading Squad · ' + sq.members.length + ' member' + (sq.members.length === 1 ? '' : 's') + '</span><h1>👥 ' + esc(sq.name) + '</h1>' +
       (sq.comp ? '<p>' + (compOn ? '🏁 <b>Squad competition:</b> ' + Math.ceil((sq.comp.end - Date.now()) / 864e5) + ' days left. Biggest % growth since it started wins.' : '🏁 Competition finished ' + new Date(sq.comp.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '.') + '</p>' : '') + '</div>';
     if (!isMember) {
-      h += '<div class="pt-card ch-card"><h2>You\'re invited</h2>' + (user ? '<button class="pt-btn pt-btn-go" type="button" id="sqJoin">Join ' + esc(sq.name) + '</button>' : '<button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google to join</button>') +
+      h += '<div class="pt-card ch-card"><h2>You\'re invited</h2>' + (user ? '<button class="pt-btn pt-btn-go" type="button" id="sqJoin">Join ' + esc(sq.name) + '</button>' : '<button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google to join</button>' + AUTH_MSG) +
         '<p class="pt-fine" id="sqMsg">Members see each other\'s Trade War (virtual) balance, growth and XP. Enter Trade War once so your stats exist.</p></div>';
     }
     var tabs = (sq.comp ? [['comp', compOn ? 'Competition' : 'Last competition']] : []).concat([['all', 'All-time'], ['week', 'This week'], ['month', 'This month']]).concat(P && P.season() ? [['season', P.season().name]] : []);
@@ -99,13 +106,14 @@
       S.profiles(sq.members).then(function (m) { profs = m; render(user); });
       render(user);
     }, function () {
-      body('<div class="ch-hero"><span class="pt-kicker">Trading Squad</span><h1>Sign in to see this squad</h1><p>Squads are private to people with the invite link.</p></div><div class="pt-card ch-card"><button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google</button></div>');
+      body('<div class="ch-hero"><span class="pt-kicker">Trading Squad</span><h1>Sign in to see this squad</h1><p>Squads are private to people with the invite link.</p></div><div class="pt-card ch-card"><button class="pt-btn pt-btn-go" type="button" id="sqSignIn">Sign in with Google</button>' + AUTH_MSG + '</div>');
       $('sqSignIn').onclick = signIn;
     });
   }
   function start() {
     if (!S || !S.init()) { body('<div class="pf-missing"><h1>Squads need the live site</h1><p>Try again on agentictrading.info.</p></div>'); return; }
     var id = new URLSearchParams(location.search).get('s');
+    if (window.ZelosSignIn) ZelosSignIn.finish(function (t) { var m = $('sqAuthMsg'); if (m) { m.textContent = t; m.hidden = false; } else alert(t); });
     firebase.auth().onAuthStateChanged(function (u) {
       var user = u && !u.isAnonymous ? u : null;
       // squad reads need some auth; zelos-xp signs guests in anonymously a moment after load
