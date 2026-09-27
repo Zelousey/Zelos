@@ -39,7 +39,7 @@ BODY = '''<main class="pt-shell ch-shell rj-shell">
 def main():
     desc = ('Real Trade Journal: log and track the real trades you make at your own broker, with live prices for open positions, '
             'win rate and P&L. Private to your account, kept separate from Trade War virtual trading.')
-    scripts = ('<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
+    scripts = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
                '<script src="real.js"></script>\n')
     render('real/index.html', 'Real Trade Journal: Track Your Real Trades | Zelos', desc, BODY, HEAD, scripts,
            jsonld=[breadcrumbs([('Zelos', ''), ('Real Trade Journal', None)])])

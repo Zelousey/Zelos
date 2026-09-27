@@ -1191,7 +1191,10 @@
     $('ptGateEnter').addEventListener('click', function () { $('ptGate').hidden = true; try { sessionStorage.setItem('zelosPracticeEntered', '1'); } catch (e) {} });
     $('ptGateGoogle').addEventListener('click', function () {
       if (!window.firebase) return;
-      firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { toast('Sign-in didn\'t finish: ' + esc(e.message || e), true); });
+      var m = $('ptGateMsg'), show = function (t) { if (m) { m.textContent = t; m.hidden = false; } else toast(esc(t), true); };
+      if (m) m.hidden = true;
+      if (window.ZelosSignIn) return ZelosSignIn.google(show);
+      firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { show('Sign-in didn\'t finish: ' + (e.message || e)); });
     });
     $('ptGateRename').addEventListener('click', function () {
       var n = prompt('Display name for the leaderboard (no email or real name needed):', playerName());
@@ -1216,6 +1219,7 @@
       try {
         if (!firebase.apps.length) firebase.initializeApp(cfg);
         db = firebase.firestore();
+        if (window.ZelosSignIn) ZelosSignIn.finish(function (t) { toast(esc(t), true); });
         db.collection('markets').doc('quotes').onSnapshot(function (snap) {
           if (!snap.exists) { feed = { state: 'none' }; if (UNIVERSE.length) tick(); return; }
           var d = snap.data() || {};

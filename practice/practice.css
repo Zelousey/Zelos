@@ -476,3 +476,7 @@ body.pt-fullport .pt-acct span{ border-color:var(--pt-glow); }
 .pt-gate-start b{ font:800 1.8rem var(--mono); color:#6ea8ff; }
 .pt-gate-start span{ color:var(--ink-2); font-size:0.92rem; }
 .pt-kicker .zm-tag{ font-size:0.62rem; }
+
+/* sign-in problems, shown right under the button (zelos-signin.js) */
+.pt-auth-msg{ margin:8px 0 0; padding:8px 10px; border:1px solid var(--danger); border-radius:var(--radius-sm); background:rgba(224,72,63,0.1); color:var(--ink); font-size:0.82rem; line-height:1.45; }
+.pt-auth-msg[hidden]{ display:none; }
