@@ -124,7 +124,7 @@
     box.onclick = function (e) {
       var b = e.target.closest('[data-a]'); if (!b) return;
       var a = b.getAttribute('data-a'), u = S.me();
-      if (a === 'share') return S.shareLink(name + ' on AgenticTrading.info', war ? name + '\'s Trade War account (virtual) is at ' + money(p.equity) + '. Can you beat that?' : 'Check out ' + name + '\'s trader profile.', link + (u ? '&ref=' + encodeURIComponent(u.uid) : '')).then(function (r) { if (r === 'copied') b.textContent = 'Link copied ✓'; });
+      if (a === 'share') return S.shareLink(name + ' · Trader profile', war ? name + '\'s Trade War account (virtual) is at ' + money(p.equity) + '. Can you beat that?' : 'Check out ' + name + '\'s trader profile.', link + (u ? '&ref=' + encodeURIComponent(u.uid) : '')).then(function (r) { if (r === 'copied') b.textContent = 'Link copied ✓'; });
       if (a === 'card') return S.shareCard({ name: p.name, equity: p.equity, level: window.ZelosLevels ? 'Lv ' + ZelosLevels.levelForXp(p.xp || 0).level : null, xp: p.xp, winRate: p.trades ? p.winRate : null,
         best: (p.bestTrades || [])[0] ? '+$' + Math.round(p.bestTrades[0].pnl).toLocaleString('en-US') + ' ' + p.bestTrades[0].sym : null }, link + '&ref=' + encodeURIComponent(uid)).then(function (r) { if (r === 'downloaded') b.textContent = 'Saved · link copied ✓'; });
       if (!u) { b.textContent = 'Sign in first (Trade War or the journal)'; return; }

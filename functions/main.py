@@ -544,13 +544,19 @@ def _finnhub_quote(symbol, api_key, timeout=8):
 
 def _fetch_all_quotes(api_key):
     """Returns (quotes, error). error is 'auth' for a bad key, else a short message."""
-    quotes, last_error = {}, None
+    quotes, last_error, denied = {}, None, []
     for sym in PRACTICE_SYMBOLS:
         try:
             q = _finnhub_quote(sym, api_key)
         except urllib.error.HTTPError as e:
-            if e.code in (401, 403):
+            if e.code == 401:
                 return {}, "auth"  # bad or revoked key: no point trying the rest
+            if e.code == 403:
+                # Finnhub answers 403 for symbols the plan doesn't cover; skip just that one
+                denied.append(sym)
+                if len(denied) >= 5 and not quotes:
+                    return {}, "auth"  # everything is being refused: it's the key
+                continue
             last_error = "http %d" % e.code
             continue
         except Exception as e:  # timeout, DNS, bad JSON
@@ -560,7 +566,9 @@ def _fetch_all_quotes(api_key):
         if not q or not q.get("c"):
             continue
         quotes[sym] = {k: q.get(k) for k in ("c", "o", "h", "l", "pc", "t")}
-    return quotes, (None if quotes else (last_error or "no data"))
+    if denied:
+        print("[refresh_quotes] Finnhub refused (403):", ",".join(denied))
+    return quotes, (None if quotes else ("auth" if denied else (last_error or "no data")))
 
 
 @scheduler_fn.on_schedule(

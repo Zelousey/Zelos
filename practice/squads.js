@@ -93,7 +93,7 @@
     document.querySelectorAll('[data-b]').forEach(function (b) { b.onclick = function () { board = b.getAttribute('data-b'); render(user); }; });
     if ($('sqSignIn')) $('sqSignIn').onclick = signIn;
     if ($('sqJoin')) $('sqJoin').onclick = function () { this.disabled = true; S.joinSquad(sq).catch(function (e) { $('sqJoin').disabled = false; $('sqMsg').textContent = e.message || e; }); };
-    if ($('sqShare')) $('sqShare').onclick = function () { var b = this; S.shareLink('Join my Trading Squad', 'Join ' + sq.name + ' on AgenticTrading.info and compete with $10,000 Trade War accounts.', link).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
+    if ($('sqShare')) $('sqShare').onclick = function () { var b = this; S.shareLink('Join my Trading Squad', 'Join my Trading Squad "' + sq.name + '" and compete with $10,000 Trade War accounts.', link).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
     if ($('sqLeave')) $('sqLeave').onclick = function () { if (confirm('Leave ' + sq.name + '?')) S.leaveSquad(sq).then(function () { location.search = ''; }); };
     if ($('sqEnd')) $('sqEnd').onclick = function () { if (confirm('End the competition now?')) S.endSquadComp(sq); };
     document.querySelectorAll('[data-comp]').forEach(function (b) { b.onclick = function () { b.disabled = true; board = 'comp'; S.startSquadComp(sq, +b.getAttribute('data-comp')); }; });
