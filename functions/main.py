@@ -844,7 +844,11 @@ import re as _re
 import secrets as _secrets
 import time as _time
 
-TW_BUYIN_MIN, TW_BUYIN_MAX = 100, 100000
+TW_BUYIN_MIN, TW_BUYIN_MAX = 100, 10000
+# Bigger buy-ins unlock with the host's level (XP ladder in zelos-levels.js;
+# the same table is in zelos-challenge.js for the lock icons):
+#   (max buy-in, level needed, XP needed, level name)
+TW_BUYIN_TIERS = ((1000, 0, 0, ""), (5000, 3, 150, "Gold"), (10000, 5, 1000, "Diamond"))
 TW_DAYS = (1, 3, 7, 14, 30)
 TW_MAX_PLAYERS = 50
 TW_MAX_FILLS = 500
@@ -877,12 +881,32 @@ def tw_validate_create(data):
     except (TypeError, ValueError):
         raise TWError("INVALID_ARGUMENT", "Buy-in, length and player limit must be numbers.")
     if not (TW_BUYIN_MIN <= buy_in <= TW_BUYIN_MAX) or buy_in % 100:
-        raise TWError("INVALID_ARGUMENT", "Buy-in must be a multiple of $100 between $100 and $100,000 (virtual).")
+        raise TWError("INVALID_ARGUMENT", "Buy-in must be a multiple of $100 between $100 and $10,000 (virtual).")
     if days not in TW_DAYS:
         raise TWError("INVALID_ARGUMENT", "Length must be 1, 3, 7, 14 or 30 days.")
     if not (2 <= max_players <= TW_MAX_PLAYERS):
         raise TWError("INVALID_ARGUMENT", "Player limit must be between 2 and %d." % TW_MAX_PLAYERS)
     return name, buy_in, days, max_players
+
+
+def tw_buyin_lock(buy_in, xp):
+    """None if this XP may host this buy-in, else the (level, xp, name) it needs."""
+    for cap, level, need, name in TW_BUYIN_TIERS:
+        if buy_in <= cap:
+            return None if (xp or 0) >= need else (level, need, name)
+    return TW_BUYIN_TIERS[-1][1:]
+
+
+def _tw_check_buyin(db, uid, buy_in):
+    try:
+        u = db.collection("users").document(uid).get()
+        xp = int((u.to_dict() or {}).get("xp") or 0) if u.exists else 0
+    except Exception:
+        xp = 0
+    lock = tw_buyin_lock(buy_in, xp)
+    if lock:
+        raise TWError("FAILED_PRECONDITION", "The $%s buy-in unlocks at Level %d (%s, %s XP). Earn XP from trades, missions and matches to unlock it."
+                      % (format(buy_in, ","), lock[0], lock[2], format(lock[1], ",")))
 
 
 def tw_new_account(name, buy_in, now_ms):
@@ -1030,6 +1054,7 @@ def _tw_call(fn):
 @_tw_call
 def tw_create(req, db, uid, now_ms):
     name, buy_in, days, max_players = tw_validate_create(req.data)
+    _tw_check_buyin(db, uid, buy_in)
     open_count = sum(1 for d in db.collection("tradeWars").where("host", "==", uid).where("status", "==", "lobby").limit(6).stream())
     if open_count >= 5:
         raise TWError("RESOURCE_EXHAUSTED", "You already have 5 Trade Wars waiting in the lobby. Start or cancel one first.")
@@ -1288,6 +1313,7 @@ def _tw_close_invites(db, wid, status, now_ms):
 @_tw_call
 def tw_challenge(req, db, uid, now_ms):
     targets, buy_in, days, name, squad_id = tw_validate_challenge(req.data, uid)
+    _tw_check_buyin(db, uid, buy_in)
     if squad_id:
         sq = db.collection("squads").document(squad_id).get()
         if not sq.exists or uid not in (sq.to_dict().get("members") or []):

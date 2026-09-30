@@ -342,6 +342,14 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 - **Challenge counting:** the old `challenges` link flow (net P&L on the $10k account) still works. The onboarding "Challenge a friend" step now also counts these new challenges.
 - **Not yet:** web push with the site closed (§22), the Battle Preparation Guide second button (§39), and "Last Man Standing" (next phase).
 
+## Buy-in level locks (owner request, 2026-09-30)
+- $100 / $500 / $1,000: everyone. **$5,000: Level 3 (Gold, 150 XP). $10,000: Level 5 (Diamond, 1,000 XP).** Custom amounts follow the same tiers, and the max buy-in went from $100,000 to $10,000.
+- Enforced by the server (`TW_BUYIN_TIERS` / `tw_buyin_lock` in `functions/main.py`) on `tw_create` and `tw_challenge`, based on the host's XP.
+- Shown in the Create form and the Challenge dialog: 🔒 dashed chips with "Unlocks at Level N (Name, X XP)", plus a note with your XP. The client table is in `zelos-challenge.js`.
+- Only the host's level counts; anyone can accept a challenge.
+- Tested: 3 new unit tests (66/66) and 14/14 end-to-end.
+- **Caveat:** XP itself is still awarded in the browser (`users/{uid}.xp` is owner-writable; a Phase 0 finding). A determined user could edit their own XP to unlock bigger virtual buy-ins. That's harmless for fairness, since everyone in a match still starts equal, but XP should move server-side before XP gates anything of value (tokens, rewards).
+
 ## Phase 7 owner steps
 1. `git pull`, then deploy rules: `npx -y firebase-tools@latest deploy --only firestore:rules --project leaderboard-agentictrading`
 2. Deploy functions (in the Python 3.12 venv, as before): `npx -y firebase-tools@latest deploy --only functions --project leaderboard-agentictrading`

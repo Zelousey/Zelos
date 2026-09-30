@@ -44,7 +44,7 @@ class CreateValidation(unittest.TestCase):
             self.assertEqual(self.ok(buyIn=b)[1], b)
 
     def test_rejects_bad_buy_ins(self):
-        for b in (0, 50, 150, 100100, -500, "lots", None):
+        for b in (0, 50, 150, 10100, 100000, -500, "lots", None):
             self.bad(buyIn=b)
 
     def test_rejects_bad_lengths_and_sizes(self):
@@ -126,6 +126,22 @@ class Trading(unittest.TestCase):
         self.assertEqual(len(b["fills"]), m.TW_MAX_FILLS)
 
 
+class BuyInLocks(unittest.TestCase):
+    def test_small_buy_ins_are_open_to_everyone(self):
+        for b in (100, 500, 1000):
+            self.assertIsNone(m.tw_buyin_lock(b, 0))
+
+    def test_5000_needs_gold(self):
+        self.assertEqual(m.tw_buyin_lock(5000, 149), (3, 150, "Gold"))
+        self.assertIsNone(m.tw_buyin_lock(5000, 150))
+        self.assertEqual(m.tw_buyin_lock(2500, 0), (3, 150, "Gold"))  # custom amounts follow the tiers
+
+    def test_10000_needs_diamond(self):
+        self.assertEqual(m.tw_buyin_lock(10000, 999), (5, 1000, "Diamond"))
+        self.assertIsNone(m.tw_buyin_lock(10000, 1000))
+        self.assertEqual(m.tw_buyin_lock(6000, 500), (5, 1000, "Diamond"))
+
+
 class ChallengeValidation(unittest.TestCase):
     ME = "me_uid_123"
 
@@ -154,7 +170,7 @@ class ChallengeValidation(unittest.TestCase):
             self.v(to=["uid_%04d" % i for i in range(m.TW_MAX_INVITEES + 1)])
 
     def test_same_buy_in_rules_as_create(self):
-        for b in (150, 0, 200000):
+        for b in (150, 0, 20000):
             with self.assertRaises(m.TWError):
                 self.v(buyIn=b)
         with self.assertRaises(m.TWError):

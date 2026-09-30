@@ -19,6 +19,7 @@
   var ticket = { sym: 'AAPL', qty: 1 };
   // Trade War chart (practice-chart.js): daily history + live FMP quote, your entry and fills,
   // Fibonacci, and the Trade War price alerts shared with the $10,000 account.
+  var CH = window.ZelosChallenge; // buy-in level locks (zelos-challenge.js)
   var TC = window.ZelosTradeChart, hist = {}, extra = {}, chartEl = null, chart = null, fibOn = false;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(v, d) { d = d == null ? 2 : d; v = +v || 0; return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
@@ -69,9 +70,9 @@
     }
     h += '<div class="tw-grid"><section class="pt-card ch-card tw-create"><h2>Create a Trade War</h2>' +
       '<label class="tw-f"><span>Name</span><input id="twName" maxlength="40" placeholder="Friday Fight"></label>' +
-      '<div class="tw-f" data-help="The buy-in is the virtual starting balance every player gets. It is the same for everyone and can\'t change after the start."><span>Virtual buy-in (everyone starts with this)</span><div class="tw-chips" id="twBuy">' +
-      [100, 500, 1000, 5000, 10000].map(function (b, i) { return '<button type="button" data-b="' + b + '" class="' + (b === 1000 ? 'is-on' : '') + '">' + money(b, 0) + '</button>'; }).join('') +
-      '</div><input id="twBuyCustom" inputmode="numeric" placeholder="or type an amount (multiple of $100)"></div>' +
+      '<div class="tw-f" data-help="The buy-in is the virtual starting balance every player gets. It is the same for everyone and can\'t change after the start. Bigger buy-ins unlock as you level up."><span>Virtual buy-in (everyone starts with this)</span><div class="tw-chips" id="twBuy">' +
+      (CH ? CH.buyInChips(1000, 0) : '') +
+      '</div><p class="pt-fine tw-lock" id="twLock"></p><input id="twBuyCustom" inputmode="numeric" placeholder="or type an amount (multiple of $100, up to $10,000)"></div>' +
       '<div class="tw-row"><label class="tw-f"><span>Length</span><select id="twDays"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>1 week</option><option value="14">2 weeks</option><option value="30">30 days</option></select></label>' +
       '<label class="tw-f"><span>Max players</span><select id="twMax">' + [2, 4, 6, 10, 20, 50].map(function (n) { return '<option' + (n === 10 ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label></div>' +
       '<button class="pt-btn pt-btn-go" type="button" id="twCreate">Create &amp; get invite link</button><p class="pt-auth-msg" id="twCreateMsg" role="alert" hidden></p></section>' +
@@ -83,11 +84,14 @@
       '<section class="pt-card ch-card"><h2>Challenge history</h2><div id="twHist"><p class="pt-empty">Loading…</p></div></section></div>';
     body(h);
     wireChallenges();
-    var buy = 1000;
-    $('twBuy').onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b) return; buy = +b.getAttribute('data-b'); $('twBuyCustom').value = ''; this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); }); };
+    var buy = 1000, xp = 0;
+    if (CH) CH.myXp().then(function (x) { xp = x; $('twBuy').innerHTML = CH.buyInChips(buy, xp); $('twLock').innerHTML = CH.lockNote(xp); });
+    $('twBuy').onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b || b.disabled) return; buy = +b.getAttribute('data-b'); $('twBuyCustom').value = ''; this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); }); };
     $('twBuyCustom').oninput = function () { var v = parseInt(this.value.replace(/[^0-9]/g, ''), 10); if (v) { buy = v; $('twBuy').querySelectorAll('button').forEach(function (x) { x.classList.remove('is-on'); }); } };
     $('twCreate').onclick = function () {
-      var b = this, msg = $('twCreateMsg'); msg.hidden = true; b.disabled = true; b.textContent = 'Creating…';
+      var b = this, msg = $('twCreateMsg'); msg.hidden = true;
+      var L = CH && CH.buyInLock(buy, xp); if (L) { msg.textContent = money(buy, 0) + ': ' + CH.lockText(L) + '. Earn XP from trades, missions and matches.'; msg.hidden = false; return; }
+      b.disabled = true; b.textContent = 'Creating…';
       call('tw_create', { name: $('twName').value || 'Trade War', buyIn: buy, days: +$('twDays').value, maxPlayers: +$('twMax').value })
         .then(function (r) { location.search = '?w=' + encodeURIComponent(r.warId); })
         .catch(function (e) { b.disabled = false; b.textContent = 'Create & get invite link'; msg.textContent = errText(e); msg.hidden = false; });

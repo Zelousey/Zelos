@@ -564,3 +564,6 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .tw-board{ overflow-x:auto; }
 .tw-live > .zh-tip, .tw-grid > .zh-tip{ grid-column:1 / -1; }
 .tw-squads .pt-mini{ margin:4px 4px 0 0; }
+.tw-chips button.is-locked{ opacity:0.55; cursor:not-allowed; border-style:dashed; }
+.tw-lock{ margin:2px 0 8px; }
+.tw-lock:empty{ display:none; }

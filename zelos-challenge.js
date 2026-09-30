@@ -23,6 +23,23 @@
   var FNS_URL = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js';
   var SEEN = 'zelosChSeen', NOTIFIED = 'zelosChNotified';
   var queue = [], showing = null, unsub = null, fnsPromise = null;
+  // Bigger buy-ins unlock with your level; the server enforces the same table
+  // (TW_BUYIN_TIERS in functions/main.py): [max buy-in, level, XP needed, level name]
+  var TIERS = [[1000, 0, 0, ''], [5000, 3, 150, 'Gold'], [10000, 5, 1000, 'Diamond']];
+  function buyInLock(b, xp) { for (var i = 0; i < TIERS.length; i++) if (b <= TIERS[i][0]) return (xp || 0) >= TIERS[i][2] ? null : { level: TIERS[i][1], xp: TIERS[i][2], name: TIERS[i][3] }; var t = TIERS[TIERS.length - 1]; return { level: t[1], xp: t[2], name: t[3] }; }
+  function lockText(L) { return 'Unlocks at Level ' + L.level + ' (' + L.name + ', ' + L.xp.toLocaleString('en-US') + ' XP)'; }
+  // chip row for the preset buy-ins; locked ones are disabled and say what unlocks them
+  function buyInChips(sel, xp) {
+    return [100, 500, 1000, 5000, 10000].map(function (b) {
+      var L = buyInLock(b, xp);
+      return '<button type="button" data-b="' + b + '" class="' + (b === sel && !L ? 'is-on' : '') + (L ? ' is-locked' : '') + '"' + (L ? ' disabled aria-disabled="true" title="' + lockText(L) + '"' : '') + '>' + (L ? '&#128274; ' : '') + money(b) + '</button>';
+    }).join('');
+  }
+  function lockNote(xp) {
+    var locked = TIERS.filter(function (t) { return (xp || 0) < t[2]; });
+    return locked.length ? '&#128274; ' + locked.map(function (t) { return money(t[0]) + ' unlocks at Level ' + t[1] + ' (' + t[3] + ')'; }).join(' · ') + '. You have ' + (xp || 0).toLocaleString('en-US') + ' XP.' : '';
+  }
+  function myXp() { var f = fb(), u = f && f.auth.currentUser; if (!u) return Promise.resolve(0); return f.db.collection('users').doc(u.uid).get().then(function (d) { return (d.exists && d.data().xp) || 0; }).catch(function () { return 0; }); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(v) { return '$' + (+v || 0).toLocaleString('en-US'); }
   function store(k) { try { return JSON.parse(sessionStorage.getItem(k) || '[]'); } catch (e) { return []; } }
@@ -74,6 +91,8 @@
       '.zc-card .zc-msg{text-align:center;font-size:.86rem;margin:10px 0 0;min-height:1em}.zc-card .zc-msg.is-bad{color:#f87171}',
       '.zc-f{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:.84rem}.zc-f>span{color:#8b93a3;font-weight:600}',
       '.zc-chips{display:flex;flex-wrap:wrap;gap:6px}.zc-chips button{font:inherit;font-weight:600;font-size:.86rem;padding:7px 12px;border-radius:999px;border:1px solid #2b3140;background:transparent;color:#cfd4dd;cursor:pointer}.zc-chips button.is-on{border-color:#4a86ff;background:#182a4a;color:#fff}',
+      '.zc-chips button.is-locked{opacity:.55;cursor:not-allowed;border-style:dashed}',
+      '.zc-lock{font-size:.74rem;color:#8b93a3;margin:6px 0 0}',
       '.zc-f select{font:inherit;padding:9px 10px;border-radius:8px;border:1px solid #2b3140;background:#11151d;color:#f4f5f7}',
       '.zc-card .zc-h{margin:18px 0 4px;font-size:1.15rem}',
       '@keyframes zcFade{from{opacity:0}to{opacity:1}}',
@@ -165,18 +184,18 @@
     opts = opts || {};
     var f = fb(), u = f && f.auth.currentUser;
     if (!u || u.isAnonymous) { alert('Sign in to challenge someone to a Trade War.'); return Promise.resolve(null); }
-    return new Promise(function (resolve) {
+    return myXp().then(function (xp) { return new Promise(function (resolve) {
       var buy = 1000;
       var who = opts.squadId ? 'your squad' + (opts.squadName ? ' ' + opts.squadName : '') : (opts.toName || 'this trader');
       var m = modal(BLADES + '<h2 class="zc-h" id="zcTitle">Challenge ' + esc(who) + '</h2>' +
         '<p class="zc-fine" style="text-align:left">They get a "You\'ve been challenged" card and choose to accept or decline. Everyone starts with the same virtual buy-in. Virtual money only.</p>' +
-        '<div class="zc-f"><span>Virtual buy-in (everyone starts with this)</span><div class="zc-chips" id="zcBuy">' +
-        [100, 500, 1000, 5000, 10000].map(function (b) { return '<button type="button" data-b="' + b + '" class="' + (b === buy ? 'is-on' : '') + '">' + money(b) + '</button>'; }).join('') + '</div></div>' +
+        '<div class="zc-f"><span>Virtual buy-in (everyone starts with this)</span><div class="zc-chips" id="zcBuy">' + buyInChips(buy, xp) + '</div>' +
+        (lockNote(xp) ? '<p class="zc-lock">' + lockNote(xp) + '</p>' : '') + '</div>' +
         '<label class="zc-f"><span>Length</span><select id="zcDays"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>1 week</option><option value="14">2 weeks</option><option value="30">30 days</option></select></label>' +
         '<div class="zc-btns"><button type="button" class="zc-btn" id="zcCancel">Cancel</button><button type="button" class="zc-btn zc-go" id="zcSend">Send challenge</button></div><p class="zc-msg" id="zcMsg" role="status"></p>',
         function (e) { if (e.key === 'Escape') { m.close(); resolve(null); } });
       var $ = function (id) { return m.el.querySelector('#' + id); };
-      $('zcBuy').onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b) return; buy = +b.getAttribute('data-b'); this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); }); };
+      $('zcBuy').onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b || b.disabled) return; buy = +b.getAttribute('data-b'); this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); }); };
       $('zcCancel').onclick = function () { m.close(); resolve(null); };
       $('zcSend').onclick = function () {
         var btn = this; btn.disabled = true; $('zcMsg').textContent = 'Sending…'; $('zcMsg').className = 'zc-msg';
@@ -189,10 +208,10 @@
         }, function (e) { btn.disabled = false; $('zcMsg').textContent = errText(e); $('zcMsg').className = 'zc-msg is-bad'; });
       };
       setTimeout(function () { try { $('zcSend').focus(); } catch (e) {} }, 60);
-    });
+    }); });
   }
 
-  global.ZelosChallenge = { open: open, call: call };
+  global.ZelosChallenge = { open: open, call: call, buyInLock: buyInLock, buyInChips: buyInChips, lockNote: lockNote, lockText: lockText, myXp: myXp };
   function boot() {
     var f = fb(); if (!f) return;
     f.auth.onAuthStateChanged(function (u) { watch(u && !u.isAnonymous ? u : null); });
