@@ -467,7 +467,7 @@
       c.strokeStyle = acc; c.lineWidth = 1.2; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(L.x0, ay); c.lineTo(L.x1, ay); c.stroke(); c.setLineDash([]);
       c.font = '700 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = acc; c.textAlign = 'right'; c.textBaseline = 'top';
       c.fillText('TRADE WAR ALERT ' + (a.dir === 'below' ? '≤ ' : '≥ ') + fmt(a.price), L.x1 - 4, ay + 2); c.textAlign = 'left'; c.textBaseline = 'middle';
-      c.fillStyle = acc; c.fillRect(L.x1 + 1, ay - 8, 62, 16); c.fillStyle = '#ffffff'; c.font = '600 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText('⏰' + fmt(a.price), L.x1 + 3, ay);
+      c.fillStyle = acc; c.fillRect(L.x1 + 1, ay - 8, 62, 16); c.fillStyle = '#ffffff'; c.font = '600 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText(fmt(a.price), L.x1 + 6, ay);
       c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
     });
     // your fills
@@ -619,6 +619,57 @@
     set: function (sym, abc) { try { var all = JSON.parse(localStorage.getItem(ABC_KEY) || '{}') || {}; if (abc) all[sym] = abc; else delete all[sym]; localStorage.setItem(ABC_KEY, JSON.stringify(all)); } catch (e) {} }
   };
 
-  global.ZelosTradeChart = { TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol,
+  // ------------------------------------------------------------ mount anywhere
+  // Our chart on any page (dashboard, alert pop-ups): daily history from data/ plus
+  // the live FMP quote from markets/quotes. opts: { root, sym, pick, db, height,
+  // lines: [..] | fn(sym) -> [..], bars, missing: fn(sym) -> message }
+  var histP = null;
+  function loadHistory(root) {
+    if (!histP) histP = Promise.all([
+      fetch((root || '') + 'data/game-charts.json').then(function (r) { return r.json(); }),
+      fetch((root || '') + 'data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; })
+    ]).then(function (res) { var h = {}; [res[0].symbols, res[1].symbols].forEach(function (src) { Object.keys(src || {}).forEach(function (k) { h[k] = src[k]; }); }); return h; });
+    return histP;
+  }
+  function nyDay(ms) { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(ms)); } catch (e) { return new Date(ms).toISOString().slice(0, 10); } }
+  function dailySeries(sym, hist, q) {
+    var all = (hist[sym] || []).slice(), live = false;
+    if (q && q.c && all.length) {
+      var qd = q.t ? nyDay(q.t * 1000) : null, lastD = all[all.length - 1][0];
+      if (qd && qd > lastD && q.o) { all.push([qd, q.o, Math.max(q.h, q.c), Math.min(q.l, q.c), q.c, 0]); live = true; }
+      else if (qd === lastD) { var r = all[all.length - 1].slice(); r[4] = q.c; r[2] = Math.max(r[2], q.c); r[3] = Math.min(r[3], q.c); all[all.length - 1] = r; live = true; }
+    }
+    var s = { sym: sym, key: sym + '|D', d: [], o: [], h: [], l: [], c: [], v: [], live: live };
+    all.forEach(function (r) { s.d.push(r[0]); s.o.push(+r[1]); s.h.push(+r[2]); s.l.push(+r[3]); s.c.push(+r[4]); s.v.push(+r[5] || 0); });
+    s.n = s.d.length;
+    return computeIndicators(s);
+  }
+  function mount(el, opts) {
+    opts = opts || {};
+    var st = { sym: opts.sym || 'SPY', hist: null, quotes: {} };
+    el.innerHTML = (opts.pick ? '<div class="ztc-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><select class="ztc-sym" aria-label="Stock" style="font:inherit;padding:6px 8px;border-radius:6px;border:1px solid var(--border,#2b2e35);background:var(--bg-soft,#101216);color:var(--ink,#f4f5f7)"></select><b class="ztc-px" style="font-family:var(--mono,monospace)"></b></div>' : '') +
+      '<canvas class="ztc-canvas" style="display:block;width:100%;height:' + (opts.height || '260px') + ';border-radius:6px;background:var(--chart-bg,rgba(0,0,0,0.25))"></canvas>';
+    var chart = new TradeChart(el.querySelector('canvas')), sel = el.querySelector('.ztc-sym'), pxEl = el.querySelector('.ztc-px');
+    function draw() {
+      if (!st.hist) { chart.empty = 'Loading chart…'; chart.draw(); return; }
+      if (!st.hist[st.sym]) { chart.s = null; chart.empty = opts.missing ? opts.missing(st.sym) : 'No chart data for ' + st.sym + ' yet.'; chart.draw(); return; }
+      var s = dailySeries(st.sym, st.hist, st.quotes[st.sym]);
+      chart.lines = typeof opts.lines === 'function' ? opts.lines(st.sym) : (opts.lines || []);
+      chart.lastPrice = s.c[s.n - 1]; chart.empty = null;
+      if (pxEl) pxEl.textContent = fmt(chart.lastPrice);
+      if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, opts.bars || 126); else chart.setSeries(s);
+      chart.draw();
+    }
+    loadHistory(opts.root).then(function (h) {
+      st.hist = h;
+      if (sel) { sel.innerHTML = Object.keys(h).sort().map(function (k) { return '<option' + (k === st.sym ? ' selected' : '') + '>' + k + '</option>'; }).join(''); sel.onchange = function () { st.sym = sel.value; draw(); }; }
+      draw();
+    }).catch(function () { chart.empty = 'Couldn\'t load the chart. Refresh to try again.'; chart.draw(); });
+    if (opts.db) { try { opts.db.collection('markets').doc('quotes').onSnapshot(function (d) { st.quotes = (d.exists && d.data().quotes) || {}; if (st.hist) draw(); }, function () {}); } catch (e) {} }
+    draw();
+    return { chart: chart, setSym: function (x) { st.sym = x; if (sel) sel.value = x; draw(); } };
+  }
+  global.ZelosTradeChart = {
+    loadHistory: loadHistory, dailySeries: dailySeries, mount: mount, TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol,
     INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, alerts: new AlertStore(), AlertStore: AlertStore, abc: abcStore };
 })(window);

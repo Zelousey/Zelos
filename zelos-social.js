@@ -1,7 +1,7 @@
 /*!
  * Zelos — social layer for Trade War (the $10,000 virtual account).
  *
- * Friend challenges, Trading Squads, friends, referrals and shareable
+ * Trading Squads, friends, referrals and shareable
  * account cards. Everything reads the public practice profile each player
  * publishes (practiceProfiles/{uid}, written by practice/practice.js), so the
  * numbers here are the same ones on the leaderboard and never include email
@@ -45,7 +45,7 @@
     return {
       profile: function (u) { return SITE + '/practice/profile.html?u=' + encodeURIComponent(u || uid); },
       invite: function () { return SITE + '/practice/?ref=' + encodeURIComponent(uid); },
-      challenge: function (id) { return SITE + '/practice/challenge.html?c=' + encodeURIComponent(id) + (uid ? '&ref=' + encodeURIComponent(uid) : ''); },
+      war: function (id) { return SITE + '/practice/war.html?w=' + encodeURIComponent(id); },
       squad: function (id) { return SITE + '/practice/squads.html?s=' + encodeURIComponent(id) + (uid ? '&ref=' + encodeURIComponent(uid) : ''); }
     };
   }
@@ -78,67 +78,6 @@
     return { pnl: pnl, pct: pnl / eq0 * 100, xp: xp - (base.xp || 0), equity: finished ? eq0 + pnl : p.equity };
   }
   function baseFor(p, xp) { return { net: Math.round(net(p) * 100) / 100, eq: (p && p.equity) || START, xp: xp != null ? xp : (p && p.xp) || 0 }; }
-
-  // ------------------------------------------------------------ challenges
-  function createChallenge(opts) {
-    var u = me(); if (!u) return Promise.reject(new Error('Sign in with Google on the practice page first.'));
-    return profile(u.uid).then(function (p) {
-      if (!p) throw new Error('Enter Trade War once (and keep "Show my stats" on) so there are numbers to compete with.');
-      var id = newId(), days = opts.days;
-      var doc = { creator: u.uid, creatorName: p.name || 'Trader', target: opts.target || null, targetName: opts.targetName || null,
-        opponent: null, opponentName: null, days: days, season: opts.season || null, status: 'open', createdAt: now(), startAt: null, endAt: opts.endAt || null, base: {} };
-      return db.collection('challenges').doc(id).set(doc).then(function () {
-        if (global.ZelosProgress) ZelosProgress.bump('challenges');
-        if (global.ZelosXP) ZelosXP.award('challenge-join', id);
-        return id;
-      });
-    });
-  }
-  function getChallenge(id) { return db.collection('challenges').doc(id).get().then(function (d) { return d.exists ? Object.assign({ id: d.id }, d.data()) : null; }); }
-  function watchChallenge(id, cb) { return db.collection('challenges').doc(id).onSnapshot(function (d) { cb(d.exists ? Object.assign({ id: d.id }, d.data()) : null); }, function () { cb(null); }); }
-  function acceptChallenge(ch) {
-    var u = me(); if (!u) return Promise.reject(new Error('Sign in with Google first.'));
-    if (u.uid === ch.creator) return Promise.reject(new Error('That\'s your own challenge. Send the link to a friend.'));
-    if (ch.target && ch.target !== u.uid) return Promise.reject(new Error('This challenge was sent to someone else.'));
-    return profiles([u.uid, ch.creator]).then(function (m) {
-      if (!m[u.uid]) throw new Error('Enter Trade War once (and keep "Show my stats" on) before accepting.');
-      var start = now(), base = {}; base[ch.creator] = baseFor(m[ch.creator]); base[u.uid] = baseFor(m[u.uid]);
-      return db.collection('challenges').doc(ch.id).update({
-        opponent: u.uid, opponentName: m[u.uid].name || 'Trader', status: 'active', startAt: start,
-        endAt: ch.endAt || start + ch.days * 864e5, base: base
-      }).then(function () {
-        addFriend(ch.creator);
-        if (global.ZelosProgress) ZelosProgress.bump('challenges');
-        if (global.ZelosXP) ZelosXP.award('challenge-join', ch.id);
-      });
-    });
-  }
-  function cancelChallenge(id) { return db.collection('challenges').doc(id).update({ status: 'cancelled' }); }
-  function myChallenges(uid) {
-    var q = function (field) { return db.collection('challenges').where(field, '==', uid).limit(30).get().then(function (s) { var o = []; s.forEach(function (d) { o.push(Object.assign({ id: d.id }, d.data())); }); return o; }).catch(function () { return []; }); };
-    return Promise.all([q('creator'), q('opponent'), q('target')]).then(function (r) {
-      var seen = {}, out = [];
-      r[0].concat(r[1], r[2]).forEach(function (c) { if (!seen[c.id] && c.status !== 'cancelled') { seen[c.id] = 1; out.push(c); } });
-      return out.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-    });
-  }
-  // live standings for an active or finished challenge
-  function standings(ch, profMap) {
-    var ids = [ch.creator, ch.opponent].filter(Boolean);
-    var rows = ids.map(function (u) {
-      var p = profMap[u], sc = ch.base && ch.base[u] ? scoreSince(p, ch.base[u], ch.endAt) : null;
-      return { uid: u, name: (p && p.name) || (u === ch.creator ? ch.creatorName : ch.opponentName) || 'Trader', profile: p, score: sc };
-    });
-    var finished = ch.status === 'active' && ch.endAt && now() > ch.endAt;
-    var ranked = rows.filter(function (r) { return r.score; }).sort(function (a, b) { return b.score.pct - a.score.pct; });
-    return { rows: rows, finished: finished, leader: ranked[0] || null, winner: finished && ranked.length === 2 && ranked[0].score.pct !== ranked[1].score.pct ? ranked[0] : null };
-  }
-  // the winner's own browser pays out once
-  function settle(ch, st) {
-    var u = me(); if (!u || !st.winner || st.winner.uid !== u.uid) return;
-    if (global.ZelosXP) ZelosXP.award('challenge-win', ch.id);
-    if (global.ZelosProgress) ZelosProgress.bump('challengeWins');
-  }
 
   // ------------------------------------------------------------ friends
   function friends() {
@@ -280,8 +219,6 @@
   global.ZelosSocial = {
     init: init, me: me, links: links, esc: esc, START: START,
     profile: profile, profiles: profiles, net: net, netOn: netOn, scoreSince: scoreSince, baseFor: baseFor,
-    createChallenge: createChallenge, getChallenge: getChallenge, watchChallenge: watchChallenge, acceptChallenge: acceptChallenge,
-    cancelChallenge: cancelChallenge, myChallenges: myChallenges, standings: standings, settle: settle,
     friends: friends, addFriend: addFriend, removeFriend: removeFriend,
     createSquad: createSquad, getSquad: getSquad, watchSquad: watchSquad, joinSquad: joinSquad, leaveSquad: leaveSquad, mySquads: mySquads,
     startSquadComp: startSquadComp, endSquadComp: endSquadComp,

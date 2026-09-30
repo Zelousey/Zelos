@@ -701,7 +701,7 @@
             '<td>' + (a.status === 'active' ? '<span class="pt-pill">Active</span>' : '<span class="pt-pill is-done">Triggered ' + (a.triggeredAt ? new Date(a.triggeredAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') + '</span>') + '</td>' +
             '<td><button class="pt-mini" data-alert-edit="' + a.id + '">Edit</button> <button class="pt-mini" data-alert-del="' + a.id + '">Delete</button></td></tr>';
         }).join('') + '</tbody></table>' : '<p class="pt-empty">No price alerts yet. Press <b>&#9200; Alert</b> above the chart, then click the price you want to watch. You can drag an alert line to move it.</p>') +
-        '<p class="pt-fine">Trade War alerts pop up while a Trade War page is open (turn on <b>Alerts</b> for browser notifications). They follow your account between your $10,000 account and matches.</p>';
+        '<p class="pt-fine">Trade War alerts pop up while a Trade War page is open (turn on <b>Alerts</b> for browser notifications). They follow you between your Main account and your Trade Wars.</p>';
     } else if (tab === 'progress') {
       h = renderProgress();
     } else {
@@ -786,34 +786,9 @@
     });
   }
   function challengeFriend() {
-    var S = window.ZelosSocial;
-    if (!S || !S.init()) return toast('Challenges need the live site.', true);
-    if (!currentUser) return needSignIn('Sign in with Google to challenge a friend in Trade War. Your stats need to be public so there\'s something to compete with.');
-    if (acct.publicProfile === false) return toast('Turn on "Show my stats on the leaderboard" in Performance first, so your friend can see the scores.', true);
-    var se = PROG && PROG.season();
-    $('ptModalTitle').textContent = 'Challenge a friend';
-    $('ptModalText').innerHTML = 'Who can grow their $10,000 the most? You both start from your current accounts; whoever gains the bigger percentage wins. Resets don\'t count as growth.' +
-      '<span class="pt-ch-days">' + [['7', '7 days'], ['30', '30 days']].concat(se ? [['season', 'Rest of ' + se.name]] : []).map(function (d, k) {
-        return '<label><input type="radio" name="ptChDays" value="' + d[0] + '"' + (k === 0 ? ' checked' : '') + '> ' + d[1] + '</label>';
-      }).join('') + '</span>';
-    $('ptModalGo').textContent = 'Create challenge link'; $('ptModalGo').disabled = false;
-    $('ptConfirm').hidden = false;
-    $('ptModalGo').onclick = function () {
-      var v = (document.querySelector('[name="ptChDays"]:checked') || {}).value || '7', endAt = null, days = +v;
-      if (v === 'season' && se) { endAt = new Date(se.end + 'T21:00:00Z').getTime(); days = Math.max(1, Math.round((endAt - Date.now()) / 864e5)); }
-      $('ptModalGo').disabled = true;
-      save(); publishProfile();
-      setTimeout(function () {
-        S.createChallenge({ days: days, endAt: endAt, season: v === 'season' && se ? se.id : null }).then(function (id) {
-          var link = S.links(currentUser.uid).challenge(id);
-          $('ptModalTitle').textContent = 'Challenge ready';
-          $('ptModalText').innerHTML = 'Send this link to a friend. The clock starts when they accept.<span class="pt-invite"><input readonly value="' + esc(link) + '"><button class="pt-mini" type="button" id="ptChCopy">Copy</button></span>';
-          $('ptChCopy').onclick = function () { S.shareLink('Trade War challenge', playerName() + ' challenged you to a Trade War: who can grow $10,000 (virtual) the most?', link).then(function (r) { if (r === 'copied') toast('Link copied.'); }); };
-          $('ptModalGo').disabled = false; $('ptModalGo').textContent = 'Open challenge page';
-          $('ptModalGo').onclick = function () { location.href = 'challenge.html?c=' + encodeURIComponent(id); };
-        }).catch(function (e) { $('ptModalGo').disabled = false; toast(esc(e.message || e), true); });
-      }, 600);
-    };
+    // Old net-P&L challenges were retired: challenging a friend starts a Trade War match now.
+    if (!currentUser) return needSignIn('Sign in to challenge a friend to a Trade War.');
+    if (window.ZelosChallenge) ZelosChallenge.open({});
   }
   function drawCurve() {
     var cv = $('ptCurve'); if (!cv) return;
@@ -1103,6 +1078,7 @@
 
   // ------------------------------------------------------------ entry gate
   function showGate() {
+    $('ptGate').hidden = true; return; // the Trade War home opens straight into your account now
     var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
     var entered = false; try { entered = sessionStorage.getItem('zelosPracticeEntered') === '1'; } catch (e) {}
     if (entered || nav.type === 'reload' || nav.type === 'back_forward') { $('ptGate').hidden = true; return; }

@@ -170,31 +170,11 @@ service cloud.firestore {
     // ---- Trade War social layer (zelos-social.js) ----
     // Virtual money only; same client-side trust trade-off as XP above.
 
-    // Friend challenges. Public read so a shared link opens for anyone. Only a
-    // real (non-anonymous) account can create one, as its own creator. The
-    // creator may only cancel it. Anyone else (or only the invited target) may
-    // accept an open challenge, and accepting can only fill in the acceptance
-    // fields: opponent (themselves), names, start/end and the baselines.
     match /challenges/{challengeId} {
+      // Retired: friend challenges are Trade War matches now (tradeWars / twInvites).
+      // Old docs stay readable; nothing new can be created or changed.
       allow read: if true;
-      allow create: if isRealAccount()
-        && request.resource.data.creator == request.auth.uid
-        && request.resource.data.opponent == null
-        && request.resource.data.status == 'open'
-        && request.resource.data.days is number
-        && request.resource.data.days >= 1 && request.resource.data.days <= 120;
-      allow update: if isRealAccount() && (
-        (resource.data.creator == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-          && request.resource.data.status == 'cancelled')
-        || (resource.data.status == 'open' && resource.data.opponent == null
-          && request.auth.uid != resource.data.creator
-          && (resource.data.target == null || resource.data.target == request.auth.uid)
-          && request.resource.data.opponent == request.auth.uid
-          && request.resource.data.status == 'active'
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['opponent', 'opponentName', 'status', 'startAt', 'endAt', 'base']))
-      );
-      allow delete: if false;
+      allow write: if false;
     }
 
     // Trade War matches (functions/main.py tw_*): equal buy-in, server-run.

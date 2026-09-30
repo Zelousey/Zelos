@@ -365,10 +365,10 @@
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trade War <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="practice/war.html">Trade War matches<small>Equal buy-in &middot; invite friends &middot; best % wins</small></a>
-          <a href="practice/index.html">Virtual account<small>Your standing $10,000 account</small></a>
-          <a href="practice/challenge.html">Challenges<small>Challenge a friend head-to-head</small></a>
+          <a href="practice/index.html">Trade War<small>Your account, chart, Trade Wars &amp; invites</small></a>
+          <a href="practice/index.html#start">Start a Trade War<small>Challenge a friend or your squad</small></a>
           <a href="practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
+          <a href="leaderboard.html#practice">Leaderboards<small>Top Trade War traders</small></a>
           <a href="practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
           <a href="practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
         </div>
@@ -414,10 +414,10 @@
       <a href="index.html">Home</a>
       <a href="dashboard.html">Dashboard</a>
       <div class="nav-mobile-label">Trade War &middot; virtual</div>
-      <a href="practice/war.html">Trade War matches</a>
-      <a href="practice/index.html">Virtual account</a>
-      <a href="practice/challenge.html">Challenges</a>
+      <a href="practice/index.html">Trade War</a>
+      <a href="practice/index.html#start">Start a Trade War</a>
       <a href="practice/squads.html">Squads</a>
+      <a href="leaderboard.html#practice">Leaderboards</a>
       <a href="practice/profile.html">My profile</a>
       <a href="practice/index.html?tab=progress">XP &amp; Missions</a>
       <div class="nav-mobile-label">Trading Tools &middot; real</div>
@@ -463,7 +463,7 @@
       <p>Pick what your Command Center should put first. Same account, XP and profile either way, and you can switch any time.</p>
       <div class="dash-chooser-opts">
         <button type="button" data-pick="real"><span class="zm-tag is-real">REAL TRADING</span><b>A serious trading dashboard</b><small>Watchlist, real prices, charts, news, agent signals and your Real Trade Journal.</small></button>
-        <button type="button" data-pick="war"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span><b>Compete with friends using fake money</b><small>Your $10,000 virtual account, leaderboards, challenges, XP, missions and streaks.</small></button>
+        <button type="button" data-pick="war"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span><b>Compete with friends using fake money</b><small>Your Main account ($10,000 virtual), Trade Wars with friends, leaderboards, challenges, XP, missions and streaks.</small></button>
       </div>
     </div>
 
@@ -505,8 +505,8 @@
         <div id="hubMissions"><div class="empty">Loading…</div></div>
       </div>
 
-      <div data-widget="challenges" data-title="Challenges &amp; squads" data-w="3" class="card">
-        <div class="card-head"><h2>Challenges</h2><a href="practice/challenge.html">All &rarr;</a></div>
+      <div data-widget="challenges" data-title="Trade Wars &amp; squads" data-w="3" class="card">
+        <div class="card-head"><h2>Trade Wars</h2><a href="practice/">Trade War &rarr;</a></div>
         <div id="hubChallenges"><div class="empty">Loading…</div></div>
       </div>
 
@@ -542,10 +542,10 @@
           <h2>Market visualization</h2>
           <div class="viz-toggle" role="group" aria-label="Choose visualization">
             <button type="button" class="viz-toggle-btn is-active" id="vizGlobeBtn" data-viz="globe">Globe</button>
-            <button type="button" class="viz-toggle-btn" id="vizChartBtn" data-viz="chart">TradingView</button>
+            <button type="button" class="viz-toggle-btn" id="vizChartBtn" data-viz="chart">Chart</button>
           </div>
         </div>
-        <div class="card-sub">Major exchanges on a live globe: green markers are in their regular session right now. Or switch to a full TradingView chart.</div>
+        <div class="card-sub">Major exchanges on a live globe: green markers are in their regular session right now. Or switch to a live chart of any stock we track.</div>
 
         <div id="vizGlobePane">
           <div class="globe-frame">
@@ -558,7 +558,7 @@
 
         <div id="vizChartPane" hidden>
           <div class="chart-frame">
-            <div class="tradingview-widget-container" id="dashChartWidget"><div class="tradingview-widget-container__widget"></div></div>
+            <div id="dashChartWidget" style="height:100%;padding:8px"></div>
           </div>
         </div>
       </div>
@@ -728,6 +728,7 @@
 
 <script src="zelos-market.js?v=3"></script>
 <script src="zelos-theme-toggle.js"></script>
+<script src="zelos-icons.js"></script>
 
 <!-- Firebase (compat build) -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -1045,11 +1046,11 @@
   }
 
   function renderSignedIn(user){
-    var initial = (user.email || '?').charAt(0).toUpperCase();
+    var initial = ((user.displayName || 'Z').charAt(0) || 'Z').toUpperCase();
     navAuth.innerHTML =
       '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
         '<span class="account-avatar">' + initial + '</span>' +
-        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="account-name" style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (((user.displayName || '').split(' ')[0]) || 'My account') + '</span>' +
         '<span class="nav-drop-caret">&#9662;</span></button>' +
         '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
           '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
@@ -1387,37 +1388,22 @@
   tick();
   setInterval(tick, 30000);
 
-  // ---- TradingView chart (mounted lazily, only the first time the pane is shown) ----
+  // ---- our chart (practice/practice-chart.js, loaded lazily the first time the pane is shown) ----
   var chartHost = document.getElementById('dashChartWidget');
   var chartMounted = false;
   function mountChartOnce(){
     if (chartMounted || !chartHost) return;
     chartMounted = true;
+    var go = function(){ var db = null; try { db = firebase.firestore(); } catch (e) {}
+      ZelosTradeChart.mount(chartHost, { root: '', sym: 'SPY', pick: true, db: db, height: 'calc(100% - 40px)' }); };
+    if (window.ZelosTradeChart && ZelosTradeChart.mount) return go();
     var script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.async = true;
-    script.text = JSON.stringify({
-      autosize: true,
-      symbol: 'FOREXCOM:SPXUSD',
-      interval: 'D',
-      timezone: 'America/New_York',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      allow_symbol_change: true,
-      hide_top_toolbar: false,
-      hide_side_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-      calendar: false,
-      backgroundColor: 'rgba(18,23,41,1)',
-      gridColor: 'rgba(35,43,70,0.55)'
-    });
-    chartHost.appendChild(script);
+    script.src = 'practice/practice-chart.js';
+    script.onload = go;
+    document.head.appendChild(script);
   }
 
-  // ---- Globe / TradingView toggle — remembers the visitor's choice ----
+  // ---- Globe / chart toggle — remembers the visitor's choice ----
   var VIZ_KEY = 'zelosDashboardViz';
   var globeBtn = document.getElementById('vizGlobeBtn');
   var chartBtn = document.getElementById('vizChartBtn');

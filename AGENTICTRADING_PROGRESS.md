@@ -355,6 +355,16 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 2. Deploy functions (in the Python 3.12 venv, as before): `npx -y firebase-tools@latest deploy --only functions --project leaderboard-agentictrading`
 3. Merge the PR. Try it: set a @username on two accounts, then challenge one from the other on Matches.
 
+## One Trade War redesign (owner request, 2026-09-30)
+- One Trade War home (`practice/index.html`): trader card, account switcher (Main account + your live/lobby wars), Start a Trade War, inline invites (Accept/Decline), our chart + ticket, missions, achievements, leaderboard, friends, war history. `war.html` hub redirects here; match rooms keep the switcher.
+- Standing $10k account renamed **Main account** site-wide. Matches stay market-only.
+- Old Challenges feature deleted (`practice/challenge.*`, social helpers); `challenges` collection is read-only in rules. "Start a Trade War" dialog: invite link, @username or squad (server `tw_create` / `tw_challenge`).
+- Our chart everywhere except Real Trading/Live Chart: dashboard widget and alert pop-ups (entry/stop/targets drawn). TradingView only on `live-chart.html`.
+- Nav shows @username + profile picture (never the email). Simplified Trade War menu.
+- `zelos-icons.js`: emoji swapped for consistent SVG line icons on 54 pages.
+- Tests: unit 66/66; home E2E 17/17 (emulators + Playwright, incl. 375px mobile, no TradingView request on dashboard).
+- Owner: `firebase deploy --only firestore:rules` (retired challenges rule).
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.

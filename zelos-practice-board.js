@@ -56,7 +56,7 @@
   function paint(rows, main, sub, note) {
     var meU = global.firebase && firebase.auth().currentUser;
     var meUid = meU && !meU.isAnonymous ? meU.uid : null;
-    el.board.innerHTML = head() + '<p class="pb-note"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> Ranked on virtual $10,000 accounts only; real trading is never mixed in.</p>' + (note ? '<p class="pb-note">' + note + '</p>' : '') +
+    el.board.innerHTML = head() + '<p class="pb-note"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> Ranked on Main accounts only ($10,000 virtual start); real trading is never mixed in.</p>' + (note ? '<p class="pb-note">' + note + '</p>' : '') +
       (rows.length ? rows.map(function (r, i) { return row(r, i, main(r), sub(r), meUid); }).join('') : '<div class="board-empty">' + emptyText() + '</div>');
   }
   function emptyText() {
