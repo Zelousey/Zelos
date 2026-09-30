@@ -197,6 +197,26 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Trade War matches (functions/main.py tw_*): equal buy-in, server-run.
+    // Browsers can never write any of it: joining, trading and results all go
+    // through Cloud Functions that enforce the rules of the game. The match doc
+    // is readable by any signed-in visitor holding the (unguessable) invite id;
+    // the leaderboard numbers only by players in that match; a player's
+    // positions and fills only by that player.
+    match /tradeWars/{warId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+      match /accounts/{uid} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/tradeWars/$(warId)).data.players;
+        allow write: if false;
+      }
+      match /books/{uid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
     // Trading Squads: private groups. Readable by any signed-in visitor who
     // has the (unguessable) invite id. The owner creates it with only
     // themselves as a member and can run competitions or rename it. Anyone

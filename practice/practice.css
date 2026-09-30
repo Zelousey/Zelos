@@ -494,3 +494,47 @@ body.pt-fullport .pt-acct span{ border-color:var(--pt-glow); }
 @media (prefers-reduced-motion: reduce){ .pf-edit-menu{ animation:none; } }
 /* the Trade War welcome dialog no longer covers the site nav */
 .site-nav{ z-index:710; }
+
+/* Trade War matches (war.js) */
+.tw-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; }
+.tw-live{ display:grid; grid-template-columns:minmax(300px,420px) minmax(0,1fr); gap:14px; align-items:start; }
+.tw-f{ display:flex; flex-direction:column; gap:5px; margin-bottom:12px; font-size:0.84rem; }
+.tw-f > span{ color:var(--muted); font-weight:600; }
+.tw-f input, .tw-f select, .tw-ticket select{ font:inherit; padding:9px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg-soft); color:var(--ink); min-width:0; }
+.tw-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.tw-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+.tw-chips button{ font:inherit; font-weight:600; font-size:0.86rem; padding:7px 12px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--ink-2); cursor:pointer; transition:background var(--dur-fast,120ms), border-color var(--dur-fast,120ms); }
+.tw-chips button.is-on{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+.tw-st{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.04em; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); white-space:nowrap; }
+.tw-st.is-live{ color:var(--bull); border-color:var(--bull); }
+.tw-rules{ margin-top:12px; padding:12px 14px; border:1px solid var(--border-soft); border-radius:8px; background:var(--bg-soft); font-size:0.84rem; }
+.tw-rules ul{ margin:6px 0 0; padding-left:18px; color:var(--ink-2); line-height:1.5; }
+.tw-players{ list-style:none; padding:0; margin:0 0 12px; display:flex; flex-wrap:wrap; gap:6px; }
+.tw-players li{ padding:6px 10px; border:1px solid var(--border-soft); border-radius:999px; font-size:0.86rem; }
+.tw-players small, .tw-tr small{ color:var(--muted); }
+.tw-ticket{ display:flex; flex-direction:column; gap:10px; }
+.tw-grid > *, .tw-live > *{ min-width:0; }
+.tw-ticket select, .tw-f select, .tw-f input{ width:100%; max-width:100%; }
+.tw-px{ display:flex; align-items:baseline; gap:8px; } .tw-px b{ font-family:var(--mono); font-size:1.4rem; } .tw-px small{ color:var(--muted); }
+.tw-est{ font-size:0.8rem; color:var(--muted); min-height:1em; }
+.tw-buy{ background:var(--bull); border-color:var(--bull); color:#04130b; flex:1; } .tw-sell{ background:var(--danger); border-color:var(--danger); color:#fff; flex:1; }
+.tw-buy:disabled, .tw-sell:disabled{ opacity:0.4; cursor:not-allowed; }
+.tw-pos{ display:flex; flex-direction:column; gap:4px; }
+.tw-pos-row{ font:inherit; display:grid; grid-template-columns:60px 1fr auto auto; gap:10px; align-items:center; padding:8px 10px; border:1px solid var(--border-soft); border-radius:6px; background:transparent; color:var(--ink-2); cursor:pointer; text-align:left; font-size:0.84rem; }
+.tw-pos-row:hover{ border-color:var(--accent-line); }
+.tw-board{ display:flex; flex-direction:column; font-size:0.84rem; }
+.tw-tr{ display:grid; grid-template-columns:44px minmax(90px,1.4fr) repeat(4,minmax(64px,1fr)) 52px 48px; gap:8px; align-items:center; padding:9px 8px; border-bottom:1px solid var(--border-soft); color:var(--ink-2); text-decoration:none; font-variant-numeric:tabular-nums; }
+.tw-tr.tw-th{ color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; }
+a.tw-tr:hover{ background:var(--surface-2); }
+.tw-tr.is-me{ background:var(--accent-soft); }
+.tw-tr.is-moved{ animation:tw-flash 900ms var(--ease-out,ease-out); }
+.tw-mv{ font-style:normal; font-size:0.62rem; margin-left:3px; } .tw-mv.up{ color:var(--bull); } .tw-mv.dn{ color:var(--danger); }
+@keyframes tw-flash{ from{ background:var(--accent-soft); } to{ background:transparent; } }
+.tw-winner h2{ font-size:1.3rem; }
+@media (prefers-reduced-motion: reduce){ .tw-tr.is-moved{ animation:none; } }
+@media (max-width:900px){
+  .tw-grid, .tw-live{ grid-template-columns:minmax(0,1fr); }
+  .tw-tr{ grid-template-columns:34px minmax(80px,1fr) 0 0 minmax(70px,auto) minmax(58px,auto) 0 38px; font-size:0.8rem; }
+  .tw-tr > span:nth-child(3), .tw-tr > span:nth-child(4), .tw-tr > span:nth-child(7){ display:none; }
+}
+.tw-cta{ display:inline-block; margin-top:6px; text-decoration:none; }

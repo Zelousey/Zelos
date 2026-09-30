@@ -814,3 +814,416 @@ def refresh_news(event: scheduler_fn.ScheduledEvent) -> None:
     })
     if errors:
         print("[refresh_news]", "; ".join(errors))
+
+
+# ---------------------------------------------------------------------------
+# Trade War matches: server-authoritative virtual competitions (practice/war.html).
+#
+# Everything in a match is VIRTUAL money. It never touches real money, tokens,
+# or the standing $10,000 Trade War account, and nothing here can be bought.
+#
+#   tradeWars/{warId}                 { name, host, hostName, buyIn, days, maxPlayers,
+#                                       status: lobby|active|ended|cancelled, players: [uid],
+#                                       names: {uid: name}, createdAt, startAt, endAt,
+#                                       results: [...] once ended, markedAt }
+#   tradeWars/{warId}/accounts/{uid}  leaderboard numbers every player in the match can
+#                                       read: { name, start, cash, equity, pnl, pnlPct,
+#                                       trades, wins, losses, realized, updatedAt }
+#   tradeWars/{warId}/books/{uid}     that player's own positions + fills (owner-only read)
+#
+# Browsers can't write any of it (firestore.rules). Every change goes through the
+# callable functions below, which check the rules of the game server-side:
+#   - every player starts with exactly the host's buy-in; the buy-in can't change
+#   - no deposits or withdrawals exist at all; only match cash can be spent
+#   - you can join or leave only while the match is in its lobby
+#   - trades use the server's own FMP quote (markets/quotes), during market hours,
+#     long only, from the same symbol list as the rest of Trade War
+# tw_mark revalues open matches every 5 minutes and closes them at their end time.
+# ---------------------------------------------------------------------------
+import re as _re
+import secrets as _secrets
+import time as _time
+
+TW_BUYIN_MIN, TW_BUYIN_MAX = 100, 100000
+TW_DAYS = (1, 3, 7, 14, 30)
+TW_MAX_PLAYERS = 50
+TW_MAX_FILLS = 500
+TW_TRADE_GAP_S = 1.0          # anti-spam: one trade a second per player
+TW_QUOTE_MAX_AGE_S = 180      # quotes older than this can't be traded on
+_TW_ID_RE = _re.compile(r"^[A-Za-z0-9]{12}$")
+
+
+class TWError(Exception):
+    """A rule of the game was broken; code is a FunctionsErrorCode name."""
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code, self.message = code, message
+
+
+def _r2(x):
+    return round(float(x) + 0.0, 2)
+
+
+def tw_validate_create(data):
+    """Returns (name, buy_in, days, max_players) or raises TWError."""
+    name = str((data or {}).get("name") or "").strip()
+    name = _re.sub(r"[<>]", "", name)[:40]
+    if not name:
+        raise TWError("INVALID_ARGUMENT", "Give your Trade War a name.")
+    try:
+        buy_in = int(data.get("buyIn"))
+        days = int(data.get("days"))
+        max_players = int(data.get("maxPlayers") or 10)
+    except (TypeError, ValueError):
+        raise TWError("INVALID_ARGUMENT", "Buy-in, length and player limit must be numbers.")
+    if not (TW_BUYIN_MIN <= buy_in <= TW_BUYIN_MAX) or buy_in % 100:
+        raise TWError("INVALID_ARGUMENT", "Buy-in must be a multiple of $100 between $100 and $100,000 (virtual).")
+    if days not in TW_DAYS:
+        raise TWError("INVALID_ARGUMENT", "Length must be 1, 3, 7, 14 or 30 days.")
+    if not (2 <= max_players <= TW_MAX_PLAYERS):
+        raise TWError("INVALID_ARGUMENT", "Player limit must be between 2 and %d." % TW_MAX_PLAYERS)
+    return name, buy_in, days, max_players
+
+
+def tw_new_account(name, buy_in, now_ms):
+    return {"name": name, "start": buy_in, "cash": buy_in, "equity": buy_in, "pnl": 0.0, "pnlPct": 0.0,
+            "trades": 0, "wins": 0, "losses": 0, "realized": 0.0, "lastTradeAt": 0, "updatedAt": now_ms}
+
+
+def tw_new_book():
+    return {"positions": {}, "fills": []}
+
+
+def tw_apply_trade(acct, book, sym, side, qty, price, now_ms):
+    """Pure: returns (acct, book, fill) after one market order, or raises TWError."""
+    if side not in ("buy", "sell"):
+        raise TWError("INVALID_ARGUMENT", "Side must be buy or sell.")
+    if not isinstance(qty, int) or isinstance(qty, bool) or qty < 1 or qty > 1000000:
+        raise TWError("INVALID_ARGUMENT", "Quantity must be a whole number of shares.")
+    if not price or price <= 0:
+        raise TWError("UNAVAILABLE", "No live price for %s right now." % sym)
+    if now_ms - (acct.get("lastTradeAt") or 0) < TW_TRADE_GAP_S * 1000:
+        raise TWError("RESOURCE_EXHAUSTED", "Slow down: one trade a second.")
+    acct, book = dict(acct), {"positions": dict(book.get("positions") or {}), "fills": list(book.get("fills") or [])}
+    pos = dict(book["positions"].get(sym) or {"qty": 0, "avg": 0.0})
+    cost = _r2(qty * price)
+    fill = {"sym": sym, "side": side, "qty": qty, "price": _r2(price), "at": now_ms}
+    if side == "buy":
+        if cost > acct["cash"] + 1e-9:
+            raise TWError("FAILED_PRECONDITION", "Not enough match cash: %d shares of %s cost $%s and you have $%s." % (qty, sym, format(cost, ",.2f"), format(acct["cash"], ",.2f")))
+        new_qty = pos["qty"] + qty
+        pos["avg"] = _r2((pos["qty"] * pos["avg"] + cost) / new_qty)
+        pos["qty"] = new_qty
+        acct["cash"] = _r2(acct["cash"] - cost)
+    else:
+        if qty > pos["qty"]:
+            raise TWError("FAILED_PRECONDITION", "You only hold %d shares of %s (Trade War is long only)." % (pos["qty"], sym))
+        gain = _r2((price - pos["avg"]) * qty)
+        fill["pnl"] = gain
+        acct["realized"] = _r2(acct.get("realized", 0) + gain)
+        if gain > 0:
+            acct["wins"] = acct.get("wins", 0) + 1
+        elif gain < 0:
+            acct["losses"] = acct.get("losses", 0) + 1
+        pos["qty"] -= qty
+        acct["cash"] = _r2(acct["cash"] + cost)
+    if pos["qty"]:
+        book["positions"][sym] = pos
+    else:
+        book["positions"].pop(sym, None)
+    book["fills"] = (book["fills"] + [fill])[-TW_MAX_FILLS:]
+    acct["trades"] = acct.get("trades", 0) + 1
+    acct["lastTradeAt"] = now_ms
+    return acct, book, fill
+
+
+def tw_mark(acct, book, prices, now_ms):
+    """Pure: acct with equity / P&L revalued at prices (falls back to cost basis)."""
+    acct = dict(acct)
+    value = sum(p["qty"] * (prices.get(s) or p["avg"]) for s, p in (book.get("positions") or {}).items())
+    equity = _r2(acct["cash"] + value)
+    acct["equity"] = equity
+    acct["pnl"] = _r2(equity - acct["start"])
+    acct["pnlPct"] = round((equity / acct["start"] - 1) * 100, 3) if acct["start"] else 0.0
+    acct["updatedAt"] = now_ms
+    return acct
+
+
+def tw_rank(rows):
+    """Rows of {uid, pnlPct, pnl, ...} ranked by % P&L (equal capital, so % and $ agree)."""
+    rows = sorted(rows, key=lambda r: (-(r.get("pnlPct") or 0), -(r.get("pnl") or 0), r.get("uid", "")))
+    for i, r in enumerate(rows):
+        r["rank"] = i + 1
+    return rows
+
+
+def _tw_prices(db, now_s=None):
+    """(prices {SYM: c}, tradable bool, why) from the markets/quotes doc refresh_quotes writes."""
+    snap = db.collection("markets").document("quotes").get()
+    doc = (snap.to_dict() or {}) if snap.exists else {}
+    prices = {s: q.get("c") for s, q in (doc.get("quotes") or {}).items() if q and q.get("c")}
+    try:
+        age = (now_s or _time.time()) - datetime.fromisoformat(doc.get("updatedAt")).timestamp()
+    except Exception:
+        age = 1e9
+    if not doc.get("marketOpen"):
+        return prices, False, "The market is closed. Trade War matches trade during market hours (9:30 am to 4:00 pm New York time)."
+    if age > TW_QUOTE_MAX_AGE_S:
+        return prices, False, "Live prices are delayed right now, so trading is paused. Try again in a minute."
+    return prices, True, ""
+
+
+def _tw_http(e):
+    return https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), e.message)
+
+
+def _tw_user(req):
+    auth_ = req.auth
+    if not auth_ or not auth_.uid:
+        raise TWError("UNAUTHENTICATED", "Sign in to play Trade War.")
+    provider = ((auth_.token or {}).get("firebase") or {}).get("sign_in_provider")
+    if provider == "anonymous":
+        raise TWError("UNAUTHENTICATED", "Create a free account to play Trade War matches.")
+    return auth_.uid
+
+
+def _tw_name(db, uid, token):
+    try:
+        t = db.collection("traders").document(uid).get()
+        n = (t.to_dict() or {}).get("name") if t.exists else None
+        if n:
+            return str(n)[:24]
+        p = db.collection("practiceProfiles").document(uid).get()
+        n = (p.to_dict() or {}).get("name") if p.exists else None
+        if n:
+            return str(n)[:24]
+    except Exception:
+        pass
+    return str((token or {}).get("name") or "Trader").split(" ")[0][:24]
+
+
+def _tw_war_id(data):
+    wid = str((data or {}).get("warId") or "")
+    if not _TW_ID_RE.match(wid):
+        raise TWError("INVALID_ARGUMENT", "That Trade War link isn't valid.")
+    return wid
+
+
+def _tw_call(fn):
+    """Runs fn(req, db, uid, now_ms), turning TWError into a clean HttpsError."""
+    def wrapper(req):
+        try:
+            uid = _tw_user(req)
+            return fn(req, firestore.client(), uid, int(_time.time() * 1000))
+        except TWError as e:
+            raise _tw_http(e)
+        except https_fn.HttpsError:
+            raise
+        except Exception as e:
+            print("[tradewar] %s failed: %s" % (fn.__name__, type(e).__name__))
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_create(req, db, uid, now_ms):
+    name, buy_in, days, max_players = tw_validate_create(req.data)
+    open_count = sum(1 for d in db.collection("tradeWars").where("host", "==", uid).where("status", "==", "lobby").limit(6).stream())
+    if open_count >= 5:
+        raise TWError("RESOURCE_EXHAUSTED", "You already have 5 Trade Wars waiting in the lobby. Start or cancel one first.")
+    alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    wid = "".join(_secrets.choice(alphabet) for _ in range(12))
+    pname = _tw_name(db, uid, req.auth.token)
+    war_ref = db.collection("tradeWars").document(wid)
+    batch = db.batch()
+    batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
+                        "maxPlayers": max_players, "status": "lobby", "players": [uid], "names": {uid: pname},
+                        "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
+                        "rules": {"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}})
+    batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
+    batch.set(war_ref.collection("books").document(uid), tw_new_book())
+    batch.commit()
+    return {"warId": wid}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_join(req, db, uid, now_ms):
+    wid = _tw_war_id(req.data)
+    war_ref = db.collection("tradeWars").document(wid)
+    pname = _tw_name(db, uid, req.auth.token)
+
+    @firestore.transactional
+    def txn(t):
+        snap = war_ref.get(transaction=t)
+        if not snap.exists:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        war = snap.to_dict()
+        if uid in war["players"]:
+            return
+        if war["status"] != "lobby":
+            raise TWError("FAILED_PRECONDITION", "This Trade War has already started. Buy-ins are locked once it begins.")
+        if len(war["players"]) >= war["maxPlayers"]:
+            raise TWError("FAILED_PRECONDITION", "This Trade War is full.")
+        t.update(war_ref, {"players": war["players"] + [uid], "names.%s" % uid: pname})
+        t.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, war["buyIn"], now_ms))
+        t.set(war_ref.collection("books").document(uid), tw_new_book())
+
+    txn(db.transaction())
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_leave(req, db, uid, now_ms):
+    wid = _tw_war_id(req.data)
+    war_ref = db.collection("tradeWars").document(wid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = war_ref.get(transaction=t)
+        if not snap.exists:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        war = snap.to_dict()
+        if uid not in war["players"]:
+            return
+        if war["status"] != "lobby":
+            raise TWError("FAILED_PRECONDITION", "You can't leave once the Trade War has started.")
+        if uid == war["host"]:
+            raise TWError("FAILED_PRECONDITION", "The host can cancel the Trade War instead of leaving.")
+        names = dict(war.get("names") or {})
+        names.pop(uid, None)
+        t.update(war_ref, {"players": [p for p in war["players"] if p != uid], "names": names})
+        t.delete(war_ref.collection("accounts").document(uid))
+        t.delete(war_ref.collection("books").document(uid))
+
+    txn(db.transaction())
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_start(req, db, uid, now_ms):
+    wid = _tw_war_id(req.data)
+    war_ref = db.collection("tradeWars").document(wid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = war_ref.get(transaction=t)
+        if not snap.exists:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        war = snap.to_dict()
+        if war["host"] != uid:
+            raise TWError("PERMISSION_DENIED", "Only the host can start this Trade War.")
+        if war["status"] != "lobby":
+            raise TWError("FAILED_PRECONDITION", "This Trade War has already started.")
+        if len(war["players"]) < 2:
+            raise TWError("FAILED_PRECONDITION", "You need at least one opponent. Share the invite link first.")
+        t.update(war_ref, {"status": "active", "startAt": now_ms, "endAt": now_ms + war["days"] * 86400000})
+
+    txn(db.transaction())
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_cancel(req, db, uid, now_ms):
+    wid = _tw_war_id(req.data)
+    war_ref = db.collection("tradeWars").document(wid)
+    snap = war_ref.get()
+    if not snap.exists:
+        raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+    war = snap.to_dict()
+    if war["host"] != uid:
+        raise TWError("PERMISSION_DENIED", "Only the host can cancel this Trade War.")
+    if war["status"] != "lobby":
+        raise TWError("FAILED_PRECONDITION", "A Trade War can only be cancelled before it starts.")
+    war_ref.update({"status": "cancelled"})
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_trade(req, db, uid, now_ms):
+    data = req.data or {}
+    wid = _tw_war_id(data)
+    sym = str(data.get("sym") or "").upper()
+    if sym not in PRACTICE_SYMBOLS:
+        raise TWError("INVALID_ARGUMENT", "%s isn't available in Trade War." % (sym or "That symbol"))
+    side = data.get("side")
+    qty = data.get("qty")
+    if isinstance(qty, float) and qty.is_integer():
+        qty = int(qty)
+    prices, tradable, why = _tw_prices(db)
+    if not tradable:
+        raise TWError("FAILED_PRECONDITION", why)
+    war_ref = db.collection("tradeWars").document(wid)
+    acct_ref = war_ref.collection("accounts").document(uid)
+    book_ref = war_ref.collection("books").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        wsnap = war_ref.get(transaction=t)
+        if not wsnap.exists:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        war = wsnap.to_dict()
+        if uid not in war["players"]:
+            raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
+        if war["status"] != "active":
+            raise TWError("FAILED_PRECONDITION", "This Trade War isn't live yet." if war["status"] == "lobby" else "This Trade War is over.")
+        if now_ms >= (war.get("endAt") or 0):
+            raise TWError("FAILED_PRECONDITION", "This Trade War has ended. Final results are being tallied.")
+        acct = acct_ref.get(transaction=t).to_dict()
+        book = book_ref.get(transaction=t).to_dict() or tw_new_book()
+        acct, book, fill = tw_apply_trade(acct, book, sym, side, qty, prices.get(sym), now_ms)
+        acct = tw_mark(acct, book, prices, now_ms)
+        t.set(acct_ref, acct)
+        t.set(book_ref, book)
+        return fill, acct
+
+    fill, acct = txn(db.transaction())
+    return {"fill": fill, "cash": acct["cash"], "equity": acct["equity"]}
+
+
+def tw_mark_all(db, now_ms, prices):
+    """Revalue every active match; close the ones whose time is up. Returns #matches touched."""
+    n = 0
+    for wsnap in db.collection("tradeWars").where("status", "==", "active").stream():
+        war, ref = wsnap.to_dict(), wsnap.reference
+        rows, batch = [], db.batch()
+        for uid in war.get("players") or []:
+            a = ref.collection("accounts").document(uid).get()
+            b = ref.collection("books").document(uid).get()
+            if not a.exists:
+                continue
+            acct = tw_mark(a.to_dict(), (b.to_dict() if b.exists else None) or tw_new_book(), prices, now_ms)
+            batch.set(a.reference, acct)
+            rows.append({"uid": uid, "name": acct.get("name"), "start": acct["start"], "final": acct["equity"],
+                         "pnl": acct["pnl"], "pnlPct": acct["pnlPct"], "trades": acct.get("trades", 0),
+                         "wins": acct.get("wins", 0), "losses": acct.get("losses", 0)})
+        update = {"markedAt": now_ms}
+        if now_ms >= (war.get("endAt") or 0):
+            update.update({"status": "ended", "results": tw_rank(rows), "endedAt": now_ms})
+        batch.update(ref, update)
+        batch.commit()
+        n += 1
+    return n
+
+
+@scheduler_fn.on_schedule(
+    schedule="*/5 * * * *",
+    timezone=scheduler_fn.Timezone("America/New_York"),
+    timeout_sec=120,
+    memory=256,
+)
+def tw_mark_matches(event: scheduler_fn.ScheduledEvent) -> None:
+    db = firestore.client()
+    prices, _, _ = _tw_prices(db)
+    try:
+        n = tw_mark_all(db, int(_time.time() * 1000), prices)
+        if n:
+            print("[tw_mark_matches] revalued %d active matches" % n)
+    except Exception as e:
+        print("[tw_mark_matches] failed:", type(e).__name__)
