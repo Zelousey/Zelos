@@ -3,13 +3,14 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 1: FMP live quote fix. DEPLOYED; LIVE CHECK AT THE NEXT MARKET OPEN (weekday 9:25 ET).**
-Phase 1 is not complete until the Trade War chart is confirmed live on FMP.
+**Phase 2: Security & compliance baseline. CODE DONE AND TESTED; AWAITING OWNER DEPLOY.**
+Phase 1 (FMP) is deployed but stays open until the owner confirms live prices at the next market open (weekday 9:25 ET). The owner chose to start Phase 2 in parallel, since it doesn't touch the quote path.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
+| 2 Security & compliance | Code done + tested; not deployed | `firestore.rules`, `functions/main.py`, `zelos-consent.js` (new), 53 HTML pages (one `<script>` line each) | Firestore emulator: 15/15 rule tests pass (the same tests fail 6/15 on the old rules); function secret/error checks pass; FMP test still passes; browser test 32/32 (EEA vs US time zones, 4 page depths, allow/decline/remember/reopen, Istanbul excluded, Canaries included, 375px mobile) | **No.** Owner deploys rules + functions; merging to `main` publishes the banner |
 | 1 FMP quote fix | Code done; live verification pending | `functions/main.py`, `practice/practice.js` (comment only), `README.md`, `docs/practice-account.md` | `py_compile` OK; offline mocked-FMP test passes (mapping c/o/h/l/pc/t, FMP URL, no `X-Finnhub-Token`, bad key as 200-error/401/402 → `auth`); `node --check practice.js` OK; 37/37 existing tests pass | **Functions deployed by owner (weekend).** A weekend force-run is a no-op by design, so the page still shows the last Finnhub error. The stored `FMP_API_KEY` turned out to be invalid; the owner re-saved the paid key and redeployed. Live check is pending the next market session |
 
 ---
@@ -58,7 +59,7 @@ Phase 1 is not complete until the Trade War chart is confirmed live on FMP.
 | Comments/reactions, DMs, theses, tokens, email | **Do not exist** |
 
 ### Security / compliance findings (verified by reading the code)
-1. **`users/{uid}` is fully client-writable.** `ownedSkills` (the paid Gumroad skills) is set from the browser (`arrayUnion` in `ai-index.html`, `arcade.html`, `alert-history.html`, `ai-knowledge-catalog.html`, etc.), so any signed-in user can grant themselves paid skills from devtools. Tokens must **not** be built on this doc.
+1. **`users/{uid}` is fully client-writable.** *Corrected in Phase 2:* `ownedSkills` is an intentional self-report ("Mark as owned" on the dashboard and My Zelos). It gates no content, because alerts are public by design, so it isn't an exploit today and was left working. Tokens must **not** be built on this doc; they need a server-only ledger.
 2. XP, the `practiceProfiles` equity/stats, and challenge/squad baselines are client-trusted. The rules comments document this as an accepted trade-off. It conflicts with the spec's rule that values must be validated server-side.
 3. `challenges` has no decline state, and the target can't reject a challenge.
 4. The Firebase web `apiKey` in `firebase-config.js` is public by design and is not a secret. No private keys were found in the frontend.
@@ -162,9 +163,51 @@ Run these in Google Cloud Shell, where the repo was cloned before. Do them **dur
 8. Open `https://agentictrading.info/practice/`: the status line reads "Live prices · updated Xs ago", the chart's last candle moves, and there is no API-key error.
 9. Report the results. After that, merge the branch to `main` so a later deploy from `main` can't bring back Finnhub quotes.
 
+## Phase 2 changes
+- **Firestore rules** (`firestore.rules`):
+  - Squad join/leave may only add or remove your own entry in the `names` map (max 24 characters), so nobody can rename or remove other members.
+  - `pendingOwnership` purchase claims now require a **verified** email, so an unverified email/password sign-up can't see or claim someone else's Gumroad purchase.
+- **Functions** (`functions/main.py`):
+  - All five HTTP endpoints check the shared secret in constant time (`hmac.compare_digest`) via `_secret_ok`. An empty secret never authorizes.
+  - Firestore write failures log the exception type server-side and return a generic "Firestore write failed", instead of raw internal error text.
+- **Cookie consent** (`zelos-consent.js`, loaded before the Google tag on all 53 GA pages):
+  - Google Consent Mode v2. Analytics is **off by default in the EEA/UK/CH**; Google applies this from the visitor's location.
+  - A small Allow/Decline banner appears only for visitors whose time zone is in those regions, with a "Cookie settings" footer link to change the choice.
+  - Everyone else: no banner, and analytics works as before.
+  - Ad storage is denied everywhere (the site shows no ads).
+  - Reduced motion is respected, and the layout is mobile-safe.
+- Kept as is on purpose:
+  - "Mark as owned": working feature, gates nothing.
+  - Buffer error details: only returned after the secret check, and needed by the scheduled job.
+  - Terms text: flagged below, not rewritten.
+
+## Phase 2 owner steps (deploy)
+Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git pull` first). Each is independent and safe in any order.
+1. Rules: `npx -y firebase-tools@latest deploy --only firestore:rules --project leaderboard-agentictrading`
+2. Functions: `npx -y firebase-tools@latest deploy --only functions --project leaderboard-agentictrading`
+3. Banner: merge the branch to `main` (GitHub Pages publishes it). Check: with the computer's time zone set to e.g. Berlin, the banner shows; with a US time zone it doesn't.
+4. Optional checkpoint tag, which this session can't push: `git fetch origin && git tag -a pre-update-checkpoint 0ea1551 -m "Checkpoint before the major update" && git push origin pre-update-checkpoint`
+5. In Firebase console → Storage, confirm Storage isn't enabled, or that its rules deny all access. The site doesn't use it.
+
+## Legal review flags (for a human/lawyer; nothing below has been rewritten)
+- **Terms §07 Payment:** describes a "$20 one-time Gumroad" purchase and 3-week codes. This will be wrong once tokens replace Gumroad.
+- **No Trade War / virtual currency terms:** no statement that virtual balances, XP, badges and (future) tokens have no cash value, can't be redeemed or transferred, aren't gambling, and can be reset or adjusted.
+- **No user conduct / community guidelines:** needed before comments, reactions, DMs or theses (Priority 2). This includes grounds for removing content and suspending accounts.
+- **No Privacy Policy page.** The site collects email and name/photo (Google sign-in), public profiles and leaderboards, anonymous guest IDs, localStorage and Firestore data, and GA analytics. A privacy notice is normally expected (GDPR/UK GDPR; CCPA/state laws if thresholds apply).
+- **Terms §14 Cookies:** says to use browser settings. It should now mention the consent banner and "Cookie settings" link.
+- **Consent approach to confirm:**
+  - Consent Mode "advanced" loads GA and sends cookieless pings while consent is denied. Some EU regulators expect GA not to load at all before consent ("basic" mode). Switching is a small change in `zelos-consent.js`.
+  - Time-zone detection is a heuristic; Google's own region default is the backstop.
+  - US state privacy laws (e.g. CCPA opt-out) have not been assessed.
+- **§03 Eligibility 18+:** age isn't checked at sign-up. Social and competition features make this more relevant.
+- **Future:** high-stakes/virtual-risk challenges and IPO Wars need clear "virtual only, no prize value" wording before launch (§40–41 of the spec already require legal review before any real-money element).
+
 ## Known issues
-- See security findings 1–6 above. None have been changed yet.
+- Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
+- Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
+- Gumroad's ping secret travels in the URL query string, so it can appear in Cloud request logs. This goes away when Gumroad is retired (token phase).
 - Phase 1 blocker: this container has no Firebase CLI or credentials, so the owner has to run the deploy and live check.
 
 ## Next phase
-**Finish Phase 1** (the owner's live verification). Then Phase 2, the security and compliance baseline, which starts only when the owner says so.
+1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
+2. **Phase 3: Layout & navigation.** Starts only when the owner says so.

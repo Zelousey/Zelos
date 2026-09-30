@@ -39,6 +39,7 @@ ever leaked, it could only trigger that one narrow action - never read or
 write anything else in the database, and never touch Gumroad, Robinhood, or
 Buffer directly.
 """
+import hmac
 import json
 import os
 import urllib.error
@@ -52,6 +53,18 @@ from firebase_admin import initialize_app, auth, firestore
 initialize_app()
 
 ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner"}
+
+
+def _secret_ok(provided):
+    """Constant-time check of the shared ZELOS_PUBLISH_SECRET."""
+    expected = os.environ.get("ZELOS_PUBLISH_SECRET", "")
+    return bool(expected) and hmac.compare_digest(str(provided or "").encode(), expected.encode())
+
+
+def _write_failed(where, e):
+    """Log the real error server-side; tell the caller only that it failed."""
+    print("[%s] Firestore write failed: %s" % (where, type(e).__name__))
+    return https_fn.Response("Firestore write failed", status=500)
 
 # Gumroad product permalink -> Zelos skill id. Permalinks are the part after
 # gumroad.com/l/ in each product's URL (see going-to-gumroad*.html on the site).
@@ -68,9 +81,7 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
     if req.method != "POST":
         return https_fn.Response("Method not allowed", status=405)
 
-    expected_secret = os.environ.get("ZELOS_PUBLISH_SECRET", "")
-    provided_secret = req.headers.get("X-Zelos-Secret", "")
-    if not expected_secret or provided_secret != expected_secret:
+    if not _secret_ok(req.headers.get("X-Zelos-Secret", "")):
         return https_fn.Response("Unauthorized", status=401)
 
     try:
@@ -103,7 +114,7 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
     try:
         db.collection("alerts").document(alert_id).set(alert, merge=True)
     except Exception as e:
-        return https_fn.Response("Firestore write failed: %s" % (e,), status=500)
+        return _write_failed("publish_alert", e)
 
     return https_fn.Response(
         json.dumps({"ok": True, "id": alert_id}),
@@ -119,9 +130,7 @@ def publish_market_map(req: https_fn.Request) -> https_fn.Response:
     public GET. Same shared-secret gate as publish_alert."""
     if req.method != "POST":
         return https_fn.Response("Method not allowed", status=405)
-    expected_secret = os.environ.get("ZELOS_PUBLISH_SECRET", "")
-    provided_secret = req.headers.get("X-Zelos-Secret", "")
-    if not expected_secret or provided_secret != expected_secret:
+    if not _secret_ok(req.headers.get("X-Zelos-Secret", "")):
         return https_fn.Response("Unauthorized", status=401)
     try:
         payload = req.get_json(silent=False)
@@ -137,7 +146,7 @@ def publish_market_map(req: https_fn.Request) -> https_fn.Response:
         db.collection("markets").document("globe").set(
             {"json": body, "asOf": payload["asOf"], "updatedAt": firestore.SERVER_TIMESTAMP})
     except Exception as e:
-        return https_fn.Response("Firestore write failed: %s" % (e,), status=500)
+        return _write_failed("publish_market_map", e)
     return https_fn.Response(json.dumps({"ok": True, "asOf": payload["asOf"]}), status=200, content_type="application/json")
 
 
@@ -155,9 +164,7 @@ def gumroad_ping(req: https_fn.Request) -> https_fn.Response:
     if req.method != "POST":
         return https_fn.Response("Method not allowed", status=405)
 
-    expected_secret = os.environ.get("ZELOS_PUBLISH_SECRET", "")
-    provided_secret = req.args.get("token", "")
-    if not expected_secret or provided_secret != expected_secret:
+    if not _secret_ok(req.args.get("token", "")):
         return https_fn.Response("Unauthorized", status=401)
 
     form = req.form
@@ -198,7 +205,7 @@ def gumroad_ping(req: https_fn.Request) -> https_fn.Response:
             merge=True,
         )
     except Exception as e:
-        return https_fn.Response("Firestore write failed: %s" % (e,), status=500)
+        return _write_failed("gumroad_ping", e)
 
     # Best-effort: if this email already has a Zelos account, apply it right
     # away too, so they don't have to sign out/in again to see it.
@@ -242,7 +249,8 @@ def _apply_one_outcome(db, update):
     try:
         db.collection("alerts").document(alert_id).set({"outcome": outcome}, merge=True)
     except Exception as e:
-        return alert_id, "Firestore write failed: %s" % (e,)
+        print("[update_alert_outcomes] Firestore write failed:", type(e).__name__)
+        return alert_id, "Firestore write failed"
     return alert_id, None
 
 
@@ -267,9 +275,7 @@ def update_alert_outcomes(req: https_fn.Request) -> https_fn.Response:
     if req.method != "POST":
         return https_fn.Response("Method not allowed", status=405)
 
-    expected_secret = os.environ.get("ZELOS_PUBLISH_SECRET", "")
-    provided_secret = req.headers.get("X-Zelos-Secret", "")
-    if not expected_secret or provided_secret != expected_secret:
+    if not _secret_ok(req.headers.get("X-Zelos-Secret", "")):
         return https_fn.Response("Unauthorized", status=401)
 
     try:
@@ -385,9 +391,7 @@ def post_to_buffer(req: https_fn.Request) -> https_fn.Response:
     if req.method != "POST":
         return https_fn.Response("Method not allowed", status=405)
 
-    expected_secret = os.environ.get("ZELOS_PUBLISH_SECRET", "")
-    provided_secret = req.headers.get("X-Zelos-Secret", "")
-    if not expected_secret or provided_secret != expected_secret:
+    if not _secret_ok(req.headers.get("X-Zelos-Secret", "")):
         return https_fn.Response("Unauthorized", status=401)
 
     api_key = os.environ.get("BUFFER_API_KEY", "")
