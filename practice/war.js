@@ -19,6 +19,7 @@
   var ticket = { sym: 'AAPL', qty: 1 };
   // Trade War chart (practice-chart.js): daily history + live FMP quote, your entry and fills,
   // Fibonacci, and the Trade War price alerts shared with the $10,000 account.
+  var CH = window.ZelosChallenge; // buy-in level locks (zelos-challenge.js)
   var TC = window.ZelosTradeChart, hist = {}, extra = {}, chartEl = null, chart = null, fibOn = false;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(v, d) { d = d == null ? 2 : d; v = +v || 0; return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
@@ -69,19 +70,28 @@
     }
     h += '<div class="tw-grid"><section class="pt-card ch-card tw-create"><h2>Create a Trade War</h2>' +
       '<label class="tw-f"><span>Name</span><input id="twName" maxlength="40" placeholder="Friday Fight"></label>' +
-      '<div class="tw-f" data-help="The buy-in is the virtual starting balance every player gets. It is the same for everyone and can\'t change after the start."><span>Virtual buy-in (everyone starts with this)</span><div class="tw-chips" id="twBuy">' +
-      [100, 500, 1000, 5000, 10000].map(function (b, i) { return '<button type="button" data-b="' + b + '" class="' + (b === 1000 ? 'is-on' : '') + '">' + money(b, 0) + '</button>'; }).join('') +
-      '</div><input id="twBuyCustom" inputmode="numeric" placeholder="or type an amount (multiple of $100)"></div>' +
+      '<div class="tw-f" data-help="The buy-in is the virtual starting balance every player gets. It is the same for everyone and can\'t change after the start. Bigger buy-ins unlock as you level up."><span>Virtual buy-in (everyone starts with this)</span><div class="tw-chips" id="twBuy">' +
+      (CH ? CH.buyInChips(1000, 0) : '') +
+      '</div><p class="pt-fine tw-lock" id="twLock"></p><input id="twBuyCustom" inputmode="numeric" placeholder="or type an amount (multiple of $100, up to $10,000)"></div>' +
       '<div class="tw-row"><label class="tw-f"><span>Length</span><select id="twDays"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>1 week</option><option value="14">2 weeks</option><option value="30">30 days</option></select></label>' +
       '<label class="tw-f"><span>Max players</span><select id="twMax">' + [2, 4, 6, 10, 20, 50].map(function (n) { return '<option' + (n === 10 ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label></div>' +
       '<button class="pt-btn pt-btn-go" type="button" id="twCreate">Create &amp; get invite link</button><p class="pt-auth-msg" id="twCreateMsg" role="alert" hidden></p></section>' +
-      '<section class="pt-card ch-card"><h2>Your Trade Wars</h2><div id="twMine"><p class="pt-empty">Loading…</p></div></section></div>';
+      '<section class="pt-card ch-card"><h2>Your Trade Wars</h2><div id="twMine"><p class="pt-empty">Loading…</p></div></section></div>' +
+      '<div class="tw-grid"><section class="pt-card ch-card"><h2>Challenge someone</h2>' +
+      '<p class="pt-fine">They get a "You\'ve been challenged" card and choose to accept or decline. A 1 v 1 starts the moment they accept.</p>' +
+      '<div class="pt-invite" data-help="Type a friend\'s @username (they can set one on their profile), then press Challenge to pick the buy-in and length."><input id="twUser" placeholder="@username" autocapitalize="none" spellcheck="false" aria-label="Username to challenge"><button class="pt-mini pt-soc" type="button" id="twChUser">&#9876;&#65039; Challenge</button></div>' +
+      '<div id="twSquads" class="tw-squads"></div><p class="pt-auth-msg" id="twChMsg" role="alert" hidden></p></section>' +
+      '<section class="pt-card ch-card"><h2>Challenge history</h2><div id="twHist"><p class="pt-empty">Loading…</p></div></section></div>';
     body(h);
-    var buy = 1000;
-    $('twBuy').onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b) return; buy = +b.getAttribute('data-b'); $('twBuyCustom').value = ''; this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); }); };
+    wireChallenges();
+    var buy = 1000, xp = 0;
+    if (CH) CH.myXp().then(function (x) { xp = x; $('twBuy').innerHTML = CH.buyInChips(buy, xp); $('twLock').innerHTML = CH.lockNote(xp); });
+    $('twBuy').onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b || b.disabled) return; buy = +b.getAttribute('data-b'); $('twBuyCustom').value = ''; this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); }); };
     $('twBuyCustom').oninput = function () { var v = parseInt(this.value.replace(/[^0-9]/g, ''), 10); if (v) { buy = v; $('twBuy').querySelectorAll('button').forEach(function (x) { x.classList.remove('is-on'); }); } };
     $('twCreate').onclick = function () {
-      var b = this, msg = $('twCreateMsg'); msg.hidden = true; b.disabled = true; b.textContent = 'Creating…';
+      var b = this, msg = $('twCreateMsg'); msg.hidden = true;
+      var L = CH && CH.buyInLock(buy, xp); if (L) { msg.textContent = money(buy, 0) + ': ' + CH.lockText(L) + '. Earn XP from trades, missions and matches.'; msg.hidden = false; return; }
+      b.disabled = true; b.textContent = 'Creating…';
       call('tw_create', { name: $('twName').value || 'Trade War', buyIn: buy, days: +$('twDays').value, maxPlayers: +$('twMax').value })
         .then(function (r) { location.search = '?w=' + encodeURIComponent(r.warId); })
         .catch(function (e) { b.disabled = false; b.textContent = 'Create & get invite link'; msg.textContent = errText(e); msg.hidden = false; });
@@ -99,6 +109,38 @@
         return '<a class="ch-row" href="?w=' + encodeURIComponent(w.id) + '"><span>⚔️ <b>' + esc(w.name) + '</b></span><span>' + money(w.buyIn, 0) + ' buy-in</span>' + st + '</a>';
       }).join('');
     }).catch(function () { $('twMine').innerHTML = '<p class="pt-empty">Couldn\'t load your Trade Wars.</p>'; });
+  }
+
+  // ------------------------------------------------------------ challenges (zelos-challenge.js does the dialogs)
+  function wireChallenges() {
+    var C = window.ZelosChallenge, S = window.ZelosSocial, m = $('twChMsg');
+    function say(t) { m.textContent = t; m.hidden = !t; }
+    $('twChUser').onclick = function () {
+      var u = String($('twUser').value || '').trim().replace(/^@/, '').toLowerCase(); say('');
+      if (!/^[a-z0-9_]{3,20}$/.test(u)) return say('Type a username like @amy_trades.');
+      db.collection('usernames').doc(u).get().then(function (d) {
+        if (!d.exists) return say('No trader has the username @' + u + ' yet.');
+        if (d.data().uid === user.uid) return say('That\'s you. Challenge someone else.');
+        if (C) C.open({ to: d.data().uid, toName: '@' + u });
+      }).catch(function () { say('Couldn\'t look that up. Try again.'); });
+    };
+    $('twUser').onkeydown = function (e) { if (e.key === 'Enter') $('twChUser').click(); };
+    if (S && S.mySquads) S.mySquads(user.uid).then(function (list) {
+      list = (list || []).filter(function (q) { return q.members && q.members.length > 1; });
+      $('twSquads').innerHTML = list.length ? '<p class="pt-fine" style="margin-top:12px">Or challenge a whole squad:</p>' + list.map(function (q) { return '<button class="pt-mini" type="button" data-sq="' + esc(q.id) + '" data-sqn="' + esc(q.name) + '">&#128101; ' + esc(q.name) + ' (' + q.members.length + ')</button>'; }).join(' ') : '';
+      $('twSquads').onclick = function (e) { var b = e.target.closest('[data-sq]'); if (b && C) C.open({ squadId: b.getAttribute('data-sq'), squadName: b.getAttribute('data-sqn') }); };
+    }).catch(function () {});
+    var q = function (field) { return db.collection('twInvites').where(field, '==', user.uid).limit(25).get().then(function (s) { var o = []; s.forEach(function (d) { o.push(Object.assign({ id: d.id }, d.data())); }); return o; }).catch(function () { return []; }); };
+    Promise.all([q('from'), q('to')]).then(function (r) {
+      var list = r[0].concat(r[1]).sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }).slice(0, 25);
+      var ST = { pending: 'Waiting', accepted: 'Accepted', declined: 'Declined', cancelled: 'Cancelled', expired: 'Expired' };
+      $('twHist').innerHTML = list.length ? list.map(function (c) {
+        var sent = c.from === user.uid, other = sent ? (c.toName || 'Trader') : (c.fromName || 'Trader');
+        var go = c.status === 'accepted' || (sent && c.status === 'pending');
+        return '<' + (go ? 'a href="?w=' + encodeURIComponent(c.warId) + '"' : 'div') + ' class="ch-row"><span>' + (sent ? 'You &rarr; <b>' + esc(other) + '</b>' : '<b>' + esc(other) + '</b> &rarr; you') + '</span><span>' + money(c.buyIn, 0) + ' · ' + c.days + 'd</span>' +
+          '<span class="tw-st' + (c.status === 'accepted' ? ' is-live' : c.status === 'pending' ? '' : ' is-done') + '">' + (ST[c.status] || c.status) + '</span></' + (go ? 'a' : 'div') + '>';
+      }).join('') : '<p class="pt-empty">No challenges yet. Challenge a friend by @username above.</p>';
+    });
   }
 
   // ------------------------------------------------------------ one match
@@ -144,7 +186,9 @@
       '<p>Hosted by ' + esc(w.hostName || 'a trader') + ' · <b>' + money(w.buyIn, 0) + '</b> virtual buy-in · ' + w.days + ' day' + (w.days === 1 ? '' : 's') + ' · ' + w.players.length + '/' + w.maxPlayers + ' players</p></div>';
     if (w.status === 'cancelled') { body(h + '<div class="pt-card ch-card"><p>The host cancelled this Trade War before it started.</p><a class="pt-btn pt-btn-go" href="war.html">Your Trade Wars</a></div>'); return; }
     if (w.status === 'lobby') {
-      h += '<div class="tw-grid"><section class="pt-card ch-card"><h2>Players</h2><ul class="tw-players">' + w.players.map(function (u) { return '<li>' + esc((w.names || {})[u] || 'Trader') + (u === w.host ? ' <small>host</small>' : '') + '</li>'; }).join('') + '</ul>';
+      var waiting = (w.invited || []).filter(function (u) { return w.players.indexOf(u) === -1; }).length;
+      h += '<div class="tw-grid"><section class="pt-card ch-card"><h2>Players</h2><ul class="tw-players">' + w.players.map(function (u) { return '<li>' + esc((w.names || {})[u] || 'Trader') + (u === w.host ? ' <small>host</small>' : '') + '</li>'; }).join('') + '</ul>' +
+        (waiting ? '<p class="pt-fine">&#9203; Waiting for ' + waiting + ' challenged player' + (waiting === 1 ? '' : 's') + ' to accept.' + (w.mode === 'duel' ? ' The Trade War starts as soon as they do.' : '') + '</p>' : '');
       if (!user) h += '<button class="pt-btn pt-btn-go" type="button" id="twSignIn">Sign in to join</button>' + AUTH_MSG;
       else if (!mine) h += '<button class="pt-btn pt-btn-go" type="button" id="twJoin">Join with ' + money(w.buyIn, 0) + ' virtual</button><p class="pt-fine">You\'ll start with exactly the same virtual money as everyone else. Nothing is taken from your $10,000 account.</p>';
       else if (host) h += '<div class="pt-soc-row"><button class="pt-btn pt-btn-go" type="button" id="twStart"' + (w.players.length < 2 ? ' disabled' : '') + '>Start the Trade War</button><button class="pt-mini" type="button" id="twCancel">Cancel</button></div>' + (w.players.length < 2 ? '<p class="pt-fine">Invite at least one opponent to start.</p>' : '<p class="pt-fine">Starting locks the buy-in and starts the ' + w.days + '-day clock.</p>');
@@ -226,7 +270,8 @@
     chartEl = document.createElement('section'); chartEl.className = 'pt-card ch-card tw-chart-card';
     chartEl.innerHTML = '<div class="tw-chart-bar"><b id="twChartSym"></b><span class="tw-chart-tools">' +
       '<button class="pt-chip" type="button" id="twFib" aria-pressed="false" title="Fibonacci retracement across the visible swing">Fib</button>' +
-      '<button class="pt-chip" type="button" id="twAlertAdd" aria-pressed="false" title="Set a Trade War price alert: press, then click a price on the chart">&#9200; Alert</button></span></div>' +
+      '<button class="pt-chip" type="button" id="twAlertAdd" aria-pressed="false" title="Set a Trade War price alert: press, then click a price on the chart">&#9200; Alert</button>' +
+      '<button class="pt-chip" type="button" id="twAbc" aria-pressed="false" title="Three-Legged Strategy: draw an A-B-C pullback (click the start, then the ends of legs A, B and C)">3-Leg</button></span></div>' +
       '<canvas class="tw-chart" id="twChart" aria-label="Trade War chart"></canvas>' +
       '<p class="pt-fine">Drag to pan · scroll to zoom · dashed line: your entry and P&amp;L · ▲▼ your trades · ⏰ lines: your Trade War price alerts (drag to move)</p>';
     chart = new TC.TradeChart(chartEl.querySelector('canvas'));
@@ -239,6 +284,17 @@
       var cur = (quotes[ticket.sym] || {}).c, a = TC.alerts.add(ticket.sym, p, cur); al.classList.remove('is-on'); al.setAttribute('aria-pressed', 'false');
       msg('Trade War alert set: ' + ticket.sym + ' ' + (a.dir === 'above' ? '≥' : '≤') + ' ' + money(p) + '. Manage alerts on your Trade War account page.', true); drawChart();
     };
+    var abcBtn = chartEl.querySelector('#twAbc'), abcOff = function () { abcBtn.classList.remove('is-on'); abcBtn.setAttribute('aria-pressed', 'false'); };
+    abcBtn.onclick = function () {
+      if (chart.placing === 'abc') { chart.placing = null; abcOff(); drawChart(); return; }
+      if (TC.abc.get(ticket.sym)) { if (!confirm('Remove the three-leg drawing on ' + ticket.sym + '?')) return; TC.abc.set(ticket.sym, null); drawChart(); return; }
+      chart.placing = 'abc'; chart.abc = { pts: [] }; abcBtn.classList.add('is-on'); abcBtn.setAttribute('aria-pressed', 'true');
+      msg('Three-Legged Strategy: click where the move starts, then the end of leg A, leg B and leg C.', true);
+    };
+    chart.onAbcDone = function (abc) {
+      TC.abc.set(ticket.sym, abc); abcOff(); var P = abc.pts;
+      msg('Three-leg drawing saved: leg C is ' + (Math.abs(P[3].p - P[2].p) / Math.max(1e-9, Math.abs(P[1].p - P[0].p))).toFixed(2) + '× leg A.', true); drawChart();
+    };
     chart.onAlertMove = function (a) { TC.alerts.update(a.id, a.price, (quotes[a.sym] || {}).c); msg('Alert moved to ' + money(a.price) + '.', true); drawChart(); };
   }
   function drawChart() {
@@ -249,6 +305,7 @@
     chart.lines = pos ? [{ price: pos.avg, color: ink, dash: [6, 3], label: 'ENTRY ' + money(pos.avg) + ' · ' + pos.qty + ' sh · P&L ' + signed((px - pos.avg) * pos.qty) + ' (' + pct((px / pos.avg - 1) * 100) + ')' }] : [];
     chart.marks = ((book && book.fills) || []).filter(function (f) { return f.sym === ticket.sym; }).map(function (f) { return { i: s.d.indexOf(nyDate(f.at)), price: f.price, side: f.side }; }).filter(function (m) { return m.i >= 0; });
     chart.lastPrice = px; chart.fib = fibOn; chart.alerts = TC.alerts.forSym(ticket.sym);
+    if (chart.placing !== 'abc') chart.abc = TC.abc.get(ticket.sym);
     chart.empty = s.n ? null : 'Loading chart…';
     if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, 126); else chart.setSeries(s);
     chart.draw();

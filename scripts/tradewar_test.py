@@ -44,7 +44,7 @@ class CreateValidation(unittest.TestCase):
             self.assertEqual(self.ok(buyIn=b)[1], b)
 
     def test_rejects_bad_buy_ins(self):
-        for b in (0, 50, 150, 100100, -500, "lots", None):
+        for b in (0, 50, 150, 10100, 100000, -500, "lots", None):
             self.bad(buyIn=b)
 
     def test_rejects_bad_lengths_and_sizes(self):
@@ -124,6 +124,63 @@ class Trading(unittest.TestCase):
         b = {"positions": {}, "fills": [{"i": i} for i in range(m.TW_MAX_FILLS)]}
         a, b, _ = m.tw_apply_trade(a, b, "AAPL", "buy", 1, 1.0, T0)
         self.assertEqual(len(b["fills"]), m.TW_MAX_FILLS)
+
+
+class BuyInLocks(unittest.TestCase):
+    def test_small_buy_ins_are_open_to_everyone(self):
+        for b in (100, 500, 1000):
+            self.assertIsNone(m.tw_buyin_lock(b, 0))
+
+    def test_5000_needs_gold(self):
+        self.assertEqual(m.tw_buyin_lock(5000, 149), (3, 150, "Gold"))
+        self.assertIsNone(m.tw_buyin_lock(5000, 150))
+        self.assertEqual(m.tw_buyin_lock(2500, 0), (3, 150, "Gold"))  # custom amounts follow the tiers
+
+    def test_10000_needs_diamond(self):
+        self.assertEqual(m.tw_buyin_lock(10000, 999), (5, 1000, "Diamond"))
+        self.assertIsNone(m.tw_buyin_lock(10000, 1000))
+        self.assertEqual(m.tw_buyin_lock(6000, 500), (5, 1000, "Diamond"))
+
+
+class ChallengeValidation(unittest.TestCase):
+    ME = "me_uid_123"
+
+    def v(self, **kw):
+        d = {"to": "friend_uid_1", "buyIn": 500, "days": 7}
+        d.update(kw)
+        return m.tw_validate_challenge(d, self.ME)
+
+    def test_one_friend_is_a_duel_target(self):
+        targets, buy_in, days, name, squad = self.v()
+        self.assertEqual((targets, buy_in, days, squad), (["friend_uid_1"], 500, 7, None))
+        self.assertEqual(name, "Head-to-head")
+
+    def test_list_dedupes_and_drops_self(self):
+        self.assertEqual(self.v(to=["a_uid_111", self.ME, "a_uid_111", "b_uid_222"])[0], ["a_uid_111", "b_uid_222"])
+
+    def test_cannot_challenge_only_yourself(self):
+        with self.assertRaises(m.TWError):
+            self.v(to=self.ME)
+
+    def test_rejects_bad_targets_and_too_many(self):
+        for bad in (None, [], "x", ["../../etc"], [123], ["u" * 200]):
+            with self.assertRaises(m.TWError):
+                self.v(to=bad)
+        with self.assertRaises(m.TWError):
+            self.v(to=["uid_%04d" % i for i in range(m.TW_MAX_INVITEES + 1)])
+
+    def test_same_buy_in_rules_as_create(self):
+        for b in (150, 0, 20000):
+            with self.assertRaises(m.TWError):
+                self.v(buyIn=b)
+        with self.assertRaises(m.TWError):
+            self.v(days=2)
+
+    def test_squad_challenge(self):
+        targets, _, _, name, squad = m.tw_validate_challenge({"squadId": "abcdefghijkm", "buyIn": 1000, "days": 3}, self.ME)
+        self.assertEqual((targets, squad, name), ([], "abcdefghijkm", "Squad Trade War"))
+        with self.assertRaises(m.TWError):
+            m.tw_validate_challenge({"squadId": "bad id", "buyIn": 1000, "days": 3}, self.ME)
 
 
 class MarkAndRank(unittest.TestCase):

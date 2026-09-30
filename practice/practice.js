@@ -534,6 +534,7 @@
     chart.forecast = forecast();
     chart.fib = fibOn;
     chart.alerts = ALERTS.forSym(sel);
+    if (chart.placing !== 'abc') chart.abc = TC.abc.get(sel);
     var ds = displaySeries();
     chart.marks = !ds || ds.intraday ? [] : acct.fills.filter(function (f) { return f.sym === sel && !f.option; }).map(function (f) {
       return { i: ds.d.indexOf(tf === 'W' ? weekKey(f.day) : f.day), price: f.price, side: f.side };
@@ -1151,6 +1152,20 @@
       fibOn = !fibOn; this.classList.toggle('is-on', fibOn); this.setAttribute('aria-pressed', String(fibOn));
       try { localStorage.setItem('zelosPracticeFib', fibOn ? '1' : '0'); } catch (err) {} renderAll();
     });
+    function abcOff() { $('ptAbc').classList.remove('is-on'); $('ptAbc').setAttribute('aria-pressed', 'false'); }
+    $('ptAbc').addEventListener('click', function () {
+      if (chart.placing === 'abc') { chart.placing = null; abcOff(); renderAll(); return; }
+      if (TC.abc.get(sel)) {
+        if (!confirm('Remove the three-leg drawing on ' + sel + '?')) return;
+        TC.abc.set(sel, null); renderAll(); toast('Three-leg drawing removed.'); return;
+      }
+      chart.placing = 'abc'; chart.abc = { pts: [] }; this.classList.add('is-on'); this.setAttribute('aria-pressed', 'true');
+      toast('Three-Legged Strategy: click where the move starts, then the end of leg A, leg B and leg C.');
+    });
+    chart.onAbcDone = function (abc) {
+      TC.abc.set(sel, abc); abcOff(); var P = abc.pts, ca = Math.abs(P[3].p - P[2].p) / Math.max(1e-9, Math.abs(P[1].p - P[0].p));
+      toast('Three-leg drawing saved for ' + sel + ': leg C is ' + ca.toFixed(2) + '× leg A. Press 3-Leg again to remove it.'); renderAll();
+    };
     $('ptAlertAdd').addEventListener('click', function () {
       var on = chart.placing !== 'alert'; chart.placing = on ? 'alert' : null; this.classList.toggle('is-on', on); this.setAttribute('aria-pressed', String(on));
       if (on) toast('Click a price on the chart to set a Trade War alert for ' + sel + '.');
@@ -1174,7 +1189,7 @@
     $('ptOptSell').addEventListener('click', function () { optTrade('sell'); });
     // modal
     $('ptModalCancel').addEventListener('click', function () { $('ptConfirm').hidden = true; });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('ptConfirm').hidden = true; if (chart.placing) { chart.placing = null; $('ptAlertAdd').classList.remove('is-on'); $('ptAlertAdd').setAttribute('aria-pressed', 'false'); } document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('ptConfirm').hidden = true; if (chart.placing) { chart.placing = null; ['ptAlertAdd', 'ptAbc'].forEach(function (id) { $(id).classList.remove('is-on'); $(id).setAttribute('aria-pressed', 'false'); }); renderAll(); } document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); } });
     document.querySelectorAll('.pt-tab').forEach(function (t) { t.addEventListener('click', function () { tab = t.getAttribute('data-tab'); renderTabs(); }); });
     $('ptTabBody').addEventListener('click', function (e) {
       var tg = e.target.closest('button,a'); if (!tg) return;

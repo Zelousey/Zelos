@@ -52,14 +52,19 @@
 .pt-hint{ font-size:0.72rem; color:var(--muted); margin-top:6px; }
 
 .pt-ticket{ padding:14px; position:sticky; top:84px; }
-/* Buy / Sell (and Calls / Puts): one segmented control, the active side fills solid */
+/* Buy / Sell (and Calls / Puts): one segmented control, the active side fills.
+   Deep emerald / rich red (not lime), white text at WCAG AA contrast. */
+:root{
+  --tw-buy-top:#08825e; --tw-buy:#047857; --tw-buy-glow:rgba(5,150,105,0.55);
+  --tw-sell-top:#d73535; --tw-sell:#c81e1e; --tw-sell-glow:rgba(220,38,38,0.5);
+}
 .pt-sides{ display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:12px; background:var(--bg-soft); border:1px solid var(--border-soft); }
 .pt-side{ font:700 0.95rem var(--sans); letter-spacing:0.01em; padding:10px 12px; border-radius:9px; border:1px solid transparent; background:transparent; color:var(--muted); cursor:pointer;
   transition:background-color var(--dur-base,180ms) var(--ease-out,ease), color var(--dur-base,180ms) var(--ease-out,ease), box-shadow var(--dur-base,180ms) var(--ease-out,ease); }
 .pt-side:hover:not(.is-on){ color:var(--ink); background:var(--surface-2); }
 .pt-side:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
-#ptBuy.is-on, .pt-otypes .pt-side.is-on[data-otype="call"]{ background:var(--bull); color:#04130b; box-shadow:0 6px 16px -8px var(--bull), inset 0 1px 0 rgba(255,255,255,0.25); }
-#ptSell.is-on, .pt-otypes .pt-side.is-on[data-otype="put"]{ background:var(--danger); color:#fff; box-shadow:0 6px 16px -8px var(--danger), inset 0 1px 0 rgba(255,255,255,0.18); }
+#ptBuy.is-on, .pt-otypes .pt-side.is-on[data-otype="call"]{ background:linear-gradient(180deg, var(--tw-buy-top), var(--tw-buy)); color:#fff; box-shadow:0 6px 16px -8px var(--tw-buy-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+#ptSell.is-on, .pt-otypes .pt-side.is-on[data-otype="put"]{ background:linear-gradient(180deg, var(--tw-sell-top), var(--tw-sell)); color:#fff; box-shadow:0 6px 16px -8px var(--tw-sell-glow), inset 0 1px 0 rgba(255,255,255,0.16); }
 .pt-field{ display:flex; flex-direction:column; gap:5px; margin-top:12px; font-size:0.78rem; color:var(--muted); }
 .pt-field > span{ font-family:var(--mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
 .pt-field input, .pt-field select{ font:inherit; font-family:var(--mono); font-size:0.95rem; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-soft); color:var(--ink); width:100%; }
@@ -213,17 +218,21 @@ body.pt-fullport .pt-acct span{ border-color:var(--pt-glow); }
 .pt-est b{ font-family:var(--mono); color:var(--ink); text-align:right; }
 .pt-f-sl input{ border-color:rgba(224,72,63,0.55); }
 .pt-f-tp input{ border-color:rgba(62,203,124,0.55); }
-.pt-submit{ width:100%; margin-top:12px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:13px 16px; border-radius:12px; border:0; cursor:pointer; color:#fff; font-family:var(--sans);
-  transition:transform var(--dur-fast,120ms) var(--ease-out,ease), filter var(--dur-fast,120ms) var(--ease-out,ease), box-shadow var(--dur-base,180ms) var(--ease-out,ease); }
-.pt-submit:hover:not(:disabled){ filter:brightness(1.07); }
-.pt-submit:active:not(:disabled){ transform:scale(0.985); }
+.pt-submit{ position:relative; width:100%; margin-top:12px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:13px 16px; border-radius:12px; border:1px solid transparent; cursor:pointer; color:#fff; font-family:var(--sans);
+  transition:transform var(--dur-fast,120ms) var(--ease-out,ease), box-shadow var(--dur-base,180ms) var(--ease-out,ease), filter var(--dur-fast,120ms) var(--ease-out,ease); }
+.pt-submit:hover:not(:disabled){ transform:translateY(-1px); filter:brightness(1.06); }
+.pt-submit:active:not(:disabled){ transform:translateY(0) scale(0.99); filter:brightness(0.97); }
 .pt-submit:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
 .pt-submit:disabled{ opacity:0.4; cursor:not-allowed; box-shadow:none; }
-.pt-submit.is-buy{ background:var(--bull); color:#04130b; box-shadow:0 10px 24px -14px var(--bull), inset 0 1px 0 rgba(255,255,255,0.25); }
-.pt-submit.is-sell{ background:var(--danger); color:#fff; box-shadow:0 10px 24px -14px var(--danger), inset 0 1px 0 rgba(255,255,255,0.18); }
-.pt-sub-main{ font-weight:800; font-size:1rem; letter-spacing:0.01em; }
-.pt-sub-meta{ font:500 0.72rem var(--mono); opacity:0.78; }
-@media (prefers-reduced-motion: reduce){ .pt-side, .pt-submit{ transition:none; } .pt-submit:active:not(:disabled){ transform:none; } }
+.pt-submit.is-buy{ background:linear-gradient(180deg, var(--tw-buy-top) 0%, var(--tw-buy) 100%); border-color:rgba(255,255,255,0.06);
+  box-shadow:0 10px 26px -12px var(--tw-buy-glow), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.18); }
+.pt-submit.is-buy:hover:not(:disabled){ box-shadow:0 14px 30px -12px var(--tw-buy-glow), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.18); }
+.pt-submit.is-sell{ background:linear-gradient(180deg, var(--tw-sell-top) 0%, var(--tw-sell) 100%); border-color:rgba(255,255,255,0.06);
+  box-shadow:0 10px 26px -12px var(--tw-sell-glow), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,0,0,0.18); }
+.pt-submit.is-sell:hover:not(:disabled){ box-shadow:0 14px 30px -12px var(--tw-sell-glow), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.18); }
+.pt-sub-main{ font-weight:700; font-size:1.02rem; letter-spacing:0.02em; }
+.pt-sub-meta{ font:500 0.72rem var(--mono); opacity:0.82; letter-spacing:0.02em; }
+@media (prefers-reduced-motion: reduce){ .pt-side, .pt-submit{ transition:none; } .pt-submit:hover:not(:disabled), .pt-submit:active:not(:disabled){ transform:none; } }
 
 /* ---- options ticket ---- */
 .pt-otypes{ margin-bottom:2px; }
@@ -554,3 +563,7 @@ a.tw-tr:hover{ background:var(--surface-2); }
 @media (max-width:600px){ .tw-chart{ height:280px; } }
 .tw-board{ overflow-x:auto; }
 .tw-live > .zh-tip, .tw-grid > .zh-tip{ grid-column:1 / -1; }
+.tw-squads .pt-mini{ margin:4px 4px 0 0; }
+.tw-chips button.is-locked{ opacity:0.55; cursor:not-allowed; border-style:dashed; }
+.tw-lock{ margin:2px 0 8px; }
+.tw-lock:empty{ display:none; }

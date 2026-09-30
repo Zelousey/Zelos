@@ -844,7 +844,11 @@ import re as _re
 import secrets as _secrets
 import time as _time
 
-TW_BUYIN_MIN, TW_BUYIN_MAX = 100, 100000
+TW_BUYIN_MIN, TW_BUYIN_MAX = 100, 10000
+# Bigger buy-ins unlock with the host's level (XP ladder in zelos-levels.js;
+# the same table is in zelos-challenge.js for the lock icons):
+#   (max buy-in, level needed, XP needed, level name)
+TW_BUYIN_TIERS = ((1000, 0, 0, ""), (5000, 3, 150, "Gold"), (10000, 5, 1000, "Diamond"))
 TW_DAYS = (1, 3, 7, 14, 30)
 TW_MAX_PLAYERS = 50
 TW_MAX_FILLS = 500
@@ -877,12 +881,32 @@ def tw_validate_create(data):
     except (TypeError, ValueError):
         raise TWError("INVALID_ARGUMENT", "Buy-in, length and player limit must be numbers.")
     if not (TW_BUYIN_MIN <= buy_in <= TW_BUYIN_MAX) or buy_in % 100:
-        raise TWError("INVALID_ARGUMENT", "Buy-in must be a multiple of $100 between $100 and $100,000 (virtual).")
+        raise TWError("INVALID_ARGUMENT", "Buy-in must be a multiple of $100 between $100 and $10,000 (virtual).")
     if days not in TW_DAYS:
         raise TWError("INVALID_ARGUMENT", "Length must be 1, 3, 7, 14 or 30 days.")
     if not (2 <= max_players <= TW_MAX_PLAYERS):
         raise TWError("INVALID_ARGUMENT", "Player limit must be between 2 and %d." % TW_MAX_PLAYERS)
     return name, buy_in, days, max_players
+
+
+def tw_buyin_lock(buy_in, xp):
+    """None if this XP may host this buy-in, else the (level, xp, name) it needs."""
+    for cap, level, need, name in TW_BUYIN_TIERS:
+        if buy_in <= cap:
+            return None if (xp or 0) >= need else (level, need, name)
+    return TW_BUYIN_TIERS[-1][1:]
+
+
+def _tw_check_buyin(db, uid, buy_in):
+    try:
+        u = db.collection("users").document(uid).get()
+        xp = int((u.to_dict() or {}).get("xp") or 0) if u.exists else 0
+    except Exception:
+        xp = 0
+    lock = tw_buyin_lock(buy_in, xp)
+    if lock:
+        raise TWError("FAILED_PRECONDITION", "The $%s buy-in unlocks at Level %d (%s, %s XP). Earn XP from trades, missions and matches to unlock it."
+                      % (format(buy_in, ","), lock[0], lock[2], format(lock[1], ",")))
 
 
 def tw_new_account(name, buy_in, now_ms):
@@ -1030,6 +1054,7 @@ def _tw_call(fn):
 @_tw_call
 def tw_create(req, db, uid, now_ms):
     name, buy_in, days, max_players = tw_validate_create(req.data)
+    _tw_check_buyin(db, uid, buy_in)
     open_count = sum(1 for d in db.collection("tradeWars").where("host", "==", uid).where("status", "==", "lobby").limit(6).stream())
     if open_count >= 5:
         raise TWError("RESOURCE_EXHAUSTED", "You already have 5 Trade Wars waiting in the lobby. Start or cancel one first.")
@@ -1124,6 +1149,7 @@ def tw_start(req, db, uid, now_ms):
         t.update(war_ref, {"status": "active", "startAt": now_ms, "endAt": now_ms + war["days"] * 86400000})
 
     txn(db.transaction())
+    _tw_close_invites(db, wid, "expired", now_ms)  # the buy-in is locked: unanswered invites lapse
     return {"ok": True}
 
 
@@ -1141,6 +1167,7 @@ def tw_cancel(req, db, uid, now_ms):
     if war["status"] != "lobby":
         raise TWError("FAILED_PRECONDITION", "A Trade War can only be cancelled before it starts.")
     war_ref.update({"status": "cancelled"})
+    _tw_close_invites(db, wid, "cancelled", now_ms)
     return {"ok": True}
 
 
@@ -1227,3 +1254,141 @@ def tw_mark_matches(event: scheduler_fn.ScheduledEvent) -> None:
             print("[tw_mark_matches] revalued %d active matches" % n)
     except Exception as e:
         print("[tw_mark_matches] failed:", type(e).__name__)
+
+
+# ---------------------------------------------------------------------------
+# Trade War challenges: invite a friend, several friends, or a whole squad into
+# a new match. The invited players get a real-time invite card
+# (zelos-challenge.js) with Accept / Decline.
+#
+#   twInvites/{id}  { to, from, fromName, fromUsername, fromPhoto, warId, warName, buyIn, days,
+#                     mode: duel|group, status: pending|accepted|declined|cancelled|expired,
+#                     createdAt, respondedAt }   readable by `to` and `from` only; server-written
+#
+# Accepting joins the match with the same buy-in as everyone (a new, separate match account).
+# A 1-on-1 ("duel") starts the moment it's accepted; a group match waits for the host.
+# Nobody is ever entered into a match without accepting.
+# ---------------------------------------------------------------------------
+TW_MAX_INVITEES = 20
+TW_MAX_PENDING_SENT = 20
+_TW_UID_RE = _re.compile(r"^[A-Za-z0-9_-]{6,128}$")
+
+
+def tw_validate_challenge(data, uid):
+    """Returns (targets, buy_in, days, name, squad_id) or raises TWError. targets excludes uid."""
+    data = data or {}
+    to = data.get("to")
+    squad_id = data.get("squadId")
+    targets = []
+    if squad_id is not None:
+        if not isinstance(squad_id, str) or not _TW_ID_RE.match(squad_id):
+            raise TWError("INVALID_ARGUMENT", "That squad isn't valid.")
+    else:
+        to = [to] if isinstance(to, str) else to
+        if not isinstance(to, list) or not to:
+            raise TWError("INVALID_ARGUMENT", "Pick someone to challenge.")
+        for t in to:
+            if not isinstance(t, str) or not _TW_UID_RE.match(t):
+                raise TWError("INVALID_ARGUMENT", "That player isn't valid.")
+            if t != uid and t not in targets:
+                targets.append(t)
+        if not targets:
+            raise TWError("INVALID_ARGUMENT", "You can't challenge yourself.")
+        if len(targets) > TW_MAX_INVITEES:
+            raise TWError("INVALID_ARGUMENT", "Challenge up to %d players at a time." % TW_MAX_INVITEES)
+    name = str(data.get("name") or "").strip() or ("Squad Trade War" if squad_id else "Head-to-head")
+    _, buy_in, days, _ = tw_validate_create({"name": name, "buyIn": data.get("buyIn"), "days": data.get("days"), "maxPlayers": 2})
+    return targets, buy_in, days, _re.sub(r"[<>]", "", name)[:40], squad_id
+
+
+def _tw_close_invites(db, wid, status, now_ms):
+    try:
+        for d in db.collection("twInvites").where("warId", "==", wid).where("status", "==", "pending").stream():
+            d.reference.update({"status": status, "respondedAt": now_ms})
+    except Exception as e:
+        print("[tradewar] closing invites failed:", type(e).__name__)
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_challenge(req, db, uid, now_ms):
+    targets, buy_in, days, name, squad_id = tw_validate_challenge(req.data, uid)
+    _tw_check_buyin(db, uid, buy_in)
+    if squad_id:
+        sq = db.collection("squads").document(squad_id).get()
+        if not sq.exists or uid not in (sq.to_dict().get("members") or []):
+            raise TWError("PERMISSION_DENIED", "You can only challenge a squad you're in.")
+        targets = [m for m in sq.to_dict().get("members") or [] if m != uid][:TW_MAX_INVITEES]
+        if not targets:
+            raise TWError("FAILED_PRECONDITION", "Your squad has nobody else in it yet.")
+    pending = sum(1 for _ in db.collection("twInvites").where("from", "==", uid).where("status", "==", "pending").limit(TW_MAX_PENDING_SENT + 1).stream())
+    if pending + len(targets) > TW_MAX_PENDING_SENT:
+        raise TWError("RESOURCE_EXHAUSTED", "You have too many challenges waiting for an answer. Wait for replies or cancel some first.")
+    trader = db.collection("traders").document(uid).get()
+    t = (trader.to_dict() or {}) if trader.exists else {}
+    pname = _tw_name(db, uid, req.auth.token)
+    photo = t.get("avatar") or t.get("photo")
+    mode = "duel" if len(targets) == 1 and not squad_id else "group"
+    alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    wid = "".join(_secrets.choice(alphabet) for _ in range(12))
+    war_ref = db.collection("tradeWars").document(wid)
+    batch = db.batch()
+    batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
+                        "maxPlayers": 1 + len(targets), "status": "lobby", "players": [uid], "names": {uid: pname},
+                        "invited": targets, "mode": mode, "squadId": squad_id or None,
+                        "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
+                        "rules": {"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}})
+    batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
+    batch.set(war_ref.collection("books").document(uid), tw_new_book())
+    for to in targets:
+        batch.set(db.collection("twInvites").document(), {
+            "to": to, "toName": _tw_name(db, to, None), "from": uid, "fromName": pname, "fromUsername": t.get("username"), "fromPhoto": photo,
+            "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode,
+            "status": "pending", "createdAt": now_ms, "respondedAt": None})
+    batch.commit()
+    return {"warId": wid, "invited": len(targets), "mode": mode}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_respond(req, db, uid, now_ms):
+    data = req.data or {}
+    iid = str(data.get("inviteId") or "")
+    if not _TW_UID_RE.match(iid):
+        raise TWError("INVALID_ARGUMENT", "That challenge isn't valid.")
+    accept = data.get("accept") is True
+    inv_ref = db.collection("twInvites").document(iid)
+    pname = _tw_name(db, uid, req.auth.token) if accept else None
+
+    @firestore.transactional
+    def txn(t):
+        isnap = inv_ref.get(transaction=t)
+        if not isnap.exists or isnap.to_dict().get("to") != uid:
+            raise TWError("NOT_FOUND", "That challenge doesn't exist.")
+        inv = isnap.to_dict()
+        if inv["status"] != "pending":
+            return {"status": inv["status"], "warId": inv["warId"]}
+        war_ref = db.collection("tradeWars").document(inv["warId"])
+        wsnap = war_ref.get(transaction=t)
+        war = wsnap.to_dict() if wsnap.exists else None
+        if not war or war["status"] != "lobby":
+            t.update(inv_ref, {"status": "expired", "respondedAt": now_ms})
+            return {"status": "expired", "warId": inv["warId"]}
+        if not accept:
+            t.update(inv_ref, {"status": "declined", "respondedAt": now_ms})
+            if war.get("mode") == "duel":
+                t.update(war_ref, {"status": "cancelled"})
+            return {"status": "declined", "warId": inv["warId"]}
+        if uid not in war["players"]:
+            if len(war["players"]) >= war["maxPlayers"]:
+                raise TWError("FAILED_PRECONDITION", "This Trade War is full.")
+            upd = {"players": war["players"] + [uid], "names.%s" % uid: pname}
+            if war.get("mode") == "duel":
+                upd.update({"status": "active", "startAt": now_ms, "endAt": now_ms + war["days"] * 86400000})
+            t.update(war_ref, upd)
+            t.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, war["buyIn"], now_ms))
+            t.set(war_ref.collection("books").document(uid), tw_new_book())
+        t.update(inv_ref, {"status": "accepted", "respondedAt": now_ms})
+        return {"status": "accepted", "warId": inv["warId"], "started": war.get("mode") == "duel"}
+
+    return txn(db.transaction())
