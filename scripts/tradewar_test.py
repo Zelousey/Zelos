@@ -277,6 +277,138 @@ class SquadRules(unittest.TestCase):
             self.assertEqual(m.tw_squad_rules(c), {})
 
 
+class AdvancedGameplay(unittest.TestCase):
+    class R:  # deterministic rng
+        def shuffle(self, x): x.reverse()
+        def choice(self, x): return x[0]
+        def random(self): return 0.0
+
+    def test_modes_validation(self):
+        self.assertEqual(m.tw_validate_modes({}, 7), {})
+        self.assertEqual(m.tw_validate_modes({"modes": {"draftPicks": 3, "whaleCap": 50, "whaleShields": 2, "storms": "rare", "bounties": True}}, 7),
+                         {"draft": {"picks": 3}, "whale": {"capPct": 50, "shields": 2}, "storms": "rare", "bounties": True})
+        for bad in ({"draftPicks": 4}, {"whaleCap": 50}, {"whaleCap": 50, "whaleShields": 9}, {"storms": "always"}, {"bounties": "yes"}, "on"):
+            with self.assertRaises(m.TWError):
+                m.tw_validate_modes({"modes": bad}, 7)
+
+    def test_snake_draft(self):
+        d = m.tw_draft_new(["a", "b", "c"], 2, T0, self.R())
+        self.assertEqual((d["order"], d["total"]), (["c", "b", "a"], 6))
+        uni = ["AAPL", "AMZN", "MSFT", "NVDA", "TSLA", "META"]
+        seq = []
+        for sym in uni:
+            seq.append(m.tw_draft_on_clock(d))
+            d, _ = m.tw_draft_apply(d, sym, uni, T0)
+        self.assertEqual(seq, ["c", "b", "a", "a", "b", "c"])
+        self.assertEqual(d["picks"], {"c": ["AAPL", "META"], "b": ["AMZN", "TSLA"], "a": ["MSFT", "NVDA"]})
+        with self.assertRaises(m.TWError):
+            m.tw_draft_apply(d, "AAPL", uni, T0)  # draft over
+
+    def test_draft_rejects_taken_and_unknown(self):
+        uni = ["AAPL", "MSFT"]
+        d = m.tw_draft_new(["a", "b"], 1, T0, self.R())
+        d, _ = m.tw_draft_apply(d, "AAPL", uni, T0)
+        for bad in ("AAPL", "ZZZZ"):
+            with self.assertRaises(m.TWError):
+                m.tw_draft_apply(d, bad, uni, T0)
+        self.assertEqual(m.tw_draft_auto(d, uni, self.R()), "MSFT")
+
+    def test_start_with_draft_and_whales(self):
+        war = {"days": 3, "players": ["a", "b", "c"], "names": {}, "modes": {"draft": {"picks": 2}, "whale": {"capPct": 50, "shields": 1}}}
+        f = m.tw_start_fields(war, T0, {"a": 900, "b": 10, "c": 50}, self.R())
+        self.assertEqual((f["status"], f["whales"], f["shields"]), ("draft", ["a"], {"b": 1, "c": 1}))
+        self.assertNotIn("startAt", f)
+        with self.assertRaises(m.TWError):  # 30 players x 5 picks > the universe
+            m.tw_start_fields(dict(war, players=["p%d" % i for i in range(30)], modes={"draft": {"picks": 5}}), T0)
+
+    def test_whales_are_above_the_median(self):
+        self.assertEqual(m.tw_whales(["a", "b"], {"a": 5, "b": 5}), [])
+        self.assertEqual(m.tw_whales(["a", "b", "c", "d"], {"a": 1, "b": 2, "c": 3, "d": 400}), ["c", "d"])
+
+    def test_whale_cap(self):
+        a, b = m.tw_new_account("W", 1000, T0), m.tw_new_book()
+        self.assertTrue(m.tw_whale_ok(a, b, {"AAPL": 100.0}, "AAPL", 5, 100.0, 50))
+        self.assertFalse(m.tw_whale_ok(a, b, {"AAPL": 100.0}, "AAPL", 6, 100.0, 50))
+
+    def test_storm_fee_and_double(self):
+        a, b, _ = m.tw_apply_trade(m.tw_new_account("A", 1000, T0), m.tw_new_book(), "AAPL", "buy", 5, 100.0, T0, {"kind": "fee"})
+        self.assertEqual(a["cash"], 495.0)  # 500 + 1% fee
+        with self.assertRaises(m.TWError):
+            m.tw_apply_trade(m.tw_new_account("A", 1000, T0), m.tw_new_book(), "AAPL", "buy", 10, 100.0, T0, {"kind": "fee"})
+        a2, _, f = m.tw_apply_trade(a, b, "AAPL", "sell", 5, 110.0, T0 + 2000, {"kind": "double"})
+        self.assertEqual((f["pnl"], a2["cash"], a2["realized"]), (100.0, 1095.0, 100.0))
+        a3, _, f = m.tw_apply_trade(a, b, "AAPL", "sell", 5, 90.0, T0 + 2000, {"kind": "double"})
+        self.assertEqual((f["pnl"], a3["cash"], a3["worst"]), (-100.0, 895.0, -100.0))
+
+    def test_storm_roll(self):
+        pick = lambda xs: xs[-1]
+        st = m.tw_maybe_storm("rare", None, T0, T0 + 86400000, True, 0.0, pick, {"NVDA"})
+        self.assertEqual((st["kind"], st["sym"], st["end"] - st["start"]), ("halt", "NVDA", m.TW_STORM_MS))
+        self.assertIsNone(m.tw_maybe_storm("rare", None, T0, T0 + 86400000, False, 0.0, pick, set()))          # market closed
+        self.assertIsNone(m.tw_maybe_storm("rare", None, T0, T0 + 86400000, True, 0.5, pick, set()))           # no luck
+        self.assertIsNone(m.tw_maybe_storm(None, None, T0, T0 + 86400000, True, 0.0, pick, set()))             # storms off
+        self.assertIsNone(m.tw_maybe_storm("rare", st, T0 + 60000, T0 + 86400000, True, 0.0, pick, set()))     # one at a time
+        self.assertIsNone(m.tw_maybe_storm("rare", None, T0, T0 + 60000, True, 0.0, pick, set()))              # too close to the end
+        self.assertIsNone(m.tw_maybe_storm("rare", st, st["end"] + 60000, T0 + 86400000, True, 0.0, pick, set()))  # calm spell
+        self.assertIs(m.tw_storm_now(st, T0 + 1), st)
+        self.assertIsNone(m.tw_storm_now(st, st["end"]))
+
+    def war(self, **kw):
+        w = {"players": ["s", "t", "h", "x"], "names": {"s": "Sam", "t": "Tia", "h": "Hal", "x": "Xi"}, "endAt": T0 + 3 * 86400000, "bounties": []}
+        w.update(kw)
+        return w
+
+    def accts(self):
+        return {u: dict(m.tw_new_account(u, 1000, T0), trades=1) for u in ("s", "t", "h", "x")}
+
+    def test_bounty_rules(self):
+        w, a = self.war(), self.accts()
+        b = m.tw_new_bounty(w, a, "s", "t", 5, 6, T0, "b1")
+        self.assertEqual((b["amount"], b["end"], b["status"], b["targetName"]), (50.0, T0 + 6 * 3600000, "open", "Tia"))
+        bad = [("s", "s", 5, 6), ("s", "t", 3, 6), ("s", "t", 5, 12), ("s", "zz", 5, 6)]
+        for by, tg, pct, hrs in bad:
+            with self.assertRaises(m.TWError):
+                m.tw_new_bounty(w, a, by, tg, pct, hrs, T0, "b2")
+        w2 = self.war(bounties=[b])
+        with self.assertRaises(m.TWError):  # one open bounty per sponsor
+            m.tw_new_bounty(w2, a, "s", "h", 5, 6, T0, "b2")
+        with self.assertRaises(m.TWError):  # same pair only once, even after it settles
+            m.tw_new_bounty(self.war(bounties=[dict(b, status="won")]), a, "s", "t", 5, 6, T0, "b2")
+        w3 = self.war(bounties=[b, dict(b, id="b3", by="h")])
+        with self.assertRaises(m.TWError):  # max 2 on one target
+            m.tw_new_bounty(w3, a, "x", "t", 5, 6, T0, "b4")
+        with self.assertRaises(m.TWError):  # last hour
+            m.tw_new_bounty(self.war(endAt=T0 + 1800000), a, "s", "t", 5, 6, T0, "b5")
+        with self.assertRaises(m.TWError):  # paid from cash
+            m.tw_new_bounty(w, dict(a, s=dict(a["s"], cash=10.0)), "s", "t", 5, 6, T0, "b6")
+
+    def test_bounty_settlement(self):
+        a = self.accts()
+        b = m.tw_new_bounty(self.war(), a, "s", "t", 5, 6, T0, "b1")
+        later = {u: dict(v) for u, v in a.items()}
+        later["t"].update(equity=1010.0)
+        later["h"].update(equity=1030.0, trades=2)   # beat the target and traded since: hunter
+        later["x"].update(equity=1100.0)             # beat the target but never traded since: not eligible
+        later["s"].update(equity=1500.0, trades=9)   # the sponsor can't claim their own bounty
+        self.assertEqual(m.tw_settle_bounty(b, later), ("won", "h"))
+        later["h"].update(equity=1005.0)
+        self.assertEqual(m.tw_settle_bounty(b, later), ("defended", "t"))
+        later["t"].update(out=True)
+        self.assertEqual(m.tw_settle_bounty(b, later), ("refunded", "s"))
+
+    def test_shield_saves_from_a_timed_cut(self):
+        acc = {"a": dict(m.tw_new_account("A", 1000, T0), pnlPct=-5.0), "b": dict(m.tw_new_account("B", 1000, T0), pnlPct=-1.0),
+               "c": dict(m.tw_new_account("C", 1000, T0), pnlPct=4.0)}
+        used = []
+        self.assertEqual(m.tw_pick_outs(["a", "b", "c"], acc, {"cutHours": 6}, T0, T0, {"a": 1}, used), [("b", "cut")])
+        self.assertEqual(used, ["a"])
+
+    def test_leader(self):
+        acc = {"a": {"pnlPct": 2.0}, "b": {"pnlPct": 3.0, "out": True}, "c": {"pnlPct": -1.0}}
+        self.assertEqual(m.tw_leader(acc, ["a", "b", "c"]), "a")
+        self.assertIsNone(m.tw_leader({"a": {"pnlPct": 0.0}}, ["a"]))
+
+
 class Prices(unittest.TestCase):
     class DB:
         def __init__(self, doc):

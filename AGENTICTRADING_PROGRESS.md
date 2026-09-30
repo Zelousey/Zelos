@@ -414,6 +414,41 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
   - **Squad E2E on emulators with the real functions: 27/27**: create, room code, join by code, live chat (HTML shown as text), reactions, photos toggle + upload, goal, settings validation, removing a member cuts chat access, squad Trade War with allowed stocks (ticket + server refusal) and the everyone's-trades feed, 375px mobile, delete (wrong name refused; squad + code gone), no page errors.
 - **Owner:** deploy rules **and** functions.
 
+## Phase 10: Advanced Trade War gameplay (§12)
+All optional (host picks under "Game options" when starting a Trade War) and all enforced server-side:
+- **Pre-battle draft:**
+  - Snake draft of 2, 3 or 5 stocks each, 45 s per pick.
+  - When a clock runs out, any player's page asks the server to auto-pick. The 5-minute job finishes a draft nobody touches for 2 minutes.
+  - You can only trade what you drafted (`tw_trade` refuses the rest). Squad stock limits become the draft pool.
+- **Whale vs Minnow:**
+  - Players above the match's median XP are whales, capped at 25/50/75% of their account in one stock.
+  - Everyone else gets 1-3 Shield Tokens. A token cancels a bounty on you (sponsor refunded) or saves you from a Last Man Standing timed cut.
+- **Volatility Storms:** rare (~1/day) or often (~3/day), during market hours only, 30 minutes, one at a time with a calm spell after. Clearly labelled as virtual game events. Three kinds:
+  - double: profits and losses on sells count twice (cash never below 0)
+  - fee: 1% per trade
+  - halt: one held stock can't be traded
+- **Bounty Board:**
+  - Stake 2/5/10% of your equity (paid from cash) on a rival, for 6 or 24 hours.
+  - The winner is whoever beat the target by the most since the bounty was placed and traded since. If nobody did, the target keeps it.
+  - Anti-farming limits:
+    - one open bounty per sponsor
+    - each sponsor→target pair once per match
+    - max 2 open bounties on one target
+    - no bounties in the last hour
+    - the sponsor and the target can't claim
+    - knocked-out players can't take part
+    - bounties never give XP
+- **Battlefield Ticker (always on):** server-written `tradeWars/{id}/events`, readable by players only. Covers:
+  - start, draft picks, whale roles
+  - big trades (25%+ of an account; the symbol shows only when trades are open to all, i.e. draft or squad view-trades)
+  - lead changes, knockouts, bounties, shields, storms, the win
+- **New callables:** `tw_draft_pick`, `tw_bounty`, `tw_shield`. Changed: `tw_create`, `tw_challenge`, `tw_start`, `tw_respond`, `tw_trade`, `tw_mark_matches`.
+- **Rules:** `tradeWars/{id}/events` (players read, nobody writes).
+- **Tests:**
+  - unit 90/90 (12 new)
+  - **advanced E2E on emulators with the real functions: 30/30.** Covers options in the lobby and bad options refused, the draft (roles, out-of-turn and taken picks refused, auto-pick on timeout, completion goes live), ticket limited to picks, server refusal of undrafted stocks, the whale cap, ticker events, WHALE/SHIELD/WANTED tags, halt and fee storms, the bounty rules and shield, settlement (claimed by a hunter), lead change, 375px mobile, and no page errors.
+- **Owner:** deploy rules **and** functions.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -424,4 +459,4 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
 3. Owner: Phase 7 steps above.
-4. Phases 8 and 9 done (above). Next: §12 Advanced Trade War gameplay, when the owner says go.
+4. Phases 8-10 done (above). Next: §13 Trade War chart, when the owner says go.

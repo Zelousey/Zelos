@@ -695,3 +695,41 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .tw-feed-row{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; padding:6px 0; border-top:1px solid var(--border-soft); font-size:.84rem; }
 .tw-feed-row > span:nth-child(2), .tw-feed-row small{ font-family:var(--mono); } .tw-feed-row small{ color:var(--muted); font-size:.72rem; }
 .sq-owner h2{ margin:22px 0 8px; } .sq-owner .sq-danger h2{ margin-top:12px; }
+
+/* ---- Advanced gameplay: ticker, storms, draft, bounties, roles ---- */
+.tw-ticker{ display:flex; align-items:center; gap:10px; margin:0 0 12px; padding:6px 10px; border:1px solid var(--border); border-radius:10px; background:var(--surface-2); font-size:.82rem; position:relative; }
+.tw-ticker-lbl{ font:700 .68rem var(--mono); letter-spacing:.14em; color:#f59e0b; flex-shrink:0; }
+.tw-ticker-win{ flex:1; min-width:0; overflow:hidden; mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent); -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent); }
+.tw-ticker-run{ display:inline-flex; gap:28px; white-space:nowrap; animation:twTick 60s linear infinite; }
+.tw-ticker:hover .tw-ticker-run{ animation-play-state:paused; }
+.tw-tick{ display:inline-flex; align-items:center; gap:6px; } .tw-tick small{ color:var(--muted); font-family:var(--mono); font-size:.7rem; }
+.tw-tick.is-out .zi, .tw-tick.is-bounty .zi{ color:#f87171; } .tw-tick.is-lead .zi, .tw-tick.is-win .zi{ color:#e8b23d; } .tw-tick.is-storm .zi, .tw-tick.is-big .zi{ color:#f59e0b; } .tw-tick.is-shield .zi{ color:#60a5fa; }
+.tw-ticker-all{ flex-shrink:0; } .tw-ticker-all summary{ cursor:pointer; color:var(--muted); font-size:.76rem; }
+.tw-ticker-all[open] > div{ position:absolute; right:0; top:calc(100% + 6px); z-index:20; width:min(420px,92vw); max-height:320px; overflow:auto; display:flex; flex-direction:column; gap:8px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface); box-shadow:0 20px 40px rgba(0,0,0,.4); }
+.tw-ticker-all .tw-tick{ white-space:normal; }
+@keyframes twTick{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+@media (prefers-reduced-motion:reduce){ .tw-ticker-run{ animation:none; } }
+.tw-storm{ display:flex; gap:12px; align-items:center; margin:0 0 12px; padding:10px 14px; border-radius:12px; border:1px solid rgba(245,158,11,.55); background:linear-gradient(90deg,rgba(245,158,11,.14),rgba(239,68,68,.06)); font-size:.88rem; animation:twStorm 2.4s ease-in-out infinite; }
+.tw-storm svg{ width:26px; height:26px; flex-shrink:0; fill:none; stroke:#f59e0b; stroke-width:1.8; stroke-linejoin:round; }
+.tw-storm b{ font-family:var(--mono); letter-spacing:.12em; color:#f59e0b; } .tw-storm small{ color:var(--muted); }
+@keyframes twStorm{ 50%{ box-shadow:0 0 24px -8px rgba(245,158,11,.6); } }
+@media (prefers-reduced-motion:reduce){ .tw-storm{ animation:none; } }
+.tw-storm-note{ color:#f59e0b; }
+.tw-role{ font-family:var(--mono); font-size:.62rem; letter-spacing:.06em; border-radius:4px; padding:0 4px; border:1px solid; }
+.tw-role.is-whale{ color:#60a5fa; border-color:rgba(96,165,250,.5); } .tw-role.is-shield{ color:#a78bfa; border-color:rgba(167,139,250,.5); } .tw-role.is-bounty{ color:#f87171; border-color:rgba(248,113,113,.5); }
+.tw-draft{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; align-items:start; } .tw-draft > .pt-card{ margin:0; }
+.tw-draft-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; } .tw-draft-top h2{ margin:2px 0 0; }
+.tw-draft-clock{ font:700 1.6rem var(--mono); color:var(--ink); min-width:3ch; text-align:right; } .tw-draft-clock.is-low{ color:#f87171; }
+.tw-draft-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:6px; margin-top:10px; }
+.tw-dpick{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; cursor:pointer; min-width:0; }
+.tw-dpick b{ font-family:var(--mono); font-size:.86rem; } .tw-dpick small{ font-size:.66rem; color:var(--muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tw-dpick:hover:not(:disabled){ border-color:var(--accent); } .tw-dpick:disabled{ cursor:default; }
+.tw-dpick.is-taken{ opacity:.45; } .tw-dpick.is-mine{ opacity:1; border-color:#10b981; background:rgba(16,185,129,.1); }
+.tw-draft-order{ margin:0; padding-left:20px; font-size:.86rem; } .tw-draft-order li{ padding:5px 0; border-top:1px solid var(--border-soft); } .tw-draft-order li:first-child{ border-top:0; }
+.tw-draft-order li.is-on b{ color:#10b981; } .tw-draft-order span{ display:block; font-family:var(--mono); font-size:.76rem; color:var(--muted); }
+.tw-bounty{ margin-top:14px; } .tw-bounty h3{ font-size:.9rem; margin:0 0 6px; }
+.tw-b-row{ display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; padding:6px 0; border-top:1px solid var(--border-soft); font-size:.84rem; }
+.tw-b-row > span:first-child{ flex:1; min-width:0; } .tw-b-amt{ font-family:var(--mono); } .tw-b-row.is-open .tw-b-amt{ color:#f87171; } .tw-b-row small{ color:var(--muted); font-family:var(--mono); font-size:.72rem; }
+.tw-b-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; font-size:.84rem; }
+.tw-b-form select{ font:inherit; padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); }
+@media (max-width:820px){ .tw-draft{ grid-template-columns:1fr; } }

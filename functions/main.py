@@ -949,15 +949,26 @@ def _tw_order(acct, uid):
     return (acct.get("pnlPct") or 0, acct.get("pnl") or 0, uid)
 
 
-def tw_pick_outs(alive, accts, elim, now_ms, next_cut):
+def tw_pick_outs(alive, accts, elim, now_ms, next_cut, shields=None, used=None):
     """Pure: [(uid, reason)] to knock out now, worst first. Never knocks out everyone left:
-    if all would go, the best of them survives (and wins)."""
+    if all would go, the best of them survives (and wins). A Shield Token (Whale vs Minnow)
+    saves a player from a timed cut: the shield is spent (uid appended to used) and the
+    next-worst player without one is cut instead."""
     outs = [(u, r) for u in alive for r in [tw_out_reason(accts[u], elim)] if r]
     if elim.get("cutHours") and next_cut and now_ms >= next_cut:
         hit = {u for u, _ in outs}
-        rest = [u for u in alive if u not in hit]
-        if len(rest) > 1:
-            outs.append((min(rest, key=lambda u: _tw_order(accts[u], u)), "cut"))
+        rest = sorted((u for u in alive if u not in hit), key=lambda u: _tw_order(accts[u], u))
+        shields = dict(shields or {})
+        while len(rest) > 1:
+            u = rest[0]
+            if shields.get(u, 0) > 0:
+                shields[u] -= 1
+                if used is not None:
+                    used.append(u)
+                rest = rest[1:]
+                continue
+            outs.append((u, "cut"))
+            break
     if outs and len(outs) >= len(alive):
         best = max(outs, key=lambda o: _tw_order(accts[o[0]], o[0]))
         outs.remove(best)
@@ -978,13 +989,233 @@ def tw_knock_out(acct, book, prices, reason, place, now_ms):
     return acct, book
 
 
-def tw_start_fields(war, now_ms):
-    """Fields that turn a lobby into a live match."""
+def tw_live_fields(war, now_ms):
+    """Fields that make a match live (straight from the lobby, or when its draft ends)."""
     f = {"status": "active", "startAt": now_ms, "endAt": now_ms + war["days"] * 86400000}
     if war.get("lms"):
         cut = war["lms"].get("cutHours")
         f.update({"alive": list(war["players"]), "outs": [], "nextCutAt": now_ms + cut * 3600000 if cut else None})
     return f
+
+
+def tw_start_fields(war, now_ms, xps=None, rng=None):
+    """Fields that start a lobby: Whale vs Minnow roles, then the draft (if on) or the live match."""
+    modes, f = war.get("modes") or {}, {}
+    if modes.get("whale"):
+        whales = tw_whales(war["players"], xps or {})
+        f.update({"whales": whales, "shields": {u: modes["whale"]["shields"] for u in war["players"] if u not in whales}})
+    if modes.get("draft"):
+        universe = tw_draft_universe(war)
+        if len(war["players"]) * modes["draft"]["picks"] > len(universe):
+            raise TWError("FAILED_PRECONDITION", "Too many players for a %d-pick draft: there are only %d stocks to go around." % (modes["draft"]["picks"], len(universe)))
+        f.update({"status": "draft", "draft": tw_draft_new(war["players"], modes["draft"]["picks"], now_ms, rng)})
+        return f
+    f.update(tw_live_fields(war, now_ms))
+    return f
+
+
+# ---------------------------------------------------------------------------
+# Advanced gameplay (optional, host picks at creation; all enforced here):
+#   draft    Pre-battle asset draft: a snake draft; each player can only trade
+#            the stocks they drafted. 45 s a pick, then the server picks for you.
+#   whale    Whale vs Minnow: players above the match's median XP are "whales"
+#            with a position-size cap; the others get Shield Tokens (cancel a
+#            bounty on you, or survive one timed cut).
+#   storms   Volatility Storms: random 30-minute virtual events during market
+#            hours: double P&L on sells, a 1% trade fee, or a halt on one stock.
+#   bounties Bounty Board: stake part of your match cash on a rival; the player
+#            who beats them by the most (since the bounty) wins the pot, else the
+#            target keeps it. Limits stop farming (see tw_new_bounty).
+# The Battlefield Ticker (tradeWars/{id}/events) is always on.
+# ---------------------------------------------------------------------------
+TW_MODE_OPTS = {"draftPicks": (2, 3, 5), "whaleCap": (25, 50, 75), "whaleShields": (1, 2, 3), "storms": ("rare", "often")}
+TW_DRAFT_PICK_MS = 45000
+TW_DRAFT_IDLE_MS = 120000     # a draft nobody touches is finished by the 5-minute job
+TW_STORM_MS = 30 * 60000
+TW_STORM_CHANCE = {"rare": 1 / 78.0, "often": 3 / 78.0}  # per 5-minute check: ~1 or ~3 a trading day
+TW_STORM_KINDS = ("double", "fee", "halt")
+TW_STORM_FEE = 0.01
+TW_BIG_TRADE = 0.25           # a trade worth 25%+ of your account makes the ticker
+TW_BOUNTY_PCTS, TW_BOUNTY_HOURS = (2, 5, 10), (6, 24)
+TW_BOUNTY_MAX_ON_TARGET = 2
+
+
+def tw_validate_modes(data, days):
+    """{} or the advanced-gameplay settings, or raises TWError."""
+    raw = (data or {}).get("modes")
+    if not raw:
+        return {}
+    if not isinstance(raw, dict):
+        raise TWError("INVALID_ARGUMENT", "Game options aren't valid.")
+    bad = TWError("INVALID_ARGUMENT", "Game options aren't valid.")
+    out = {}
+
+    def num(k):
+        v = raw.get(k)
+        if isinstance(v, float) and v.is_integer():
+            v = int(v)
+        if isinstance(v, bool) or v not in TW_MODE_OPTS[k]:
+            raise bad
+        return v
+    if raw.get("draftPicks"):
+        out["draft"] = {"picks": num("draftPicks")}
+    if raw.get("whaleCap"):
+        out["whale"] = {"capPct": num("whaleCap"), "shields": num("whaleShields")}
+    if raw.get("storms"):
+        if raw["storms"] not in TW_MODE_OPTS["storms"]:
+            raise bad
+        out["storms"] = raw["storms"]
+    if raw.get("bounties"):
+        if raw["bounties"] is not True:
+            raise bad
+        out["bounties"] = True
+    return out
+
+
+def tw_draft_universe(war):
+    syms = (war.get("rules") or {}).get("symbols")
+    return sorted(syms) if syms else sorted(PRACTICE_SYMBOLS)
+
+
+def tw_draft_new(players, per, now_ms, rng=None):
+    order = list(players)
+    (rng or _secrets.SystemRandom()).shuffle(order)
+    return {"order": order, "per": per, "picks": {u: [] for u in order}, "taken": [], "turn": 0,
+            "total": len(order) * per, "deadline": now_ms + TW_DRAFT_PICK_MS}
+
+
+def tw_draft_on_clock(draft):
+    """Whose pick it is: a snake order (1-2-3, 3-2-1, ...)."""
+    n = len(draft["order"])
+    rnd, pos = divmod(draft["turn"], n)
+    return draft["order"][pos if rnd % 2 == 0 else n - 1 - pos]
+
+
+def tw_draft_apply(draft, sym, universe, now_ms):
+    """Pure: the draft after the player on the clock takes sym."""
+    if draft["turn"] >= draft["total"]:
+        raise TWError("FAILED_PRECONDITION", "The draft is over.")
+    if sym not in universe:
+        raise TWError("INVALID_ARGUMENT", "%s isn't in this draft." % (sym or "That stock"))
+    if sym in draft["taken"]:
+        raise TWError("FAILED_PRECONDITION", "%s was already drafted. Pick another stock." % sym)
+    uid = tw_draft_on_clock(draft)
+    d = dict(draft, picks={u: list(v) for u, v in draft["picks"].items()}, taken=draft["taken"] + [sym])
+    d["picks"][uid].append(sym)
+    d["turn"] = draft["turn"] + 1
+    d["deadline"] = now_ms + TW_DRAFT_PICK_MS
+    return d, uid
+
+
+def tw_draft_auto(draft, universe, rng=None):
+    """A stock for a player who ran out of time: a random one nobody has."""
+    left = [s for s in universe if s not in draft["taken"]]
+    return (rng or _secrets.SystemRandom()).choice(left)
+
+
+def tw_whales(players, xps):
+    """Players above the median XP (XP from users/{uid}); nobody if everyone is level."""
+    vals = sorted(int(xps.get(u) or 0) for u in players)
+    if not vals:
+        return []
+    n = len(vals)
+    med = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2.0
+    return [u for u in players if int(xps.get(u) or 0) > med]
+
+
+def tw_storm_now(storm, now_ms):
+    return storm if storm and storm.get("start", 0) <= now_ms < storm.get("end", 0) else None
+
+
+def tw_maybe_storm(freq, storm, now_ms, end_at, market_open, roll, pick, held):
+    """Pure: a new storm, or None. roll in [0, 1); pick(list) chooses."""
+    if not freq or not market_open or tw_storm_now(storm, now_ms) or end_at - now_ms < TW_STORM_MS:
+        return None
+    if storm and now_ms - storm.get("end", 0) < TW_STORM_MS:  # a calm spell between storms
+        return None
+    if roll >= TW_STORM_CHANCE[freq]:
+        return None
+    kind = pick(list(TW_STORM_KINDS))
+    st = {"kind": kind, "start": now_ms, "end": now_ms + TW_STORM_MS}
+    if kind == "halt":
+        st["sym"] = pick(sorted(held)) if held else pick(sorted(PRACTICE_SYMBOLS))
+    return st
+
+
+def tw_storm_text(st):
+    return {"double": "Double or nothing: profits and losses on sells count twice",
+            "fee": "Choppy water: every trade costs a 1% virtual fee",
+            "halt": "Trading halt: %s can't be traded" % st.get("sym")}.get(st.get("kind"), "")
+
+
+def tw_whale_ok(acct, book, prices, sym, qty, price, cap_pct):
+    """True if this buy keeps the position within cap_pct% of the account."""
+    pos = (book.get("positions") or {}).get(sym) or {"qty": 0}
+    equity = tw_mark(acct, book, prices, 0)["equity"]
+    return (pos["qty"] + qty) * price <= equity * cap_pct / 100.0 + 1e-6
+
+
+def tw_new_bounty(war, accts, by, target, pct, hours, now_ms, bid):
+    """Pure: a new bounty (the pot comes out of the sponsor's cash), or raises TWError.
+    Anti-farming: one open bounty per sponsor, each sponsor->target pair once per match,
+    at most 2 open on a target, 1h+ left in the match, and only real rivals can win it:
+    hunters must trade after it's placed and neither the sponsor nor the target can hunt."""
+    if pct not in TW_BOUNTY_PCTS or hours not in TW_BOUNTY_HOURS:
+        raise TWError("INVALID_ARGUMENT", "Bounties are 2%, 5% or 10% of your cash, for 6 or 24 hours.")
+    if target == by:
+        raise TWError("INVALID_ARGUMENT", "You can't put a bounty on yourself.")
+    if target not in war["players"] or target not in accts:
+        raise TWError("INVALID_ARGUMENT", "That player isn't in this Trade War.")
+    if accts[by].get("out") or accts[target].get("out"):
+        raise TWError("FAILED_PRECONDITION", "Knocked-out players can't place or receive bounties.")
+    open_ = [b for b in war.get("bounties") or [] if b["status"] == "open"]
+    if any(b["by"] == by for b in open_):
+        raise TWError("FAILED_PRECONDITION", "You already have a bounty out. Wait for it to settle.")
+    if any(b["by"] == by and b["target"] == target for b in war.get("bounties") or []):
+        raise TWError("FAILED_PRECONDITION", "You've already put a bounty on this player in this Trade War.")
+    if sum(1 for b in open_ if b["target"] == target) >= TW_BOUNTY_MAX_ON_TARGET:
+        raise TWError("FAILED_PRECONDITION", "This player already has 2 bounties on them.")
+    if (war.get("endAt") or 0) - now_ms < 3600000:
+        raise TWError("FAILED_PRECONDITION", "Bounties close in the last hour of a Trade War.")
+    amount = _r2(accts[by]["equity"] * pct / 100.0)
+    if amount < 1 or amount > accts[by]["cash"] + 1e-9:
+        raise TWError("FAILED_PRECONDITION", "Not enough match cash for that bounty (it's paid from cash, not stocks).")
+    names = war.get("names") or {}
+    return {"id": bid, "by": by, "byName": names.get(by, "Trader"), "target": target, "targetName": names.get(target, "Trader"),
+            "amount": amount, "pct": pct, "at": now_ms, "end": min(now_ms + hours * 3600000, war["endAt"]), "status": "open",
+            "base": {u: {"eq": a["equity"], "trades": a.get("trades", 0)} for u, a in accts.items()}}
+
+
+def tw_settle_bounty(b, accts):
+    """Pure: ('won', hunter) / ('defended', target) / ('refunded', sponsor)."""
+    def gain(u):
+        base = (b["base"].get(u) or {}).get("eq") or 0
+        return (accts[u]["equity"] / base - 1) if base else 0
+    t = accts.get(b["target"])
+    tg = gain(b["target"]) if t else 0
+    hunters = [u for u, a in accts.items() if u not in (b["by"], b["target"]) and not a.get("out") and u in b["base"]
+               and a.get("trades", 0) > b["base"][u]["trades"] and gain(u) > tg]
+    if hunters:
+        return "won", max(hunters, key=lambda u: (gain(u), u))
+    if t and not t.get("out"):
+        return "defended", b["target"]
+    return "refunded", b["by"]
+
+
+def tw_leader(accts, alive):
+    rows = [(a.get("pnlPct") or 0, u) for u, a in accts.items() if u in alive and not a.get("out")]
+    best = max(rows) if rows else None
+    return best[1] if best and best[0] > 0 else None
+
+
+def _tw_money(v, signed=False):
+    return ("+" if signed and v >= 0 else "-" if v < 0 else "") + "$" + format(abs(v), ",.2f")
+
+
+def tw_event(kind, text, now_ms, **extra):
+    e = {"kind": kind, "text": text[:160], "at": now_ms}
+    e.update(extra)
+    return e
 
 
 def _tw_check_buyin(db, uid, buy_in):
@@ -1008,8 +1239,10 @@ def tw_new_book():
     return {"positions": {}, "fills": []}
 
 
-def tw_apply_trade(acct, book, sym, side, qty, price, now_ms):
-    """Pure: returns (acct, book, fill) after one market order, or raises TWError."""
+def tw_apply_trade(acct, book, sym, side, qty, price, now_ms, storm=None):
+    """Pure: returns (acct, book, fill) after one market order, or raises TWError.
+    storm (a live Volatility Storm): 'fee' charges 1% of the trade; 'double' counts a
+    sell's profit or loss twice (cash never goes below zero)."""
     if side not in ("buy", "sell"):
         raise TWError("INVALID_ARGUMENT", "Side must be buy or sell.")
     if not isinstance(qty, int) or isinstance(qty, bool) or qty < 1 or qty > 1000000:
@@ -1021,18 +1254,25 @@ def tw_apply_trade(acct, book, sym, side, qty, price, now_ms):
     acct, book = dict(acct), {"positions": dict(book.get("positions") or {}), "fills": list(book.get("fills") or [])}
     pos = dict(book["positions"].get(sym) or {"qty": 0, "avg": 0.0})
     cost = _r2(qty * price)
+    kind = (storm or {}).get("kind")
+    fee = _r2(cost * TW_STORM_FEE) if kind == "fee" else 0.0
     fill = {"sym": sym, "side": side, "qty": qty, "price": _r2(price), "at": now_ms}
+    if fee:
+        fill["fee"] = fee
     if side == "buy":
-        if cost > acct["cash"] + 1e-9:
+        if cost + fee > acct["cash"] + 1e-9:
+            if fee and cost <= acct["cash"] + 1e-9:
+                raise TWError("FAILED_PRECONDITION", "Not enough match cash to cover the storm's 1%% fee ($%s)." % format(fee, ",.2f"))
             raise TWError("FAILED_PRECONDITION", "Not enough match cash: %d shares of %s cost $%s and you have $%s." % (qty, sym, format(cost, ",.2f"), format(acct["cash"], ",.2f")))
         new_qty = pos["qty"] + qty
         pos["avg"] = _r2((pos["qty"] * pos["avg"] + cost) / new_qty)
         pos["qty"] = new_qty
-        acct["cash"] = _r2(acct["cash"] - cost)
+        acct["cash"] = _r2(acct["cash"] - cost - fee)
     else:
         if qty > pos["qty"]:
             raise TWError("FAILED_PRECONDITION", "You only hold %d shares of %s (Trade War is long only)." % (pos["qty"], sym))
         gain = _r2((price - pos["avg"]) * qty)
+        extra = gain if kind == "double" else 0.0
         fill["pnl"] = gain
         acct["worst"] = min(acct.get("worst") or 0, gain)
         acct["realized"] = _r2(acct.get("realized", 0) + gain)
@@ -1041,7 +1281,14 @@ def tw_apply_trade(acct, book, sym, side, qty, price, now_ms):
         elif gain < 0:
             acct["losses"] = acct.get("losses", 0) + 1
         pos["qty"] -= qty
-        acct["cash"] = _r2(acct["cash"] + cost)
+        acct["cash"] = _r2(acct["cash"] + cost - fee)
+        if extra:
+            extra = max(extra, -acct["cash"])  # a doubled loss can't take cash below zero
+            acct["cash"] = _r2(acct["cash"] + extra)
+            acct["realized"] = _r2(acct["realized"] + extra)
+            acct["worst"] = min(acct.get("worst") or 0, _r2(gain + extra))
+            fill["pnl"] = _r2(gain + extra)
+            fill["storm"] = "double"
     if pos["qty"]:
         book["positions"][sym] = pos
     else:
@@ -1119,6 +1366,36 @@ def _tw_name(db, uid, token):
     return str((token or {}).get("name") or "Trader").split(" ")[0][:24]
 
 
+def _tw_xps(db, uids):
+    """XP per player (users/{uid}.xp) for Whale vs Minnow roles."""
+    out = {}
+    for u in uids:
+        try:
+            d = db.collection("users").document(u).get()
+            out[u] = int((d.to_dict() or {}).get("xp") or 0) if d.exists else 0
+        except Exception:
+            out[u] = 0
+    return out
+
+
+def _tw_log(w, ref, ev):
+    """Add a Battlefield Ticker event (w is a transaction or batch)."""
+    w.set(ref.collection("events").document(), ev)
+
+
+def _tw_start_events(war, fields, now_ms):
+    names = war.get("names") or {}
+    evs = []
+    if fields.get("whales"):
+        evs.append(tw_event("whale", "Whales: %s. Everyone else gets %d Shield Token%s." % (", ".join(names.get(u, "Trader") for u in fields["whales"]),
+                    war["modes"]["whale"]["shields"], "" if war["modes"]["whale"]["shields"] == 1 else "s"), now_ms))
+    if fields.get("status") == "draft":
+        evs.append(tw_event("draft", "The draft is on. %s picks first." % names.get(fields["draft"]["order"][0], "Trader"), now_ms))
+    else:
+        evs.append(tw_event("start", "The Trade War has started. Everyone has %s of virtual money." % ("$" + format(war["buyIn"], ",")), now_ms))
+    return evs
+
+
 def _tw_war_id(data):
     wid = str((data or {}).get("warId") or "")
     if not _TW_ID_RE.match(wid):
@@ -1148,6 +1425,7 @@ def _tw_call(fn):
 def tw_create(req, db, uid, now_ms):
     name, buy_in, days, max_players = tw_validate_create(req.data)
     lms = tw_validate_lms(req.data, days)
+    modes = tw_validate_modes(req.data, days)
     _tw_check_buyin(db, uid, buy_in)
     open_count = sum(1 for d in db.collection("tradeWars").where("host", "==", uid).where("status", "==", "lobby").limit(6).stream())
     if open_count >= 5:
@@ -1159,7 +1437,7 @@ def tw_create(req, db, uid, now_ms):
     batch = db.batch()
     batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
                         "maxPlayers": max_players, "status": "lobby", "players": [uid], "names": {uid: pname},
-                        "lms": lms, "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
+                        "lms": lms, "modes": modes, "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
                         "rules": {"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}})
     batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
     batch.set(war_ref.collection("books").document(uid), tw_new_book())
@@ -1240,7 +1518,11 @@ def tw_start(req, db, uid, now_ms):
             raise TWError("FAILED_PRECONDITION", "This Trade War has already started.")
         if len(war["players"]) < 2:
             raise TWError("FAILED_PRECONDITION", "You need at least one opponent. Share the invite link first.")
-        t.update(war_ref, tw_start_fields(war, now_ms))
+        xps = _tw_xps(db, war["players"]) if (war.get("modes") or {}).get("whale") else {}
+        fields = tw_start_fields(war, now_ms, xps)
+        t.update(war_ref, fields)
+        for ev in _tw_start_events(war, fields, now_ms):
+            _tw_log(t, war_ref, ev)
 
     txn(db.transaction())
     _tw_close_invites(db, wid, "expired", now_ms)  # the buy-in is locked: unanswered invites lapse
@@ -1293,9 +1575,15 @@ def tw_trade(req, db, uid, now_ms):
         if uid not in war["players"]:
             raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
         if war["status"] != "active":
-            raise TWError("FAILED_PRECONDITION", "This Trade War isn't live yet." if war["status"] == "lobby" else "This Trade War is over.")
+            raise TWError("FAILED_PRECONDITION", "This Trade War isn't live yet." if war["status"] in ("lobby", "draft") else "This Trade War is over.")
         if now_ms >= (war.get("endAt") or 0):
             raise TWError("FAILED_PRECONDITION", "This Trade War has ended. Final results are being tallied.")
+        mine = ((war.get("draft") or {}).get("picks") or {}).get(uid)
+        if (war.get("modes") or {}).get("draft") and mine is not None and sym not in mine:
+            raise TWError("FAILED_PRECONDITION", "You can only trade the stocks you drafted: %s." % ", ".join(mine))
+        storm = tw_storm_now(war.get("storm"), now_ms)
+        if storm and storm.get("kind") == "halt" and storm.get("sym") == sym:
+            raise TWError("FAILED_PRECONDITION", "%s is halted by a Volatility Storm (a virtual game event) for a few more minutes." % sym)
         allowed = (war.get("rules") or {}).get("symbols")
         if allowed and sym not in allowed:
             listed = ", ".join(allowed[:12]) + (" and more" if len(allowed) > 12 else "")
@@ -1304,14 +1592,32 @@ def tw_trade(req, db, uid, now_ms):
         if acct.get("out"):
             raise TWError("FAILED_PRECONDITION", "You've been eliminated from this Last Man Standing. Your result is locked in.")
         book = book_ref.get(transaction=t).to_dict() or tw_new_book()
-        acct, book, fill = tw_apply_trade(acct, book, sym, side, qty, prices.get(sym), now_ms)
+        whale = (war.get("modes") or {}).get("whale")
+        if whale and side == "buy" and uid in (war.get("whales") or []) and prices.get(sym) and isinstance(qty, int) \
+                and not tw_whale_ok(acct, book, prices, sym, qty, prices[sym], whale["capPct"]):
+            raise TWError("FAILED_PRECONDITION", "Whale limit: as a whale you can put at most %d%% of your account in one stock." % whale["capPct"])
+        eq_before = acct.get("equity") or acct["start"]
+        acct, book, fill = tw_apply_trade(acct, book, sym, side, qty, prices.get(sym), now_ms, storm)
         acct = tw_mark(acct, book, prices, now_ms)
+        name = (war.get("names") or {}).get(uid, "Trader")
+        if fill["qty"] * fill["price"] >= TW_BIG_TRADE * eq_before:
+            open_book = (war.get("rules") or {}).get("viewTrades") or (war.get("modes") or {}).get("draft")
+            if open_book:
+                what = "%s %d %s" % ("bought" if side == "buy" else "sold", qty, sym)
+                if fill.get("pnl") is not None:
+                    what += " (%s)" % _tw_money(fill["pnl"], signed=True)
+            else:
+                what = "a big " + ("buy" if side == "buy" else "sell")
+            _tw_log(t, war_ref, tw_event("big", "%s went big: %s" % (name, what), now_ms, uid=uid))
+        if fill.get("storm") == "double" and abs(fill.get("pnl") or 0) >= 1:
+            _tw_log(t, war_ref, tw_event("storm", "%s rode the storm: %s, doubled" % (name, _tw_money(fill["pnl"], signed=True)), now_ms, uid=uid))
         reason, alive = tw_out_reason(acct, war.get("lms")), None
         if reason:
             alive = [u for u in (war.get("alive") or war["players"]) if u != uid]
             acct, book = tw_knock_out(acct, book, prices, reason, len(alive) + 1, now_ms)
             t.update(war_ref, {"alive": alive, "outs": (war.get("outs") or []) + [
                 {"uid": uid, "name": acct.get("name"), "reason": reason, "at": now_ms, "pnlPct": acct["pnlPct"], "place": acct["place"]}]})
+            _tw_log(t, war_ref, tw_event("out", "%s is knocked out (#%d)" % (name, acct["place"]), now_ms, uid=uid))
         t.set(acct_ref, acct)
         t.set(book_ref, book)
         return fill, acct, alive
@@ -1322,9 +1628,122 @@ def tw_trade(req, db, uid, now_ms):
     return {"fill": fill, "cash": acct["cash"], "equity": acct["equity"], "out": acct.get("outReason")}
 
 
-def tw_mark_war(db, ref, now_ms, prices):
+@https_fn.on_call()
+@_tw_call
+def tw_draft_pick(req, db, uid, now_ms):
+    """Your draft pick ({warId, sym}), or {warId} alone to auto-pick for a player whose time ran out."""
+    data = req.data or {}
+    sym = str(data.get("sym") or "").upper() or None
+    tw_draft_step(db, db.collection("tradeWars").document(_tw_war_id(data)), now_ms, uid, sym)
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_bounty(req, db, uid, now_ms):
+    """Place a bounty: {warId, target, pct: 2|5|10, hours: 6|24}. The pot comes out of your match cash."""
+    data = req.data or {}
+    war_ref = db.collection("tradeWars").document(_tw_war_id(data))
+    target = str(data.get("target") or "")
+    pct, hours = data.get("pct"), data.get("hours")
+    prices, _, _ = _tw_prices(db)
+
+    @firestore.transactional
+    def txn(t):
+        wsnap = war_ref.get(transaction=t)
+        war = wsnap.to_dict() if wsnap.exists else None
+        if not war or uid not in war["players"]:
+            raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
+        if not (war.get("modes") or {}).get("bounties"):
+            raise TWError("FAILED_PRECONDITION", "Bounties are off in this Trade War.")
+        if war["status"] != "active" or now_ms >= (war.get("endAt") or 0):
+            raise TWError("FAILED_PRECONDITION", "Bounties can only be placed while the Trade War is live.")
+        accts, books = {}, {}
+        for u in war["players"]:
+            a = war_ref.collection("accounts").document(u).get(transaction=t)
+            if a.exists:
+                b = war_ref.collection("books").document(u).get(transaction=t)
+                books[u] = (b.to_dict() if b.exists else None) or tw_new_book()
+                accts[u] = a.to_dict() if a.to_dict().get("out") else tw_mark(a.to_dict(), books[u], prices, now_ms)
+        bid = "".join(_secrets.choice("abcdefghijkmnopqrstuvwxyz23456789") for _ in range(10))
+        b = tw_new_bounty(war, accts, uid, target, pct, hours, now_ms, bid)
+        me = tw_mark(dict(accts[uid], cash=_r2(accts[uid]["cash"] - b["amount"])), books[uid], prices, now_ms)
+        t.set(war_ref.collection("accounts").document(uid), me)
+        t.update(war_ref, {"bounties": (war.get("bounties") or []) + [b]})
+        _tw_log(t, war_ref, tw_event("bounty", "%s put a %s bounty on %s (%d h)" % (b["byName"], _tw_money(b["amount"]), b["targetName"], hours), now_ms, uid=uid))
+        return b
+
+    b = txn(db.transaction())
+    return {"id": b["id"], "amount": b["amount"], "end": b["end"]}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_shield(req, db, uid, now_ms):
+    """Spend a Shield Token to cancel a bounty on you: {warId, bountyId}. The sponsor gets the pot back."""
+    data = req.data or {}
+    war_ref = db.collection("tradeWars").document(_tw_war_id(data))
+    bid = str(data.get("bountyId") or "")
+    prices, _, _ = _tw_prices(db)
+
+    @firestore.transactional
+    def txn(t):
+        wsnap = war_ref.get(transaction=t)
+        war = wsnap.to_dict() if wsnap.exists else None
+        if not war or uid not in war["players"]:
+            raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
+        if war["status"] != "active":
+            raise TWError("FAILED_PRECONDITION", "This Trade War isn't live.")
+        shields = dict(war.get("shields") or {})
+        if shields.get(uid, 0) < 1:
+            raise TWError("FAILED_PRECONDITION", "You don't have a Shield Token.")
+        bounties = list(war.get("bounties") or [])
+        i = next((k for k, b in enumerate(bounties) if b["id"] == bid), None)
+        if i is None or bounties[i]["target"] != uid or bounties[i]["status"] != "open":
+            raise TWError("NOT_FOUND", "There's no open bounty on you with that id.")
+        b = bounties[i]
+        sref = war_ref.collection("accounts").document(b["by"])
+        sp = sref.get(transaction=t).to_dict()
+        if not sp.get("out"):
+            bk = war_ref.collection("books").document(b["by"]).get(transaction=t)
+            t.set(sref, tw_mark(dict(sp, cash=_r2(sp["cash"] + b["amount"])), (bk.to_dict() if bk.exists else None) or tw_new_book(), prices, now_ms))
+        bounties[i] = dict(b, status="shielded", settledAt=now_ms)
+        shields[uid] -= 1
+        t.update(war_ref, {"bounties": bounties, "shields": shields})
+        _tw_log(t, war_ref, tw_event("shield", "%s raised a Shield: the %s bounty is cancelled" % (b["targetName"], _tw_money(b["amount"])), now_ms, uid=uid))
+
+    txn(db.transaction())
+    return {"ok": True}
+
+
+def tw_settle_bounties(war, accts, books, prices, now_ms, force):
+    """Pure-ish: settles due bounties (all open ones if force), paying the pot into cash.
+    Returns (bounties, events)."""
+    names, out, evs = war.get("names") or {}, [], []
+    for b in war.get("bounties") or []:
+        if b["status"] != "open" or (not force and now_ms < b["end"]):
+            out.append(b)
+            continue
+        status, who = tw_settle_bounty(b, accts)
+        b = dict(b, status=status, winner=who, winnerName=names.get(who, "Trader"), settledAt=now_ms)
+        if who in accts and not accts[who].get("out"):
+            a = dict(accts[who], cash=_r2(accts[who]["cash"] + b["amount"]))
+            accts[who] = tw_mark(a, books[who], prices, now_ms)
+        money = _tw_money(b["amount"])
+        evs.append(tw_event("bounty", {"won": "%s claimed the %s bounty on %s" % (b["winnerName"], money, b["targetName"]),
+                                       "defended": "%s survived the bounty and keeps %s" % (b["targetName"], money),
+                                       "refunded": "The %s bounty on %s expired unclaimed" % (money, b["targetName"])}[status], now_ms, uid=who))
+        out.append(b)
+    return out, evs
+
+
+def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
     """Revalue one live match in a transaction (so it can't overwrite a trade in flight),
-    apply Last Man Standing eliminations, and close it when time is up or one trader is left."""
+    then: settle due bounties, apply Last Man Standing eliminations (Shield Tokens save
+    you from a timed cut), roll for Volatility Storms, post lead changes to the
+    Battlefield Ticker, and close the match when time is up or one trader is left."""
+    rng = rng or _secrets.SystemRandom()
+
     @firestore.transactional
     def txn(t):
         wsnap = ref.get(transaction=t)
@@ -1341,44 +1760,135 @@ def tw_mark_war(db, ref, now_ms, prices):
         for uid, acct in accts.items():
             if not acct.get("out"):
                 accts[uid] = tw_mark(acct, books[uid], prices, now_ms)
-        update, lms, knocked = {"markedAt": now_ms}, war.get("lms"), set()
+        names, modes = war.get("names") or {}, war.get("modes") or {}
+        update, lms, knocked, events = {"markedAt": now_ms}, war.get("lms"), set(), []
+        time_up = now_ms >= (war.get("endAt") or 0)
+        if war.get("bounties"):
+            update["bounties"], evs = tw_settle_bounties(war, accts, books, prices, now_ms, time_up)
+            events += evs
+        alive = [u for u in (war.get("alive") or war["players"]) if u in accts and not accts[u].get("out")]
         if lms:
-            alive = [u for u in (war.get("alive") or war["players"]) if u in accts and not accts[u].get("out")]
-            outs = list(war.get("outs") or [])
-            picks = tw_pick_outs(alive, accts, lms, now_ms, war.get("nextCutAt"))
+            outs, used, shields = list(war.get("outs") or []), [], dict(war.get("shields") or {})
+            picks = tw_pick_outs(alive, accts, lms, now_ms, war.get("nextCutAt"), shields, used)
+            for u in used:
+                shields[u] -= 1
+                events.append(tw_event("shield", "%s used a Shield Token to survive the cut" % names.get(u, "Trader"), now_ms, uid=u))
+            if used:
+                update["shields"] = shields
             for i, (uid, reason) in enumerate(picks):
                 accts[uid], books[uid] = tw_knock_out(accts[uid], books[uid], prices, reason, len(alive) - i, now_ms)
                 a = accts[uid]
                 outs.append({"uid": uid, "name": a.get("name"), "reason": reason, "at": now_ms, "pnlPct": a["pnlPct"], "place": a["place"]})
+                events.append(tw_event("out", "%s is knocked out (#%d)" % (a.get("name") or "Trader", a["place"]), now_ms, uid=uid))
                 knocked.add(uid)
             alive = [u for u in alive if u not in knocked]
             update.update({"alive": alive, "outs": outs})
             cut = lms.get("cutHours")
             if cut and war.get("nextCutAt") and now_ms >= war["nextCutAt"]:
                 update["nextCutAt"] = war["nextCutAt"] + cut * 3600000
-        if now_ms >= (war.get("endAt") or 0) or (lms and len(update["alive"]) <= 1):
+        ending = time_up or (lms and len(alive) <= 1)
+        if ending and not time_up and any(b["status"] == "open" for b in update.get("bounties") or war.get("bounties") or []):
+            update["bounties"], evs = tw_settle_bounties(dict(war, bounties=update.get("bounties") or war.get("bounties")), accts, books, prices, now_ms, True)
+            events += evs
+        if not ending:
+            storm = war.get("storm")
+            if storm and storm.get("end", 0) <= now_ms and not storm.get("over"):
+                update["storm"] = storm = dict(storm, over=True)
+                events.append(tw_event("storm", "The storm has passed. Normal trading resumes.", now_ms))
+            held = {s for u in alive for s in (books[u].get("positions") or {})}
+            new = tw_maybe_storm(modes.get("storms"), storm, now_ms, war.get("endAt") or 0, market_open, rng.random(), rng.choice, held)
+            if new:
+                update["storm"] = new
+                events.append(tw_event("storm", "VOLATILITY STORM (virtual): " + tw_storm_text(new) + " for 30 minutes.", now_ms))
+            lead = tw_leader(accts, alive)
+            if lead and lead != war.get("leader"):
+                update["leader"] = lead
+                events.append(tw_event("lead", "%s takes the lead (%+.2f%%)" % (names.get(lead, "Trader"), accts[lead]["pnlPct"]), now_ms, uid=lead))
+        else:
             rows = [{"uid": uid, "name": a.get("name"), "start": a["start"], "final": a["equity"], "pnl": a["pnl"],
                      "pnlPct": a["pnlPct"], "trades": a.get("trades", 0), "wins": a.get("wins", 0), "losses": a.get("losses", 0),
                      "out": bool(a.get("out")), "outReason": a.get("outReason"), "place": a.get("place")} for uid, a in accts.items()]
             update.update({"status": "ended", "results": tw_rank(rows), "endedAt": now_ms})
+            win = update["results"][0] if update["results"] else None
+            if win:
+                events.append(tw_event("win", "%s wins the Trade War (%+.2f%%)" % (win["name"] or "Trader", win["pnlPct"]), now_ms, uid=win["uid"]))
         for uid, acct in accts.items():
             t.set(ref.collection("accounts").document(uid), acct)
             if uid in knocked:
                 t.set(ref.collection("books").document(uid), books[uid])
         t.update(ref, update)
+        for ev in events:
+            _tw_log(t, ref, ev)
         return True
 
     return txn(db.transaction())
 
 
-def tw_mark_all(db, now_ms, prices):
-    """Revalue every active match; close the ones whose time is up. Returns #matches touched."""
+def tw_draft_step(db, ref, now_ms, uid=None, sym=None, rng=None):
+    """One draft pick in a transaction. uid picks sym on their turn; with sym None, any
+    player (or the 5-minute job, uid None) auto-picks for whoever's clock has run out.
+    The 5-minute job finishes a draft nobody has touched for 2 minutes."""
+    rng = rng or _secrets.SystemRandom()
+
+    @firestore.transactional
+    def txn(t):
+        wsnap = ref.get(transaction=t)
+        war = wsnap.to_dict() if wsnap.exists else None
+        if not war:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        if war.get("status") != "draft":
+            if uid is None:
+                return None
+            raise TWError("FAILED_PRECONDITION", "The draft is over." if war.get("status") == "active" else "This Trade War isn't drafting.")
+        if uid is not None and uid not in war["players"]:
+            raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
+        draft, universe, names, events = war["draft"], tw_draft_universe(war), war.get("names") or {}, []
+        on_clock = tw_draft_on_clock(draft)
+        if uid is not None and sym is not None:
+            if uid != on_clock:
+                raise TWError("FAILED_PRECONDITION", "It's %s's pick." % names.get(on_clock, "another player"))
+            draft, who = tw_draft_apply(draft, sym, universe, now_ms)
+            events.append(tw_event("draft", "%s drafts %s" % (names.get(who, "Trader"), sym), now_ms, uid=who))
+        else:
+            overdue = now_ms >= draft["deadline"]
+            idle = now_ms >= draft["deadline"] - TW_DRAFT_PICK_MS + TW_DRAFT_IDLE_MS
+            if not overdue:
+                if uid is None:
+                    return None
+                raise TWError("FAILED_PRECONDITION", "%s still has time to pick." % names.get(on_clock, "The player on the clock"))
+            while draft["turn"] < draft["total"]:
+                pick = tw_draft_auto(draft, universe, rng)
+                draft, who = tw_draft_apply(draft, pick, universe, now_ms)
+                events.append(tw_event("draft", "%s ran out of time: auto-drafted %s" % (names.get(who, "Trader"), pick), now_ms, uid=who))
+                if not (uid is None and idle):
+                    break
+        upd = {"draft": draft}
+        if draft["turn"] >= draft["total"]:
+            upd.update(tw_live_fields(war, now_ms))
+            upd["draft"] = dict(draft, done=True)
+            events.append(tw_event("start", "Draft complete. The Trade War has started: trade your drafted stocks.", now_ms))
+        t.update(ref, upd)
+        for ev in events:
+            _tw_log(t, ref, ev)
+        return upd
+
+    return txn(db.transaction())
+
+
+def tw_mark_all(db, now_ms, prices, market_open=False):
+    """Revalue every active match (closing the ones whose time is up) and move stalled drafts
+    along. Returns #matches touched."""
     n = 0
     for wsnap in db.collection("tradeWars").where("status", "==", "active").stream():
         try:
-            n += 1 if tw_mark_war(db, wsnap.reference, now_ms, prices) else 0
+            n += 1 if tw_mark_war(db, wsnap.reference, now_ms, prices, market_open) else 0
         except Exception as e:
             print("[tw_mark_matches] %s failed: %s" % (wsnap.id, type(e).__name__))
+    for wsnap in db.collection("tradeWars").where("status", "==", "draft").stream():
+        try:
+            n += 1 if tw_draft_step(db, wsnap.reference, now_ms) else 0
+        except Exception as e:
+            print("[tw_mark_matches] draft %s failed: %s" % (wsnap.id, type(e).__name__))
     return n
 
 
@@ -1390,9 +1900,9 @@ def tw_mark_all(db, now_ms, prices):
 )
 def tw_mark_matches(event: scheduler_fn.ScheduledEvent) -> None:
     db = firestore.client()
-    prices, _, _ = _tw_prices(db)
+    prices, market_open, _ = _tw_prices(db)
     try:
-        n = tw_mark_all(db, int(_time.time() * 1000), prices)
+        n = tw_mark_all(db, int(_time.time() * 1000), prices, market_open)
         if n:
             print("[tw_mark_matches] revalued %d active matches" % n)
     except Exception as e:
@@ -1472,6 +1982,7 @@ def _tw_close_invites(db, wid, status, now_ms):
 @_tw_call
 def tw_challenge(req, db, uid, now_ms):
     targets, buy_in, days, name, squad_id, lms = tw_validate_challenge(req.data, uid)
+    modes = tw_validate_modes(req.data, days)
     _tw_check_buyin(db, uid, buy_in)
     extra_rules = {}
     if squad_id:
@@ -1496,7 +2007,7 @@ def tw_challenge(req, db, uid, now_ms):
     batch = db.batch()
     batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
                         "maxPlayers": 1 + len(targets), "status": "lobby", "players": [uid], "names": {uid: pname},
-                        "invited": targets, "mode": mode, "squadId": squad_id or None, "lms": lms,
+                        "invited": targets, "mode": mode, "squadId": squad_id or None, "lms": lms, "modes": modes,
                         "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
                         "rules": dict({"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}, **extra_rules)})
     batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
@@ -1504,7 +2015,7 @@ def tw_challenge(req, db, uid, now_ms):
     for to in targets:
         batch.set(db.collection("twInvites").document(), {
             "to": to, "toName": _tw_name(db, to, None), "from": uid, "fromName": pname, "fromUsername": t.get("username"), "fromPhoto": photo,
-            "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode, "lms": lms,
+            "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode, "lms": lms, "modes": modes,
             "symbols": extra_rules.get("symbols"),
             "status": "pending", "createdAt": now_ms, "respondedAt": None})
     batch.commit()
@@ -1545,9 +2056,15 @@ def tw_respond(req, db, uid, now_ms):
             if len(war["players"]) >= war["maxPlayers"]:
                 raise TWError("FAILED_PRECONDITION", "This Trade War is full.")
             upd = {"players": war["players"] + [uid], "names.%s" % uid: pname}
+            started = None
             if war.get("mode") == "duel":
-                upd.update(tw_start_fields(dict(war, players=upd["players"]), now_ms))
+                w2 = dict(war, players=upd["players"], names=dict(war.get("names") or {}, **{uid: pname}))
+                started = tw_start_fields(w2, now_ms, _tw_xps(db, w2["players"]) if (war.get("modes") or {}).get("whale") else {})
+                upd.update(started)
             t.update(war_ref, upd)
+            if started:
+                for ev in _tw_start_events(w2, started, now_ms):
+                    _tw_log(t, war_ref, ev)
             t.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, war["buyIn"], now_ms))
             t.set(war_ref.collection("books").document(uid), tw_new_book())
         t.update(inv_ref, {"status": "accepted", "respondedAt": now_ms})
