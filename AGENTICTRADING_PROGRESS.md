@@ -3,14 +3,15 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 3: Layout & navigation. CODE DONE AND TESTED; publishes when the branch is merged to `main`.**
-- Phase 1 (FMP) is still open until the owner confirms live prices at the next market open.
-- Phase 2 is merged to `main` (banner live), and the owner reports the rules + functions deploy is done.
+**Phase 4: Onboarding & profile. CODE DONE AND TESTED. Owner must deploy the Firestore rules, then merge.**
+- Phase 1 (FMP) stays open until the owner confirms live prices at the next market open.
+- The legal pages and Phase 3 are waiting on the same merge.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
+| 4 Onboarding & profile | Code done + tested; not deployed | `zelos-profile.js` (new), `firestore.rules`, `dashboard.html`, `practice/practice.js`, `practice/profile.js`, `practice/squads.js`, `practice/practice.css`, `scripts/build_practice.py` + rebuilt `practice/*.html`, nav on 46 pages (XP & Missions) | Firestore emulator: 27 new rule tests (usernames, squatting, bio, photos, squad helpMode) + 15 Phase 2 tests pass. **End-to-end on Auth+Firestore emulators with the real rules: 30/30**: sign-up, checklist advances, photo upload resized to about 1.7 KB, username uniqueness across 2 users, Help Mode on/off/default, hide checklist, public vs own profile, Edit profile dropdown, squad Help Mode, Trade War welcome + nav, 375px mobile, no page errors. Builders stable; 37/37 unit tests | **No.** 1) deploy rules, 2) merge |
 | 3 Layout & navigation | Code done + tested; not published | 46 pages (nav block), `zelos-theme.css`, `scripts/site_shell.py`, `scripts/build_ai_index.py`, `ai-index.html`, `sitemap.xml` | Browser test on 16 pages: top nav order, no top-level Alerts, correct active section, every nav link resolves to a real file, dropdowns open, no JS errors, no overflow; mobile at 375px: panel opens, animates, and doesn't animate with reduced motion. Page builders re-run: output matches (stray local scan test pages discarded). 37/37 unit tests | **No.** Merge to `main` publishes it |
 | Legal pages | Drafted at owner request | `terms.html`, `privacy.html` (new), 46 footers, `sitemap.xml` | Rendered at 375px, no errors, no overflow | **No.** Merge to `main`; lawyer review still recommended |
 | 2 Security & compliance | Code done + tested; not deployed | `firestore.rules`, `functions/main.py`, `zelos-consent.js` (new), 53 HTML pages (one `<script>` line each) | Firestore emulator: 15/15 rule tests pass (the same tests fail 6/15 on the old rules); function secret/error checks pass; FMP test still passes; browser test 32/32 (EEA vs US time zones, 4 page depths, allow/decline/remember/reopen, Istanbul excluded, Canaries included, 375px mobile) | **Yes.** Merged to `main`; the owner ran the rules + functions deploy |
@@ -237,6 +238,33 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 - **Signed-out homepage vs dashboard:** already separate (`index.html` vs `dashboard.html`), and signing in lands on the Dashboard. The earlier deliberate choice to keep Home browsable for signed-in users is preserved. The custom, editable dashboard (`zelos-dashboard-layout.js`) is untouched and remains the default.
 - **Seen during testing, left as is (pre-existing):** the Trade War entry dialog covers the whole page, nav included, until you press Enter. Revisit in Phase 4 onboarding.
 
+## Phase 4 changes
+- **Profile** (`zelos-profile.js`): one editor for picture, display name, unique **@username** and bio (160 characters).
+  - Photos are chosen from the camera roll and resized in the browser to a small JPEG (limit about 20 KB). No Firebase Storage needed.
+  - The profile is saved to `traders/{uid}` (`avatar`, `username`, `bio`). The username is reserved in `usernames/{name}` in the same batch.
+  - The Trade War leaderboard profile gets the new name, @username and photo.
+  - The Trade War page uses the profile name and photo. Its account sync now waits for the profile, which avoids a stale-overwrite race.
+- **Rules** (`firestore.rules`):
+  - `usernames/{name}`: you can only claim a name you set on your own profile in the same write; changing your name must release the old one (no squatting); anonymous guests can't claim.
+  - Validation on `traders`: username format, bio of 160 characters or fewer, and photo is either an https URL or a small `data:image/jpeg|png|webp` (no SVG, no `javascript:`).
+  - The same photo and username checks on `practiceProfiles`.
+  - Squad owners can set `helpMode`.
+- **Onboarding checklist** on the dashboard: Sign up → Set up profile → First trade → Challenge a friend → Join or create a Trade War.
+  - Shows "N of 5 done", and highlights the current step with one clear button.
+  - Can be hidden, and disappears when everything is done.
+  - Includes a Help Mode switch and an "XP & missions" link.
+  - "Join or create a Trade War" currently means an accepted challenge or a squad. It will be redefined when Phase 5 adds buy-in matches.
+- **Help Mode:** short tips under key controls (dashboard mode switch; Trade War account value, Buy/Sell, stop-loss/take-profit, portfolio tabs; squad board and invite).
+  - On by default until onboarding is done, then off unless the person chose.
+  - The owner's squad-level setting overrides the personal one on that squad's page.
+- **Profile page:** shows @username and bio; your own profile gets an **Edit profile ▾** dropdown (edit, Help Mode, XP & missions, real-stats privacy), plus a "Set up your profile" button when nothing is public yet.
+- **XP & Missions easier to find:** added to the Trade War menu (desktop + mobile) → `practice/index.html?tab=progress`, and linked from the checklist and the profile menu.
+- **Trade War welcome dialog:** no longer covers the site nav; its "Rename" button is now "Edit profile".
+
+## Phase 4 owner steps
+1. Deploy rules **first**: `npx -y firebase-tools@latest deploy --only firestore:rules --project leaderboard-agentictrading`. Without them, saving a profile shows an error.
+2. Then merge `claude/agentictrading-master-spec` to `main`. This also publishes the legal pages and Phase 3.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -245,5 +273,5 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
-2. Owner: merge `claude/agentictrading-master-spec` to `main` again to publish the legal pages and Phase 3. These are website-only changes, so no Firebase deploy is needed.
-3. **Phase 4: Onboarding & profile.** Starts only when the owner says so.
+2. Owner: Phase 4 steps above (rules deploy, then merge).
+3. **Phase 5: Core Trade War sessions** (buy-in, equal starting capital, separate session accounts, leaderboard). Starts only when the owner says so.

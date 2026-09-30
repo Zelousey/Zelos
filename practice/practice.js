@@ -128,7 +128,7 @@
   }
 
   // ------------------------------------------------------------ account state
-  var acct = null, currentUser = null, db = null, saveTimer = null, ownedSkills = [];
+  var acct = null, currentUser = null, db = null, saveTimer = null, ownedSkills = [], profile = {}; // profile: traders/{uid} (zelos-profile.js)
   function fresh() {
     return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
       resets: 0, resetHistory: [], epoch: 0, epochStartedAt: Date.now(), peakEquity: START_CASH, publicProfile: true, displayName: '',
@@ -809,6 +809,7 @@
     };
   }
   function playerName() {
+    if (currentUser && profile.name) return profile.name;
     if (acct && acct.displayName) return acct.displayName;
     if (currentUser && currentUser.displayName) return currentUser.displayName.split(' ')[0];
     if (currentUser) return 'Trader-' + currentUser.uid.slice(0, 4);
@@ -829,7 +830,8 @@
       bestTrades: st.best.map(function (x) { return { sym: x.sym, label: x.label, kind: x.kind, qty: x.qty, invested: round2(x.invested), pnl: round2(x.pnl), pct: round2(x.pct), entry: round2(x.entry), exit: round2(x.exit), openDay: x.openDay || null, closeDay: x.closeDay || null }; }),
       topStocks: st.topStocks, since: acct.createdAt, updatedAt: Date.now(),
       // progression + social (see zelos-progress.js / zelos-social.js)
-      mode: MODE, photo: currentUser.photoURL && /^https:/.test(currentUser.photoURL) ? currentUser.photoURL : null,
+      mode: MODE, photo: profile.avatar || (currentUser.photoURL && /^https:/.test(currentUser.photoURL) ? currentUser.photoURL : null),
+      username: profile.username || null,
       virtualTrades: acct.life.fills || 0, tradeStreak: tradeStreakNow(), bestTradeStreak: acct.life.bestTradeStreak || 0,
       netPnl: round2(netPnl()), xp: xpNow || 0, level: lv ? lv.level : 0, levelName: lv ? lv.name : '', streak: PROG ? PROG.streak() : 0,
       achievements: PROG ? Object.keys(PROG.unlocked()) : [], referrals: referralCount, winStreakBest: winStreakBest(acct.trades),
@@ -1197,6 +1199,7 @@
       firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { show('Sign-in didn\'t finish: ' + (e.message || e)); });
     });
     $('ptGateRename').addEventListener('click', function () {
+      if (window.ZelosProfile) return ZelosProfile.openEditor().then(function (out) { if (out) { profile = out; renderGate(); renderHeader(); save(); } });
       var n = prompt('Display name for the leaderboard (no email or real name needed):', playerName());
       if (n == null) return; n = n.replace(/[<>]/g, '').trim().slice(0, 24); if (!n) return;
       acct.displayName = n; save(); renderGate(); renderHeader();
@@ -1248,6 +1251,10 @@
             if (UNIVERSE.length) { renderHeader(); if (tab === 'progress') renderTabs(); }
           }, function () {});
           currentUser = user && !user.isAnonymous ? user : null;
+          // the account sync below waits for the profile so the first publish uses the right name/photo
+          profile = {};
+          var profileReady = currentUser && window.ZelosProfile
+            ? ZelosProfile.load(currentUser.uid).then(function (t) { profile = t || {}; }) : Promise.resolve();
           if (PROG) { if (currentUser) PROG.attach(db, currentUser.uid); else PROG.detach(); }
           if (currentUser && window.ZelosSocial && ZelosSocial.init()) {
             ZelosSocial.claimReferral(currentUser);
@@ -1255,7 +1262,8 @@
           }
           $('ptSync').textContent = currentUser ? 'Saved to your account' : 'Saved in this browser · sign in to keep it everywhere';
           if (!currentUser) { renderGate(); if (UNIVERSE.length) renderHeader(); return; }
-          db.collection('users').doc(currentUser.uid).get().then(function (doc) {
+          Promise.all([db.collection('users').doc(currentUser.uid).get(), profileReady]).then(function (r) {
+            var doc = r[0];
             var data = doc.exists ? doc.data() : {};
             ownedSkills = data.ownedSkills || [];
             var remote = data.practice ? seedLife(migrate(data.practice)) : null;
@@ -1267,5 +1275,6 @@
     } else feed = { state: 'none' };
     setInterval(function () { if (!UNIVERSE.length) return; renderHeader(); if (marketOpen()) tick(); }, 15000);
   }
+  document.addEventListener('zelos:profile', function (e) { profile = e.detail || {}; if (acct) { renderGate(); if (UNIVERSE.length) renderHeader(); save(); } });
   document.addEventListener('DOMContentLoaded', start);
 })();

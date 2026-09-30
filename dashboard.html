@@ -368,7 +368,8 @@
           <a href="practice/index.html">Trade War<small>Virtual money &middot; compete with friends</small></a>
           <a href="practice/challenge.html">Challenges<small>Challenge a friend head-to-head</small></a>
           <a href="practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
-          <a href="practice/profile.html">My Trade War profile<small>Your record, XP &amp; badges</small></a>
+          <a href="practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
+          <a href="practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
         </div>
       </div>
       <div class="nav-drop">
@@ -415,7 +416,8 @@
       <a href="practice/index.html">Trade War</a>
       <a href="practice/challenge.html">Challenges</a>
       <a href="practice/squads.html">Squads</a>
-      <a href="practice/profile.html">My Trade War profile</a>
+      <a href="practice/profile.html">My profile</a>
+      <a href="practice/index.html?tab=progress">XP &amp; Missions</a>
       <div class="nav-mobile-label">Trading Tools &middot; real</div>
       <a href="swing-trader.html">Swing Trader</a>
       <a href="breakout-rider.html">Breakout Rider</a>
@@ -452,6 +454,8 @@
       </div>
     </div>
 
+    <div id="zOnboard" hidden></div>
+
     <div class="dash-chooser" id="dashChooser" hidden>
       <b>How do you use AgenticTrading.info?</b>
       <p>Pick what your Command Center should put first. Same account, XP and profile either way, and you can switch any time.</p>
@@ -462,7 +466,7 @@
     </div>
 
     <div class="dash-toolbar" id="dashToolbar">
-      <div class="dash-mode" role="tablist" aria-label="Dashboard mode">
+      <div class="dash-mode" role="tablist" aria-label="Dashboard mode" data-help="Real Trading puts your watchlist, alerts and real-trade journal first. Trade War puts your virtual account, challenges and missions first. Same account either way.">
         <button type="button" role="tab" data-mode="real" aria-selected="false">📈 Real Trading</button>
         <button type="button" role="tab" data-mode="war" aria-selected="false">⚔️ Trade War</button>
       </div>
@@ -748,6 +752,7 @@
 <script src="zelos-progress.js"></script>
 <script src="zelos-social.js"></script>
 <script src="zelos-dash-hub.js"></script>
+<script src="zelos-profile.js"></script>
 
 <script>
 (function(){

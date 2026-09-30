@@ -74,7 +74,7 @@
     h += '<div class="pt-card ch-card"><div class="lb-subtabs">' + tabs.map(function (t) { return '<button type="button" data-b="' + t[0] + '" class="' + (board === t[0] ? 'is-on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>';
     var rows = sq.members.map(function (u) { var p = profs[u]; return { uid: u, p: p, name: (p && p.name) || (sq.names && sq.names[u]) || 'Trader', m: metric(sq, u, p) }; })
       .sort(function (a, b) { return (b.m ? b.m.pct : -1e9) - (a.m ? a.m.pct : -1e9); });
-    h += '<div class="sq-board">' + rows.map(function (r, i) {
+    h += '<div class="sq-board" data-help="Ranked by percentage growth, so everyone competes fairly whatever their balance. Tap a trader to open their profile.">' + rows.map(function (r, i) {
       var lv = L && r.p ? L.levelForXp(r.p.xp || 0) : null, me = user && r.uid === user.uid;
       return '<a class="sq-row' + (me ? ' is-me' : '') + '" href="profile.html?u=' + encodeURIComponent(r.uid) + '"><span class="sq-rank">' + (i + 1) + '</span>' +
         '<span class="sq-name">' + (lv && L ? L.badge(lv, 22) : '') + esc(r.name) + (r.uid === sq.owner ? ' <small>owner</small>' : '') + (compDone && board === 'comp' && i === 0 ? ' 🏆' : '') + '</span>' +
@@ -82,16 +82,19 @@
           : '<span class="sq-pct">private</span><span class="sq-bal"></span><span class="sq-xp"></span>') + '</a>';
     }).join('') + '</div></div>';
     if (isMember) {
-      h += '<div class="pt-card ch-card"><h2>Invite friends</h2><div class="pt-invite"><input readonly value="' + esc(link) + '"><button class="pt-mini pt-soc" type="button" id="sqShare">Share invite</button></div>';
+      h += '<div class="pt-card ch-card"><h2>Invite friends</h2><div class="pt-invite" data-help="Send this link to friends. They join with one tap after signing in, and see the squad leaderboard."><input readonly value="' + esc(link) + '"><button class="pt-mini pt-soc" type="button" id="sqShare">Share invite</button></div>';
       if (isOwner) {
         h += '<h2>Squad competition</h2>' + (compOn ? '<p class="pt-fine">Running until ' + new Date(sq.comp.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '.</p><button class="pt-mini" type="button" id="sqEnd">End competition</button>'
           : '<p class="pt-fine">Everyone starts from their current account. Biggest % growth wins; resets don\'t count.</p><div class="pt-soc-row"><button class="pt-mini pt-soc" type="button" data-comp="7">Start a 7-day competition</button><button class="pt-mini pt-soc" type="button" data-comp="30">Start a 30-day competition</button></div>');
+        h += '<h2>Squad settings</h2><label class="pt-check"><input type="checkbox" id="sqHelp"' + (sq.helpMode ? ' checked' : '') + '> Help Mode for this squad: show beginner tips to every member here</label>';
       } else h += '<button class="pt-mini" type="button" id="sqLeave">Leave squad</button>';
       h += '</div>';
     }
     body(h);
     document.querySelectorAll('[data-b]').forEach(function (b) { b.onclick = function () { board = b.getAttribute('data-b'); render(user); }; });
     if ($('sqSignIn')) $('sqSignIn').onclick = signIn;
+    if (window.ZelosProfile) ZelosProfile.help.setGroup(sq.helpMode == null ? null : sq.helpMode);
+    if ($('sqHelp')) $('sqHelp').onchange = function () { var on = this.checked, b = this; b.disabled = true; firebase.firestore().collection('squads').doc(sq.id).update({ helpMode: on }).then(function () { b.disabled = false; }, function () { b.checked = !on; b.disabled = false; }); };
     if ($('sqJoin')) $('sqJoin').onclick = function () { this.disabled = true; S.joinSquad(sq).catch(function (e) { $('sqJoin').disabled = false; $('sqMsg').textContent = e.message || e; }); };
     if ($('sqShare')) $('sqShare').onclick = function () { var b = this; S.shareLink('Join my Trading Squad', 'Join my Trading Squad "' + sq.name + '" and compete with $10,000 Trade War accounts.', link).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
     if ($('sqLeave')) $('sqLeave').onclick = function () { if (confirm('Leave ' + sq.name + '?')) S.leaveSquad(sq).then(function () { location.search = ''; }); };
