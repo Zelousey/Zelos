@@ -3,14 +3,15 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 4: Onboarding & profile. CODE DONE AND TESTED. Owner must deploy the Firestore rules, then merge.**
+**Phase 5: Core Trade War matches. CODE DONE AND TESTED. Owner must deploy functions + rules, then merge.**
 - Phase 1 (FMP) stays open until the owner confirms live prices at the next market open.
-- The legal pages and Phase 3 are waiting on the same merge.
+- Phase 4 rules/merge, the legal pages and Phase 3 go out with the same deploy + merge.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
+| 5 Trade War matches | Code done + tested; not deployed | `functions/main.py` (tw_* callables + `tw_mark_matches` schedule), `firestore.rules`, `practice/war.js` (new), `practice/war.html` (new, built), `scripts/build_practice.py`, `practice/practice.css`, `zelos-profile.js`, nav on 46 pages, `scripts/tradewar_test.py` (new), `.gitignore` (functions/venv) | 20 new engine unit tests (57/57 total). **End-to-end with the Auth + Firestore + Functions emulators running the real Python functions and rules: 34/34**: create (server rejects bad buy-in and length), invite/join, anonymous blocked, start, late join blocked (buy-in locked), buy at server price, no overspend, no shorting, bad symbol, non-player blocked, browser can't edit balances/buy-in/matches, positions private, outsider can't read the board, revalue job, leaderboard +$30/+6%, market-closed block, end → winner + frozen results, no trades after end, match history rank, 375px mobile, no page errors. Rule suites 27 + 15 still pass | **No.** Deploy functions + rules, then merge |
 | 4 Onboarding & profile | Code done + tested; not deployed | `zelos-profile.js` (new), `firestore.rules`, `dashboard.html`, `practice/practice.js`, `practice/profile.js`, `practice/squads.js`, `practice/practice.css`, `scripts/build_practice.py` + rebuilt `practice/*.html`, nav on 46 pages (XP & Missions) | Firestore emulator: 27 new rule tests (usernames, squatting, bio, photos, squad helpMode) + 15 Phase 2 tests pass. **End-to-end on Auth+Firestore emulators with the real rules: 30/30**: sign-up, checklist advances, photo upload resized to about 1.7 KB, username uniqueness across 2 users, Help Mode on/off/default, hide checklist, public vs own profile, Edit profile dropdown, squad Help Mode, Trade War welcome + nav, 375px mobile, no page errors. Builders stable; 37/37 unit tests | **No.** 1) deploy rules, 2) merge |
 | 3 Layout & navigation | Code done + tested; not published | 46 pages (nav block), `zelos-theme.css`, `scripts/site_shell.py`, `scripts/build_ai_index.py`, `ai-index.html`, `sitemap.xml` | Browser test on 16 pages: top nav order, no top-level Alerts, correct active section, every nav link resolves to a real file, dropdowns open, no JS errors, no overflow; mobile at 375px: panel opens, animates, and doesn't animate with reduced motion. Page builders re-run: output matches (stray local scan test pages discarded). 37/37 unit tests | **No.** Merge to `main` publishes it |
 | Legal pages | Drafted at owner request | `terms.html`, `privacy.html` (new), 46 footers, `sitemap.xml` | Rendered at 375px, no errors, no overflow | **No.** Merge to `main`; lawyer review still recommended |
@@ -265,6 +266,31 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 1. Deploy rules **first**: `npx -y firebase-tools@latest deploy --only firestore:rules --project leaderboard-agentictrading`. Without them, saving a profile shows an error.
 2. Then merge `claude/agentictrading-master-spec` to `main`. This also publishes the legal pages and Phase 3.
 
+## Phase 5 changes
+- **Matches** (`practice/war.html`, `war.js`): create a Trade War with a name, a **virtual buy-in** ($100 / $500 / $1,000 / $5,000 / $10,000 or any multiple of $100 up to $100k), a length (1, 3, 7, 14 or 30 days) and a max player count (2–50).
+  - Share the invite link. Friends join in the lobby, and the host starts the match.
+  - Every player starts with exactly the buy-in.
+  - Live view: your match account (balance, cash, $ and % P&L), a trade ticket, your positions, and the match leaderboard (rank, start, current, $ P&L, % P&L, trades, W/L, with ▲▼ rank moves).
+  - Finished view: the winner and frozen final standings. The hub lists your matches (live, lobby, finished with your rank) as match history.
+- **Server-authoritative** (`functions/main.py`): `tw_create`, `tw_join`, `tw_leave`, `tw_start`, `tw_cancel` and `tw_trade` are callable functions; `tw_mark_matches` runs every 5 minutes. They enforce:
+  - Equal buy-in for everyone, locked at start.
+  - No deposit or withdrawal path exists at all; only match cash can be spent.
+  - Join and leave only in the lobby; only the host can start (with 2 or more players) or cancel.
+  - Trades are long-only market orders on the Trade War symbol list, priced from the server's FMP quotes (`markets/quotes`), and only during market hours with fresh quotes. Limited to one trade a second.
+  - Signed-in, non-anonymous accounts only.
+  - Ranking is by % P&L.
+- **Rules:** `tradeWars/*` can't be written from any browser. Players read the match leaderboard; your positions are readable only by you.
+- The standing $10,000 Trade War account is unchanged and separate. Its page links to Matches, and the nav's Trade War menu now opens with "Trade War matches" and "Virtual account".
+- The onboarding step "Join or create a Trade War" now points to Matches and completes once you're in any match.
+- **Not in this phase:** limit/stop orders, chart and SL/TP in matches (Phase 6 is the dedicated chart), elimination modes, and interactive invite alerts (Phase 7+).
+
+## Phase 5 owner steps
+1. `cd ~/Zelos && git pull` (on `claude/agentictrading-master-spec`), then `source functions/venv/bin/activate && pip install -r functions/requirements.txt`
+2. Deploy the rules: `npx -y firebase-tools@latest deploy --only firestore:rules --project leaderboard-agentictrading`
+3. Deploy the functions: `npx -y firebase-tools@latest deploy --only functions --project leaderboard-agentictrading`. This creates the 6 callables and the `tw_mark_matches` schedule. If asked to enable APIs or allow unauthenticated invocation for callables, say yes.
+4. Merge the branch to `main` (publishes Phases 3–5 and the legal pages).
+5. Try it: `agentictrading.info/practice/war.html` → create a $500 match, open the invite link in another browser/account, join, start, and trade during market hours.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -273,5 +299,5 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
-2. Owner: Phase 4 steps above (rules deploy, then merge).
-3. **Phase 5: Core Trade War sessions** (buy-in, equal starting capital, separate session accounts, leaderboard). Starts only when the owner says so.
+2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
+3. **Phase 6: Dedicated Trade War chart** (buy/sell, entry, current price, P&L, movable SL/TP that flip on sell, trade markers, Fibonacci, Three-Legged Strategy, price alerts, cancel pending orders). Starts only when the owner says so.

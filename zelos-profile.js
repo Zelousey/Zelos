@@ -15,7 +15,7 @@
  *     name/username/photo too if it exists, and a `zelos:profile` event fires.
  *
  * Onboarding checklist: Sign up -> Complete profile -> First trade ->
- *   Challenge a friend -> Join or create a Trade War. Mounted into
+ *   Challenge a friend -> Join or create a Trade War (a practice/war.html match). Mounted into
  *   #zOnboard when present; the first unfinished step is highlighted with one
  *   clear button. Hides itself when everything is done, or when dismissed.
  *
@@ -260,7 +260,7 @@
       { id: 'profile', label: 'Set up your profile', hint: 'Picture, name, @username and a short bio.', done: !!(t.username && t.name), cta: 'Set up profile', act: 'profile' },
       { id: 'trade', label: 'Make your first trade', hint: 'Buy any stock in Trade War. Virtual money, real prices.', done: fills > 0, cta: 'Make a trade', href: ROOT + 'practice/index.html' },
       { id: 'challenge', label: 'Challenge a friend', hint: 'Send a head-to-head challenge link.', done: (tot.challenges || 0) > 0, cta: 'Challenge a friend', href: ROOT + 'practice/challenge.html' },
-      { id: 'war', label: 'Join or create a Trade War', hint: 'Get a challenge accepted or join a squad.', done: !!ctx.inWar || (tot.squads || 0) > 0, cta: 'Find a Trade War', href: ROOT + 'practice/squads.html' }
+      { id: 'war', label: 'Join or create a Trade War', hint: 'Pick a buy-in and invite friends. Everyone starts with the same virtual money.', done: !!ctx.inWar, cta: 'Start a Trade War', href: ROOT + 'practice/war.html' }
     ];
   }
   function mountChecklist(el) {
@@ -299,9 +299,9 @@
       render();
       if (!ctx.user) return;
       load(ctx.user.uid).then(function (t) { ctx.trader = t; render(); });
-      var S = global.ZelosSocial;
-      if (S && S.init && S.init() && S.myChallenges) S.myChallenges(ctx.user.uid).then(function (list) {
-        ctx.inWar = list.some(function (c) { return c.status === 'active'; }); render();
+      // joined or created any Trade War match (lobby, live or finished)
+      f.db.collection('tradeWars').where('players', 'array-contains', ctx.user.uid).limit(1).get().then(function (s) {
+        ctx.inWar = !s.empty; render();
       }).catch(function () {});
     });
     render();

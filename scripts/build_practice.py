@@ -24,6 +24,7 @@ BODY = '''<main class="pt-shell">
       <span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> &middot; <span id="ptUser">Guest</span></span>
       <h1>Trade War</h1>
       <span class="pt-lvl" id="ptLevel" hidden></span>
+      <a class="pt-mini pt-soc tw-cta" href="war.html">&#9876;&#65039; Trade War matches: equal buy-in, invite friends &rarr;</a>
     </div>
     <div class="pt-acct" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money.">
       <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
@@ -232,7 +233,7 @@ PROFILE_BODY = '''<main class="pt-shell pf-shell">
 
 SOCIAL_SCRIPTS = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
                   '<script src="../zelos-social.js"></script>\n<script src="../zelos-profile.js"></script>\n')
-CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; <a href="challenge.html">Challenges</a> &middot; '
+CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; <a href="war.html">Matches</a> &middot; <a href="challenge.html">Challenges</a> &middot; '
           '<a href="squads.html">Squads</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav>')
 
 
@@ -248,6 +249,15 @@ def build_social_pages():
            '<p class="pt-fine pf-fine">Squads are private: only people with the invite link can see one. Members see each other\'s public Trade War (virtual) stats only.</p></main>',
            HEAD, SOCIAL_SCRIPTS + '<script src="squads.js"></script>\n', robots='noindex')
     print('built practice/challenge.html, practice/squads.html')
+
+
+def build_war():
+    render('practice/war.html', 'Trade War Matches: Equal Buy-In Trading Competitions | Zelos',
+           'Create a Trade War: pick a virtual buy-in, invite friends, and everyone starts with the same money. Best % gain wins. Virtual money only.',
+           '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="twBody"><p class="pt-empty">Loading…</p></div>'
+           '<p class="pt-fine pf-fine">Trade War matches use virtual money only: no cash value, no deposits, no prizes. Separate from your $10,000 Trade War account and from real trading.</p></main>',
+           HEAD, SOCIAL_SCRIPTS + '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>\n<script src="war.js"></script>\n', robots='noindex')
+    print('built practice/war.html')
 
 
 def build_profile():
@@ -276,6 +286,7 @@ def main():
     print('built practice/index.html')
     build_profile()
     build_social_pages()
+    build_war()
     # the price function reads the same stock list, so it can never drift from the page
     shutil.copyfile(os.path.join(ROOT, 'data', 'practice-universe.json'), os.path.join(ROOT, 'functions', 'practice_universe.json'))
     print('copied data/practice-universe.json -> functions/practice_universe.json')
