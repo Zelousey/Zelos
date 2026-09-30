@@ -217,6 +217,14 @@ service cloud.firestore {
       }
     }
 
+    // Trade War challenge invites (tw_challenge / tw_respond). Only the two
+    // people involved can see an invite; only the server can create or answer one.
+    match /twInvites/{inviteId} {
+      allow read: if request.auth != null
+        && (resource.data.to == request.auth.uid || resource.data.from == request.auth.uid);
+      allow write: if false;
+    }
+
     // Trading Squads: private groups. Readable by any signed-in visitor who
     // has the (unguessable) invite id. The owner creates it with only
     // themselves as a member and can run competitions or rename it. Anyone

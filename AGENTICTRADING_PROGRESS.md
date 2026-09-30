@@ -3,14 +3,16 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 6: Dedicated Trade War chart + Buy/Sell restyle. CODE DONE AND TESTED. Website-only: publishes on merge (no Firebase deploy needed).**
-- Three-Legged Strategy: the owner chose (b), an A-B-C three-leg pullback drawing tool. Built and tested.
+**Phase 7: Dramatic challenges + interactive Trade War alerts (§14, §2). CODE DONE AND TESTED. Owner must deploy functions + rules, then merge.**
+- Phase 6 (PR #12) is merged. The Buy/Sell recolor (owner feedback) ships with this merge.
+- Next: **Phase 8: Last Man Standing / elimination (§10)**.
 - Phase 1 (FMP) still needs the live-price check at a market open.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
+| 7 Challenges + interactive alerts | Code done + tested; not deployed | `functions/main.py` (`tw_challenge`, `tw_respond`, invite cleanup in `tw_start`/`tw_cancel`), `firestore.rules` (`twInvites`), `zelos-challenge.js` (new, on all 48 signed-in pages), `practice/war.js`, `practice/profile.js`, `practice/practice.css`, rebuilt pages; also `practice/practice.css` Buy/Sell recolor | 6 new unit tests (63/63). **End-to-end on emulators: 31/31**: challenge by @username, unknown-username message, challenger lobby "waiting", real-time "YOU'VE BEEN CHALLENGED" card on another page with challenger and terms, crossing blades, others can't read or forge invites, can't answer someone else's invite, Accept → 1 v 1 starts and a $500 match account is created, challenger sees it go live, reduced-motion card, 375px fit, Decline cancels the duel, "Not now" keeps it pending, squad challenge invites 2 / accept joins the lobby / start expires the unanswered one, outsider can't challenge a squad, history (accepted / declined / waiting), profile button, no page errors. Rule suites 27 + 15 pass | **No.** Deploy functions + rules, then merge |
 | 6 Trade War chart + buttons | Code done + tested; not merged | `practice/practice-chart.js`, `practice/practice.js`, `practice/war.js`, `practice/practice.css`, `scripts/build_practice.py` + rebuilt `practice/index.html`, `practice/war.html` | **End-to-end on emulators: 25/25**: Buy solid green / Sell solid red, flat 12px order button (also on matches); Sell flips the plan (SL above, TP below); dragging TP fills the ticket; SL can't cross the entry; Fib; alert placed by clicking the chart; Alerts tab lists / edits / deletes; alert saved to the account; alert fires when the live price crosses (pop-up labelled Trade War); pending limit order cancel; match chart with entry + P&L line and buy marker; desktop match layout (chart full width, account + leaderboard side by side); no page errors. 57/57 unit tests; builders stable | **No.** Merge only |
 | 5 Trade War matches | Code done + tested; not deployed | `functions/main.py` (tw_* callables + `tw_mark_matches` schedule), `firestore.rules`, `practice/war.js` (new), `practice/war.html` (new, built), `scripts/build_practice.py`, `practice/practice.css`, `zelos-profile.js`, nav on 46 pages, `scripts/tradewar_test.py` (new), `.gitignore` (functions/venv) | 20 new engine unit tests (57/57 total). **End-to-end with the Auth + Firestore + Functions emulators running the real Python functions and rules: 34/34**: create (server rejects bad buy-in and length), invite/join, anonymous blocked, start, late join blocked (buy-in locked), buy at server price, no overspend, no shorting, bad symbol, non-player blocked, browser can't edit balances/buy-in/matches, positions private, outsider can't read the board, revalue job, leaderboard +$30/+6%, market-closed block, end → winner + frozen results, no trades after end, match history rank, 375px mobile, no page errors. Rule suites 27 + 15 still pass | **No.** Deploy functions + rules, then merge |
 | 4 Onboarding & profile | Code done + tested; not deployed | `zelos-profile.js` (new), `firestore.rules`, `dashboard.html`, `practice/practice.js`, `practice/profile.js`, `practice/squads.js`, `practice/practice.css`, `scripts/build_practice.py` + rebuilt `practice/*.html`, nav on 46 pages (XP & Missions) | Firestore emulator: 27 new rule tests (usernames, squatting, bio, photos, squad helpMode) + 15 Phase 2 tests pass. **End-to-end on Auth+Firestore emulators with the real rules: 30/30**: sign-up, checklist advances, photo upload resized to about 1.7 KB, username uniqueness across 2 users, Help Mode on/off/default, hide checklist, public vs own profile, Edit profile dropdown, squad Help Mode, Trade War welcome + nav, 375px mobile, no page errors. Builders stable; 37/37 unit tests | **No.** 1) deploy rules, 2) merge |
@@ -316,6 +318,35 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
   - Tested: 9/9 browser checks, plus the full chart suite (25/25).
 - Match orders are still market-only, so stop-loss/take-profit boxes in matches are planning visuals only. Real SL/TP orders in matches would need a server order engine.
 
+## Buy/Sell recolor (owner feedback after Phase 6)
+- The lime green was replaced with deep emerald (`#08825e → #047857`) and rich red (`#d73535 → #c81e1e`), both with white text at WCAG AA (4.7–5.7:1).
+- Slight vertical shade, thin top highlight and soft colored glow; hover lifts 1px, press settles; reduced motion removes the lift.
+- Used on the Buy/Sell and Calls/Puts toggles, the order button and match buttons.
+
+## Phase 7 changes
+- **Challenge a friend** into a Trade War match, three ways: by **@username** (Matches hub), from their **profile** ("⚔️ Challenge to a Trade War"), or a whole **squad**.
+  - A dialog picks the virtual buy-in ($100–$10,000) and length.
+  - `tw_challenge` creates the match (the host's account is funded at the buy-in) and one `twInvites` doc per player.
+  - Rate limits: up to 20 invitees at a time and 20 pending sent invites.
+- **"YOU'VE BEEN CHALLENGED"** (`zelos-challenge.js`, on every signed-in page):
+  - Pending invites are watched in real time.
+  - A dark full-screen card shows two chart lines crossing like blades (a 460ms draw plus a spark at the cross), the challenger's picture, name and @username, and Battle (1 v 1 / Group), Buy-in and Length tiles.
+  - The fine print says it's virtual only. Buttons: Accept (emerald), Decline, and "Not now".
+  - A browser notification is sent once per invite when allowed.
+  - Reduced motion shows a static card; it fits a 375px phone.
+- **Accept** (`tw_respond`) joins with the same buy-in in a separate match account. A **1 v 1 starts immediately** and you're taken into it with a view-transition page change; a group match waits in the lobby for the host.
+- **Decline** cancels a 1 v 1.
+- Starting a group match or cancelling it closes the unanswered invites ("expired" / "cancelled"). **Nobody is entered without pressing Accept.**
+- **Challenge history** on the Matches hub (sent and received, with status); the lobby shows "Waiting for N challenged players".
+- **Rules:** `twInvites` is readable only by its sender and recipient, and written only by the server.
+- **Challenge counting:** the old `challenges` link flow (net P&L on the $10k account) still works. The onboarding "Challenge a friend" step now also counts these new challenges.
+- **Not yet:** web push with the site closed (§22), the Battle Preparation Guide second button (§39), and "Last Man Standing" (next phase).
+
+## Phase 7 owner steps
+1. `git pull`, then deploy rules: `npx -y firebase-tools@latest deploy --only firestore:rules --project leaderboard-agentictrading`
+2. Deploy functions (in the Python 3.12 venv, as before): `npx -y firebase-tools@latest deploy --only functions --project leaderboard-agentictrading`
+3. Merge the PR. Try it: set a @username on two accounts, then challenge one from the other on Matches.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -325,5 +356,5 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
-3. Owner: merge Phase 6 (PR #12, which now includes the 3-Leg tool).
-4. **Phase 7: Priority 2**, starting with dramatic challenges + interactive Trade War alerts (§14, §2) and Last Man Standing (§10), when the owner says go.
+3. Owner: Phase 7 steps above.
+4. **Phase 8: Last Man Standing / elimination (§10)**, when the owner says go.

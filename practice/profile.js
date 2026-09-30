@@ -118,7 +118,7 @@
     var link = S.links(uid).profile(uid), meUser = S.me();
     var war = p.equity != null;
     var h = '<button class="pt-mini pt-soc" type="button" data-a="share">Share profile</button>';
-    if (!mine) h += (war ? '<button class="pt-mini pt-soc" type="button" data-a="challenge">⚔️ Challenge to a Trade War</button>' : '') + '<button class="pt-mini" type="button" data-a="friend">+ Add friend</button>';
+    if (!mine) h += (war || window.ZelosChallenge ? '<button class="pt-mini pt-soc" type="button" data-a="challenge">⚔️ Challenge to a Trade War</button>' : '') + '<button class="pt-mini" type="button" data-a="friend">+ Add friend</button>';
     else h = '<details class="pf-edit"><summary class="pt-mini pt-soc">Edit profile &#9662;</summary><div class="pf-edit-menu">' +
       '<button type="button" data-a="edit">Picture, name, @username &amp; bio</button>' +
       '<label><input type="checkbox" data-a="help"' + (window.ZelosProfile && ZelosProfile.help.on() ? ' checked' : '') + '> Help Mode (tips around the site)</label>' +
@@ -138,6 +138,7 @@
       if (!u) { b.textContent = 'Sign in first (Trade War or the journal)'; return; }
       if (a === 'friend') S.addFriend(uid).then(function () { b.textContent = '✓ Friends'; b.setAttribute('data-a', 'unfriend'); });
       if (a === 'unfriend') S.removeFriend(uid).then(function () { b.textContent = '+ Add friend'; b.setAttribute('data-a', 'friend'); });
+      if (a === 'challenge' && window.ZelosChallenge) { ZelosChallenge.open({ to: uid, toName: name }); return; }
       if (a === 'challenge') {
         b.disabled = true; b.textContent = 'Creating…';
         S.createChallenge({ days: 7, target: uid, targetName: p.name || 'Trader' }).then(function (id) { location.href = 'challenge.html?c=' + encodeURIComponent(id); })
