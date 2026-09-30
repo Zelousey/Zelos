@@ -192,6 +192,12 @@ service cloud.firestore {
           && request.auth.uid in get(/databases/$(database)/documents/tradeWars/$(warId)).data.players;
         allow write: if false;
       }
+      // Battlefield Ticker: server-written match events, readable by the players.
+      match /events/{eventId} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/tradeWars/$(warId)).data.players;
+        allow write: if false;
+      }
       match /books/{uid} {
         // your own always; everyone's when the match allows it (squad setting "view everyone's trades")
         allow read: if request.auth != null && (request.auth.uid == uid

@@ -53,6 +53,15 @@
     if (lms.cutHours) r.push('Every ' + hrs(lms.cutHours) + ', last place is cut');
     return r;
   }
+  // Advanced gameplay options in plain words (TW_MODE_OPTS in functions/main.py)
+  function modesText(m) {
+    m = m || {}; var r = [];
+    if (m.draft) r.push('Draft: everyone drafts ' + m.draft.picks + ' stocks and can only trade those');
+    if (m.whale) r.push('Whale vs Minnow: top-XP players can put at most ' + m.whale.capPct + '% in one stock; everyone else gets ' + m.whale.shields + ' Shield Token' + (m.whale.shields === 1 ? '' : 's'));
+    if (m.storms) r.push('Volatility Storms (' + m.storms + '): random 30-minute virtual events');
+    if (m.bounties) r.push('Bounty Board: put virtual bounties on rivals');
+    return r;
+  }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(v) { return '$' + (+v || 0).toLocaleString('en-US'); }
   function store(k) { try { return JSON.parse(sessionStorage.getItem(k) || '[]'); } catch (e) { return []; } }
@@ -112,6 +121,10 @@
       '.zc-lms{border:1px solid rgba(239,68,68,.35);background:linear-gradient(180deg,rgba(239,68,68,.07),transparent);border-radius:12px;padding:10px 12px 2px;margin:-4px 0 12px}',
       '.zc-lms .zc-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.zc-lms .zc-f{margin-bottom:8px}',
       '.zc-card ul.zc-rules{margin:0 0 12px;padding:8px 12px 8px 28px;border:1px solid rgba(239,68,68,.35);border-radius:10px;background:rgba(239,68,68,.06);font-size:.82rem;line-height:1.45;color:#e6e9ef}',
+      '.zc-more{border:1px solid #232835;border-radius:12px;padding:8px 12px;margin:0 0 12px;font-size:.84rem}.zc-more summary{cursor:pointer;font-weight:600;color:#cfd4dd}.zc-more summary small{color:#8b93a3;font-weight:400}',
+      '.zc-more .zc-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.zc-more .zc-f{margin-bottom:6px}',
+      '.zc-check{display:flex;gap:8px;align-items:center;margin:4px 0;color:#cfd4dd}',
+      '.zc-card ul.zc-modes{border-color:rgba(74,134,255,.35);background:rgba(74,134,255,.06)}.zc-card ul.zc-modes b{color:#9dbcff}',
       '.zc-card ul.zc-rules b{color:#fca5a5;letter-spacing:.06em;font-size:.72rem;display:block;margin:0 0 2px -16px}',
       '@keyframes zcFade{from{opacity:0}to{opacity:1}}',
       '@keyframes zcPop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}',
@@ -152,6 +165,7 @@
       '<div class="zc-terms"><span><small>Battle</small><b>' + (inv.lms ? 'Last Man' : inv.mode === 'duel' ? '1 v 1' : 'Group') + '</b></span><span><small>Buy-in</small><b>' + money(inv.buyIn) + '</b></span><span><small>Length</small><b>' + inv.days + ' day' + (inv.days === 1 ? '' : 's') + '</b></span></div>' +
       '<p class="zc-fine">' + esc(inv.warName || 'Trade War') + ' · everyone starts with the same ' + money(inv.buyIn) + ' of virtual money. Best % gain wins. Virtual only: no real money, no prizes.' + (inv.mode === 'duel' ? ' A 1 v 1 starts as soon as you accept.' : '') + '</p>' +
       (inv.symbols && inv.symbols.length ? '<p class="zc-fine">Squad rule: only ' + inv.symbols.slice(0, 12).map(esc).join(', ') + (inv.symbols.length > 12 ? ' and more' : '') + ' can be traded.</p>' : '') +
+      (modesText(inv.modes).length ? '<ul class="zc-rules zc-modes"><b>GAME OPTIONS</b>' + modesText(inv.modes).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' : '') +
       (inv.lms ? '<ul class="zc-rules"><b>LAST MAN STANDING</b>' + lmsRules(inv.lms, inv.buyIn).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '<li>Knocked out = your stocks are sold and your result is locked. Last trader standing wins.</li></ul>' : '') +
       '<div class="zc-btns"><button type="button" class="zc-btn" id="zcNo">Decline</button><button type="button" class="zc-btn zc-go" id="zcYes">Accept</button></div>' +
       '<button type="button" class="zc-later" id="zcLater">Not now</button><p class="zc-msg" id="zcMsg" role="status"></p>',
@@ -206,6 +220,7 @@
     if (!u || u.isAnonymous) { alert('Sign in to challenge someone to a Trade War.'); return Promise.resolve(null); }
     return myXp().then(function (xp) { return new Promise(function (resolve) {
       var buy = 1000, start = !opts.to && !opts.squadId, pickSq = null, mode = '';
+      function sel(id, label, opts) { return '<label class="zc-f"><span>' + label + '</span><select id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('') + '</select></label>'; }
       function pick(k, label, txt, def) {
         return '<label class="zc-f"><span>' + label + '</span><select data-lms="' + k + '"><option value="">Off</option>' +
           LMS_OPTS[k].map(function (v) { return '<option value="' + v + '"' + (v === def ? ' selected' : '') + '>' + txt(v) + '</option>'; }).join('') + '</select></label>';
@@ -219,6 +234,13 @@
         (lockNote(xp) ? '<p class="zc-lock">' + lockNote(xp) + '</p>' : '') + '</div>' +
         '<label class="zc-f"><span>Length</span><select id="zcDays"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>1 week</option><option value="14">2 weeks</option><option value="30">30 days</option></select></label>' +
         '<div class="zc-f"><span>Mode</span><div class="zc-chips" id="zcMode"><button type="button" data-m="" class="is-on">Classic: best % gain wins</button><button type="button" data-m="lms">Last Man Standing</button></div></div>' +
+        '<details class="zc-more"><summary>Game options <small>draft, whales &amp; minnows, storms, bounties</small></summary><div class="zc-row">' +
+          sel('zcDraft', 'Pre-battle draft', [['', 'Off'], ['2', '2 stocks each'], ['3', '3 stocks each'], ['5', '5 stocks each']]) +
+          sel('zcStorm', 'Volatility Storms', [['', 'Off'], ['rare', 'Rare (~1 a day)'], ['often', 'Often (~3 a day)']]) +
+          sel('zcWhale', 'Whale vs Minnow', [['', 'Off'], ['25', 'Whales max 25% a stock'], ['50', 'Whales max 50% a stock'], ['75', 'Whales max 75% a stock']]) +
+          sel('zcShields', 'Minnow Shield Tokens', [['1', '1 shield'], ['2', '2 shields'], ['3', '3 shields']]) +
+        '</div><label class="zc-check"><input type="checkbox" id="zcBounty"> Bounty Board: players can put virtual bounties on rivals</label>' +
+        '<p class="zc-lock">Whales are the players above the match\'s median XP. Shields cancel a bounty on you or save you from a timed cut. Everything is virtual.</p></details>' +
         '<div class="zc-lms" id="zcLms" hidden><div class="zc-row">' +
           pick('floorPct', 'P&L floor', function (v) { return 'Out at -' + v + '%'; }, 10) +
           pick('maxLossPct', 'Max loss on one trade', function (v) { return v + '% of buy-in'; }) +
@@ -246,6 +268,12 @@
       $('zcSend').onclick = function () {
         var btn = this; btn.disabled = true; $('zcMsg').textContent = 'Sending…'; $('zcMsg').className = 'zc-msg';
         var data = { buyIn: buy, days: +$('zcDays').value }, bad = function (t) { btn.disabled = false; $('zcMsg').textContent = t; $('zcMsg').className = 'zc-msg is-bad'; };
+        var md = {};
+        if ($('zcDraft').value) md.draftPicks = +$('zcDraft').value;
+        if ($('zcStorm').value) md.storms = $('zcStorm').value;
+        if ($('zcWhale').value) { md.whaleCap = +$('zcWhale').value; md.whaleShields = +$('zcShields').value; }
+        if ($('zcBounty').checked) md.bounties = true;
+        if (Object.keys(md).length) data.modes = md;
         if (mode === 'lms') {
           data.lms = {}; m.el.querySelectorAll('[data-lms]').forEach(function (x) { if (x.value) data.lms[x.getAttribute('data-lms')] = +x.value; });
           if (!Object.keys(data.lms).length) return bad('Pick at least one elimination rule for Last Man Standing.');
@@ -298,7 +326,7 @@
   }
   d.addEventListener('zelos:profile', function (e) { if (ident && e.detail) { ident.t = e.detail; var nav = d.getElementById('navAuth'), av = nav && nav.querySelector('.account-avatar img'); if (av) av.remove(); applyIdentity(); } });
 
-  global.ZelosChallenge = { lmsRules: lmsRules, open: open, call: call, buyInLock: buyInLock, buyInChips: buyInChips, lockNote: lockNote, lockText: lockText, myXp: myXp };
+  global.ZelosChallenge = { lmsRules: lmsRules, modesText: modesText, open: open, call: call, buyInLock: buyInLock, buyInChips: buyInChips, lockNote: lockNote, lockText: lockText, myXp: myXp };
   function boot() {
     var f = fb(); if (!f) return;
     f.auth.onAuthStateChanged(function (u) { var real = u && !u.isAnonymous ? u : null; watch(real); watchIdentity(real); });

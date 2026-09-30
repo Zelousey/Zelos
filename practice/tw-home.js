@@ -35,8 +35,8 @@
     var av = ph && /^(https:|data:image\/(jpeg|png|webp);base64,)/.test(ph) ? '<img class="twh-av" alt="" referrerpolicy="no-referrer" src="' + esc(ph) + '">' : '<span class="twh-av">' + esc(nm.replace('@', '').charAt(0).toUpperCase() || 'Z') + '</span>';
     var bal = mainBalance();
     var chips = '<a class="twh-acct' + (!here ? ' is-on' : '') + '" href="index.html"><small>Main account</small><b>' + (bal != null ? money(bal) : '$10,000') + '</b></a>' +
-      wars.filter(function (w) { return w.status === 'active' || w.status === 'lobby'; }).map(function (w) {
-        var r = ranks[w.id], sub = w.status === 'lobby' ? 'Lobby · ' + w.players.length + '/' + w.maxPlayers : r ? (r.out ? 'OUT · #' : '#') + r.rank + ' of ' + r.of + ' · ' + pct(r.pnlPct) : 'Live';
+      wars.filter(function (w) { return w.status === 'active' || w.status === 'lobby' || w.status === 'draft'; }).map(function (w) {
+        var r = ranks[w.id], sub = w.status === 'lobby' ? 'Lobby · ' + w.players.length + '/' + w.maxPlayers : w.status === 'draft' ? 'Drafting' : r ? (r.out ? 'OUT · #' : '#') + r.rank + ' of ' + r.of + ' · ' + pct(r.pnlPct) : 'Live';
         return '<a class="twh-acct' + (here === w.id ? ' is-on' : '') + (w.status === 'active' ? ' is-live' : '') + '" href="war.html?w=' + encodeURIComponent(w.id) + '"><small>' + (w.lms ? '&#9760; ' : '⚔️ ') + esc(w.name) + '</small><b>' + sub + '</b></a>';
       }).join('');
     el.innerHTML = '<div class="twh-top">' +

@@ -19,7 +19,7 @@
   'use strict';
   var SITE = 'https://agentictrading.info';
   var $ = function (id) { return document.getElementById(id); };
-  var db, auth, fns, user = null, unsubs = [], quotes = {}, quoteDoc = {}, universe = [], warId = null, war = null, accounts = [], book = null, books = {}, prevRanks = {};
+  var db, auth, fns, user = null, unsubs = [], quotes = {}, quoteDoc = {}, universe = [], warId = null, war = null, accounts = [], book = null, books = {}, events = [], prevRanks = {};
   var ticket = { sym: 'AAPL', qty: 1 };
   // Trade War chart (practice-chart.js): daily history + live FMP quote, your entry and fills,
   // Fibonacci, and the Trade War price alerts shared with the $10,000 account.
@@ -64,6 +64,7 @@
       '<li>Stocks only, long only (buy, then sell what you own). Market orders fill at the live price during market hours.</li>' +
       (R(w).symbols ? '<li>Squad rule: only these stocks can be traded: <b>' + R(w).symbols.map(esc).join(', ') + '</b>.</li>' : '') +
       (R(w).viewTrades ? '<li>Squad rule: every player can see everyone\'s trades.</li>' : '') +
+      (CH ? CH.modesText(w.modes).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') : '') +
       (w.lms ? '' : '<li>Ranked by % gain after ' + w.days + ' day' + (w.days === 1 ? '' : 's') + '. Virtual money only: no cash value, no prizes.</li>') + '</ul>' +
       (w.lms ? '<div class="tw-lms-rules"><b>&#9760; Last Man Standing</b><ul>' + (CH ? CH.lmsRules(w.lms, w.buyIn) : []).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') +
         '<li>Knocked out = your stocks are sold at the current price and your result is locked.</li><li>The last trader standing wins. If time runs out first, survivors are ranked by % gain, above everyone knocked out. Virtual money only.</li></ul></div>' : '') + '</div>';
@@ -74,7 +75,7 @@
 
   // ------------------------------------------------------------ one match
   function view(id) {
-    stop(); warId = id; war = null; accounts = []; book = null; prevRanks = {};
+    stop(); warId = id; war = null; accounts = []; book = null; events = []; prevRanks = {};
     body('<p class="pt-empty">Loading Trade War…</p>');
     var ref = db.collection('tradeWars').doc(id);
     unsubs.push(ref.onSnapshot(function (d) {
@@ -90,6 +91,7 @@
     unsubs.mine = true;
     unsubs.push(ref.collection('accounts').onSnapshot(function (s) { accounts = []; s.forEach(function (d) { accounts.push(Object.assign({ uid: d.id }, d.data())); }); render(); }, function () {}));
     unsubs.push(ref.collection('books').doc(user.uid).onSnapshot(function (d) { book = d.exists ? d.data() : null; render(); }, function () {}));
+    unsubs.push(ref.collection('events').orderBy('at', 'desc').limit(30).onSnapshot(function (s) { events = []; s.forEach(function (d) { events.push(d.data()); }); drawTicker(); }, function () {}));
     if (R(war).viewTrades) unsubs.push(ref.collection('books').onSnapshot(function (s) { books = {}; s.forEach(function (d) { books[d.id] = d.data(); }); render(); }, function () {}));
   }
   function board(rows, final) {
@@ -100,7 +102,7 @@
         var rank = final ? r.rank : i + 1, was = prevRanks[r.uid]; ranks[r.uid] = rank;
         var move = !final && was && was !== rank ? (rank < was ? '<i class="tw-mv up" aria-label="up">▲</i>' : '<i class="tw-mv dn" aria-label="down">▼</i>') : '';
         var me = user && r.uid === user.uid;
-        return '<a class="tw-tr' + (me ? ' is-me' : '') + (move ? ' is-moved' : '') + (r.out ? ' is-out' : '') + '" role="row" href="profile.html?u=' + encodeURIComponent(r.uid) + '"><span>' + (final && rank === 1 ? '🏆' : rank) + move + '</span><span><b>' + esc(r.name || 'Trader') + '</b>' + (me ? ' <small>you</small>' : '') + (r.out ? ' <small class="tw-out-tag" title="' + esc(OUT_WHY[r.outReason] || 'knocked out') + '">OUT</small>' : '') + '</span>' +
+        return '<a class="tw-tr' + (me ? ' is-me' : '') + (move ? ' is-moved' : '') + (r.out ? ' is-out' : '') + '" role="row" href="profile.html?u=' + encodeURIComponent(r.uid) + '"><span>' + (final && rank === 1 ? '🏆' : rank) + move + '</span><span><b>' + esc(r.name || 'Trader') + '</b>' + (me ? ' <small>you</small>' : '') + (r.out ? ' <small class="tw-out-tag" title="' + esc(OUT_WHY[r.outReason] || 'knocked out') + '">OUT</small>' : '') + roleTags(r.uid) + '</span>' +
           '<span>' + money(r.start, 0) + '</span><span>' + money(final ? r.final : r.equity) + '</span><span class="' + cls(r.pnl) + '">' + signed(r.pnl) + '</span><span class="' + cls(r.pnlPct) + '"><b>' + pct(r.pnlPct) + '</b></span>' +
           '<span>' + (r.trades || 0) + '</span><span>' + (r.wins || 0) + '/' + (r.losses || 0) + '</span></a>';
       }).join('') + '</div>';
@@ -111,6 +113,7 @@
     if (!war) return;
     var w = war, mine = user && w.players.indexOf(user.uid) !== -1, host = user && w.host === user.uid;
     var status = w.status === 'active' ? '<span class="tw-st is-live">LIVE · ' + left(w.endAt - Date.now()) + '</span>' : w.status === 'lobby' ? '<span class="tw-st">Lobby · waiting to start</span>'
+      : w.status === 'draft' ? '<span class="tw-st is-live">DRAFT</span>'
       : w.status === 'ended' ? '<span class="tw-st is-done">Finished</span>' : '<span class="tw-st is-done">Cancelled</span>';
     if (w.lms) status = '<span class="tw-st is-lms">&#9760; LAST MAN STANDING</span> ' + status;
     var h = '<div class="ch-hero"><span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> ' + status + '</span><h1>' + (w.lms ? '&#9760;' : '⚔️') + ' ' + esc(w.name) + '</h1>' +
@@ -135,14 +138,19 @@
         '<section class="pt-card ch-card"><h2>Final standings</h2>' + board(res, true) + '</section>' + (w.lms ? outsBox(w) : '');
       body(h); if (w.lms) announceOuts(w); return;
     }
+    if (w.status === 'draft') { body(h + (mine ? draftView(w) + '<div id="twTickerSlot"></div>' : '<div class="pt-card ch-card"><p>This Trade War is drafting. Only its players can watch.</p></div>')); wireDraft(w); drawTicker(); return; }
     // live
     if (!mine) { body(h + '<div class="pt-card ch-card"><p>This Trade War is live. Only its players can see the leaderboard.</p><a class="pt-btn pt-btn-go" href="war.html">Your Trade Wars</a></div>'); return; }
     var me = accounts.filter(function (a) { return a.uid === user.uid; })[0] || {};
-    if (R(w).symbols && R(w).symbols.indexOf(ticket.sym) === -1) ticket.sym = R(w).symbols[0];
+    var only = myPicks(w) || R(w).symbols;
+    if (only && only.indexOf(ticket.sym) === -1) ticket.sym = only[0];
+    var storm = stormNow(w), halted = storm && storm.kind === 'halt' && storm.sym === ticket.sym;
     var pos = (book && book.positions) || {}, q = quotes[ticket.sym] || {}, px = q.c, open = tradable();
     var liveEq = (me.cash || 0) + Object.keys(pos).reduce(function (t, s) { return t + pos[s].qty * ((quotes[s] && quotes[s].c) || pos[s].avg); }, 0);
     var livePnl = liveEq - (me.start || w.buyIn);
     if (me.out) { liveEq = me.equity; livePnl = me.pnl; open = false; }
+    var canTrade = open && !halted;
+    h += '<div id="twTickerSlot"></div>' + stormBar(storm);
     if (w.lms) {
       var alive = (w.alive || w.players).length;
       h += '<div class="tw-lms-bar"><span><b>' + alive + '</b> of ' + w.players.length + ' still standing</span>' +
@@ -153,22 +161,123 @@
     h += '<div id="twChartSlot"></div><div class="tw-live"><section class="pt-card ch-card tw-acct">' +
       '<h2 data-help="Your match account. It started at the buy-in, like everyone else\'s, and only changes when you trade or prices move.">Your match account</h2><div class="pf-mini"><span><small>Balance</small><b>' + money(liveEq) + '</b></span><span><small>Cash</small><b>' + money(me.cash) + '</b></span>' +
       '<span><small>P&amp;L</small><b class="' + cls(livePnl) + '">' + signed(livePnl) + '</b></span><span><small>% P&amp;L</small><b class="' + cls(livePnl) + '">' + pct(livePnl / (me.start || w.buyIn) * 100) + '</b></span></div>' +
-      '<h2 style="margin-top:14px">Trade</h2><div class="tw-ticket"><select id="twSym" aria-label="Stock">' + universe.filter(function (u) { return !R(w).symbols || R(w).symbols.indexOf(u.sym) !== -1; }).map(function (u) { return '<option value="' + u.sym + '"' + (u.sym === ticket.sym ? ' selected' : '') + '>' + u.sym + ' · ' + esc(u.name) + '</option>'; }).join('') + '</select>' +
+      '<h2 style="margin-top:14px">Trade</h2><div class="tw-ticket"><select id="twSym" aria-label="Stock">' + universe.filter(function (u) { return !only || only.indexOf(u.sym) !== -1; }).map(function (u) { return '<option value="' + u.sym + '"' + (u.sym === ticket.sym ? ' selected' : '') + '>' + u.sym + ' · ' + esc(u.name) + '</option>'; }).join('') + '</select>' +
       '<div class="tw-px"><b>' + (px ? money(px) : '–') + '</b><small>' + (open ? 'live price' : 'market closed') + '</small></div>' +
       '<label class="tw-f"><span>Shares</span><input id="twQty" type="number" min="1" step="1" value="' + ticket.qty + '"></label>' +
       '<div class="tw-est" id="twEst">' + (px ? '≈ ' + money(px * ticket.qty) + ' · you have ' + money(me.cash) + ' cash · you hold ' + ((pos[ticket.sym] || {}).qty || 0) : '') + '</div>' +
-      '<div class="tw-actions"><button class="pt-submit is-buy" type="button" id="twBuy"' + (open ? '' : ' disabled') + '><span class="pt-sub-main">Buy ' + esc(ticket.sym) + '</span><span class="pt-sub-meta">market</span></button>' +
-      '<button class="pt-submit is-sell" type="button" id="twSell"' + (open && pos[ticket.sym] ? '' : ' disabled') + '><span class="pt-sub-main">Sell ' + esc(ticket.sym) + '</span><span class="pt-sub-meta">' + ((pos[ticket.sym] || {}).qty ? 'you hold ' + pos[ticket.sym].qty : 'nothing to sell') + '</span></button></div>' +
-      '<p class="pt-auth-msg" id="twMsg" role="alert" hidden></p>' + (me.out ? '<p class="pt-fine">You\'ve been knocked out, so trading is closed for you.</p>' : open ? '' : '<p class="pt-fine">Trades fill during market hours (9:30 am to 4:00 pm New York time).</p>') + '</div>' +
+      '<div class="tw-actions"><button class="pt-submit is-buy" type="button" id="twBuy"' + (canTrade ? '' : ' disabled') + '><span class="pt-sub-main">Buy ' + esc(ticket.sym) + '</span><span class="pt-sub-meta">market</span></button>' +
+      '<button class="pt-submit is-sell" type="button" id="twSell"' + (canTrade && pos[ticket.sym] ? '' : ' disabled') + '><span class="pt-sub-main">Sell ' + esc(ticket.sym) + '</span><span class="pt-sub-meta">' + ((pos[ticket.sym] || {}).qty ? 'you hold ' + pos[ticket.sym].qty : 'nothing to sell') + '</span></button></div>' +
+      '<p class="pt-auth-msg" id="twMsg" role="alert" hidden></p>' + (halted ? '<p class="pt-fine tw-storm-note">' + esc(ticket.sym) + ' is halted by the storm. Pick another stock or wait it out.</p>' : storm && storm.kind === 'fee' ? '<p class="pt-fine tw-storm-note">Storm: every trade costs a 1% virtual fee right now.</p>' : '') +
+      (myPicks(w) ? '<p class="pt-fine">Your draft: <b>' + myPicks(w).map(esc).join(', ') + '</b>. You can only trade these.</p>' : '') + (me.out ? '<p class="pt-fine">You\'ve been knocked out, so trading is closed for you.</p>' : open ? '' : '<p class="pt-fine">Trades fill during market hours (9:30 am to 4:00 pm New York time).</p>') + '</div>' +
       '<h2 style="margin-top:14px">Your positions</h2>' + (Object.keys(pos).length ? '<div class="tw-pos">' + Object.keys(pos).map(function (s) {
         var p = pos[s], c = (quotes[s] && quotes[s].c) || p.avg, g = (c - p.avg) * p.qty;
         return '<button type="button" class="tw-pos-row" data-sym="' + s + '"><b>' + s + '</b><span>' + p.qty + ' @ ' + money(p.avg) + '</span><span>' + money(c * p.qty) + '</span><span class="' + cls(g) + '">' + signed(g) + '</span></button>';
       }).join('') + '</div>' : '<p class="pt-empty">No positions yet. Pick a stock and buy to get on the board.</p>') +
-      '</section><section class="pt-card ch-card"><h2>Leaderboard</h2>' + board(accounts, false) + (w.lms ? outsBox(w) : '') + (R(w).viewTrades ? feedBox() : '') +
+      '</section><section class="pt-card ch-card"><h2>Leaderboard</h2>' + board(accounts, false) + (w.lms ? outsBox(w) : '') + (R(w).viewTrades ? feedBox() : '') + (M(w).bounties ? bountyBox(w, me) : '') +
       '<p class="pt-fine">Updated after every trade and every 5 minutes. Ranked by % gain: everyone started with ' + money(w.buyIn, 0) + '.</p>' + rulesBox(w) + '</section></div>';
-    body(h); wireLive(me, pos); announceOuts(w);
+    body(h); wireLive(me, pos); announceOuts(w); wireBounty(w); drawTicker();
     ensureChart(); if (chartEl) { $('twChartSlot').appendChild(chartEl); drawChart(); }
   }
+  // ------------------------------------------------------------ advanced gameplay
+  function M(w) { return (w && w.modes) || {}; }
+  function myPicks(w) { var d = w.draft; return M(w).draft && d && d.picks && user ? d.picks[user.uid] || null : null; }
+  function stormNow(w) { var st = w.storm; return st && st.start <= Date.now() && Date.now() < st.end ? st : null; }
+  var STORM_TXT = { double: 'Double or nothing: profits and losses on sells count twice', fee: 'Choppy water: every trade costs a 1% virtual fee', halt: 'Trading halt on ' };
+  function stormBar(st) {
+    if (!st) return '';
+    return '<div class="tw-storm" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6l1-8z"/></svg><div><b>VOLATILITY STORM</b> <small>virtual game event · ' + left(st.end - Date.now()).replace(' left', '') + ' left</small><br>' +
+      esc(STORM_TXT[st.kind] + (st.kind === 'halt' ? st.sym + ': it can\'t be traded' : '')) + '</div></div>';
+  }
+  function roleTags(uid) {
+    var w = war || {}, t = '';
+    if ((w.whales || []).indexOf(uid) !== -1) t += ' <small class="tw-role is-whale" title="Whale: max ' + M(w).whale.capPct + '% of the account in one stock">WHALE</small>';
+    var sh = (w.shields || {})[uid];
+    if (sh) t += ' <small class="tw-role is-shield" title="Shield Tokens: cancel a bounty on you or survive a timed cut">' + sh + ' SHIELD' + (sh === 1 ? '' : 'S') + '</small>';
+    if ((w.bounties || []).some(function (b) { return b.status === 'open' && b.target === uid; })) t += ' <small class="tw-role is-bounty" title="There\'s a bounty on this trader">WANTED</small>';
+    return t;
+  }
+  // Battlefield Ticker: server-written events (tradeWars/{id}/events)
+  var TICK_ICON = { big: 'bolt', lead: 'crown', out: 'skull', bounty: 'target', shield: 'shield', storm: 'bolt', draft: 'flag', start: 'flag', win: 'trophy', whale: 'users' };
+  function drawTicker() {
+    var slot = $('twTickerSlot'); if (!slot) return;
+    if (!events.length) { slot.innerHTML = ''; return; }
+    var ico = function (k) { return window.ZelosIcons && ZelosIcons.names.indexOf(TICK_ICON[k]) !== -1 ? ZelosIcons.icon(TICK_ICON[k]) : ''; };
+    var item = function (e) { return '<span class="tw-tick is-' + esc(e.kind) + '">' + ico(e.kind) + esc(e.text) + '<small>' + new Date(e.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</small></span>'; };
+    var row = events.slice(0, 12).map(item).join('');
+    slot.innerHTML = '<div class="tw-ticker" aria-label="Battlefield Ticker"><span class="tw-ticker-lbl">BATTLEFIELD</span><div class="tw-ticker-win"><div class="tw-ticker-run">' + row + row + '</div></div>' +
+      '<details class="tw-ticker-all"><summary>All</summary><div>' + events.map(item).join('') + '</div></details></div>';
+  }
+  // Draft: snake order, 45 s a pick; when a clock runs out anyone's page asks the server to auto-pick
+  var draftTimer = null, draftNudged = -1;
+  function draftView(w) {
+    var d = w.draft, names = w.names || {}, onClock = draftOnClock(d), mineNow = user && onClock === user.uid;
+    var uni = (R(w).symbols || universe.map(function (u) { return u.sym; })).slice().sort();
+    var owner = {}; Object.keys(d.picks).forEach(function (u) { d.picks[u].forEach(function (x) { owner[x] = u; }); });
+    return '<div class="tw-draft"><section class="pt-card ch-card"><div class="tw-draft-top"><div><span class="pt-kicker">Pre-battle draft · pick ' + Math.min(d.turn + 1, d.total) + ' of ' + d.total + '</span>' +
+      '<h2>' + (mineNow ? 'Your pick' : esc(names[onClock] || 'Trader') + ' is picking') + '</h2></div><b class="tw-draft-clock" id="twDraftClock"></b></div>' +
+      '<p class="pt-fine">Each player drafts ' + d.per + ' stocks in a snake order. Once the draft ends the Trade War starts, and you can only trade the stocks you drafted. Run out of time and the server picks for you.</p>' +
+      '<div class="tw-draft-grid" role="list">' + uni.map(function (x) {
+        var who = owner[x];
+        return '<button type="button" role="listitem" class="tw-dpick' + (who ? ' is-taken' + (user && who === user.uid ? ' is-mine' : '') : '') + '" data-dsym="' + esc(x) + '"' + (who || !mineNow ? ' disabled' : '') + '><b>' + esc(x) + '</b>' + (who ? '<small>' + esc(names[who] || 'Trader') + '</small>' : '') + '</button>';
+      }).join('') + '</div><p class="pt-auth-msg" id="twMsg" role="alert" hidden></p></section>' +
+      '<section class="pt-card ch-card"><h2>Draft order</h2><ol class="tw-draft-order">' + d.order.map(function (u) {
+        return '<li class="' + (u === onClock ? 'is-on' : '') + '"><b>' + esc(names[u] || 'Trader') + (user && u === user.uid ? ' <small>you</small>' : '') + '</b><span>' + (d.picks[u].length ? d.picks[u].map(esc).join(', ') : '–') + '</span></li>';
+      }).join('') + '</ol>' + rulesBox(w) + '</section></div>';
+  }
+  function draftOnClock(d) { var n = d.order.length, r = Math.floor(d.turn / n), p = d.turn % n; return d.order[r % 2 === 0 ? p : n - 1 - p]; }
+  function wireDraft(w) {
+    document.querySelectorAll('[data-dsym]').forEach(function (b) { b.onclick = function () {
+      var x = b.getAttribute('data-dsym'); document.querySelectorAll('[data-dsym]').forEach(function (y) { y.disabled = true; });
+      call('tw_draft_pick', { warId: warId, sym: x }).catch(function (e) { msg(errText(e)); render(); });
+    }; });
+    clearInterval(draftTimer);
+    var tick = function () {
+      var el = $('twDraftClock'); if (!el || !war || war.status !== 'draft') { clearInterval(draftTimer); return; }
+      var ms = war.draft.deadline - Date.now(); el.textContent = ms > 0 ? Math.ceil(ms / 1000) + 's' : '0s';
+      el.classList.toggle('is-low', ms < 10000);
+      if (ms < -1500 && draftNudged !== war.draft.turn) { draftNudged = war.draft.turn; call('tw_draft_pick', { warId: warId }).catch(function () {}); }
+    };
+    tick(); draftTimer = setInterval(tick, 500);
+  }
+  // Bounty Board
+  var bountyPick = { pct: 5, hours: 24, target: '' };
+  function bountyBox(w, me) {
+    var names = w.names || {}, list = (w.bounties || []).slice().reverse(), open = list.filter(function (b) { return b.status === 'open'; });
+    var myOpen = open.some(function (b) { return b.by === user.uid; }), shields = (w.shields || {})[user.uid] || 0;
+    var rivals = (w.alive || w.players).filter(function (u) { return u !== user.uid; });
+    if (rivals.indexOf(bountyPick.target) === -1) bountyPick.target = rivals[0] || '';
+    var ST = { won: 'claimed by ', defended: 'survived by ', refunded: 'expired', shielded: 'cancelled by a Shield' };
+    var h = '<div class="tw-bounty"><h3>Bounty Board</h3>' + (open.length ? open.map(function (b) {
+      return '<div class="tw-b-row is-open"><span><b>' + esc(b.byName) + '</b> &rarr; <b>' + esc(b.targetName) + '</b></span><b class="tw-b-amt">' + money(b.amount) + '</b><small>' + left(b.end - Date.now()) + '</small>' +
+        (b.target === user.uid && shields ? '<button class="pt-mini" type="button" data-shield="' + esc(b.id) + '">Use a Shield</button>' : '') + '</div>';
+    }).join('') : '<p class="pt-empty">No open bounties.</p>') +
+      list.filter(function (b) { return b.status !== 'open'; }).slice(0, 4).map(function (b) {
+        return '<div class="tw-b-row"><span>' + esc(b.byName) + ' &rarr; ' + esc(b.targetName) + ': ' + (ST[b.status] || b.status) + (b.status === 'won' || b.status === 'defended' ? esc(b.winnerName) : '') + '</span><span class="tw-b-amt">' + money(b.amount) + '</span></div>';
+      }).join('');
+    if (!me.out && !myOpen && rivals.length && w.endAt - Date.now() > 3600000) {
+      var cash = me.cash || 0, eq = me.equity || w.buyIn;
+      h += '<div class="tw-b-form"><label>On <select id="twBTarget">' + rivals.map(function (u) { return '<option value="' + esc(u) + '"' + (u === bountyPick.target ? ' selected' : '') + '>' + esc(names[u] || 'Trader') + '</option>'; }).join('') + '</select></label>' +
+        '<span class="tw-chips" id="twBPct">' + [2, 5, 10].map(function (p) { return '<button type="button" class="pt-chip' + (bountyPick.pct === p ? ' is-on' : '') + '" data-bpct="' + p + '">' + money(eq * p / 100) + '</button>'; }).join('') + '</span>' +
+        '<select id="twBHours" aria-label="Bounty length"><option value="6"' + (bountyPick.hours === 6 ? ' selected' : '') + '>6 hours</option><option value="24"' + (bountyPick.hours === 24 ? ' selected' : '') + '>24 hours</option></select>' +
+        '<button class="pt-mini pt-soc" type="button" id="twBPlace">Place bounty</button></div>' +
+        '<p class="pt-fine">Paid from your match cash (' + money(cash) + '). When it ends, whoever beat ' + 'the target by the most since it was placed (and traded since) wins it; if nobody did, the target keeps it. One bounty at a time, each rival once per match.</p>';
+    } else if (myOpen) h += '<p class="pt-fine">Your bounty is out. You can place another once it settles.</p>';
+    return h + '</div>';
+  }
+  function wireBounty(w) {
+    if ($('twBTarget')) $('twBTarget').onchange = function () { bountyPick.target = this.value; };
+    if ($('twBHours')) $('twBHours').onchange = function () { bountyPick.hours = +this.value; };
+    document.querySelectorAll('[data-bpct]').forEach(function (b) { b.onclick = function () { bountyPick.pct = +b.getAttribute('data-bpct'); render(); }; });
+    if ($('twBPlace')) $('twBPlace').onclick = function () {
+      var b = this; b.disabled = true;
+      call('tw_bounty', { warId: warId, target: bountyPick.target, pct: bountyPick.pct, hours: bountyPick.hours }).then(function (r) { msg('Bounty placed: ' + money(r.amount) + '.', true); }, function (e) { b.disabled = false; msg(errText(e)); });
+    };
+    document.querySelectorAll('[data-shield]').forEach(function (b) { b.onclick = function () {
+      if (!confirm('Use a Shield Token to cancel this bounty? The sponsor gets their money back.')) return;
+      b.disabled = true; call('tw_shield', { warId: warId, bountyId: b.getAttribute('data-shield') }).then(function () { msg('Shield up: the bounty is cancelled.', true); }, function (e) { b.disabled = false; msg(errText(e)); });
+    }; });
+  }
+
   // Squad setting "view everyone's trades": the latest fills from every player's book.
   function feedBox() {
     var all = [];
