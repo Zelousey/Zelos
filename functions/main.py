@@ -8,11 +8,10 @@ permissions - no downloaded service-account key needed anywhere.
 publish_alert          - a scheduled Claude task calls this over plain HTTPS
                           with a shared secret to publish a generic Zelos
                           alert.
-gumroad_ping           - Gumroad calls this itself (its account-wide "Ping"
-                          webhook, configured once in Gumroad's own
-                          Settings > Advanced) on every sale, so a buyer's
-                          ownedSkills gets set automatically instead of
-                          relying on them to self-report a purchase.
+release_alerts         - every weekday just after the 4 pm ET close: makes the
+                          day's full alert public (see publish_alert).
+tokens_*, stripe_webhook - the token wallet, passes, unlocks and Stripe
+                          Checkout (see the Tokens section at the end).
 update_alert_outcomes  - a scheduled Claude task (with Robinhood market data)
                           calls this once it has decided what actually
                           happened to one or more previously-published
@@ -36,7 +35,7 @@ post_to_buffer         - the same kind of scheduled Claude task calls this
 
 Every endpoint checks a shared secret before doing anything, so if any URL
 ever leaked, it could only trigger that one narrow action - never read or
-write anything else in the database, and never touch Gumroad, Robinhood, or
+write anything else in the database, and never touch Stripe, Robinhood, or
 Buffer directly.
 """
 import hmac
@@ -47,8 +46,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-from firebase_functions import https_fn
-from firebase_admin import initialize_app, auth, firestore
+import time as _time
+
+from firebase_functions import https_fn, scheduler_fn
+from firebase_admin import initialize_app, firestore
 
 initialize_app()
 
@@ -66,14 +67,57 @@ def _write_failed(where, e):
     print("[%s] Firestore write failed: %s" % (where, type(e).__name__))
     return https_fn.Response("Firestore write failed", status=500)
 
-# Gumroad product permalink -> Zelos skill id. Permalinks are the part after
-# gumroad.com/l/ in each product's URL (see going-to-gumroad*.html on the site).
-# Keys are compared case-insensitively.
-GUMROAD_PERMALINK_TO_SKILL = {
-    "agentictrading": "swing-trader",
-    "breakoutrider": "breakout-rider",
-    "optionsscanner": "options-scanner",
-}
+# Live alerts are token-gated until the close. The teaser keeps what's needed for the
+# public pages (which scanner, the score, the kind of setup, the market mood) and
+# drops everything that would let someone trade it (ticker, levels, reasoning).
+ALERT_PUBLIC_FIELDS = ("strategy", "createdAt", "status", "direction", "score", "scoreMax", "setupLabel", "marketRegime", "outcome")
+
+
+def alert_has_trade(alert):
+    return bool(alert.get("ticker")) and alert.get("status") != "no-qualifying-setup"
+
+
+def alert_teaser(alert):
+    t = {k: alert[k] for k in ALERT_PUBLIC_FIELDS if k in alert}
+    st = alert.get("scanStats")
+    if isinstance(st, dict):
+        t["scanStats"] = {k: st[k] for k in ("scanned", "passedFilters") if k in st}
+    return t
+
+
+def alert_lock_until(now_utc):
+    """Epoch ms of the next 4:00 pm New York close (today's if before it; skips weekends)."""
+    from zoneinfo import ZoneInfo
+    from datetime import timedelta
+    ny = now_utc.astimezone(ZoneInfo("America/New_York"))
+    close = ny.replace(hour=16, minute=0, second=0, microsecond=0)
+    if ny >= close:
+        close += timedelta(days=1)
+    while close.weekday() >= 5:
+        close += timedelta(days=1)
+    return int(close.timestamp() * 1000)
+
+
+def release_due_alerts(db, now_ms):
+    """Copy every locked alert whose close has passed into its public doc."""
+    n = 0
+    for snap in db.collection("alertsLocked").where("released", "==", False).stream():
+        full = snap.to_dict()
+        if (full.get("lockedUntil") or 0) > now_ms:
+            continue
+        pub = {k: v for k, v in full.items() if k not in ("lockedUntil", "released")}
+        pub.update({"locked": False, "releasedAt": now_ms})
+        db.collection("alerts").document(snap.id).set(pub, merge=True)
+        snap.reference.update({"released": True, "releasedAt": now_ms})
+        n += 1
+    return n
+
+
+@scheduler_fn.on_schedule(schedule="10,40 16-23 * * 1-5", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=120, memory=256)
+def release_alerts(event: scheduler_fn.ScheduledEvent) -> None:
+    n = release_due_alerts(firestore.client(), int(_time.time() * 1000))
+    if n:
+        print("[release_alerts] released %d alerts" % n)
 
 
 @https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
@@ -112,7 +156,14 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
 
     db = firestore.client()
     try:
-        db.collection("alerts").document(alert_id).set(alert, merge=True)
+        if alert_has_trade(alert):
+            # Live alert: the public doc is a teaser; the full alert waits in alertsLocked
+            # for token holders (a scanner pass or a single unlock) and goes public after the close.
+            until = alert_lock_until(datetime.now(timezone.utc))
+            db.collection("alertsLocked").document(alert_id).set(dict(alert, lockedUntil=until, released=False))
+            db.collection("alerts").document(alert_id).set(dict(alert_teaser(alert), locked=True, lockedUntil=until), merge=False)
+        else:
+            db.collection("alerts").document(alert_id).set(alert, merge=True)
     except Exception as e:
         return _write_failed("publish_alert", e)
 
@@ -148,81 +199,6 @@ def publish_market_map(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         return _write_failed("publish_market_map", e)
     return https_fn.Response(json.dumps({"ok": True, "asOf": payload["asOf"]}), status=200, content_type="application/json")
-
-
-@https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
-def gumroad_ping(req: https_fn.Request) -> https_fn.Response:
-    """Gumroad's account-wide sale-notification webhook.
-
-    Gumroad POSTs form-encoded data to whatever URL you configure in Settings >
-    Advanced > Ping - for EVERY sale across every product, and it cannot send a
-    custom header, so the shared secret rides along as a query-string token on
-    the URL you paste into Gumroad instead: .../gumroad_ping?token=<secret>.
-    That URL lives only in your own Gumroad account settings, never published
-    anywhere on the site.
-    """
-    if req.method != "POST":
-        return https_fn.Response("Method not allowed", status=405)
-
-    if not _secret_ok(req.args.get("token", "")):
-        return https_fn.Response("Unauthorized", status=401)
-
-    form = req.form
-    email = (form.get("email") or "").strip().lower()
-    permalink = (form.get("permalink") or form.get("short_product_id") or "").strip().lower()
-    is_test = (form.get("test") or "").strip().lower() == "true"
-
-    skill_id = GUMROAD_PERMALINK_TO_SKILL.get(permalink)
-
-    # Always 200 back to Gumroad even when there's nothing useful to do - a
-    # non-2xx response makes Gumroad retry the same ping repeatedly, and none
-    # of these are actually errors on Gumroad's end.
-    if not email or not skill_id:
-        return https_fn.Response(
-            json.dumps({"ok": True, "skipped": "no matching email/permalink"}),
-            status=200, content_type="application/json",
-        )
-    if is_test:
-        return https_fn.Response(
-            json.dumps({"ok": True, "skipped": "test ping, no write"}),
-            status=200, content_type="application/json",
-        )
-
-    db = firestore.client()
-
-    # Always record it in pendingOwnership first - this is the durable source of
-    # truth a buyer claims into their own account doc the next time they sign
-    # in with this same email (see claimPendingOwnership() in dashboard.html /
-    # my-zelos.html). Keeping this write even when we can also apply it directly
-    # below means nothing is lost if the direct write fails or the account gets
-    # created under this email later.
-    try:
-        db.collection("pendingOwnership").document(email).set(
-            {
-                "skills": firestore.ArrayUnion([skill_id]),
-                "updatedAt": firestore.SERVER_TIMESTAMP,
-            },
-            merge=True,
-        )
-    except Exception as e:
-        return _write_failed("gumroad_ping", e)
-
-    # Best-effort: if this email already has a Zelos account, apply it right
-    # away too, so they don't have to sign out/in again to see it.
-    try:
-        user = auth.get_user_by_email(email)
-        db.collection("users").document(user.uid).set(
-            {"ownedSkills": firestore.ArrayUnion([skill_id])}, merge=True
-        )
-    except auth.UserNotFoundError:
-        pass
-    except Exception:
-        pass  # never fail the webhook over this optional convenience step
-
-    return https_fn.Response(
-        json.dumps({"ok": True, "skill": skill_id}),
-        status=200, content_type="application/json",
-    )
 
 
 VALID_OUTCOME_RESULTS = {"hit-target", "stopped-out", "open", "expired", "no-trade"}
@@ -269,7 +245,7 @@ def update_alert_outcomes(req: https_fn.Request) -> https_fn.Response:
 
     Only ever touches the `outcome` field of an existing alert doc (merge:
     true) - never creates a new alert, never touches anything else about it.
-    Same shared-secret gate as publish_alert and gumroad_ping: this can only
+    Same shared-secret gate as publish_alert: this can only
     ever overwrite an outcome, never read or write anything else.
     """
     if req.method != "POST":
@@ -2168,3 +2144,288 @@ def tw_respond(req, db, uid, now_ms):
         return {"status": "accepted", "warId": inv["warId"], "started": war.get("mode") == "duel"}
 
     return txn(db.transaction())
+
+
+# ---------------------------------------------------------------------------
+# Tokens: the site's paid currency (replaces the old $20 Gumroad purchase).
+#
+#   wallets/{uid}                 { balance, passes: {strategy: untilMs}, unlocked: [alertId],
+#                                   welcomed, createdAt, updatedAt }   owner-read, server-write
+#   wallets/{uid}/ledger/{id}     { type, amount (+/-), balanceAfter, note, ref, at }
+#   purchases/{stripeSessionId}   { uid, pack, tokens, amountCents, at }  server only (idempotency)
+#   alertsLocked/{alertId}        the full alert while it's live (see publish_alert); readable
+#                                 with a pass for that scanner or a single unlock
+#
+# Every balance change happens here, in a transaction that also writes the ledger
+# line, so balances can't be edited from a browser and can't be double-spent.
+# Prices are provisional (the spec keeps pricing open) and live only in TOKENS.
+# Payments: Stripe Checkout. Until the owner adds real Stripe keys (secrets
+# STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET), buying says "coming soon"; free
+# tokens, passes and unlocks work regardless.
+# ---------------------------------------------------------------------------
+import hashlib as _hashlib
+
+TOKENS = {
+    "welcome": 75,                 # once per verified account
+    "pass": 40, "passDays": 7,     # one scanner, 7 days
+    "unlock": 10,                  # one live alert
+    "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
+}
+TK_UNLOCKED_MAX = 300
+STRIPE_API = "https://api.stripe.com/v1"
+SITE_URL = "https://agentictrading.info"
+
+
+def _tk_user(req):
+    a = req.auth
+    if not a or not a.uid:
+        raise TWError("UNAUTHENTICATED", "Sign in to use tokens.")
+    tok = a.token or {}
+    if ((tok.get("firebase") or {}).get("sign_in_provider")) == "anonymous":
+        raise TWError("UNAUTHENTICATED", "Create a free account to use tokens.")
+    return a.uid, tok
+
+
+def _tk_verified(tok):
+    """Welcome tokens only for verified accounts (Google sign-in, or a verified email),
+    so throwaway sign-ups can't farm them."""
+    return tok.get("email_verified") is True or ((tok.get("firebase") or {}).get("sign_in_provider")) == "google.com"
+
+
+def tk_new_wallet(now_ms):
+    return {"balance": 0, "passes": {}, "unlocked": [], "welcomed": False, "createdAt": now_ms, "updatedAt": now_ms}
+
+
+def tk_ledger(kind, amount, balance_after, now_ms, note="", ref=None):
+    return {"type": kind, "amount": amount, "balanceAfter": balance_after, "note": note[:120], "ref": ref, "at": now_ms}
+
+
+def tk_welcome(wallet, verified, now_ms):
+    """Pure: (wallet, ledger line | None). The welcome bonus is granted exactly once."""
+    if wallet.get("welcomed") or not verified:
+        return wallet, None
+    w = dict(wallet, balance=wallet["balance"] + TOKENS["welcome"], welcomed=True, updatedAt=now_ms)
+    return w, tk_ledger("welcome", TOKENS["welcome"], w["balance"], now_ms, "Welcome tokens")
+
+
+def tk_has_access(wallet, strategy, alert_id, now_ms):
+    return (wallet.get("passes") or {}).get(strategy, 0) > now_ms or alert_id in (wallet.get("unlocked") or [])
+
+
+def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
+    """Pure: (wallet, ledger line | None) for a pass or a single-alert unlock.
+    locked: the alertsLocked doc for an unlock (None if it doesn't exist).
+    Already covered = no charge (ledger None)."""
+    if kind == "pass":
+        if strategy not in ALLOWED_STRATEGIES:
+            raise TWError("INVALID_ARGUMENT", "Pick a scanner.")
+        cost, ref = TOKENS["pass"], strategy
+    elif kind == "unlock":
+        if not locked or locked.get("released"):
+            raise TWError("FAILED_PRECONDITION", "This alert is already free to read.")
+        strategy = locked.get("strategy")
+        if tk_has_access(wallet, strategy, alert_id, now_ms):
+            return wallet, None
+        cost, ref = TOKENS["unlock"], alert_id
+    else:
+        raise TWError("INVALID_ARGUMENT", "Unknown purchase.")
+    if wallet["balance"] < cost:
+        raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet["balance"]))
+    w = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+    if kind == "pass":
+        passes = dict(wallet.get("passes") or {})
+        passes[strategy] = max(passes.get(strategy, 0), now_ms) + TOKENS["passDays"] * 86400000
+        w["passes"] = passes
+        note = "%s pass (%d days)" % (strategy.replace("-", " ").title(), TOKENS["passDays"])
+    else:
+        w["unlocked"] = ((wallet.get("unlocked") or []) + [alert_id])[-TK_UNLOCKED_MAX:]
+        note = "Unlocked %s" % alert_id
+    return w, tk_ledger(kind, -cost, w["balance"], now_ms, note, ref)
+
+
+def tk_credit(wallet, tokens, now_ms, kind, note, ref):
+    w = dict(wallet, balance=wallet["balance"] + tokens, updatedAt=now_ms)
+    return w, tk_ledger(kind, tokens, w["balance"], now_ms, note, ref)
+
+
+def _tk_call(fn):
+    def wrapper(req):
+        try:
+            uid, tok = _tk_user(req)
+            return fn(req, firestore.client(), uid, tok, int(_time.time() * 1000))
+        except TWError as e:
+            raise _tw_http(e)
+        except https_fn.HttpsError:
+            raise
+        except Exception as e:
+            print("[tokens] %s failed: %s" % (fn.__name__, type(e).__name__))
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+def _tk_public(wallet):
+    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:]}
+
+
+def _stripe_ready():
+    return os.environ.get("STRIPE_SECRET_KEY", "").startswith(("sk_live_", "sk_test_"))
+
+
+@https_fn.on_call(secrets=["STRIPE_SECRET_KEY"])
+@_tk_call
+def tokens_wallet(req, db, uid, tok, now_ms):
+    """Your wallet (made on first use; welcome tokens once for a verified account) plus prices."""
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        wallet, line = tk_welcome(wallet, _tk_verified(tok), now_ms)
+        if line or not snap.exists:
+            t.set(ref, wallet)
+        if line:
+            t.set(ref.collection("ledger").document(), line)
+        return wallet, line
+
+    wallet, line = txn(db.transaction())
+    out = _tk_public(wallet)
+    out.update({"welcomed": bool(line), "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "welcome": TOKENS["welcome"]},
+                "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
+                "canBuy": _stripe_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
+    return out
+
+
+@https_fn.on_call()
+@_tk_call
+def tokens_spend(req, db, uid, tok, now_ms):
+    """{kind: 'pass', strategy} or {kind: 'unlock', alertId}."""
+    data = req.data or {}
+    kind, strategy, alert_id = data.get("kind"), data.get("strategy"), str(data.get("alertId") or "")
+    if kind == "unlock" and not _re.match(r"^[a-z-]+-\d{4}-\d{2}-\d{2}$", alert_id):
+        raise TWError("INVALID_ARGUMENT", "That alert isn't valid.")
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        locked = None
+        if kind == "unlock":
+            ls = db.collection("alertsLocked").document(alert_id).get(transaction=t)
+            locked = ls.to_dict() if ls.exists else None
+        wallet, line = tk_spend(wallet, kind, now_ms, strategy, alert_id, locked)
+        if line:
+            t.set(ref, wallet)
+            t.set(ref.collection("ledger").document(), line)
+        return wallet, line
+
+    wallet, line = txn(db.transaction())
+    out = _tk_public(wallet)
+    out["charged"] = -(line or {}).get("amount", 0)
+    return out
+
+
+@https_fn.on_call(secrets=["STRIPE_SECRET_KEY"])
+@_tk_call
+def tokens_checkout(req, db, uid, tok, now_ms):
+    """A Stripe Checkout page for a token pack: {pack}. Returns {url}."""
+    pack = str((req.data or {}).get("pack") or "")
+    if pack not in TOKENS["packs"]:
+        raise TWError("INVALID_ARGUMENT", "Pick a token pack.")
+    if not _stripe_ready():
+        raise TWError("FAILED_PRECONDITION", "Buying tokens is coming soon. You can use your free tokens now.")
+    tokens, cents = TOKENS["packs"][pack]
+    form = {"mode": "payment", "client_reference_id": uid,
+            "success_url": SITE_URL + "/tokens.html?paid=1", "cancel_url": SITE_URL + "/tokens.html?cancelled=1",
+            "metadata[uid]": uid, "metadata[pack]": pack, "metadata[tokens]": str(tokens),
+            "line_items[0][quantity]": "1", "line_items[0][price_data][currency]": "usd",
+            "line_items[0][price_data][unit_amount]": str(cents),
+            "line_items[0][price_data][product_data][name]": "%d Zelos tokens" % tokens,
+            "line_items[0][price_data][product_data][description]": "Site credit for AgenticTrading.info scanner passes and alerts. Not redeemable for cash."}
+    if tok.get("email") and tok.get("email_verified"):
+        form["customer_email"] = tok["email"]
+    rq = urllib.request.Request(STRIPE_API + "/checkout/sessions", data=urllib.parse.urlencode(form).encode(), method="POST",
+                                headers={"Authorization": "Bearer " + os.environ["STRIPE_SECRET_KEY"], "Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        with urllib.request.urlopen(rq, timeout=15) as r:
+            sess = json.loads(r.read().decode())
+    except Exception as e:
+        print("[tokens] Stripe checkout failed:", type(e).__name__)
+        raise TWError("UNAVAILABLE", "Checkout isn't available right now. Try again in a minute.")
+    return {"url": sess.get("url")}
+
+
+def stripe_verify(payload, header, secret, now_s, tolerance=300):
+    """Stripe webhook signature check (v1 scheme): HMAC-SHA256 of '<t>.<payload>'."""
+    if not secret or not header:
+        return False
+    parts = {}
+    for item in str(header).split(","):
+        k, _, v = item.strip().partition("=")
+        parts.setdefault(k, []).append(v)
+    try:
+        ts = int(parts.get("t", ["0"])[0])
+    except ValueError:
+        return False
+    if abs(now_s - ts) > tolerance:
+        return False
+    expected = hmac.new(secret.encode(), ("%d." % ts).encode() + payload, _hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, v) for v in parts.get("v1", []))
+
+
+def tk_session_credit(sess):
+    """(uid, pack, tokens, cents) for a paid Checkout session we created, else None.
+    Double-checks the amount so a tampered session can't mint tokens."""
+    meta = sess.get("metadata") or {}
+    pack, uid = meta.get("pack"), meta.get("uid") or sess.get("client_reference_id")
+    if sess.get("payment_status") != "paid" or pack not in TOKENS["packs"] or not uid:
+        return None
+    tokens, cents = TOKENS["packs"][pack]
+    if sess.get("amount_total") != cents or str(meta.get("tokens")) != str(tokens):
+        return None
+    return uid, pack, tokens, cents
+
+
+@https_fn.on_request(secrets=["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"])
+def stripe_webhook(req: https_fn.Request) -> https_fn.Response:
+    """Stripe calls this after a payment. Verified by signature; each Checkout session
+    credits tokens exactly once (purchases/{sessionId})."""
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
+    raw = req.get_data()
+    if not stripe_verify(raw, req.headers.get("Stripe-Signature", ""), os.environ.get("STRIPE_WEBHOOK_SECRET", ""), int(_time.time())):
+        return https_fn.Response("Bad signature", status=400)
+    try:
+        event = json.loads(raw.decode())
+    except Exception:
+        return https_fn.Response("Bad JSON", status=400)
+    if event.get("type") not in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+        return https_fn.Response("ignored", status=200)
+    sess = (event.get("data") or {}).get("object") or {}
+    credit = tk_session_credit(sess)
+    if not credit or not sess.get("id"):
+        return https_fn.Response("nothing to credit", status=200)
+    uid, pack, tokens, cents = credit
+    db, now_ms = firestore.client(), int(_time.time() * 1000)
+    pref, wref = db.collection("purchases").document(sess["id"]), db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        if pref.get(transaction=t).exists:
+            return False
+        ws = wref.get(transaction=t)
+        wallet = ws.to_dict() if ws.exists else tk_new_wallet(now_ms)
+        wallet, line = tk_credit(wallet, tokens, now_ms, "purchase", "Bought %d tokens" % tokens, sess["id"])
+        t.set(pref, {"uid": uid, "pack": pack, "tokens": tokens, "amountCents": cents, "at": now_ms})
+        t.set(wref, wallet)
+        t.set(wref.collection("ledger").document(), line)
+        return True
+
+    try:
+        txn(db.transaction())
+    except Exception as e:
+        print("[tokens] webhook credit failed:", type(e).__name__)
+        return https_fn.Response("retry", status=500)  # Stripe retries
+    return https_fn.Response("ok", status=200)

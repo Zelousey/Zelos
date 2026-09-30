@@ -151,21 +151,35 @@
       if (e.target.id === 'zmodalOverlay') close();
     });
     document.addEventListener('keydown', onKeydown);
-    mountChart(document.getElementById('zmodalChart'), a.ticker, a);
+    if (a.ticker) mountChart(document.getElementById('zmodalChart'), a.ticker, a);
 
     if (id && window.ZelosXP && ZelosXP.onChange) {
       ZelosXP.onChange(function (user) { if (user) ZelosXP.award('alert-open', id); });
     }
   }
 
-  function openWithData(id, data) { render(id, data || {}); }
+  // Live alerts are token-gated until the close (zelos-tokens.js): the full alert if you
+  // have a pass or unlocked it, else the teaser with an unlock card instead of the levels.
+  function show(id, a) {
+    var T = window.ZelosTokens;
+    if (!T || !T.isLocked(a)) return render(id, a);
+    T.resolve(a, id).then(function (r) {
+      render(id, r.alert);
+      if (!r.locked) return;
+      var head = document.querySelector('#zmodalOverlay h2'); if (head) head.textContent = 'Locked · live';
+      var chart = document.getElementById('zmodalChart'); if (!chart) return;
+      var card = T.lockCard(a, id, function (f) { render(id, f); });
+      chart.replaceWith(card);
+    });
+  }
+  function openWithData(id, data) { show(id, data || {}); }
 
   function open(id) {
     var database = getDb();
     if (!database || !id) return;
     database.collection('alerts').doc(id).get().then(function (doc) {
       if (!doc.exists) return;
-      render(id, doc.data());
+      show(id, doc.data());
     }).catch(function () { /* fail quiet — the sidebar link to alert.html still works */ });
   }
 

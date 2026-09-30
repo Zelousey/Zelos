@@ -246,10 +246,10 @@
             <p class="skill-desc">Pullbacks in a healthy uptrend — alerts only when selling pressure looks like it's fading and risk/reward earns it. Swing, days to weeks.</p>
           </div>
           <div class="skill-bottom">
-            <span class="skill-price">$20</span>
+            <span class="skill-price">40 tokens / week</span>
             <div class="skill-actions">
               <a class="btn btn-ghost btn-sm" href="swing-trader.html">Preview</a>
-              <a class="btn btn-primary btn-sm" data-buy-btn href="going-to-gumroad.html">Unlock — $20</a>
+              <a class="btn btn-primary btn-sm" data-buy-btn href="tokens.html">Get a pass</a>
             </div>
           </div>
         </div>
@@ -265,10 +265,10 @@
             <p class="skill-desc">Waits for a stock to clear resistance and hold above it — not just spike — before it ever gets on the list. Swing, days to weeks.</p>
           </div>
           <div class="skill-bottom">
-            <span class="skill-price">$20</span>
+            <span class="skill-price">40 tokens / week</span>
             <div class="skill-actions">
               <a class="btn btn-ghost btn-sm" href="breakout-rider.html">Preview</a>
-              <a class="btn btn-primary btn-sm" data-buy-btn href="going-to-gumroad-breakout.html">Unlock — $20</a>
+              <a class="btn btn-primary btn-sm" data-buy-btn href="tokens.html">Get a pass</a>
             </div>
           </div>
         </div>
@@ -284,18 +284,16 @@
             <p class="skill-desc">Takes the same pullback and breakdown setups and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies.</p>
           </div>
           <div class="skill-bottom">
-            <span class="skill-price">$20</span>
+            <span class="skill-price">40 tokens / week</span>
             <div class="skill-actions">
               <a class="btn btn-ghost btn-sm" href="options-scanner.html">Preview</a>
-              <a class="btn btn-primary btn-sm" data-buy-btn href="going-to-gumroad-options.html">Unlock — $20</a>
+              <a class="btn btn-primary btn-sm" data-buy-btn href="tokens.html">Get a pass</a>
             </div>
           </div>
         </div>
       </div>
 
-      <div id="markOwnedBlock" hidden style="margin-top:16px;">
-        <p class="fine">Signed in — already bought one of these? <span id="markOwnedLinks"></span> Purchases on Gumroad aren't automatically synced yet, so marking a skill as unlocked here is what makes it show up as yours on the <a href="my-zelos.html" style="color:var(--accent);">My Zelos</a> and Dashboard pages.</p>
-      </div>
+      <p class="fine" style="margin-top:16px;">A pass unlocks every live alert from that scanner for 7 days. Every alert is free for everyone after the 4:00 pm ET close. <a href="tokens.html" style="color:var(--accent);">How tokens work &rarr;</a></p>
     </div>
 
     <div style="margin-top:30px;">
@@ -391,6 +389,7 @@
 <script src="zelos-mood.js"></script>
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
+<script src="zelos-tokens.js"></script>
 <script>
 (function(){
   var SKILL_IDS = ['swing-trader', 'breakout-rider', 'options-scanner'];
@@ -505,19 +504,6 @@
     document.getElementById('progressNote').textContent = note;
   }
 
-  function userDocRef(uid){ return db.collection('users').doc(uid); }
-
-  function markOwnedLink(skillId, label){
-    var a = document.createElement('a');
-    a.href = '#'; a.textContent = label; a.style.color = 'var(--accent)'; a.dataset.skill = skillId;
-    a.addEventListener('click', function(e){
-      e.preventDefault();
-      var user = auth.currentUser;
-      if (!user) return;
-      userDocRef(user.uid).set({ ownedSkills: firebase.firestore.FieldValue.arrayUnion(skillId) }, { merge: true });
-    });
-    return a;
-  }
 
   function applyOwnership(owned){
     var unlockedCount = 0;
@@ -531,40 +517,27 @@
       var label = tile.querySelector('[data-ribbon-label]');
       ribbon.classList.toggle('unlocked', isOwned);
       ribbon.classList.toggle('locked', !isOwned);
-      ribbon.innerHTML = (isOwned ? CHECK_ICON : LOCK_ICON) + '<span data-ribbon-label>' + (isOwned ? 'Unlocked' : 'Locked') + '</span>';
+      ribbon.innerHTML = (isOwned ? CHECK_ICON : LOCK_ICON) + '<span data-ribbon-label>' + (isOwned ? 'Pass active' : 'Locked') + '</span>';
       var buyBtn = tile.querySelector('[data-buy-btn]');
-      if (isOwned) { buyBtn.textContent = 'Buy again'; }
+      buyBtn.textContent = isOwned ? 'Add 7 days' : 'Get a pass';
     });
     setProgress(unlockedCount, SKILL_IDS.length, unlockedCount === SKILL_IDS.length
-      ? 'Every core skill unlocked — full arsenal equipped.'
-      : 'Unlocking a skill also adds it to My Zelos and your XP progress.');
-
-    var block = document.getElementById('markOwnedBlock');
-    var links = document.getElementById('markOwnedLinks');
-    var missing = SKILL_IDS.filter(function(id){ return owned.indexOf(id) === -1; });
-    if (!missing.length) { block.hidden = true; return; }
-    links.innerHTML = '';
-    missing.forEach(function(id, i){
-      links.appendChild(markOwnedLink(id, 'Mark ' + SKILL_NAMES[id] + ' as unlocked'));
-      if (i < missing.length - 1) links.appendChild(document.createTextNode(' · '));
-    });
-    block.hidden = false;
+      ? 'A pass is active on every scanner.'
+      : 'A pass unlocks a scanner\'s live alerts for 7 days.');
   }
 
   if (ready) {
     auth.onAuthStateChanged(function(user){
       if (!user || user.isAnonymous) {
         renderSignedOut();
-        document.getElementById('markOwnedBlock').hidden = true;
-        setProgress(0, SKILL_IDS.length, 'Sign in to track which skills you\'ve unlocked.');
+        setProgress(0, SKILL_IDS.length, 'Sign in to see your passes. New accounts get free tokens.');
         if (user && window.ZelosXP) ZelosXP.award('daily-checkin');
         return;
       }
       renderSignedIn(user);
-      userDocRef(user.uid).onSnapshot(function(doc){
-        var data = doc.data() || {};
-        applyOwnership(data.ownedSkills || []);
-      });
+      // "unlocked" = an active scanner pass in your token wallet (zelos-tokens.js)
+      var passes = function (w) { var p = (w && w.passes) || {}; return SKILL_IDS.filter(function (id) { return (p[id] || 0) > Date.now(); }); };
+      if (window.ZelosTokens) { ZelosTokens.onChange(function (w) { applyOwnership(passes(w)); }); applyOwnership(passes(ZelosTokens.wallet())); }
       if (window.ZelosXP) ZelosXP.award('daily-checkin');
     });
   } else {
@@ -578,7 +551,7 @@
   if (typeof gtag !== 'function') return;
   buyBtns.forEach(function(btn){
     btn.addEventListener('click', function(){
-      gtag('event', 'click_buy_gumroad', { event_category: 'engagement', event_label: 'Arsenal — ' + btn.closest('.skill-tile').dataset.skill });
+      gtag('event', 'click_get_pass', { event_category: 'engagement', event_label: 'Arsenal — ' + btn.closest('.skill-tile').dataset.skill });
     });
   });
 })();

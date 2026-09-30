@@ -15,15 +15,27 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Daily Market — Zelos</title>
+<title>Zelos Tokens</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Zelos's current read on the broad market — bullish, bearish, or neutral — and how that changes the bar for every strategy.">
-<link rel="canonical" href="https://agentictrading.info/daily-market.html">
+<meta name="description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. Every alert is free for everyone after the close.">
+<link rel="canonical" href="https://agentictrading.info/tokens.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Zelos">
+<meta property="og:title" content="Zelos Tokens">
+<meta property="og:description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. Every alert is free for everyone after the close.">
+<meta property="og:url" content="https://agentictrading.info/tokens.html">
+<meta property="og:image" content="https://agentictrading.info/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Zelos Tokens">
+<meta name="twitter:description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. Every alert is free for everyone after the close.">
+<meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
@@ -31,61 +43,25 @@
   *{ box-sizing:border-box; }
   body{ margin:0; }
   [hidden]{ display:none !important; }
-
-  /* ---- page-local components (not in the shared theme) ---- */
-  .applinks{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
-  .applinks a{
-    font-family:var(--mono); font-size:0.78rem; color:var(--ink-2); text-decoration:none;
-    background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:7px 14px;
-  }
-  .applinks a:hover{ color:var(--ink); border-color:var(--muted-2); }
-  .applinks a.is-active{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
-
-  .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; }
-  .card + .card{ margin-top:18px; }
-  .card-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; gap:12px; }
-  .card-head h2{ font-size:1rem; margin:0; }
-
-  .regime-tile{ display:flex; align-items:center; gap:16px; }
-  .regime-badge{
-    flex:none; width:64px; height:64px; border-radius:3px;
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-weight:700; font-size:1.6rem;
-  }
-  .regime-badge.bullish{ background:var(--accent-soft); color:var(--accent); }
-  .regime-badge.bearish{ background:var(--danger-soft); color:var(--danger); }
-  .regime-badge.neutral{ background:var(--gold-soft); color:var(--gold); }
-  .regime-badge.unknown{ background:var(--surface-2); color:var(--muted); }
-  .regime-label{ font-size:1.15rem; font-weight:700; }
-  .regime-note{ margin-top:4px; color:var(--muted); font-size:0.86rem; max-width:48ch; }
-  .regime-stamp{ font-family:var(--mono); font-size:0.72rem; color:var(--muted); margin-top:14px; }
-
-  .explain-list{ display:flex; flex-direction:column; gap:14px; margin-top:4px; }
-  .explain-item{ display:flex; gap:12px; align-items:flex-start; }
-  .explain-dot{ flex:none; width:12px; height:12px; border-radius:2px; margin-top:4px; }
-  .explain-dot.bullish{ background:var(--accent); }
-  .explain-dot.bearish{ background:var(--danger); }
-  .explain-dot.neutral{ background:var(--gold); }
-  .explain-item p{ margin:0; font-size:0.9rem; color:var(--muted); }
-  .explain-item p b{ color:var(--ink); }
-
-  .history-row{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:10px 0; border-top:1px solid var(--border-soft); font-size:0.88rem;
-  }
-  .history-row:first-child{ border-top:none; }
-  .history-date{ font-family:var(--mono); color:var(--muted); font-size:0.8rem; }
-  .history-tag{
-    font-family:var(--mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.03em;
-    padding:3px 9px; border-radius:3px;
-  }
-  .history-tag.bullish{ background:var(--accent-soft); color:var(--accent); }
-  .history-tag.bearish{ background:var(--danger-soft); color:var(--danger); }
-  .history-tag.neutral{ background:var(--gold-soft); color:var(--gold); }
-  .history-tag.unknown{ background:var(--surface-2); color:var(--muted); }
-
-  .empty{ color:var(--muted); font-size:0.88rem; padding:6px 0; }
-  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
+  .tk-hero{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; }
+  .tk-bal{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; min-width:220px; }
+  .tk-bal b{ display:flex; align-items:center; gap:10px; font:700 1.9rem var(--mono); margin-top:4px; }
+  .tk-bal small{ color:var(--muted); font-size:.78rem; }
+  .tk-coin{ width:20px; height:20px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#ffe7a3,#e8b23d 60%,#a67a1c); flex-shrink:0; }
+  .tk-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; }
+  .tk-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:8px; }
+  .tk-card h3{ margin:0; font-size:1rem; } .tk-card p{ margin:0; color:var(--muted); font-size:.86rem; line-height:1.5; }
+  .tk-card .price{ font:700 1.4rem var(--mono); } .tk-card .price small{ font-size:.8rem; color:var(--muted); font-weight:400; }
+  .tk-card button, .tk-btn{ margin-top:auto; font:inherit; font-weight:700; padding:11px 14px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); cursor:pointer; }
+  .tk-card button.gold, .tk-btn.gold{ background:linear-gradient(180deg,#e8b23d,#c9901b); color:#1a1204; border-color:transparent; }
+  .tk-card button:disabled{ opacity:.55; cursor:default; }
+  .tk-pass-on{ color:#10b981; font-size:.82rem; font-family:var(--mono); }
+  .tk-section{ margin-top:36px; } .tk-section h2{ font-size:1.15rem; margin:0; }
+  .tk-faq{ margin-top:10px; } .tk-faq details{ border-top:1px solid var(--border); padding:12px 0; } .tk-faq summary{ cursor:pointer; font-weight:600; }
+  .tk-faq p{ color:var(--muted); font-size:.9rem; line-height:1.55; margin:8px 0 0; }
+  .tk-msg{ margin-top:14px; padding:10px 14px; border-radius:10px; font-size:.9rem; border:1px solid var(--border); }
+  .tk-msg.ok{ border-color:rgba(16,185,129,.55); background:rgba(16,185,129,.08); } .tk-msg.bad{ border-color:rgba(239,68,68,.55); background:rgba(239,68,68,.08); }
+  @media (max-width:760px){ .tk-grid{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body class="zt zt-body">
@@ -108,7 +84,7 @@
         </div>
       </div>
       <div class="nav-drop">
-        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Trading Tools <span class="nav-drop-caret">&#9662;</span></button>
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trading Tools <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
           <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
           <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
@@ -176,50 +152,47 @@
 </nav>
 
 <section class="section-tight">
-  <div class="shell-narrow">
-    <div>
-      <p class="eyebrow">Daily market</p>
-      <h1 style="font-size:1.5rem; margin-top:6px;">Zelos's current read on the market</h1>
-      <p class="status-line" style="margin-top:6px;">Every strategy checks the broad market first, before it looks at a single ticker — this is that same read, shown on its own. It's context, not a forecast, and it comes straight off the most recent alert run.</p>
-      <div class="applinks">
-        <a href="dashboard.html">Dashboard</a>
-        <a href="my-zelos.html">My Zelos</a>
-        <a href="arsenal.html">Arsenal</a>
-        <a href="daily-market.html" class="is-active">Daily market</a>
-        <a href="alert-history.html">History</a>
+  <div class="shell">
+    <div class="tk-hero">
+      <div>
+        <p class="eyebrow">Tokens</p>
+        <h1 style="font-size:1.6rem; margin-top:6px;">Unlock live alerts with tokens</h1>
+        <p class="status-line" style="margin-top:6px; max-width:62ch;">Each Zelos scanner publishes its alert before the market opens. While it's live, the ticker, entry, stop, targets and reasoning are unlocked with tokens. After the 4:00 pm ET close, every alert is free for everyone.</p>
+      </div>
+      <div class="tk-bal" id="tkBal"><small>Your tokens</small><b><span class="tk-coin" aria-hidden="true"></span><span id="tkBalN">&ndash;</span></b><small id="tkBalNote">Sign in to see your wallet.</small></div>
+    </div>
+    <div id="tkMsg" class="tk-msg" role="status" hidden></div>
+
+    <div class="tk-section"><h2>Scanner passes</h2>
+      <p class="status-line" style="margin-top:6px;">A pass shows every live alert from that scanner for 7 days. Buying another pass adds 7 more days.</p>
+      <div class="tk-grid" id="tkPasses">
+        <div class="tk-card" data-s="swing-trader"><h3>Swing Trader</h3><p>Pullbacks, bull flags and breakout retests in strong stocks.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="swing-trader">Get the pass</button></div>
+        <div class="tk-card" data-s="breakout-rider"><h3>Breakout Rider</h3><p>Flat bases and ascending triangles clearing resistance.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="breakout-rider">Get the pass</button></div>
+        <div class="tk-card" data-s="options-scanner"><h3>Options Scanner</h3><p>Directional long call / long put ideas with a strike and expiration rule.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="options-scanner">Get the pass</button></div>
+      </div>
+      <p class="status-line" style="margin-top:10px;">Just want one alert? Open it and unlock it for <b><span data-price="unlock">10</span> tokens</b>.</p>
+    </div>
+
+    <div class="tk-section"><h2>Get tokens</h2>
+      <p class="status-line" style="margin-top:6px;">New accounts start with <b><span data-price="welcome">75</span> free tokens</b> (Google sign-in or a verified email).</p>
+      <div class="tk-grid" id="tkPacks">
+        <div class="tk-card"><div class="price">100 <small>tokens</small></div><p>$3.00</p><button type="button" data-pack="p100">Buy</button></div>
+        <div class="tk-card"><div class="price">350 <small>tokens</small></div><p>$10.00</p><button type="button" data-pack="p350">Buy</button></div>
+        <div class="tk-card"><div class="price">750 <small>tokens</small></div><p>$20.00</p><button type="button" data-pack="p750">Buy</button></div>
+      </div>
+      <p class="status-line" id="tkBuyNote" style="margin-top:10px;">Secure checkout by Stripe.</p>
+      <div style="margin-top:12px;"><button type="button" class="tk-btn" id="tkWallet">Wallet &amp; history</button> <button type="button" class="tk-btn gold" id="tkSignIn" hidden>Sign in with Google</button></div>
+    </div>
+
+    <div class="tk-section"><h2>Questions</h2>
+      <div class="tk-faq">
+        <details><summary>What are tokens?</summary><p>Site credit for AgenticTrading.info. They unlock live scanner alerts (a 7-day pass or one alert) and may unlock other premium tools later. They're separate from Trade War: Trade War money is virtual and can't be bought, sold or turned into tokens.</p></details>
+        <details><summary>Do tokens expire? Can I cash them out?</summary><p>Tokens don't expire while the site offers them. They have no cash value, can't be transferred, sold or exchanged, and aren't refundable except where the law requires. See the <a href="terms.html" style="color:var(--accent);">Terms</a>, section 07.</p></details>
+        <details><summary>Is anything free?</summary><p>Yes. Every alert becomes free for everyone after the 4:00 pm ET close, along with the full alert history and the daily scan pages. Trade War, the Real Trade Journal and the games are free. New accounts also get free tokens.</p></details>
+        <details><summary>I bought on Gumroad before. What happens?</summary><p>Thank you! Gumroad is retired and we honor what you bought: email support from the address you used and we'll add tokens for it.</p></details>
+        <details><summary>Is this investment advice?</summary><p>No. Zelos alerts are rule-based, general information, the same for everyone. They're not personalized advice, and Zelos never connects to or trades in any brokerage account.</p></details>
       </div>
     </div>
-
-    <div class="card" style="margin-top:22px;">
-      <div class="card-head"><h2>Today's regime</h2></div>
-      <div id="regimeBlock"><div class="empty">Loading…</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><h2>How to read this</h2></div>
-      <div class="explain-list">
-        <div class="explain-item">
-          <div class="explain-dot bullish"></div>
-          <p><b>Bullish</b> — the broad market (tracked via SPY and QQQ) is trading above both its 20- and 50-day moving averages, and both are sloping up. Ordinary bar for a setup to qualify.</p>
-        </div>
-        <div class="explain-item">
-          <div class="explain-dot neutral"></div>
-          <p><b>Neutral</b> — a mixed read: above one moving average but not the other, or a moving average that's flattening out or starting to roll over. Same bar, more caution baked into which setups actually clear it.</p>
-        </div>
-        <div class="explain-item">
-          <div class="explain-dot bearish"></div>
-          <p><b>Bearish</b> — the market is below both moving averages and both are sloping down. Every Zelos strategy raises its bar considerably when this is the read, and strongly prefers publishing nothing over forcing a setup into a weak backdrop.</p>
-        </div>
-      </div>
-      <p class="fine" style="margin-top:16px;">This is a read on the broad market, not a prediction of what it does next — and it's the same input every Zelos strategy uses, not personalized to any account or position.</p>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Recent sessions</h2></div>
-      <div id="historyBlock"><div class="empty">Loading…</div></div>
-    </div>
-
-    <p class="fine" style="margin-top:22px;">Rule-based scans only — general information, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</p>
   </div>
 </section>
 
@@ -282,6 +255,57 @@
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
 <script src="zelos-tokens.js"></script>
+<script src="zelos-signin.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); }, T = window.ZelosTokens;
+  function say(t, ok) { var m = $('tkMsg'); m.textContent = t; m.hidden = !t; m.className = 'tk-msg ' + (ok ? 'ok' : 'bad'); }
+  var q = new URLSearchParams(location.search);
+  if (q.get('paid')) say('Thanks! Your tokens are on the way: they appear in your wallet within a minute of the payment going through.', true);
+  if (q.get('cancelled')) say('Checkout was cancelled. Nothing was charged.', false);
+  function draw(w) {
+    var u = firebase.auth().currentUser, real = u && !u.isAnonymous;
+    $('tkSignIn').hidden = !!real; $('tkWallet').hidden = !real;
+    if (!real) { $('tkBalN').textContent = '–'; $('tkBalNote').textContent = 'Sign in to get your free tokens.'; return; }
+    if (!w) return;
+    $('tkBalN').textContent = w.balance;
+    $('tkBalNote').textContent = 'Your wallet';
+    document.querySelectorAll('[data-s]').forEach(function (c) {
+      var until = (w.passes || {})[c.getAttribute('data-s')] || 0, on = c.querySelector('.tk-pass-on');
+      on.hidden = until <= Date.now(); on.textContent = 'Active until ' + new Date(until).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      c.querySelector('button').textContent = until > Date.now() ? 'Add 7 days' : 'Get the pass';
+    });
+  }
+  function prices(p) {
+    if (!p) return;
+    document.querySelectorAll('[data-price]').forEach(function (el) { var k = el.getAttribute('data-price'); if (p.prices[k] != null) el.textContent = p.prices[k]; });
+    document.querySelectorAll('[data-pack]').forEach(function (b) { b.disabled = !p.canBuy; });
+    $('tkBuyNote').textContent = p.canBuy ? 'Secure checkout by Stripe. Tokens are site credit with no cash value.' : 'Buying tokens is coming soon. Your free tokens work now.';
+    if (p.welcomed) say('Welcome! ' + p.prices.welcome + ' free tokens were added to your wallet.', true);
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!T || !window.firebase) return;
+    if (window.ZelosSignIn) ZelosSignIn.finish(function (t) { say(t); });
+    T.onChange(draw);
+    firebase.auth().onAuthStateChanged(function (u) { draw(T.wallet()); if (u && !u.isAnonymous) T.ensure().then(prices, function (e) { say(e.message || String(e)); }); });
+    $('tkSignIn').onclick = function () { if (window.ZelosSignIn) ZelosSignIn.google(function (t) { say(t); }); };
+    $('tkWallet').onclick = function () { T.open(); };
+    document.querySelectorAll('[data-pass]').forEach(function (b) { b.onclick = function () {
+      var u = firebase.auth().currentUser; if (!u || u.isAnonymous) return say('Sign in first: new accounts get free tokens.');
+      b.disabled = true;
+      T.call('tokens_spend', { kind: 'pass', strategy: b.getAttribute('data-pass') }).then(function (w) { say('Pass active. Every live alert from this scanner is unlocked for you.', true); b.disabled = false; },
+        function (e) { b.disabled = false; say(String(e.message || e).replace(/^FirebaseError: /, '')); });
+    }; });
+    document.querySelectorAll('[data-pack]').forEach(function (b) { b.onclick = function () {
+      var u = firebase.auth().currentUser; if (!u || u.isAnonymous) return say('Sign in first.');
+      b.disabled = true; say('Opening secure checkout…', true);
+      T.call('tokens_checkout', { pack: b.getAttribute('data-pack') }).then(function (r) { if (r.url) location.href = r.url; },
+        function (e) { b.disabled = false; say(String(e.message || e).replace(/^FirebaseError: /, '')); });
+    }; });
+  });
+})();
+</script>
 <script>
 (function(){
   // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
@@ -421,114 +445,6 @@
       }
     });
   } else { renderSignedOut(); }
-})();
-</script>
-
-<script>
-(function(){
-  var cfg = window.ZELOS_FIREBASE_CONFIG;
-  var ready = !!(cfg && cfg.projectId && window.firebase);
-  var db = null;
-  if (ready) {
-    try {
-      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
-      db = firebase.firestore();
-    } catch(e){ ready = false; }
-  }
-
-  function toDate(ts){
-    try { return ts && ts.toDate ? ts.toDate() : new Date(ts); } catch(e){ return null; }
-  }
-  function fmtStamp(ts){
-    var d = toDate(ts);
-    if (!d) return '';
-    return d.toLocaleString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' ET';
-  }
-  function dateKey(ts){
-    var d = toDate(ts);
-    if (!d) return '';
-    return d.toLocaleDateString('en-CA', { timeZone:'America/New_York' });
-  }
-  function fmtDay(ts){
-    var d = toDate(ts);
-    if (!d) return '';
-    return d.toLocaleDateString('en-US', { timeZone:'America/New_York', weekday:'short', month:'short', day:'numeric' });
-  }
-
-  function regimeKey(text){
-    var t = (text || '').toUpperCase();
-    if (t.indexOf('BULLISH') !== -1) return 'bullish';
-    if (t.indexOf('BEARISH') !== -1) return 'bearish';
-    if (t.indexOf('NEUTRAL') !== -1) return 'neutral';
-    return 'unknown';
-  }
-  function regimeIcon(key){
-    return key === 'bullish' ? '↑' : key === 'bearish' ? '↓' : key === 'neutral' ? '→' : '?';
-  }
-  function regimeWord(key){
-    return key === 'bullish' ? 'Bullish' : key === 'bearish' ? 'Bearish' : key === 'neutral' ? 'Neutral' : 'Unknown';
-  }
-  function regimeNote(key){
-    if (key === 'bullish') return 'Ordinary bar for a setup to qualify — no extra caution baked in.';
-    if (key === 'bearish') return 'The bar is raised considerably — most strategies expect to publish nothing.';
-    if (key === 'neutral') return 'Same bar as usual, but with more caution around which setups actually clear it.';
-    return 'No market-regime note on the latest alert yet.';
-  }
-
-  function renderRegime(latest){
-    var block = document.getElementById('regimeBlock');
-    if (!latest) { block.innerHTML = '<div class="empty">No alerts recorded yet.</div>'; return; }
-    var key = regimeKey(latest.marketRegime);
-    block.innerHTML =
-      '<div class="regime-tile">' +
-        '<div class="regime-badge ' + key + '">' + regimeIcon(key) + '</div>' +
-        '<div>' +
-          '<div class="regime-label">' + regimeWord(key) + '</div>' +
-          '<div class="regime-note">' + (latest.marketRegime || regimeNote(key)) + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="regime-stamp">As of ' + fmtStamp(latest.createdAt) + '</div>';
-  }
-
-  function renderHistory(docs){
-    var block = document.getElementById('historyBlock');
-    if (!docs.length) { block.innerHTML = '<div class="empty">No sessions recorded yet.</div>'; return; }
-    var seen = {};
-    var days = [];
-    docs.forEach(function(a){
-      var k = dateKey(a.createdAt);
-      if (!k || seen[k]) return;
-      seen[k] = true;
-      days.push(a);
-    });
-    days = days.slice(0, 7);
-    if (!days.length) { block.innerHTML = '<div class="empty">No sessions recorded yet.</div>'; return; }
-    block.innerHTML = days.map(function(a){
-      var key = regimeKey(a.marketRegime);
-      return (
-        '<div class="history-row">' +
-          '<span class="history-date">' + fmtDay(a.createdAt) + '</span>' +
-          '<span class="history-tag ' + key + '">' + regimeWord(key) + '</span>' +
-        '</div>'
-      );
-    }).join('');
-  }
-
-  if (!ready) {
-    document.getElementById('regimeBlock').innerHTML = '<div class="empty">Can\'t reach Zelos data right now — check back shortly.</div>';
-    document.getElementById('historyBlock').innerHTML = '<div class="empty">Can\'t reach Zelos data right now — check back shortly.</div>';
-    return;
-  }
-
-  db.collection('alerts').orderBy('createdAt', 'desc').limit(60).get().then(function(snap){
-    var docs = [];
-    snap.forEach(function(doc){ docs.push(doc.data()); });
-    renderRegime(docs[0] || null);
-    renderHistory(docs);
-  }).catch(function(){
-    document.getElementById('regimeBlock').innerHTML = '<div class="empty">Couldn\'t load market data right now.</div>';
-    document.getElementById('historyBlock').innerHTML = '<div class="empty">Couldn\'t load market data right now.</div>';
-  });
 })();
 </script>
 </body>

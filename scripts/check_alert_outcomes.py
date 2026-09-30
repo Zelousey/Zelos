@@ -38,7 +38,7 @@ day, something with Robinhood MCP access and network access should:
   3. Call determine_outcome(...) here with that data.
   4. If the result isn't still "open", POST it to the update_alert_outcomes
      Cloud Function (functions/main.py) with the shared secret, the same
-     pattern publish_alert and gumroad_ping already use.
+     pattern publish_alert already uses.
 
 DECISION RULES (read this before trusting a number this produces):
   - "Entry" is a reference price at scan time, not a fill — same as how

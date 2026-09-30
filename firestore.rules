@@ -50,6 +50,33 @@ service cloud.firestore {
       allow write: if false; // written only by the scan pipeline via the Admin SDK
     }
 
+    // Tokens (functions/main.py, Tokens section). Every balance change happens in a
+    // Cloud Function transaction that also writes the ledger line; browsers can
+    // only read their own wallet and history.
+    match /wallets/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+      match /ledger/{entryId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+    // Stripe purchases (idempotency records for the webhook): server only.
+    match /purchases/{sessionId} {
+      allow read, write: if false;
+    }
+    // The full live alert while it's token-gated (the public alerts/{id} doc is a
+    // teaser until the close). Readable with an active pass for that scanner or a
+    // single unlock of this alert.
+    match /alertsLocked/{alertId} {
+      function wallet() { return get(/databases/$(database)/documents/wallets/$(request.auth.uid)).data; }
+      allow get: if request.auth != null
+        && exists(/databases/$(database)/documents/wallets/$(request.auth.uid))
+        && (wallet().get('passes', {}).get(resource.data.strategy, 0) > request.time.toMillis()
+          || alertId in wallet().get('unlocked', []));
+      allow list, write: if false;
+    }
+
     // Globe market map (country moves, trending stocks, linked US-listed names).
     // Public read; written only by publish_market_map via the Admin SDK.
     match /markets/{docId} {
@@ -58,7 +85,7 @@ service cloud.firestore {
     }
 
     // Skills catalog: Swing Trader / Breakout Rider / Options Scanner listings.
-    // Public read so the Arsenal page and Gumroad links work for signed-out visitors.
+    // Public read so the Arsenal page works for signed-out visitors.
     match /skills/{skillId} {
       allow read: if true;
       allow write: if false; // maintained by hand / future admin tooling, not from the browser
@@ -334,18 +361,9 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Unclaimed Gumroad purchases, keyed by the lowercased email used at checkout.
-    // Written only by the gumroad_ping Cloud Function (Admin SDK, bypasses these
-    // rules). A signed-in person may read and delete only the doc matching their
-    // own login email - that's how they "claim" it into their own users/ doc on
-    // next sign-in (see claimPendingOwnership() in dashboard.html / my-zelos.html).
-    // Never client-writable: the webhook is the only thing allowed to create one.
+    // Retired with Gumroad: old purchase claims. Nothing reads or writes them now.
     match /pendingOwnership/{email} {
-      allow read, delete: if request.auth != null
-        && request.auth.token.email != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() == email;
-      allow write: if false;
+      allow read, write: if false;
     }
   }
 }

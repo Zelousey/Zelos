@@ -357,6 +357,7 @@
 <script src="firebase-config.js"></script>
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
+<script src="zelos-tokens.js"></script>
 <script>
 (function(){
   var SAMPLE = {
@@ -480,7 +481,21 @@
     var db = firebase.firestore();
     db.collection('alerts').doc(id).get().then(function(doc){
       if (!doc.exists) { showNotFound(); return; }
-      render(doc.data());
+      var a = doc.data();
+      // Live alerts are token-gated until the close (zelos-tokens.js): show the full
+      // alert if you have a pass or unlocked it, otherwise the teaser + unlock card.
+      if (window.ZelosTokens && ZelosTokens.isLocked(a)) {
+        ZelosTokens.resolve(a, id).then(function (r) {
+          render(r.alert);
+          if (r.locked) {
+            document.getElementById('fTicker').textContent = 'Locked';
+            document.title = 'Zelos Alert — live until the close';
+            var ledger = document.getElementById('fLedger');
+            var card = ZelosTokens.lockCard(a, id, function (f) { card.remove(); ledger.hidden = false; render(f); });
+            ledger.hidden = true; ledger.parentNode.insertBefore(card, ledger);
+          }
+        });
+      } else render(a);
       // XP is a silent side effect of opening a real alert — never blocks or
       // delays anything above. award() itself waits for (or silently creates)
       // a Firebase user before writing anything, so this doesn't need to wait

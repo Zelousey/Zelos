@@ -182,7 +182,7 @@
         <p><b>Account information.</b> When you sign in with email and password or with Google, our sign-in provider (Google Firebase Authentication) gives us your email address and an account ID; with Google it can also include your name and profile photo. Every visitor also gets an anonymous guest ID, so XP and progress can be saved before you create an account.</p>
         <p><b>Profile and community information.</b> The display name, username, bio and photo you choose; friends, followers, squads, challenges and referral links; and posts, theses, comments, messages and reactions you create.</p>
         <p><b>Trading activity on Zelos.</b> Your Trade War virtual account (orders, positions, trades, balances, statistics), Arcade scores, XP, missions and achievements, your watchlist, dashboard layout, alert and notification preferences, and trades you choose to log in the Real Trade Journal.</p>
-        <p><b>Purchases.</b> When you buy tokens or other access, the payment processor handles your card and billing details and tells us your email, what you bought and the amount. For earlier Gumroad purchases, Gumroad sent us the buyer's email and the product purchased. We never receive or store your full card number.</p>
+        <p><b>Purchases.</b> When you buy tokens, Stripe handles your card and billing details and tells us your email, what you bought and the amount. We keep a record of your token balance, purchases and what you spent them on. For earlier Gumroad purchases, Gumroad sent us the buyer's email and the product purchased. We never receive or store your full card number.</p>
         <p><b>Usage and device information.</b> With your consent where required, Google Analytics collects which pages are viewed, approximate location, device and browser type. Our hosting providers keep standard server logs (such as IP address and request time) for security and operations.</p>
         <p><b>Messages to us.</b> If you email us or send feedback, we keep that conversation.</p>
       </div>
@@ -217,7 +217,7 @@
           <li><b>Google (Firebase and Google Cloud):</b> sign-in, database and backend functions.</li>
           <li><b>Google Analytics:</b> site usage statistics, subject to your cookie choice.</li>
           <li><b>GitHub Pages:</b> hosting of the website's pages.</li>
-          <li><b>Payment processors</b> (including Gumroad for earlier purchases): processing payments.</li>
+          <li><b>Stripe</b> (and Gumroad for purchases made before tokens): processing payments.</li>
         </ul>
         <p>Market-data providers (such as Financial Modeling Prep and Finnhub) and our social-media scheduling tool receive no personal information about you. We may also disclose information if the law requires it, to protect the rights and safety of our users or the public, or as part of a sale or transfer of the service (in which case this policy continues to apply).</p>
       </div>
@@ -354,6 +354,7 @@
 <script src="zelos-mood.js"></script>
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
+<script src="zelos-tokens.js"></script>
 <script>
 (function(){
   // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----

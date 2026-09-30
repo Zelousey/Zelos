@@ -83,6 +83,14 @@
       var me = (w.results || []).filter(function (r) { return user && r.uid === user.uid; })[0];
       return '<li><a href="war.html?w=' + encodeURIComponent(w.id) + '">' + (me && me.rank === 1 ? '🏆 ' : '') + esc(w.name) + '</a><small>' + (me ? '#' + me.rank + ' of ' + w.results.length + ' · ' + pct(me.pnlPct) : 'finished') + '</small></li>';
     }).join('') + '</ul>' : '<p class="pt-empty">Finished Trade Wars show up here with your rank.</p>');
+    // Challenge history (§14): challenges you sent or received and what happened to them
+    var ST = { pending: 'Waiting', accepted: 'Accepted', declined: 'Declined', cancelled: 'Cancelled', expired: 'Expired' };
+    h += card('Challenges', extra.challenges == null ? (user ? '<p class="pt-empty">Loading…</p>' : '<p class="pt-empty">Sign in to see your challenges.</p>')
+      : extra.challenges.length ? '<ul class="twh-list">' + extra.challenges.map(function (c) {
+        var sent = user && c.from === user.uid, who = sent ? (c.toName || 'Trader') : (c.fromName || 'Trader'), go = c.status === 'accepted' || (sent && c.status === 'pending');
+        var label = (sent ? 'You &rarr; <b>' + esc(who) + '</b>' : '<b>' + esc(who) + '</b> &rarr; you') + ' <small>' + money(c.buyIn, 0) + (c.lms ? ' · Last Man' : '') + '</small>';
+        return '<li>' + (go ? '<a href="war.html?w=' + encodeURIComponent(c.warId) + '">' + label + '</a>' : '<span>' + label + '</span>') + '<small class="twh-ch-st is-' + esc(c.status) + '">' + (ST[c.status] || esc(c.status)) + '</small></li>';
+      }).join('') + '</ul>' : '<p class="pt-empty">No challenges yet. Tap <b>+ Start a Trade War</b> to challenge a friend or your squad.</p>');
     el.innerHTML = '<div class="twh-grid">' + h + '</div>';
     el.querySelectorAll('[data-ch]').forEach(function (b) { b.onclick = function () { if (window.ZelosChallenge) ZelosChallenge.open({ to: b.getAttribute('data-ch'), toName: b.getAttribute('data-chn') }); }; });
   }
@@ -97,6 +105,11 @@
       renderHub(extra);
     }).catch(function () { extra.board = '<p class="pt-empty">Leaderboard unavailable.</p>'; renderHub(extra); });
     if (!user) return renderHub(extra);
+    var inv = function (field) { return db.collection('twInvites').where(field, '==', user.uid).limit(15).get().then(function (s) { var o = []; s.forEach(function (d) { o.push(Object.assign({ id: d.id }, d.data())); }); return o; }).catch(function () { return []; }); };
+    Promise.all([inv('from'), inv('to')]).then(function (r) {
+      extra.challenges = r[0].concat(r[1]).sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }).slice(0, 8);
+      renderHub(extra);
+    });
     db.collection('users').doc(user.uid).get().then(function (u) {
       var f = ((u.exists && u.data().friends) || []).slice(0, 12);
       if (!f.length) { extra.friends = '<p class="pt-empty">No friends yet. Open a trader\'s profile and tap <b>+ Add friend</b>.</p>'; return renderHub(extra); }

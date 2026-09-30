@@ -472,6 +472,59 @@ All optional (host picks under "Game options" when starting a Trade War) and all
   - Not browser-tested: dragging a box edge to save it (engine drag was tested in Phase 6).
 - **Owner:** deploy functions (no rules change).
 
+## Phase 12: Token economy (§1) + Gumroad retired + §14 gap check
+Owner decisions (2026-09-30):
+- Stripe for payments (the owner is recovering their Stripe login).
+- "Cheaper" provisional prices.
+- Tokens unlock **weekly scanner passes + single alerts**.
+
+**Live alerts are token-gated until the close:**
+- `publish_alert` writes a teaser to `alerts/{id}`: strategy, status, direction, score, setup, market mood and scan counts, plus `locked` / `lockedUntil`. The full alert goes to `alertsLocked/{id}`.
+- `release_alerts` (weekdays from 4:10 pm ET, every 30 min) makes it public after the close. History, SEO scan pages and old links stay public.
+- Days with no qualifying setup aren't locked.
+
+**Wallet (server-only), `wallets/{uid}` + `ledger`:**
+- 75 welcome tokens, once, only for verified accounts (Google or a verified email) so throwaway sign-ups can't farm them.
+- 1-week pass = 40 tokens; it stacks.
+- Single alert = 10 tokens; free if you already have access.
+- Every change is a transaction with a ledger line.
+
+**Stripe:**
+- `tokens_checkout` makes a Checkout Session for a pack (100 = $3, 350 = $10, 750 = $20).
+- `stripe_webhook` verifies the signature (5-minute tolerance), re-checks the amount and credits each session exactly once (`purchases/{sessionId}`).
+- Dormant ("coming soon") until real keys are set.
+
+**UI:**
+- `zelos-tokens.js` on every signed-in page: gold balance chip in the nav, wallet pop-up (balance, passes, packs, history), welcome toast, and the locked-alert card with Unlock / Pass buttons.
+- New `tokens.html`.
+- `alert.html` and the alert pop-up show the full alert when you have access, otherwise the teaser and the card.
+- Dashboard, home and history lists show "Locked · Live".
+- The Arsenal, Dashboard and My Zelos show pass status.
+
+**Gumroad removed:**
+- `gumroad_ping` and its mapping deleted.
+- `pendingOwnership` rules closed; "Mark as owned" and the purchase-claim code removed.
+- $20 buy cards, FAQs and JSON-LD offers rewritten on the three scanner pages, the home page and the mockup.
+- `going-to-gumroad*.html` now redirect to tokens.
+- Setup, thank-you, Terms §07 (Stripe, live alerts, earlier purchases) and Privacy (Stripe) updated; docs updated; new `docs/tokens.md`.
+
+**§14 gap check:**
+- Everything was built in Phase 7 except **challenge history**, which was lost when the old hub was retired. It's back as a "Challenges" card on the Trade War home.
+
+**Tests:**
+- unit 102/102 (9 new in `scripts/tokens_test.py`)
+- **token rules 22/22** (older suites 66, 15 and 27 pass; the 2 old Gumroad-claim tests now expect the closed rule)
+- **token E2E on emulators with the real functions: 35/35**: teaser vs locked split, welcome (verified only, once, toast), nav chip, locked card, unlock, pass, reload without re-charging, wallet history, server refusals, direct-read denial, Stripe webhook (bad signature, wrong amount, credit, idempotent retry), release, guest read after the close, 375px mobile, no page errors
+- **home E2E 16/16** (incl. challenge history)
+
+**Caveats:**
+- Token rewards for XP/levels are deferred until XP is server-side (it would be farmable today).
+- `lockedUntil` skips weekends, not market holidays.
+
+**Owner:**
+- set the two Stripe secrets (placeholder `none` is fine), deploy rules, deploy the 6 functions, delete `gumroad_ping`, merge
+- later: add the real Stripe keys + webhook (see `docs/tokens.md`)
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -482,4 +535,4 @@ All optional (host picks under "Game options" when starting a Trade War) and all
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
 3. Owner: Phase 7 steps above.
-4. Phases 8-11 done (above). Next: §14 onward, when the owner says go.
+4. Phases 8-12 done (above). Next: §15 Global leaderboard + high-stakes challenges, when the owner says go.

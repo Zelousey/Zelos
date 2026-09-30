@@ -1,7 +1,7 @@
 # Deploying the Zelos Cloud Functions
 
-This deploys `publish_alert`, `gumroad_ping`, `update_alert_outcomes`, and
-`post_to_buffer` (`functions/main.py`) into the `leaderboard-agentictrading`
+This deploys `publish_alert`, `update_alert_outcomes`, `post_to_buffer`, the
+Trade War and token functions (see `docs/tokens.md`), (`functions/main.py`) into the `leaderboard-agentictrading`
 Firebase project — the same project the arcade leaderboard already uses. Once
 `publish_alert` is live, the Zelos scan skills can write real alerts into the
 `alerts` collection that `alert.html`, `dashboard.html`, `alert-history.html`,
@@ -27,9 +27,9 @@ secrets (`BUFFER_API_KEY`, `BUFFER_CHANNEL_IDS`) covered there, not here.
 
 ## Set the shared secret
 
-`publish_alert` and `gumroad_ping` both check a shared secret
+`publish_alert` and the other publishing endpoints check a shared secret
 (`ZELOS_PUBLISH_SECRET`) before doing anything — this is what stops anyone who
-finds the function URL from writing fake alerts or fake purchases. Generate a
+finds the function URL from writing fake alerts. Generate a
 long random value and store it with Firebase's own secret manager (never put
 it in a file in this repo):
 
@@ -39,8 +39,7 @@ firebase functions:secrets:set ZELOS_PUBLISH_SECRET
 
 The CLI will prompt you to paste the value. Keep a copy of what you paste
 somewhere private (a password manager) — you'll need the exact same value
-again for two things: pasting into Gumroad's Ping webhook URL, and setting as
-an environment variable wherever the Zelos scan skills run on a schedule (see
+again when setting it as an environment variable wherever the Zelos scan skills run on a schedule (see
 `docs/firestore-alerts-setup.md`).
 
 ## Deploy
@@ -69,17 +68,9 @@ with:
 firebase deploy --only firestore:rules
 ```
 
-## Wire up Gumroad's Ping webhook (optional, for `gumroad_ping`)
+## Stripe (token purchases)
 
-In your Gumroad account: **Settings → Advanced → Ping** (this is account-wide,
-not per-product), paste:
-
-```
-<your gumroad_ping URL>?token=<the same ZELOS_PUBLISH_SECRET value>
-```
-
-Every sale across all three Zelos products will then automatically flag that
-buyer's `ownedSkills` in Firestore, instead of you flipping it by hand.
+See `docs/tokens.md` for the two Stripe secrets and the webhook.
 
 ## Redeploying after an edit
 

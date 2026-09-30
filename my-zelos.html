@@ -256,11 +256,11 @@
       <!-- Owned skills -->
       <div class="card">
         <div class="card-head">
-          <h2>Your skills</h2>
+          <h2>Your scanner passes</h2>
           <a href="arsenal.html">See the Arsenal &rarr;</a>
         </div>
         <div id="skillsBlock"><div class="empty">Loading…</div></div>
-        <div class="card-note">Purchases on Gumroad aren't automatically synced here yet — after you buy a skill, mark it as owned yourself so it shows up here and on the Dashboard. That's a known gap, not a trust issue: your alert access itself always comes straight from Gumroad, never from this checkbox.</div>
+        <div class="card-note">A pass unlocks a scanner's live alerts for 7 days. Every alert is free for everyone after the 4:00 pm ET close. <a href="tokens.html" style="color:var(--accent);">How tokens work</a></div>
       </div>
 
       <!-- Watchlist -->
@@ -356,6 +356,7 @@
 <script src="zelos-mood.js"></script>
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
+<script src="zelos-tokens.js"></script>
 <script>
 (function(){
   var SKILLS = {
@@ -597,27 +598,25 @@
     });
   }
 
+  // Scanner passes from your token wallet (zelos-tokens.js): an active pass unlocks
+  // that scanner's live alerts; otherwise there's a link to get one.
   function renderSkills(user, data){
-    var owned = data.ownedSkills || [];
+    var w = window.ZelosTokens && ZelosTokens.wallet(), passes = (w && w.passes) || {};
     var html = Object.keys(SKILLS).map(function(id){
-      var s = SKILLS[id];
-      var isOwned = owned.indexOf(id) !== -1;
+      var s = SKILLS[id], until = passes[id] || 0, on = until > Date.now();
       return (
         '<div class="skill-row">' +
-          '<div><div class="skill-name">' + s.name + '</div><div class="skill-sub">' + (isOwned ? 'Owned' : 'Not marked as owned yet') + '</div></div>' +
-          (isOwned
+          '<div><div class="skill-name">' + s.name + '</div><div class="skill-sub">' + (on ? 'Pass active until ' + new Date(until).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No pass: live alerts are locked until the close') + '</div></div>' +
+          (on
             ? '<a class="btn btn-primary btn-sm" href="' + s.href + '">Open</a>'
-            : '<button class="btn btn-sm skill-toggle" data-skill="' + id + '" type="button">Mark as owned</button>') +
+            : '<a class="btn btn-sm" href="tokens.html">Get a pass</a>') +
         '</div>'
       );
     }).join('');
     document.getElementById('skillsBlock').innerHTML = html;
-    document.querySelectorAll('.skill-toggle').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        userDocRef(user.uid).update({ ownedSkills: firebase.firestore.FieldValue.arrayUnion(btn.dataset.skill) });
-      });
-    });
+    if (window.ZelosTokens && !renderSkills.hooked) { renderSkills.hooked = true; ZelosTokens.onChange(function(){ renderSkills(user, data); }); }
   }
+
 
   function renderPrefs(user, data){
     var prefs = data.notificationPrefs || {};
@@ -628,27 +627,9 @@
     };
   }
 
-  // A Gumroad purchase writes a pendingOwnership/{email} doc (by our own webhook,
-  // server-side) before this person may have ever signed in here. The first time
-  // they sign in with the same email, fold that into their own ownedSkills and
-  // clear the pending doc - so ownership just shows up, no "mark as owned" needed.
-  function claimPendingOwnership(user){
-    if (!user.email) return Promise.resolve();
-    var pendingRef = db.collection('pendingOwnership').doc(user.email.toLowerCase());
-    return pendingRef.get().then(function(doc){
-      if (!doc.exists) return;
-      var skills = (doc.data().skills || []).filter(Boolean);
-      if (!skills.length) return pendingRef.delete().catch(function(){});
-      return userDocRef(user.uid).set({
-        ownedSkills: firebase.firestore.FieldValue.arrayUnion.apply(null, skills)
-      }, { merge: true }).then(function(){ return pendingRef.delete(); });
-    }).catch(function(){ /* best-effort - a manual "mark as owned" still works either way */ });
-  }
 
   function watchUserDoc(user){
     ensureUserDoc(user).then(function(){
-      return claimPendingOwnership(user);
-    }).then(function(){
       userDocRef(user.uid).onSnapshot(function(doc){
         var data = doc.data() || {};
         renderAccount(user, data);
