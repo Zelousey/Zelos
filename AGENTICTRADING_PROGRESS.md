@@ -3,14 +3,15 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 5: Core Trade War matches. CODE DONE AND TESTED. Owner must deploy functions + rules, then merge.**
-- Phase 1 (FMP) stays open until the owner confirms live prices at the next market open.
-- Phase 4 rules/merge, the legal pages and Phase 3 go out with the same deploy + merge.
+**Phase 6: Dedicated Trade War chart + Buy/Sell restyle. CODE DONE AND TESTED. Website-only: publishes on merge (no Firebase deploy needed).**
+- One item needs the owner: what the **Three-Legged Strategy** should be (see Phase 6 notes).
+- Phase 1 (FMP) still needs the live-price check at a market open.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
+| 6 Trade War chart + buttons | Code done + tested; not merged | `practice/practice-chart.js`, `practice/practice.js`, `practice/war.js`, `practice/practice.css`, `scripts/build_practice.py` + rebuilt `practice/index.html`, `practice/war.html` | **End-to-end on emulators: 25/25**: Buy solid green / Sell solid red, flat 12px order button (also on matches); Sell flips the plan (SL above, TP below); dragging TP fills the ticket; SL can't cross the entry; Fib; alert placed by clicking the chart; Alerts tab lists / edits / deletes; alert saved to the account; alert fires when the live price crosses (pop-up labelled Trade War); pending limit order cancel; match chart with entry + P&L line and buy marker; desktop match layout (chart full width, account + leaderboard side by side); no page errors. 57/57 unit tests; builders stable | **No.** Merge only |
 | 5 Trade War matches | Code done + tested; not deployed | `functions/main.py` (tw_* callables + `tw_mark_matches` schedule), `firestore.rules`, `practice/war.js` (new), `practice/war.html` (new, built), `scripts/build_practice.py`, `practice/practice.css`, `zelos-profile.js`, nav on 46 pages, `scripts/tradewar_test.py` (new), `.gitignore` (functions/venv) | 20 new engine unit tests (57/57 total). **End-to-end with the Auth + Firestore + Functions emulators running the real Python functions and rules: 34/34**: create (server rejects bad buy-in and length), invite/join, anonymous blocked, start, late join blocked (buy-in locked), buy at server price, no overspend, no shorting, bad symbol, non-player blocked, browser can't edit balances/buy-in/matches, positions private, outsider can't read the board, revalue job, leaderboard +$30/+6%, market-closed block, end → winner + frozen results, no trades after end, match history rank, 375px mobile, no page errors. Rule suites 27 + 15 still pass | **No.** Deploy functions + rules, then merge |
 | 4 Onboarding & profile | Code done + tested; not deployed | `zelos-profile.js` (new), `firestore.rules`, `dashboard.html`, `practice/practice.js`, `practice/profile.js`, `practice/squads.js`, `practice/practice.css`, `scripts/build_practice.py` + rebuilt `practice/*.html`, nav on 46 pages (XP & Missions) | Firestore emulator: 27 new rule tests (usernames, squatting, bio, photos, squad helpMode) + 15 Phase 2 tests pass. **End-to-end on Auth+Firestore emulators with the real rules: 30/30**: sign-up, checklist advances, photo upload resized to about 1.7 KB, username uniqueness across 2 users, Help Mode on/off/default, hide checklist, public vs own profile, Edit profile dropdown, squad Help Mode, Trade War welcome + nav, 375px mobile, no page errors. Builders stable; 37/37 unit tests | **No.** 1) deploy rules, 2) merge |
 | 3 Layout & navigation | Code done + tested; not published | 46 pages (nav block), `zelos-theme.css`, `scripts/site_shell.py`, `scripts/build_ai_index.py`, `ai-index.html`, `sitemap.xml` | Browser test on 16 pages: top nav order, no top-level Alerts, correct active section, every nav link resolves to a real file, dropdowns open, no JS errors, no overflow; mobile at 375px: panel opens, animates, and doesn't animate with reduced motion. Page builders re-run: output matches (stray local scan test pages discarded). 37/37 unit tests | **No.** Merge to `main` publishes it |
@@ -291,6 +292,29 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 4. Merge the branch to `main` (publishes Phases 3–5 and the legal pages).
 5. Try it: `agentictrading.info/practice/war.html` → create a $500 match, open the invite link in another browser/account, join, start, and trade during market hours.
 
+## Phase 6 changes
+- **Buy/Sell restyle** (owner request): Buy/Sell and Calls/Puts are now one segmented control; the active side fills solid green or red with a soft glow and a 180ms transition. The order button is flat, solid and rounded (no gradient), with a subtle press. The match page uses the same buttons ("Buy AAPL / Sell AAPL · you hold N"). Reduced motion is respected.
+- **Chart engine** (`practice-chart.js`):
+  - Stop-loss/take-profit boxes can be dragged by their edges (with a grip and resize cursor); a drag can't cross the entry.
+  - A Sell ticket flips the plan (TP below, SL above, "If you sell here").
+  - Fibonacci retracement (0–100%) across the visible swing.
+  - Trade War price-alert lines, labelled "TRADE WAR ALERT ≥/≤ price", that can be dragged to move them. An alert placement mode turns the next click into an alert.
+  - The price scale holds still while you drag.
+- **Alert store:** `ZelosTradeChart.alerts` keeps alerts in the browser and in `users/{uid}.twAlerts` (the owner's own doc, no rules change), shared between the $10,000 account and matches. Each alert fires once, when the price crosses, while a Trade War page is open, with a toast plus a browser notification titled "Trade War (virtual): Price alert …". Alerts with the site closed need web push (§22, a later phase).
+- **$10,000 account page:**
+  - Fib and ⏰ Alert toolbar buttons, and a new **Alerts** tab (edit, delete, status).
+  - Dragging the boxes updates the order ticket, or moves your live stop-loss/take-profit orders (a stop can't be dragged past the current price).
+  - The position line reads "ENTRY $x · N sh · P&L ±$y (±z%)".
+  - Cancelling pending orders was already there (Open orders tab) and is now covered by the test.
+- **Match page:** the Trade War chart sits above the account and leaderboard. It shows daily candles plus the live FMP quote, your entry and P&L line, markers for your trades, Fib, and alerts.
+- **Open question, not built: "Three-Legged Strategy."** The term isn't defined in the spec, and it isn't a standard indicator name. Candidates:
+  - (a) entry plus two take-profit targets plus a stop (like Zelos alerts' target1/target2);
+  - (b) an A-B-C three-leg pullback drawing tool;
+  - (c) something else.
+  
+  This needs the owner's definition before it's built.
+- Match orders are still market-only, so stop-loss/take-profit boxes in matches are planning visuals only. Real SL/TP orders in matches would need a server order engine.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -300,4 +324,5 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
-3. **Phase 6: Dedicated Trade War chart** (buy/sell, entry, current price, P&L, movable SL/TP that flip on sell, trade markers, Fibonacci, Three-Legged Strategy, price alerts, cancel pending orders). Starts only when the owner says so.
+3. Owner: merge Phase 6, and define the Three-Legged Strategy.
+4. **Phase 7: Priority 2**, starting with dramatic challenges + interactive Trade War alerts (§14, §2) and Last Man Standing (§10), when the owner says go.

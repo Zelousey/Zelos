@@ -69,7 +69,9 @@ BODY = '''<main class="pt-shell">
           <button class="pt-chip pt-dd-btn" type="button" id="ptIndBtn" aria-haspopup="true" aria-expanded="false">Indicators</button>
           <div class="pt-menu pt-ind-menu" id="ptIndMenu" hidden></div>
         </span>
-        <button class="pt-chip pt-fc-chip" type="button" id="ptForecast" aria-pressed="false" title="Draw your stop-loss and take-profit as boxes on the chart"><i></i>SL / TP boxes</button>
+        <button class="pt-chip pt-fc-chip" type="button" id="ptForecast" aria-pressed="false" title="Draw your stop-loss and take-profit as boxes on the chart. Drag an edge to move it."><i></i>SL / TP boxes</button>
+        <button class="pt-chip" type="button" id="ptFib" aria-pressed="false" title="Fibonacci retracement across the visible swing">Fib</button>
+        <button class="pt-chip" type="button" id="ptAlertAdd" aria-pressed="false" title="Set a Trade War price alert: press, then click a price on the chart">&#9200; Alert</button>
         <span class="grow"></span>
         <span class="pt-dd">
           <button class="pt-chip" type="button" id="ptColorsBtn" aria-haspopup="true" aria-expanded="false" title="Candle colors"><i class="pt-swatch" id="ptColorSwatch"></i>Colors</button>
@@ -156,6 +158,7 @@ BODY = '''<main class="pt-shell">
       <button class="pt-tab" type="button" role="tab" data-tab="history" aria-selected="false">History</button>
       <button class="pt-tab" type="button" role="tab" data-tab="agents" aria-selected="false">Agent signals</button>
       <button class="pt-tab" type="button" role="tab" data-tab="performance" aria-selected="false">Performance</button>
+      <button class="pt-tab" type="button" role="tab" data-tab="alerts" aria-selected="false">Alerts</button>
       <button class="pt-tab" type="button" role="tab" data-tab="progress" aria-selected="false">XP &amp; missions</button>
     </div>
     <div class="pt-table-wrap" id="ptTabBody"></div>
@@ -256,7 +259,7 @@ def build_war():
            'Create a Trade War: pick a virtual buy-in, invite friends, and everyone starts with the same money. Best % gain wins. Virtual money only.',
            '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="twBody"><p class="pt-empty">Loading…</p></div>'
            '<p class="pt-fine pf-fine">Trade War matches use virtual money only: no cash value, no deposits, no prizes. Separate from your $10,000 Trade War account and from real trading.</p></main>',
-           HEAD, SOCIAL_SCRIPTS + '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>\n<script src="war.js"></script>\n', robots='noindex')
+           HEAD, SOCIAL_SCRIPTS + '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>\n<script src="practice-chart.js"></script>\n<script src="war.js"></script>\n', robots='noindex')
     print('built practice/war.html')
 
 
