@@ -36,15 +36,16 @@
     var bal = mainBalance();
     var chips = '<a class="twh-acct' + (!here ? ' is-on' : '') + '" href="index.html"><small>Main account</small><b>' + (bal != null ? money(bal) : '$10,000') + '</b></a>' +
       wars.filter(function (w) { return w.status === 'active' || w.status === 'lobby'; }).map(function (w) {
-        var r = ranks[w.id], sub = w.status === 'lobby' ? 'Lobby · ' + w.players.length + '/' + w.maxPlayers : r ? '#' + r.rank + ' of ' + r.of + ' · ' + pct(r.pnlPct) : 'Live';
-        return '<a class="twh-acct' + (here === w.id ? ' is-on' : '') + (w.status === 'active' ? ' is-live' : '') + '" href="war.html?w=' + encodeURIComponent(w.id) + '"><small>⚔️ ' + esc(w.name) + '</small><b>' + sub + '</b></a>';
+        var r = ranks[w.id], sub = w.status === 'lobby' ? 'Lobby · ' + w.players.length + '/' + w.maxPlayers : r ? (r.out ? 'OUT · #' : '#') + r.rank + ' of ' + r.of + ' · ' + pct(r.pnlPct) : 'Live';
+        return '<a class="twh-acct' + (here === w.id ? ' is-on' : '') + (w.status === 'active' ? ' is-live' : '') + '" href="war.html?w=' + encodeURIComponent(w.id) + '"><small>' + (w.lms ? '&#9760; ' : '⚔️ ') + esc(w.name) + '</small><b>' + sub + '</b></a>';
       }).join('');
     el.innerHTML = '<div class="twh-top">' +
       '<a class="twh-me" href="profile.html">' + av + '<span><b>' + esc(nm) + '</b>' + (lv ? '<small>Level ' + lv.level + ' · ' + esc(lv.name) + ' · ' + xp.toLocaleString('en-US') + ' XP</small><i class="twh-xp"><i style="width:' + prog + '%"></i></i>' : '') + '</span></a>' +
       '<nav class="twh-accts" aria-label="Your Trade War accounts">' + chips + '</nav>' +
       '<button type="button" class="twh-start" id="twhStart">+ Start a Trade War</button></div>' +
       (invites.length ? '<div class="twh-inv">' + invites.map(function (i) {
-        return '<div class="twh-inv-row"><span>⚔️ <b>' + esc(i.fromName || 'A trader') + '</b> challenged you · ' + money(i.buyIn, 0) + ' buy-in · ' + i.days + 'd</span>' +
+        return '<div class="twh-inv-row"><span>' + (i.lms ? '&#9760;' : '⚔️') + ' <b>' + esc(i.fromName || 'A trader') + '</b> challenged you' + (i.lms ? ' to Last Man Standing' : '') + ' · ' + money(i.buyIn, 0) + ' buy-in · ' + i.days + 'd' +
+          (i.lms && window.ZelosChallenge ? '<small class="twh-inv-rules">' + ZelosChallenge.lmsRules(i.lms, i.buyIn).map(esc).join(' · ') + '</small>' : '') + '</span>' +
           '<span><button type="button" class="twh-no" data-inv="' + esc(i.id) + '" data-ok="0">Decline</button><button type="button" class="twh-yes" data-inv="' + esc(i.id) + '" data-ok="1">Accept</button></span></div>';
       }).join('') + '</div>' : '');
     $('twhStart').onclick = start;
@@ -118,9 +119,9 @@
       wars.filter(function (w) { return w.status === 'active'; }).slice(0, 6).forEach(function (w) {
         db.collection('tradeWars').doc(w.id).collection('accounts').get().then(function (a) {
           var rows = []; a.forEach(function (x) { rows.push(Object.assign({ uid: x.id }, x.data())); });
-          rows.sort(function (p, q) { return (q.pnlPct || 0) - (p.pnlPct || 0); });
+          rows.sort(function (p, q) { return ((p.out ? 1 : 0) - (q.out ? 1 : 0)) || (q.pnlPct || 0) - (p.pnlPct || 0); });
           var i = rows.findIndex(function (r) { return r.uid === user.uid; });
-          if (i >= 0) { ranks[w.id] = { rank: i + 1, of: rows.length, pnlPct: rows[i].pnlPct }; renderTop(); }
+          if (i >= 0) { ranks[w.id] = { rank: rows[i].out ? rows[i].place : i + 1, of: rows.length, pnlPct: rows[i].pnlPct, out: rows[i].out }; renderTop(); }
         }).catch(function () {});
       });
     }).catch(function () {});

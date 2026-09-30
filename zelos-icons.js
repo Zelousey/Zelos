@@ -41,6 +41,7 @@
     star: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
     bank: '<path d="M3 9l9-5 9 5M5 9v9M9.7 9v9M14.3 9v9M19 9v9M3 20h18"/>',
     eye: '<path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>',
+    skull: '<path d="M12 3a7.5 7.5 0 0 0-7.5 7.5c0 2.6 1.3 4.3 3 5.3V19a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-3.2c1.7-1 3-2.7 3-5.3A7.5 7.5 0 0 0 12 3z"/><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/><path d="M10.5 20v-2M13.5 20v-2"/>',
     rocket: '<path d="M12 3c3 2 5 5.5 5 9.5L15 16H9l-2-3.5C7 8.5 9 5 12 3z"/><circle cx="12" cy="10" r="1.6"/><path d="M9 16l-2 4 3-1.5M15 16l2 4-3-1.5"/>'
   };
   // emoji -> [icon, color] (color null = inherit the text color)
@@ -54,7 +55,7 @@
     '👑': ['crown', '#e8b23d'], '💎': ['gem', '#8f7bf6'], '🐂': ['trendUp', '#10b981'], '🐃': ['trendUp', '#10b981'],
     '⏳': ['hourglass', null], '⌛': ['hourglass', null], '🧭': ['compass', null], '🎲': ['dice', null],
     '🤖': ['robot', null], '💯': ['star', '#e8b23d'], '⭐': ['star', '#e8b23d'], '🏦': ['bank', null],
-    '🦅': ['trendUp', null], '👁': ['eye', null], '🚀': ['rocket', null], '🎉': ['star', '#e8b23d']
+    '🦅': ['trendUp', null], '👁': ['eye', null], '🚀': ['rocket', null], '🎉': ['star', '#e8b23d'], '☠': ['skull', '#ef4444']
   };
   var keys = Object.keys(MAP).sort(function (a, b) { return b.length - a.length; });
   var RE = new RegExp('(' + keys.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')️?', 'g');
