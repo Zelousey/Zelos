@@ -17,6 +17,11 @@
  *   - alerts: [{ id, price, dir: 'above'|'below' }] drawn as labelled Trade War
  *     alert lines; drag one to move it (onAlertMove(alert)). placing = 'alert'
  *     turns the next click into onPlaceAlert(price).
+ *   - abc: Three-Legged Strategy (A-B-C pullback) drawing { pts: [{ d, p }] } -
+ *     start, end of leg A, end of B, end of C. placing = 'abc' adds one point per
+ *     click (snapped to the nearest candle's high or low); after three points the
+ *     likely end of leg C is projected (100%-161.8% of leg A from B); after four,
+ *     onAbcDone(abc) fires. Points are stored by date so they survive zooming.
  */
 (function (global) {
   'use strict';
@@ -138,12 +143,19 @@
     var self0 = this; INDICATORS.forEach(function (d) { self0.show[d.id] = saved ? !!saved[d.id] : !!DEFAULT_ON[d.id]; });
     this.lines = []; this.lastPrice = null; this.marks = []; this.colors = loadColors(); this.empty = null;
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
-    this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null;
+    this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
     this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
     var self = this, drag = null;
     function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
     canvas.addEventListener('pointerdown', function (e) {
       var p = pos(e), hit = self.hitTest(p);
+      if (self.placing === 'abc' && self.geo && self.s && p.y >= self.geo.L.y0 && p.y <= self.geo.L.y1) {
+        var bi = self.barAt(p.x), up = Math.abs(self.geo.Y(self.s.h[bi]) - p.y) < Math.abs(self.geo.Y(self.s.l[bi]) - p.y);
+        if (!self.abc || self.abc.pts.length >= 4) self.abc = { pts: [] };
+        self.abc.pts.push({ d: self.s.d[bi], p: up ? self.s.h[bi] : self.s.l[bi] });
+        if (self.abc.pts.length === 4) { self.placing = null; canvas.style.cursor = ''; if (self.onAbcDone) self.onAbcDone(self.abc); }
+        self.draw(); return;
+      }
       if (self.placing === 'alert' && self.geo && p.y >= self.geo.L.y0 && p.y <= self.geo.L.y1) {
         var price = self.priceAt(p.y); self.placing = null; canvas.style.cursor = '';
         if (self.onPlaceAlert) self.onPlaceAlert(Math.round(price * 100) / 100);
@@ -162,6 +174,7 @@
         var to = Math.max(span, Math.min(self.s.n - 1, drag.to + shift));
         self.from = to - span; self.to = to;
       } else canvas.style.cursor = self.placing ? 'crosshair' : self.hitTest(p) ? 'ns-resize' : '';
+      if (self.placing === 'abc') canvas.style.cursor = 'crosshair';
       self.hover = p; self.draw();
     });
     function end() {
@@ -188,6 +201,10 @@
     this.show[id] = on == null ? !this.show[id] : !!on;
     try { localStorage.setItem('zelosPracticeInd', JSON.stringify(this.show)); } catch (e) {}
     this.draw();
+  };
+  TradeChart.prototype.barAt = function (x) {
+    var g = this.geo, i = this.from + Math.floor((x - g.L.x0) / g.bw);
+    return Math.max(this.from, Math.min(Math.min(this.to, this.s.n - 1), i));
   };
   TradeChart.prototype.priceAt = function (y) {
     var g = this.geo; return g.hi - (y - g.L.y0) / (g.L.y1 - g.L.y0) * (g.hi - g.lo);
@@ -298,7 +315,7 @@
     var pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
     if (this.frozen) { lo = this.frozen.lo; hi = this.frozen.hi; } // keep the scale still while dragging
     function Y(p) { return L.y0 + (hi - p) / (hi - lo) * (L.y1 - L.y0); }
-    this.geo = { L: L, lo: lo, hi: hi, Y: Y, fx0: X(Math.min(to, s.n - 1)) + bw * 0.7 };
+    this.geo = { L: L, lo: lo, hi: hi, Y: Y, bw: bw, fx0: X(Math.min(to, s.n - 1)) + bw * 0.7 };
     c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'middle';
     // grid + price axis
     var step = niceStep((hi - lo) / 6);
@@ -411,6 +428,38 @@
         c.fillStyle = gold; c.textBaseline = 'bottom'; c.fillText('FIB ' + (f * 100).toFixed(1) + '%  ' + fmt(pv), fx + 4, fy - 1); c.textBaseline = 'middle';
       });
       c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+    }
+    // Three-Legged Strategy: start -> A -> B -> C, with the projected end of leg C
+    if (this.abc && this.abc.pts.length) {
+      var P3 = this.abc.pts.map(function (q) { return { i: s.d.indexOf(q.d), p: q.p }; });
+      if (P3.every(function (q) { return q.i >= 0; })) {
+        var vio = cssVar('--violet', '#8f7bf6'), names = ['START', 'A', 'B', 'C'];
+        if (this.placing === 'abc' && this.hover && P3.length < 4) P3 = P3.concat([{ i: this.barAt(this.hover.x), p: this.priceAt(this.hover.y), ghost: true }]);
+        c.strokeStyle = vio; c.lineWidth = 2; c.beginPath();
+        P3.forEach(function (q, k) { var x = X(q.i), y = Y(q.p); if (k) c.lineTo(x, y); else c.moveTo(x, y); });
+        c.stroke();
+        c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.textAlign = 'center';
+        P3.forEach(function (q, k) {
+          if (q.ghost) return;
+          var x = X(q.i), y = Y(q.p), above = k === 0 ? P3.length > 1 && P3[1].p < q.p : q.p >= (P3[k - 1] || q).p;
+          c.fillStyle = vio; c.beginPath(); c.arc(x, y, 3.5, 0, Math.PI * 2); c.fill();
+          var tag = names[k] + (k ? ' ' + ((q.p / P3[k - 1].p - 1) * 100 >= 0 ? '+' : '') + ((q.p / P3[k - 1].p - 1) * 100).toFixed(1) + '%' : '');
+          c.fillText(tag, x, y + (above ? -12 : 13));
+        });
+        c.textAlign = 'left';
+        if (P3.length >= 3 && !P3[2].ghost) {
+          var legA = P3[1].p - P3[0].p, z1 = P3[2].p + legA, z2 = P3[2].p + 1.618 * legA, zx = X(P3[2].i), zy1 = Y(z1), zy2 = Y(z2);
+          c.fillStyle = rgba(vio, 0.12); c.fillRect(zx, Math.min(zy1, zy2), L.x1 - zx, Math.abs(zy2 - zy1));
+          c.strokeStyle = rgba(vio, 0.7); c.lineWidth = 1; c.setLineDash([4, 3]);
+          [zy1, zy2].forEach(function (zy) { c.beginPath(); c.moveTo(zx, zy); c.lineTo(L.x1, zy); c.stroke(); }); c.setLineDash([]);
+          c.font = '600 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = vio; c.textAlign = 'right';
+          c.fillText('C = 100% of A · ' + fmt(z1), L.x1 - 4, zy1 + (legA < 0 ? -6 : 8));
+          c.fillText('C = 161.8% of A · ' + fmt(z2), L.x1 - 4, zy2 + (legA < 0 ? 8 : -6));
+          if (P3.length === 4 && !P3[3].ghost) c.fillText('C/A ' + (Math.abs(P3[3].p - P3[2].p) / Math.max(1e-9, Math.abs(legA))).toFixed(2), L.x1 - 4, Math.min(zy1, zy2) - 16);
+          c.textAlign = 'left';
+        }
+        c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+      }
     }
     // Trade War price alerts
     this.alerts.forEach(function (a) {
@@ -563,6 +612,13 @@
     return hit;
   };
 
+  // Three-leg drawings, one per symbol, kept in this browser
+  var ABC_KEY = 'zelosTwAbc';
+  var abcStore = {
+    get: function (sym) { try { return (JSON.parse(localStorage.getItem(ABC_KEY) || '{}') || {})[sym] || null; } catch (e) { return null; } },
+    set: function (sym, abc) { try { var all = JSON.parse(localStorage.getItem(ABC_KEY) || '{}') || {}; if (abc) all[sym] = abc; else delete all[sym]; localStorage.setItem(ABC_KEY, JSON.stringify(all)); } catch (e) {} }
+  };
+
   global.ZelosTradeChart = { TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol,
-    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, alerts: new AlertStore(), AlertStore: AlertStore };
+    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, alerts: new AlertStore(), AlertStore: AlertStore, abc: abcStore };
 })(window);

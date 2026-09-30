@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 functions/venv/
+firestore-debug.log
+*-debug.log

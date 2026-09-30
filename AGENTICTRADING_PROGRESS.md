@@ -4,7 +4,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
 **Phase 6: Dedicated Trade War chart + Buy/Sell restyle. CODE DONE AND TESTED. Website-only: publishes on merge (no Firebase deploy needed).**
-- One item needs the owner: what the **Three-Legged Strategy** should be (see Phase 6 notes).
+- Three-Legged Strategy: the owner chose (b), an A-B-C three-leg pullback drawing tool. Built and tested.
 - Phase 1 (FMP) still needs the live-price check at a market open.
 
 ## Status log
@@ -307,12 +307,13 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
   - The position line reads "ENTRY $x · N sh · P&L ±$y (±z%)".
   - Cancelling pending orders was already there (Open orders tab) and is now covered by the test.
 - **Match page:** the Trade War chart sits above the account and leaderboard. It shows daily candles plus the live FMP quote, your entry and P&L line, markers for your trades, Fib, and alerts.
-- **Open question, not built: "Three-Legged Strategy."** The term isn't defined in the spec, and it isn't a standard indicator name. Candidates:
-  - (a) entry plus two take-profit targets plus a stop (like Zelos alerts' target1/target2);
-  - (b) an A-B-C three-leg pullback drawing tool;
-  - (c) something else.
-  
-  This needs the owner's definition before it's built.
+- **Three-Legged Strategy** (owner chose option b, an A-B-C pullback drawing tool): a **3-Leg** button on the $10,000 account chart and the match chart.
+  - Click the start, then the ends of legs A, B and C. Each click snaps to that candle's high or low.
+  - After B, the likely end of leg C is projected as a zone at 100%–161.8% of leg A, measured from B.
+  - Each leg is labelled with its % move, and the C/A ratio is shown.
+  - Saved per symbol in the browser, and kept across zoom and range changes.
+  - Press 3-Leg again to remove the drawing (with confirmation). Esc cancels a drawing in progress.
+  - Tested: 9/9 browser checks, plus the full chart suite (25/25).
 - Match orders are still market-only, so stop-loss/take-profit boxes in matches are planning visuals only. Real SL/TP orders in matches would need a server order engine.
 
 ## Known issues
@@ -324,5 +325,5 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
-3. Owner: merge Phase 6, and define the Three-Legged Strategy.
+3. Owner: merge Phase 6 (PR #12, which now includes the 3-Leg tool).
 4. **Phase 7: Priority 2**, starting with dramatic challenges + interactive Trade War alerts (§14, §2) and Last Man Standing (§10), when the owner says go.

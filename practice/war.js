@@ -226,7 +226,8 @@
     chartEl = document.createElement('section'); chartEl.className = 'pt-card ch-card tw-chart-card';
     chartEl.innerHTML = '<div class="tw-chart-bar"><b id="twChartSym"></b><span class="tw-chart-tools">' +
       '<button class="pt-chip" type="button" id="twFib" aria-pressed="false" title="Fibonacci retracement across the visible swing">Fib</button>' +
-      '<button class="pt-chip" type="button" id="twAlertAdd" aria-pressed="false" title="Set a Trade War price alert: press, then click a price on the chart">&#9200; Alert</button></span></div>' +
+      '<button class="pt-chip" type="button" id="twAlertAdd" aria-pressed="false" title="Set a Trade War price alert: press, then click a price on the chart">&#9200; Alert</button>' +
+      '<button class="pt-chip" type="button" id="twAbc" aria-pressed="false" title="Three-Legged Strategy: draw an A-B-C pullback (click the start, then the ends of legs A, B and C)">3-Leg</button></span></div>' +
       '<canvas class="tw-chart" id="twChart" aria-label="Trade War chart"></canvas>' +
       '<p class="pt-fine">Drag to pan · scroll to zoom · dashed line: your entry and P&amp;L · ▲▼ your trades · ⏰ lines: your Trade War price alerts (drag to move)</p>';
     chart = new TC.TradeChart(chartEl.querySelector('canvas'));
@@ -239,6 +240,17 @@
       var cur = (quotes[ticket.sym] || {}).c, a = TC.alerts.add(ticket.sym, p, cur); al.classList.remove('is-on'); al.setAttribute('aria-pressed', 'false');
       msg('Trade War alert set: ' + ticket.sym + ' ' + (a.dir === 'above' ? '≥' : '≤') + ' ' + money(p) + '. Manage alerts on your Trade War account page.', true); drawChart();
     };
+    var abcBtn = chartEl.querySelector('#twAbc'), abcOff = function () { abcBtn.classList.remove('is-on'); abcBtn.setAttribute('aria-pressed', 'false'); };
+    abcBtn.onclick = function () {
+      if (chart.placing === 'abc') { chart.placing = null; abcOff(); drawChart(); return; }
+      if (TC.abc.get(ticket.sym)) { if (!confirm('Remove the three-leg drawing on ' + ticket.sym + '?')) return; TC.abc.set(ticket.sym, null); drawChart(); return; }
+      chart.placing = 'abc'; chart.abc = { pts: [] }; abcBtn.classList.add('is-on'); abcBtn.setAttribute('aria-pressed', 'true');
+      msg('Three-Legged Strategy: click where the move starts, then the end of leg A, leg B and leg C.', true);
+    };
+    chart.onAbcDone = function (abc) {
+      TC.abc.set(ticket.sym, abc); abcOff(); var P = abc.pts;
+      msg('Three-leg drawing saved: leg C is ' + (Math.abs(P[3].p - P[2].p) / Math.max(1e-9, Math.abs(P[1].p - P[0].p))).toFixed(2) + '× leg A.', true); drawChart();
+    };
     chart.onAlertMove = function (a) { TC.alerts.update(a.id, a.price, (quotes[a.sym] || {}).c); msg('Alert moved to ' + money(a.price) + '.', true); drawChart(); };
   }
   function drawChart() {
@@ -249,6 +261,7 @@
     chart.lines = pos ? [{ price: pos.avg, color: ink, dash: [6, 3], label: 'ENTRY ' + money(pos.avg) + ' · ' + pos.qty + ' sh · P&L ' + signed((px - pos.avg) * pos.qty) + ' (' + pct((px / pos.avg - 1) * 100) + ')' }] : [];
     chart.marks = ((book && book.fills) || []).filter(function (f) { return f.sym === ticket.sym; }).map(function (f) { return { i: s.d.indexOf(nyDate(f.at)), price: f.price, side: f.side }; }).filter(function (m) { return m.i >= 0; });
     chart.lastPrice = px; chart.fib = fibOn; chart.alerts = TC.alerts.forSym(ticket.sym);
+    if (chart.placing !== 'abc') chart.abc = TC.abc.get(ticket.sym);
     chart.empty = s.n ? null : 'Loading chart…';
     if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, 126); else chart.setSeries(s);
     chart.draw();
