@@ -3,9 +3,10 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 5: Core Trade War matches. CODE DONE AND TESTED. Owner must deploy functions + rules, then merge.**
-- Phase 1 (FMP) stays open until the owner confirms live prices at the next market open.
-- Phase 4 rules/merge, the legal pages and Phase 3 go out with the same deploy + merge.
+**Phases 2–5 are merged to `main` (PR #10, #11) and the owner reports the rules + functions deploys are done.**
+- Rules check (2026-09-30): a public read of `usernames/*` returns 404, not 403, so the Phase 4+ rules are live.
+- Phase 1 (FMP) still needs the live-price check at a market open.
+- Next: **Phase 6: Dedicated Trade War chart**, when the owner says go.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
