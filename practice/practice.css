@@ -567,3 +567,46 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .tw-chips button.is-locked{ opacity:0.55; cursor:not-allowed; border-style:dashed; }
 .tw-lock{ margin:2px 0 8px; }
 .tw-lock:empty{ display:none; }
+
+/* ---------- Trade War home (tw-home.js) ---------- */
+.twh-wrap{ margin:0 0 14px; }
+.twh-top{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px 14px; border:1px solid var(--border-soft); border-radius:14px; background:linear-gradient(180deg, var(--surface), var(--bg-soft)); }
+.twh-me{ display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); min-width:200px; }
+.twh-me b{ display:block; font-size:0.98rem; }
+.twh-me small{ display:block; color:var(--muted); font-size:0.74rem; margin-top:1px; }
+.twh-av{ width:42px; height:42px; border-radius:50%; object-fit:cover; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; background:var(--surface-2); border:2px solid var(--accent-line); color:var(--muted); }
+.twh-xp{ display:block; width:150px; height:4px; border-radius:2px; background:var(--border); margin-top:5px; overflow:hidden; }
+.twh-xp i{ display:block; height:100%; background:var(--accent); transition:width var(--dur-slow,260ms) var(--ease-out,ease); }
+.twh-accts{ display:flex; gap:6px; flex:1; min-width:0; overflow-x:auto; padding-bottom:2px; scrollbar-width:thin; }
+.twh-acct{ display:flex; flex-direction:column; gap:1px; padding:7px 12px; border-radius:10px; border:1px solid var(--border); text-decoration:none; color:var(--ink-2); white-space:nowrap; flex-shrink:0; transition:border-color var(--dur-fast,120ms), background var(--dur-fast,120ms); }
+.twh-acct small{ font-size:0.7rem; color:var(--muted); }
+.twh-acct b{ font-family:var(--mono); font-size:0.86rem; }
+.twh-acct:hover{ border-color:var(--accent-line); }
+.twh-acct.is-on{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+.twh-acct.is-live b{ color:var(--bull); }
+.twh-start{ font:inherit; font-weight:700; font-size:0.88rem; padding:10px 14px; border-radius:10px; border:0; cursor:pointer; color:#fff; background:linear-gradient(180deg, var(--tw-buy-top), var(--tw-buy)); box-shadow:0 8px 20px -12px var(--tw-buy-glow), inset 0 1px 0 rgba(255,255,255,0.18); transition:transform var(--dur-fast,120ms); }
+.twh-start:hover{ transform:translateY(-1px); }
+.twh-inv{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+.twh-inv-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:10px 14px; border-radius:12px; border:1px solid var(--accent); background:var(--accent-soft); font-size:0.88rem; }
+.twh-inv-row button{ font:inherit; font-weight:700; font-size:0.84rem; padding:7px 14px; border-radius:9px; cursor:pointer; margin-left:6px; border:1px solid var(--border); background:var(--surface); color:var(--ink); }
+.twh-inv-row .twh-yes{ border:0; color:#fff; background:linear-gradient(180deg, var(--tw-buy-top), var(--tw-buy)); }
+.twh-hub{ margin-top:14px; }
+.twh-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+.twh-card{ padding:14px 16px; }
+.twh-card-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.twh-card-head h2{ font-size:0.98rem; margin:0; }
+.twh-card-head a{ font-size:0.8rem; color:var(--accent); text-decoration:none; }
+.twh-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.twh-list li{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 4px; border-bottom:1px solid var(--border-soft); font-size:0.86rem; }
+.twh-list li:last-child{ border-bottom:0; }
+.twh-list li a{ color:var(--ink-2); text-decoration:none; }
+.twh-list li a:hover{ color:var(--ink); }
+.twh-list li small{ color:var(--muted); font-family:var(--mono); font-size:0.76rem; white-space:nowrap; }
+.twh-list li.is-done span{ color:var(--muted); }
+.twh-list li.is-me{ background:var(--accent-soft); border-radius:6px; }
+.twh-ch{ font:inherit; font-size:0.78rem; font-weight:600; padding:5px 10px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--ink-2); cursor:pointer; }
+.twh-ch:hover{ border-color:var(--accent); color:var(--ink); }
+.twh-big{ font-size:1.6rem; font-weight:700; margin:2px 0 8px; } .twh-big small{ font-size:0.8rem; color:var(--muted); font-weight:500; }
+.twh-badges{ display:flex; gap:6px; flex-wrap:wrap; }
+@media (max-width:700px){ .twh-top{ gap:10px; } .twh-me{ min-width:0; flex:1; } .twh-accts{ order:3; flex-basis:100%; } .twh-start{ padding:9px 12px; } }
+@media (prefers-reduced-motion: reduce){ .twh-start, .twh-acct, .twh-xp i{ transition:none; } }

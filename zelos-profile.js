@@ -259,8 +259,8 @@
       { id: 'signup', label: 'Create your account', hint: 'Free. Keeps your progress on every device.', done: !!ctx.user, cta: 'Sign up free', act: 'signup' },
       { id: 'profile', label: 'Set up your profile', hint: 'Picture, name, @username and a short bio.', done: !!(t.username && t.name), cta: 'Set up profile', act: 'profile' },
       { id: 'trade', label: 'Make your first trade', hint: 'Buy any stock in Trade War. Virtual money, real prices.', done: fills > 0, cta: 'Make a trade', href: ROOT + 'practice/index.html' },
-      { id: 'challenge', label: 'Challenge a friend', hint: 'Send a head-to-head challenge link.', done: (tot.challenges || 0) > 0, cta: 'Challenge a friend', href: ROOT + 'practice/challenge.html' },
-      { id: 'war', label: 'Join or create a Trade War', hint: 'Pick a buy-in and invite friends. Everyone starts with the same virtual money.', done: !!ctx.inWar, cta: 'Start a Trade War', href: ROOT + 'practice/war.html' }
+      { id: 'challenge', label: 'Challenge a friend', hint: 'Challenge a friend to a 1 v 1 Trade War.', done: (tot.challenges || 0) > 0, cta: 'Challenge a friend', href: ROOT + 'practice/index.html#start' },
+      { id: 'war', label: 'Join or create a Trade War', hint: 'Pick a buy-in and invite friends. Everyone starts with the same virtual money.', done: !!ctx.inWar, cta: 'Start a Trade War', href: ROOT + 'practice/index.html#start' }
     ];
   }
   function mountChecklist(el) {

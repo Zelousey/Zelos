@@ -113,10 +113,10 @@
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trade War <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="practice/war.html">Trade War matches<small>Equal buy-in &middot; invite friends &middot; best % wins</small></a>
-          <a href="practice/index.html">Virtual account<small>Your standing $10,000 account</small></a>
-          <a href="practice/challenge.html">Challenges<small>Challenge a friend head-to-head</small></a>
+          <a href="practice/index.html">Trade War<small>Your account, chart, Trade Wars &amp; invites</small></a>
+          <a href="practice/index.html#start">Start a Trade War<small>Challenge a friend or your squad</small></a>
           <a href="practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
+          <a href="leaderboard.html#practice">Leaderboards<small>Top Trade War traders</small></a>
           <a href="practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
           <a href="practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
         </div>
@@ -162,10 +162,10 @@
       <a href="index.html">Home</a>
       <a href="dashboard.html">Dashboard</a>
       <div class="nav-mobile-label">Trade War &middot; virtual</div>
-      <a href="practice/war.html">Trade War matches</a>
-      <a href="practice/index.html">Virtual account</a>
-      <a href="practice/challenge.html">Challenges</a>
+      <a href="practice/index.html">Trade War</a>
+      <a href="practice/index.html#start">Start a Trade War</a>
       <a href="practice/squads.html">Squads</a>
+      <a href="leaderboard.html#practice">Leaderboards</a>
       <a href="practice/profile.html">My profile</a>
       <a href="practice/index.html?tab=progress">XP &amp; Missions</a>
       <div class="nav-mobile-label">Trading Tools &middot; real</div>
@@ -194,7 +194,7 @@
     <div>
       <p class="eyebrow live"><span class="live-dot" id="liveDot"></span>Live</p>
       <h1 style="font-size:1.5rem; margin-top:6px;">Leaderboard</h1>
-      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Arcade game and Trade War (virtual $10,000 accounts), updating in real time &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
+      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Arcade game and Trade War (virtual Main accounts), updating in real time &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
     </div>
 
     <div class="lb-sections" id="tabs">
@@ -208,7 +208,7 @@
         </div>
       </div>
       <div class="lb-section">
-        <div class="lb-section-label">Trade War &middot; virtual $10,000 accounts</div>
+        <div class="lb-section-label">Trade War &middot; Main accounts</div>
         <div class="tabs" role="tablist" aria-label="Trade War board">
           <button class="tab" type="button" role="tab" data-game="practice" aria-selected="false">⚔️ Trade War</button>
         </div>
@@ -290,6 +290,7 @@
 </script>
 
 <script src="zelos-theme-toggle.js"></script>
+<script src="zelos-icons.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -409,11 +410,11 @@
   }
 
   function renderSignedIn(user){
-    var initial = (user.email || '?').charAt(0).toUpperCase();
+    var initial = ((user.displayName || 'Z').charAt(0) || 'Z').toUpperCase();
     navAuth.innerHTML =
       '<div class="nav-drop"><button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">' +
         '<span class="account-avatar">' + initial + '</span>' +
-        '<span style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (user.email || 'Signed in') + '</span>' +
+        '<span class="account-name" style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (((user.displayName || '').split(' ')[0]) || 'My account') + '</span>' +
         '<span class="nav-drop-caret">&#9662;</span></button>' +
         '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
           '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
@@ -491,7 +492,7 @@
       tabs.forEach(function(t){ t.setAttribute('aria-selected', String(t.getAttribute('data-game') === key)); });
       if (unsubscribe) { unsubscribe(); unsubscribe = null; }
       board.hidden = false; board.innerHTML = ''; boardEmpty.textContent = 'Loading…'; board.appendChild(boardEmpty);
-      document.getElementById('boardTitle').textContent = '⚔️ Trade War · virtual accounts';
+      document.getElementById('boardTitle').textContent = '⚔️ Trade War · Main accounts';
       var play = document.getElementById('boardPlay'); play.href = 'practice/'; play.innerHTML = 'Enter Trade War &rarr;';
       unsubscribe = window.ZelosPracticeBoard ? ZelosPracticeBoard.mount({ board: board }) : function(){};
       return;

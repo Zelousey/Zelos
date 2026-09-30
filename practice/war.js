@@ -61,6 +61,7 @@
 
   // ------------------------------------------------------------ hub
   function hub() {
+    location.replace('index.html' + (location.hash || '')); return; // one Trade War: matches live on the Trade War home
     stop();
     var h = '<div class="ch-hero"><span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span></span><h1>Trade War matches</h1>' +
       '<p>Pick a buy-in, invite friends, and everyone starts with exactly the same virtual money. Best % gain when the clock runs out wins. Your $10,000 Trade War account isn\'t touched.</p></div>';

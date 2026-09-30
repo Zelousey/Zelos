@@ -6,7 +6,7 @@
  *   Trending news         #hubTrending    general market headlines
  *   Trader card           #hubTrader      XP, level, streak, leaderboard + friends rank
  *   Daily missions        #hubMissions    today's missions, weekly progress, streak (zelos-progress.js)
- *   Challenges            #hubChallenges  active + incoming friend challenges, squads (zelos-social.js)
+ *   Trade Wars            #hubChallenges  your Trade War matches (live, lobby, finished), squads
  *   Achievements          #hubAchievements unlocked badges
  *
  * Practice numbers come from the account summary the practice page saves
@@ -76,7 +76,7 @@
         return '<div class="hub-pos"><span><b>' + esc(r.sym) + '</b> <small>' + r.qty + ' sh</small></span><span class="' + cls(r.pl) + '">' + signed(r.pl) + ' <small>(' + (r.pct >= 0 ? '+' : '') + r.pct.toFixed(1) + '%)</small></span></div>';
       }).join('') + (rows.length > 4 ? '<div class="hub-pos"><small>+' + (rows.length - 4) + ' more</small></div>' : '') : '<div class="empty">No open positions.</div>') +
       bestHtml(a) +
-      '<div class="hub-btns"><a href="practice/?tab=progress">Share my account</a><a href="practice/challenge.html">⚔️ Challenge a friend</a></div>' +
+      '<div class="hub-btns"><a href="practice/?tab=progress">Share my account</a><a href="practice/#start">⚔️ Start a Trade War</a></div>' +
       '<div class="hub-foot"><span>' + (live ? 'Live prices' : 'Last close') + (optVal ? ' · options as of your last visit' : '') + ' · <b>TRADE WAR — VIRTUAL</b></span><a href="practice/">Trade &rarr;</a></div>';
   }
   // biggest closed virtual winners
@@ -236,22 +236,21 @@
         '<small>' + x.count + '/' + x.goal + '</small><em>+' + x.xp + '</em></li>';
     }).join('') + '</ul><div class="hub-foot"><span>' + m.streak.doneToday + ' done · ' + m.streak.need + ' keep your streak · weekly ' + wk + '/' + m.weekly.length + '</span><a href="practice/?tab=progress">Weekly &rarr;</a></div>';
   }
+  // Trade Wars you're in (equal-buy-in matches, functions/main.py tw_*) + waiting invites
   function renderChallenges() {
     var el = $('hubChallenges'); if (!el) return;
     var u = realUser();
-    if (!u) { el.innerHTML = '<p class="card-sub" style="margin:0">Challenge a friend to see who can grow $10,000 the most, or start a private Trading Squad.</p><div class="hub-btns"><a href="practice/challenge.html">Friend challenges</a><a href="practice/squads.html">Squads</a></div>'; return; }
+    if (!u) { el.innerHTML = '<p class="card-sub" style="margin:0">Challenge a friend to a Trade War: everyone starts with the same virtual buy-in, best % gain wins.</p><div class="hub-btns"><a href="practice/#start">Start a Trade War</a><a href="practice/squads.html">Squads</a></div>'; return; }
     if (!challenges) { el.innerHTML = '<div class="empty">Loading…</div>'; return; }
-    var now = Date.now(), live = challenges.filter(function (c) { return c.status === 'active' && (!c.endAt || now < c.endAt + 7 * 864e5); }), inc = challenges.filter(function (c) { return c.status === 'open' && c.target === u.uid; });
-    var mineOpen = challenges.filter(function (c) { return c.status === 'open' && c.creator === u.uid; });
-    var row = function (c, cls, right) {
-      var other = c.creator === u.uid ? (c.opponentName || c.targetName || 'waiting for a friend') : c.creatorName;
-      return '<a class="hub-ch ' + (cls || '') + '" href="practice/challenge.html?c=' + encodeURIComponent(c.id) + '"><span>⚔️ vs ' + esc(other) + '</span><small>' + right + '</small></a>';
-    };
-    var h = inc.map(function (c) { return row(c, 'inc', 'challenged you'); }).join('') +
-      live.map(function (c) { var d = Math.ceil((c.endAt - now) / 864e5); return row(c, '', d > 0 ? d + 'd left' : 'finished'); }).join('') +
-      mineOpen.slice(0, 2).map(function (c) { return row(c, '', 'waiting'); }).join('');
-    el.innerHTML = (h || '<p class="card-sub" style="margin:0">No active challenges.</p>') +
-      '<div class="hub-btns"><a href="practice/challenge.html">+ Challenge a friend</a><a href="practice/squads.html">' + (squads && squads.length ? '👥 ' + squads.length + ' squad' + (squads.length === 1 ? '' : 's') : 'Squads') + '</a></div>';
+    var order = { active: 0, lobby: 1, ended: 2 };
+    var list = challenges.filter(function (w) { return w.status in order; }).sort(function (a, b) { return (order[a.status] - order[b.status]) || ((b.createdAt || 0) - (a.createdAt || 0)); }).slice(0, 4);
+    var h = list.map(function (w) {
+      var me = (w.results || []).filter(function (r) { return r.uid === u.uid; })[0];
+      var right = w.status === 'active' ? 'LIVE · ' + Math.max(0, Math.ceil((w.endAt - Date.now()) / 36e5)) + 'h left' : w.status === 'lobby' ? 'lobby · ' + w.players.length + '/' + w.maxPlayers : me ? '#' + me.rank + ' of ' + w.results.length : 'finished';
+      return '<a class="hub-ch" href="practice/war.html?w=' + encodeURIComponent(w.id) + '"><span>⚔️ ' + esc(w.name) + '</span><small>' + right + '</small></a>';
+    }).join('');
+    el.innerHTML = (h || '<p class="card-sub" style="margin:0">No Trade Wars yet.</p>') +
+      '<div class="hub-btns"><a href="practice/#start">+ Start a Trade War</a><a href="practice/squads.html">' + (squads && squads.length ? '👥 ' + squads.length + ' squad' + (squads.length === 1 ? '' : 's') : 'Squads') + '</a></div>';
   }
   function renderAchievements() {
     var el = $('hubAchievements'); if (!el || !P) return;
@@ -269,7 +268,9 @@
     watchReal(u);
     if (P) P.attach(firebase.firestore(), u.uid);
     if (S && S.init()) {
-      S.myChallenges(u.uid).then(function (c) { challenges = c; renderChallenges(); });
+      firebase.firestore().collection('tradeWars').where('players', 'array-contains', u.uid).limit(20).get().then(function (snap) {
+        challenges = []; snap.forEach(function (d) { challenges.push(Object.assign({ id: d.id }, d.data())); }); renderChallenges();
+      }).catch(function () { challenges = []; renderChallenges(); });
       S.myReferrals(u.uid);
       loadRanks(u);
     }

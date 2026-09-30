@@ -93,6 +93,7 @@
       '.zc-chips{display:flex;flex-wrap:wrap;gap:6px}.zc-chips button{font:inherit;font-weight:600;font-size:.86rem;padding:7px 12px;border-radius:999px;border:1px solid #2b3140;background:transparent;color:#cfd4dd;cursor:pointer}.zc-chips button.is-on{border-color:#4a86ff;background:#182a4a;color:#fff}',
       '.zc-chips button.is-locked{opacity:.55;cursor:not-allowed;border-style:dashed}',
       '.zc-lock{font-size:.74rem;color:#8b93a3;margin:6px 0 0}',
+      '.zc-f input{font:inherit;padding:9px 10px;border-radius:8px;border:1px solid #2b3140;background:#11151d;color:#f4f5f7}',
       '.zc-f select{font:inherit;padding:9px 10px;border-radius:8px;border:1px solid #2b3140;background:#11151d;color:#f4f5f7}',
       '.zc-card .zc-h{margin:18px 0 4px;font-size:1.15rem}',
       '@keyframes zcFade{from{opacity:0}to{opacity:1}}',
@@ -185,36 +186,84 @@
     var f = fb(), u = f && f.auth.currentUser;
     if (!u || u.isAnonymous) { alert('Sign in to challenge someone to a Trade War.'); return Promise.resolve(null); }
     return myXp().then(function (xp) { return new Promise(function (resolve) {
-      var buy = 1000;
+      var buy = 1000, start = !opts.to && !opts.squadId, pickSq = null;
       var who = opts.squadId ? 'your squad' + (opts.squadName ? ' ' + opts.squadName : '') : (opts.toName || 'this trader');
-      var m = modal(BLADES + '<h2 class="zc-h" id="zcTitle">Challenge ' + esc(who) + '</h2>' +
-        '<p class="zc-fine" style="text-align:left">They get a "You\'ve been challenged" card and choose to accept or decline. Everyone starts with the same virtual buy-in. Virtual money only.</p>' +
+      var m = modal(BLADES + '<h2 class="zc-h" id="zcTitle">' + (start ? 'Start a Trade War' : 'Challenge ' + esc(who)) + '</h2>' +
+        '<p class="zc-fine" style="text-align:left">' + (start ? 'Challenge a friend by @username, pick a squad, or leave it empty to get an invite link to share. ' : 'They get a "You\'ve been challenged" card and choose to accept or decline. ') + 'Everyone starts with the same virtual buy-in. Virtual money only.</p>' +
+        (start ? '<label class="zc-f"><span>Challenge a friend (optional)</span><input id="zcUser" placeholder="@username, or leave empty for an invite link" autocapitalize="none" spellcheck="false"></label>' +
+          '<div class="zc-f" id="zcSqWrap" hidden><span>Or challenge a squad</span><div class="zc-chips" id="zcSq"></div></div>' : '') +
         '<div class="zc-f"><span>Virtual buy-in (everyone starts with this)</span><div class="zc-chips" id="zcBuy">' + buyInChips(buy, xp) + '</div>' +
         (lockNote(xp) ? '<p class="zc-lock">' + lockNote(xp) + '</p>' : '') + '</div>' +
         '<label class="zc-f"><span>Length</span><select id="zcDays"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>1 week</option><option value="14">2 weeks</option><option value="30">30 days</option></select></label>' +
-        '<div class="zc-btns"><button type="button" class="zc-btn" id="zcCancel">Cancel</button><button type="button" class="zc-btn zc-go" id="zcSend">Send challenge</button></div><p class="zc-msg" id="zcMsg" role="status"></p>',
+        '<div class="zc-btns"><button type="button" class="zc-btn" id="zcCancel">Cancel</button><button type="button" class="zc-btn zc-go" id="zcSend">' + (start ? 'Start Trade War' : 'Send challenge') + '</button></div><p class="zc-msg" id="zcMsg" role="status"></p>',
         function (e) { if (e.key === 'Escape') { m.close(); resolve(null); } });
       var $ = function (id) { return m.el.querySelector('#' + id); };
       $('zcBuy').onclick = function (e) { var b = e.target.closest('[data-b]'); if (!b || b.disabled) return; buy = +b.getAttribute('data-b'); this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-on', x === b); }); };
       $('zcCancel').onclick = function () { m.close(); resolve(null); };
+      if (start) {
+        f.db.collection('squads').where('members', 'array-contains', u.uid).limit(20).get().then(function (snap) {
+          var sq = []; snap.forEach(function (x) { var v = x.data(); if ((v.members || []).length > 1) sq.push({ id: x.id, name: v.name, n: v.members.length }); });
+          if (!sq.length) return;
+          $('zcSq').innerHTML = sq.map(function (q) { return '<button type="button" data-sq="' + esc(q.id) + '">&#128101; ' + esc(q.name) + ' (' + q.n + ')</button>'; }).join('');
+          $('zcSqWrap').hidden = false;
+          $('zcSq').onclick = function (e) { var b = e.target.closest('[data-sq]'); if (!b) return; var on = !b.classList.contains('is-on'); this.querySelectorAll('button').forEach(function (x) { x.classList.remove('is-on'); }); b.classList.toggle('is-on', on); pickSq = on ? b.getAttribute('data-sq') : null; if (on) $('zcUser').value = ''; };
+        }).catch(function () {});
+      }
       $('zcSend').onclick = function () {
         var btn = this; btn.disabled = true; $('zcMsg').textContent = 'Sending…'; $('zcMsg').className = 'zc-msg';
-        var data = { buyIn: buy, days: +$('zcDays').value };
-        if (opts.squadId) data.squadId = opts.squadId; else data.to = opts.to;
-        call('tw_challenge', data).then(function (r) {
-          if (global.ZelosProgress) ZelosProgress.bump('challenges');
-          $('zcMsg').textContent = 'Challenge sent. Opening your Trade War…';
-          setTimeout(function () { m.close(true); resolve(r); location.href = ROOT + 'practice/war.html?w=' + encodeURIComponent(r.warId); }, 500);
-        }, function (e) { btn.disabled = false; $('zcMsg').textContent = errText(e); $('zcMsg').className = 'zc-msg is-bad'; });
+        var data = { buyIn: buy, days: +$('zcDays').value }, bad = function (t) { btn.disabled = false; $('zcMsg').textContent = t; $('zcMsg').className = 'zc-msg is-bad'; };
+        var go = function (name, payload) {
+          return call(name, payload).then(function (r) {
+            if (name === 'tw_challenge' && global.ZelosProgress) ZelosProgress.bump('challenges');
+            $('zcMsg').textContent = name === 'tw_create' ? 'Trade War created. Opening it so you can share the invite link…' : 'Challenge sent. Opening your Trade War…';
+            setTimeout(function () { m.close(true); resolve(r); location.href = ROOT + 'practice/war.html?w=' + encodeURIComponent(r.warId); }, 500);
+          });
+        };
+        var p;
+        if (!start) { if (opts.squadId) data.squadId = opts.squadId; else data.to = opts.to; p = go('tw_challenge', data); }
+        else if (pickSq) { data.squadId = pickSq; p = go('tw_challenge', data); }
+        else {
+          var un = String($('zcUser').value || '').trim().replace(/^@/, '').toLowerCase();
+          if (!un) { data.name = 'Trade War'; data.maxPlayers = 10; p = go('tw_create', data); }
+          else if (!/^[a-z0-9_]{3,20}$/.test(un)) return bad('Type a username like @amy_trades, or leave it empty.');
+          else p = f.db.collection('usernames').doc(un).get().then(function (x) {
+            if (!x.exists) throw new Error('No trader has the username @' + un + ' yet.');
+            if (x.data().uid === u.uid) throw new Error('That\'s you. Challenge someone else.');
+            data.to = x.data().uid; return go('tw_challenge', data);
+          });
+        }
+        p.then(null, function (e) { bad(errText(e)); });
       };
       setTimeout(function () { try { $('zcSend').focus(); } catch (e) {} }, 60);
     }); });
   }
 
+  // ------------------------------------------------------------ nav identity
+  // The account button shows your @username and picture (never your email).
+  var ident = null, identObs = null;
+  function applyIdentity() {
+    var nav = d.getElementById('navAuth'); if (!nav || !ident) return;
+    var nm = nav.querySelector('.account-name'), av = nav.querySelector('.account-avatar');
+    var label = ident.t.username ? '@' + ident.t.username : (ident.t.name || '');
+    if (nm && label && nm.textContent !== label) nm.textContent = label;
+    var ph = ident.t.avatar || ident.t.photo || ident.photo;
+    if (av && ph && /^(https:|data:image\/(jpeg|png|webp);base64,)/.test(ph) && !av.querySelector('img')) {
+      av.innerHTML = '<img alt="" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block" src="' + esc(ph) + '">';
+    }
+  }
+  function watchIdentity(user) {
+    ident = null; if (!user) return;
+    var f = fb(); if (!f) return;
+    f.db.collection('traders').doc(user.uid).get().then(function (snap) { ident = { t: snap.exists ? snap.data() : {}, photo: user.photoURL }; applyIdentity(); }).catch(function () {});
+    var nav = d.getElementById('navAuth');
+    if (nav && !identObs && global.MutationObserver) { identObs = new MutationObserver(applyIdentity); identObs.observe(nav, { childList: true, subtree: true }); }
+  }
+  d.addEventListener('zelos:profile', function (e) { if (ident && e.detail) { ident.t = e.detail; var nav = d.getElementById('navAuth'), av = nav && nav.querySelector('.account-avatar img'); if (av) av.remove(); applyIdentity(); } });
+
   global.ZelosChallenge = { open: open, call: call, buyInLock: buyInLock, buyInChips: buyInChips, lockNote: lockNote, lockText: lockText, myXp: myXp };
   function boot() {
     var f = fb(); if (!f) return;
-    f.auth.onAuthStateChanged(function (u) { watch(u && !u.isAnonymous ? u : null); });
+    f.auth.onAuthStateChanged(function (u) { var real = u && !u.isAnonymous ? u : null; watch(real); watchIdentity(real); });
   }
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);

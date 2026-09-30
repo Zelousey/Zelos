@@ -82,31 +82,33 @@
     return Object.keys(technicals).map(function (k) { return k + ': ' + technicals[k]; }).join(' · ');
   }
 
-  function mountChart(container, ticker) {
-    if (!ticker) return;
-    container.innerHTML =
-      '<div class="tradingview-widget-container" style="height:240px;">' +
-        '<div class="tradingview-widget-container__widget"></div>' +
-      '</div>';
-    var script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.async = true;
-    script.text = JSON.stringify({
-      autosize: true,
-      symbol: ticker,
-      interval: 'D',
-      timezone: 'America/New_York',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      allow_symbol_change: false,
-      hide_top_toolbar: true,
-      hide_side_toolbar: true,
-      save_image: false,
-      backgroundColor: 'rgba(18,23,41,1)'
+  // Our own Trade War chart engine (practice/practice-chart.js), loaded on demand.
+  // TradingView is only used on the Live Chart page (Real Trading).
+  var ROOT = /\/(games|learn|scan|practice|real)\//.test(location.pathname) ? '../' : '';
+  var kitP = null;
+  function chartKit() {
+    if (window.ZelosTradeChart && window.ZelosTradeChart.mount) return Promise.resolve(window.ZelosTradeChart);
+    if (!kitP) kitP = new Promise(function (resolve, reject) {
+      var s = document.createElement('script'); s.src = ROOT + 'practice/practice-chart.js';
+      s.onload = function () { resolve(window.ZelosTradeChart); }; s.onerror = function () { kitP = null; reject(); };
+      document.head.appendChild(s);
     });
-    container.querySelector('.tradingview-widget-container').appendChild(script);
+    return kitP;
+  }
+  function mountChart(container, ticker, a) {
+    if (!ticker) return;
+    a = a || {};
+    container.innerHTML = '<div style="height:240px"></div>';
+    chartKit().then(function (TC) {
+      var lines = [];
+      if (a.entry) lines.push({ price: +a.entry, color: '#4a86ff', label: 'ENTRY' });
+      if (a.stop) lines.push({ price: +a.stop, color: '#e0483f', label: 'STOP' });
+      if (a.target1) lines.push({ price: +a.target1, color: '#10b981', label: 'TARGET 1' });
+      if (a.target2) lines.push({ price: +a.target2, color: '#10b981', label: 'TARGET 2' });
+      var db = null; try { db = window.firebase && firebase.apps && firebase.apps.length ? firebase.firestore() : null; } catch (e) {}
+      TC.mount(container, { root: ROOT, sym: String(ticker).toUpperCase(), db: db, height: '240px', bars: 90, lines: lines,
+        missing: function (sym) { return sym + ' isn\'t in the Zelos chart data yet. Open it in Live Chart for the full history.'; } });
+    }).catch(function () { container.innerHTML = '<div class="zmodal-fine">Chart unavailable right now.</div>'; });
   }
 
   function render(id, a) {
@@ -149,7 +151,7 @@
       if (e.target.id === 'zmodalOverlay') close();
     });
     document.addEventListener('keydown', onKeydown);
-    mountChart(document.getElementById('zmodalChart'), a.ticker);
+    mountChart(document.getElementById('zmodalChart'), a.ticker, a);
 
     if (id && window.ZelosXP && ZelosXP.onChange) {
       ZelosXP.onChange(function (user) { if (user) ZelosXP.award('alert-open', id); });
