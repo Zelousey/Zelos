@@ -1311,6 +1311,40 @@ def tw_mark(acct, book, prices, now_ms):
     return acct
 
 
+def tw_check_bracket(price, sl, tp):
+    """(sl, tp) as clean numbers or None, or raises TWError. Long only: stop below the
+    current price, target above it."""
+    out = []
+    for v, name in ((sl, "Stop loss"), (tp, "Take profit")):
+        if v in (None, "", 0):
+            out.append(None)
+            continue
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not (0 < v < 1e7):
+            raise TWError("INVALID_ARGUMENT", "%s must be a price." % name)
+        out.append(_r2(v))
+    sl, tp = out
+    if price:
+        if sl is not None and sl >= price:
+            raise TWError("INVALID_ARGUMENT", "Stop loss has to be below the current price ($%s)." % format(price, ",.2f"))
+        if tp is not None and tp <= price:
+            raise TWError("INVALID_ARGUMENT", "Take profit has to be above the current price ($%s)." % format(price, ",.2f"))
+    return sl, tp
+
+
+def tw_bracket_hits(book, prices):
+    """[(sym, 'sl'|'tp', price)] for positions whose stop loss or take profit was reached."""
+    hits = []
+    for sym, p in sorted((book.get("positions") or {}).items()):
+        px = prices.get(sym)
+        if not px:
+            continue
+        if p.get("sl") and px <= p["sl"]:
+            hits.append((sym, "sl", px))
+        elif p.get("tp") and px >= p["tp"]:
+            hits.append((sym, "tp", px))
+    return hits
+
+
 def tw_rank(rows):
     """Rows of {uid, pnlPct, pnl, ...} ranked by % P&L (equal capital, so % and $ agree).
     In Last Man Standing, players still standing rank above those knocked out (by place)."""
@@ -1562,6 +1596,8 @@ def tw_trade(req, db, uid, now_ms):
     prices, tradable, why = _tw_prices(db)
     if not tradable:
         raise TWError("FAILED_PRECONDITION", why)
+    # optional Stop Loss / Take Profit attached to a buy (checked against the live price)
+    sl, tp = tw_check_bracket(prices.get(sym), data.get("sl"), data.get("tp")) if side == "buy" else (None, None)
     war_ref = db.collection("tradeWars").document(wid)
     acct_ref = war_ref.collection("accounts").document(uid)
     book_ref = war_ref.collection("books").document(uid)
@@ -1598,6 +1634,8 @@ def tw_trade(req, db, uid, now_ms):
             raise TWError("FAILED_PRECONDITION", "Whale limit: as a whale you can put at most %d%% of your account in one stock." % whale["capPct"])
         eq_before = acct.get("equity") or acct["start"]
         acct, book, fill = tw_apply_trade(acct, book, sym, side, qty, prices.get(sym), now_ms, storm)
+        if sl or tp:
+            book["positions"][sym] = dict(book["positions"][sym], **{k: v for k, v in (("sl", sl), ("tp", tp)) if v})
         acct = tw_mark(acct, book, prices, now_ms)
         name = (war.get("names") or {}).get(uid, "Trader")
         if fill["qty"] * fill["price"] >= TW_BIG_TRADE * eq_before:
@@ -1626,6 +1664,46 @@ def tw_trade(req, db, uid, now_ms):
     if alive is not None and len(alive) <= 1:
         tw_mark_war(db, war_ref, now_ms, prices)  # the last trader standing wins now
     return {"fill": fill, "cash": acct["cash"], "equity": acct["equity"], "out": acct.get("outReason")}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_bracket(req, db, uid, now_ms):
+    """Set or clear the Stop Loss / Take Profit on one of your positions:
+    {warId, sym, sl, tp} (null clears). The 5-minute job sells the whole position at the
+    market price once the price reaches either one (during market hours)."""
+    data = req.data or {}
+    war_ref = db.collection("tradeWars").document(_tw_war_id(data))
+    sym = str(data.get("sym") or "").upper()
+    prices, _, _ = _tw_prices(db)
+    sl, tp = tw_check_bracket(prices.get(sym), data.get("sl"), data.get("tp"))
+    book_ref = war_ref.collection("books").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        wsnap = war_ref.get(transaction=t)
+        war = wsnap.to_dict() if wsnap.exists else None
+        if not war or uid not in war["players"]:
+            raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
+        if war["status"] != "active":
+            raise TWError("FAILED_PRECONDITION", "This Trade War isn't live.")
+        acct = war_ref.collection("accounts").document(uid).get(transaction=t).to_dict() or {}
+        if acct.get("out"):
+            raise TWError("FAILED_PRECONDITION", "You've been knocked out.")
+        book = book_ref.get(transaction=t).to_dict() or tw_new_book()
+        pos = (book.get("positions") or {}).get(sym)
+        if not pos:
+            raise TWError("FAILED_PRECONDITION", "You don't hold %s." % (sym or "that stock"))
+        pos = {k: v for k, v in pos.items() if k not in ("sl", "tp")}
+        if sl:
+            pos["sl"] = sl
+        if tp:
+            pos["tp"] = tp
+        t.update(book_ref, {"positions.%s" % sym: pos})
+        return pos
+
+    pos = txn(db.transaction())
+    return {"sl": pos.get("sl"), "tp": pos.get("tp")}
 
 
 @https_fn.on_call()
@@ -1761,8 +1839,27 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
             if not acct.get("out"):
                 accts[uid] = tw_mark(acct, books[uid], prices, now_ms)
         names, modes = war.get("names") or {}, war.get("modes") or {}
-        update, lms, knocked, events = {"markedAt": now_ms}, war.get("lms"), set(), []
+        update, lms, knocked, events, touched = {"markedAt": now_ms}, war.get("lms"), set(), [], set()
         time_up = now_ms >= (war.get("endAt") or 0)
+        if market_open and not time_up:
+            # Stop Loss / Take Profit: sell the whole position at the market price
+            storm = tw_storm_now(war.get("storm"), now_ms)
+            open_book = (war.get("rules") or {}).get("viewTrades") or modes.get("draft")
+            for uid in sorted(accts):
+                if accts[uid].get("out"):
+                    continue
+                for sym, kind, px in tw_bracket_hits(books[uid], prices):
+                    if storm and storm.get("kind") == "halt" and storm.get("sym") == sym:
+                        continue
+                    qty = books[uid]["positions"][sym]["qty"]
+                    a, books[uid], fill = tw_apply_trade(dict(accts[uid], lastTradeAt=0), books[uid], sym, "sell", qty, px, now_ms, storm)
+                    fill["auto"] = kind
+                    a["lastTradeAt"] = accts[uid].get("lastTradeAt") or 0
+                    accts[uid] = tw_mark(a, books[uid], prices, now_ms)
+                    touched.add(uid)
+                    what = ("%s on %s: sold %d at %s (%s)" % ("Stop loss" if kind == "sl" else "Take profit", sym, qty, _tw_money(px), _tw_money(fill["pnl"], signed=True))
+                            if open_book else ("stop loss hit" if kind == "sl" else "take profit hit"))
+                    events.append(tw_event("bracket", "%s: %s" % (names.get(uid, "Trader"), what), now_ms, uid=uid))
         if war.get("bounties"):
             update["bounties"], evs = tw_settle_bounties(war, accts, books, prices, now_ms, time_up)
             events += evs
@@ -1814,7 +1911,7 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
                 events.append(tw_event("win", "%s wins the Trade War (%+.2f%%)" % (win["name"] or "Trader", win["pnlPct"]), now_ms, uid=win["uid"]))
         for uid, acct in accts.items():
             t.set(ref.collection("accounts").document(uid), acct)
-            if uid in knocked:
+            if uid in knocked or uid in touched:
                 t.set(ref.collection("books").document(uid), books[uid])
         t.update(ref, update)
         for ev in events:

@@ -449,6 +449,29 @@ All optional (host picks under "Game options" when starting a Trade War) and all
   - **advanced E2E on emulators with the real functions: 30/30.** Covers options in the lobby and bad options refused, the draft (roles, out-of-turn and taken picks refused, auto-pick on timeout, completion goes live), ticket limited to picks, server refusal of undrafted stocks, the whale cap, ticker events, WHALE/SHIELD/WANTED tags, halt and fee storms, the bounty rules and shield, settlement (claimed by a hunter), lead change, 375px mobile, and no page errors.
 - **Owner:** deploy rules **and** functions.
 
+## Phase 11: Trade War chart (§13)
+- **Already built in Phase 6:** Buy/Sell, entry line with live P&L, current price, trade markers, Fibonacci, Three-Legged Strategy, and alerts on the FMP quote pipeline.
+- **New: server-enforced Stop Loss / Take Profit on match positions.**
+  - Set on the ticket when buying (`tw_trade` sl/tp), change or clear on a position (`tw_bracket`), or drag the green/red boxes on the chart.
+  - The 5-minute job sells the whole position at the market price once either level is reached, only during market hours, and not on a stock halted by a storm.
+  - Validation: long only, so the stop must be below the current price and the target above. You need to hold the stock, be in the match and not be knocked out.
+  - Brackets follow the position: they survive adding shares and partial sells, and go away when it's closed.
+  - Ticker events for stops and targets (the symbol shows only in open-book matches).
+  - The everyone's-trades feed shows "hit their stop loss / took profit".
+- **Chart:**
+  - An SL/TP chip (on by default) shows green take-profit and red stop-loss boxes: your saved levels, a suggested bracket (1.5 ATR stop, 2:1) for an unprotected position, or a plan for your next buy.
+  - Dragging an edge saves it (position) or updates the plan (next buy).
+  - The engine flips the boxes for sell plans; Trade War is long only, so match boxes always sit long-side.
+- **Alerts:** a "Trade War price alerts" list under the chart. Each row is tagged TW and shows ▲ Above / ▼ Below, with Edit (new price) and Delete. Alerts are still added by clicking a price on the chart and moved by dragging.
+- **Fix:** success messages in the match room showed in error red; they're green now.
+- **Files:** `functions/main.py` (`tw_check_bracket`, `tw_bracket_hits`, `tw_bracket`, bracket execution in `tw_mark_war`, sl/tp on `tw_trade`), `practice/war.js`, `practice/practice.css`, `scripts/tradewar_test.py`.
+- **Tests:**
+  - unit 93/93 (3 new)
+  - **chart E2E on emulators with the real functions: 22/22**: SL/TP chip and fields, server validation (stop below, target above, needs a position, only your match), buy with a bracket, move and clear, nothing fires with the market closed, the stop fires at the market price in market hours, ticker event, the take profit fires with the right P&L, alert add / edit / delete, 375px mobile, no page errors
+  - advanced gameplay E2E re-run: 30/30
+  - Not browser-tested: dragging a box edge to save it (engine drag was tested in Phase 6).
+- **Owner:** deploy functions (no rules change).
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -459,4 +482,4 @@ All optional (host picks under "Game options" when starting a Trade War) and all
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
 3. Owner: Phase 7 steps above.
-4. Phases 8-10 done (above). Next: §13 Trade War chart, when the owner says go.
+4. Phases 8-11 done (above). Next: §14 onward, when the owner says go.

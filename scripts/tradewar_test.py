@@ -409,6 +409,31 @@ class AdvancedGameplay(unittest.TestCase):
         self.assertIsNone(m.tw_leader({"a": {"pnlPct": 0.0}}, ["a"]))
 
 
+class StopLossTakeProfit(unittest.TestCase):
+    def test_bracket_validation(self):
+        self.assertEqual(m.tw_check_bracket(100.0, 95, 110.5), (95.0, 110.5))
+        self.assertEqual(m.tw_check_bracket(100.0, None, 0), (None, None))
+        for sl, tp in ((100, None), (101, None), (None, 100), (None, 99), ("95", None), (True, None), (-1, None)):
+            with self.assertRaises(m.TWError):
+                m.tw_check_bracket(100.0, sl, tp)
+
+    def test_hits(self):
+        book = {"positions": {"AAPL": {"qty": 2, "avg": 100, "sl": 95, "tp": 110}, "MSFT": {"qty": 1, "avg": 50, "tp": 60}, "NVDA": {"qty": 1, "avg": 10}}}
+        self.assertEqual(m.tw_bracket_hits(book, {"AAPL": 96, "MSFT": 59, "NVDA": 1}), [])
+        self.assertEqual(m.tw_bracket_hits(book, {"AAPL": 94.5, "MSFT": 61}), [("AAPL", "sl", 94.5), ("MSFT", "tp", 61)])
+        self.assertEqual(m.tw_bracket_hits(book, {"AAPL": 110}), [("AAPL", "tp", 110)])
+
+    def test_brackets_survive_adding_and_partial_sells_and_go_with_the_position(self):
+        a, b = m.tw_new_account("A", 1000, T0), {"positions": {"AAPL": {"qty": 2, "avg": 100.0, "sl": 95, "tp": 110}}, "fills": []}
+        a["cash"] = 800.0
+        a, b, _ = m.tw_apply_trade(a, b, "AAPL", "buy", 1, 100.0, T0)
+        self.assertEqual((b["positions"]["AAPL"]["sl"], b["positions"]["AAPL"]["qty"]), (95, 3))
+        a, b, _ = m.tw_apply_trade(a, b, "AAPL", "sell", 1, 100.0, T0 + 2000)
+        self.assertEqual(b["positions"]["AAPL"]["tp"], 110)
+        a, b, _ = m.tw_apply_trade(a, b, "AAPL", "sell", 2, 100.0, T0 + 4000)
+        self.assertNotIn("AAPL", b["positions"])
+
+
 class Prices(unittest.TestCase):
     class DB:
         def __init__(self, doc):
