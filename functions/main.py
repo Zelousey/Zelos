@@ -42,6 +42,7 @@ Buffer directly.
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -454,25 +455,25 @@ def post_to_buffer(req: https_fn.Request) -> https_fn.Response:
 # Live prices for the $10,000 Practice Account (practice/index.html).
 #
 # refresh_quotes runs every minute on weekdays, 9:00-16:59 New York time, and
-# only calls Finnhub between 9:25 and 16:10. It fetches one quote per symbol
-# (30 calls, inside Finnhub's free 60/minute) and writes them all to the
+# only calls Financial Modeling Prep (FMP, the paid quote provider) between
+# 9:25 and 16:10. It fetches one quote per symbol and writes them all to the
 # public Firestore doc markets/quotes, which every open practice page is
 # listening to. That way the API key stays in this function's secret config
-# and never reaches a browser, and Finnhub sees one caller no matter how many
-# people are on the site.
+# and never reaches a browser, and FMP sees one caller no matter how many
+# people are on the site. (News still comes from Finnhub: see refresh_news.)
 #
 # During the session it also builds 5-minute bars for each symbol from those
 # once-a-minute prices (markets/intraday_<SYM>, the last 5 sessions), which is
-# what the page's 5m / 15m / 1h charts are made of. Finnhub's free plan has no
-# intraday history, so these bars are our own: open/close are the first/last
-# price seen in each 5 minutes, high/low the extremes of those samples.
+# what the page's 5m / 15m / 1h charts are made of. These bars are our own:
+# open/close are the first/last price seen in each 5 minutes, high/low the
+# extremes of those samples.
 #
 # After the close it also appends the day's bar (open/high/low/close from the
 # quote; the quote has no volume, so that's stored as 0) to markets/dailyBars,
 # so charts keep extending day by day between manual data refreshes.
 #
-# Setup: firebase functions:secrets:set FINNHUB_API_KEY, then deploy. See
-# docs/practice-account.md.
+# Setup: firebase functions:secrets:set FMP_API_KEY (and FINNHUB_API_KEY for
+# news), then deploy. See docs/practice-account.md.
 # ---------------------------------------------------------------------------
 from zoneinfo import ZoneInfo
 from firebase_functions import scheduler_fn
@@ -485,7 +486,7 @@ def _load_practice_symbols():
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "practice_universe.json"), encoding="utf-8") as f:
             syms = [str(u["sym"]).upper() for u in json.load(f)["symbols"]]
         if syms:
-            return syms[:55]  # Finnhub's free plan allows 60 calls a minute; leave room for news
+            return syms[:55]  # one quote call per symbol per minute
     except Exception as e:
         print("[practice] universe file unreadable, using the core list:", type(e).__name__, e)
     return ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "SPY", "QQQ"]
@@ -533,6 +534,8 @@ def _update_intraday(db, quotes, now):
     batch.commit()
 
 
+# Finnhub quote call, kept as the fallback provider (FINNHUB_API_KEY stays
+# configured for refresh_news). Not on the active quote path.
 def _finnhub_quote(symbol, api_key, timeout=8):
     req = urllib.request.Request(
         "https://finnhub.io/api/v1/quote?symbol=" + symbol,
@@ -542,39 +545,75 @@ def _finnhub_quote(symbol, api_key, timeout=8):
         return json.loads(resp.read().decode("utf-8"))
 
 
+FMP_QUOTE_URL = "https://financialmodelingprep.com/stable/quote"
+
+
+class _FmpKeyRejected(Exception):
+    """FMP refused the API key (it sometimes says so with a 200 + error body)."""
+
+
+def _fmp_quote(symbol, api_key, timeout=8):
+    """One quote from FMP's stable endpoint, mapped to the c/o/h/l/pc/t shape
+    markets/quotes has always used. Returns None for an unknown symbol.
+
+    The key goes only in the query string, never in a header, and the URL is
+    never logged (it contains the key)."""
+    url = FMP_QUOTE_URL + "?" + urllib.parse.urlencode({"symbol": symbol, "apikey": api_key})
+    req = urllib.request.Request(url, headers={"User-Agent": "zelos-practice/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    if isinstance(data, dict):
+        msg = str(data.get("Error Message") or data.get("error") or data.get("message") or "")
+        if "api key" in msg.lower() or "apikey" in msg.lower():
+            raise _FmpKeyRejected()
+        return None
+    row = data[0] if isinstance(data, list) and data else None
+    if not isinstance(row, dict) or not row.get("price"):
+        return None
+    return {
+        "c": row.get("price"),
+        "o": row.get("open"),
+        "h": row.get("dayHigh"),
+        "l": row.get("dayLow"),
+        "pc": row.get("previousClose"),
+        "t": row.get("timestamp"),
+    }
+
+
 def _fetch_all_quotes(api_key):
     """Returns (quotes, error). error is 'auth' for a bad key, else a short message."""
     quotes, last_error, denied = {}, None, []
     for sym in PRACTICE_SYMBOLS:
         try:
-            q = _finnhub_quote(sym, api_key)
+            q = _fmp_quote(sym, api_key)
+        except _FmpKeyRejected:
+            return {}, "auth"  # bad or revoked key: no point trying the rest
         except urllib.error.HTTPError as e:
             if e.code == 401:
-                return {}, "auth"  # bad or revoked key: no point trying the rest
-            if e.code == 403:
-                # Finnhub answers 403 for symbols the plan doesn't cover; skip just that one
+                return {}, "auth"
+            if e.code in (402, 403):
+                # FMP answers 402/403 for symbols the plan doesn't cover; skip just that one
                 denied.append(sym)
                 if len(denied) >= 5 and not quotes:
-                    return {}, "auth"  # everything is being refused: it's the key
+                    return {}, "auth"  # everything is being refused: it's the key/plan
                 continue
             last_error = "http %d" % e.code
             continue
         except Exception as e:  # timeout, DNS, bad JSON
             last_error = type(e).__name__
             continue
-        # Finnhub answers unknown symbols with all zeros
-        if not q or not q.get("c"):
-            continue
-        quotes[sym] = {k: q.get(k) for k in ("c", "o", "h", "l", "pc", "t")}
+        if not q:
+            continue  # unknown symbol / no price
+        quotes[sym] = q
     if denied:
-        print("[refresh_quotes] Finnhub refused (403):", ",".join(denied))
+        print("[refresh_quotes] FMP refused (402/403):", ",".join(denied))
     return quotes, (None if quotes else ("auth" if denied else (last_error or "no data")))
 
 
 @scheduler_fn.on_schedule(
     schedule="* 9-16 * * 1-5",
     timezone=scheduler_fn.Timezone("America/New_York"),
-    secrets=["FINNHUB_API_KEY"],
+    secrets=["FMP_API_KEY"],
     timeout_sec=55,
     memory=256,
 )
@@ -583,7 +622,7 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     minutes = now.hour * 60 + now.minute
     if minutes < 9 * 60 + 25 or minutes > 16 * 60 + 10:
         return
-    api_key = os.environ.get("FINNHUB_API_KEY", "").strip()
+    api_key = os.environ.get("FMP_API_KEY", "").strip()
     db = firestore.client()
     doc = db.collection("markets").document("quotes")
     if not api_key:
@@ -594,7 +633,7 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     if error and not quotes:
         # keep the last good prices; just flag the problem so the page can say so
         doc.set({"error": error, "checkedAt": now.isoformat()}, merge=True)
-        print("[refresh_quotes] Finnhub error:", error)
+        print("[refresh_quotes] FMP error:", error)
         return
 
     # a symbol that failed this round (timeout, rate limit) keeps its last good
@@ -610,7 +649,7 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     today = now.strftime("%Y-%m-%d")
     session_open = 9 * 60 + 30 <= minutes < 16 * 60
     doc.set({
-        "source": "finnhub",
+        "source": "fmp",
         "updatedAt": now.isoformat(),
         "date": today,
         "marketOpen": session_open,

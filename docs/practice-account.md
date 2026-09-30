@@ -48,15 +48,16 @@ closes. Live prices need the `refresh_quotes` Cloud Function turned on once.
 ## How it works
 
 - `refresh_quotes` (in `functions/main.py`) runs every minute on weekdays between
-  9:00 and 16:59 New York time. It only calls Finnhub from 9:25 to 16:10.
-- Each run fetches one quote for each of the 50 practice symbols (inside Finnhub's
-  free limit of 60 calls a minute) and writes them to the Firestore doc
-  `markets/quotes`. Every open practice page listens to that doc, so there's only
-  ever one caller to Finnhub, however many people are trading.
+  9:00 and 16:59 New York time. It only calls Financial Modeling Prep (FMP, the
+  paid quote provider) from 9:25 to 16:10.
+- Each run fetches one quote for each practice symbol from FMP's
+  `stable/quote` endpoint and writes them to the Firestore doc
+  `markets/quotes` (`source: "fmp"`). Every open practice page listens to that
+  doc, so there's only ever one caller to FMP, however many people are trading.
 - During the session it also folds each minute's price into 5-minute bars, one
   doc per symbol (`markets/intraday_<SYM>`, last 5 sessions). The page's 5m, 15m
-  and 1H charts are built from these. Finnhub's free plan has no intraday
-  history, so the bars start filling in from the first session after deploying.
+  and 1H charts are built from these, so the bars start filling in from the
+  first session after deploying.
 - After the close it adds the day's bar to `markets/dailyBars`, so charts keep
   moving forward day by day.
 - `refresh_news` runs every 10 minutes. It fetches the latest general market
@@ -64,8 +65,9 @@ closes. Live prices need the `refresh_quotes` Cloud Function turned on once.
   calls a run), and writes everything to one doc, `markets/news`. The dashboard's
   Trending news and Watchlist news widgets read it. Headlines link to the
   publisher, and the widgets show "News via Finnhub".
-- The Finnhub API key lives only in the function's secret config. It is never in
-  this repo and never sent to a browser.
+- The FMP key (`FMP_API_KEY`, quotes) and the Finnhub key (`FINNHUB_API_KEY`,
+  news, and the fallback quote provider) live only in the functions' secret
+  config. They are never in this repo and never sent to a browser.
 - `firestore.rules` already allows public reads of `markets/*` and blocks browser
   writes, so no rules change is needed.
 
@@ -90,10 +92,12 @@ computer with [Node.js](https://nodejs.org) installed.
 
    `.firebaserc` already points at the `leaderboard-agentictrading` project.
 
-3. Save the Finnhub key as a secret. When it asks for the value, paste the key and
-   press Enter (nothing shows while you paste; that's normal):
+3. Save the keys as secrets (skip any that are already set). When it asks for the
+   value, paste the key and press Enter (nothing shows while you paste; that's
+   normal):
 
    ```
+   firebase functions:secrets:set FMP_API_KEY
    firebase functions:secrets:set FINNHUB_API_KEY
    ```
 
@@ -127,8 +131,9 @@ The secret stays set; there's no need to enter the key again.
 - During market hours, open `https://agentictrading.info/practice/`. Within a
   minute or two the status line should read **"Live prices · updated Xs ago"**
   with a green dot.
-- If it says **"the price service rejected the API key"**, the key is wrong or
-  was revoked. Set it again (step 3) and redeploy (step 4).
+- If it says **"Live feed error (API key rejected)"**, the FMP key is wrong,
+  revoked, or its plan doesn't cover the quote endpoint. Set `FMP_API_KEY` again
+  (step 3) and redeploy (step 4).
 - Outside market hours it reads **"Market closed · prices as of …"**, which is
   correct.
 - Logs: Firebase console → Functions → `refresh_quotes` → Logs. To trigger a run
@@ -220,7 +225,8 @@ Edit `data/practice-universe.json` (symbol, name, group), then run
 `python3 scripts/build_practice.py`. The build copies the list to
 `functions/practice_universe.json`, which the price and news functions read, so
 the page and the functions can't drift apart. Redeploy the functions afterwards.
-Keep it at 55 symbols or fewer (the free Finnhub limit is 60 calls a minute).
+Keep it at 55 symbols or fewer (`refresh_quotes` makes one call per symbol
+every minute and must finish inside its 55-second timeout).
 
 Price history for charts comes from `data/game-charts.json` and
 `data/practice-extra.json`. A new symbol needs its daily history added to

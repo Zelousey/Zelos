@@ -3,12 +3,14 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 0: Inspection. COMPLETE.** Waiting for the owner to say "begin Phase 1".
+**Phase 1: FMP live quote fix. CODE DONE, AWAITING OWNER DEPLOY + LIVE VERIFICATION.**
+Phase 1 is not complete until the Trade War chart is confirmed live on FMP.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
+| 1 FMP quote fix | Code done; live verification pending | `functions/main.py`, `practice/practice.js` (comment only), `README.md`, `docs/practice-account.md` | `py_compile` OK; offline mocked-FMP test passes (mapping c/o/h/l/pc/t, FMP URL, no `X-Finnhub-Token`, bad key as 200-error/401/402 → `auth`); `node --check practice.js` OK; 37/37 existing tests pass | **Not deployed.** Owner runs the deploy + force-run (commands below) |
 
 ---
 
@@ -134,15 +136,35 @@ Phase 1 is fixed by the spec. The later phases follow the spec's priority order,
    - Then tokens (§1, after Phase 2's locked ledger).
    - Then Priority 3 and Priority 4.
 
-## Decisions needed from the owner (not blocking Phase 1)
-- **Existing $10k Trade War account:** keep it as each user's open/standing virtual account alongside the new buy-in sessions, or retire it into session-only play? It is not "Practice Mode" in the UI, but the internal id is `PRACTICE`.
-- **Hosting:** confirm that the frontend deploys from GitHub Pages on merge to `main`.
-- **Token payment processor:** Stripe or another provider to replace Gumroad.
-- **Cookie consent:** show a banner only in consent-required regions (e.g. EEA/UK/CH) using GA Consent Mode, or drop GA. Needs legal input.
-- **Error text:** confirm where the "the price service rejected the API key" text appears on the live site.
+## Owner decisions (2026-09-30)
+- **Existing $10k Trade War account:** stays, alongside the new buy-in matches.
+- **Hosting:** confirmed GitHub Pages. Merging to `main` publishes the frontend.
+- **Token payments:** use the cheapest option. No processor is free per sale; Stripe has no monthly fee (per-transaction fees only). To be confirmed at the token phase.
+- **Cookie consent:** show the banner only in regions that require it. GitHub Pages has no server-side geolocation, so region detection must happen client-side (e.g. by timezone or a free geo lookup). To be designed in Phase 2 and flagged for legal review.
+- **Error text:** resolved. "the price service rejected the API key" was stale wording in `docs/practice-account.md`; the page shows "Live feed error (API key rejected)". The doc is now fixed.
+
+## Phase 1 changes
+- `_fmp_quote` calls `https://financialmodelingprep.com/stable/quote?symbol=…&apikey=…` with the key only in the query string, no Finnhub header, and the URL never logged. It maps `price/open/dayHigh/dayLow/previousClose/timestamp` to `c/o/h/l/pc/t`.
+- `_fetch_all_quotes` now uses FMP. A bad key (a 200 error body or a 401) gives `auth`. A 402/403 skips just that symbol, but gives `auth` if everything is refused.
+- `refresh_quotes`: `secrets=["FMP_API_KEY"]`, `os.environ.get("FMP_API_KEY", "")`, `source: "fmp"`, and FMP log labels.
+- Unchanged: the schedule, the `markets/quotes` shape and error contract, intraday/daily bars, the frontend pipeline, and `refresh_news` (still Finnhub).
+- `_finnhub_quote` is kept, labelled as the fallback provider, and `FINNHUB_API_KEY` remains intact.
+
+## Phase 1 owner steps (deploy + verify)
+Run these in Google Cloud Shell, where the repo was cloned before. Do them **during market hours (Mon–Fri 9:25–16:10 New York)**, because outside that window `refresh_quotes` exits without fetching anything.
+1. `cd ~/Zelos && git fetch origin && git checkout claude/agentictrading-master-spec && git pull`
+2. `firebase functions:secrets:get FMP_API_KEY` should list a version; it doesn't print the key. If nothing is listed: `firebase functions:secrets:set FMP_API_KEY`.
+3. `source functions/venv/bin/activate && pip install -r functions/requirements.txt`
+4. `npx -y firebase-tools@latest deploy --only functions --project leaderboard-agentictrading`. If it errors on another function's missing secret, use `--only functions:refresh_quotes`.
+5. Cloud console → Cloud Scheduler → `firebase-schedule-refresh_quotes-…` job → **Force run**.
+6. Firestore → `markets/quotes`: `source` = `fmp`, `error` = null, `updatedAt` is current, and the quotes have `c/o/h/l/pc/t`.
+7. Functions → `refresh_quotes` → Logs: no `FMP error: auth` and no 401.
+8. Open `https://agentictrading.info/practice/`: the status line reads "Live prices · updated Xs ago", the chart's last candle moves, and there is no API-key error.
+9. Report the results. After that, merge the branch to `main` so a later deploy from `main` can't bring back Finnhub quotes.
 
 ## Known issues
 - See security findings 1–6 above. None have been changed yet.
+- Phase 1 blocker: this container has no Firebase CLI or credentials, so the owner has to run the deploy and live check.
 
 ## Next phase
-**Phase 1 — FMP live quote fix.** Starts only when the owner says "begin Phase 1".
+**Finish Phase 1** (the owner's live verification). Then Phase 2, the security and compliance baseline, which starts only when the owner says so.

@@ -3,7 +3,7 @@
  *
  * A persistent simulated brokerage account: real prices, virtual money.
  *
- * Prices: live quotes the refresh_quotes Cloud Function pulls from Finnhub
+ * Prices: live quotes the refresh_quotes Cloud Function pulls from FMP
  * into Firestore markets/quotes every minute in market hours, on top of daily
  * history (data/game-charts.json + data/practice-extra.json + markets/dailyBars).
  * With no live feed it falls back to the latest close and says so.
