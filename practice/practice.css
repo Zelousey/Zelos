@@ -493,6 +493,7 @@ body.pt-fullport .pt-acct span{ border-color:var(--pt-glow); }
 /* sign-in problems, shown right under the button (zelos-signin.js) */
 .pt-auth-msg{ margin:8px 0 0; padding:8px 10px; border:1px solid var(--danger); border-radius:var(--radius-sm); background:rgba(224,72,63,0.1); color:var(--ink); font-size:0.82rem; line-height:1.45; }
 .pt-auth-msg[hidden]{ display:none; }
+.pt-auth-msg.is-ok{ border-color:rgba(16,185,129,.55); background:rgba(16,185,129,.1); }
 
 /* profile: handle, bio, Edit profile dropdown (zelos-profile.js) */
 .pf-handle{ margin:2px 0 0; color:var(--muted); font-family:var(--mono); font-size:0.86rem; }
@@ -733,3 +734,14 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .tw-b-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; font-size:.84rem; }
 .tw-b-form select{ font:inherit; padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); }
 @media (max-width:820px){ .tw-draft{ grid-template-columns:1fr; } }
+
+/* ---- Trade War chart: SL / TP fields, alert list ---- */
+.tw-sltp{ display:grid; grid-template-columns:1fr 1fr auto auto; gap:8px; align-items:end; margin:4px 0 8px; }
+.tw-sltp input{ width:100%; }
+.tw-sltp label:first-child span{ color:#f87171; } .tw-sltp label:nth-child(2) span{ color:#10b981; }
+.tw-alerts{ margin-top:10px; border-top:1px solid var(--border-soft); padding-top:8px; }
+.tw-alerts-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:.84rem; } .tw-alerts-head small{ color:var(--muted); }
+.tw-alert-row{ display:grid; grid-template-columns:auto auto 1fr auto auto auto; gap:8px; align-items:center; padding:5px 0; font-size:.84rem; }
+.tw-al-dir{ font-family:var(--mono); font-size:.76rem; } .tw-al-dir.is-above{ color:#10b981; } .tw-al-dir.is-below{ color:#f87171; }
+.tw-al-px{ font-family:var(--mono); }
+@media (max-width:600px){ .tw-sltp{ grid-template-columns:1fr 1fr; } .tw-alert-row{ grid-template-columns:auto auto 1fr auto; } .tw-alert-row .tw-al-dir{ display:none; } }
