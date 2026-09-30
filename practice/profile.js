@@ -23,7 +23,7 @@
   function show(p, uid, mine, t, logs) {
     var war = !!p; p = p || {}; t = t || {};
     var eq = +p.equity || START, g = p.growthPct != null ? p.growthPct : (eq / START - 1) * 100;
-    var best = (p.bestTrades || [])[0], name = p.name || t.name || 'Trader', photo = p.photo || t.photo;
+    var best = (p.bestTrades || [])[0], name = (t.username && t.name) || p.name || t.name || 'Trader', photo = t.avatar || p.photo || t.photo;
     var xp = Math.max(p.xp || 0, t.xp || 0), streak = Math.max(p.streak || 0, t.streak || 0);
     var since = p.since ? new Date(p.since).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : null;
     document.title = name + ' · Trader profile | Zelos';
@@ -33,7 +33,8 @@
     var favList = Object.keys(favs).sort(function (a2, b2) { return favs[b2] - favs[a2]; }).slice(0, 5);
     var h = '<div class="pf-head"><div class="pf-id">' + (photo ? '<img class="pf-photo" src="' + esc(photo) + '" alt="" referrerpolicy="no-referrer">' : '') + (L && lv ? '<span class="pf-badge">' + L.badge(lv, photo ? 40 : 64) + '</span>' : '') +
       '<div><span class="pt-kicker">Trader profile' + (mine ? ' &middot; your public profile' : '') + '</span>' +
-      '<h1>' + esc(name) + '</h1>' +
+      '<h1>' + esc(name) + '</h1>' + (t.username ? '<p class="pf-handle">@' + esc(t.username) + '</p>' : '') +
+      (t.bio ? '<p class="pf-bio">' + esc(t.bio) + '</p>' : (mine && !t.username ? '<p class="pf-bio pt-fine">Add a picture, @username and bio so friends can find you.</p>' : '')) +
       '<div class="pf-tags">' + (lv ? '<span><b>Level ' + lv.level + '</b> ' + esc(lv.name) + '</span><span>' + xp.toLocaleString('en-US') + ' XP</span>' : '') +
       (streak ? '<span>🔥 ' + streak + '-day streak</span>' : '') + (tier ? '<span>' + tier.icon + ' ' + tier.name + ' recruiter</span>' : '') +
       (since ? '<span>Since ' + since + '</span>' : '') + '</div>' +
@@ -118,12 +119,19 @@
     var war = p.equity != null;
     var h = '<button class="pt-mini pt-soc" type="button" data-a="share">Share profile</button>';
     if (!mine) h += (war ? '<button class="pt-mini pt-soc" type="button" data-a="challenge">⚔️ Challenge to a Trade War</button>' : '') + '<button class="pt-mini" type="button" data-a="friend">+ Add friend</button>';
-    else h += (war ? '<button class="pt-mini pt-soc" type="button" data-a="card">Share my Trade War card</button>' : '') + '<a class="pt-mini" href="squads.html">Trading Squads</a><a class="pt-mini" href="../real/">Real Trade Journal</a>';
+    else h = '<details class="pf-edit"><summary class="pt-mini pt-soc">Edit profile &#9662;</summary><div class="pf-edit-menu">' +
+      '<button type="button" data-a="edit">Picture, name, @username &amp; bio</button>' +
+      '<label><input type="checkbox" data-a="help"' + (window.ZelosProfile && ZelosProfile.help.on() ? ' checked' : '') + '> Help Mode (tips around the site)</label>' +
+      '<a href="index.html?tab=progress">XP, missions &amp; badges</a><a href="../real/">Real-trade statistics privacy</a></div></details>' + h +
+      (war ? '<button class="pt-mini pt-soc" type="button" data-a="card">Share my Trade War card</button>' : '') + '<a class="pt-mini" href="squads.html">Trading Squads</a><a class="pt-mini" href="../real/">Real Trade Journal</a>';
     box.innerHTML = h;
     if (meUser && !mine) S.friends().then(function (f) { var b = box.querySelector('[data-a="friend"]'); if (b && f.indexOf(uid) !== -1) { b.textContent = '✓ Friends'; b.setAttribute('data-a', 'unfriend'); } });
+    box.onchange = function (e) { if (e.target.getAttribute('data-a') === 'help' && window.ZelosProfile) ZelosProfile.help.set(e.target.checked); };
     box.onclick = function (e) {
       var b = e.target.closest('[data-a]'); if (!b) return;
       var a = b.getAttribute('data-a'), u = S.me();
+      if (a === 'help') return;
+      if (a === 'edit') { if (window.ZelosProfile) ZelosProfile.openEditor().then(function (out) { if (out) location.reload(); }); return; }
       if (a === 'share') return S.shareLink(name + ' · Trader profile', war ? name + '\'s Trade War account (virtual) is at ' + money(p.equity) + '. Can you beat that?' : 'Check out ' + name + '\'s trader profile.', link + (u ? '&ref=' + encodeURIComponent(u.uid) : '')).then(function (r) { if (r === 'copied') b.textContent = 'Link copied ✓'; });
       if (a === 'card') return S.shareCard({ name: p.name, equity: p.equity, level: window.ZelosLevels ? 'Lv ' + ZelosLevels.levelForXp(p.xp || 0).level : null, xp: p.xp, winRate: p.trades ? p.winRate : null,
         best: (p.bestTrades || [])[0] ? '+$' + Math.round(p.bestTrades[0].pnl).toLocaleString('en-US') + ' ' + p.bestTrades[0].sym : null }, link + '&ref=' + encodeURIComponent(uid)).then(function (r) { if (r === 'downloaded') b.textContent = 'Saved · link copied ✓'; });
@@ -137,7 +145,12 @@
       }
     };
   }
-  function missing(msg) { $('pfBody').innerHTML = '<div class="pf-missing"><h1>Profile not found</h1><p>' + msg + '</p><a class="pt-btn pt-btn-go" href="./">Enter Trade War</a> <a class="pt-btn" href="../real/">Real Trade Journal</a></div>'; }
+  function missing(msg, mine) {
+    $('pfBody').innerHTML = '<div class="pf-missing"><h1>' + (mine ? 'Your profile' : 'Profile not found') + '</h1><p>' + msg + '</p>' +
+      (mine && window.ZelosProfile ? '<button class="pt-btn pt-btn-go" type="button" id="pfSetup">Set up your profile</button> ' : '') +
+      '<a class="pt-btn' + (mine ? '' : ' pt-btn-go') + '" href="./">Enter Trade War</a> <a class="pt-btn" href="../real/">Real Trade Journal</a></div>';
+    var b = $('pfSetup'); if (b) b.onclick = function () { ZelosProfile.openEditor().then(function (out) { if (out) location.reload(); }); };
+  }
 
   function start() {
     var uid = new URLSearchParams(location.search).get('u');
@@ -154,7 +167,7 @@
           var o = []; s2.forEach(function (d) { var v = d.data(); o.push({ sym: v.sym, at: v.createdAt && v.createdAt.toMillis ? v.createdAt.toMillis() : 0 }); }); return o;
         }).catch(function () { return []; })
       ]).then(function (r) {
-        if (!r[0] && !r[1] && !r[2].length) return missing(mine ? 'Nothing public yet. Enter Trade War (with "Show my stats" on) or log a real trade in the Real Trade Journal.' : 'This trader\'s profile is private, or the link is wrong.');
+        if (!r[0] && !r[1] && !r[2].length) return missing(mine ? 'Nothing public yet. Set up your profile, then make a trade in Trade War (with "Show my stats" on) or log a real trade in the Real Trade Journal.' : 'This trader\'s profile is private, or the link is wrong.', mine);
         show(r[0], id, mine, r[1], r[2]);
       });
     }

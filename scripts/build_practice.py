@@ -25,7 +25,7 @@ BODY = '''<main class="pt-shell">
       <h1>Trade War</h1>
       <span class="pt-lvl" id="ptLevel" hidden></span>
     </div>
-    <div class="pt-acct">
+    <div class="pt-acct" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money.">
       <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
       <span><small>Today</small><b id="ptDay">+$0.00</b></span>
       <span><small>Total P&amp;L</small><b id="ptTotal">+$0.00</b></span>
@@ -96,7 +96,7 @@ BODY = '''<main class="pt-shell">
           <button type="button" role="tab" data-mode="options" aria-selected="false">Options</button>
         </div>
         <div id="ptStockTicket">
-          <div class="pt-sides">
+          <div class="pt-sides" data-help="Buy opens or adds to a position. Sell closes shares you already own. Pick a stock on the left, choose how many shares, then press the big button below.">
             <button class="pt-side is-on" type="button" id="ptBuy" aria-pressed="true">Buy</button>
             <button class="pt-side" type="button" id="ptSell" aria-pressed="false">Sell</button>
           </div>
@@ -117,7 +117,7 @@ BODY = '''<main class="pt-shell">
           <label class="pt-field" id="ptStopRow" hidden><span>Stop price</span><input id="ptStopPx" type="number" min="0" step="0.01" inputmode="decimal"></label>
           <label class="pt-field"><span>Time in force</span>
             <select id="ptTif"><option value="day">Day</option><option value="gtc">Good til cancelled</option></select></label>
-          <div class="pt-bracket" id="ptBracket">
+          <div class="pt-bracket" id="ptBracket" data-help="Optional safety net: a stop-loss sells automatically if the price falls to your level, a take-profit sells when it reaches your target. Whichever hits first cancels the other.">
             <label class="pt-check"><input type="checkbox" id="ptUseBracket"> Add stop-loss / take-profit</label>
             <div class="pt-bracket-fields" id="ptBracketFields" hidden>
               <label class="pt-field pt-f-sl"><span>Stop-loss</span><input id="ptSL" type="number" min="0" step="0.01" inputmode="decimal"></label>
@@ -149,7 +149,7 @@ BODY = '''<main class="pt-shell">
   </div>
 
   <section class="pt-card pt-lower" aria-label="Portfolio">
-    <div class="pt-tabs" role="tablist">
+    <div class="pt-tabs" role="tablist" data-help="Positions: what you own now. Open orders: orders waiting to fill (cancel them here). History: every fill. Progress: your XP, missions and badges.">
       <button class="pt-tab" type="button" role="tab" data-tab="positions" aria-selected="true">Positions</button>
       <button class="pt-tab" type="button" role="tab" data-tab="orders" aria-selected="false">Open orders</button>
       <button class="pt-tab" type="button" role="tab" data-tab="history" aria-selected="false">History</button>
@@ -199,7 +199,7 @@ BODY = '''<main class="pt-shell">
     <div class="pt-gate-who">
       <span class="pt-gate-av" aria-hidden="true">&#9679;</span>
       <span><b id="ptGateName">Guest</b><small id="ptGateWho">Guest · saved in this browser only</small></span>
-      <button class="pt-linkbtn" type="button" id="ptGateRename" hidden>Rename</button>
+      <button class="pt-linkbtn" type="button" id="ptGateRename" hidden>Edit profile</button>
     </div>
     <div class="pt-gate-bal"><small>Your Trade War account</small><b id="ptGateBal">$10,000.00</b></div>
     <button class="pt-btn pt-gate-google" type="button" id="ptGateGoogle"><svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>Continue with Google</button>
@@ -231,7 +231,7 @@ PROFILE_BODY = '''<main class="pt-shell pf-shell">
 
 
 SOCIAL_SCRIPTS = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
-                  '<script src="../zelos-social.js"></script>\n')
+                  '<script src="../zelos-social.js"></script>\n<script src="../zelos-profile.js"></script>\n')
 CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; <a href="challenge.html">Challenges</a> &middot; '
           '<a href="squads.html">Squads</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav>')
 
@@ -253,7 +253,7 @@ def build_social_pages():
 def build_profile():
     desc = 'A Zelos trader profile: level, XP and streak, Real Trading activity, and Trade War (virtual $10,000 account) stats kept separately.'
     scripts = ('<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
-               '<script src="profile.js"></script>\n')
+               '<script src="../zelos-profile.js"></script>\n<script src="profile.js"></script>\n')
     render('practice/profile.html', 'Trader Profile | Zelos', desc, PROFILE_BODY, HEAD, scripts, robots='noindex')
     print('built practice/profile.html')
 
@@ -269,7 +269,7 @@ def main():
         'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
     }
     scripts = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
-               '<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
+               '<script src="../zelos-profile.js"></script>\n<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
                '<script src="practice.js"></script>\n')
     render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos', desc, BODY, HEAD, scripts,
            jsonld=[ld, breadcrumbs([('Zelos', ''), ('Trade War', None)])])

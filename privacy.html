@@ -8,7 +8,6 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-Y4B3ZC5XRX');
 </script>
 <meta charset="utf-8">
@@ -16,26 +15,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos Setup</title>
+<title>Zelos Privacy</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
-<link rel="canonical" href="https://agentictrading.info/setup.html">
+<meta name="description" content="Privacy Policy for Zelos and AgenticTrading.info: what we collect, why, who we share it with, and your choices.">
+<link rel="canonical" href="https://agentictrading.info/privacy.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Setup Guide">
-<meta property="og:description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
-<meta property="og:url" content="https://agentictrading.info/setup.html">
+<meta property="og:title" content="Zelos Privacy">
+<meta property="og:description" content="Privacy Policy for Zelos and AgenticTrading.info: what we collect, why, who we share it with, and your choices.">
+<meta property="og:url" content="https://agentictrading.info/privacy.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Setup Guide">
-<meta name="twitter:description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
+<meta name="twitter:title" content="Zelos Privacy">
+<meta name="twitter:description" content="Privacy Policy for Zelos and AgenticTrading.info: what we collect, why, who we share it with, and your choices.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -45,94 +44,30 @@
   body{ margin:0; }
   [hidden]{ display:none !important; }
 
-  .status-banner{
-    margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm);
-    background:var(--surface); font-size:0.88rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;
-  }
-  .status-banner b{ color:var(--ink); }
+  .updated{ margin-top:10px; font-family:var(--mono); font-size:0.75rem; color:var(--muted); }
 
-  .steps{ margin-top:40px; display:flex; flex-direction:column; gap:0; }
-  .step{ display:grid; grid-template-columns:40px 1fr; gap:18px; padding-block:26px; border-top:1px solid var(--border); }
-  .step:last-child{ border-bottom:1px solid var(--border); }
-  .step-num{ font-family:var(--mono); font-weight:700; font-size:1rem; color:var(--accent); }
-  .step h2{ font-size:1.15rem; font-weight:600; margin:0; }
-  .step .step-body{ margin-top:8px; color:var(--muted); font-size:0.95rem; }
-  .step .step-body p{ margin:0; }
-  .step .step-body p + p{ margin-top:10px; }
-  .step .step-body b{ color:var(--ink); }
-  .step .step-body ol, .step .step-body ul{ margin:10px 0 0; padding-left:20px; }
-  .step .step-body li{ margin-top:6px; }
-  .step .step-body a{ color:var(--accent); }
-  .callout{
-    margin-top:12px; padding:12px 14px; border-left:3px solid var(--accent);
-    background:var(--accent-soft); border-radius:2px 3px 3px 2px; font-size:0.86rem; color:var(--ink);
-  }
-  .callout.warn{ border-left-color:var(--danger); background:var(--danger-soft); }
+  .tos-section{ padding-block:26px; border-top:1px solid var(--border); }
+  .tos-section:last-of-type{ border-bottom:1px solid var(--border); }
+  .tos-section h2{ font-size:1.1rem; font-weight:600; display:flex; gap:10px; align-items:baseline; margin:0; }
+  .tos-section h2 .n{ font-family:var(--mono); color:var(--accent); font-size:0.9rem; }
+  .tos-section .body{ margin-top:10px; color:var(--ink); font-size:0.92rem; }
+  .tos-section .body p{ margin:0; }
+  .tos-section .body p + p{ margin-top:10px; }
+  .tos-section .body ul{ margin:10px 0 0; padding-left:20px; }
+  .tos-section .body li{ margin-top:6px; }
+  .tos-section .body b{ color:var(--ink); }
   code.inline{
     font-family:var(--mono); background:var(--accent-soft); color:var(--accent);
     padding:1px 6px; border-radius:2px; font-size:0.86rem;
   }
 
-  .recap{ margin-top:44px; }
-  .recap h2{ font-size:1.3rem; margin:0; }
-  .recap-list{ margin-top:18px; display:flex; flex-direction:column; gap:12px; }
-  .recap-item{ display:flex; gap:12px; align-items:flex-start; }
-  .recap-check{
-    flex:none; width:20px; height:20px; border-radius:2px; background:var(--accent-soft); color:var(--accent);
-    display:flex; align-items:center; justify-content:center; font-size:0.75rem; margin-top:2px;
-  }
-  .recap-item p{ color:var(--muted); font-size:0.92rem; margin:0; }
-  .recap-item p b{ color:var(--ink); }
-
-  .final{ margin-top:44px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:28px 26px; }
-  .final h2{ font-size:1.3rem; margin:0; }
-  .final p{ margin-top:8px; color:var(--muted); font-size:0.92rem; }
+  .final{ margin-top:40px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 24px; }
+  .final h2{ font-size:1.1rem; margin:0; }
+  .final p{ margin-top:8px; color:var(--muted); font-size:0.9rem; }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
-
-  /* ---- terms click-wrap gate ---- */
-  .tos-gate{
-    position:fixed; inset:0; z-index:9999;
-    background:var(--bg);
-    display:flex; align-items:center; justify-content:center;
-    padding:24px;
-  }
-  .tos-gate-card{
-    max-width:480px; width:100%;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:28px 26px;
-  }
-  .tos-gate-card h2{ font-size:1.25rem; font-weight:700; margin-top:8px; }
-  .tos-gate-card p{ margin-top:12px; color:var(--muted); font-size:0.92rem; }
-  .tos-gate-card a.tos-link{ color:var(--accent); font-weight:600; text-decoration:none; }
-  .tos-gate-card a.tos-link:hover{ text-decoration:underline; }
-  .tos-gate-check{
-    margin-top:18px; display:flex; gap:10px; align-items:flex-start;
-    font-size:0.88rem; color:var(--ink); cursor:pointer;
-  }
-  .tos-gate-check input{ margin-top:3px; flex:none; width:16px; height:16px; accent-color:var(--accent); }
-  .tos-gate button{
-    margin-top:18px; width:100%;
-    font-family:var(--sans); font-weight:700; font-size:0.95rem;
-    padding:13px 16px; border-radius:3px; border:none;
-    background:var(--accent); color:var(--accent-ink); cursor:pointer;
-  }
-  .tos-gate button:disabled{ opacity:0.5; cursor:not-allowed; }
 </style>
 </head>
 <body class="zt zt-body">
-<div class="tos-gate" id="tosGate">
-  <div class="tos-gate-card">
-    <div class="eyebrow">Before you continue</div>
-    <h2>Read the Zelos Terms of Service</h2>
-    <p>Zelos publishes general, rule-based trade alerts — the same page, on the same schedule, for every subscriber. It never connects to any brokerage account and never places a trade. Please read the full terms before you get started.</p>
-    <p><a class="tos-link" href="terms.html" target="_blank" rel="noopener">Open the Terms of Service &rarr;</a></p>
-    <label class="tos-gate-check" for="tosCheckbox">
-      <input type="checkbox" id="tosCheckbox">
-      <span>I have read and agree to the Zelos Terms of Service, including the risk disclosures.</span>
-    </label>
-    <button type="button" id="tosContinueBtn" disabled>Continue to setup</button>
-  </div>
-</div>
 
 <nav class="site-nav">
   <div class="shell">
@@ -220,94 +155,139 @@
 <section class="section-tight">
   <div class="shell-narrow">
     <div>
-      <p class="eyebrow">Getting started</p>
-      <h1 style="font-size:1.5rem; margin-top:6px;">Four steps to your first alert.</h1>
-      <p class="status-line" style="margin-top:6px;">This is the whole setup &mdash; nothing to install, nothing to connect, no account required. Just find your link, bookmark it, and check back each session.</p>
-      <div class="status-banner">
-        <span>&#9989;</span>
-        <span><b>You're in.</b> Your Gumroad receipt has your alert link and a link back to this guide &mdash; the steps below get you from purchase to your first read.</span>
+      <p class="eyebrow">Legal</p>
+      <h1 style="font-size:1.5rem; margin-top:6px;">Privacy Policy</h1>
+      <p class="status-line" style="margin-top:6px;">This policy explains what information Zelos and AgenticTrading.info collect, why, who it's shared with, and the choices you have. It works together with our <a href="terms.html" style="color:var(--accent);">Terms of Service</a>.</p>
+      <div class="updated">Last updated September 30, 2026</div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">01</span> The short version</h2>
+      <div class="body">
+        <ul>
+          <li>We collect what we need to run your account, Trade War, the Real Trade Journal and the community features.</li>
+          <li>We never ask for, see, or store your brokerage login, and we never connect to a brokerage account.</li>
+          <li>We don't sell your personal information and we don't show ads.</li>
+          <li>Some things are public by design (your public profile, leaderboards, public posts). You control most of what goes there.</li>
+          <li>Analytics cookies are off in the EEA, UK and Switzerland unless you allow them.</li>
+        </ul>
       </div>
     </div>
 
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div>
-          <h2>Find your alert link</h2>
-          <div class="step-body">
-            <p>Your Gumroad receipt email has a direct link to your alert page &mdash; that's the one page you'll want to come back to. Can't find it? Sign in at gumroad.com with the email you purchased with, open <b>Library</b>, and it'll be right there next to Zelos.</p>
-            <div class="callout">This link is general information, published the same way to every subscriber &mdash; it isn't tied to any account, and Zelos never asks for one.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-num">02</div>
-        <div>
-          <h2>See a sample first</h2>
-          <div class="step-body">
-            <p><a href="demo.html" target="_blank" rel="noopener">Open the sample alert ticket</a> to see the exact format &mdash; ticker, entry, stop, targets, reward:risk &mdash; before your first real one shows up. It's a fixed example, not a live signal.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-num">03</div>
-        <div>
-          <h2>Bookmark your alert page</h2>
-          <div class="step-body">
-            <p>Your alert page updates in place, on the same schedule every session &mdash; the ticket you see there is always the current one. That's the page you want on your home screen, not this setup guide, and not the public Zelos site you bought from.</p>
-            <p><b>iPhone (Safari):</b> open your alert link &rarr; tap the Share icon &rarr; <b>Add to Home Screen</b> &rarr; Add.<br><b>Android (Chrome):</b> open the link &rarr; tap the &#8942; menu &rarr; <b>Add to Home screen</b> / Install app.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-num">04</div>
-        <div>
-          <h2>Check it each session</h2>
-          <div class="step-body">
-            <p>Zelos runs the scan and republishes the page on a fixed schedule &mdash; there's nothing for you to trigger or configure. Most sessions won't turn up a qualifying setup, and that's the strategy working as intended, not a failed check. Whatever you decide to do with a published alert happens entirely in your own brokerage account, on your own.</p>
-          </div>
-        </div>
+    <div class="tos-section">
+      <h2><span class="n">02</span> What we collect</h2>
+      <div class="body">
+        <p><b>Account information.</b> When you sign in with email and password or with Google, our sign-in provider (Google Firebase Authentication) gives us your email address and an account ID; with Google it can also include your name and profile photo. Every visitor also gets an anonymous guest ID, so XP and progress can be saved before you create an account.</p>
+        <p><b>Profile and community information.</b> The display name, username, bio and photo you choose; friends, followers, squads, challenges and referral links; and posts, theses, comments, messages and reactions you create.</p>
+        <p><b>Trading activity on Zelos.</b> Your Trade War virtual account (orders, positions, trades, balances, statistics), Arcade scores, XP, missions and achievements, your watchlist, dashboard layout, alert and notification preferences, and trades you choose to log in the Real Trade Journal.</p>
+        <p><b>Purchases.</b> When you buy tokens or other access, the payment processor handles your card and billing details and tells us your email, what you bought and the amount. For earlier Gumroad purchases, Gumroad sent us the buyer's email and the product purchased. We never receive or store your full card number.</p>
+        <p><b>Usage and device information.</b> With your consent where required, Google Analytics collects which pages are viewed, approximate location, device and browser type. Our hosting providers keep standard server logs (such as IP address and request time) for security and operations.</p>
+        <p><b>Messages to us.</b> If you email us or send feedback, we keep that conversation.</p>
       </div>
     </div>
 
-    <div class="recap">
-      <h2>What stays true no matter what</h2>
-      <div class="recap-list">
-        <div class="recap-item">
-          <div class="recap-check">&#10003;</div>
-          <p><b>Same alert, for everyone.</b> One page, published on one schedule &mdash; not tailored to your account, your balance, or your situation.</p>
-        </div>
-        <div class="recap-item">
-          <div class="recap-check">&#10003;</div>
-          <p><b>Sizing is a general rule of thumb</b>, never a number calculated from your money &mdash; Zelos never sees it.</p>
-        </div>
-        <div class="recap-item">
-          <div class="recap-check">&#10003;</div>
-          <p><b>Score bar and reward:risk minimum never bend</b>, no matter how many setups have come and gone.</p>
-        </div>
-        <div class="recap-item">
-          <div class="recap-check">&#10003;</div>
-          <p><b>Nothing to connect, nothing for us to touch.</b> There's no account link, so there's nothing beyond this page for Zelos to reach.</p>
-        </div>
+    <div class="tos-section">
+      <h2><span class="n">03</span> What is public</h2>
+      <div class="body">
+        <p>Unless you make it private, your <b>public profile</b> shows your display name, photo, XP and level, achievements, and Trade War statistics, and appears on leaderboards, challenges and squad standings. It never shows your email. Real Trade Journal entries stay private; if you choose to show Real Trading statistics on your profile, only the statistics you pick are shown, never dollar amounts. Arcade leaderboard names and scores are public. Public posts and reactions can be seen by anyone who can open them. You can turn your Trade War profile private, which removes it from public view.</p>
       </div>
     </div>
 
-    <div class="recap">
-      <h2>How Zelos works</h2>
-      <div class="recap-list">
-        <p style="color:var(--muted); font-size:0.92rem;">Zelos is a published research page, not trading software you install or connect to an account. It never asks for brokerage credentials, never sees your balance or positions, and never places an order. Every subscriber sees the same rule-based scan, on the same schedule &mdash; general information, not personalized to any individual's account or situation.</p>
-        <p style="color:var(--muted); font-size:0.92rem; margin-top:4px;">Zelos is not personalized investment advice and Zelos is not a registered investment adviser. Trading involves risk, including loss of principal. Past performance of any strategy does not guarantee future results.</p>
+    <div class="tos-section">
+      <h2><span class="n">04</span> How we use it</h2>
+      <div class="body">
+        <ul>
+          <li>To provide the service: sign-in, saving your accounts and settings, running Trade War and leaderboards, delivering paid features and tokens you bought.</li>
+          <li>To keep the site safe and fair: preventing spam, abuse, cheating and fraud, enforcing our Terms and community guidelines, and fixing bugs.</li>
+          <li>To send notifications and service emails you need or have asked for (for example password resets or alerts you turned on). We don't send marketing emails without your agreement, and non-essential emails can be turned off.</li>
+          <li>To understand, with your consent where required, how the site is used so we can improve it.</li>
+          <li>To meet legal obligations, such as tax records for purchases.</li>
+        </ul>
+        <p>If you're in the EEA, the UK or Switzerland, our legal bases are: performing our contract with you (running your account and the features you use), our legitimate interests (keeping the site secure and fair, and improving it), your consent (analytics cookies and optional notifications), and legal obligations.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">05</span> Who we share it with</h2>
+      <div class="body">
+        <p>We don't sell or rent your personal information, and we don't share it for advertising. We share it only with service providers that help run the site, under their own privacy terms:</p>
+        <ul>
+          <li><b>Google (Firebase and Google Cloud):</b> sign-in, database and backend functions.</li>
+          <li><b>Google Analytics:</b> site usage statistics, subject to your cookie choice.</li>
+          <li><b>GitHub Pages:</b> hosting of the website's pages.</li>
+          <li><b>Payment processors</b> (including Gumroad for earlier purchases): processing payments.</li>
+        </ul>
+        <p>Market-data providers (such as Financial Modeling Prep and Finnhub) and our social-media scheduling tool receive no personal information about you. We may also disclose information if the law requires it, to protect the rights and safety of our users or the public, or as part of a sale or transfer of the service (in which case this policy continues to apply).</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">06</span> Cookies and browser storage</h2>
+      <div class="body">
+        <p><b>Necessary storage</b> (always on): keeps you signed in, remembers your theme, and saves your Trade War account, chart settings, dashboard layout, progress and cookie choice in your browser. The site doesn't work properly without it.</p>
+        <p><b>Analytics cookies</b> (Google Analytics): in the EEA, UK and Switzerland these stay off unless you choose <b>Allow analytics</b>; you can change your choice any time with the <b>Cookie settings</b> link at the bottom of the page. Elsewhere, analytics runs by default, and you can block it with your browser's cookie settings or a browser extension without affecting the site. We don't use advertising cookies.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">07</span> How long we keep it</h2>
+      <div class="body">
+        <p>We keep account, profile and activity data while your account is open. When you ask us to delete your account, we delete or anonymize your personal information within a reasonable time, except records we must keep for legal, tax, security or fraud-prevention reasons (such as purchase records). Information saved only in your browser stays there until you clear it. Anonymous guest data that is never linked to an account may be deleted after a period of inactivity.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">08</span> Your choices and rights</h2>
+      <div class="body">
+        <p>You can edit your profile, make your Trade War profile private, remove posts, turn off optional notifications, and change your cookie choice at any time on the site. You can also ask us to:</p>
+        <ul>
+          <li>give you a copy of your personal information;</li>
+          <li>correct it;</li>
+          <li>delete your account and personal information;</li>
+          <li>stop or restrict certain uses, or object to them.</li>
+        </ul>
+        <p>Depending on where you live (for example the EEA, UK, Switzerland, or US states such as California), the law may give you these and other rights, including the right to complain to your local data-protection authority. Email us from the address on your account and we'll respond within the time the law requires. We won't treat you differently for exercising your rights.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">09</span> Security</h2>
+      <div class="body">
+        <p>Access to your private data is limited to your own signed-in account by database security rules, API keys for our data providers are kept on the server and never sent to browsers, and payment details are handled by the payment processor. No system is perfectly secure, so please use a strong, unique password and keep your sign-in private.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">10</span> Where your data is processed</h2>
+      <div class="body">
+        <p>Zelos is run from the United States, and our service providers may process data in the United States and other countries. Where the law requires it, those transfers rely on appropriate safeguards offered by our providers, such as standard contractual clauses.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">11</span> Age limit</h2>
+      <div class="body">
+        <p>Zelos is only for people 18 and older. We don't knowingly collect information from anyone under 18; if you believe a minor has created an account, contact us and we'll delete it.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">12</span> Changes to this policy</h2>
+      <div class="body">
+        <p>We may update this policy as the site changes. We'll update the date at the top, and for significant changes we'll give notice on the site.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">13</span> Contact</h2>
+      <div class="body">
+        <p>Privacy questions and requests can go to <a href="mailto:p8md8s7rj4@privaterelay.appleid.com?subject=Zelos%20privacy%20request" style="color:var(--accent);">Zelos Support</a>.</p>
       </div>
     </div>
 
     <div class="final">
-      <h2>Stuck on a step?</h2>
-      <p>Message me directly through Gumroad &mdash; open Library, find Zelos, and use the message-seller option there. That's the fastest way to reach me if a link isn't working or something doesn't match what you're seeing here.</p>
-      <div style="margin-top:16px;"><a class="btn btn-primary" href="https://gumroad.com/library" target="_blank" rel="noopener">Message me on Gumroad</a></div>
-      <p style="margin-top:18px;">Want to cancel or change your billing instead? That's handled entirely through Gumroad &mdash; sign in at gumroad.com with the email you purchased with (or use the link in your receipt), open Library, and cancel there. There's nothing else to undo elsewhere.</p>
+      <h2>Related pages</h2>
+      <p>See also our <a href="terms.html" style="color:var(--accent);">Terms of Service</a>, including the rules for tokens, Trade War and community posts.</p>
     </div>
 
     <p class="fine" style="margin-top:26px;">Zelos is a rule-based scan, not a licensed financial advisor. Nothing here is personalized investment advice, and no strategy is guaranteed to be profitable.</p>
@@ -330,35 +310,6 @@
   </div>
 </footer>
 
-<script>
-(function(){
-  var gate = document.getElementById('tosGate');
-  var checkbox = document.getElementById('tosCheckbox');
-  var btn = document.getElementById('tosContinueBtn');
-  if(!gate || !checkbox || !btn) return;
-  var STORAGE_KEY = 'zelosTosAgreed_v1';
-
-  var alreadyAgreed = false;
-  try { alreadyAgreed = window.localStorage && localStorage.getItem(STORAGE_KEY) === 'true'; } catch(e) {}
-
-  if(alreadyAgreed){
-    gate.hidden = true;
-  } else {
-    try { document.body.style.overflow = 'hidden'; } catch(e){}
-  }
-
-  checkbox.addEventListener('change', function(){
-    btn.disabled = !checkbox.checked;
-  });
-
-  btn.addEventListener('click', function(){
-    if(!checkbox.checked) return;
-    try { localStorage.setItem(STORAGE_KEY, 'true'); } catch(e) {}
-    gate.hidden = true;
-    document.body.style.overflow = '';
-  });
-})();
-</script>
 <script>
 (function(){
   function wireDropdown(trigger, panel){

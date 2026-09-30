@@ -96,29 +96,33 @@
     <a class="nav-brand" href="../index.html"><span class="mark-dot"></span>Zelos</a>
 
     <div class="nav-primary" id="navPrimary">
-      <a class="nav-link" href="../index.html">Home</a>
       <a class="nav-link" href="../dashboard.html">Dashboard</a>
       <div class="nav-drop">
-        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Trade War <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="../practice/index.html">Trade War<small>Virtual money &middot; compete with friends</small></a>
+          <a href="../practice/challenge.html">Challenges<small>Challenge a friend head-to-head</small></a>
+          <a href="../practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
+          <a href="../practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
+          <a href="../practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
+        </div>
+      </div>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trading Tools <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
           <a href="../swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
           <a href="../breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
-          <a href="../options-scanner.html">Options Scanner<small>Long calls/puts add-on</small></a>
+          <a href="../options-scanner.html">Options Scanner<small>Long calls/puts setups</small></a>
           <hr>
+          <a href="../daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="../alert-history.html">Alerts<small>Every agent alert, archived</small></a>
+          <a href="../live-chart.html">Live Chart<small>Full interactive chart</small></a>
+          <a href="../market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <hr>
+          <a href="../real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
           <a href="../arsenal.html">Full Arsenal<small>Everything you own</small></a>
         </div>
       </div>
-      <div class="nav-drop">
-        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Market <span class="nav-drop-caret">&#9662;</span></button>
-        <div class="nav-drop-panel" hidden>
-          <a href="../practice/index.html">Trade War<small>$10,000 virtual account &middot; compete with friends</small></a><a href="../real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
-          <a href="../market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
-          <a href="../live-chart.html">Live Chart<small>Full interactive TradingView chart</small></a>
-          <a href="../daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
-          <a href="../alert-history.html">Alert History<small>Every alert, archived</small></a>
-        </div>
-      </div>
-
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Arcade <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
@@ -130,7 +134,6 @@
           <a href="../leaderboard.html">Leaderboard<small>Top scores in every game</small></a>
         </div>
       </div>
-      <a class="nav-link" href="../alert-history.html">Alerts</a>
       <a class="nav-link" href="../learn/index.html">Learn</a>
       <a class="nav-link" href="../index.html#why-zelos">About</a>
     </div>
@@ -144,22 +147,26 @@
     <div class="nav-mobile-panel" id="navMobilePanel">
       <a href="../index.html">Home</a>
       <a href="../dashboard.html">Dashboard</a>
-      <div class="nav-mobile-label">Strategies</div>
+      <div class="nav-mobile-label">Trade War &middot; virtual</div>
+      <a href="../practice/index.html">Trade War</a>
+      <a href="../practice/challenge.html">Challenges</a>
+      <a href="../practice/squads.html">Squads</a>
+      <a href="../practice/profile.html">My profile</a>
+      <a href="../practice/index.html?tab=progress">XP &amp; Missions</a>
+      <div class="nav-mobile-label">Trading Tools &middot; real</div>
       <a href="../swing-trader.html">Swing Trader</a>
       <a href="../breakout-rider.html">Breakout Rider</a>
       <a href="../options-scanner.html">Options Scanner</a>
-      <a href="../arsenal.html">Full Arsenal</a>
-      <div class="nav-mobile-label">Market</div>
-      <a href="../practice/index.html">Trade War</a><a href="../real/index.html">Real Trade Journal</a>
-      <a href="../market-3d.html">Market 3D</a>
-      <a href="../live-chart.html">Live Chart</a>
       <a href="../daily-market.html">Daily Market</a>
-      <a href="../alert-history.html">Alert History</a>
+      <a href="../alert-history.html">Alerts</a>
+      <a href="../live-chart.html">Live Chart</a>
+      <a href="../market-3d.html">Market 3D</a>
+      <a href="../real/index.html">Real Trade Journal</a>
+      <a href="../arsenal.html">Full Arsenal</a>
       <div class="nav-mobile-label">Arcade</div>
       <a href="../arcade.html">Arcade Hub</a>
       <a href="../leaderboard.html">Leaderboard</a>
       <div class="nav-mobile-label">More</div>
-      <a href="../alert-history.html">Alerts</a>
       <a href="../learn/index.html">Learn</a>
       <a href="../ai-knowledge-catalog.html">Knowledge</a>
       <a href="../index.html#why-zelos">About</a>
@@ -174,7 +181,7 @@
       <h1>Trade War</h1>
       <span class="pt-lvl" id="ptLevel" hidden></span>
     </div>
-    <div class="pt-acct">
+    <div class="pt-acct" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money.">
       <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
       <span><small>Today</small><b id="ptDay">+$0.00</b></span>
       <span><small>Total P&amp;L</small><b id="ptTotal">+$0.00</b></span>
@@ -245,7 +252,7 @@
           <button type="button" role="tab" data-mode="options" aria-selected="false">Options</button>
         </div>
         <div id="ptStockTicket">
-          <div class="pt-sides">
+          <div class="pt-sides" data-help="Buy opens or adds to a position. Sell closes shares you already own. Pick a stock on the left, choose how many shares, then press the big button below.">
             <button class="pt-side is-on" type="button" id="ptBuy" aria-pressed="true">Buy</button>
             <button class="pt-side" type="button" id="ptSell" aria-pressed="false">Sell</button>
           </div>
@@ -266,7 +273,7 @@
           <label class="pt-field" id="ptStopRow" hidden><span>Stop price</span><input id="ptStopPx" type="number" min="0" step="0.01" inputmode="decimal"></label>
           <label class="pt-field"><span>Time in force</span>
             <select id="ptTif"><option value="day">Day</option><option value="gtc">Good til cancelled</option></select></label>
-          <div class="pt-bracket" id="ptBracket">
+          <div class="pt-bracket" id="ptBracket" data-help="Optional safety net: a stop-loss sells automatically if the price falls to your level, a take-profit sells when it reaches your target. Whichever hits first cancels the other.">
             <label class="pt-check"><input type="checkbox" id="ptUseBracket"> Add stop-loss / take-profit</label>
             <div class="pt-bracket-fields" id="ptBracketFields" hidden>
               <label class="pt-field pt-f-sl"><span>Stop-loss</span><input id="ptSL" type="number" min="0" step="0.01" inputmode="decimal"></label>
@@ -298,7 +305,7 @@
   </div>
 
   <section class="pt-card pt-lower" aria-label="Portfolio">
-    <div class="pt-tabs" role="tablist">
+    <div class="pt-tabs" role="tablist" data-help="Positions: what you own now. Open orders: orders waiting to fill (cancel them here). History: every fill. Progress: your XP, missions and badges.">
       <button class="pt-tab" type="button" role="tab" data-tab="positions" aria-selected="true">Positions</button>
       <button class="pt-tab" type="button" role="tab" data-tab="orders" aria-selected="false">Open orders</button>
       <button class="pt-tab" type="button" role="tab" data-tab="history" aria-selected="false">History</button>
@@ -348,7 +355,7 @@
     <div class="pt-gate-who">
       <span class="pt-gate-av" aria-hidden="true">&#9679;</span>
       <span><b id="ptGateName">Guest</b><small id="ptGateWho">Guest · saved in this browser only</small></span>
-      <button class="pt-linkbtn" type="button" id="ptGateRename" hidden>Rename</button>
+      <button class="pt-linkbtn" type="button" id="ptGateRename" hidden>Edit profile</button>
     </div>
     <div class="pt-gate-bal"><small>Your Trade War account</small><b id="ptGateBal">$10,000.00</b></div>
     <button class="pt-btn pt-gate-google" type="button" id="ptGateGoogle"><svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>Continue with Google</button>
@@ -378,6 +385,7 @@
         <a href="../arsenal.html">Strategies</a>
         <a href="../alert-history.html">Alerts</a>
         <a href="../terms.html">Terms</a>
+        <a href="../privacy.html">Privacy</a>
       </div>
     </div>
     <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
@@ -397,6 +405,7 @@
 <script src="../zelos-levels.js"></script>
 <script src="../zelos-progress.js"></script>
 <script src="../zelos-social.js"></script>
+<script src="../zelos-profile.js"></script>
 <script src="practice-chart.js"></script>
 <script src="practice-options.js"></script>
 <script src="practice.js"></script>

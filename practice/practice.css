@@ -480,3 +480,17 @@ body.pt-fullport .pt-acct span{ border-color:var(--pt-glow); }
 /* sign-in problems, shown right under the button (zelos-signin.js) */
 .pt-auth-msg{ margin:8px 0 0; padding:8px 10px; border:1px solid var(--danger); border-radius:var(--radius-sm); background:rgba(224,72,63,0.1); color:var(--ink); font-size:0.82rem; line-height:1.45; }
 .pt-auth-msg[hidden]{ display:none; }
+
+/* profile: handle, bio, Edit profile dropdown (zelos-profile.js) */
+.pf-handle{ margin:2px 0 0; color:var(--muted); font-family:var(--mono); font-size:0.86rem; }
+.pf-bio{ margin:6px 0 0; max-width:52ch; color:var(--ink-2); font-size:0.9rem; line-height:1.45; }
+.pf-edit{ position:relative; display:inline-block; }
+.pf-edit > summary{ list-style:none; cursor:pointer; }
+.pf-edit > summary::-webkit-details-marker{ display:none; }
+.pf-edit-menu{ position:absolute; z-index:40; top:calc(100% + 6px); left:0; min-width:250px; display:flex; flex-direction:column; gap:2px; padding:8px; background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:0 16px 40px rgba(0,0,0,0.45); animation:zm-rise var(--dur-base,180ms) var(--ease-out,ease-out); }
+.pf-edit-menu button, .pf-edit-menu a, .pf-edit-menu label{ font:inherit; font-size:0.86rem; text-align:left; color:var(--ink-2); background:none; border:0; padding:9px 10px; border-radius:6px; text-decoration:none; cursor:pointer; display:flex; align-items:center; gap:8px; }
+.pf-edit-menu button:hover, .pf-edit-menu a:hover, .pf-edit-menu label:hover{ background:var(--surface-2); color:var(--ink); }
+.pf-edit-menu input{ accent-color:var(--accent); }
+@media (prefers-reduced-motion: reduce){ .pf-edit-menu{ animation:none; } }
+/* the Trade War welcome dialog no longer covers the site nav */
+.site-nav{ z-index:710; }

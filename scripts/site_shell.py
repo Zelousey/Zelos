@@ -58,6 +58,25 @@ def add_learn_nav(nav, prefix='../'):
     return nav
 
 
+# path prefix -> which nav item is highlighted (see the nav in games/setup-spotter.html)
+_NAV_SECTIONS = [('practice/', 'Trade War'), ('real/', 'Trading Tools'), ('scan/', 'Trading Tools'),
+                 ('games/', 'Arcade'), ('learn/', 'Learn')]
+
+
+def set_active_nav(nav, path):
+    """Highlights the nav item for this page's section (the template's own
+    highlight is for the Arcade, since it's a game page)."""
+    nav = nav.replace(' is-active', '').replace(' aria-current="page"', '')
+    label = next((l for pre, l in _NAV_SECTIONS if path.startswith(pre)), None)
+    if label == 'Learn':
+        nav = nav.replace('<a class="nav-link" href="../learn/index.html">Learn</a>',
+                          '<a class="nav-link is-active" href="../learn/index.html" aria-current="page">Learn</a>', 1)
+    elif label:
+        nav = nav.replace('<button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">%s ' % label,
+                          '<button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">%s ' % label, 1)
+    return nav
+
+
 def render(path, title, desc, body, extra_head='', scripts='', jsonld=None, og_type='website',
            include_shared_scripts=True, robots=None):
     """path is the site path, e.g. 'games/chart-replay.html'."""
@@ -71,7 +90,7 @@ def render(path, title, desc, body, extra_head='', scripts='', jsonld=None, og_t
     ld = ''
     for block in (jsonld or []):
         ld += '<script type="application/ld+json">\n%s\n</script>\n' % json.dumps(block, indent=1, ensure_ascii=False)
-    out = (head + base_style + extra_head + ld + '</head>\n' + add_learn_nav(nav) + '\n\n' + body + '\n\n' + footer + '\n\n' +
+    out = (head + base_style + extra_head + ld + '</head>\n' + set_active_nav(add_learn_nav(nav), path) + '\n\n' + body + '\n\n' + footer + '\n\n' +
            (shared + '\n' if include_shared_scripts else '') + scripts + '\n' + tail)
     dest = os.path.join(ROOT, path)
     os.makedirs(os.path.dirname(dest), exist_ok=True)

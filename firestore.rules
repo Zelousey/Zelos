@@ -30,6 +30,19 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
+    // Profile picture: a Google account photo (https) or a small image the
+    // person uploaded, resized in the browser to a data URL (max ~20 KB).
+    function validPhoto(v) {
+      return v == null || (v is string && (
+        (v.size() <= 2048 && v.matches('^https://[^"<>\\s]+$'))
+        || (v.size() <= 20000 && v.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$'))));
+    }
+
+    // Usernames: 3-20 lowercase letters, digits or underscores.
+    function validUsername(v) {
+      return v is string && v.matches('^[a-z0-9_]{3,20}$');
+    }
+
     // Alerts: the core "ALERT -> OPEN ZELOS -> SEE FULL ANALYSIS" record.
     // Public, read-only, no gating of any kind.
     match /alerts/{alertId} {
@@ -98,7 +111,23 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == userId;
       allow create, update: if isRealAccount() && request.auth.uid == userId
         && request.resource.data.name is string && request.resource.data.name.size() <= 24
-        && request.resource.data.equity is number;
+        && request.resource.data.equity is number
+        && validPhoto(request.resource.data.get('photo', null))
+        && (request.resource.data.get('username', null) == null || validUsername(request.resource.data.username));
+    }
+
+    // Username reservations: one doc per taken username, naming its owner, so
+    // two people can never hold the same @name. Created in the same batch that
+    // sets traders/{uid}.username, and released in the batch that changes it.
+    match /usernames/{name} {
+      allow read: if true;
+      allow create: if isRealAccount() && validUsername(name)
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/traders/$(request.auth.uid)).data.get('username', null) == name;
+      allow delete: if isRealAccount() && resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/traders/$(request.auth.uid)).data.get('username', null) != name;
+      allow update: if false;
     }
 
     // Public trader identity (profile page): display name, photo, and whatever
@@ -107,7 +136,22 @@ service cloud.firestore {
       allow read: if true;
       allow delete: if isRealAccount() && request.auth.uid == userId;
       allow create, update: if isRealAccount() && request.auth.uid == userId
-        && request.resource.data.name is string && request.resource.data.name.size() <= 24;
+        && request.resource.data.name is string && request.resource.data.name.size() <= 24
+        && validTraderProfile(userId);
+
+      // username must be reserved by this person in the same write; changing it
+      // must release the old reservation; bio max 160 chars; photos validated.
+      function validTraderProfile(userId) {
+        let d = request.resource.data;
+        let uname = d.get('username', null);
+        let before = resource == null ? null : resource.data.get('username', null);
+        return (uname == null || (validUsername(uname)
+              && getAfter(/databases/$(database)/documents/usernames/$(uname)).data.uid == userId))
+          && (before == null || before == uname
+              || !existsAfter(/databases/$(database)/documents/usernames/$(before)))
+          && (d.get('bio', null) == null || (d.bio is string && d.bio.size() <= 160))
+          && validPhoto(d.get('avatar', null)) && validPhoto(d.get('photo', null));
+      }
 
       // One entry per logged real trade: ticker + a server timestamp that must
       // equal the write time, so entries can't be backdated or edited. The
@@ -171,7 +215,8 @@ service cloud.firestore {
         && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 32;
       allow update: if isRealAccount() && (
         (resource.data.owner == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comp', 'name']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comp', 'name', 'helpMode'])
+          && request.resource.data.get('helpMode', false) is bool)
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names'])
           && onlyOwnName()
           && request.resource.data.names[request.auth.uid] is string
