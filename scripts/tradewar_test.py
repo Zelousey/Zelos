@@ -151,7 +151,8 @@ class ChallengeValidation(unittest.TestCase):
         return m.tw_validate_challenge(d, self.ME)
 
     def test_one_friend_is_a_duel_target(self):
-        targets, buy_in, days, name, squad = self.v()
+        targets, buy_in, days, name, squad, lms = self.v()
+        self.assertIsNone(lms)
         self.assertEqual((targets, buy_in, days, squad), (["friend_uid_1"], 500, 7, None))
         self.assertEqual(name, "Head-to-head")
 
@@ -177,7 +178,7 @@ class ChallengeValidation(unittest.TestCase):
             self.v(days=2)
 
     def test_squad_challenge(self):
-        targets, _, _, name, squad = m.tw_validate_challenge({"squadId": "abcdefghijkm", "buyIn": 1000, "days": 3}, self.ME)
+        targets, _, _, name, squad, _ = m.tw_validate_challenge({"squadId": "abcdefghijkm", "buyIn": 1000, "days": 3}, self.ME)
         self.assertEqual((targets, squad, name), ([], "abcdefghijkm", "Squad Trade War"))
         with self.assertRaises(m.TWError):
             m.tw_validate_challenge({"squadId": "bad id", "buyIn": 1000, "days": 3}, self.ME)
@@ -195,6 +196,74 @@ class MarkAndRank(unittest.TestCase):
         rows = m.tw_rank([{"uid": "a", "pnlPct": 1.0, "pnl": 10}, {"uid": "b", "pnlPct": 5.0, "pnl": 25},
                           {"uid": "c", "pnlPct": -2.0, "pnl": -20}])
         self.assertEqual([(r["uid"], r["rank"]) for r in rows], [("b", 1), ("a", 2), ("c", 3)])
+
+
+class LastManStanding(unittest.TestCase):
+    def acct(self, pct, **kw):
+        a = dict(m.tw_new_account("P", 1000, T0), pnlPct=pct, pnl=pct * 10)
+        a.update(kw)
+        return a
+
+    def test_rules_validation(self):
+        self.assertIsNone(m.tw_validate_lms({}, 7))
+        self.assertIsNone(m.tw_validate_lms({"lms": {}}, 7))
+        self.assertEqual(m.tw_validate_lms({"lms": {"floorPct": 10, "cutHours": 24, "maxLosses": 0}}, 7), {"floorPct": 10, "cutHours": 24})
+        for bad in ({"floorPct": 11}, {"maxLosses": True}, {"cutHours": "24"}, {"floorPct": 0}, "on"):
+            with self.assertRaises(m.TWError):
+                m.tw_validate_lms({"lms": bad}, 7)
+        with self.assertRaises(m.TWError):  # a cut every day in a 1-day match never happens
+            m.tw_validate_lms({"lms": {"cutHours": 24}}, 1)
+        self.assertEqual(m.tw_validate_lms({"lms": {"cutHours": 6}}, 1), {"cutHours": 6})
+
+    def test_challenge_carries_the_rules(self):
+        self.assertEqual(m.tw_validate_challenge({"to": "friend_uid_1", "buyIn": 500, "days": 3, "lms": {"maxLossPct": 5}}, "me_uid_123")[5], {"maxLossPct": 5})
+        self.assertEqual(m.tw_validate_challenge({"to": "friend_uid_1", "buyIn": 500, "days": 3, "lms": {"maxLossPct": 5}}, "me_uid_123")[3], "Last Man Standing")
+
+    def test_each_rule_knocks_you_out(self):
+        self.assertEqual(m.tw_out_reason(self.acct(-10.0), {"floorPct": 10}), "floor")
+        self.assertIsNone(m.tw_out_reason(self.acct(-9.99), {"floorPct": 10}))
+        self.assertEqual(m.tw_out_reason(self.acct(0, worst=-51.0), {"maxLossPct": 5}), "bigLoss")
+        self.assertIsNone(m.tw_out_reason(self.acct(0, worst=-50.0), {"maxLossPct": 5}))
+        self.assertEqual(m.tw_out_reason(self.acct(0, losses=3), {"maxLosses": 3}), "losses")
+        self.assertIsNone(m.tw_out_reason(self.acct(-50, out=True), {"floorPct": 10}))
+        self.assertIsNone(m.tw_out_reason(self.acct(-50), None))
+
+    def test_selling_tracks_the_worst_trade(self):
+        a, b, _ = m.tw_apply_trade(m.tw_new_account("A", 1000, T0), m.tw_new_book(), "AAPL", "buy", 5, 100.0, T0)
+        a, b, _ = m.tw_apply_trade(a, b, "AAPL", "sell", 5, 88.0, T0 + 2000)
+        self.assertEqual(a["worst"], -60.0)
+        self.assertEqual(m.tw_out_reason(a, {"maxLossPct": 5}), "bigLoss")
+
+    def test_timed_cut_takes_last_place_only_when_due(self):
+        accts = {"a": self.acct(3.0), "b": self.acct(-1.0), "c": self.acct(0.5)}
+        self.assertEqual(m.tw_pick_outs(["a", "b", "c"], accts, {"cutHours": 6}, T0, T0 + 1), [])
+        self.assertEqual(m.tw_pick_outs(["a", "b", "c"], accts, {"cutHours": 6}, T0, T0), [("b", "cut")])
+
+    def test_cut_is_on_top_of_rule_breakers(self):
+        accts = {"a": self.acct(3.0), "b": self.acct(-12.0), "c": self.acct(0.5), "d": self.acct(1.0)}
+        self.assertEqual(m.tw_pick_outs(list(accts), accts, {"floorPct": 10, "cutHours": 6}, T0, T0), [("b", "floor"), ("c", "cut")])
+
+    def test_never_knocks_out_everyone(self):
+        accts = {"a": self.acct(-15.0), "b": self.acct(-11.0)}
+        self.assertEqual(m.tw_pick_outs(["a", "b"], accts, {"floorPct": 10}, T0, None), [("a", "floor")])
+        self.assertEqual(m.tw_pick_outs(["b"], {"b": self.acct(-11.0)}, {"floorPct": 10, "cutHours": 6}, T0, T0), [])
+
+    def test_knock_out_sells_at_market_and_freezes(self):
+        a, b, _ = m.tw_apply_trade(m.tw_new_account("A", 1000, T0), m.tw_new_book(), "AAPL", "buy", 5, 100.0, T0)
+        a, b = m.tw_knock_out(a, b, {"AAPL": 80.0}, "floor", 3, T0 + 5000)
+        self.assertEqual((a["cash"], a["equity"], a["pnlPct"], a["out"], a["place"], a["outReason"]), (900.0, 900.0, -10.0, True, 3, "floor"))
+        self.assertEqual(b["positions"], {})
+        self.assertTrue(b["fills"][-1]["auto"])
+
+    def test_start_sets_everyone_alive_and_the_first_cut(self):
+        f = m.tw_start_fields({"days": 3, "players": ["a", "b"], "lms": {"cutHours": 12}}, T0)
+        self.assertEqual((f["alive"], f["outs"], f["nextCutAt"], f["endAt"]), (["a", "b"], [], T0 + 12 * 3600000, T0 + 3 * 86400000))
+        self.assertNotIn("alive", m.tw_start_fields({"days": 3, "players": ["a", "b"]}, T0))
+
+    def test_survivors_rank_above_the_knocked_out(self):
+        rows = m.tw_rank([{"uid": "a", "pnlPct": -8.0, "pnl": -80}, {"uid": "b", "pnlPct": 9.0, "out": True, "place": 4},
+                          {"uid": "c", "pnlPct": -2.0, "out": True, "place": 3}, {"uid": "d", "pnlPct": 1.0}])
+        self.assertEqual([(r["uid"], r["rank"]) for r in rows], [("d", 1), ("a", 2), ("c", 3), ("b", 4)])
 
 
 class Prices(unittest.TestCase):

@@ -610,3 +610,41 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .twh-badges{ display:flex; gap:6px; flex-wrap:wrap; }
 @media (max-width:700px){ .twh-top{ gap:10px; } .twh-me{ min-width:0; flex:1; } .twh-accts{ order:3; flex-basis:100%; } .twh-start{ padding:9px 12px; } }
 @media (prefers-reduced-motion: reduce){ .twh-start, .twh-acct, .twh-xp i{ transition:none; } }
+
+/* ---- Last Man Standing ---- */
+.tw-st.is-lms{ color:#f87171; border-color:rgba(239,68,68,.55); }
+.tw-lms-rules{ margin-top:10px; border:1px solid rgba(239,68,68,.35); border-radius:10px; padding:8px 12px; background:rgba(239,68,68,.05); }
+.tw-lms-rules b{ font-family:var(--mono); font-size:.74rem; letter-spacing:.1em; color:#f87171; }
+.tw-lms-rules ul{ margin:6px 0 0; padding-left:18px; }
+.tw-lms-bar{ display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; margin:0 0 12px; padding:10px 14px; border:1px solid rgba(239,68,68,.35); border-radius:12px; background:linear-gradient(90deg,rgba(239,68,68,.09),transparent 70%); font-size:.86rem; color:var(--muted); }
+.tw-lms-bar b{ color:var(--ink); font-family:var(--mono); }
+.tw-lms-bar span:first-child b{ color:#f87171; font-size:1.05rem; }
+.tw-you-out{ border-color:rgba(239,68,68,.55); background:rgba(239,68,68,.07); margin-bottom:12px; line-height:1.5; }
+.tw-tr.is-out{ opacity:.55; }
+.tw-tr.is-out > span:nth-child(2) b{ text-decoration:line-through; text-decoration-color:rgba(239,68,68,.7); }
+.tw-out-tag{ font-family:var(--mono); font-size:.66rem; letter-spacing:.08em; color:#f87171; border:1px solid rgba(239,68,68,.55); border-radius:4px; padding:0 4px; }
+.tw-outs{ margin-top:14px; }
+.tw-outs h3{ font-size:.9rem; margin:0 0 6px; }
+.tw-out-row{ display:grid; grid-template-columns:14px 1fr auto auto; gap:10px; align-items:center; padding:6px 0; border-top:1px solid var(--border); font-size:.84rem; }
+.tw-out-row > span:nth-child(3), .tw-out-row > span:nth-child(4){ font-family:var(--mono); }
+.tw-out-x{ width:12px; height:12px; position:relative; }
+.tw-out-x::before, .tw-out-x::after{ content:""; position:absolute; left:5px; top:0; width:2px; height:12px; background:#ef4444; border-radius:1px; transform:rotate(45deg); }
+.tw-out-x::after{ transform:rotate(-45deg); }
+.tw-winner.is-lms{ border-color:rgba(232,178,61,.6); }
+
+/* elimination banner: a price line flatlines, then the name */
+.tw-elim{ position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; padding:16px; background:radial-gradient(ellipse at center,rgba(60,8,8,.55),rgba(3,4,8,.78)); animation:twElimIn 220ms ease-out; cursor:pointer; }
+.tw-elim.is-gone{ opacity:0; transition:opacity 380ms; }
+.tw-elim-card{ width:min(420px,100%); text-align:center; padding:18px 22px 20px; border-radius:16px; background:#0d1016; color:#f4f5f7; border:1px solid rgba(239,68,68,.5); box-shadow:0 30px 80px rgba(0,0,0,.7),0 0 60px -20px rgba(239,68,68,.6); animation:twElimPop 320ms cubic-bezier(.2,.8,.2,1); }
+.tw-elim-line{ display:block; width:100%; height:40px; }
+.tw-elim-line polyline{ fill:none; stroke:#ef4444; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:360; stroke-dashoffset:360; animation:twFlat 700ms 80ms ease-out forwards; }
+.tw-elim-kick{ margin:6px 0 4px; font-family:"IBM Plex Mono",monospace; font-weight:700; letter-spacing:.3em; color:#f87171; font-size:.95rem; animation:twKick 500ms 520ms both; }
+.tw-elim-name{ margin:0; font-size:1.15rem; font-weight:700; }
+.tw-elim-meta{ margin:6px 0 0; color:#8b93a3; font-family:"IBM Plex Mono",monospace; font-size:.82rem; }
+.tw-elim.is-me .tw-elim-card{ border-color:#ef4444; }
+@keyframes twElimIn{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes twElimPop{ from{ opacity:0; transform:scale(.96) translateY(8px); } to{ opacity:1; transform:none; } }
+@keyframes twFlat{ to{ stroke-dashoffset:0; } }
+@keyframes twKick{ 0%{ opacity:0; letter-spacing:.6em; } 100%{ opacity:1; letter-spacing:.3em; } }
+@media (prefers-reduced-motion:reduce){ .tw-elim, .tw-elim-card, .tw-elim-kick{ animation:none; } .tw-elim-line polyline{ animation:none; stroke-dashoffset:0; } }
+.twh-inv-rules{ display:block; color:#f87171; font-size:.76rem; margin-top:2px; }

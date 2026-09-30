@@ -365,6 +365,30 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 - Tests: unit 66/66; home E2E 17/17 (emulators + Playwright, incl. 375px mobile, no TradingView request on dashboard).
 - Owner: `firebase deploy --only firestore:rules` (retired challenges rule).
 
+## Phase 8: Last Man Standing (§10)
+- Optional mode in the Start a Trade War dialog (Classic / Last Man Standing). The host picks any of 4 elimination rules, all enforced server-side:
+  - P&L floor: out at -5/10/15/20/30%
+  - Max loss on one trade: 2/5/10% of the buy-in
+  - Losing trades allowed: 3/5/10
+  - Timed cuts: every 6/12/24/48 hours, last place is cut (must be shorter than the match)
+- Knocked out = stocks sold at the current price, result locked, trading refused by the server. Checked after every trade (`tw_trade`) and every 5 minutes (`tw_mark_war`). Never knocks out everyone: if all would go, the best survives.
+- The last trader standing wins at once. If the clock runs out first, survivors rank by % gain above everyone knocked out (later out = higher place).
+- The marking job now runs each match in a transaction, so it can no longer overwrite a trade in flight (pre-existing race).
+- Rules are shown before entering: dialog, invite pop-up, inline invite on the home, lobby, and the rules box in the room.
+- In the room: "N of M still standing" bar, next-cut timer, OUT tags on the board, an Eliminations list, a "You're out" card, a flatline "ELIMINATED" banner (plays live, once per device; respects reduced motion), and a Last Man Standing winner card.
+- Files: `functions/main.py`, `zelos-challenge.js`, `practice/war.js` (dead hub code removed), `practice/tw-home.js`, `practice/practice.css`, `zelos-icons.js` (skull icon), `scripts/tradewar_test.py`.
+- Tests: unit 76/76 (10 new). **LMS E2E on emulators with the real functions and rules: 23/23**, covering:
+  - server rule validation
+  - dialog defaults and the cut filter
+  - rules shown in the lobby and to joiners
+  - live elimination banner; board OUT state; "You're out" card
+  - stocks sold on elimination; server refuses a knocked-out player's trade
+  - knockout on a trade ending the match at once; final order Amy 1 / Cat 2 / Bob 3
+  - LMS rules on the invite pop-up; duel starts with a cut timer
+  - 375px mobile; no page errors
+- Owner: deploy functions (`tw_create`, `tw_trade`, `tw_start`, `tw_challenge`, `tw_respond`, `tw_mark_matches` changed). Rules unchanged.
+- Not done: the "Last Man Standing" profile badge (§16 badges phase).
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -375,4 +399,4 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
 3. Owner: Phase 7 steps above.
-4. **Phase 8: Last Man Standing / elimination (§10)**, when the owner says go.
+4. Phase 8 done (above). Next: §11 Squads + private groups, when the owner says go.
