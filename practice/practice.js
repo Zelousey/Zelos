@@ -395,8 +395,9 @@
 
   // ------------------------------------------------------------ UI state
   var sel = 'NVDA', side = 'buy', chart = null, ticket = { type: 'market', qtyMode: 'shares', mode: 'stock' }, tab = 'positions';
-  try { var qTab = new URLSearchParams(location.search).get('tab'); if (/^(positions|orders|history|agents|performance|progress)$/.test(qTab)) tab = qTab; } catch (e) {}
-  var opt = { type: 'call', exp: null, pick: null }, agentAlerts = null, forecastOn = false;
+  try { var qTab = new URLSearchParams(location.search).get('tab'); if (/^(positions|orders|history|agents|performance|alerts|progress)$/.test(qTab)) tab = qTab; } catch (e) {}
+  var opt = { type: 'call', exp: null, pick: null }, agentAlerts = null, forecastOn = false, fibOn = false, sellPlan = null;
+  var ALERTS = TC.alerts; // Trade War price alerts, shared with matches (practice-chart.js)
 
   function renderWatch() {
     var q = ($('ptSearch').value || '').trim().toUpperCase(), lastG = null, h = '';
@@ -467,22 +468,45 @@
   function ago(iso) { if (!iso) return '–'; var s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000)); return s < 60 ? s + 's ago' : Math.round(s / 60) + 'm ago'; }
   function asOf(iso) { if (!iso) return 'last close'; try { return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ET'; } catch (e) { return iso; } }
 
-  // forecast boxes: the ticket's bracket, else the open position's bracket, else a 2:1 ATR suggestion
+  // forecast boxes: the ticket's bracket, else the open position's bracket, else a 2:1 ATR suggestion.
+  // All of them can be dragged on the chart (see onForecastEdit); a Sell ticket flips the plan.
   function forecast() {
     if (!forecastOn) return null;
     var px = price(sel); if (px == null) return null;
-    if (ticket.mode === 'stock' && side === 'buy' && $('ptUseBracket').checked && (+$('ptSL').value || +$('ptTP').value)) {
+    var stockTicket = ticket.mode === 'stock';
+    if (stockTicket && side === 'buy' && $('ptUseBracket').checked && (+$('ptSL').value || +$('ptTP').value)) {
       var e = ticket.type === 'limit' ? +$('ptLimit').value || px : ticket.type === 'stop' ? +$('ptStopPx').value || px : px;
-      return { entry: e, sl: +$('ptSL').value || null, tp: +$('ptTP').value || null, label: 'Your plan' };
+      return { entry: e, sl: +$('ptSL').value || null, tp: +$('ptTP').value || null, label: 'Your plan', side: 'buy', editable: true, src: 'ticket' };
     }
     var pos = acct.positions[sel];
-    if (pos) {
+    if (pos && !(stockTicket && side === 'sell')) {
       var sl = null, tp = null;
       acct.orders.forEach(function (o) { if (o.status === 'open' && o.sym === sel && o.side === 'sell') { if (o.type === 'stop') sl = o.stop; if (o.type === 'limit') tp = o.limit; } });
-      if (sl || tp) return { entry: pos.avg, sl: sl, tp: tp, label: 'Open position' };
+      if (sl || tp) return { entry: pos.avg, sl: sl, tp: tp, label: 'Open position', side: 'buy', editable: true, src: 'orders' };
     }
     var s = series[sel], a = s && s.n > 15 ? atrOf(s) : px * 0.02;
-    return { entry: px, sl: round2(px - 1.5 * a), tp: round2(px + 3 * a), label: 'Suggested (1.5 ATR stop, 2:1)' };
+    if (stockTicket && side === 'sell') {
+      if (sellPlan && sellPlan.sym === sel) return { entry: px, sl: sellPlan.sl, tp: sellPlan.tp, label: 'If you sell here', side: 'sell', editable: true, src: 'sell' };
+      return { entry: px, sl: round2(px + 1.5 * a), tp: round2(px - 3 * a), label: 'If you sell here', side: 'sell', editable: true, src: 'sell' };
+    }
+    return { entry: px, sl: round2(px - 1.5 * a), tp: round2(px + 3 * a), label: 'Suggested (1.5 ATR stop, 2:1)', side: 'buy', editable: true, src: 'suggest' };
+  }
+  // a dragged SL / TP edge: update the ticket, the live bracket orders, or the sell plan
+  function onForecastEdit(F, which) {
+    var v = F[which], px = price(sel), name = which === 'sl' ? 'Stop loss' : 'Take profit';
+    if (F.src === 'ticket' || F.src === 'suggest') {
+      ticket.mode = 'stock'; $('ptUseBracket').checked = true; $('ptBracketFields').hidden = false;
+      if (F.sl) $('ptSL').value = fmt(F.sl); if (F.tp) $('ptTP').value = fmt(F.tp);
+      renderTicket(); toast(name + ' set to $' + fmt(v) + ' on your order ticket.');
+    } else if (F.src === 'orders') {
+      if (px != null && ((which === 'sl' && v >= px) || (which === 'tp' && v <= px))) {
+        toast(name + ' has to stay ' + (which === 'sl' ? 'below' : 'above') + ' the current price ($' + fmt(px) + ').', true); renderAll(); return;
+      }
+      var moved = false;
+      acct.orders.forEach(function (o) { if (o.status === 'open' && o.sym === sel && o.side === 'sell') { if (which === 'sl' && o.type === 'stop') { o.stop = v; moved = true; } if (which === 'tp' && o.type === 'limit') { o.limit = v; moved = true; } } });
+      if (moved) { save(); toast(name + ' order moved to $' + fmt(v) + '.'); }
+      renderAll();
+    } else if (F.src === 'sell') { sellPlan = { sym: sel, sl: F.sl, tp: F.tp }; }
   }
   function atrOf(s) { var n = 14, prev = null; for (var i = 1; i < s.n; i++) { var tr = Math.max(s.h[i] - s.l[i], Math.abs(s.h[i] - s.c[i - 1]), Math.abs(s.l[i] - s.c[i - 1])); prev = prev == null ? tr : (prev * (n - 1) + tr) / n; } return prev; }
 
@@ -500,7 +524,7 @@
     ].map(function (r) { return '<span><small>' + r[0] + '</small><b>' + r[1] + '</b></span>'; }).join('');
     var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#f4f5f7';
     var lines = [], pos = acct.positions[sel];
-    if (pos) lines.push({ price: pos.avg, color: ink, label: 'AVG COST ' + pos.qty + ' sh', dash: [6, 3] });
+    if (pos) { var upl = (px - pos.avg) * pos.qty; lines.push({ price: pos.avg, color: ink, label: 'ENTRY ' + fmt(pos.avg) + ' · ' + pos.qty + ' sh · P&L ' + signed(upl) + ' (' + pct((px / pos.avg - 1) * 100) + ')', dash: [6, 3] }); }
     acct.orders.forEach(function (o) {
       if (o.status !== 'open' || o.sym !== sel || o.type === 'market') return;
       var col = o.role === 'tp' ? '#3ecb7c' : o.role === 'sl' ? '#e0483f' : o.type === 'stop' ? '#e8b23d' : o.side === 'buy' ? '#3ecb7c' : '#e0483f';
@@ -508,6 +532,8 @@
     });
     chart.lines = lines;
     chart.forecast = forecast();
+    chart.fib = fibOn;
+    chart.alerts = ALERTS.forSym(sel);
     var ds = displaySeries();
     chart.marks = !ds || ds.intraday ? [] : acct.fills.filter(function (f) { return f.sym === sel && !f.option; }).map(function (f) {
       return { i: ds.d.indexOf(tf === 'W' ? weekKey(f.day) : f.day), price: f.price, side: f.side };
@@ -666,6 +692,15 @@
       }).join('') + '</tbody></table>';
     } else if (tab === 'agents') {
       h = renderAgents();
+    } else if (tab === 'alerts') {
+      var al = ALERTS.list.slice().sort(function (a, b) { return (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || b.createdAt - a.createdAt; });
+      h = '<div class="pt-subhead">Price alerts ' + modeTag() + '</div>' + (al.length ? '<table class="pt-table"><thead><tr><th>Stock</th><th>Alert when price is</th><th>Now</th><th>Status</th><th></th></tr></thead><tbody>' +
+        al.map(function (a) {
+          return '<tr><td><button class="pt-link" data-sym="' + esc(a.sym) + '">' + esc(a.sym) + '</button></td><td>' + (a.dir === 'above' ? 'at or above' : 'at or below') + ' <b>$' + fmt(a.price) + '</b></td><td>' + (price(a.sym) != null ? fmt(price(a.sym)) : '–') + '</td>' +
+            '<td>' + (a.status === 'active' ? '<span class="pt-pill">Active</span>' : '<span class="pt-pill is-done">Triggered ' + (a.triggeredAt ? new Date(a.triggeredAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') + '</span>') + '</td>' +
+            '<td><button class="pt-mini" data-alert-edit="' + a.id + '">Edit</button> <button class="pt-mini" data-alert-del="' + a.id + '">Delete</button></td></tr>';
+        }).join('') + '</tbody></table>' : '<p class="pt-empty">No price alerts yet. Press <b>&#9200; Alert</b> above the chart, then click the price you want to watch. You can drag an alert line to move it.</p>') +
+        '<p class="pt-fine">Trade War alerts pop up while a Trade War page is open (turn on <b>Alerts</b> for browser notifications). They follow your account between your $10,000 account and matches.</p>';
     } else if (tab === 'progress') {
       h = renderProgress();
     } else {
@@ -1085,8 +1120,15 @@
   }
 
   // ------------------------------------------------------------ wiring
+  function checkPriceAlerts() {
+    var px = {}; UNIVERSE.forEach(function (u) { var p = price(u.sym); if (p != null) px[u.sym] = p; });
+    ALERTS.check(px).forEach(function (a) {
+      notify('Price alert: ' + a.sym + ' ' + (a.dir === 'above' ? '≥' : '≤') + ' $' + fmt(a.price), a.sym + ' is at $' + fmt(a.hitPrice) + '. Trade War price alert.');
+    });
+  }
   function tick() {
     UNIVERSE.forEach(function (u) { buildSeries(u.sym); });
+    checkPriceAlerts();
     var changed = processOrders();
     snapshotEquity();
     if (changed) save();
@@ -1097,6 +1139,22 @@
   function start() {
     acct = load();
     chart = new TC.TradeChart($('ptChart'));
+    chart.onForecastEdit = onForecastEdit;
+    chart.onAlertMove = function (a) { ALERTS.update(a.id, a.price, price(a.sym)); toast('Alert moved to $' + fmt(a.price) + '.'); renderAll(); };
+    chart.onPlaceAlert = function (p) {
+      var a = ALERTS.add(sel, p, price(sel)); $('ptAlertAdd').setAttribute('aria-pressed', 'false'); $('ptAlertAdd').classList.remove('is-on');
+      toast('Trade War alert set: ' + sel + ' ' + (a.dir === 'above' ? '≥' : '≤') + ' $' + fmt(p) + '.'); renderAll();
+    };
+    try { fibOn = localStorage.getItem('zelosPracticeFib') === '1'; } catch (err) {}
+    $('ptFib').classList.toggle('is-on', fibOn); $('ptFib').setAttribute('aria-pressed', String(fibOn));
+    $('ptFib').addEventListener('click', function () {
+      fibOn = !fibOn; this.classList.toggle('is-on', fibOn); this.setAttribute('aria-pressed', String(fibOn));
+      try { localStorage.setItem('zelosPracticeFib', fibOn ? '1' : '0'); } catch (err) {} renderAll();
+    });
+    $('ptAlertAdd').addEventListener('click', function () {
+      var on = chart.placing !== 'alert'; chart.placing = on ? 'alert' : null; this.classList.toggle('is-on', on); this.setAttribute('aria-pressed', String(on));
+      if (on) toast('Click a price on the chart to set a Trade War alert for ' + sel + '.');
+    });
     $('ptWatch').addEventListener('click', function (e) { var b = e.target.closest('[data-sym]'); if (b) selectSymbol(b.getAttribute('data-sym')); });
     $('ptSearch').addEventListener('input', renderWatch);
     document.querySelectorAll('[data-mode]').forEach(function (b) { b.addEventListener('click', function () { ticket.mode = b.getAttribute('data-mode'); renderTicket(); }); });
@@ -1116,12 +1174,15 @@
     $('ptOptSell').addEventListener('click', function () { optTrade('sell'); });
     // modal
     $('ptModalCancel').addEventListener('click', function () { $('ptConfirm').hidden = true; });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('ptConfirm').hidden = true; document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('ptConfirm').hidden = true; if (chart.placing) { chart.placing = null; $('ptAlertAdd').classList.remove('is-on'); $('ptAlertAdd').setAttribute('aria-pressed', 'false'); } document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); } });
     document.querySelectorAll('.pt-tab').forEach(function (t) { t.addEventListener('click', function () { tab = t.getAttribute('data-tab'); renderTabs(); }); });
     $('ptTabBody').addEventListener('click', function (e) {
       var tg = e.target.closest('button,a'); if (!tg) return;
       var s = tg.getAttribute('data-sym'), c = tg.getAttribute('data-cancel'), cl = tg.getAttribute('data-close'), oc = tg.getAttribute('data-optclose'), os = tg.getAttribute('data-optsym'), ag = tg.getAttribute('data-agent');
       if (s) { selectSymbol(s); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      var ae = tg.getAttribute('data-alert-edit'), ad = tg.getAttribute('data-alert-del');
+      if (ae) { var al = ALERTS.list.filter(function (x) { return x.id === ae; })[0]; if (!al) return; var nv = prompt('New alert price for ' + al.sym + ':', fmt(al.price)); if (nv == null) return; nv = +String(nv).replace(/[^0-9.]/g, ''); if (!(nv > 0)) return toast('Enter a price above 0.', true); ALERTS.update(ae, Math.round(nv * 100) / 100, price(al.sym)); renderAll(); toast('Alert updated.'); return; }
+      if (ad) { ALERTS.remove(ad); renderAll(); toast('Alert deleted.'); return; }
       if (c) { acct.orders.forEach(function (o) { if (o.id === c && o.status === 'open') { o.status = 'cancelled'; o.note = 'Cancelled by you'; } }); save(); renderAll(); toast('Order cancelled.'); }
       if (cl) { selectSymbol(cl); ticket.mode = 'stock'; side = 'sell'; ticket.type = 'market'; document.querySelector('[name="ptType"][value="market"]').checked = true; ticket.qtyMode = 'shares'; $('ptQtyMode').textContent = 'Use $ amount'; $('ptQty').value = acct.positions[cl].qty - reservedShares(cl); renderAll(); review(); }
       if (oc || os) {
@@ -1256,6 +1317,7 @@
           var profileReady = currentUser && window.ZelosProfile
             ? ZelosProfile.load(currentUser.uid).then(function (t) { profile = t || {}; }) : Promise.resolve();
           if (PROG) { if (currentUser) PROG.attach(db, currentUser.uid); else PROG.detach(); }
+          if (currentUser) ALERTS.attach(db, currentUser.uid, function () { if (UNIVERSE.length) renderAll(); });
           if (currentUser && window.ZelosSocial && ZelosSocial.init()) {
             ZelosSocial.claimReferral(currentUser);
             ZelosSocial.myReferrals(currentUser.uid).then(function (ids) { if (ids.length !== referralCount) { referralCount = ids.length; checkAch(); save(); } });

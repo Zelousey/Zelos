@@ -17,6 +17,9 @@
   var $ = function (id) { return document.getElementById(id); };
   var db, auth, fns, user = null, unsubs = [], quotes = {}, quoteDoc = {}, universe = [], warId = null, war = null, accounts = [], book = null, prevRanks = {};
   var ticket = { sym: 'AAPL', qty: 1 };
+  // Trade War chart (practice-chart.js): daily history + live FMP quote, your entry and fills,
+  // Fibonacci, and the Trade War price alerts shared with the $10,000 account.
+  var TC = window.ZelosTradeChart, hist = {}, extra = {}, chartEl = null, chart = null, fibOn = false;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(v, d) { d = d == null ? 2 : d; v = +v || 0; return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
   function signed(v) { return (v >= 0 ? '+' : '-') + money(Math.abs(v)); }
@@ -161,14 +164,15 @@
     var pos = (book && book.positions) || {}, q = quotes[ticket.sym] || {}, px = q.c, open = tradable();
     var liveEq = (me.cash || 0) + Object.keys(pos).reduce(function (t, s) { return t + pos[s].qty * ((quotes[s] && quotes[s].c) || pos[s].avg); }, 0);
     var livePnl = liveEq - (me.start || w.buyIn);
-    h += '<div class="tw-live"><section class="pt-card ch-card tw-acct" data-help="Your match account. It started at the buy-in, like everyone else\'s, and only changes when you trade or prices move.">' +
-      '<h2>Your match account</h2><div class="pf-mini"><span><small>Balance</small><b>' + money(liveEq) + '</b></span><span><small>Cash</small><b>' + money(me.cash) + '</b></span>' +
+    h += '<div id="twChartSlot"></div><div class="tw-live"><section class="pt-card ch-card tw-acct">' +
+      '<h2 data-help="Your match account. It started at the buy-in, like everyone else\'s, and only changes when you trade or prices move.">Your match account</h2><div class="pf-mini"><span><small>Balance</small><b>' + money(liveEq) + '</b></span><span><small>Cash</small><b>' + money(me.cash) + '</b></span>' +
       '<span><small>P&amp;L</small><b class="' + cls(livePnl) + '">' + signed(livePnl) + '</b></span><span><small>% P&amp;L</small><b class="' + cls(livePnl) + '">' + pct(livePnl / (me.start || w.buyIn) * 100) + '</b></span></div>' +
       '<h2 style="margin-top:14px">Trade</h2><div class="tw-ticket"><select id="twSym" aria-label="Stock">' + universe.map(function (u) { return '<option value="' + u.sym + '"' + (u.sym === ticket.sym ? ' selected' : '') + '>' + u.sym + ' · ' + esc(u.name) + '</option>'; }).join('') + '</select>' +
       '<div class="tw-px"><b>' + (px ? money(px) : '–') + '</b><small>' + (open ? 'live price' : 'market closed') + '</small></div>' +
       '<label class="tw-f"><span>Shares</span><input id="twQty" type="number" min="1" step="1" value="' + ticket.qty + '"></label>' +
       '<div class="tw-est" id="twEst">' + (px ? '≈ ' + money(px * ticket.qty) + ' · you have ' + money(me.cash) + ' cash · you hold ' + ((pos[ticket.sym] || {}).qty || 0) : '') + '</div>' +
-      '<div class="pt-soc-row"><button class="pt-btn tw-buy" type="button" id="twBuy"' + (open ? '' : ' disabled') + '>Buy</button><button class="pt-btn tw-sell" type="button" id="twSell"' + (open && pos[ticket.sym] ? '' : ' disabled') + '>Sell</button></div>' +
+      '<div class="tw-actions"><button class="pt-submit is-buy" type="button" id="twBuy"' + (open ? '' : ' disabled') + '><span class="pt-sub-main">Buy ' + esc(ticket.sym) + '</span><span class="pt-sub-meta">market</span></button>' +
+      '<button class="pt-submit is-sell" type="button" id="twSell"' + (open && pos[ticket.sym] ? '' : ' disabled') + '><span class="pt-sub-main">Sell ' + esc(ticket.sym) + '</span><span class="pt-sub-meta">' + ((pos[ticket.sym] || {}).qty ? 'you hold ' + pos[ticket.sym].qty : 'nothing to sell') + '</span></button></div>' +
       '<p class="pt-auth-msg" id="twMsg" role="alert" hidden></p>' + (open ? '' : '<p class="pt-fine">Trades fill during market hours (9:30 am to 4:00 pm New York time).</p>') + '</div>' +
       '<h2 style="margin-top:14px">Your positions</h2>' + (Object.keys(pos).length ? '<div class="tw-pos">' + Object.keys(pos).map(function (s) {
         var p = pos[s], c = (quotes[s] && quotes[s].c) || p.avg, g = (c - p.avg) * p.qty;
@@ -177,6 +181,7 @@
       '</section><section class="pt-card ch-card"><h2>Leaderboard</h2>' + board(accounts, false) +
       '<p class="pt-fine">Updated after every trade and every 5 minutes. Ranked by % gain: everyone started with ' + money(w.buyIn, 0) + '.</p>' + rulesBox(w) + '</section></div>';
     body(h); wireLive(me, pos);
+    ensureChart(); if (chartEl) { $('twChartSlot').appendChild(chartEl); drawChart(); }
   }
   function msg(t, good) { var m = $('twMsg'); if (!m) return; m.textContent = t; m.hidden = !t; m.classList.toggle('is-ok', !!good); }
   function wireLobby() {
@@ -201,6 +206,63 @@
     $('twBuy').onclick = trade('buy'); $('twSell').onclick = trade('sell');
   }
 
+  // ------------------------------------------------------------ chart
+  function nyDate(ms) { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(ms)); } catch (e) { return new Date(ms).toISOString().slice(0, 10); } }
+  function seriesFor(sym) {
+    var rows = hist[sym] || [], last = rows.length ? rows[rows.length - 1][0] : '';
+    var all = rows.concat((extra[sym] || []).filter(function (r) { return r[0] > last; })), q = quotes[sym], live = false;
+    if (q && q.c) {
+      var qd = q.t ? nyDate(q.t * 1000) : null, lastD = all.length ? all[all.length - 1][0] : '';
+      if (qd && qd > lastD && q.o) { all = all.concat([[qd, q.o, Math.max(q.h, q.c), Math.min(q.l, q.c), q.c, 0]]); live = true; }
+      else if (qd && qd === lastD) { var r = all[all.length - 1].slice(); r[4] = q.c; r[2] = Math.max(r[2], q.c); r[3] = Math.min(r[3], q.c); all = all.slice(0, -1).concat([r]); live = true; }
+    }
+    var s = { sym: sym, key: sym + '|D', d: [], o: [], h: [], l: [], c: [], v: [], live: live };
+    all.forEach(function (r) { s.d.push(r[0]); s.o.push(+r[1]); s.h.push(+r[2]); s.l.push(+r[3]); s.c.push(+r[4]); s.v.push(+r[5] || 0); });
+    s.n = s.d.length;
+    return TC.computeIndicators(s);
+  }
+  function ensureChart() {
+    if (chartEl || !TC) return;
+    chartEl = document.createElement('section'); chartEl.className = 'pt-card ch-card tw-chart-card';
+    chartEl.innerHTML = '<div class="tw-chart-bar"><b id="twChartSym"></b><span class="tw-chart-tools">' +
+      '<button class="pt-chip" type="button" id="twFib" aria-pressed="false" title="Fibonacci retracement across the visible swing">Fib</button>' +
+      '<button class="pt-chip" type="button" id="twAlertAdd" aria-pressed="false" title="Set a Trade War price alert: press, then click a price on the chart">&#9200; Alert</button></span></div>' +
+      '<canvas class="tw-chart" id="twChart" aria-label="Trade War chart"></canvas>' +
+      '<p class="pt-fine">Drag to pan · scroll to zoom · dashed line: your entry and P&amp;L · ▲▼ your trades · ⏰ lines: your Trade War price alerts (drag to move)</p>';
+    chart = new TC.TradeChart(chartEl.querySelector('canvas'));
+    try { fibOn = localStorage.getItem('zelosPracticeFib') === '1'; } catch (e) {}
+    var fib = chartEl.querySelector('#twFib'), al = chartEl.querySelector('#twAlertAdd');
+    fib.classList.toggle('is-on', fibOn); fib.setAttribute('aria-pressed', String(fibOn));
+    fib.onclick = function () { fibOn = !fibOn; fib.classList.toggle('is-on', fibOn); fib.setAttribute('aria-pressed', String(fibOn)); try { localStorage.setItem('zelosPracticeFib', fibOn ? '1' : '0'); } catch (e) {} drawChart(); };
+    al.onclick = function () { var on = chart.placing !== 'alert'; chart.placing = on ? 'alert' : null; al.classList.toggle('is-on', on); al.setAttribute('aria-pressed', String(on)); if (on) msg('Click a price on the chart to set a Trade War alert for ' + ticket.sym + '.', true); };
+    chart.onPlaceAlert = function (p) {
+      var cur = (quotes[ticket.sym] || {}).c, a = TC.alerts.add(ticket.sym, p, cur); al.classList.remove('is-on'); al.setAttribute('aria-pressed', 'false');
+      msg('Trade War alert set: ' + ticket.sym + ' ' + (a.dir === 'above' ? '≥' : '≤') + ' ' + money(p) + '. Manage alerts on your Trade War account page.', true); drawChart();
+    };
+    chart.onAlertMove = function (a) { TC.alerts.update(a.id, a.price, (quotes[a.sym] || {}).c); msg('Alert moved to ' + money(a.price) + '.', true); drawChart(); };
+  }
+  function drawChart() {
+    if (!chart) return;
+    var s = seriesFor(ticket.sym), pos = ((book && book.positions) || {})[ticket.sym], px = (quotes[ticket.sym] || {}).c || (s.n ? s.c[s.n - 1] : null);
+    var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#f4f5f7';
+    $('twChartSym').textContent = ticket.sym + (px ? ' · ' + money(px) : '');
+    chart.lines = pos ? [{ price: pos.avg, color: ink, dash: [6, 3], label: 'ENTRY ' + money(pos.avg) + ' · ' + pos.qty + ' sh · P&L ' + signed((px - pos.avg) * pos.qty) + ' (' + pct((px / pos.avg - 1) * 100) + ')' }] : [];
+    chart.marks = ((book && book.fills) || []).filter(function (f) { return f.sym === ticket.sym; }).map(function (f) { return { i: s.d.indexOf(nyDate(f.at)), price: f.price, side: f.side }; }).filter(function (m) { return m.i >= 0; });
+    chart.lastPrice = px; chart.fib = fibOn; chart.alerts = TC.alerts.forSym(ticket.sym);
+    chart.empty = s.n ? null : 'Loading chart…';
+    if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, 126); else chart.setSeries(s);
+    chart.draw();
+  }
+  function checkAlerts() {
+    if (!TC) return;
+    var px = {}; Object.keys(quotes).forEach(function (k) { if (quotes[k] && quotes[k].c) px[k] = quotes[k].c; });
+    TC.alerts.check(px).forEach(function (a) {
+      var t = 'Price alert: ' + a.sym + ' ' + (a.dir === 'above' ? '≥' : '≤') + ' ' + money(a.price), b = a.sym + ' is at ' + money(a.hitPrice) + '. Trade War price alert.';
+      if (window.ZelosProgress && ZelosProgress.toast) ZelosProgress.toast('<span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> <b>' + esc(t) + '</b><br>' + esc(b), 'mission');
+      try { if ('Notification' in window && Notification.permission === 'granted') new Notification('Trade War (virtual): ' + t, { body: b, icon: '../icons/icon-192.png', tag: 'zelos-alert-' + a.id }); } catch (e) {}
+    });
+  }
+
   // ------------------------------------------------------------ boot
   function start() {
     var cfg = window.ZELOS_FIREBASE_CONFIG;
@@ -210,10 +272,20 @@
     if (window.ZelosSocial) ZelosSocial.init();
     if (window.ZelosSignIn) ZelosSignIn.finish(function (t) { msg(t); });
     fetch('../data/practice-universe.json').then(function (r) { return r.json(); }).then(function (u) { universe = (u.symbols || []).slice(0, 55); if (war) render(); }).catch(function () {});
-    db.collection('markets').doc('quotes').onSnapshot(function (d) { quoteDoc = d.exists ? d.data() : {}; quotes = quoteDoc.quotes || {}; if (war && war.status === 'active') render(); }, function () {});
+    db.collection('markets').doc('quotes').onSnapshot(function (d) { quoteDoc = d.exists ? d.data() : {}; quotes = quoteDoc.quotes || {}; checkAlerts(); if (war && war.status === 'active') render(); }, function () {});
+    Promise.all([
+      fetch('../data/game-charts.json').then(function (r) { return r.json(); }),
+      fetch('../data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; })
+    ]).then(function (res) { hist = {}; [res[0].symbols, res[1].symbols].forEach(function (src) { Object.keys(src || {}).forEach(function (k) { hist[k] = src[k]; }); }); drawChart(); }).catch(function () {});
+    db.collection('markets').doc('dailyBars').onSnapshot(function (d) {
+      var b = (d.exists && d.data().bars) || {}; extra = {};
+      Object.keys(b).forEach(function (k) { extra[k] = (b[k] || []).map(function (r) { var p = String(r).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], +p[5] || 0]; }); });
+      drawChart();
+    }, function () {});
     var id = new URLSearchParams(location.search).get('w');
     auth.onAuthStateChanged(function (u) {
       user = u && !u.isAnonymous ? u : null;
+      if (user && TC) TC.alerts.attach(db, user.uid);
       if (id) {
         if (u) view(id);
         else { body('<div class="pt-card ch-card"><h2>You\'ve been invited to a Trade War</h2><button class="pt-btn pt-btn-go" type="button" id="twSignIn">Sign in to see it</button>' + AUTH_MSG + '</div>'); $('twSignIn').onclick = signIn; }

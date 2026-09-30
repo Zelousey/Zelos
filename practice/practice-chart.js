@@ -8,6 +8,15 @@
  * Also: volume, cost-basis / open-order lines, your fills, the live price tag,
  * forecast stop-loss / take-profit boxes (green = target, red = stop), zoom
  * and pan, and a crosshair legend with every visible value.
+ *
+ * Trade War chart tools (Phase 6):
+ *   - forecast.editable: the SL / TP edges can be dragged; onForecastEdit(forecast,
+ *     which) fires when a drag ends. forecast.side 'sell' flips the plan (TP
+ *     below the entry, SL above). A drag can't cross the entry.
+ *   - fib: Fibonacci retracement across the visible swing high / low.
+ *   - alerts: [{ id, price, dir: 'above'|'below' }] drawn as labelled Trade War
+ *     alert lines; drag one to move it (onAlertMove(alert)). placing = 'alert'
+ *     turns the next click into onPlaceAlert(price).
  */
 (function (global) {
   'use strict';
@@ -128,24 +137,42 @@
     try { saved = JSON.parse(localStorage.getItem('zelosPracticeInd') || 'null'); } catch (e) {}
     var self0 = this; INDICATORS.forEach(function (d) { self0.show[d.id] = saved ? !!saved[d.id] : !!DEFAULT_ON[d.id]; });
     this.lines = []; this.lastPrice = null; this.marks = []; this.colors = loadColors(); this.empty = null;
-    this.forecast = null; // { entry, sl, tp, label } -> green / red boxes right of the last bar
+    this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
+    this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null;
+    this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
     var self = this, drag = null;
     function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
     canvas.addEventListener('pointerdown', function (e) {
-      drag = { x: pos(e).x, from: self.from, to: self.to };
+      var p = pos(e), hit = self.hitTest(p);
+      if (self.placing === 'alert' && self.geo && p.y >= self.geo.L.y0 && p.y <= self.geo.L.y1) {
+        var price = self.priceAt(p.y); self.placing = null; canvas.style.cursor = '';
+        if (self.onPlaceAlert) self.onPlaceAlert(Math.round(price * 100) / 100);
+        return;
+      }
+      if (hit) { drag = { handle: hit }; self.frozen = { lo: self.geo.lo, hi: self.geo.hi }; }
+      else drag = { x: p.x, from: self.from, to: self.to };
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     });
     canvas.addEventListener('pointermove', function (e) {
       var p = pos(e);
-      if (drag && self.s) {
+      if (drag && drag.handle) { self.dragHandle(drag.handle, p.y); }
+      else if (drag && self.s) {
         var bw = self.barW(); var shift = Math.round((drag.x - p.x) / bw);
         var span = drag.to - drag.from;
         var to = Math.max(span, Math.min(self.s.n - 1, drag.to + shift));
         self.from = to - span; self.to = to;
-      }
+      } else canvas.style.cursor = self.placing ? 'crosshair' : self.hitTest(p) ? 'ns-resize' : '';
       self.hover = p; self.draw();
     });
-    function end() { drag = null; }
+    function end() {
+      if (drag && drag.handle) {
+        var h = drag.handle; self.frozen = null;
+        if (h.kind === 'forecast' && self.onForecastEdit) self.onForecastEdit(self.forecast, h.which);
+        if (h.kind === 'alert' && self.onAlertMove) self.onAlertMove(h.alert);
+        self.draw();
+      }
+      drag = null;
+    }
     canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
     canvas.addEventListener('pointerleave', function () { if (!drag) { self.hover = null; self.draw(); } });
     canvas.addEventListener('wheel', function (e) {
@@ -161,6 +188,32 @@
     this.show[id] = on == null ? !this.show[id] : !!on;
     try { localStorage.setItem('zelosPracticeInd', JSON.stringify(this.show)); } catch (e) {}
     this.draw();
+  };
+  TradeChart.prototype.priceAt = function (y) {
+    var g = this.geo; return g.hi - (y - g.L.y0) / (g.L.y1 - g.L.y0) * (g.hi - g.lo);
+  };
+  // draggable things under the pointer: forecast SL / TP edges, then alert lines
+  TradeChart.prototype.hitTest = function (p) {
+    var g = this.geo; if (!g || !this.s) return null;
+    var F = this.forecast, R = 7;
+    if (F && F.editable && F.entry && p.x >= g.fx0 - 4 && p.x <= g.L.x1 + 64) {
+      var best = null;
+      ['sl', 'tp'].forEach(function (k) { if (F[k] != null) { var d = Math.abs(g.Y(F[k]) - p.y); if (d <= R && (!best || d < best.d)) best = { kind: 'forecast', which: k, d: d }; } });
+      if (best) return best;
+    }
+    if (this.onAlertMove && p.x >= g.L.x0) {
+      for (var i = 0; i < this.alerts.length; i++) { var a = this.alerts[i]; if (Math.abs(g.Y(a.price) - p.y) <= R - 2) return { kind: 'alert', alert: a }; }
+    }
+    return null;
+  };
+  TradeChart.prototype.dragHandle = function (h, y) {
+    var v = Math.round(this.priceAt(y) * 100) / 100; if (!(v > 0)) return;
+    if (h.kind === 'alert') { h.alert.price = v; return; }
+    var F = this.forecast, e = F.entry, tick = Math.max(0.01, e * 0.001), sell = F.side === 'sell';
+    // SL stays on the losing side of the entry, TP on the winning side (flipped for a sell)
+    var below = (h.which === 'sl') !== sell;
+    F[h.which] = below ? Math.min(v, e - tick) : Math.max(v, e + tick);
+    F[h.which] = Math.round(F[h.which] * 100) / 100;
   };
   TradeChart.prototype.resize = function () {
     var dpr = Math.min(global.devicePixelRatio || 1, 2), w = this.cv.clientWidth, h = this.cv.clientHeight;
@@ -241,8 +294,11 @@
     }
     this.lines.forEach(function (ln) { if (ln.price > lo * 0.8 && ln.price < hi * 1.25) { lo = Math.min(lo, ln.price); hi = Math.max(hi, ln.price); } });
     if (this.forecast) [this.forecast.sl, this.forecast.tp].forEach(function (v) { if (v) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+    this.alerts.forEach(function (a) { if (a.price > lo * 0.8 && a.price < hi * 1.25) { lo = Math.min(lo, a.price); hi = Math.max(hi, a.price); } });
     var pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    if (this.frozen) { lo = this.frozen.lo; hi = this.frozen.hi; } // keep the scale still while dragging
     function Y(p) { return L.y0 + (hi - p) / (hi - lo) * (L.y1 - L.y0); }
+    this.geo = { L: L, lo: lo, hi: hi, Y: Y, fx0: X(Math.min(to, s.n - 1)) + bw * 0.7 };
     c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'middle';
     // grid + price axis
     var step = niceStep((hi - lo) / 6);
@@ -329,6 +385,9 @@
           c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
         }
         c.fillStyle = k[1]; c.fillRect(L.x1 + 1, yB - 8, 62, 16); c.fillStyle = '#0b0c0f'; c.fillText(fmt(v), L.x1 + 6, yB);
+        if (F.editable) { // drag grip on the edge you can move
+          c.fillStyle = k[1]; var gx = (fx0 + fx1) / 2; c.fillRect(gx - 14, yB - 2, 28, 4);
+        }
       });
       c.strokeStyle = ink; c.globalAlpha = 0.7; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(fx0, Y(F.entry)); c.lineTo(fx1, Y(F.entry)); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
       if (F.sl && F.tp && F.entry) {
@@ -338,6 +397,30 @@
         c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
       }
     }
+    // Fibonacci retracement across the visible swing (0% at the latest extreme)
+    if (this.fib) {
+      var hiI = from, loI = from;
+      for (i = from; i <= to; i++) { if (s.h[i] > s.h[hiI]) hiI = i; if (s.l[i] < s.l[loI]) loI = i; }
+      var H0 = s.h[hiI], L0 = s.l[loI], upSwing = hiI > loI, gold = cssVar('--gold', '#e8b23d');
+      var fx = X(Math.min(hiI, loI));
+      c.font = '600 9px "IBM Plex Mono", ui-monospace, monospace';
+      [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1].forEach(function (f) {
+        var pv = upSwing ? H0 - (H0 - L0) * f : L0 + (H0 - L0) * f, fy = Y(pv);
+        c.strokeStyle = gold; c.globalAlpha = f === 0.618 || f === 0.5 ? 0.75 : 0.45; c.lineWidth = 1; c.setLineDash(f === 0 || f === 1 ? [] : [4, 3]);
+        c.beginPath(); c.moveTo(fx, fy); c.lineTo(L.x1, fy); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+        c.fillStyle = gold; c.textBaseline = 'bottom'; c.fillText('FIB ' + (f * 100).toFixed(1) + '%  ' + fmt(pv), fx + 4, fy - 1); c.textBaseline = 'middle';
+      });
+      c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+    }
+    // Trade War price alerts
+    this.alerts.forEach(function (a) {
+      var ay = Y(a.price); if (ay < L.y0 || ay > L.y1) return;
+      c.strokeStyle = acc; c.lineWidth = 1.2; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(L.x0, ay); c.lineTo(L.x1, ay); c.stroke(); c.setLineDash([]);
+      c.font = '700 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = acc; c.textAlign = 'right'; c.textBaseline = 'top';
+      c.fillText('TRADE WAR ALERT ' + (a.dir === 'below' ? '≤ ' : '≥ ') + fmt(a.price), L.x1 - 4, ay + 2); c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.fillStyle = acc; c.fillRect(L.x1 + 1, ay - 8, 62, 16); c.fillStyle = '#ffffff'; c.font = '600 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText('⏰' + fmt(a.price), L.x1 + 3, ay);
+      c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+    });
     // your fills
     this.marks.forEach(function (mk) {
       if (mk.i < from || mk.i > to) return;
@@ -437,6 +520,49 @@
   function fmtShort(v) { if (v == null || isNaN(v)) return '–'; var a = Math.abs(v); return a >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : a >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : a >= 1e4 ? (v / 1e3).toFixed(1) + 'K' : a >= 100 ? v.toFixed(1) : v.toFixed(2); }
   function niceStep(raw) { var p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
 
+  // ------------------------------------------------------------ Trade War price alerts
+  // [{ id, sym, price, dir: 'above'|'below', status: 'active'|'triggered', createdAt, triggeredAt, updatedAt }]
+  // Kept in this browser (localStorage) and, when signed in, in users/{uid}.twAlerts so
+  // they follow the person between the $10,000 account and matches. They fire while a
+  // Trade War page is open; notifications with the site closed need web push (later phase).
+  var ALERT_KEY = 'zelosTwAlerts', ALERT_MAX = 50;
+  function AlertStore() { this.list = []; this.ref = null; try { this.list = JSON.parse(localStorage.getItem(ALERT_KEY) || '[]') || []; } catch (e) {} }
+  AlertStore.prototype.save = function () {
+    this.list = this.list.slice(-ALERT_MAX);
+    try { localStorage.setItem(ALERT_KEY, JSON.stringify(this.list)); } catch (e) {}
+    if (this.ref) this.ref.set({ twAlerts: this.list }, { merge: true }).catch(function () {});
+  };
+  AlertStore.prototype.attach = function (db, uid, done) {
+    var self = this; this.ref = db && uid ? db.collection('users').doc(uid) : null; if (!this.ref) return;
+    this.ref.get().then(function (d) {
+      var remote = (d.exists && d.data().twAlerts) || [], by = {};
+      remote.concat(self.list).forEach(function (a) { if (a && a.id && (!by[a.id] || (a.updatedAt || 0) > (by[a.id].updatedAt || 0))) by[a.id] = a; });
+      self.list = Object.keys(by).map(function (k) { return by[k]; }).filter(function (a) { return !a.deleted; }).sort(function (a, b) { return a.createdAt - b.createdAt; });
+      self.save(); if (done) done();
+    }).catch(function () {});
+  };
+  AlertStore.prototype.add = function (sym, price, current) {
+    var a = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), sym: sym, price: price, dir: current != null && price < current ? 'below' : 'above',
+      status: 'active', createdAt: Date.now(), updatedAt: Date.now() };
+    this.list.push(a); this.save(); return a;
+  };
+  AlertStore.prototype.update = function (id, price, current) {
+    this.list.forEach(function (a) { if (a.id === id) { a.price = price; if (current != null) a.dir = price < current ? 'below' : 'above'; a.status = 'active'; a.triggeredAt = null; a.updatedAt = Date.now(); } });
+    this.save();
+  };
+  AlertStore.prototype.remove = function (id) { this.list = this.list.filter(function (a) { return a.id !== id; }); this.save(); };
+  AlertStore.prototype.forSym = function (sym) { return this.list.filter(function (a) { return a.sym === sym && a.status === 'active'; }); };
+  // prices: { SYM: price } -> the alerts that just fired (each fires once)
+  AlertStore.prototype.check = function (prices) {
+    var hit = [];
+    this.list.forEach(function (a) {
+      var p = prices[a.sym]; if (a.status !== 'active' || p == null) return;
+      if ((a.dir === 'above' && p >= a.price) || (a.dir === 'below' && p <= a.price)) { a.status = 'triggered'; a.triggeredAt = Date.now(); a.updatedAt = Date.now(); a.hitPrice = p; hit.push(a); }
+    });
+    if (hit.length) this.save();
+    return hit;
+  };
+
   global.ZelosTradeChart = { TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol,
-    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors };
+    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, alerts: new AlertStore(), AlertStore: AlertStore };
 })(window);
