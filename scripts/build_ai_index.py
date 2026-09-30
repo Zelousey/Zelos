@@ -40,6 +40,7 @@ GAMES = [
 ]
 ABOUT = [('index.html', 'Home', 'What Zelos is.'), ('arsenal.html', 'All strategies', 'The full catalog.'),
          ('terms.html', 'Terms and risk disclosure', 'What Zelos is and is not; full risk disclosure.'),
+         ('privacy.html', 'Privacy Policy', 'What information Zelos collects, why, and your choices.'),
          ('setup.html', 'Setup guide', 'How buyers start reading their alert page.')]
 
 
@@ -75,7 +76,7 @@ def main():
     ld = '<script type="application/ld+json">\n%s\n</script>\n' % json.dumps({
         '@context': 'https://schema.org', '@type': 'WebPage', 'name': 'Zelos site index', 'url': SITE + '/ai-index.html',
         'isPartOf': {'@type': 'WebSite', 'name': 'Zelos', 'url': SITE + '/'}}, indent=1)
-    out = fix(head) + '<link rel="stylesheet" href="learn/learn.css">\n' + base + ld + '</head>\n' + fix(site_shell.add_learn_nav(nav)) + body + fix(footer) + fix(shared) + fix(tail)
+    out = fix(head) + '<link rel="stylesheet" href="learn/learn.css">\n' + base + ld + '</head>\n' + fix(site_shell.set_active_nav(site_shell.add_learn_nav(nav), 'ai-index.html')) + body + fix(footer) + fix(shared) + fix(tail)
     open(os.path.join(ROOT, 'ai-index.html'), 'w', encoding='utf-8').write(out)
 
     # llms.txt: replace/append generated section
@@ -95,7 +96,7 @@ def main():
     scan = re.findall(r'  <url><loc>https://agentictrading\.info/scan/[^\n]*', old)
     static = ['', 'ai-knowledge-catalog.html', 'ai-index.html', 'swing-trader.html', 'breakout-rider.html', 'options-scanner.html',
               'arsenal.html', 'alert-history.html', 'daily-market.html', 'live-chart.html', 'market-3d.html', 'arcade.html',
-              'leaderboard.html', 'setup.html', 'terms.html', 'demo.html', 'learn/index.html'] + \
+              'leaderboard.html', 'setup.html', 'terms.html', 'privacy.html', 'demo.html', 'learn/index.html'] + \
              [pth for pth, _, _ in learn_rows] + [pth for pth, _, _ in GAMES] + ['games/bull-run.html', 'games/buy-the-dip.html']
     urls = ['  <url><loc>%s/%s</loc></url>' % (SITE, u) for u in static]
     if not any('/scan/index.html' in x for x in scan):

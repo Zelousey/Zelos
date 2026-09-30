@@ -3,13 +3,16 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 2: Security & compliance baseline. CODE DONE AND TESTED; AWAITING OWNER DEPLOY.**
-Phase 1 (FMP) is deployed but stays open until the owner confirms live prices at the next market open (weekday 9:25 ET). The owner chose to start Phase 2 in parallel, since it doesn't touch the quote path.
+**Phase 3: Layout & navigation. CODE DONE AND TESTED; publishes when the branch is merged to `main`.**
+- Phase 1 (FMP) is still open until the owner confirms live prices at the next market open.
+- Phase 2 still needs the owner's rules + functions deploy.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
+| 3 Layout & navigation | Code done + tested; not published | 46 pages (nav block), `zelos-theme.css`, `scripts/site_shell.py`, `scripts/build_ai_index.py`, `ai-index.html`, `sitemap.xml` | Browser test on 16 pages: top nav order, no top-level Alerts, correct active section, every nav link resolves to a real file, dropdowns open, no JS errors, no overflow; mobile at 375px: panel opens, animates, and doesn't animate with reduced motion. Page builders re-run: output matches (stray local scan test pages discarded). 37/37 unit tests | **No.** Merge to `main` publishes it |
+| Legal pages | Drafted at owner request | `terms.html`, `privacy.html` (new), 46 footers, `sitemap.xml` | Rendered at 375px, no errors, no overflow | **No.** Merge to `main`; lawyer review still recommended |
 | 2 Security & compliance | Code done + tested; not deployed | `firestore.rules`, `functions/main.py`, `zelos-consent.js` (new), 53 HTML pages (one `<script>` line each) | Firestore emulator: 15/15 rule tests pass (the same tests fail 6/15 on the old rules); function secret/error checks pass; FMP test still passes; browser test 32/32 (EEA vs US time zones, 4 page depths, allow/decline/remember/reopen, Istanbul excluded, Canaries included, 375px mobile) | **No.** Owner deploys rules + functions; merging to `main` publishes the banner |
 | 1 FMP quote fix | Code done; live verification pending | `functions/main.py`, `practice/practice.js` (comment only), `README.md`, `docs/practice-account.md` | `py_compile` OK; offline mocked-FMP test passes (mapping c/o/h/l/pc/t, FMP URL, no `X-Finnhub-Token`, bad key as 200-error/401/402 → `auth`); `node --check practice.js` OK; 37/37 existing tests pass | **Functions deployed by owner (weekend).** A weekend force-run is a no-op by design, so the page still shows the last Finnhub error. The stored `FMP_API_KEY` turned out to be invalid; the owner re-saved the paid key and redeployed. Live check is pending the next market session |
 
@@ -217,6 +220,23 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 - **§03 Eligibility 18+:** age isn't checked at sign-up. Social and competition features make this more relevant.
 - **Future:** high-stakes/virtual-risk challenges and IPO Wars need clear "virtual only, no prize value" wording before launch (§40–41 of the spec already require legal review before any real-money element).
 
+## Phase 3 changes
+- **New navigation**, one standard version on all 46 pages:
+  - Desktop, in order: `Dashboard · Trade War ▾ · Trading Tools ▾ · Arcade ▾ · Learn · About`, down from 8 items to 6.
+  - Trade War menu: Trade War, Challenges, Squads, My Trade War profile.
+  - Trading Tools menu: the three strategies (including Options Scanner), then Daily Market, Alerts, Live Chart and Market 3D, then Real Trade Journal and Full Arsenal.
+  - Arcade stays top-level.
+  - Alerts is no longer a top-level item; it lives under Trading Tools.
+  - The logo goes to Home.
+- **Mobile menu:** the same groups, labelled "Trade War · virtual" and "Trading Tools · real", so the two systems stay clearly separate. The mobile header is unchanged.
+- **Active section:** highlighted per page, with `aria-current` on direct links. `site_shell.set_active_nav` keeps generated pages correct on rebuild; the template's Arcade highlight used to leak into Learn pages and `ai-index.html`.
+- **Motion system** (`zelos-theme.css`, audit result):
+  - The site already had cross-page View Transitions; they now have a reduced-motion guard, and the nav stays still while page content fades.
+  - Shared tokens: `--dur-fast/base/slow`, `--ease-out/in-out`.
+  - Dropdowns and the mobile menu get a 180ms rise. It never blocks a click.
+- **Signed-out homepage vs dashboard:** already separate (`index.html` vs `dashboard.html`), and signing in lands on the Dashboard. The earlier deliberate choice to keep Home browsable for signed-in users is preserved. The custom, editable dashboard (`zelos-dashboard-layout.js`) is untouched and remains the default.
+- **Seen during testing, left as is (pre-existing):** the Trade War entry dialog covers the whole page, nav included, until you press Enter. Revisit in Phase 4 onboarding.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -225,4 +245,5 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
-2. **Phase 3: Layout & navigation.** Starts only when the owner says so.
+2. Owner: merge `claude/agentictrading-master-spec` to `main` to publish Phases 2–3, the legal pages, and the banner.
+3. **Phase 4: Onboarding & profile.** Starts only when the owner says so.
