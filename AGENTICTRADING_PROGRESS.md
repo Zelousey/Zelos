@@ -389,6 +389,31 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 - Owner: deploy functions (`tw_create`, `tw_trade`, `tw_start`, `tw_challenge`, `tw_respond`, `tw_mark_matches` changed). Rules unchanged.
 - Not done: the "Last Man Standing" profile badge (§16 badges phase).
 
+## Phase 9: Squads + private groups (§11)
+- **Squad chat** (members only, live):
+  - reactions (like, fire, rocket, trophy, smile)
+  - optional camera-roll photos, resized in the browser to a small JPEG
+  - you can delete your own messages; the owner can delete any
+  - nobody can edit messages or post as someone else
+- **Shared goal:** the owner sets "squad average +X% in 7/30 days"; everyone sees a progress bar.
+- **Private room codes:** 6 characters, no look-alike letters. Join from the Squads page. Codes can't be listed, and a new code stops the old one working.
+- **Owner controls:**
+  - rename
+  - remove members (with confirmation)
+  - delete the squad: you type its name to confirm; this removes the chat and the room code too
+  - Help Mode
+- **Group settings:** reactions on/off and photos on/off. Two settings carry into **squad Trade Wars** and the server enforces them:
+  - allowed stocks (other symbols refused by `tw_trade`)
+  - "everyone can see everyone's trades" (a live feed of all players' fills; the rules open other players' books only in those matches)
+- **Security tightening:** squads can no longer be listed by outsiders (list only returns squads you're in; open-by-id unchanged).
+- **Deferred (§12 Advanced gameplay):** options/crypto assets, indicators toggle, Drafts, Whale & Minnow, Volatility Storms, Battlefield Feed, Bounty Bonuses, squad-vs-squad competitions.
+- **Files:** `firestore.rules`, `functions/main.py` (`tw_squad_rules`, symbol check), `zelos-social.js`, `practice/squads.js`, `practice/war.js`, `zelos-challenge.js`, `zelos-icons.js`, `practice/practice.css`, `scripts/build_practice.py` (+ rebuilt `squads.html`), `scripts/tradewar_test.py`.
+- **Tests:**
+  - unit 78/78
+  - **new rules suite 66/66** (listing, owner/member permissions, goal/config validation, room codes, chat post/read/react/delete/photo limits, squad-war books); older rule suites 15/15 + 27/27
+  - **Squad E2E on emulators with the real functions: 27/27**: create, room code, join by code, live chat (HTML shown as text), reactions, photos toggle + upload, goal, settings validation, removing a member cuts chat access, squad Trade War with allowed stocks (ticket + server refusal) and the everyone's-trades feed, 375px mobile, delete (wrong name refused; squad + code gone), no page errors.
+- **Owner:** deploy rules **and** functions.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
@@ -399,4 +424,4 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
 2. Owner: Phase 5 steps above (this also covers the Phase 4 rules).
 3. Owner: Phase 7 steps above.
-4. Phase 8 done (above). Next: §11 Squads + private groups, when the owner says go.
+4. Phases 8 and 9 done (above). Next: §12 Advanced Trade War gameplay, when the owner says go.

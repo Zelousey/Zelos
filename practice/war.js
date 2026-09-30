@@ -19,7 +19,7 @@
   'use strict';
   var SITE = 'https://agentictrading.info';
   var $ = function (id) { return document.getElementById(id); };
-  var db, auth, fns, user = null, unsubs = [], quotes = {}, quoteDoc = {}, universe = [], warId = null, war = null, accounts = [], book = null, prevRanks = {};
+  var db, auth, fns, user = null, unsubs = [], quotes = {}, quoteDoc = {}, universe = [], warId = null, war = null, accounts = [], book = null, books = {}, prevRanks = {};
   var ticket = { sym: 'AAPL', qty: 1 };
   // Trade War chart (practice-chart.js): daily history + live FMP quote, your entry and fills,
   // Fibonacci, and the Trade War price alerts shared with the $10,000 account.
@@ -55,12 +55,15 @@
     if (window.ZelosSignIn) return ZelosSignIn.google(show);
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { show(e.message || e); });
   }
+  function R(w) { return (w && w.rules) || {}; }
   function rulesBox(w) {
     return '<div class="tw-rules" data-help="These rules are enforced by the server, so nobody can change their balance or buy-in.">' +
       '<b>Rules</b><ul>' +
       '<li>Everyone starts with the same <b>' + money(w.buyIn, 0) + '</b> of virtual money. The buy-in is locked once the match starts.</li>' +
       '<li>No adding or withdrawing money during the match. Only match money can be used.</li>' +
       '<li>Stocks only, long only (buy, then sell what you own). Market orders fill at the live price during market hours.</li>' +
+      (R(w).symbols ? '<li>Squad rule: only these stocks can be traded: <b>' + R(w).symbols.map(esc).join(', ') + '</b>.</li>' : '') +
+      (R(w).viewTrades ? '<li>Squad rule: every player can see everyone\'s trades.</li>' : '') +
       (w.lms ? '' : '<li>Ranked by % gain after ' + w.days + ' day' + (w.days === 1 ? '' : 's') + '. Virtual money only: no cash value, no prizes.</li>') + '</ul>' +
       (w.lms ? '<div class="tw-lms-rules"><b>&#9760; Last Man Standing</b><ul>' + (CH ? CH.lmsRules(w.lms, w.buyIn) : []).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') +
         '<li>Knocked out = your stocks are sold at the current price and your result is locked.</li><li>The last trader standing wins. If time runs out first, survivors are ranked by % gain, above everyone knocked out. Virtual money only.</li></ul></div>' : '') + '</div>';
@@ -87,6 +90,7 @@
     unsubs.mine = true;
     unsubs.push(ref.collection('accounts').onSnapshot(function (s) { accounts = []; s.forEach(function (d) { accounts.push(Object.assign({ uid: d.id }, d.data())); }); render(); }, function () {}));
     unsubs.push(ref.collection('books').doc(user.uid).onSnapshot(function (d) { book = d.exists ? d.data() : null; render(); }, function () {}));
+    if (R(war).viewTrades) unsubs.push(ref.collection('books').onSnapshot(function (s) { books = {}; s.forEach(function (d) { books[d.id] = d.data(); }); render(); }, function () {}));
   }
   function board(rows, final) {
     rows = rows.slice().sort(function (a, b) { return ((a.out ? 1 : 0) - (b.out ? 1 : 0)) || (a.out ? (a.place || 0) - (b.place || 0) : 0) || (b.pnlPct - a.pnlPct) || (b.pnl - a.pnl); });
@@ -134,6 +138,7 @@
     // live
     if (!mine) { body(h + '<div class="pt-card ch-card"><p>This Trade War is live. Only its players can see the leaderboard.</p><a class="pt-btn pt-btn-go" href="war.html">Your Trade Wars</a></div>'); return; }
     var me = accounts.filter(function (a) { return a.uid === user.uid; })[0] || {};
+    if (R(w).symbols && R(w).symbols.indexOf(ticket.sym) === -1) ticket.sym = R(w).symbols[0];
     var pos = (book && book.positions) || {}, q = quotes[ticket.sym] || {}, px = q.c, open = tradable();
     var liveEq = (me.cash || 0) + Object.keys(pos).reduce(function (t, s) { return t + pos[s].qty * ((quotes[s] && quotes[s].c) || pos[s].avg); }, 0);
     var livePnl = liveEq - (me.start || w.buyIn);
@@ -148,7 +153,7 @@
     h += '<div id="twChartSlot"></div><div class="tw-live"><section class="pt-card ch-card tw-acct">' +
       '<h2 data-help="Your match account. It started at the buy-in, like everyone else\'s, and only changes when you trade or prices move.">Your match account</h2><div class="pf-mini"><span><small>Balance</small><b>' + money(liveEq) + '</b></span><span><small>Cash</small><b>' + money(me.cash) + '</b></span>' +
       '<span><small>P&amp;L</small><b class="' + cls(livePnl) + '">' + signed(livePnl) + '</b></span><span><small>% P&amp;L</small><b class="' + cls(livePnl) + '">' + pct(livePnl / (me.start || w.buyIn) * 100) + '</b></span></div>' +
-      '<h2 style="margin-top:14px">Trade</h2><div class="tw-ticket"><select id="twSym" aria-label="Stock">' + universe.map(function (u) { return '<option value="' + u.sym + '"' + (u.sym === ticket.sym ? ' selected' : '') + '>' + u.sym + ' · ' + esc(u.name) + '</option>'; }).join('') + '</select>' +
+      '<h2 style="margin-top:14px">Trade</h2><div class="tw-ticket"><select id="twSym" aria-label="Stock">' + universe.filter(function (u) { return !R(w).symbols || R(w).symbols.indexOf(u.sym) !== -1; }).map(function (u) { return '<option value="' + u.sym + '"' + (u.sym === ticket.sym ? ' selected' : '') + '>' + u.sym + ' · ' + esc(u.name) + '</option>'; }).join('') + '</select>' +
       '<div class="tw-px"><b>' + (px ? money(px) : '–') + '</b><small>' + (open ? 'live price' : 'market closed') + '</small></div>' +
       '<label class="tw-f"><span>Shares</span><input id="twQty" type="number" min="1" step="1" value="' + ticket.qty + '"></label>' +
       '<div class="tw-est" id="twEst">' + (px ? '≈ ' + money(px * ticket.qty) + ' · you have ' + money(me.cash) + ' cash · you hold ' + ((pos[ticket.sym] || {}).qty || 0) : '') + '</div>' +
@@ -159,10 +164,21 @@
         var p = pos[s], c = (quotes[s] && quotes[s].c) || p.avg, g = (c - p.avg) * p.qty;
         return '<button type="button" class="tw-pos-row" data-sym="' + s + '"><b>' + s + '</b><span>' + p.qty + ' @ ' + money(p.avg) + '</span><span>' + money(c * p.qty) + '</span><span class="' + cls(g) + '">' + signed(g) + '</span></button>';
       }).join('') + '</div>' : '<p class="pt-empty">No positions yet. Pick a stock and buy to get on the board.</p>') +
-      '</section><section class="pt-card ch-card"><h2>Leaderboard</h2>' + board(accounts, false) + (w.lms ? outsBox(w) : '') +
+      '</section><section class="pt-card ch-card"><h2>Leaderboard</h2>' + board(accounts, false) + (w.lms ? outsBox(w) : '') + (R(w).viewTrades ? feedBox() : '') +
       '<p class="pt-fine">Updated after every trade and every 5 minutes. Ranked by % gain: everyone started with ' + money(w.buyIn, 0) + '.</p>' + rulesBox(w) + '</section></div>';
     body(h); wireLive(me, pos); announceOuts(w);
     ensureChart(); if (chartEl) { $('twChartSlot').appendChild(chartEl); drawChart(); }
+  }
+  // Squad setting "view everyone's trades": the latest fills from every player's book.
+  function feedBox() {
+    var all = [];
+    Object.keys(books).forEach(function (u) { ((books[u] || {}).fills || []).forEach(function (f) { all.push(Object.assign({ uid: u }, f)); }); });
+    all.sort(function (a, b) { return b.at - a.at; });
+    var name = function (u) { return (war.names || {})[u] || 'Trader'; };
+    return '<div class="tw-feed"><h3>Everyone\'s trades</h3>' + (all.length ? all.slice(0, 25).map(function (f) {
+      return '<div class="tw-feed-row"><span><b>' + esc(user && f.uid === user.uid ? 'You' : name(f.uid)) + '</b> ' + (f.auto ? 'sold out' : f.side === 'buy' ? 'bought' : 'sold') + ' ' + f.qty + ' ' + esc(f.sym) + ' @ ' + money(f.price) + '</span>' +
+        (f.pnl != null ? '<span class="' + cls(f.pnl) + '">' + signed(f.pnl) + '</span>' : '<span></span>') + '<small>' + new Date(f.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</small></div>';
+    }).join('') : '<p class="pt-empty">No trades yet.</p>') + '</div>';
   }
   function outsBox(w) {
     var outs = (w.outs || []).slice().reverse();

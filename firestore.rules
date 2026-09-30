@@ -182,7 +182,8 @@ service cloud.firestore {
     // through Cloud Functions that enforce the rules of the game. The match doc
     // is readable by any signed-in visitor holding the (unguessable) invite id;
     // the leaderboard numbers only by players in that match; a player's
-    // positions and fills only by that player.
+    // positions and fills only by that player (or by all players in a squad
+    // match whose owner turned on "view everyone's trades").
     match /tradeWars/{warId} {
       allow read: if request.auth != null;
       allow write: if false;
@@ -192,7 +193,10 @@ service cloud.firestore {
         allow write: if false;
       }
       match /books/{uid} {
-        allow read: if request.auth != null && request.auth.uid == uid;
+        // your own always; everyone's when the match allows it (squad setting "view everyone's trades")
+        allow read: if request.auth != null && (request.auth.uid == uid
+          || (get(/databases/$(database)/documents/tradeWars/$(warId)).data.get('rules', {}).get('viewTrades', false) == true
+            && request.auth.uid in get(/databases/$(database)/documents/tradeWars/$(warId)).data.players));
         allow write: if false;
       }
     }
@@ -205,17 +209,30 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Trading Squads: private groups. Readable by any signed-in visitor who
-    // has the (unguessable) invite id. The owner creates it with only
-    // themselves as a member and can run competitions or rename it. Anyone
-    // else can only add themselves (join) or remove themselves (leave).
+    // Trading Squads: private groups. A squad can be opened by any signed-in
+    // visitor holding its (unguessable) invite id or a room code; listing is
+    // limited to squads you're in. The owner creates it with only themselves
+    // as a member and controls the settings, goal, competitions and room code,
+    // and can remove members. Anyone else can only add themselves (join) or
+    // remove themselves (leave).
     match /squads/{squadId} {
       // Joining or leaving may only add/remove your OWN entry in the names map,
       // never rename or remove another member.
       function onlyOwnName() {
         return request.resource.data.get('names', {}).diff(resource.data.get('names', {})).affectedKeys().hasOnly([request.auth.uid]);
       }
-      allow read: if request.auth != null;
+      function validConfig(c) {
+        return c is map && c.keys().hasOnly(['reactions', 'photos', 'viewTrades', 'symbols'])
+          && c.get('reactions', true) is bool && c.get('photos', false) is bool && c.get('viewTrades', false) is bool
+          && (c.get('symbols', null) == null || (c.symbols is list && c.symbols.size() <= 60));
+      }
+      function validGoal(g) {
+        return g == null || (g is map && g.keys().hasOnly(['text', 'target', 'days', 'start', 'end', 'base'])
+          && g.text is string && g.text.size() <= 80 && g.target is number && g.target > 0 && g.target <= 100
+          && g.days in [7, 30] && g.end == g.start + g.days * 86400000);
+      }
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.auth.uid in resource.data.members;
       allow create: if isRealAccount()
         && request.resource.data.owner == request.auth.uid
         && request.resource.data.members == [request.auth.uid]
@@ -223,8 +240,18 @@ service cloud.firestore {
         && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 32;
       allow update: if isRealAccount() && (
         (resource.data.owner == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comp', 'name', 'helpMode'])
-          && request.resource.data.get('helpMode', false) is bool)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comp', 'name', 'helpMode', 'config', 'goal', 'code', 'members', 'names'])
+          && request.resource.data.get('helpMode', false) is bool
+          && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 32
+          && validConfig(request.resource.data.get('config', {}))
+          && validGoal(request.resource.data.get('goal', null))
+          && (request.resource.data.get('code', null) == null || request.resource.data.code.matches('^[A-HJ-NP-Z2-9]{6}$'))
+          // the owner can remove members (never add anyone, never remove themselves)
+          && resource.data.members.hasAll(request.resource.data.members)
+          && request.auth.uid in request.resource.data.members
+          && request.resource.data.get('names', {}).keys().hasOnly(request.resource.data.members)
+          && request.resource.data.get('names', {}).diff(resource.data.get('names', {})).addedKeys().size() == 0
+          && request.resource.data.get('names', {}).diff(resource.data.get('names', {})).changedKeys().size() == 0)
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names'])
           && onlyOwnName()
           && request.resource.data.names[request.auth.uid] is string
@@ -243,6 +270,49 @@ service cloud.firestore {
           && request.resource.data.members.size() == resource.data.members.size() - 1)
       );
       allow delete: if isRealAccount() && resource.data.owner == request.auth.uid;
+
+      // Squad chat: members only. You post as yourself; nobody can edit a
+      // message. Reactions: each member sets or clears only their own one
+      // (r.<uid>), and only while the owner allows reactions. Photos only when
+      // the owner allows them, as a small JPEG resized in the browser.
+      match /messages/{msgId} {
+        function squad() { return get(/databases/$(database)/documents/squads/$(squadId)).data; }
+        function isMember() { return request.auth != null && request.auth.uid in squad().members; }
+        allow read: if isMember();
+        allow create: if isRealAccount() && isMember()
+          && request.resource.data.keys().hasOnly(['author', 'name', 'text', 'photo', 'createdAt', 'r'])
+          && request.resource.data.author == request.auth.uid
+          && request.resource.data.name is string && request.resource.data.name.size() <= 24
+          && request.resource.data.text is string && request.resource.data.text.size() <= 500
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.get('r', {}).size() == 0
+          && (request.resource.data.get('photo', null) == null
+            || (squad().get('config', {}).get('photos', false) == true
+              && request.resource.data.photo is string && request.resource.data.photo.size() <= 250000
+              && request.resource.data.photo.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')))
+          && (request.resource.data.text.size() > 0 || request.resource.data.get('photo', null) != null);
+        allow update: if isRealAccount() && isMember()
+          && squad().get('config', {}).get('reactions', true) == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['r'])
+          && request.resource.data.get('r', {}).diff(resource.data.get('r', {})).affectedKeys().hasOnly([request.auth.uid])
+          && (!(request.auth.uid in request.resource.data.get('r', {}))
+            || request.resource.data.r[request.auth.uid] in ['like', 'fire', 'rocket', 'trophy', 'smile']);
+        allow delete: if request.auth != null
+          && (resource.data.author == request.auth.uid || squad().owner == request.auth.uid);
+      }
+    }
+
+    // Private room codes: 6 characters that open a squad (squadCodes/{CODE} =
+    // { squad }). Look-up by exact code only, no listing. Only that squad's
+    // owner can create or remove its code.
+    match /squadCodes/{code} {
+      allow get: if request.auth != null;
+      allow list, update: if false;
+      allow create: if isRealAccount() && code.matches('^[A-HJ-NP-Z2-9]{6}$')
+        && request.resource.data.keys().hasOnly(['squad'])
+        && get(/databases/$(database)/documents/squads/$(request.resource.data.squad)).data.owner == request.auth.uid;
+      allow delete: if isRealAccount()
+        && get(/databases/$(database)/documents/squads/$(resource.data.squad)).data.owner == request.auth.uid;
     }
 
     // Referrals: one doc per invited player, keyed by THEIR uid and written

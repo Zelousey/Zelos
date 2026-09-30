@@ -1296,6 +1296,10 @@ def tw_trade(req, db, uid, now_ms):
             raise TWError("FAILED_PRECONDITION", "This Trade War isn't live yet." if war["status"] == "lobby" else "This Trade War is over.")
         if now_ms >= (war.get("endAt") or 0):
             raise TWError("FAILED_PRECONDITION", "This Trade War has ended. Final results are being tallied.")
+        allowed = (war.get("rules") or {}).get("symbols")
+        if allowed and sym not in allowed:
+            listed = ", ".join(allowed[:12]) + (" and more" if len(allowed) > 12 else "")
+            raise TWError("FAILED_PRECONDITION", "This squad Trade War only allows %s." % listed)
         acct = acct_ref.get(transaction=t).to_dict()
         if acct.get("out"):
             raise TWError("FAILED_PRECONDITION", "You've been eliminated from this Last Man Standing. Your result is locked in.")
@@ -1441,6 +1445,21 @@ def tw_validate_challenge(data, uid):
     return targets, buy_in, days, _re.sub(r"[<>]", "", name)[:40], squad_id, lms
 
 
+def tw_squad_rules(config):
+    """Match rules a squad's owner set for its Trade Wars: allowed stocks and
+    whether players can see each other's trades. Unknown symbols are dropped."""
+    config = config if isinstance(config, dict) else {}
+    out = {}
+    syms = config.get("symbols")
+    if isinstance(syms, list):
+        syms = [s for s in dict.fromkeys(str(x).upper() for x in syms[:60]) if s in PRACTICE_SYMBOLS]
+        if syms:
+            out["symbols"] = syms
+    if config.get("viewTrades") is True:
+        out["viewTrades"] = True
+    return out
+
+
 def _tw_close_invites(db, wid, status, now_ms):
     try:
         for d in db.collection("twInvites").where("warId", "==", wid).where("status", "==", "pending").stream():
@@ -1454,11 +1473,13 @@ def _tw_close_invites(db, wid, status, now_ms):
 def tw_challenge(req, db, uid, now_ms):
     targets, buy_in, days, name, squad_id, lms = tw_validate_challenge(req.data, uid)
     _tw_check_buyin(db, uid, buy_in)
+    extra_rules = {}
     if squad_id:
         sq = db.collection("squads").document(squad_id).get()
         if not sq.exists or uid not in (sq.to_dict().get("members") or []):
             raise TWError("PERMISSION_DENIED", "You can only challenge a squad you're in.")
         targets = [m for m in sq.to_dict().get("members") or [] if m != uid][:TW_MAX_INVITEES]
+        extra_rules = tw_squad_rules(sq.to_dict().get("config"))
         if not targets:
             raise TWError("FAILED_PRECONDITION", "Your squad has nobody else in it yet.")
     pending = sum(1 for _ in db.collection("twInvites").where("from", "==", uid).where("status", "==", "pending").limit(TW_MAX_PENDING_SENT + 1).stream())
@@ -1477,13 +1498,14 @@ def tw_challenge(req, db, uid, now_ms):
                         "maxPlayers": 1 + len(targets), "status": "lobby", "players": [uid], "names": {uid: pname},
                         "invited": targets, "mode": mode, "squadId": squad_id or None, "lms": lms,
                         "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
-                        "rules": {"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}})
+                        "rules": dict({"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}, **extra_rules)})
     batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
     batch.set(war_ref.collection("books").document(uid), tw_new_book())
     for to in targets:
         batch.set(db.collection("twInvites").document(), {
             "to": to, "toName": _tw_name(db, to, None), "from": uid, "fromName": pname, "fromUsername": t.get("username"), "fromPhoto": photo,
             "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode, "lms": lms,
+            "symbols": extra_rules.get("symbols"),
             "status": "pending", "createdAt": now_ms, "respondedAt": None})
     batch.commit()
     return {"warId": wid, "invited": len(targets), "mode": mode}

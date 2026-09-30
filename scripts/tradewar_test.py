@@ -266,6 +266,17 @@ class LastManStanding(unittest.TestCase):
         self.assertEqual([(r["uid"], r["rank"]) for r in rows], [("d", 1), ("a", 2), ("c", 3), ("b", 4)])
 
 
+class SquadRules(unittest.TestCase):
+    def test_copies_allowed_stocks_and_view_trades(self):
+        syms = sorted(m.PRACTICE_SYMBOLS)[:2]
+        self.assertEqual(m.tw_squad_rules({"symbols": [syms[0].lower(), syms[1], syms[0], "NOPE$"], "viewTrades": True, "photos": True}),
+                         {"symbols": [syms[0], syms[1]], "viewTrades": True})
+
+    def test_defaults_are_open(self):
+        for c in (None, {}, "x", {"symbols": [], "viewTrades": "yes"}, {"symbols": ["NOPE$"]}):
+            self.assertEqual(m.tw_squad_rules(c), {})
+
+
 class Prices(unittest.TestCase):
     class DB:
         def __init__(self, doc):
