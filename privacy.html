@@ -15,26 +15,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Free Trading Games on Real Charts: Simulator &amp; Daily Challenge | Zelos Arcade</title>
-<link rel="icon" href="favicon-arcade.ico" sizes="any">
-<link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
+<title>Zelos Privacy</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
-<link rel="canonical" href="https://agentictrading.info/arcade.html">
+<meta name="description" content="Privacy Policy for Zelos and AgenticTrading.info: what we collect, why, who we share it with, and your choices.">
+<link rel="canonical" href="https://agentictrading.info/privacy.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Arcade">
-<meta property="og:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
-<meta property="og:url" content="https://agentictrading.info/arcade.html">
+<meta property="og:title" content="Zelos Privacy">
+<meta property="og:description" content="Privacy Policy for Zelos and AgenticTrading.info: what we collect, why, who we share it with, and your choices.">
+<meta property="og:url" content="https://agentictrading.info/privacy.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Arcade">
-<meta name="twitter:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
+<meta name="twitter:title" content="Zelos Privacy">
+<meta name="twitter:description" content="Privacy Policy for Zelos and AgenticTrading.info: what we collect, why, who we share it with, and your choices.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -44,40 +44,27 @@
   body{ margin:0; }
   [hidden]{ display:none !important; }
 
-  .games{ display:flex; flex-direction:column; gap:14px; margin-top:22px; }
-  .game-row{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
-  .game-head{ display:flex; align-items:center; gap:14px; }
-  .game-icon{
-    flex:none; width:48px; height:48px; border-radius:3px;
-    display:flex; align-items:center; justify-content:center; font-size:1.4rem;
-    background:var(--surface-2); border:1px solid var(--border);
-  }
-  .game-icon.accent{ background:var(--accent-soft); border-color:var(--accent-line); }
-  .game-icon.gold{ background:var(--gold-soft); border-color:var(--gold); }
-  .game-icon.violet{ background:var(--violet-soft); border-color:var(--violet); }
-  .game-tag{ font-family:var(--mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
-  .game-head h3{ font-size:1.08rem; font-weight:700; margin:2px 0 0; }
-  .game-row p{ margin-top:12px; color:var(--muted); font-size:0.88rem; max-width:46ch; }
+  .updated{ margin-top:10px; font-family:var(--mono); font-size:0.75rem; color:var(--muted); }
 
-  .board-link{
-    margin-top:16px; display:flex; align-items:center; gap:10px;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:14px 16px; text-decoration:none; color:var(--ink); font-weight:600; font-size:0.9rem;
+  .tos-section{ padding-block:26px; border-top:1px solid var(--border); }
+  .tos-section:last-of-type{ border-bottom:1px solid var(--border); }
+  .tos-section h2{ font-size:1.1rem; font-weight:600; display:flex; gap:10px; align-items:baseline; margin:0; }
+  .tos-section h2 .n{ font-family:var(--mono); color:var(--accent); font-size:0.9rem; }
+  .tos-section .body{ margin-top:10px; color:var(--ink); font-size:0.92rem; }
+  .tos-section .body p{ margin:0; }
+  .tos-section .body p + p{ margin-top:10px; }
+  .tos-section .body ul{ margin:10px 0 0; padding-left:20px; }
+  .tos-section .body li{ margin-top:6px; }
+  .tos-section .body b{ color:var(--ink); }
+  code.inline{
+    font-family:var(--mono); background:var(--accent-soft); color:var(--accent);
+    padding:1px 6px; border-radius:2px; font-size:0.86rem;
   }
-  .board-link:hover{ border-color:var(--accent-line); }
-  .board-link-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; animation:board-link-pulse 1.8s ease-in-out infinite; }
-  @keyframes board-link-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
-  @media (prefers-reduced-motion: reduce){ .board-link-dot{ animation:none; } }
-  .board-link-arrow{ margin-left:auto; color:var(--muted); }
 
-  .note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
+  .final{ margin-top:40px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 24px; }
+  .final h2{ font-size:1.1rem; margin:0; }
+  .final p{ margin-top:8px; color:var(--muted); font-size:0.9rem; }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.5; }
-  .fine a, .note a{ color:var(--accent); }
-  .daily-card{ display:flex; flex-direction:column; gap:6px; margin-top:22px; padding:20px; text-decoration:none; color:var(--ink);
-    border:1px solid var(--accent-line); border-radius:var(--radius); background:linear-gradient(135deg, var(--accent-soft), var(--surface)); }
-  .daily-card strong{ font-size:1.15rem; }
-  .daily-kicker{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:0.7rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); }
-  .daily-sub{ color:var(--muted); font-size:0.88rem; }
 </style>
 </head>
 <body class="zt zt-body">
@@ -122,7 +109,7 @@
         </div>
       </div>
       <a class="nav-link" href="alert-history.html">Alerts</a>
-      <a class="nav-link" href="ai-knowledge-catalog.html">Knowledge</a>
+      <a class="nav-link" href="learn/index.html">Learn</a>
       <a class="nav-link" href="index.html#why-zelos">About</a>
     </div>
 
@@ -151,6 +138,7 @@
       <a href="leaderboard.html">Leaderboard</a>
       <div class="nav-mobile-label">More</div>
       <a href="alert-history.html">Alerts</a>
+      <a href="learn/index.html">Learn</a>
       <a href="ai-knowledge-catalog.html">Knowledge</a>
       <a href="index.html#why-zelos">About</a>
     </div>
@@ -160,62 +148,142 @@
 <section class="section-tight">
   <div class="shell-narrow">
     <div>
-      <p class="eyebrow">Free training games · real charts</p>
-      <h1 style="font-size:1.6rem; margin-top:6px;">Zelos Arcade</h1>
-      <p class="status-line" style="margin-top:6px;">Practice the skills that actually matter in trading (reading a setup, placing a stop, managing risk) on real historical stock charts with the ticker hidden. No account, no money, no cost.</p>
+      <p class="eyebrow">Legal</p>
+      <h1 style="font-size:1.5rem; margin-top:6px;">Privacy Policy</h1>
+      <p class="status-line" style="margin-top:6px;">This policy explains what information Zelos and AgenticTrading.info collect, why, who it's shared with, and the choices you have. It works together with our <a href="terms.html" style="color:var(--accent);">Terms of Service</a>.</p>
+      <div class="updated">Last updated September 30, 2026</div>
     </div>
 
-    <a class="daily-card" href="games/daily-challenge.html">
-      <span class="daily-kicker"><span class="board-link-dot"></span>Daily Challenge · <span id="dcToday">today</span></span>
-      <strong>Five real charts. Same five for everyone. One try.</strong>
-      <span class="daily-sub">Grade three setups, place two stops, share your grid. New puzzle at midnight ET. <span id="dcState"></span></span>
-      <span class="btn btn-primary" style="margin-top:12px; align-self:flex-start;">Play today's challenge &rarr;</span>
-    </a>
-
-    <div class="games">
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon accent">📈</div>
-          <div><div class="game-tag">Flagship · simulator</div><h3>Chart Replay</h3></div>
-        </div>
-        <p>A hidden ticker, 60 bars you haven't seen. Trade it bar by bar with a $10,000 practice account. Every trade needs a stop, and you're scored on R-multiples and discipline.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/chart-replay.html">Start a replay &rarr;</a></div>
-      </div>
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon gold">✅</div>
-          <div><div class="game-tag">Drill · 8 rounds</div><h3>Grade the Setup</h3></div>
-        </div>
-        <p>Run the four-point swing checklist (trend, support, volume, reward:risk) on a real chart, make the call, then see what happened next.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/grade-the-setup.html">Play &rarr;</a></div>
-      </div>
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon violet">🛑</div>
-          <div><div class="game-tag">Drill · 8 rounds</div><h3>Where's the Stop?</h3></div>
-        </div>
-        <p>You're long at the close. Tap where your stop-loss belongs. Too tight gets shaken out; too wide wastes your size. Graded on structure, not luck.</p>
-        <div style="margin-top:14px;"><a class="btn btn-primary" href="games/stop-drill.html">Play &rarr;</a></div>
-      </div>
-      <div class="game-row">
-        <div class="game-head">
-          <div class="game-icon accent">🐂</div>
-          <div><div class="game-tag">Quick practice</div><h3>Setup Spotter</h3></div>
-        </div>
-        <p>A chart flashes up: real setup or noise? Call it before the clock runs out.</p>
-        <div style="margin-top:14px;"><a class="btn" href="games/setup-spotter.html">Play &rarr;</a></div>
+    <div class="tos-section">
+      <h2><span class="n">01</span> The short version</h2>
+      <div class="body">
+        <ul>
+          <li>We collect what we need to run your account, Trade War, the Real Trade Journal and the community features.</li>
+          <li>We never ask for, see, or store your brokerage login, and we never connect to a brokerage account.</li>
+          <li>We don't sell your personal information and we don't show ads.</li>
+          <li>Some things are public by design (your public profile, leaderboards, public posts). You control most of what goes there.</li>
+          <li>Analytics cookies are off in the EEA, UK and Switzerland unless you allow them.</li>
+        </ul>
       </div>
     </div>
 
-    <a class="board-link" href="leaderboard.html">
-      <span class="board-link-dot"></span>
-      <span>See the live leaderboard</span>
-      <span class="board-link-arrow">&rarr;</span>
-    </a>
-    <p class="fine" style="margin-top:14px;">Classic arcade: <a href="games/bull-run.html">Bull Run</a> · <a href="games/buy-the-dip.html">Buy the Dip</a></p>
-    <div class="note">
-      Charts are real historical daily bars for widely traded US stocks and ETFs; the games themselves are practice only, with no real money and no account. Zelos itself is a rule-based scan, not personalized investment advice. New to the terms? Start with <a href="learn/index.html">Learn</a>.
+    <div class="tos-section">
+      <h2><span class="n">02</span> What we collect</h2>
+      <div class="body">
+        <p><b>Account information.</b> When you sign in with email and password or with Google, our sign-in provider (Google Firebase Authentication) gives us your email address and an account ID; with Google it can also include your name and profile photo. Every visitor also gets an anonymous guest ID, so XP and progress can be saved before you create an account.</p>
+        <p><b>Profile and community information.</b> The display name, username, bio and photo you choose; friends, followers, squads, challenges and referral links; and posts, theses, comments, messages and reactions you create.</p>
+        <p><b>Trading activity on Zelos.</b> Your Trade War virtual account (orders, positions, trades, balances, statistics), Arcade scores, XP, missions and achievements, your watchlist, dashboard layout, alert and notification preferences, and trades you choose to log in the Real Trade Journal.</p>
+        <p><b>Purchases.</b> When you buy tokens or other access, the payment processor handles your card and billing details and tells us your email, what you bought and the amount. For earlier Gumroad purchases, Gumroad sent us the buyer's email and the product purchased. We never receive or store your full card number.</p>
+        <p><b>Usage and device information.</b> With your consent where required, Google Analytics collects which pages are viewed, approximate location, device and browser type. Our hosting providers keep standard server logs (such as IP address and request time) for security and operations.</p>
+        <p><b>Messages to us.</b> If you email us or send feedback, we keep that conversation.</p>
+      </div>
     </div>
+
+    <div class="tos-section">
+      <h2><span class="n">03</span> What is public</h2>
+      <div class="body">
+        <p>Unless you make it private, your <b>public profile</b> shows your display name, photo, XP and level, achievements, and Trade War statistics, and appears on leaderboards, challenges and squad standings. It never shows your email. Real Trade Journal entries stay private; if you choose to show Real Trading statistics on your profile, only the statistics you pick are shown, never dollar amounts. Arcade leaderboard names and scores are public. Public posts and reactions can be seen by anyone who can open them. You can turn your Trade War profile private, which removes it from public view.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">04</span> How we use it</h2>
+      <div class="body">
+        <ul>
+          <li>To provide the service: sign-in, saving your accounts and settings, running Trade War and leaderboards, delivering paid features and tokens you bought.</li>
+          <li>To keep the site safe and fair: preventing spam, abuse, cheating and fraud, enforcing our Terms and community guidelines, and fixing bugs.</li>
+          <li>To send notifications and service emails you need or have asked for (for example password resets or alerts you turned on). We don't send marketing emails without your agreement, and non-essential emails can be turned off.</li>
+          <li>To understand, with your consent where required, how the site is used so we can improve it.</li>
+          <li>To meet legal obligations, such as tax records for purchases.</li>
+        </ul>
+        <p>If you're in the EEA, the UK or Switzerland, our legal bases are: performing our contract with you (running your account and the features you use), our legitimate interests (keeping the site secure and fair, and improving it), your consent (analytics cookies and optional notifications), and legal obligations.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">05</span> Who we share it with</h2>
+      <div class="body">
+        <p>We don't sell or rent your personal information, and we don't share it for advertising. We share it only with service providers that help run the site, under their own privacy terms:</p>
+        <ul>
+          <li><b>Google (Firebase and Google Cloud):</b> sign-in, database and backend functions.</li>
+          <li><b>Google Analytics:</b> site usage statistics, subject to your cookie choice.</li>
+          <li><b>GitHub Pages:</b> hosting of the website's pages.</li>
+          <li><b>Payment processors</b> (including Gumroad for earlier purchases): processing payments.</li>
+        </ul>
+        <p>Market-data providers (such as Financial Modeling Prep and Finnhub) and our social-media scheduling tool receive no personal information about you. We may also disclose information if the law requires it, to protect the rights and safety of our users or the public, or as part of a sale or transfer of the service (in which case this policy continues to apply).</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">06</span> Cookies and browser storage</h2>
+      <div class="body">
+        <p><b>Necessary storage</b> (always on): keeps you signed in, remembers your theme, and saves your Trade War account, chart settings, dashboard layout, progress and cookie choice in your browser. The site doesn't work properly without it.</p>
+        <p><b>Analytics cookies</b> (Google Analytics): in the EEA, UK and Switzerland these stay off unless you choose <b>Allow analytics</b>; you can change your choice any time with the <b>Cookie settings</b> link at the bottom of the page. Elsewhere, analytics runs by default, and you can block it with your browser's cookie settings or a browser extension without affecting the site. We don't use advertising cookies.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">07</span> How long we keep it</h2>
+      <div class="body">
+        <p>We keep account, profile and activity data while your account is open. When you ask us to delete your account, we delete or anonymize your personal information within a reasonable time, except records we must keep for legal, tax, security or fraud-prevention reasons (such as purchase records). Information saved only in your browser stays there until you clear it. Anonymous guest data that is never linked to an account may be deleted after a period of inactivity.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">08</span> Your choices and rights</h2>
+      <div class="body">
+        <p>You can edit your profile, make your Trade War profile private, remove posts, turn off optional notifications, and change your cookie choice at any time on the site. You can also ask us to:</p>
+        <ul>
+          <li>give you a copy of your personal information;</li>
+          <li>correct it;</li>
+          <li>delete your account and personal information;</li>
+          <li>stop or restrict certain uses, or object to them.</li>
+        </ul>
+        <p>Depending on where you live (for example the EEA, UK, Switzerland, or US states such as California), the law may give you these and other rights, including the right to complain to your local data-protection authority. Email us from the address on your account and we'll respond within the time the law requires. We won't treat you differently for exercising your rights.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">09</span> Security</h2>
+      <div class="body">
+        <p>Access to your private data is limited to your own signed-in account by database security rules, API keys for our data providers are kept on the server and never sent to browsers, and payment details are handled by the payment processor. No system is perfectly secure, so please use a strong, unique password and keep your sign-in private.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">10</span> Where your data is processed</h2>
+      <div class="body">
+        <p>Zelos is run from the United States, and our service providers may process data in the United States and other countries. Where the law requires it, those transfers rely on appropriate safeguards offered by our providers, such as standard contractual clauses.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">11</span> Age limit</h2>
+      <div class="body">
+        <p>Zelos is only for people 18 and older. We don't knowingly collect information from anyone under 18; if you believe a minor has created an account, contact us and we'll delete it.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">12</span> Changes to this policy</h2>
+      <div class="body">
+        <p>We may update this policy as the site changes. We'll update the date at the top, and for significant changes we'll give notice on the site.</p>
+      </div>
+    </div>
+
+    <div class="tos-section">
+      <h2><span class="n">13</span> Contact</h2>
+      <div class="body">
+        <p>Privacy questions and requests can go to <a href="mailto:p8md8s7rj4@privaterelay.appleid.com?subject=Zelos%20privacy%20request" style="color:var(--accent);">Zelos Support</a>.</p>
+      </div>
+    </div>
+
+    <div class="final">
+      <h2>Related pages</h2>
+      <p>See also our <a href="terms.html" style="color:var(--accent);">Terms of Service</a>, including the rules for tokens, Trade War and community posts.</p>
+    </div>
+
+    <p class="fine" style="margin-top:26px;">Zelos is a rule-based scan, not a licensed financial advisor. Nothing here is personalized investment advice, and no strategy is guaranteed to be profitable.</p>
   </div>
 </section>
 
@@ -267,17 +335,6 @@
 })();
 </script>
 
-<script>
-(function(){
-  try {
-    var d = new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-    document.getElementById('dcToday').textContent = d;
-    var done = JSON.parse(localStorage.getItem('zdc-' + d) || 'null');
-    var st = JSON.parse(localStorage.getItem('zdc-streak') || 'null');
-    if (done) document.getElementById('dcState').textContent = 'You scored ' + done.total + '/500 today' + (st && st.n > 1 ? ' · ' + st.n + '-day streak' : '') + '.';
-  } catch (e) {}
-})();
-</script>
 <script src="zelos-theme-toggle.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

@@ -189,7 +189,22 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 4. Optional checkpoint tag, which this session can't push: `git fetch origin && git tag -a pre-update-checkpoint 0ea1551 -m "Checkpoint before the major update" && git push origin pre-update-checkpoint`
 5. In Firebase console → Storage, confirm Storage isn't enabled, or that its rules deny all access. The site doesn't use it.
 
-## Legal review flags (for a human/lawyer; nothing below has been rewritten)
+## Legal pages (owner request, 2026-09-30)
+- **Terms rewritten** (`terms.html`, now 17 sections):
+  - §07 Payments and tokens replaces the $20 Gumroad section. Earlier Gumroad purchases and codes stay honored.
+  - New §08 Trade War and virtual money: no cash value, not gambling, fair play, no auto-entry into high-stakes modes.
+  - New §09 Community guidelines and your content: rules, rate limits, reporting, moderation.
+  - Accounts rule (§03).
+  - §16 Cookies now matches the consent banner.
+  - Liability cap changed to fees paid in the last 12 months.
+- **New `privacy.html`** (13 sections), written from what the code actually stores. It's linked from all 46 footers, the Terms page, and `sitemap.xml`.
+- The owner asked for this text directly. It has **not been reviewed by a lawyer**, and should be before relying on it, especially:
+  - §07 refunds and expiry
+  - §08 "not gambling"
+  - the Privacy legal bases and rights language
+- The Privacy policy mentions features that are planned but not built yet (posts, messages, followers, token checkout, notification settings). Keep it in sync as they ship.
+
+## Legal review flags (original Phase 2 list; items 1–5 now drafted, still need lawyer review)
 - **Terms §07 Payment:** describes a "$20 one-time Gumroad" purchase and 3-week codes. This will be wrong once tokens replace Gumroad.
 - **No Trade War / virtual currency terms:** no statement that virtual balances, XP, badges and (future) tokens have no cash value, can't be redeemed or transferred, aren't gambling, and can be reset or adjusted.
 - **No user conduct / community guidelines:** needed before comments, reactions, DMs or theses (Priority 2). This includes grounds for removing content and suspending accounts.
