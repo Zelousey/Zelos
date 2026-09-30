@@ -10,7 +10,7 @@ Phase 1 is not complete until the Trade War chart is confirmed live on FMP.
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
-| 1 FMP quote fix | Code done; live verification pending | `functions/main.py`, `practice/practice.js` (comment only), `README.md`, `docs/practice-account.md` | `py_compile` OK; offline mocked-FMP test passes (mapping c/o/h/l/pc/t, FMP URL, no `X-Finnhub-Token`, bad key as 200-error/401/402 → `auth`); `node --check practice.js` OK; 37/37 existing tests pass | **Not deployed.** Owner runs the deploy + force-run (commands below) |
+| 1 FMP quote fix | Code done; live verification pending | `functions/main.py`, `practice/practice.js` (comment only), `README.md`, `docs/practice-account.md` | `py_compile` OK; offline mocked-FMP test passes (mapping c/o/h/l/pc/t, FMP URL, no `X-Finnhub-Token`, bad key as 200-error/401/402 → `auth`); `node --check practice.js` OK; 37/37 existing tests pass | **Functions deployed by owner (weekend).** A weekend force-run is a no-op by design, so the page still shows the last Finnhub error. Live check is pending the next market session |
 
 ---
 
