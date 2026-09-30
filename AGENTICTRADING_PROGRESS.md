@@ -5,7 +5,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 ## Current phase
 **Phase 3: Layout & navigation. CODE DONE AND TESTED; publishes when the branch is merged to `main`.**
 - Phase 1 (FMP) is still open until the owner confirms live prices at the next market open.
-- Phase 2 still needs the owner's rules + functions deploy.
+- Phase 2 is merged to `main` (banner live), and the owner reports the rules + functions deploy is done.
 
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
@@ -13,7 +13,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 | 0 Inspection | Done | `AGENTICTRADING_MASTER_SPEC.md`, `AGENTICTRADING_PROGRESS.md` (new, docs only) | `py_compile functions/main.py` OK; `scripts/*_test.py` 37/37 pass | No. Nothing deployed; no production code touched |
 | 3 Layout & navigation | Code done + tested; not published | 46 pages (nav block), `zelos-theme.css`, `scripts/site_shell.py`, `scripts/build_ai_index.py`, `ai-index.html`, `sitemap.xml` | Browser test on 16 pages: top nav order, no top-level Alerts, correct active section, every nav link resolves to a real file, dropdowns open, no JS errors, no overflow; mobile at 375px: panel opens, animates, and doesn't animate with reduced motion. Page builders re-run: output matches (stray local scan test pages discarded). 37/37 unit tests | **No.** Merge to `main` publishes it |
 | Legal pages | Drafted at owner request | `terms.html`, `privacy.html` (new), 46 footers, `sitemap.xml` | Rendered at 375px, no errors, no overflow | **No.** Merge to `main`; lawyer review still recommended |
-| 2 Security & compliance | Code done + tested; not deployed | `firestore.rules`, `functions/main.py`, `zelos-consent.js` (new), 53 HTML pages (one `<script>` line each) | Firestore emulator: 15/15 rule tests pass (the same tests fail 6/15 on the old rules); function secret/error checks pass; FMP test still passes; browser test 32/32 (EEA vs US time zones, 4 page depths, allow/decline/remember/reopen, Istanbul excluded, Canaries included, 375px mobile) | **No.** Owner deploys rules + functions; merging to `main` publishes the banner |
+| 2 Security & compliance | Code done + tested; not deployed | `firestore.rules`, `functions/main.py`, `zelos-consent.js` (new), 53 HTML pages (one `<script>` line each) | Firestore emulator: 15/15 rule tests pass (the same tests fail 6/15 on the old rules); function secret/error checks pass; FMP test still passes; browser test 32/32 (EEA vs US time zones, 4 page depths, allow/decline/remember/reopen, Istanbul excluded, Canaries included, 375px mobile) | **Yes.** Merged to `main`; the owner ran the rules + functions deploy |
 | 1 FMP quote fix | Code done; live verification pending | `functions/main.py`, `practice/practice.js` (comment only), `README.md`, `docs/practice-account.md` | `py_compile` OK; offline mocked-FMP test passes (mapping c/o/h/l/pc/t, FMP URL, no `X-Finnhub-Token`, bad key as 200-error/401/402 → `auth`); `node --check practice.js` OK; 37/37 existing tests pass | **Functions deployed by owner (weekend).** A weekend force-run is a no-op by design, so the page still shows the last Finnhub error. The stored `FMP_API_KEY` turned out to be invalid; the owner re-saved the paid key and redeployed. Live check is pending the next market session |
 
 ---
@@ -245,5 +245,5 @@ Run these in Cloud Shell on the `claude/agentictrading-master-spec` branch (`git
 
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
-2. Owner: merge `claude/agentictrading-master-spec` to `main` to publish Phases 2–3, the legal pages, and the banner.
+2. Owner: merge `claude/agentictrading-master-spec` to `main` again to publish the legal pages and Phase 3. These are website-only changes, so no Firebase deploy is needed.
 3. **Phase 4: Onboarding & profile.** Starts only when the owner says so.
