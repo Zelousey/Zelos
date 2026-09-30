@@ -246,7 +246,7 @@ def build_social_pages():
     render('practice/squads.html', 'Join my Trading Squad: Private Trade War Leaderboard | Zelos',
            'You\'re invited to a private Trading Squad: compete with friends on your own leaderboard of $10,000 Trade War accounts (virtual money).',
            '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="sqBody"><p class="pt-empty">Loading…</p></div>'
-           '<p class="pt-fine pf-fine">Squads are private: only people with the invite link can see one. Members see each other\'s public Trade War (virtual) stats only.</p></main>',
+           '<p class="pt-fine pf-fine">Squads are private: only people with the invite link or room code can find one. Members see each other\'s public Trade War (virtual) stats, and only members can read the squad chat.</p></main>',
            HEAD, SOCIAL_SCRIPTS + '<script src="squads.js"></script>\n', robots='noindex')
     print('built practice/squads.html')
 
