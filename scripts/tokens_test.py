@@ -37,20 +37,30 @@ class Wallet(unittest.TestCase):
             m.tk_spend(dict(w, balance=999), "pass", T0, "crypto-bot")
 
     def test_unlock(self):
-        locked = {"strategy": "breakout-rider", "released": False}
+        locked = {"strategy": "breakout-rider", "released": False, "lockedUntil": T0 + 3600000}
         w = dict(m.tk_new_wallet(T0), balance=15)
         w, line = m.tk_spend(w, "unlock", T0, alert_id="breakout-rider-2026-09-30", locked=locked)
         self.assertEqual((w["balance"], w["unlocked"], line["amount"]), (5, ["breakout-rider-2026-09-30"], -10))
         w2, line = m.tk_spend(w, "unlock", T0, alert_id="breakout-rider-2026-09-30", locked=locked)
         self.assertEqual((w2["balance"], line), (5, None))  # already yours: free
         with self.assertRaises(m.TWError):
-            m.tk_spend(w, "unlock", T0, alert_id="x", locked={"strategy": "swing-trader", "released": True})
+            m.tk_spend(w, "unlock", T0, alert_id="x", locked={"strategy": "swing-trader", "released": True, "public": True})
         with self.assertRaises(m.TWError):
             m.tk_spend(w, "unlock", T0, alert_id="x", locked=None)
 
+    def test_after_close_is_cheaper(self):
+        w = dict(m.tk_new_wallet(T0), balance=5)
+        closed = {"strategy": "swing-trader", "released": True, "lockedUntil": T0 - 1}
+        w2, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-09-29", locked=closed)
+        self.assertEqual((w2["balance"], line["amount"]), (2, -3))
+        # past the close but the release job hasn't run yet: still the after-close price
+        w3, line = m.tk_spend(w, "unlock", T0, alert_id="y", locked=dict(closed, released=False))
+        self.assertEqual(line["amount"], -3)
+        self.assertLess(m.TOKENS["unlockClosed"], m.TOKENS["unlock"])
+
     def test_pass_covers_unlocks_for_free(self):
         w = dict(m.tk_new_wallet(T0), balance=10, passes={"options-scanner": T0 + 5})
-        w2, line = m.tk_spend(w, "unlock", T0, alert_id="options-scanner-2026-09-30", locked={"strategy": "options-scanner", "released": False})
+        w2, line = m.tk_spend(w, "unlock", T0, alert_id="options-scanner-2026-09-30", locked={"strategy": "options-scanner", "released": False, "lockedUntil": T0 + 1})
         self.assertEqual((w2["balance"], line), (10, None))
         self.assertTrue(m.tk_has_access(w, "options-scanner", "a", T0))
         self.assertFalse(m.tk_has_access(w, "options-scanner", "a", T0 + 5))
@@ -132,6 +142,89 @@ class Square(unittest.TestCase):
             self.assertEqual(m._square_base(), "https://connect.squareup.com")
         finally:
             os.environ.clear(); os.environ.update(old)
+
+
+class Earning(unittest.TestCase):
+    def test_checkin_streak_and_bonus(self):
+        w = dict(m.tk_new_wallet(T0), balance=0)
+        w, line, c = m.tk_checkin(w, "2026-10-01", "2026-09-30", T0)
+        self.assertEqual((w["balance"], c["streak"], c["days"], line["type"]), (2, 1, 1, "checkin"))
+        self.assertIsNone(m.tk_checkin(w, "2026-10-01", "2026-09-30", T0 + 5)[1])  # same day: nothing
+        for i, day in enumerate(["2026-10-02", "2026-10-03", "2026-10-04", "2026-10-05", "2026-10-06"]):
+            prev = "2026-10-0%d" % (i + 1)
+            w, line, c = m.tk_checkin(w, day, prev, T0)
+        self.assertEqual((c["streak"], w["balance"]), (6, 12))
+        w, line, c = m.tk_checkin(w, "2026-10-07", "2026-10-06", T0)  # 7th day in a row: bonus
+        self.assertEqual((c["streak"], line["amount"], w["balance"]), (7, 12, 24))
+        w, line, c = m.tk_checkin(w, "2026-10-09", "2026-10-08", T0)  # missed a day: back to 1
+        self.assertEqual((c["streak"], c["days"], line["amount"]), (1, 8, 2))
+
+    def test_trade_war_rewards(self):
+        rows = lambda n, **kw: [dict({"uid": "u%d" % i, "trades": 1, "rank": i + 1}, **kw) for i in range(n)]
+        everyone = {"u%d" % i for i in range(9)}
+        self.assertEqual(m.tw_rewards(rows(5), None, everyone), [("u0", 25, "Trade War: 1st place"), ("u1", 15, "Trade War: 2nd place"), ("u2", 10, "Trade War: 3rd place")])
+        self.assertEqual(m.tw_rewards(rows(2), None, everyone), [("u0", 15, "Trade War: 1st place")])
+        self.assertEqual(m.tw_rewards(rows(1), None, everyone), [])                     # alone: nothing
+        self.assertEqual(m.tw_rewards(rows(2), None, {"u0"}), [])                        # opponent not verified
+        r = rows(4); r[1]["trades"] = 0                                                  # no trades: not counted
+        self.assertEqual([x[0] for x in m.tw_rewards(r, None, everyone)], ["u0"])
+        lms = m.tw_rewards(rows(4), {"cutHours": 1}, everyone)
+        self.assertEqual(lms[0], ("u0", 35, "Last Man Standing: survived and won"))
+        out = rows(2); out[0]["out"] = True
+        self.assertEqual(m.tw_rewards(out, {"cutHours": 1}, everyone), [("u0", 15, "Trade War: 1st place")])
+
+
+class Cosmetics(unittest.TestCase):
+    def test_buy(self):
+        w = dict(m.tk_new_wallet(T0), balance=100)
+        w, line = m.cosmetic_buy(w, "color", "gold", T0)
+        self.assertEqual((w["balance"], w["owned"], line["amount"]), (40, ["color:gold"], -60))
+        self.assertEqual(m.cosmetic_buy(w, "color", "gold", T0)[1], None)  # owned: free
+        with self.assertRaises(m.TWError):
+            m.cosmetic_buy(w, "banner", "gold", T0)  # 150 > 40
+        with self.assertRaises(m.TWError):
+            m.cosmetic_buy(w, "color", "plaid", T0)
+
+
+class Founder(unittest.TestCase):
+    def test_slug(self):
+        self.assertEqual(m.community_slug("  Zelos   Clan ", "ct"), ("Zelos Clan", "CT", "zelos-clan-ct"))
+        self.assertEqual(m.community_slug("Bulls & Bears", "NY")[2], "bulls-bears-ny")
+        for bad in [("Zelos Clan", "ZZ"), ("ab", "CT"), ("x" * 31, "CT"), ("<script>", "CT"), ("Shit Traders", "CT")]:
+            with self.assertRaises(m.TWError):
+                m.community_slug(*bad)
+
+    def test_milestones(self):
+        self.assertEqual(m.founder_due(4, []), [])
+        self.assertEqual([t[0] for t in m.founder_due(5, [])], [5])
+        self.assertEqual([t[0] for t in m.founder_due(12, [5])], [10])
+        self.assertEqual([t[0] for t in m.founder_due(30, [])], [5, 10, 25])
+        self.assertEqual(m.founder_due(5, [5]), [])
+        self.assertEqual(m.founder_title(26)[2], "Community Builder")
+        self.assertIsNone(m.founder_title(4))
+
+    def test_who_counts(self):
+        good = {"activeDays": 2, "ipHash": "aaa"}
+        priv = {"founderIps": ["fff"], "countedIps": ["ccc"]}
+        self.assertEqual(m.member_counts(good, priv, "F", "U", True, "aaa"), (True, "ok"))
+        self.assertEqual(m.member_counts(good, priv, "U", "U", True, "aaa")[1], "founder")
+        self.assertEqual(m.member_counts(good, priv, "F", "U", False, "aaa")[1], "not verified")
+        self.assertEqual(m.member_counts(dict(good, activeDays=1), priv, "F", "U", True, "aaa")[1], "not active enough yet")
+        self.assertEqual(m.member_counts(dict(good, countedFor="other-ct"), priv, "F", "U", True, "aaa")[1], "counted before")
+        self.assertEqual(m.member_counts(good, priv, "F", "U", True, "fff")[1], "same network")         # founder's network today
+        self.assertEqual(m.member_counts(dict(good, ipHash="ccc"), priv, "F", "U", True, "bbb")[1], "same network")  # joined on a counted member's
+        self.assertEqual(m.member_counts(dict(good, counted=True), priv, "F", "U", True, "aaa")[1], "already counted")
+
+    def test_client_ip(self):
+        class R:
+            def __init__(self, xff, addr="10.0.0.1"):
+                self.headers, self.remote_addr = {"X-Forwarded-For": xff} if xff else {}, addr
+        class Q:
+            def __init__(self, raw): self.raw_request = raw
+        self.assertEqual(m._client_ip(Q(R("1.1.1.1, 2.2.2.2"))), "2.2.2.2")  # a spoofed first hop is ignored
+        self.assertEqual(m._client_ip(Q(R(None))), "10.0.0.1")
+        self.assertNotEqual(m._ip_hash("1.1.1.1"), m._ip_hash("1.1.1.2"))
+        self.assertEqual(m._ip_hash(""), "")
 
 
 if __name__ == "__main__":

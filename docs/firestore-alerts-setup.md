@@ -85,6 +85,20 @@ environment the scan skills themselves run in):
    curl -sS "https://firestore.googleapis.com/v1/projects/leaderboard-agentictrading/databases/(default)/documents/alerts?pageSize=300"
    ```
 
+   Alerts whose trade hasn't finished are token-gated: their `alerts` doc is
+   only a teaser (`locked: true`, no ticker or levels). Get their full trade
+   plan from the `alerts_open` function with the same shared secret as
+   `publish_alert` (read-only):
+
+   ```bash
+   curl -sS -H "X-Zelos-Secret: $ZELOS_PUBLISH_SECRET" "https://us-central1-leaderboard-agentictrading.cloudfunctions.net/alerts_open"
+   ```
+
+   It returns `{"ok": true, "alerts": [{id, strategy, ticker, entry, stop, ...}]}`
+   (plain JSON). Use those in place of the teasers. Once you post a final
+   result (`hit-target`, `stopped-out`, `expired`, `no-trade`),
+   `update_alert_outcomes` makes the full alert public, free for everyone.
+
    Keep every doc whose `status` is `"qualified"` AND either:
    - `outcome` is still missing/null or `{"result": "open"}` (nothing decided
      yet), OR

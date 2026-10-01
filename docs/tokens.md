@@ -7,14 +7,20 @@ All the logic is in `functions/main.py` (Tokens section); the browser side is
 
 ## What tokens do
 
-- **Live alerts are locked until the 4:00 pm ET close.** `publish_alert`
-  writes a teaser to `alerts/{id}` (`locked: true`, `lockedUntil`) and the full
-  alert to `alertsLocked/{id}`. `release_alerts` (weekdays, every 30 min from
-  4:10 pm ET) copies the full alert into `alerts/{id}` once the close has
-  passed, so the history, the daily scan pages and old links stay public.
-  Alerts with no qualifying setup are never locked.
-- **A scanner pass** (7 days) unlocks every live alert from that scanner.
-- **A single unlock** opens one live alert.
+- **Alerts with a trade are token-gated until the trade finishes.** `publish_alert`
+  writes a teaser to `alerts/{id}` (`locked: true`, `lockedUntil` = the 4:00 pm
+  ET close) and the full alert to `alertsLocked/{id}`. Before the close an
+  unlock costs the live price. `release_alerts` (weekdays, every 30 min from
+  4:10 pm ET) marks it `afterClose: true` (`released: true` on the locked doc),
+  and from then on an unlock costs the cheaper after-close price. When
+  `update_alert_outcomes` records a final result (`hit-target`, `stopped-out`,
+  `expired`, `no-trade`), the full alert is copied into `alerts/{id}`
+  (`public: true` on the locked doc): free for everyone, so the track record
+  stays open. Alerts with no qualifying setup are never locked. The outcome
+  checker reads gated alerts through `alerts_open` (shared secret).
+  Alerts released for free before this change stay public.
+- **A scanner pass** (7 days) unlocks every gated alert from that scanner, live or after the close.
+- **A single unlock** opens one alert.
 - **New accounts** get welcome tokens once (Google sign-in or a verified email).
 
 ## Prices (provisional)
@@ -26,7 +32,8 @@ scanner pages, the Terms) quote the same numbers; update them together.
 |---|---|---|
 | Welcome bonus | 75 | once per verified account |
 | 1-week scanner pass | 40 | |
-| One live alert | 10 | |
+| One live alert | 10 | before the 4 pm ET close |
+| One alert after the close | 3 | until its trade finishes, then free |
 | Pack p100 | 100 | $3.00 |
 | Pack p350 | 350 | $10.00 |
 | Pack p750 | 750 | $20.00 |

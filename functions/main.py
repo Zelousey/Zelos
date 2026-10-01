@@ -99,18 +99,38 @@ def alert_lock_until(now_utc):
 
 
 def release_due_alerts(db, now_ms):
-    """Copy every locked alert whose close has passed into its public doc."""
+    """At the close a live alert stops being live. It stays token-gated (at the cheaper
+    after-close price) until its trade finishes; then release_alert_public frees it."""
     n = 0
     for snap in db.collection("alertsLocked").where("released", "==", False).stream():
         full = snap.to_dict()
         if (full.get("lockedUntil") or 0) > now_ms:
             continue
-        pub = {k: v for k, v in full.items() if k not in ("lockedUntil", "released")}
-        pub.update({"locked": False, "releasedAt": now_ms})
-        db.collection("alerts").document(snap.id).set(pub, merge=True)
+        db.collection("alerts").document(snap.id).set({"afterClose": True, "closedAt": now_ms}, merge=True)
         snap.reference.update({"released": True, "releasedAt": now_ms})
         n += 1
     return n
+
+
+ALERT_FINAL_RESULTS = {"hit-target", "stopped-out", "expired", "no-trade"}
+
+
+def release_alert_public(db, alert_id, outcome, now_ms):
+    """A finished trade is part of the public track record: copy the full alert into its
+    public doc (free for everyone from now on). Returns True if it was gated before."""
+    lref = db.collection("alertsLocked").document(alert_id)
+    snap = lref.get()
+    if not snap.exists:
+        return False
+    full = snap.to_dict()
+    lref.update({"outcome": outcome})
+    if full.get("public"):
+        return False
+    pub = {k: v for k, v in full.items() if k not in ("lockedUntil", "released", "releasedAt", "public")}
+    pub.update({"outcome": outcome, "locked": False, "afterClose": False, "releasedAt": now_ms})
+    db.collection("alerts").document(alert_id).set(pub, merge=True)
+    lref.update({"public": True, "publicAt": now_ms})
+    return True
 
 
 @scheduler_fn.on_schedule(schedule="10,40 16-23 * * 1-5", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=120, memory=256)
@@ -224,10 +244,37 @@ def _apply_one_outcome(db, update):
     }
     try:
         db.collection("alerts").document(alert_id).set({"outcome": outcome}, merge=True)
+        if result in ALERT_FINAL_RESULTS:
+            release_alert_public(db, alert_id, outcome, int(_time.time() * 1000))
+        else:
+            lref = db.collection("alertsLocked").document(alert_id)
+            if lref.get().exists:
+                lref.update({"outcome": outcome})
     except Exception as e:
         print("[update_alert_outcomes] Firestore write failed:", type(e).__name__)
         return alert_id, "Firestore write failed"
     return alert_id, None
+
+
+@https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
+def alerts_open(req: https_fn.Request) -> https_fn.Response:
+    """The full trade plan of every alert still token-gated (its trade hasn't finished),
+    for the outcome checker (scripts/check_alert_outcomes.py runbook). Same shared-secret
+    gate as publish_alert; read-only."""
+    if req.method != "GET":
+        return https_fn.Response("Method not allowed", status=405)
+    if not _secret_ok(req.headers.get("X-Zelos-Secret", "")):
+        return https_fn.Response("Unauthorized", status=401)
+    db = firestore.client()
+    out = []
+    for snap in db.collection("alertsLocked").stream():
+        d = snap.to_dict()
+        if d.get("public"):
+            continue
+        d["id"] = snap.id
+        out.append(d)
+    return https_fn.Response(json.dumps({"ok": True, "alerts": out}, default=lambda o: o.isoformat() if hasattr(o, "isoformat") else str(o)),
+                             status=200, content_type="application/json")
 
 
 @https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
@@ -1881,7 +1928,7 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
             rows = [{"uid": uid, "name": a.get("name"), "start": a["start"], "final": a["equity"], "pnl": a["pnl"],
                      "pnlPct": a["pnlPct"], "trades": a.get("trades", 0), "wins": a.get("wins", 0), "losses": a.get("losses", 0),
                      "out": bool(a.get("out")), "outReason": a.get("outReason"), "place": a.get("place")} for uid, a in accts.items()]
-            update.update({"status": "ended", "results": tw_rank(rows), "endedAt": now_ms})
+            update.update({"status": "ended", "results": tw_rank(rows), "endedAt": now_ms, "rewardsPaid": False})
             win = update["results"][0] if update["results"] else None
             if win:
                 events.append(tw_event("win", "%s wins the Trade War (%+.2f%%)" % (win["name"] or "Trader", win["pnlPct"]), now_ms, uid=win["uid"]))
@@ -1962,6 +2009,12 @@ def tw_mark_all(db, now_ms, prices, market_open=False):
             n += 1 if tw_draft_step(db, wsnap.reference, now_ms) else 0
         except Exception as e:
             print("[tw_mark_matches] draft %s failed: %s" % (wsnap.id, type(e).__name__))
+    # token rewards for matches that just ended (rewardsPaid False until paid; older matches have no flag)
+    for wsnap in db.collection("tradeWars").where("rewardsPaid", "==", False).stream():
+        try:
+            tw_pay_rewards(db, wsnap.reference, now_ms)
+        except Exception as e:
+            print("[tw_mark_matches] rewards %s failed: %s" % (wsnap.id, type(e).__name__))
     return n
 
 
@@ -2169,7 +2222,8 @@ import hashlib as _hashlib
 TOKENS = {
     "welcome": 75,                 # once per verified account
     "pass": 40, "passDays": 7,     # one scanner, 7 days
-    "unlock": 10,                  # one live alert
+    "unlock": 10,                  # one live alert (before the 4 pm ET close)
+    "unlockClosed": 3,             # one alert after the close, until its trade finishes (then free)
     "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
 }
 TK_UNLOCKED_MAX = 300
@@ -2221,12 +2275,13 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
             raise TWError("INVALID_ARGUMENT", "Pick a scanner.")
         cost, ref = TOKENS["pass"], strategy
     elif kind == "unlock":
-        if not locked or locked.get("released"):
+        if not locked or locked.get("public"):
             raise TWError("FAILED_PRECONDITION", "This alert is already free to read.")
         strategy = locked.get("strategy")
         if tk_has_access(wallet, strategy, alert_id, now_ms):
             return wallet, None
-        cost, ref = TOKENS["unlock"], alert_id
+        closed = locked.get("released") or (locked.get("lockedUntil") or 0) <= now_ms
+        cost, ref = TOKENS["unlockClosed" if closed else "unlock"], alert_id
     else:
         raise TWError("INVALID_ARGUMENT", "Unknown purchase.")
     if wallet["balance"] < cost:
@@ -2287,7 +2342,7 @@ def tokens_wallet(req, db, uid, tok, now_ms):
 
     wallet, line = txn(db.transaction())
     out = _tk_public(wallet)
-    out.update({"welcomed": bool(line), "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "welcome": TOKENS["welcome"]},
+    out.update({"welcomed": bool(line), "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
                 "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
                 "canBuy": _square_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
     return out
@@ -2320,6 +2375,544 @@ def tokens_spend(req, db, uid, tok, now_ms):
     wallet, line = txn(db.transaction())
     out = _tk_public(wallet)
     out["charged"] = -(line or {}).get("amount", 0)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Earning tokens (free), profile cosmetics and the Founder Program.
+#
+#   rewards_checkin       once per New York day: a few tokens, a bonus on every 7th day in
+#                         a row. Verified accounts only. Also counts as "active" for the
+#                         Founder Program.
+#   Trade War rewards     paid by tw_mark_matches when a match ends (tw_pay_rewards).
+#   cosmetics_buy/equip   name colors, badges, profile banners bought with tokens. What you
+#                         show is in cosmetics/{uid} (public read, server write).
+#   community_create/join/leave/get
+#                         Founder Program communities (see the section further down).
+#
+# Every token amount lives in EARN / COSMETICS / FOUNDER_TIERS; browsers never send one.
+# ---------------------------------------------------------------------------
+EARN = {
+    "daily": 2, "streakBonus": 10, "streakEvery": 7,
+    "twTop": (25, 15, 10),   # 1st/2nd/3rd when 4+ eligible players
+    "twDuel": 15,            # the winner, when 2-3 eligible players
+    "lmsSurvivor": 10,       # extra for the last trader standing in Last Man Standing
+    "twDailyCap": 2,         # rewarded matches per player per New York day
+}
+
+
+def _ny_day(now_ms, offset_days=0):
+    from zoneinfo import ZoneInfo
+    from datetime import timedelta
+    d = datetime.fromtimestamp(now_ms / 1000, ZoneInfo("America/New_York")).date() + timedelta(days=offset_days)
+    return d.isoformat()
+
+
+def tk_checkin(wallet, today, yesterday, now_ms):
+    """Pure: (wallet, ledger line | None, checkin state). Once per day; the streak
+    continues if your last check-in was yesterday."""
+    c = wallet.get("checkin") or {}
+    if c.get("day") == today:
+        return wallet, None, c
+    streak = (c.get("streak") or 0) + 1 if c.get("day") == yesterday else 1
+    c2 = {"day": today, "streak": streak, "days": (c.get("days") or 0) + 1}
+    amount, note = EARN["daily"], "Daily check-in (day %d)" % streak
+    if streak % EARN["streakEvery"] == 0:
+        amount += EARN["streakBonus"]
+        note = "Daily check-in + %d-day streak bonus" % streak
+    w = dict(wallet, balance=wallet["balance"] + amount, checkin=c2, updatedAt=now_ms)
+    return w, tk_ledger("checkin", amount, w["balance"], now_ms, note), c2
+
+
+def _client_ip(req):
+    """The caller's IP: the last X-Forwarded-For hop is the one Google's front end adds
+    (a browser can prepend its own, never replace it)."""
+    raw = getattr(req, "raw_request", None)
+    if raw is None:
+        return ""
+    xff = raw.headers.get("X-Forwarded-For") or ""
+    hops = [h.strip() for h in xff.split(",") if h.strip()]
+    return hops[-1] if hops else (getattr(raw, "remote_addr", "") or "")
+
+
+def _ip_hash(ip):
+    """Stored instead of the IP itself; only ever compared for equality."""
+    return _hashlib.sha256(("zelos-founder|" + (ip or "")).encode()).hexdigest()[:24] if ip else ""
+
+
+@https_fn.on_call()
+@_tk_call
+def rewards_checkin(req, db, uid, tok, now_ms):
+    if not _tk_verified(tok):
+        return {"earned": 0, "needsVerify": True}
+    today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        wallet, wline = tk_welcome(wallet, True, now_ms)
+        wallet, line, c = tk_checkin(wallet, today, yesterday, now_ms)
+        if wline or line or not snap.exists:
+            t.set(ref, wallet)
+        for ln in (wline, line):
+            if ln:
+                t.set(ref.collection("ledger").document(), ln)
+        return wallet, line, c
+
+    wallet, line, c = txn(db.transaction())
+    try:
+        community_activity(db, uid, tok, today, now_ms, _ip_hash(_client_ip(req)))
+    except Exception as e:
+        print("[rewards_checkin] community update failed: %s" % type(e).__name__)
+    return {"earned": (line or {}).get("amount", 0), "balance": wallet["balance"], "streak": c.get("streak", 0),
+            "days": c.get("days", 0), "every": EARN["streakEvery"], "bonus": EARN["streakBonus"], "daily": EARN["daily"]}
+
+
+# ---- Trade War rewards -------------------------------------------------------
+# When a match ends, its top finishers earn tokens. Only players who made at least one
+# trade and have a verified account count, and a match needs two of them, so a lone
+# account can't farm rewards. Each player is paid for at most twDailyCap matches a day.
+
+def tw_rewards(results, lms, eligible):
+    """Pure: [(uid, tokens, note)] for an ended match. results is ranked (tw_rank);
+    eligible is the set of uids that may earn."""
+    rows = [r for r in results or [] if r.get("uid") in eligible and (r.get("trades") or 0) >= 1]
+    out = []
+    if len(rows) >= 4:
+        for r, amt, place in zip(rows, EARN["twTop"], ("1st", "2nd", "3rd")):
+            out.append([r["uid"], amt, "Trade War: %s place" % place])
+    elif len(rows) >= 2:
+        out.append([rows[0]["uid"], EARN["twDuel"], "Trade War: 1st place"])
+    if lms and len(rows) >= 2 and not rows[0].get("out") and (results or [{}])[0].get("uid") == rows[0]["uid"]:
+        out[0][1] += EARN["lmsSurvivor"]
+        out[0][2] = "Last Man Standing: survived and won"
+    return [tuple(x) for x in out]
+
+
+def _verified_uids(uids):
+    """uids whose account is verified (Google sign-in or a verified email)."""
+    from firebase_admin import auth as _auth
+    ok = set()
+    uids = list(uids)
+    for i in range(0, len(uids), 100):
+        try:
+            res = _auth.get_users([_auth.UidIdentifier(u) for u in uids[i:i + 100]])
+        except Exception as e:
+            print("[tw_rewards] get_users failed: %s" % type(e).__name__)
+            continue
+        for u in res.users:
+            if u.email_verified or any(p.provider_id == "google.com" for p in (u.provider_data or [])):
+                ok.add(u.uid)
+    return ok
+
+
+def tw_credit_reward(db, uid, war_id, amount, note, now_ms):
+    """Credit one match reward once (the ledger id is per match) within the daily cap.
+    Returns True if paid."""
+    ref = db.collection("wallets").document(uid)
+    lref = ref.collection("ledger").document("tw-" + war_id)
+    today = _ny_day(now_ms)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if lref.get(transaction=t).exists:
+            return False
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        cap = wallet.get("twRewards") or {}
+        n = cap.get("n", 0) if cap.get("day") == today else 0
+        if n >= EARN["twDailyCap"]:
+            return False
+        w, line = tk_credit(wallet, amount, now_ms, "trade-war", note, war_id)
+        w["twRewards"] = {"day": today, "n": n + 1}
+        t.set(ref, w)
+        t.set(lref, line)
+        return True
+
+    return txn(db.transaction())
+
+
+def tw_pay_rewards(db, ref, now_ms):
+    """Pay the rewards of one ended match (once: rewardsPaid flips in the end)."""
+    war = ref.get().to_dict() or {}
+    if war.get("status") != "ended" or war.get("rewardsPaid") is not False:
+        return 0
+    results = war.get("results") or []
+    traded = [r["uid"] for r in results if (r.get("trades") or 0) >= 1]
+    plan = tw_rewards(results, war.get("lms"), _verified_uids(traded) if len(traded) >= 2 else set())
+    paid = []
+    for uid, amount, note in plan:
+        if tw_credit_reward(db, uid, ref.id, amount, note, now_ms):
+            paid.append({"uid": uid, "tokens": amount, "note": note})
+    ref.update({"rewardsPaid": True, "rewards": paid})
+    names = war.get("names") or {}
+    for p in paid:
+        ref.collection("events").document().set(tw_event("reward", "%s earned %d tokens (%s)" % (names.get(p["uid"], "Trader"), p["tokens"], p["note"]), now_ms, uid=p["uid"]))
+    return len(paid)
+
+
+# ---- Profile cosmetics -------------------------------------------------------
+# Bought once with tokens, then yours to switch on and off. The look itself (colors,
+# gradients, emoji) is drawn by zelos-tokens.js from the same ids.
+COSMETICS = {
+    "color": {"gold": ("Gold name", 60), "emerald": ("Emerald name", 60), "electric": ("Electric blue name", 60),
+              "crimson": ("Crimson name", 60), "violet": ("Violet name", 60), "rainbow": ("Prism name", 150)},
+    "badge": {"bull": ("Bull badge", 40), "bear": ("Bear badge", 40), "rocket": ("Rocket badge", 40),
+              "diamond": ("Diamond hands badge", 80), "crown": ("Crown badge", 120)},
+    "banner": {"sunset": ("Sunset banner", 80), "midnight": ("Midnight banner", 80), "neon": ("Neon grid banner", 100),
+               "ocean": ("Ocean banner", 80), "gold": ("Gold rush banner", 150)},
+}
+
+
+def cosmetic_buy(wallet, kind, cid, now_ms):
+    """Pure: (wallet, ledger line | None). Already owned = no charge."""
+    item = (COSMETICS.get(kind) or {}).get(cid)
+    if not item:
+        raise TWError("INVALID_ARGUMENT", "That item isn't in the shop.")
+    key = "%s:%s" % (kind, cid)
+    owned = list(wallet.get("owned") or [])
+    if key in owned:
+        return wallet, None
+    name, cost = item
+    if wallet["balance"] < cost:
+        raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet["balance"]))
+    w = dict(wallet, balance=wallet["balance"] - cost, owned=owned + [key], updatedAt=now_ms)
+    return w, tk_ledger("cosmetic", -cost, w["balance"], now_ms, name, key)
+
+
+def _cosmetics_shop():
+    return {k: [{"id": i, "name": v[0], "price": v[1]} for i, v in items.items()] for k, items in COSMETICS.items()}
+
+
+@https_fn.on_call()
+@_tk_call
+def cosmetics_buy(req, db, uid, tok, now_ms):
+    """{kind, id}: buy it (if you don't own it) and wear it."""
+    data = req.data or {}
+    kind, cid = str(data.get("kind") or ""), str(data.get("id") or "")
+    ref = db.collection("wallets").document(uid)
+    look = db.collection("cosmetics").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        wallet, line = cosmetic_buy(wallet, kind, cid, now_ms)
+        if line:
+            t.set(ref, wallet)
+            t.set(ref.collection("ledger").document(), line)
+        t.set(look, {kind: cid, "updatedAt": now_ms}, merge=True)
+        return wallet, line
+
+    wallet, line = txn(db.transaction())
+    return {"balance": wallet["balance"], "owned": wallet.get("owned") or [], "charged": -(line or {}).get("amount", 0)}
+
+
+@https_fn.on_call()
+@_tk_call
+def cosmetics_equip(req, db, uid, tok, now_ms):
+    """{kind, id|null}: wear something you own, or take it off. Also {} = the shop."""
+    data = req.data or {}
+    kind = str(data.get("kind") or "")
+    wsnap = db.collection("wallets").document(uid).get()
+    wallet = wsnap.to_dict() if wsnap.exists else {}
+    look_ref = db.collection("cosmetics").document(uid)
+    if kind:
+        if kind not in COSMETICS:
+            raise TWError("INVALID_ARGUMENT", "That item isn't in the shop.")
+        cid = data.get("id")
+        if cid is not None and "%s:%s" % (kind, cid) not in (wallet.get("owned") or []):
+            raise TWError("FAILED_PRECONDITION", "Buy it first.")
+        look_ref.set({kind: cid, "updatedAt": now_ms}, merge=True)
+    ls = look_ref.get()
+    return {"shop": _cosmetics_shop(), "owned": wallet.get("owned") or [], "look": ls.to_dict() if ls.exists else {}}
+
+
+# ---- Founder Program ---------------------------------------------------------
+# Start a community (a name + your state), share its link, and earn tokens and Founder
+# titles as real members join and stay active.
+#
+#   communities/{cid}                public: {name, state, slug, founder, founderName, members, counted,
+#                                    xp, tier, title, rewarded: [5, 10, ...], weeks: {wYYYYWW: joins},
+#                                    createdAt, lastJoinAt}. cid = slug of name + state.
+#   communities/{cid}/members/{uid}  public: {name, joinedAt, xp, counted, founder}
+#   communityMembers/{uid}           you only: {cid, joinedAt, activeDays, lastActive, counted,
+#                                    countedFor, ipHash, founded}
+#   communityPrivate/{cid}           server only: {founderIps, countedIps} (hashed, never raw IPs)
+#
+# A member counts toward the founder's milestones once, when all of these hold:
+#   - a verified account (Google sign-in or a verified email), and not the founder;
+#   - never counted for any community before (switching can't count twice);
+#   - active (the daily check-in) on FOUNDER_ACTIVE_DAYS different days since joining;
+#   - on a different network from the founder and from every member already counted.
+# Members' XP (users/{uid}.xp) is summed into the community's XP when they check in.
+US_STATES = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California", "CO": "Colorado",
+    "CT": "Connecticut", "DE": "Delaware", "DC": "District of Columbia", "FL": "Florida", "GA": "Georgia",
+    "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas",
+    "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland", "MA": "Massachusetts",
+    "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri", "MT": "Montana",
+    "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico",
+    "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma",
+    "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina", "SD": "South Dakota",
+    "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia", "WA": "Washington",
+    "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
+}
+FOUNDER_TIERS = [(5, 250, "Founder"), (10, 150, "Rising Founder"), (25, 400, "Community Builder"),
+                 (50, 750, "Community Leader"), (100, 1500, "Legendary Founder")]
+FOUNDER_ACTIVE_DAYS = 2
+_COMMUNITY_NAME_RE = _re.compile(r"^[A-Za-z0-9][A-Za-z0-9 '&.-]{1,28}[A-Za-z0-9.]$")
+_BLOCKED_WORDS = ("fuck", "shit", "bitch", "cunt", "nigg", "fag", "rape", "nazi", "porn", "dick", "pussy", "whore", "slut", "retard")
+
+
+def community_slug(name, state):
+    """Validated (display name, state code, cid) or TWError."""
+    name = _re.sub(r"\s+", " ", str(name or "")).strip()
+    state = str(state or "").strip().upper()
+    if state not in US_STATES:
+        raise TWError("INVALID_ARGUMENT", "Pick your state.")
+    if not _COMMUNITY_NAME_RE.match(name):
+        raise TWError("INVALID_ARGUMENT", "Community names are 3 to 30 letters, numbers and spaces.")
+    flat = _re.sub(r"[^a-z]", "", name.lower())
+    if any(w in flat for w in _BLOCKED_WORDS):
+        raise TWError("INVALID_ARGUMENT", "Pick a different name.")
+    base = _re.sub(r"-+", "-", _re.sub(r"[^a-z0-9]+", "-", name.lower())).strip("-")
+    return name, state, "%s-%s" % (base, state.lower())
+
+
+def founder_due(counted, rewarded):
+    """Pure: the milestones reached and not yet paid, [(members, tokens, title)]."""
+    return [t for t in FOUNDER_TIERS if counted >= t[0] and t[0] not in (rewarded or [])]
+
+
+def founder_title(counted):
+    best = None
+    for t in FOUNDER_TIERS:
+        if counted >= t[0]:
+            best = t
+    return best
+
+
+def member_counts(m, priv, founder, uid, verified, ip_hash):
+    """Pure: (counts now?, reason). m is communityMembers/{uid}."""
+    if m.get("counted"):
+        return False, "already counted"
+    if uid == founder:
+        return False, "founder"
+    if not verified:
+        return False, "not verified"
+    if m.get("countedFor"):
+        return False, "counted before"
+    if (m.get("activeDays") or 0) < FOUNDER_ACTIVE_DAYS:
+        return False, "not active enough yet"
+    seen = set((priv or {}).get("founderIps") or []) | set((priv or {}).get("countedIps") or [])
+    mine = {h for h in (m.get("ipHash"), ip_hash) if h}
+    if mine & seen:
+        return False, "same network"
+    return True, "ok"
+
+
+def _week_key(now_ms):
+    from zoneinfo import ZoneInfo
+    y, w, _ = datetime.fromtimestamp(now_ms / 1000, ZoneInfo("America/New_York")).date().isocalendar()
+    return "w%d%02d" % (y, w)
+
+
+def _user_xp(db, uid):
+    try:
+        d = db.collection("users").document(uid).get()
+        return max(0, int((d.to_dict() or {}).get("xp") or 0)) if d.exists else 0
+    except Exception:
+        return 0
+
+
+def _leave_writes(t, db, uid, m, comm):
+    """Writes that take uid out of its community (inside a transaction, after the reads)."""
+    cref = db.collection("communities").document(m["cid"])
+    mref = cref.collection("members").document(uid)
+    upd = {"members": firestore.Increment(-1)}
+    if m.get("counted"):
+        upd["counted"] = firestore.Increment(-1)
+    if m.get("xp"):
+        upd["xp"] = firestore.Increment(-int(m.get("xp") or 0))
+    if comm:
+        t.update(cref, upd)
+    t.delete(mref)
+
+
+@https_fn.on_call()
+@_tk_call
+def community_create(req, db, uid, tok, now_ms):
+    """{name, state} -> {cid}. You become its founder (one community per founder)."""
+    if not _tk_verified(tok):
+        raise TWError("FAILED_PRECONDITION", "Verify your email (or sign in with Google) to start a community.")
+    data = req.data or {}
+    name, state, cid = community_slug(data.get("name"), data.get("state"))
+    who, xp, iph, today = _tw_name(db, uid, tok), _user_xp(db, uid), _ip_hash(_client_ip(req)), _ny_day(now_ms)
+    mref = db.collection("communityMembers").document(uid)
+    cref = db.collection("communities").document(cid)
+
+    @firestore.transactional
+    def txn(t):
+        ms = mref.get(transaction=t)
+        m = ms.to_dict() if ms.exists else {}
+        if m.get("founded"):
+            raise TWError("FAILED_PRECONDITION", "You already founded a community.")
+        if m.get("cid"):
+            raise TWError("FAILED_PRECONDITION", "Leave your current community first.")
+        if cref.get(transaction=t).exists:
+            raise TWError("ALREADY_EXISTS", "%s already has a community called %s. Pick another name." % (US_STATES[state], name))
+        t.set(cref, {"name": name, "state": state, "slug": cid, "founder": uid, "founderName": who, "members": 1, "counted": 0,
+                     "xp": xp, "tier": 0, "title": None, "rewarded": [], "weeks": {}, "createdAt": now_ms, "lastJoinAt": now_ms})
+        t.set(cref.collection("members").document(uid), {"name": who, "joinedAt": now_ms, "xp": xp, "counted": False, "founder": True})
+        t.set(db.collection("communityPrivate").document(cid), {"founderIps": [iph] if iph else [], "countedIps": []})
+        t.set(mref, dict(m, cid=cid, founded=cid, joinedAt=now_ms, activeDays=1, lastActive=today, counted=False, ipHash=iph, xp=xp))
+        t.set(db.collection("cosmetics").document(uid), {"community": {"cid": cid, "name": name, "state": state}, "updatedAt": now_ms}, merge=True)
+
+    txn(db.transaction())
+    print("[community] created %s" % cid)
+    return {"cid": cid}
+
+
+@https_fn.on_call()
+@_tk_call
+def community_join(req, db, uid, tok, now_ms):
+    """{cid, switch?}: join (leaving your current community only if switch is true)."""
+    data = req.data or {}
+    cid = str(data.get("cid") or "")
+    if not _re.match(r"^[a-z0-9-]{3,40}$", cid):
+        raise TWError("INVALID_ARGUMENT", "That community link isn't valid.")
+    who, xp, iph, today, wk = _tw_name(db, uid, tok), _user_xp(db, uid), _ip_hash(_client_ip(req)), _ny_day(now_ms), _week_key(now_ms)
+    mref = db.collection("communityMembers").document(uid)
+    cref = db.collection("communities").document(cid)
+
+    @firestore.transactional
+    def txn(t):
+        ms = mref.get(transaction=t)
+        m = ms.to_dict() if ms.exists else {}
+        cs = cref.get(transaction=t)
+        if not cs.exists:
+            raise TWError("NOT_FOUND", "That community doesn't exist (any more).")
+        if m.get("cid") == cid:
+            return {"cid": cid, "already": True}
+        old = None
+        if m.get("cid"):
+            if m.get("founded") == m["cid"]:
+                raise TWError("FAILED_PRECONDITION", "You founded %s, so you can't switch communities." % m["cid"])
+            if not data.get("switch"):
+                raise TWError("FAILED_PRECONDITION", "SWITCH:You're already in a community. Switch to this one?")
+            os_ = db.collection("communities").document(m["cid"]).get(transaction=t)
+            old = os_.to_dict() if os_.exists else None
+        if m.get("cid"):
+            _leave_writes(t, db, uid, m, old)
+        t.update(cref, {"members": firestore.Increment(1), "xp": firestore.Increment(xp), "lastJoinAt": now_ms,
+                        "weeks." + wk: firestore.Increment(1)})
+        t.set(cref.collection("members").document(uid), {"name": who, "joinedAt": now_ms, "xp": xp, "counted": False, "founder": False})
+        t.set(mref, {"cid": cid, "joinedAt": now_ms, "activeDays": 1, "lastActive": today, "counted": False,
+                     "countedFor": m.get("countedFor"), "ipHash": iph, "founded": m.get("founded"), "xp": xp})
+        comm = cs.to_dict()
+        t.set(db.collection("cosmetics").document(uid), {"community": {"cid": cid, "name": comm.get("name"), "state": comm.get("state")}, "updatedAt": now_ms}, merge=True)
+        return {"cid": cid}
+
+    out = txn(db.transaction())
+    print("[community] join %s" % cid)
+    return out
+
+
+@https_fn.on_call()
+@_tk_call
+def community_leave(req, db, uid, tok, now_ms):
+    mref = db.collection("communityMembers").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        ms = mref.get(transaction=t)
+        m = ms.to_dict() if ms.exists else {}
+        if not m.get("cid"):
+            return {"left": False}
+        if m.get("founded") == m["cid"]:
+            raise TWError("FAILED_PRECONDITION", "Founders can't leave their own community.")
+        cs = db.collection("communities").document(m["cid"]).get(transaction=t)
+        _leave_writes(t, db, uid, m, cs.to_dict() if cs.exists else None)
+        t.set(mref, {"cid": None, "counted": False, "countedFor": m.get("countedFor"), "founded": m.get("founded"), "ipHash": m.get("ipHash")})
+        t.set(db.collection("cosmetics").document(uid), {"community": None, "updatedAt": now_ms}, merge=True)
+        return {"left": True}
+
+    return txn(db.transaction())
+
+
+def community_activity(db, uid, tok, today, now_ms, iph):
+    """Called on each daily check-in: active days, XP, and the Founder milestones."""
+    mref = db.collection("communityMembers").document(uid)
+    first = mref.get()
+    if not first.exists or not (first.to_dict() or {}).get("cid"):
+        return None
+    xp = _user_xp(db, uid)
+    verified = _tk_verified(tok)
+
+    @firestore.transactional
+    def txn(t):
+        ms = mref.get(transaction=t)
+        m = ms.to_dict() if ms.exists else {}
+        cid = m.get("cid")
+        if not cid:
+            return None
+        cref = db.collection("communities").document(cid)
+        cs = cref.get(transaction=t)
+        if not cs.exists:
+            return None
+        comm = cs.to_dict()
+        pref = db.collection("communityPrivate").document(cid)
+        ps = pref.get(transaction=t)
+        priv = ps.to_dict() if ps.exists else {"founderIps": [], "countedIps": []}
+        founder = comm.get("founder")
+        fref = db.collection("wallets").document(founder)
+        fs = fref.get(transaction=t)
+        fwallet = fs.to_dict() if fs.exists else tk_new_wallet(now_ms)
+
+        m2 = dict(m)
+        if m.get("lastActive") != today:
+            m2.update(activeDays=(m.get("activeDays") or 0) + 1, lastActive=today)
+        dxp = xp - int(m.get("xp") or 0)
+        m2["xp"] = xp
+        cupd = {}
+        if dxp:
+            cupd["xp"] = firestore.Increment(dxp)
+        member_upd = {"xp": xp}
+        if uid == founder and iph and iph not in (priv.get("founderIps") or []):
+            priv = dict(priv, founderIps=((priv.get("founderIps") or []) + [iph])[-20:])
+            t.set(pref, priv)
+        ok, why = member_counts(m2, priv, founder, uid, verified, iph)
+        paid = []
+        if ok:
+            m2.update(counted=True, countedFor=cid)
+            member_upd["counted"] = True
+            counted = (comm.get("counted") or 0) + 1
+            cupd["counted"] = firestore.Increment(1)
+            hashes = [h for h in {m.get("ipHash"), iph} if h]
+            t.set(pref, dict(priv, countedIps=((priv.get("countedIps") or []) + hashes)[-500:]))
+            due = founder_due(counted, comm.get("rewarded"))
+            for need, tokens, title in due:
+                fwallet, line = tk_credit(fwallet, tokens, now_ms, "founder", "Founder Program: %s reached %d members (%s)" % (comm.get("name"), need, title), cid)
+                t.set(fref.collection("ledger").document("founder-%s-%d" % (cid, need)), line)
+                paid.append(need)
+            if paid:
+                best = founder_title(counted)
+                t.set(fref, fwallet)
+                cupd.update(rewarded=(comm.get("rewarded") or []) + paid, tier=best[0], title=best[2])
+                t.set(db.collection("cosmetics").document(founder),
+                      {"founder": {"title": best[2], "tier": best[0], "cid": cid, "name": comm.get("name")}, "updatedAt": now_ms}, merge=True)
+        t.set(mref, m2)
+        t.set(cref.collection("members").document(uid), member_upd, merge=True)
+        if cupd:
+            t.update(cref, cupd)
+        return {"counted": ok, "why": why, "paid": paid}
+
+    out = txn(db.transaction())
+    if out and (out["counted"] or out["paid"]):
+        print("[community] activity counted=%s paid=%s" % (out["counted"], out["paid"]))
     return out
 
 
