@@ -1193,16 +1193,6 @@
     $('ptModalCancel').addEventListener('click', function () { $('ptConfirm').hidden = true; });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('ptConfirm').hidden = true; if (chart.placing) { chart.placing = null; ['ptAlertAdd', 'ptAbc'].forEach(function (id) { $(id).classList.remove('is-on'); $(id).setAttribute('aria-pressed', 'false'); }); renderAll(); } document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); } });
     document.querySelectorAll('.pt-tab').forEach(function (t) { t.addEventListener('click', function () { tab = t.getAttribute('data-tab'); renderTabs(); }); });
-    // XP & Missions lives in the tabs below the chart: a floating shortcut jumps there
-    (function () {
-      var tabsEl = document.querySelector('.pt-tabs'); if (!tabsEl) return;
-      var jump = document.createElement('button'); jump.type = 'button'; jump.className = 'pt-xp-jump'; jump.innerHTML = '<span aria-hidden="true">⚡</span> XP &amp; Missions';
-      jump.onclick = function () { tab = 'progress'; renderTabs(); tabsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-      document.body.appendChild(jump);
-      if (window.IntersectionObserver) new IntersectionObserver(function (es) {
-        var seen = es[0].isIntersecting || es[0].boundingClientRect.top < 0; jump.classList.toggle('is-hidden', seen);
-      }, { rootMargin: '0px 0px -30% 0px' }).observe(tabsEl);
-    })();
     $('ptTabBody').addEventListener('click', function (e) {
       var tg = e.target.closest('button,a'); if (!tg) return;
       var s = tg.getAttribute('data-sym'), c = tg.getAttribute('data-cancel'), cl = tg.getAttribute('data-close'), oc = tg.getAttribute('data-optclose'), os = tg.getAttribute('data-optsym'), ag = tg.getAttribute('data-agent');
