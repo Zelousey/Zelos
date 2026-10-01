@@ -14,7 +14,8 @@ check() {
   code="$(printf '%s' "$body" | tail -n1)"; body="$(printf '%s' "$body" | sed '$d')"
   if [ "$code" = "000" ]; then printf '%-36s couldn'"'"'t reach FMP (network)\n' "$label"; return; fi
   if [ "$code" = "401" ]; then printf '%-36s key rejected (401)\n' "$label"; return; fi
-  if [ "$code" = "200" ] && ! printf '%s' "$body" | grep -qiE 'restricted|premium|upgrade|not available|limit reach|Error Message'; then
+  # a JSON list is real data (it can contain words like "upgrade"); a plan limit comes back as an object or a message
+  if [ "$code" = "200" ] && { printf '%s' "$body" | grep -q '^[[:space:]]*\[' || ! printf '%s' "$body" | grep -qiE 'restricted|premium|upgrade|not available|limit reach|Error Message'; }; then
     if printf '%s' "$body" | grep -q '^\[\]$'; then printf '%-36s included (no data right now)\n' "$label"; else printf '%-36s included\n' "$label"; fi
   else printf '%-36s not in your plan (%s)\n' "$label" "$code"; fi
 }
@@ -38,5 +39,8 @@ check "Insider trades"                  "insider-trading/latest?page=0&limit=1"
 check "Financial statements"            "income-statement?symbol=AAPL&limit=1"
 check "Key metrics / ratios"            "key-metrics?symbol=AAPL&limit=1"
 check "ETF holdings"                    "etf/holdings?symbol=SPY"
+check "Top losers"                      "biggest-losers"
+check "Ratios (P/E etc.)"               "ratios-ttm?symbol=AAPL"
+check "Insider trades (one stock)"      "insider-trading/search?symbol=AAPL&page=0&limit=1"
 check "Crypto quote (for later)"        "quote?symbol=BTCUSD"
 unset KEY

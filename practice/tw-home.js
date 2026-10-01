@@ -5,8 +5,10 @@
  *           your trader card (picture, @username, level + XP bar), the account
  *           switcher (Main account + the Trade Wars you're in), "Start a Trade
  *           War", and any challenges waiting for you (Accept / Decline).
- *   #twHub  (Trade War page) leaderboard, today's missions, achievements,
- *           friends (with Challenge buttons) and your Trade War history.
+ *           A "battle banner" under it for every live Trade War you're in.
+ *   #twTiles (Trade War page) one row of small tiles: today's missions,
+ *           achievements, leaderboard, friends, your Trade Wars + challenges,
+ *           and market movers. Each opens a bigger panel over the page.
  *
  * The Main account is the standing $10,000 virtual account (practice.js); each
  * Trade War is a separate equal-buy-in match account run by the server
@@ -45,7 +47,7 @@
     el.innerHTML = '<div class="twh-top">' +
       '<a class="twh-me" href="profile.html">' + av + '<span><b>' + esc(nm) + '</b>' + (lv ? '<small>Level ' + lv.level + ' · ' + esc(lv.name) + ' · ' + xp.toLocaleString('en-US') + ' XP</small><i class="twh-xp"><i style="width:' + prog + '%"></i></i>' : '') + '</span></a>' +
       '<nav class="twh-accts" aria-label="Your Trade War accounts">' + chips + '</nav>' +
-      '<button type="button" class="twh-start" id="twhStart">+ Start a Trade War</button></div>' +
+      '<button type="button" class="twh-start" id="twhStart">+ Start a Trade War</button></div>' + battleBanner() +
       (invites.length ? '<div class="twh-inv">' + invites.map(function (i) {
         return '<div class="twh-inv-row"><span>' + (i.lms ? '&#9760;' : '⚔️') + ' <b>' + esc(i.fromName || 'A trader') + '</b> challenged you' + (i.lms ? ' to Last Man Standing' : '') + ' · ' + money(i.buyIn, 0) + ' buy-in · ' + i.days + 'd' +
           (i.lms && window.ZelosChallenge ? '<small class="twh-inv-rules">' + ZelosChallenge.lmsRules(i.lms, i.buyIn).map(esc).join(' · ') + '</small>' : '') + '</span>' +
@@ -61,47 +63,128 @@
       };
     });
   }
+  // "you're in battle": every live (or drafting) Trade War you're in, except the room you're looking at
+  function battleBanner() {
+    var on = wars.filter(function (w) { return (w.status === 'active' || w.status === 'draft') && w.id !== here; }).slice(0, 3);
+    return on.map(function (w) {
+      var r = ranks[w.id], draft = w.status === 'draft';
+      return '<a class="twh-battle' + (w.lms ? ' is-lms' : '') + (r && r.out ? ' is-out' : '') + '" href="war.html?w=' + encodeURIComponent(w.id) + '">' +
+        '<span class="twh-battle-k"><i></i>' + (draft ? 'Draft is on' : r && r.out ? 'Knocked out' : 'In battle') + '</span>' +
+        '<b>' + (w.lms ? '&#9760; ' : '⚔️ ') + esc(w.name) + '</b>' +
+        '<span class="twh-battle-st">' + (draft ? 'Pick your stocks now' : (r ? (r.out ? 'Finished #' : '#') + r.rank + ' of ' + r.of + ' · <em class="' + ((r.pnlPct || 0) >= 0 ? 'up' : 'dn') + '">' + pct(r.pnlPct) + '</em> · ' : '') + left(w.endAt - Date.now()) + ' left') + '</span>' +
+        '<span class="twh-battle-go">' + (draft ? 'Draft' : 'Go to battle') + ' &rarr;</span></a>';
+    }).join('');
+  }
   function start() {
     if (!user) { alert('Sign in to start a Trade War.'); return; }
     if (window.ZelosChallenge) ZelosChallenge.open({});
   }
 
-  // ------------------------------------------------------------ hub
-  function card(title, body, link) { return '<section class="pt-card twh-card"><div class="twh-card-head"><h2>' + title + '</h2>' + (link || '') + '</div>' + body + '</section>'; }
-  function renderHub(extra) {
-    var el = $('twHub'); if (!el) return;
-    var P = window.ZelosProgress, h = '';
-    // missions
-    if (P) {
-      var ms = P.missions();
-      h += card('Today\'s missions', '<ul class="twh-list">' + ms.daily.map(function (m) { return '<li class="' + (m.done ? 'is-done' : '') + '"><span>' + (m.done ? '✅ ' : '') + esc(m.label) + '</span><small>' + m.count + '/' + m.goal + ' · +' + m.xp + ' XP</small></li>'; }).join('') + '</ul>' +
-        '<p class="pt-fine">🔥 ' + ms.streak.days + '-day streak · finish ' + ms.streak.need + ' a day to keep it.</p>', '<a href="index.html?tab=progress">All &rarr;</a>');
-      var un = P.unlocked(), ids = Object.keys(un).sort(function (a, b) { return un[b] - un[a]; });
-      h += card('Achievements', '<p class="twh-big">' + ids.length + ' <small>of ' + P.ACHIEVEMENTS.length + ' unlocked</small></p><div class="twh-badges">' + ids.slice(0, 6).map(function (id) { return '<span title="' + esc((P.achievement(id) || {}).label || id) + '">' + P.badge(id, 34) + '</span>'; }).join('') + '</div>', '<a href="profile.html">Profile &rarr;</a>');
-    }
-    h += card('Leaderboard', (extra.board || '<p class="pt-empty">Loading…</p>'), '<a href="../leaderboard.html#practice">All &rarr;</a>');
-    h += card('Friends', (extra.friends || (user ? '<p class="pt-empty">Loading…</p>' : '<p class="pt-empty">Sign in to see your friends.</p>')), '<a href="squads.html">Squads &rarr;</a>');
-    var done = wars.filter(function (w) { return w.status === 'ended'; }).slice(0, 5);
-    h += card('Trade War history', done.length ? '<ul class="twh-list">' + done.map(function (w) {
-      var me = (w.results || []).filter(function (r) { return user && r.uid === user.uid; })[0];
-      return '<li><a href="war.html?w=' + encodeURIComponent(w.id) + '">' + (me && me.rank === 1 ? '🏆 ' : '') + esc(w.name) + '</a><small>' + (me ? '#' + me.rank + ' of ' + w.results.length + ' · ' + pct(me.pnlPct) : 'finished') + '</small></li>';
-    }).join('') + '</ul>' : '<p class="pt-empty">Finished Trade Wars show up here with your rank.</p>');
-    // Challenge history (§14): challenges you sent or received and what happened to them
-    var ST = { pending: 'Waiting', accepted: 'Accepted', declined: 'Declined', cancelled: 'Cancelled', expired: 'Expired' };
-    h += card('Challenges', extra.challenges == null ? (user ? '<p class="pt-empty">Loading…</p>' : '<p class="pt-empty">Sign in to see your challenges.</p>')
-      : extra.challenges.length ? '<ul class="twh-list">' + extra.challenges.map(function (c) {
-        var sent = user && c.from === user.uid, who = sent ? (c.toName || 'Trader') : (c.fromName || 'Trader'), go = c.status === 'accepted' || (sent && c.status === 'pending');
-        var label = (sent ? 'You &rarr; <b>' + esc(who) + '</b>' : '<b>' + esc(who) + '</b> &rarr; you') + ' <small>' + money(c.buyIn, 0) + (c.lms ? ' · Last Man' : '') + '</small>';
-        return '<li>' + (go ? '<a href="war.html?w=' + encodeURIComponent(c.warId) + '">' + label + '</a>' : '<span>' + label + '</span>') + '<small class="twh-ch-st is-' + esc(c.status) + '">' + (ST[c.status] || esc(c.status)) + '</small></li>';
-      }).join('') + '</ul>' : '<p class="pt-empty">No challenges yet. Tap <b>+ Start a Trade War</b> to challenge a friend or your squad.</p>');
-    el.innerHTML = '<div class="twh-grid">' + h + '</div>';
-    el.querySelectorAll('[data-ch]').forEach(function (b) { b.onclick = function () { if (window.ZelosChallenge) ZelosChallenge.open({ to: b.getAttribute('data-ch'), toName: b.getAttribute('data-chn') }); }; });
+  // ------------------------------------------------------------ hub: small tiles that open into a bigger panel
+  // (#twTiles, one row under the trader strip; the panel is a sheet over the page, so nothing scrolls inside boxes)
+  function left(ms) { ms = Math.max(0, ms || 0); var dd = Math.floor(ms / 86400000), h = Math.floor(ms % 86400000 / 3600000), mi = Math.floor(ms % 3600000 / 60000); return dd ? dd + 'd ' + h + 'h' : h ? h + 'h ' + mi + 'm' : mi + 'm'; }
+  var sheetOpen = null;
+  function tile(id, label, big, sub) {
+    return '<button type="button" class="twh-tile" data-sheet="' + id + '"><small>' + label + '</small><b>' + big + '</b><span>' + sub + '</span></button>';
   }
+  function sheets(extra) {
+    var P = window.ZelosProgress, out = {};
+    if (P) {
+      var ms = P.missions(), row = function (m) { return '<li class="' + (m.done ? 'is-done' : '') + '"><span>' + (m.done ? '✅ ' : '') + esc(m.label) + '</span><small>' + m.count + '/' + m.goal + ' · +' + m.xp + ' XP</small></li>'; };
+      var doneN = ms.daily.filter(function (m) { return m.done; }).length;
+      out.missions = { tile: tile('missions', 'Today\'s missions', doneN + '/' + ms.daily.length, '🔥 ' + ms.streak.days + '-day streak'), title: 'Today\'s missions',
+        body: '<ul class="twh-list">' + ms.daily.map(row).join('') + '</ul><p class="pt-fine">🔥 ' + ms.streak.days + '-day streak · finish ' + ms.streak.need + ' a day to keep it.</p>' +
+          '<h3 class="twh-sh">This week</h3><ul class="twh-list">' + ms.weekly.map(row).join('') + '</ul>',
+        link: '<a href="index.html?tab=progress#ptTabBody">XP &amp; missions &rarr;</a>' };
+      var un = P.unlocked(), ids = Object.keys(un).sort(function (a, b) { return un[b] - un[a]; }), groups = {};
+      P.ACHIEVEMENTS.forEach(function (a) { (groups[a.group] = groups[a.group] || []).push(a); });
+      out.achievements = { tile: tile('achievements', 'Achievements', ids.length + '<small>/' + P.ACHIEVEMENTS.length + '</small>', ids.length ? '<i class="twh-mini-badges">' + ids.slice(0, 4).map(function (id) { return P.badge(id, 18); }).join('') + '</i>' : 'None yet'),
+        title: 'Achievements · ' + ids.length + ' of ' + P.ACHIEVEMENTS.length,
+        body: Object.keys(groups).map(function (g) {
+          return '<h3 class="twh-sh">' + esc(g) + '</h3><div class="twh-achs">' + groups[g].map(function (a) {
+            return '<div class="twh-ach' + (un[a.id] ? ' is-on' : '') + '">' + P.badge(a.id, 34, !un[a.id]) + '<span><b>' + esc(a.label) + '</b><small>' + esc(a.desc) + '</small></span><em>+' + a.xp + '</em></div>';
+          }).join('') + '</div>';
+        }).join(''), link: '<a href="profile.html">Profile &rarr;</a>' };
+    }
+    var top = extra.rows || [], meI = user ? top.findIndex(function (r) { return r.uid === user.uid; }) : -1;
+    out.leaderboard = { tile: tile('leaderboard', 'Leaderboard', meI >= 0 ? '#' + (meI + 1) : top.length ? esc((top[0].name || 'Trader').slice(0, 12)) : '–', meI >= 0 ? 'Your rank · ' + pct(top[meI].growthPct) : top.length ? 'Leading · ' + pct(top[0].growthPct) : 'Top traders'),
+      title: 'Leaderboard · top traders', body: extra.board || '<p class="pt-empty">Loading…</p>', link: '<a href="../leaderboard.html#practice">All leaderboards &rarr;</a>' };
+    out.friends = { tile: tile('friends', 'Friends', user ? String(extra.friendCount == null ? '…' : extra.friendCount) : '–', user ? 'Challenge one' : 'Sign in'),
+      title: 'Friends', body: extra.friends || (user ? '<p class="pt-empty">Loading…</p>' : '<p class="pt-empty">Sign in to see your friends.</p>'), link: '<a href="squads.html">Squads &rarr;</a>' };
+    var live = wars.filter(function (w) { return w.status === 'active' || w.status === 'lobby' || w.status === 'draft'; });
+    var done = wars.filter(function (w) { return w.status === 'ended'; }).slice(0, 8);
+    var ST = { pending: 'Waiting', accepted: 'Accepted', declined: 'Declined', cancelled: 'Cancelled', expired: 'Expired' };
+    var waiting = (extra.challenges || []).filter(function (c) { return c.status === 'pending'; }).length;
+    out.battles = { tile: tile('battles', 'Trade Wars', live.length ? live.length + ' <small>live</small>' : String(done.length), live.length ? 'In battle now' : waiting ? waiting + ' challenge' + (waiting === 1 ? '' : 's') + ' waiting' : done.length ? 'finished' : 'Start one'),
+      title: 'Your Trade Wars',
+      body: (live.length ? '<h3 class="twh-sh">Live &amp; starting</h3><ul class="twh-list">' + live.map(function (w) {
+          var r = ranks[w.id];
+          return '<li><a href="war.html?w=' + encodeURIComponent(w.id) + '">' + (w.lms ? '&#9760; ' : '⚔️ ') + esc(w.name) + '</a><small>' + (w.status === 'active' ? (r ? '#' + r.rank + ' of ' + r.of + ' · ' + pct(r.pnlPct) + ' · ' : '') + left(w.endAt - Date.now()) + ' left' : w.status === 'draft' ? 'Drafting' : 'Lobby') + '</small></li>';
+        }).join('') + '</ul>' : '') +
+        '<h3 class="twh-sh">Finished</h3>' + (done.length ? '<ul class="twh-list">' + done.map(function (w) {
+          var me = (w.results || []).filter(function (r) { return user && r.uid === user.uid; })[0];
+          return '<li><a href="war.html?w=' + encodeURIComponent(w.id) + '">' + (me && me.rank === 1 ? '🏆 ' : '') + esc(w.name) + '</a><small>' + (me ? '#' + me.rank + ' of ' + w.results.length + ' · ' + pct(me.pnlPct) : 'finished') + '</small></li>';
+        }).join('') + '</ul>' : '<p class="pt-empty">Finished Trade Wars show up here with your rank.</p>') +
+        '<h3 class="twh-sh">Challenges</h3>' + (extra.challenges == null ? (user ? '<p class="pt-empty">Loading…</p>' : '<p class="pt-empty">Sign in to see your challenges.</p>')
+          : extra.challenges.length ? '<ul class="twh-list">' + extra.challenges.map(function (c) {
+            var sent = user && c.from === user.uid, who = sent ? (c.toName || 'Trader') : (c.fromName || 'Trader'), go = c.status === 'accepted' || (sent && c.status === 'pending');
+            var label = (sent ? 'You &rarr; <b>' + esc(who) + '</b>' : '<b>' + esc(who) + '</b> &rarr; you') + ' <small>' + money(c.buyIn, 0) + (c.lms ? ' · Last Man' : '') + '</small>';
+            return '<li>' + (go ? '<a href="war.html?w=' + encodeURIComponent(c.warId) + '">' + label + '</a>' : '<span>' + label + '</span>') + '<small class="twh-ch-st is-' + esc(c.status) + '">' + (ST[c.status] || esc(c.status)) + '</small></li>';
+          }).join('') + '</ul>' : '<p class="pt-empty">No challenges yet. Tap <b>+ Start a Trade War</b> to challenge a friend or your squad.</p>'),
+      link: '<button type="button" class="twh-ch" data-start="1">+ Start a Trade War</button>' };
+    var mv = extra.movers, g0 = mv && mv.gainers && mv.gainers[0];
+    out.market = { tile: tile('market', 'Market movers', g0 ? esc(g0.sym) + ' <small class="up">' + pct(g0.chPct) + '</small>' : '–', g0 ? 'Top gainer · sectors' : 'Gainers, losers, sectors'),
+      title: 'Market movers' + (mv && mv.updatedAt ? ' <small>' + esc(new Date(mv.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' })) + ' ET</small>' : ''),
+      body: mv ? '<div class="twh-mv">' + [['Top gainers', mv.gainers], ['Top losers', mv.losers], ['Most active', mv.actives]].map(function (c) {
+          return '<div><h3 class="twh-sh">' + c[0] + '</h3>' + ((c[1] || []).length ? '<ul class="twh-list">' + c[1].map(function (r) {
+            return '<li><span><b>' + esc(r.sym) + '</b> <small>' + esc(r.name || '') + '</small></span><small class="' + ((r.chPct || 0) >= 0 ? 'up' : 'dn') + '">$' + (+r.price).toLocaleString('en-US', { minimumFractionDigits: r.price < 2 ? 4 : 2, maximumFractionDigits: r.price < 2 ? 4 : 2 }) + ' · ' + pct(r.chPct) + '</small></li>';
+          }).join('') + '</ul>' : '<p class="pt-empty">Not available right now.</p>') + '</div>';
+        }).join('') + '</div>' + ((mv.sectors || []).length ? '<h3 class="twh-sh">Sectors today</h3><div class="twh-sectors">' + mv.sectors.map(function (x) {
+          var w = Math.min(100, Math.abs(x.chPct) * 40);
+          return '<div><span>' + esc(x.sector) + '</span><i class="' + (x.chPct >= 0 ? 'up' : 'dn') + '"><i style="width:' + w.toFixed(0) + '%"></i></i><small class="' + (x.chPct >= 0 ? 'up' : 'dn') + '">' + pct(x.chPct) + '</small></div>';
+        }).join('') + '</div>' : '') + '<p class="pt-fine">Whole US market, not just the Trade War list. Data: Financial Modeling Prep. Refreshes every 15 minutes in market hours.</p>'
+        : '<p class="pt-empty">Market movers load during market hours.</p>', link: '' };
+    return out;
+  }
+  var ORDER = ['missions', 'achievements', 'leaderboard', 'friends', 'battles', 'market'];
+  function renderHub(extra) {
+    var el = $('twTiles'); if (!el) return;
+    var S = sheets(extra);
+    el.innerHTML = ORDER.filter(function (k) { return S[k]; }).map(function (k) { return S[k].tile; }).join('');
+    if (sheetOpen && S[sheetOpen]) fillSheet(S[sheetOpen]);
+  }
+  function fillSheet(x) {
+    var sh = $('twhSheet'); if (!sh) return;
+    sh.querySelector('.twh-sheet-title').innerHTML = x.title;
+    sh.querySelector('.twh-sheet-body').innerHTML = x.body;
+    sh.querySelector('.twh-sheet-foot').innerHTML = x.link || '';
+    sh.querySelectorAll('[data-ch]').forEach(function (b) { b.onclick = function () { closeSheet(); if (window.ZelosChallenge) ZelosChallenge.open({ to: b.getAttribute('data-ch'), toName: b.getAttribute('data-chn') }); }; });
+    sh.querySelectorAll('[data-start]').forEach(function (b) { b.onclick = function () { closeSheet(); start(); }; });
+  }
+  function openSheet(id) {
+    var S = sheets(extra); if (!S[id]) return;
+    var sh = $('twhSheet');
+    if (!sh) {
+      sh = d.createElement('div'); sh.id = 'twhSheet'; sh.className = 'twh-sheet'; sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true');
+      sh.innerHTML = '<div class="twh-sheet-card"><div class="twh-sheet-head"><h2 class="twh-sheet-title"></h2><button type="button" class="twh-sheet-x" aria-label="Close">&times;</button></div><div class="twh-sheet-body"></div><div class="twh-sheet-foot"></div></div>';
+      d.body.appendChild(sh);
+      sh.addEventListener('click', function (e) { if (e.target === sh || e.target.closest('.twh-sheet-x')) closeSheet(); });
+      d.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetOpen) closeSheet(); });
+    }
+    sheetOpen = id; fillSheet(S[id]); sh.hidden = false; d.documentElement.classList.add('twh-locked');
+    var x = sh.querySelector('.twh-sheet-x'); if (x) x.focus();
+  }
+  function closeSheet() { var sh = $('twhSheet'); if (sh) sh.hidden = true; sheetOpen = null; d.documentElement.classList.remove('twh-locked'); }
   var extra = {};
   function loadHub() {
     if (!onHome || !db) return renderHub(extra);
-    db.collection('practiceProfiles').orderBy('growthPct', 'desc').limit(5).get().then(function (s) {
+    if (!loadHub.movers) {
+      loadHub.movers = true;
+      db.collection('markets').doc('movers').onSnapshot(function (m) { extra.movers = m.exists ? m.data() : null; renderHub(extra); }, function () {});
+    }
+    db.collection('practiceProfiles').orderBy('growthPct', 'desc').limit(10).get().then(function (s) {
       var rows = []; s.forEach(function (x) { rows.push(Object.assign({ uid: x.id }, x.data())); });
+      extra.rows = rows;
       extra.board = rows.length ? '<ol class="twh-list twh-board">' + rows.map(function (r, i) {
         return '<li class="' + (user && r.uid === user.uid ? 'is-me' : '') + '"><a href="profile.html?u=' + encodeURIComponent(r.uid) + '">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.') + ' ' + esc(r.name || 'Trader') + '</a><small class="' + ((r.growthPct || 0) >= 0 ? 'up' : 'dn') + '">' + pct(r.growthPct) + '</small></li>';
       }).join('') + '</ol>' : '<p class="pt-empty">No traders on the board yet.</p>';
@@ -114,7 +197,8 @@
       renderHub(extra);
     });
     db.collection('users').doc(user.uid).get().then(function (u) {
-      var f = ((u.exists && u.data().friends) || []).slice(0, 12);
+      var all = (u.exists && u.data().friends) || [], f = all.slice(0, 12);
+      extra.friendCount = all.length;
       if (!f.length) { extra.friends = '<p class="pt-empty">No friends yet. Open a trader\'s profile and tap <b>+ Add friend</b>.</p>'; return renderHub(extra); }
       return Promise.all(f.map(function (id) { return db.collection('practiceProfiles').doc(id).get().then(function (x) { return { uid: id, p: x.exists ? x.data() : {} }; }).catch(function () { return { uid: id, p: {} }; }); })).then(function (list) {
         extra.friends = '<ul class="twh-list">' + list.map(function (r) {
@@ -161,6 +245,8 @@
     });
     d.addEventListener('zelos:profile', function (e) { trader = e.detail || trader; renderTop(); });
     d.addEventListener('zelos:progress', function () { if (onHome) renderHub(extra); });
+    var tl = $('twTiles');
+    if (tl) tl.addEventListener('click', function (e) { var b = e.target.closest('[data-sheet]'); if (b) openSheet(b.getAttribute('data-sheet')); });
     setInterval(renderTop, 30000); // keeps the Main account balance fresh
   }
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();

@@ -10,6 +10,11 @@ publish_alert          - a scheduled Claude task calls this over plain HTTPS
                           alert.
 release_alerts         - every weekday just after the 4 pm ET close: makes the
                           day's full alert public (see publish_alert).
+refresh_market_data    - every 5 minutes: crypto prices, market movers,
+                          sectors, earnings calendar, company research and
+                          real 5-minute bars from FMP (markets/* docs).
+market_research        - research for one ticker on demand (alert pages),
+                          cached 12 hours, capped per day.
 tokens_*, squareWebhook - the token wallet, passes, unlocks and Square
                           Checkout (see the Tokens section at the end).
 update_alert_outcomes  - a scheduled Claude task (with Robinhood market data)
@@ -844,6 +849,531 @@ def refresh_news(event: scheduler_fn.ScheduledEvent) -> None:
     })
     if errors:
         print("[refresh_news]", "; ".join(errors))
+
+
+# ---------------------------------------------------------------------------
+# Market data from FMP (the paid plan): crypto, movers, sectors, earnings,
+# company research, and real 5-minute / daily bars with volume.
+#
+# refresh_market_data runs every 5 minutes, around the clock. Each run does
+# only what's due (state in serverMeta/marketData, which no browser can read):
+#   - crypto quotes for the Trade War crypto list      -> markets/crypto        every run
+#   - crypto 5-minute bars (last 3 days)                -> markets/intraday_<SYM> every 15 min
+#   - crypto daily bars (last ~400 days)                -> markets/cryptoBars    once a day
+#   - top gainers / losers / most active + sectors      -> markets/movers        every 15 min, weekdays 9:30-16:30 ET
+#   - after the close: real 5-minute bars with volume
+#     for the stock list (5 sessions), daily volume     -> markets/intraday_<SYM>, markets/dailyBars   once a day
+#   - earnings calendar, next 45 days                   -> markets/earnings      once a day
+#   - company research for 2 stock-list symbols         -> markets/research_<SYM>  each run, oldest first
+#
+# market_research({symbol}) is the on-demand version of that last one for any
+# ticker (alert pages): served from the cache when it's under 12 hours old,
+# with a daily cap on fresh fetches so nobody can run up the FMP bill.
+#
+# The key only ever lives in this function's secret config; browsers get the
+# normalized results from public markets/* docs (firestore.rules: read-only).
+# ---------------------------------------------------------------------------
+FMP_BASE = os.environ.get("FMP_BASE_URL") or "https://financialmodelingprep.com/stable/"  # override only for local testing
+RESEARCH_MAX_AGE_S = 12 * 3600
+RESEARCH_DAILY_BUDGET = 300
+RESEARCH_PER_RUN = 2
+CRYPTO_INTRADAY_DAYS = 3
+CRYPTO_DAILY_KEEP = 400
+import re as _re_md
+_SYM_RE = _re_md.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
+
+
+def _load_crypto_symbols():
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "crypto_universe.json"), encoding="utf-8") as f:
+            rows = json.load(f)["symbols"]
+        out = [(str(u["sym"]).upper(), str(u.get("name") or u["sym"])) for u in rows]
+        if out:
+            return out[:12]
+    except Exception as e:
+        print("[market] crypto list unreadable, using the core list:", type(e).__name__, e)
+    return [("BTCUSD", "Bitcoin"), ("ETHUSD", "Ethereum"), ("SOLUSD", "Solana")]
+
+
+CRYPTO = _load_crypto_symbols()
+CRYPTO_SYMBOLS = [s for s, _ in CRYPTO]
+
+
+def _fmp_get(path, params, api_key, timeout=10):
+    """GET one FMP stable endpoint. Returns parsed JSON, or None when FMP says
+    the endpoint isn't in the plan / has no data. Raises _FmpKeyRejected for a
+    bad key. The URL (which holds the key) is never logged."""
+    q = dict(params or {})
+    q["apikey"] = api_key
+    req = urllib.request.Request(FMP_BASE + path + "?" + urllib.parse.urlencode(q), headers={"User-Agent": "zelos-market/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            raise _FmpKeyRejected()
+        if e.code in (402, 403, 404):
+            return None
+        raise
+    if isinstance(data, dict):
+        msg = str(data.get("Error Message") or data.get("error") or data.get("message") or "")
+        if "api key" in msg.lower() or "apikey" in msg.lower():
+            raise _FmpKeyRejected()
+        return None if msg else data
+    return data
+
+
+def _num(v, nd=None):
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return None
+    if x != x or x in (float("inf"), float("-inf")):
+        return None
+    return round(x, nd) if nd is not None else x
+
+
+def _txt(v, n):
+    return str(v or "").strip()[:n]
+
+
+def _rows(data):
+    return [r for r in data if isinstance(r, dict)] if isinstance(data, list) else []
+
+
+# ---- pure shaping (unit-tested in scripts/market_test.py) --------------------
+def md_quote(row):
+    """FMP quote row -> the c/o/h/l/pc/t shape markets/quotes uses (+ name, chPct)."""
+    if not isinstance(row, dict) or not _num(row.get("price")):
+        return None
+    out = {"c": _num(row.get("price")), "o": _num(row.get("open")), "h": _num(row.get("dayHigh")), "l": _num(row.get("dayLow")),
+           "pc": _num(row.get("previousClose")), "t": int(_num(row.get("timestamp")) or 0),
+           "chPct": _num(row.get("changePercentage", row.get("changesPercentage")), 2), "name": _txt(row.get("name"), 40)}
+    return out
+
+
+def md_movers(rows, n=8):
+    out = []
+    for r in _rows(rows):
+        sym = _txt(r.get("symbol"), 12).upper()
+        px = _num(r.get("price"), 4)
+        if not sym or not _SYM_RE.match(sym) or not px:
+            continue
+        out.append({"sym": sym, "name": _txt(r.get("name"), 40), "price": px,
+                    "chPct": _num(r.get("changesPercentage", r.get("changePercentage")), 2)})
+        if len(out) >= n:
+            break
+    return out
+
+
+def md_sectors(rows):
+    """Sector snapshot rows (one per sector per exchange) -> [{sector, chPct}] averaged, best first."""
+    acc = {}
+    for r in _rows(rows):
+        name, ch = _txt(r.get("sector"), 40), _num(r.get("averageChange", r.get("changesPercentage")))
+        if not name or ch is None:
+            continue
+        a = acc.setdefault(name, [0.0, 0])
+        a[0] += ch
+        a[1] += 1
+    out = [{"sector": k, "chPct": round(v[0] / v[1], 2)} for k, v in acc.items() if v[1]]
+    return sorted(out, key=lambda x: -x["chPct"])
+
+
+def md_bars(rows, intraday, keep_days=None, session_only=False):
+    """FMP chart rows (newest first) -> ascending 'date,o,h,l,c,v' strings.
+    intraday labels are 'YYYY-MM-DD HH:MM'; session_only keeps 9:30-15:55 bars."""
+    out = {}
+    for r in _rows(rows):
+        d = _txt(r.get("date"), 19)
+        o, h, l, c = (_num(r.get(k), 4) for k in ("open", "high", "low", "close"))
+        if len(d) < 10 or None in (o, h, l, c):
+            continue
+        label = d[:16] if intraday else d[:10]
+        if intraday and len(label) < 16:
+            continue
+        if session_only:
+            mins = int(label[11:13]) * 60 + int(label[14:16])
+            if mins < SESSION_OPEN or mins >= SESSION_CLOSE:
+                continue
+        v = int(_num(r.get("volume")) or 0)
+        out[label] = "%s,%s,%s,%s,%s,%s" % (label, o, max(h, o, c), min(l, o, c), c, v)
+    keys = sorted(out)
+    if keep_days:
+        days = sorted({k[:10] for k in keys})[-keep_days:]
+        keys = [k for k in keys if k[:10] in set(days)]
+    return [out[k] for k in keys]
+
+
+def md_merge_daily(existing, fresh, keep):
+    """Replace/append daily rows by date; existing and fresh are 'date,...' strings."""
+    by = {str(r)[:10]: str(r) for r in existing or []}
+    for r in fresh or []:
+        by[str(r)[:10]] = str(r)
+    return [by[k] for k in sorted(by)][-keep:]
+
+
+def md_earnings(rows, max_rows=6000):
+    """Earnings calendar rows -> {SYM: {date, eps, rev}} keeping each symbol's soonest date."""
+    out = {}
+    for r in sorted(_rows(rows), key=lambda x: str(x.get("date") or "")):
+        sym, d = _txt(r.get("symbol"), 12).upper(), _txt(r.get("date"), 10)
+        if not _SYM_RE.match(sym or "-") or len(d) != 10 or "." in sym or sym in out:
+            continue
+        out[sym] = {"date": d, "eps": _num(r.get("epsEstimated"), 3), "rev": _num(r.get("revenueEstimated"), 0)}
+        if len(out) >= max_rows:
+            break
+    return out
+
+
+def md_research(sym, parts, earnings=None):
+    """The FMP pieces for one ticker -> the public markets/research_<SYM> doc."""
+    p = (_rows(parts.get("profile")) or [{}])[0]
+    t = (_rows(parts.get("target")) or [{}])[0]
+    km = (_rows(parts.get("metrics")) or [{}])[0]
+    rt = (_rows(parts.get("ratios")) or [{}])[0]
+    inc = (_rows(parts.get("income")) or [{}])[0]
+    ests = sorted(_rows(parts.get("estimates")), key=lambda r: str(r.get("date") or ""))
+    doc = {"symbol": sym, "name": _txt(p.get("companyName"), 80) or sym}
+    if p:
+        doc["profile"] = {
+            "sector": _txt(p.get("sector"), 40), "industry": _txt(p.get("industry"), 60), "exchange": _txt(p.get("exchange"), 20),
+            "marketCap": _num(p.get("marketCap"), 0), "beta": _num(p.get("beta"), 2), "range": _txt(p.get("range"), 30),
+            "avgVolume": _num(p.get("averageVolume", p.get("volAvg")), 0), "ceo": _txt(p.get("ceo"), 60),
+            "employees": _num(p.get("fullTimeEmployees"), 0), "ipoDate": _txt(p.get("ipoDate"), 10),
+            "website": _txt(p.get("website"), 120) if str(p.get("website") or "").startswith("https://") else "",
+            "image": _txt(p.get("image"), 200) if str(p.get("image") or "").startswith("https://") else "",
+            "description": _txt(p.get("description"), 420), "price": _num(p.get("price"), 4),
+        }
+    if t and _num(t.get("targetConsensus")):
+        doc["target"] = {k: _num(t.get(k), 2) for k in ("targetHigh", "targetLow", "targetConsensus", "targetMedian")}
+    grades = []
+    for g in sorted(_rows(parts.get("grades")), key=lambda r: str(r.get("date") or ""), reverse=True)[:6]:
+        grades.append({"date": _txt(g.get("date"), 10), "firm": _txt(g.get("gradingCompany"), 50),
+                       "from": _txt(g.get("previousGrade"), 30), "to": _txt(g.get("newGrade"), 30), "action": _txt(g.get("action"), 20).lower()})
+    if grades:
+        doc["grades"] = grades
+    today = datetime.now(NY).strftime("%Y-%m-%d")
+    nxt = [e for e in ests if str(e.get("date") or "") >= today] or ests[-1:]
+    if nxt:
+        e = nxt[0]
+        doc["estimate"] = {"year": _txt(e.get("date"), 4), "epsAvg": _num(e.get("epsAvg", e.get("estimatedEpsAvg")), 2),
+                           "revenueAvg": _num(e.get("revenueAvg", e.get("estimatedRevenueAvg")), 0),
+                           "analysts": int(_num(e.get("numAnalystsEps", e.get("numberAnalystsEstimatedEps"))) or 0)}
+    m = {"pe": _num(rt.get("priceToEarningsRatioTTM", rt.get("peRatioTTM")), 1), "ps": _num(rt.get("priceToSalesRatioTTM"), 2),
+         "margin": _num(rt.get("netProfitMarginTTM"), 4), "divYield": _num(rt.get("dividendYieldTTM", rt.get("dividendYielTTM")), 4),
+         "roe": _num(km.get("returnOnEquity", km.get("roe")), 4), "evEbitda": _num(km.get("evToEBITDA", km.get("enterpriseValueOverEBITDA")), 1),
+         "fcfYield": _num(km.get("freeCashFlowYield"), 4), "currentRatio": _num(km.get("currentRatio"), 2)}
+    m = {k: v for k, v in m.items() if v is not None}
+    if m:
+        doc["metrics"] = m
+    if inc:
+        doc["financials"] = {"year": _txt(inc.get("fiscalYear") or str(inc.get("date") or "")[:4], 4), "revenue": _num(inc.get("revenue"), 0),
+                             "grossProfit": _num(inc.get("grossProfit"), 0), "netIncome": _num(inc.get("netIncome"), 0),
+                             "eps": _num(inc.get("epsDiluted", inc.get("eps")), 2)}
+    ins = []
+    for r in sorted(_rows(parts.get("insiders")), key=lambda r: str(r.get("transactionDate") or r.get("filingDate") or ""), reverse=True):
+        kind = str(r.get("transactionType") or "")
+        if not kind.startswith(("P", "S")):
+            continue  # open-market buys and sells only (no grants, gifts or option exercises)
+        ins.append({"date": _txt(r.get("transactionDate") or r.get("filingDate"), 10), "who": _txt(r.get("reportingName"), 50),
+                    "role": _txt(r.get("typeOfOwner"), 50), "buy": kind.startswith("P"),
+                    "shares": _num(r.get("securitiesTransacted"), 0), "price": _num(r.get("price"), 2)})
+        if len(ins) >= 6:
+            break
+    if ins:
+        doc["insiders"] = ins
+    news = []
+    for n in _rows(parts.get("news"))[:6]:
+        url = str(n.get("url") or "")
+        if not url.startswith("http") or not n.get("title"):
+            continue
+        news.append({"headline": _txt(n.get("title"), 220), "source": _txt(n.get("publisher") or n.get("site"), 60), "url": url[:600],
+                     "date": _txt(n.get("publishedDate"), 19), "image": _txt(n.get("image"), 600) if str(n.get("image") or "").startswith("https") else ""})
+    if news:
+        doc["news"] = news
+    if earnings and earnings.get("date"):
+        doc["earnings"] = earnings
+    return doc
+
+
+# ---- fetching ----------------------------------------------------------------
+def _fmp_research_parts(sym, api_key):
+    calls = {
+        "profile": ("profile", {"symbol": sym}),
+        "target": ("price-target-consensus", {"symbol": sym}),
+        "grades": ("grades", {"symbol": sym}),
+        "estimates": ("analyst-estimates", {"symbol": sym, "period": "annual", "limit": 4}),
+        "metrics": ("key-metrics", {"symbol": sym, "limit": 1}),
+        "ratios": ("ratios-ttm", {"symbol": sym}),
+        "income": ("income-statement", {"symbol": sym, "limit": 1}),
+        "insiders": ("insider-trading/search", {"symbol": sym, "page": 0, "limit": 25}),
+        "news": ("news/stock", {"symbols": sym, "limit": 6}),
+    }
+    parts = {}
+    for k, (path, params) in calls.items():
+        try:
+            parts[k] = _fmp_get(path, params, api_key)
+        except _FmpKeyRejected:
+            raise
+        except Exception as e:
+            print("[research] %s %s: %s" % (sym, k, type(e).__name__))
+            parts[k] = None
+    return parts
+
+
+def _earnings_for(db, sym):
+    try:
+        snap = db.collection("markets").document("earnings").get()
+        return ((snap.to_dict() or {}).get("bySymbol") or {}).get(sym) if snap.exists else None
+    except Exception:
+        return None
+
+
+def md_refresh_research(db, sym, api_key, now):
+    parts = _fmp_research_parts(sym, api_key)
+    doc = md_research(sym, parts, _earnings_for(db, sym))
+    doc["updatedAt"] = now.isoformat()
+    doc["fetchedAt"] = int(now.timestamp())
+    doc["source"] = "Financial Modeling Prep"
+    db.collection("markets").document("research_" + sym.replace(".", "-")).set(doc)
+    return doc
+
+
+def _md_crypto(db, api_key, now, state):
+    quotes = {}
+    for sym, name in CRYPTO:
+        try:
+            q = md_quote((_rows(_fmp_get("quote", {"symbol": sym}, api_key)) or [None])[0])
+        except _FmpKeyRejected:
+            raise
+        except Exception as e:
+            print("[market] crypto %s: %s" % (sym, type(e).__name__))
+            continue
+        if q:
+            q["name"] = name
+            quotes[sym] = q
+    ref = db.collection("markets").document("crypto")
+    if quotes:
+        try:
+            prev = ref.get()
+            for s, q in (((prev.to_dict() or {}).get("quotes") or {}) if prev.exists else {}).items():
+                if s in CRYPTO_SYMBOLS and s not in quotes:
+                    quotes[s] = q
+        except Exception:
+            pass
+        ref.set({"updatedAt": now.isoformat(), "quotes": quotes, "error": None})
+    else:
+        ref.set({"checkedAt": now.isoformat(), "error": "no data"}, merge=True)
+    # 5-minute bars every 15 minutes, daily bars once a day
+    if now.timestamp() - (state.get("cryptoIntradayAt") or 0) >= 14 * 60:
+        frm = datetime.fromtimestamp(now.timestamp() - CRYPTO_INTRADAY_DAYS * 86400, NY).strftime("%Y-%m-%d")
+        batch = db.batch()
+        for sym in CRYPTO_SYMBOLS:
+            try:
+                bars = md_bars(_fmp_get("historical-chart/5min", {"symbol": sym, "from": frm}, api_key), True, keep_days=CRYPTO_INTRADAY_DAYS + 1)
+            except _FmpKeyRejected:
+                raise
+            except Exception as e:
+                print("[market] crypto bars %s: %s" % (sym, type(e).__name__))
+                continue
+            if bars:
+                batch.set(db.collection("markets").document("intraday_" + sym), {"updatedAt": now.isoformat(), "interval": "5m", "crypto": True, "bars": bars})
+        batch.commit()
+        state["cryptoIntradayAt"] = int(now.timestamp())
+    today = now.strftime("%Y-%m-%d")
+    if state.get("cryptoDailyDay") != today:
+        frm = datetime.fromtimestamp(now.timestamp() - (CRYPTO_DAILY_KEEP + 10) * 86400, NY).strftime("%Y-%m-%d")
+        out = {}
+        for sym in CRYPTO_SYMBOLS:
+            try:
+                out[sym] = md_bars(_fmp_get("historical-price-eod/full", {"symbol": sym, "from": frm}, api_key), False)[-CRYPTO_DAILY_KEEP:]
+            except _FmpKeyRejected:
+                raise
+            except Exception as e:
+                print("[market] crypto daily %s: %s" % (sym, type(e).__name__))
+        if any(out.values()):
+            db.collection("markets").document("cryptoBars").set({"updatedAt": now.isoformat(), "bars": {k: v for k, v in out.items() if v}})
+            state["cryptoDailyDay"] = today
+
+
+def _md_movers(db, api_key, now):
+    doc = {"updatedAt": now.isoformat(), "date": now.strftime("%Y-%m-%d")}
+    for key, path, params in (("gainers", "biggest-gainers", {}), ("losers", "biggest-losers", {}), ("actives", "most-actives", {})):
+        try:
+            doc[key] = md_movers(_fmp_get(path, params, api_key))
+        except _FmpKeyRejected:
+            raise
+        except Exception as e:
+            print("[market] %s: %s" % (key, type(e).__name__))
+    try:
+        day = now.strftime("%Y-%m-%d")
+        rows = _fmp_get("sector-performance-snapshot", {"date": day}, api_key)
+        if not _rows(rows):  # before the first print of the day: yesterday's
+            rows = _fmp_get("sector-performance-snapshot", {"date": datetime.fromtimestamp(now.timestamp() - 86400, NY).strftime("%Y-%m-%d")}, api_key)
+        doc["sectors"] = md_sectors(rows)
+    except _FmpKeyRejected:
+        raise
+    except Exception as e:
+        print("[market] sectors: %s" % type(e).__name__)
+    if any(doc.get(k) for k in ("gainers", "losers", "actives", "sectors")):
+        db.collection("markets").document("movers").set(doc)
+
+
+def _md_after_close(db, api_key, now):
+    """Real FMP 5-minute bars (with volume) replace the ones built from minute
+    quotes, and the day's daily bars get their volume."""
+    frm5 = datetime.fromtimestamp(now.timestamp() - 9 * 86400, NY).strftime("%Y-%m-%d")
+    frmd = datetime.fromtimestamp(now.timestamp() - 12 * 86400, NY).strftime("%Y-%m-%d")
+    daily = {}
+    batch, n = db.batch(), 0
+    for sym in PRACTICE_SYMBOLS:
+        try:
+            bars = md_bars(_fmp_get("historical-chart/5min", {"symbol": sym, "from": frm5}, api_key), True,
+                           keep_days=INTRADAY_SESSIONS_KEEP, session_only=True)
+            if bars:
+                batch.set(db.collection("markets").document("intraday_" + sym), {"updatedAt": now.isoformat(), "interval": "5m", "source": "fmp", "bars": bars})
+                n += 1
+            daily[sym] = md_bars(_fmp_get("historical-price-eod/full", {"symbol": sym, "from": frmd}, api_key), False)
+        except _FmpKeyRejected:
+            raise
+        except Exception as e:
+            print("[market] after close %s: %s" % (sym, type(e).__name__))
+    if n:
+        batch.commit()
+    if any(daily.values()):
+        ref = db.collection("markets").document("dailyBars")
+        snap = ref.get()
+        stored = (snap.to_dict() or {}).get("bars", {}) if snap.exists else {}
+        bars = {s: [str(r) for r in rows] for s, rows in stored.items()}
+        for sym, rows in daily.items():
+            if rows:
+                bars[sym] = md_merge_daily(bars.get(sym, []), rows, DAILY_BARS_KEEP)
+        ref.set({"updatedAt": now.isoformat(), "bars": bars})
+    return n
+
+
+def _md_earnings(db, api_key, now):
+    frm = now.strftime("%Y-%m-%d")
+    to = datetime.fromtimestamp(now.timestamp() + 45 * 86400, NY).strftime("%Y-%m-%d")
+    by = md_earnings(_fmp_get("earnings-calendar", {"from": frm, "to": to}, api_key))
+    if by:
+        db.collection("markets").document("earnings").set({"updatedAt": now.isoformat(), "from": frm, "to": to, "bySymbol": by})
+    return len(by)
+
+
+def _md_research_rotation(db, api_key, now, state):
+    stamps = dict(state.get("researchAt") or {})
+    due = sorted(PRACTICE_SYMBOLS, key=lambda s: stamps.get(s, 0))[:RESEARCH_PER_RUN]
+    for sym in due:
+        if now.timestamp() - stamps.get(sym, 0) < 20 * 3600:
+            break
+        try:
+            md_refresh_research(db, sym, api_key, now)
+        except _FmpKeyRejected:
+            raise
+        except Exception as e:
+            print("[research] %s: %s" % (sym, type(e).__name__))
+        stamps[sym] = int(now.timestamp())
+    state["researchAt"] = {k: v for k, v in stamps.items() if k in PRACTICE_SYMBOLS}
+
+
+def md_due(now, state):
+    """Which jobs this run does (pure; unit-tested)."""
+    mins, wd, today = now.hour * 60 + now.minute, now.weekday(), now.strftime("%Y-%m-%d")
+    weekday = wd < 5
+    return {
+        "movers": weekday and 9 * 60 + 30 <= mins <= 16 * 60 + 30 and now.timestamp() - (state.get("moversAt") or 0) >= 14 * 60,
+        "afterClose": weekday and 16 * 60 + 15 <= mins < 18 * 60 and state.get("closeDay") != today,
+        "earnings": state.get("earningsDay") != today and (mins >= 6 * 60 or not state.get("earningsDay")),
+        "research": not (weekday and 9 * 60 + 25 <= mins <= 16 * 60 + 10),  # stay out of refresh_quotes' way
+    }
+
+
+@scheduler_fn.on_schedule(
+    schedule="*/5 * * * *",
+    timezone=scheduler_fn.Timezone("America/New_York"),
+    secrets=["FMP_API_KEY"],
+    timeout_sec=300,
+    memory=512,
+)
+def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
+    api_key = os.environ.get("FMP_API_KEY", "").strip()
+    if not api_key:
+        return
+    now = datetime.now(NY)
+    db = firestore.client()
+    sref = db.collection("serverMeta").document("marketData")
+    snap = sref.get()
+    state = (snap.to_dict() or {}) if snap.exists else {}
+    due = md_due(now, state)
+    try:
+        _md_crypto(db, api_key, now, state)
+        if due["movers"]:
+            _md_movers(db, api_key, now)
+            state["moversAt"] = int(now.timestamp())
+        if due["earnings"]:
+            _md_earnings(db, api_key, now)
+            state["earningsDay"] = now.strftime("%Y-%m-%d")
+        if due["afterClose"]:
+            print("[market] after-close bars for %d symbols" % _md_after_close(db, api_key, now))
+            state["closeDay"] = now.strftime("%Y-%m-%d")
+        if due["research"]:
+            _md_research_rotation(db, api_key, now, state)
+        state["error"] = None
+    except _FmpKeyRejected:
+        state["error"] = "auth"
+        print("[market] FMP rejected the API key")
+    except Exception as e:
+        state["error"] = type(e).__name__
+        print("[market] run failed:", type(e).__name__, e)
+    state["ranAt"] = now.isoformat()
+    sref.set(state)
+
+
+def research_budget_ok(db, now):
+    """One fresh research fetch against today's cap (transaction on serverMeta/researchBudget)."""
+    ref = db.collection("serverMeta").document("researchBudget")
+    today = now.strftime("%Y-%m-%d")
+
+    @firestore.transactional
+    def take(t):
+        snap = ref.get(transaction=t)
+        d = (snap.to_dict() or {}) if snap.exists else {}
+        used = d.get("used", 0) if d.get("day") == today else 0
+        if used >= RESEARCH_DAILY_BUDGET:
+            return False
+        t.set(ref, {"day": today, "used": used + 1})
+        return True
+    return take(db.transaction())
+
+
+@https_fn.on_call(secrets=["FMP_API_KEY"], timeout_sec=60)
+def market_research(req: https_fn.CallableRequest):
+    """{symbol} -> that ticker's research doc (cached up to 12 hours). Open to
+    everyone (alert pages work signed out); fresh fetches are capped per day."""
+    sym = str((req.data or {}).get("symbol") or "").strip().upper()
+    if not _SYM_RE.match(sym) or sym in CRYPTO_SYMBOLS:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "That isn't a stock symbol.")
+    db = firestore.client()
+    now = datetime.now(NY)
+    ref = db.collection("markets").document("research_" + sym.replace(".", "-"))
+    snap = ref.get()
+    cached = (snap.to_dict() or {}) if snap.exists else None
+    if cached and now.timestamp() - (cached.get("fetchedAt") or 0) < RESEARCH_MAX_AGE_S:
+        return cached
+    api_key = os.environ.get("FMP_API_KEY", "").strip()
+    if not api_key or not research_budget_ok(db, now):
+        if cached:
+            return cached
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.RESOURCE_EXHAUSTED, "Research is busy right now. Try again later.")
+    try:
+        return md_refresh_research(db, sym, api_key, now)
+    except Exception as e:
+        print("[research] on demand %s: %s" % (sym, type(e).__name__))
+        if cached:
+            return cached
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAVAILABLE, "Couldn't load research right now.")
 
 
 # ---------------------------------------------------------------------------

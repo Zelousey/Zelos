@@ -4,6 +4,7 @@
  *   Practice Account P&L  #hubPractice    balance, today, total, open P&L, top positions
  *   Watchlist news        #hubWatchNews   headlines for watched + held tickers
  *   Trending news         #hubTrending    general market headlines
+ *   Market movers         #hubMovers      top gainers / losers / most active (markets/movers) and crypto (markets/crypto)
  *   Trader card           #hubTrader      XP, level, streak, leaderboard + friends rank
  *   Daily missions        #hubMissions    today's missions, weekly progress, streak (zelos-progress.js)
  *   Trade Wars            #hubChallenges  your Trade War matches (live, lobby, finished), squads
@@ -24,7 +25,7 @@
 (function () {
   'use strict';
   var START = 10000, PKEY = 'zelosPractice-v1';
-  var quotes = {}, news = null, userDoc = null, newsFilter = 'all';
+  var quotes = {}, news = null, userDoc = null, newsFilter = 'all', movers = null, crypto = null, mvTab = 'gainers';
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -57,7 +58,7 @@
     var optVal = s ? s.optionsValue || 0 : 0, optCost = s ? (s.optionsCost != null ? s.optionsCost : optVal) : 0;
     var stockVal = 0, day = 0, open = optVal - optCost, rows = [], live = false;
     positions.forEach(function (p) {
-      var q = quotes[p.sym], px = q && q.c ? q.c : p.avg, pc = q && q.pc ? q.pc : null;
+      var q = quotes[p.sym] || (crypto && crypto.quotes && crypto.quotes[p.sym]), px = q && q.c ? q.c : p.avg, pc = q && q.pc ? q.pc : null;
       if (q && q.c) live = true;
       stockVal += p.qty * px;
       open += p.qty * (px - p.avg);
@@ -108,6 +109,18 @@
     var g = news.general || [];
     el.innerHTML = g.length ? '<div class="hub-news hub-scroll">' + g.slice(0, 15).map(function (n) { return item(n, true); }).join('') + '</div>' + attribution()
       : '<div class="empty">No headlines right now.</div>';
+  }
+  function renderMovers() {
+    var el = $('hubMovers'); if (!el) return;
+    document.querySelectorAll('#hubMoversTabs [data-mv]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-mv') === mvTab); });
+    var ORDER = ['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD', 'DOGEUSD', 'ADAUSD', 'AVAXUSD', 'LTCUSD'], rk = function (k) { var i = ORDER.indexOf(k); return i < 0 ? 99 : i; };
+    var rows = mvTab === 'crypto' ? Object.keys((crypto && crypto.quotes) || {}).sort(function (x, y) { return rk(x) - rk(y); }).map(function (k) { var q = crypto.quotes[k]; return { sym: k.replace(/USD$/, ''), name: q.name, price: q.c, chPct: q.chPct != null ? q.chPct : (q.pc ? (q.c / q.pc - 1) * 100 : 0) }; })
+      : ((movers && movers[mvTab]) || []);
+    if (!rows.length) { el.innerHTML = '<div class="empty">' + (mvTab === 'crypto' ? 'Crypto prices load here.' : 'Movers load during market hours.') + '</div>'; return; }
+    el.innerHTML = '<ul class="hub-mv">' + rows.slice(0, 7).map(function (r) {
+      var px = +r.price || 0, ch = +r.chPct || 0;
+      return '<li><span><b>' + esc(r.sym) + '</b><small>' + esc(r.name || '') + '</small></span><em class="' + cls(ch) + '">$' + px.toLocaleString('en-US', { minimumFractionDigits: px < 2 ? 4 : 2, maximumFractionDigits: px < 2 ? 4 : 2 }) + '<br>' + (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%</em></li>';
+    }).join('') + '</ul><div class="hub-foot"><span>' + (mvTab === 'crypto' ? '<a href="practice/index.html">Trade crypto 24/7 in Trade War &rarr;</a>' : 'Whole US market · Financial Modeling Prep') + '</span></div>';
   }
   function watchedTickers() {
     var t = [];
@@ -299,6 +312,9 @@
       var db = firebase.firestore();
       db.collection('markets').doc('quotes').onSnapshot(function (snap) { quotes = (snap.exists && snap.data().quotes) || {}; renderPractice(); renderReal(); }, function () {});
       db.collection('markets').doc('news').onSnapshot(function (snap) { news = snap.exists ? snap.data() : null; renderWatchNews(); renderTrending(); }, function () {});
+      db.collection('markets').doc('movers').onSnapshot(function (snap) { movers = snap.exists ? snap.data() : null; renderMovers(); }, function () {});
+      db.collection('markets').doc('crypto').onSnapshot(function (snap) { crypto = snap.exists ? snap.data() : null; renderMovers(); renderPractice(); }, function () {});
+      var mt = $('hubMoversTabs'); if (mt) mt.addEventListener('click', function (e) { var b = e.target.closest('[data-mv]'); if (b) { mvTab = b.getAttribute('data-mv'); renderMovers(); } });
     } catch (e) { /* widgets keep their offline text */ }
   });
 })();
