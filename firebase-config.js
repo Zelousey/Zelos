@@ -21,4 +21,4 @@ window.ZELOS_FIREBASE_CONFIG = {
 // Web Push (notifications): the PUBLIC key from Firebase console → Project settings →
 // Cloud Messaging → Web Push certificates. It's meant to be public (like the config above).
 // Empty = the "Turn on notifications" button explains notifications aren't set up yet.
-window.ZELOS_VAPID_KEY = "";
+window.ZELOS_VAPID_KEY = "BGbKkyDqBKSc_hGxUH90Oip7HN0ZCzClnxYsQRiZP_iNIa2m7MjFfu_L8sbGrBgM7J61zPHdrYupT3jVPB61WtY";
