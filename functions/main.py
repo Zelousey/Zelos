@@ -187,8 +187,15 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         return _write_failed("publish_alert", e)
 
+    sent = 0
+    if alert_has_trade(alert):
+        try:
+            sent = alert_push(db, alert_id, alert)
+        except Exception as e:  # a notification problem never fails the publish
+            print("[push] alert %s failed: %s" % (alert_id, type(e).__name__))
+
     return https_fn.Response(
-        json.dumps({"ok": True, "id": alert_id}),
+        json.dumps({"ok": True, "id": alert_id, "notified": sent}),
         status=200,
         content_type="application/json",
     )
@@ -2922,6 +2929,140 @@ def community_activity(db, uid, tok, today, now_ms, iph):
     if out and (out["counted"] or out["paid"]):
         print("[community] activity counted=%s paid=%s" % (out["counted"], out["paid"]))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Website push notifications (Firebase Cloud Messaging, Web Push).
+#
+#   push_register {token}    save this browser's push token (pushTokens/{hash}, server only)
+#   push_unregister {token}  forget it (turning notifications off on this device)
+#   push_test {}             send yourself a test notification on every device you turned on
+#   alert_push(...)          publish_alert calls it for every alert with a trade: one
+#                            notification per alert, ever (alertPushes/{alertId} is the
+#                            guard), to everyone whose My Agents switch for that scanner is on.
+#
+# The notification shows only the teaser (scanner, setup, score), never the ticker or levels,
+# so it doesn't give away a token-gated alert. Tapping it opens the alert page.
+# ---------------------------------------------------------------------------
+PUSH_NAMES = {"swing-trader": "Swing Trader", "breakout-rider": "Breakout Rider", "options-scanner": "Options Scanner"}
+PUSH_MAX_TOKENS = 10
+
+
+def _push_id(token):
+    return _hashlib.sha256(token.encode()).hexdigest()[:40]
+
+
+def push_wants(prefs, strategy):
+    """My Agents switches: notificationPrefs.strategies absent = every scanner on."""
+    chosen = (prefs or {}).get("strategies")
+    return True if chosen is None else strategy in chosen
+
+
+def push_alert_message(alert_id, alert):
+    """Pure: (title, body, link, image) for a new alert. Teaser only."""
+    name = PUSH_NAMES.get(alert.get("strategy"), "Zelos")
+    bits = [alert.get("setupLabel") or (alert.get("direction") or "").title() or "New setup"]
+    if alert.get("score") is not None and alert.get("scoreMax"):
+        bits.append("score %s/%s" % (alert["score"], alert["scoreMax"]))
+    if alert.get("marketRegime"):
+        bits.append("%s market" % alert["marketRegime"])
+    body = " · ".join(b for b in bits if b) + ". Tap to see it on Zelos."
+    return ("New %s alert" % name, body, "%s/alert.html?id=%s" % (SITE_URL, urllib.parse.quote(alert_id)),
+            "%s/images/alert-%s.png" % (SITE_URL, alert.get("strategy") if alert.get("strategy") in PUSH_NAMES else "zelos"))
+
+
+def _push_send(tokens, title, body, link, image, tag):
+    """Send to [(doc_id, token)]; returns (sent, [doc ids of dead tokens])."""
+    from firebase_admin import messaging
+    sent, dead = 0, []
+    for i in range(0, len(tokens), 500):
+        chunk = tokens[i:i + 500]
+        msgs = [messaging.Message(token=t, data={"link": link, "tag": tag},
+                                  webpush=messaging.WebpushConfig(
+                                      notification=messaging.WebpushNotification(title=title, body=body, icon=SITE_URL + "/icons/icon-192.png",
+                                                                                 badge=SITE_URL + "/icons/icon-192.png", image=image, tag=tag),
+                                      fcm_options=messaging.WebpushFCMOptions(link=link)))
+                for _, t in chunk]
+        res = messaging.send_each(msgs)
+        for (doc_id, _), r in zip(chunk, res.responses):
+            if r.success:
+                sent += 1
+            elif type(r.exception).__name__ in ("UnregisteredError", "SenderIdMismatchError") or "registration-token-not-registered" in str(r.exception):
+                dead.append(doc_id)
+            else:
+                print("[push] send failed: %s" % type(r.exception).__name__)
+    return sent, dead
+
+
+def alert_push(db, alert_id, alert):
+    """Notify subscribers about a new alert, once. Returns how many devices got it."""
+    guard = db.collection("alertPushes").document(alert_id)
+    try:
+        guard.create({"at": int(_time.time() * 1000), "strategy": alert.get("strategy")})
+    except Exception:
+        print("[push] alert %s already notified" % alert_id)
+        return 0
+    strategy = alert.get("strategy")
+    by_uid = {}
+    for snap in db.collection("pushTokens").stream():
+        d = snap.to_dict()
+        if d.get("uid") and d.get("token"):
+            by_uid.setdefault(d["uid"], []).append((snap.id, d["token"]))
+    tokens = []
+    for uid, toks in by_uid.items():
+        u = db.collection("users").document(uid).get()
+        if push_wants((u.to_dict() or {}).get("notificationPrefs") if u.exists else None, strategy):
+            tokens += toks
+    if not tokens:
+        guard.update({"devices": 0})
+        return 0
+    title, body, link, image = push_alert_message(alert_id, alert)
+    sent, dead = _push_send(tokens, title, body, link, image, "alert-" + alert_id)
+    for doc_id in dead:
+        db.collection("pushTokens").document(doc_id).delete()
+    guard.update({"devices": sent, "removed": len(dead)})
+    print("[push] alert %s: sent %d, removed %d dead tokens" % (alert_id, sent, len(dead)))
+    return sent
+
+
+@https_fn.on_call()
+@_tk_call
+def push_register(req, db, uid, tok, now_ms):
+    token = str((req.data or {}).get("token") or "")
+    if not (20 <= len(token) <= 4096) or not _re.match(r"^[A-Za-z0-9_:.\-]+$", token):
+        raise TWError("INVALID_ARGUMENT", "That device couldn't be registered.")
+    ref = db.collection("pushTokens").document(_push_id(token))
+    ref.set({"uid": uid, "token": token, "createdAt": now_ms, "lastSeen": now_ms}, merge=True)
+    mine = sorted([s for s in db.collection("pushTokens").where("uid", "==", uid).stream()], key=lambda s: (s.to_dict() or {}).get("lastSeen") or 0)
+    for s in mine[:-PUSH_MAX_TOKENS]:
+        s.reference.delete()
+    return {"ok": True, "devices": min(len(mine), PUSH_MAX_TOKENS)}
+
+
+@https_fn.on_call()
+@_tk_call
+def push_unregister(req, db, uid, tok, now_ms):
+    token = str((req.data or {}).get("token") or "")
+    ref = db.collection("pushTokens").document(_push_id(token)) if token else None
+    if ref:
+        s = ref.get()
+        if s.exists and (s.to_dict() or {}).get("uid") == uid:
+            ref.delete()
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_tk_call
+def push_test(req, db, uid, tok, now_ms):
+    toks = [(s.id, (s.to_dict() or {}).get("token")) for s in db.collection("pushTokens").where("uid", "==", uid).stream()]
+    toks = [t for t in toks if t[1]]
+    if not toks:
+        raise TWError("FAILED_PRECONDITION", "Turn on notifications on this device first.")
+    sent, dead = _push_send(toks, "Zelos notifications are on", "You'll get a notification like this when a new scanner alert publishes.",
+                            SITE_URL + "/dashboard.html", SITE_URL + "/images/alert-zelos.png", "test-" + uid[:8])
+    for doc_id in dead:
+        db.collection("pushTokens").document(doc_id).delete()
+    return {"sent": sent}
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /* Zelos $10,000 Practice Account. Uses the site theme tokens (zelos-theme.css). */
-.pt-shell{ max-width:1400px; margin:0 auto; padding:22px 16px 60px; }
+.pt-shell{ max-width:1720px; margin:0 auto; padding:22px clamp(16px, 2.6vw, 48px) 60px; }
 .pt-top{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .pt-kicker{ font-family:var(--mono); font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); }
 .pt-top h1{ font-size:clamp(1.4rem, 3vw, 1.9rem); margin:6px 0 4px; }
@@ -407,7 +407,7 @@ body.pt-fullport .pt-acct span{ border-color:var(--pt-glow); }
 @media (max-width:560px){ .pf-id{ align-items:flex-start; } .pf-badge svg{ width:48px; height:48px; } }
 
 /* ---- challenges + squads ---- */
-.ch-shell{ max-width:1000px; }
+.ch-shell{ max-width:1240px; }
 .ch-hero{ margin:6px 0 16px; }
 .ch-hero h1{ font-size:clamp(1.35rem, 3.6vw, 2rem); margin:6px 0 6px; line-height:1.2; }
 .ch-hero p{ color:var(--muted); margin:0; max-width:70ch; }
@@ -789,3 +789,11 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .cm-row{ grid-template-columns:2em minmax(0,1fr) 6.5em 7em; }
 .cm-tag{ font:600 0.7rem var(--mono); color:var(--muted); text-align:right; }
 @media (max-width:640px){ .cm-tiers{ grid-template-columns:repeat(3, minmax(0,1fr)); } .cm-row{ grid-template-columns:1.6em minmax(0,1fr) 5.4em 5.6em; gap:6px; } }
+
+/* Floating shortcut to the XP & Missions tab (hidden once the tabs are on screen) */
+.pt-xp-jump{ position:fixed; right:20px; bottom:22px; z-index:1500; display:inline-flex; align-items:center; gap:7px; padding:11px 16px; border-radius:999px;
+  border:1px solid var(--accent-line, var(--accent)); background:color-mix(in srgb, var(--surface) 88%, transparent); color:var(--ink); font:700 0.85rem var(--sans);
+  cursor:pointer; box-shadow:0 14px 34px rgba(0,0,0,.45); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); transition:opacity .25s, transform .25s; }
+.pt-xp-jump:hover{ border-color:var(--accent); }
+.pt-xp-jump.is-hidden{ opacity:0; transform:translateY(12px); pointer-events:none; }
+@media (max-width:760px){ html.has-tabbar .pt-xp-jump{ bottom:calc(76px + env(safe-area-inset-bottom)); right:12px; padding:9px 13px; font-size:0.8rem; } }

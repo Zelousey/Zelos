@@ -573,6 +573,7 @@
       <div data-widget="agents" data-title="My Agents" data-w="3" class="card">
         <div class="card-head"><h2>My Agents</h2></div>
         <div class="card-sub">Notifications on or off per strategy. Every agent keeps scanning either way.</div>
+        <div id="pushRow"></div>
         <div id="agentsBlock">
           <div class="agent-card" data-strategy="swing-trader">
             <div class="agent-card-top">
@@ -730,6 +731,7 @@
 
 <script src="zelos-market.js?v=3"></script>
 <script src="zelos-theme-toggle.js"></script>
+<script src="zelos-tabbar.js"></script>
 <script src="zelos-icons.js"></script>
 
 <!-- Firebase (compat build) -->
@@ -753,6 +755,8 @@
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
 <script src="zelos-tokens.js"></script>
+<script src="zelos-push.js"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){if(window.ZelosPush)ZelosPush.mount(document.getElementById("pushRow"));});</script>
 
 <!-- 3D globe — see zelos-globe.js. Only mounted while the Globe pane is visible. -->
 <script src="zelos-globe.js"></script>

@@ -106,7 +106,7 @@
   --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --sans:'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --shell:1360px;
+  --shell:1640px;
   --radius-sm:2px;
   --radius:3px;
   --radius-lg:4px;
@@ -188,7 +188,7 @@ body.zt-body{
 .zt a{ color:inherit; }
 .zt [hidden]{ display:none !important; }
 
-.shell{ max-width:var(--shell); margin:0 auto; padding-inline:32px; }
+.shell{ max-width:var(--shell); margin:0 auto; padding-inline:clamp(18px, 3.2vw, 56px); }
 @media (max-width:640px){ .shell{ padding-inline:18px; } }
 
 /* narrower reading column for long-form subpages (strategy detail pages etc.) —
@@ -887,3 +887,37 @@ body.zt-body::after{
 .globe-card .gc-foot{ margin-top:10px; padding-top:8px; border-top:1px solid var(--border); color:var(--muted); font-size:0.66rem; line-height:1.45; }
 .globe-card .gc-close{ position:absolute; top:6px; right:8px; background:none; border:0; color:var(--muted); font-size:1.1rem; cursor:pointer; line-height:1; }
 .globe-card .gc-close:hover{ color:var(--ink); }
+
+/* ---- Wide pages: app pages use the full width; prose (.shell-narrow) stays readable ---- */
+.shell-app{ max-width:var(--shell); margin:0 auto; padding-inline:clamp(18px, 3.2vw, 56px); }
+
+/* ---- Scrollbars inside boxes (desktop only): thin and quiet, visible on hover ----
+   Phones and tablets keep their native overlay scrollbars. */
+@media (hover:hover) and (pointer:fine){
+  html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  body *{ scrollbar-width:thin; scrollbar-color:transparent transparent; }
+  body *:hover{ scrollbar-color:var(--border) transparent; }
+  body *::-webkit-scrollbar{ width:8px; height:8px; }
+  body *::-webkit-scrollbar-track{ background:transparent; }
+  body *::-webkit-scrollbar-thumb{ background:transparent; border-radius:999px; border:2px solid transparent; background-clip:padding-box; }
+  body *:hover::-webkit-scrollbar-thumb{ background-color:var(--border); }
+  body *::-webkit-scrollbar-corner{ background:transparent; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:999px; border:3px solid var(--bg); }
+  ::-webkit-scrollbar-track{ background:var(--bg); }
+}
+
+/* ---- Mobile bottom tab bar (zelos-tabbar.js) ---- */
+.zb-bar{ display:none; }
+@media (max-width:760px){
+  html.has-tabbar body{ padding-bottom:calc(66px + env(safe-area-inset-bottom)); }
+  .zb-bar{ position:fixed; left:0; right:0; bottom:0; z-index:2100; display:grid; grid-template-columns:repeat(5, 1fr);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom)); background:color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter:saturate(1.4) blur(14px); backdrop-filter:saturate(1.4) blur(14px); border-top:1px solid var(--border); }
+  .zb-bar a{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 0; color:var(--muted); text-decoration:none; font:600 0.64rem var(--sans); letter-spacing:0.01em; -webkit-tap-highlight-color:transparent; }
+  .zb-bar a svg{ width:23px; height:23px; }
+  .zb-bar a.is-on{ color:var(--ink); }
+  .zb-bar a.is-on svg{ color:var(--accent); }
+  .zb-av{ width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--accent); color:#fff; font:700 0.72rem var(--sans); overflow:hidden; }
+  .zb-av img{ width:100%; height:100%; object-fit:cover; }
+}
