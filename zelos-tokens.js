@@ -58,6 +58,7 @@
   function ensureWallet() {
     return call('tokens_wallet').then(function (w) {
       prices = w; wallet = Object.assign({}, wallet || {}, { balance: w.balance, passes: w.passes, unlocked: w.unlocked }); emit();
+      if (w.bought) toast('Payment received: +' + w.bought + ' tokens are in your wallet.');
       if (w.welcomed && !greeted) { greeted = true; toast('Welcome! ' + w.prices.welcome + ' free tokens are in your wallet. Use them to unlock live scanner alerts.'); }
       return w;
     });

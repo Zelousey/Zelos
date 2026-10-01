@@ -108,6 +108,17 @@ class Square(unittest.TestCase):
         self.assertFalse(m.square_verify(body, "", self.KEY))
         self.assertFalse(m.square_verify(body, self.sig(body), ""))
 
+    def test_webhook_urls(self):
+        urls = m.square_webhook_urls({"Host": "squarewebhook-abc123-uc.a.run.app"}, "/")
+        self.assertEqual(urls[0], self.URL)
+        self.assertIn("https://squarewebhook-abc123-uc.a.run.app/", urls)
+        body = b'{"event_id":"e2"}'
+        run_sig = self.sig(body, url="https://squarewebhook-abc123-uc.a.run.app/")
+        self.assertTrue(any(m.square_verify(body, run_sig, self.KEY, u) for u in urls))     # signed for the run.app address
+        self.assertEqual(m.square_webhook_urls({"Host": "evil host/<x>"}, "/"), [self.URL])  # junk Host ignored
+        self.assertEqual(len(m._key_print("abc")), 8)
+        self.assertEqual(m._key_print(""), "missing")
+
     def test_credit_decision(self):
         co = {"uid": "u1", "pack": "p100", "tokens": 100, "amountCents": 300, "currency": "USD", "status": "pending"}
         paid = {"id": "pay1", "order_id": "o1", "status": "COMPLETED", "amount_money": {"amount": 300, "currency": "USD"}}
