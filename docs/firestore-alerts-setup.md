@@ -136,7 +136,7 @@ environment the scan skills themselves run in):
    the docstring on `update_alert_outcomes` in `functions/main.py` for the
    exact shape. It only ever touches the `outcome` field of an existing
    alert doc (merge, never overwrite), same shared-secret gate as
-   `publish_alert` and `gumroad_ping`. `check_alert_outcomes.py`'s output
+   `publish_alert`. `check_alert_outcomes.py`'s output
    already includes `target2Hit`/`target2ResolvedAt` alongside
    `result`/`closedAt`/`exitPrice`/`notes` — post the whole dict through as-is
    (plus `alertId`), no need to pick fields out of it by hand.

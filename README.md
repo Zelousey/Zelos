@@ -128,5 +128,5 @@ Hovering a country tints it red/green by its country ETF's daily move and shows 
 
 ## After deploying
 
-- Update the **Get Zelos** button in `index.html` if the Gumroad link ever changes.
-- If you add a real custom domain, update anything outside this repo that still points at the old `claude.ai/artifact/...` links (Gumroad product description, receipt email template, etc.) to point at the new domain instead.
+- Token prices live in `TOKENS` in `functions/main.py` (see `docs/tokens.md`); the static pages quote them too.
+- If you add a real custom domain, update anything outside this repo that still points at the old `claude.ai/artifact/...` links (social profiles, email templates, etc.) to point at the new domain instead.

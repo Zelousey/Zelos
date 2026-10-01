@@ -3,3 +3,5 @@ __pycache__/
 functions/venv/
 firestore-debug.log
 *-debug.log
+functions/.secret.local
+functions/.env.local

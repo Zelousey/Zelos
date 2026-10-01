@@ -266,6 +266,7 @@
 <script src="zelos-mood.js"></script>
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
+<script src="zelos-tokens.js"></script>
 <script>
 (function(){
   // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
@@ -481,7 +482,7 @@
       return (
         '<a class="alert-row" href="alert.html?id=' + encodeURIComponent(item.id) + '">' +
           '<div class="alert-left">' +
-            '<span class="alert-ticker">' + (a.ticker || '—') + '</span>' +
+            '<span class="alert-ticker">' + (a.locked && !a.ticker ? '&#128274; Live' : (a.ticker || '—')) + '</span>' +
             '<span class="alert-meta">' + (STRATEGY_LABEL[a.strategy] || a.strategy || '') + ' · ' + fmtStamp(a.createdAt) + '</span>' +
           '</div>' +
           '<div class="badges">' + badges + '</div>' +

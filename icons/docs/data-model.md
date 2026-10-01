@@ -54,8 +54,7 @@ Public read (so the Arsenal page works signed-out), admin-maintained.
 {
   name: "Swing Trader",
   tagline: "Pullback / bull-flag / breakout-retest setups.",
-  priceLabel: "$20",
-  gumroadUrl: "https://...",
+  priceLabel: "40 tokens / week",
   confirmationMode: "automatic" | "manual"
 }
 ```

@@ -8,11 +8,10 @@ permissions - no downloaded service-account key needed anywhere.
 publish_alert          - a scheduled Claude task calls this over plain HTTPS
                           with a shared secret to publish a generic Zelos
                           alert.
-gumroad_ping           - Gumroad calls this itself (its account-wide "Ping"
-                          webhook, configured once in Gumroad's own
-                          Settings > Advanced) on every sale, so a buyer's
-                          ownedSkills gets set automatically instead of
-                          relying on them to self-report a purchase.
+release_alerts         - every weekday just after the 4 pm ET close: makes the
+                          day's full alert public (see publish_alert).
+tokens_*, squareWebhook - the token wallet, passes, unlocks and Square
+                          Checkout (see the Tokens section at the end).
 update_alert_outcomes  - a scheduled Claude task (with Robinhood market data)
                           calls this once it has decided what actually
                           happened to one or more previously-published
@@ -36,7 +35,7 @@ post_to_buffer         - the same kind of scheduled Claude task calls this
 
 Every endpoint checks a shared secret before doing anything, so if any URL
 ever leaked, it could only trigger that one narrow action - never read or
-write anything else in the database, and never touch Gumroad, Robinhood, or
+write anything else in the database, and never touch Square, Robinhood, or
 Buffer directly.
 """
 import hmac
@@ -47,8 +46,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-from firebase_functions import https_fn
-from firebase_admin import initialize_app, auth, firestore
+import time as _time
+
+from firebase_functions import https_fn, scheduler_fn
+from firebase_admin import initialize_app, firestore
 
 initialize_app()
 
@@ -66,14 +67,57 @@ def _write_failed(where, e):
     print("[%s] Firestore write failed: %s" % (where, type(e).__name__))
     return https_fn.Response("Firestore write failed", status=500)
 
-# Gumroad product permalink -> Zelos skill id. Permalinks are the part after
-# gumroad.com/l/ in each product's URL (see going-to-gumroad*.html on the site).
-# Keys are compared case-insensitively.
-GUMROAD_PERMALINK_TO_SKILL = {
-    "agentictrading": "swing-trader",
-    "breakoutrider": "breakout-rider",
-    "optionsscanner": "options-scanner",
-}
+# Live alerts are token-gated until the close. The teaser keeps what's needed for the
+# public pages (which scanner, the score, the kind of setup, the market mood) and
+# drops everything that would let someone trade it (ticker, levels, reasoning).
+ALERT_PUBLIC_FIELDS = ("strategy", "createdAt", "status", "direction", "score", "scoreMax", "setupLabel", "marketRegime", "outcome")
+
+
+def alert_has_trade(alert):
+    return bool(alert.get("ticker")) and alert.get("status") != "no-qualifying-setup"
+
+
+def alert_teaser(alert):
+    t = {k: alert[k] for k in ALERT_PUBLIC_FIELDS if k in alert}
+    st = alert.get("scanStats")
+    if isinstance(st, dict):
+        t["scanStats"] = {k: st[k] for k in ("scanned", "passedFilters") if k in st}
+    return t
+
+
+def alert_lock_until(now_utc):
+    """Epoch ms of the next 4:00 pm New York close (today's if before it; skips weekends)."""
+    from zoneinfo import ZoneInfo
+    from datetime import timedelta
+    ny = now_utc.astimezone(ZoneInfo("America/New_York"))
+    close = ny.replace(hour=16, minute=0, second=0, microsecond=0)
+    if ny >= close:
+        close += timedelta(days=1)
+    while close.weekday() >= 5:
+        close += timedelta(days=1)
+    return int(close.timestamp() * 1000)
+
+
+def release_due_alerts(db, now_ms):
+    """Copy every locked alert whose close has passed into its public doc."""
+    n = 0
+    for snap in db.collection("alertsLocked").where("released", "==", False).stream():
+        full = snap.to_dict()
+        if (full.get("lockedUntil") or 0) > now_ms:
+            continue
+        pub = {k: v for k, v in full.items() if k not in ("lockedUntil", "released")}
+        pub.update({"locked": False, "releasedAt": now_ms})
+        db.collection("alerts").document(snap.id).set(pub, merge=True)
+        snap.reference.update({"released": True, "releasedAt": now_ms})
+        n += 1
+    return n
+
+
+@scheduler_fn.on_schedule(schedule="10,40 16-23 * * 1-5", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=120, memory=256)
+def release_alerts(event: scheduler_fn.ScheduledEvent) -> None:
+    n = release_due_alerts(firestore.client(), int(_time.time() * 1000))
+    if n:
+        print("[release_alerts] released %d alerts" % n)
 
 
 @https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
@@ -112,7 +156,14 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
 
     db = firestore.client()
     try:
-        db.collection("alerts").document(alert_id).set(alert, merge=True)
+        if alert_has_trade(alert):
+            # Live alert: the public doc is a teaser; the full alert waits in alertsLocked
+            # for token holders (a scanner pass or a single unlock) and goes public after the close.
+            until = alert_lock_until(datetime.now(timezone.utc))
+            db.collection("alertsLocked").document(alert_id).set(dict(alert, lockedUntil=until, released=False))
+            db.collection("alerts").document(alert_id).set(dict(alert_teaser(alert), locked=True, lockedUntil=until), merge=False)
+        else:
+            db.collection("alerts").document(alert_id).set(alert, merge=True)
     except Exception as e:
         return _write_failed("publish_alert", e)
 
@@ -148,81 +199,6 @@ def publish_market_map(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         return _write_failed("publish_market_map", e)
     return https_fn.Response(json.dumps({"ok": True, "asOf": payload["asOf"]}), status=200, content_type="application/json")
-
-
-@https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
-def gumroad_ping(req: https_fn.Request) -> https_fn.Response:
-    """Gumroad's account-wide sale-notification webhook.
-
-    Gumroad POSTs form-encoded data to whatever URL you configure in Settings >
-    Advanced > Ping - for EVERY sale across every product, and it cannot send a
-    custom header, so the shared secret rides along as a query-string token on
-    the URL you paste into Gumroad instead: .../gumroad_ping?token=<secret>.
-    That URL lives only in your own Gumroad account settings, never published
-    anywhere on the site.
-    """
-    if req.method != "POST":
-        return https_fn.Response("Method not allowed", status=405)
-
-    if not _secret_ok(req.args.get("token", "")):
-        return https_fn.Response("Unauthorized", status=401)
-
-    form = req.form
-    email = (form.get("email") or "").strip().lower()
-    permalink = (form.get("permalink") or form.get("short_product_id") or "").strip().lower()
-    is_test = (form.get("test") or "").strip().lower() == "true"
-
-    skill_id = GUMROAD_PERMALINK_TO_SKILL.get(permalink)
-
-    # Always 200 back to Gumroad even when there's nothing useful to do - a
-    # non-2xx response makes Gumroad retry the same ping repeatedly, and none
-    # of these are actually errors on Gumroad's end.
-    if not email or not skill_id:
-        return https_fn.Response(
-            json.dumps({"ok": True, "skipped": "no matching email/permalink"}),
-            status=200, content_type="application/json",
-        )
-    if is_test:
-        return https_fn.Response(
-            json.dumps({"ok": True, "skipped": "test ping, no write"}),
-            status=200, content_type="application/json",
-        )
-
-    db = firestore.client()
-
-    # Always record it in pendingOwnership first - this is the durable source of
-    # truth a buyer claims into their own account doc the next time they sign
-    # in with this same email (see claimPendingOwnership() in dashboard.html /
-    # my-zelos.html). Keeping this write even when we can also apply it directly
-    # below means nothing is lost if the direct write fails or the account gets
-    # created under this email later.
-    try:
-        db.collection("pendingOwnership").document(email).set(
-            {
-                "skills": firestore.ArrayUnion([skill_id]),
-                "updatedAt": firestore.SERVER_TIMESTAMP,
-            },
-            merge=True,
-        )
-    except Exception as e:
-        return _write_failed("gumroad_ping", e)
-
-    # Best-effort: if this email already has a Zelos account, apply it right
-    # away too, so they don't have to sign out/in again to see it.
-    try:
-        user = auth.get_user_by_email(email)
-        db.collection("users").document(user.uid).set(
-            {"ownedSkills": firestore.ArrayUnion([skill_id])}, merge=True
-        )
-    except auth.UserNotFoundError:
-        pass
-    except Exception:
-        pass  # never fail the webhook over this optional convenience step
-
-    return https_fn.Response(
-        json.dumps({"ok": True, "skill": skill_id}),
-        status=200, content_type="application/json",
-    )
 
 
 VALID_OUTCOME_RESULTS = {"hit-target", "stopped-out", "open", "expired", "no-trade"}
@@ -269,7 +245,7 @@ def update_alert_outcomes(req: https_fn.Request) -> https_fn.Response:
 
     Only ever touches the `outcome` field of an existing alert doc (merge:
     true) - never creates a new alert, never touches anything else about it.
-    Same shared-secret gate as publish_alert and gumroad_ping: this can only
+    Same shared-secret gate as publish_alert: this can only
     ever overwrite an outcome, never read or write anything else.
     """
     if req.method != "POST":
@@ -2168,3 +2144,371 @@ def tw_respond(req, db, uid, now_ms):
         return {"status": "accepted", "warId": inv["warId"], "started": war.get("mode") == "duel"}
 
     return txn(db.transaction())
+
+
+# ---------------------------------------------------------------------------
+# Tokens: the site's paid currency (replaces the old $20 Gumroad purchase).
+#
+#   wallets/{uid}                 { balance, passes: {strategy: untilMs}, unlocked: [alertId],
+#                                   welcomed, createdAt, updatedAt }   owner-read, server-write
+#   wallets/{uid}/ledger/{id}     { type, amount (+/-), balanceAfter, note, ref, at }
+#   purchases/sq_{orderId}        { uid, pack, tokens, amountCents, provider, paymentId, at }  server only
+#   squareCheckouts/{orderId}     a payment link we created: { uid, pack, tokens, amountCents, status }
+#   squareEvents/{eventId}        webhook events already handled (duplicate guard)
+#   alertsLocked/{alertId}        the full alert while it's live (see publish_alert); readable
+#                                 with a pass for that scanner or a single unlock
+#
+# Every balance change happens here, in a transaction that also writes the ledger
+# line, so balances can't be edited from a browser and can't be double-spent.
+# Prices are provisional (the spec keeps pricing open) and live only in TOKENS.
+# Payments: Square Checkout (see the Square section below). Until the owner adds the
+# Square secrets, buying says "coming soon"; free tokens, passes and unlocks work regardless.
+# ---------------------------------------------------------------------------
+import hashlib as _hashlib
+
+TOKENS = {
+    "welcome": 75,                 # once per verified account
+    "pass": 40, "passDays": 7,     # one scanner, 7 days
+    "unlock": 10,                  # one live alert
+    "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
+}
+TK_UNLOCKED_MAX = 300
+SITE_URL = "https://agentictrading.info"
+
+
+def _tk_user(req):
+    a = req.auth
+    if not a or not a.uid:
+        raise TWError("UNAUTHENTICATED", "Sign in to use tokens.")
+    tok = a.token or {}
+    if ((tok.get("firebase") or {}).get("sign_in_provider")) == "anonymous":
+        raise TWError("UNAUTHENTICATED", "Create a free account to use tokens.")
+    return a.uid, tok
+
+
+def _tk_verified(tok):
+    """Welcome tokens only for verified accounts (Google sign-in, or a verified email),
+    so throwaway sign-ups can't farm them."""
+    return tok.get("email_verified") is True or ((tok.get("firebase") or {}).get("sign_in_provider")) == "google.com"
+
+
+def tk_new_wallet(now_ms):
+    return {"balance": 0, "passes": {}, "unlocked": [], "welcomed": False, "createdAt": now_ms, "updatedAt": now_ms}
+
+
+def tk_ledger(kind, amount, balance_after, now_ms, note="", ref=None):
+    return {"type": kind, "amount": amount, "balanceAfter": balance_after, "note": note[:120], "ref": ref, "at": now_ms}
+
+
+def tk_welcome(wallet, verified, now_ms):
+    """Pure: (wallet, ledger line | None). The welcome bonus is granted exactly once."""
+    if wallet.get("welcomed") or not verified:
+        return wallet, None
+    w = dict(wallet, balance=wallet["balance"] + TOKENS["welcome"], welcomed=True, updatedAt=now_ms)
+    return w, tk_ledger("welcome", TOKENS["welcome"], w["balance"], now_ms, "Welcome tokens")
+
+
+def tk_has_access(wallet, strategy, alert_id, now_ms):
+    return (wallet.get("passes") or {}).get(strategy, 0) > now_ms or alert_id in (wallet.get("unlocked") or [])
+
+
+def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
+    """Pure: (wallet, ledger line | None) for a pass or a single-alert unlock.
+    locked: the alertsLocked doc for an unlock (None if it doesn't exist).
+    Already covered = no charge (ledger None)."""
+    if kind == "pass":
+        if strategy not in ALLOWED_STRATEGIES:
+            raise TWError("INVALID_ARGUMENT", "Pick a scanner.")
+        cost, ref = TOKENS["pass"], strategy
+    elif kind == "unlock":
+        if not locked or locked.get("released"):
+            raise TWError("FAILED_PRECONDITION", "This alert is already free to read.")
+        strategy = locked.get("strategy")
+        if tk_has_access(wallet, strategy, alert_id, now_ms):
+            return wallet, None
+        cost, ref = TOKENS["unlock"], alert_id
+    else:
+        raise TWError("INVALID_ARGUMENT", "Unknown purchase.")
+    if wallet["balance"] < cost:
+        raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet["balance"]))
+    w = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+    if kind == "pass":
+        passes = dict(wallet.get("passes") or {})
+        passes[strategy] = max(passes.get(strategy, 0), now_ms) + TOKENS["passDays"] * 86400000
+        w["passes"] = passes
+        note = "%s pass (%d days)" % (strategy.replace("-", " ").title(), TOKENS["passDays"])
+    else:
+        w["unlocked"] = ((wallet.get("unlocked") or []) + [alert_id])[-TK_UNLOCKED_MAX:]
+        note = "Unlocked %s" % alert_id
+    return w, tk_ledger(kind, -cost, w["balance"], now_ms, note, ref)
+
+
+def tk_credit(wallet, tokens, now_ms, kind, note, ref):
+    w = dict(wallet, balance=wallet["balance"] + tokens, updatedAt=now_ms)
+    return w, tk_ledger(kind, tokens, w["balance"], now_ms, note, ref)
+
+
+def _tk_call(fn):
+    def wrapper(req):
+        try:
+            uid, tok = _tk_user(req)
+            return fn(req, firestore.client(), uid, tok, int(_time.time() * 1000))
+        except TWError as e:
+            raise _tw_http(e)
+        except https_fn.HttpsError:
+            raise
+        except Exception as e:
+            print("[tokens] %s failed: %s" % (fn.__name__, type(e).__name__))
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+def _tk_public(wallet):
+    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:]}
+
+
+@https_fn.on_call(secrets=["SQUARE_ACCESS_TOKEN"])
+@_tk_call
+def tokens_wallet(req, db, uid, tok, now_ms):
+    """Your wallet (made on first use; welcome tokens once for a verified account) plus prices."""
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        wallet, line = tk_welcome(wallet, _tk_verified(tok), now_ms)
+        if line or not snap.exists:
+            t.set(ref, wallet)
+        if line:
+            t.set(ref.collection("ledger").document(), line)
+        return wallet, line
+
+    wallet, line = txn(db.transaction())
+    out = _tk_public(wallet)
+    out.update({"welcomed": bool(line), "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "welcome": TOKENS["welcome"]},
+                "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
+                "canBuy": _square_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
+    return out
+
+
+@https_fn.on_call()
+@_tk_call
+def tokens_spend(req, db, uid, tok, now_ms):
+    """{kind: 'pass', strategy} or {kind: 'unlock', alertId}."""
+    data = req.data or {}
+    kind, strategy, alert_id = data.get("kind"), data.get("strategy"), str(data.get("alertId") or "")
+    if kind == "unlock" and not _re.match(r"^[a-z-]+-\d{4}-\d{2}-\d{2}$", alert_id):
+        raise TWError("INVALID_ARGUMENT", "That alert isn't valid.")
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        locked = None
+        if kind == "unlock":
+            ls = db.collection("alertsLocked").document(alert_id).get(transaction=t)
+            locked = ls.to_dict() if ls.exists else None
+        wallet, line = tk_spend(wallet, kind, now_ms, strategy, alert_id, locked)
+        if line:
+            t.set(ref, wallet)
+            t.set(ref.collection("ledger").document(), line)
+        return wallet, line
+
+    wallet, line = txn(db.transaction())
+    out = _tk_public(wallet)
+    out["charged"] = -(line or {}).get("amount", 0)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Square payments (token packs). Two secrets, set with
+#   firebase functions:secrets:set SQUARE_ACCESS_TOKEN            (Square app -> Credentials)
+#   firebase functions:secrets:set SQUARE_WEBHOOK_SIGNATURE_KEY   (Square app -> Webhooks -> your subscription)
+# and SQUARE_ENVIRONMENT=sandbox|production in functions/.env (not a secret).
+#
+#   tokens_checkout {pack}  -> a Square Checkout payment link for that pack (server-side
+#                              price; the browser only names the pack). Remembered in
+#                              squareCheckouts/{orderId} = {uid, pack, tokens, amountCents, status}.
+#   squareWebhook           -> Square calls it on payment.created / payment.updated. The
+#                              signature is checked; a COMPLETED payment whose order is one of
+#                              our checkouts, for exactly the expected amount, credits the
+#                              buyer once (the checkout flips pending -> credited in a
+#                              transaction; squareEvents/{eventId} also skips repeats).
+# ---------------------------------------------------------------------------
+import base64 as _base64
+import uuid as _uuid
+
+SQUARE_VERSION = "2024-10-17"
+SQUARE_WEBHOOK_URL = os.environ.get("SQUARE_WEBHOOK_URL") or "https://us-central1-leaderboard-agentictrading.cloudfunctions.net/squareWebhook"
+_SQ_LOCATION = {}
+
+
+def _square_env():
+    return "production" if os.environ.get("SQUARE_ENVIRONMENT", "sandbox").strip().lower() == "production" else "sandbox"
+
+
+def _square_base():
+    # SQUARE_API_BASE only exists for local tests against a fake Square server
+    return os.environ.get("SQUARE_API_BASE") or ("https://connect.squareup.com" if _square_env() == "production" else "https://connect.squareupsandbox.com")
+
+
+def _square_ready():
+    t = os.environ.get("SQUARE_ACCESS_TOKEN", "").strip()
+    return len(t) > 20 and t.lower() not in ("none", "placeholder")
+
+
+def _square_api(method, path, body=None):
+    """One Square API call; returns parsed JSON or raises TWError (never logs the token)."""
+    rq = urllib.request.Request(_square_base() + path, method=method,
+                                data=json.dumps(body).encode() if body is not None else None,
+                                headers={"Authorization": "Bearer " + os.environ["SQUARE_ACCESS_TOKEN"].strip(),
+                                         "Square-Version": SQUARE_VERSION, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(rq, timeout=15) as r:
+            return json.loads(r.read().decode() or "{}")
+    except urllib.error.HTTPError as e:
+        try:
+            errs = json.loads(e.read().decode()).get("errors") or []
+            codes = ",".join(str(x.get("code")) for x in errs)[:120]
+        except Exception:
+            codes = "?"
+        print("[square] %s %s -> HTTP %s %s" % (method, path.split("?")[0], e.code, codes))
+    except Exception as e:
+        print("[square] %s %s failed: %s" % (method, path.split("?")[0], type(e).__name__))
+    raise TWError("UNAVAILABLE", "Checkout isn't available right now. Try again in a minute.")
+
+
+def _square_location():
+    """SQUARE_LOCATION_ID if set, else the account's first active location (cached)."""
+    loc = os.environ.get("SQUARE_LOCATION_ID", "").strip()
+    if loc:
+        return loc
+    key = _square_base()
+    if key not in _SQ_LOCATION:
+        locs = [l for l in (_square_api("GET", "/v2/locations").get("locations") or []) if l.get("status") == "ACTIVE"]
+        if not locs:
+            print("[square] no active location on this account")
+            raise TWError("UNAVAILABLE", "Checkout isn't set up yet.")
+        _SQ_LOCATION[key] = locs[0]["id"]
+    return _SQ_LOCATION[key]
+
+
+def square_link_body(uid, pack, email, location_id, idem):
+    """The CreatePaymentLink request for a pack. Prices come only from TOKENS."""
+    if pack not in TOKENS["packs"]:
+        raise TWError("INVALID_ARGUMENT", "Pick a token pack.")
+    tokens, cents = TOKENS["packs"][pack]
+    body = {"idempotency_key": idem,
+            "quick_pay": {"name": "%d AgenticTrading.info credits" % tokens, "location_id": location_id,
+                          "price_money": {"amount": cents, "currency": "USD"}},
+            "checkout_options": {"redirect_url": SITE_URL + "/tokens.html?paid=1", "ask_for_shipping_address": False},
+            "payment_note": "AgenticTrading.info credits (%s) for %s" % (pack, uid)}
+    if email:
+        body["pre_populated_data"] = {"buyer_email": email}
+    return body
+
+
+@https_fn.on_call(secrets=["SQUARE_ACCESS_TOKEN"])
+@_tk_call
+def tokens_checkout(req, db, uid, tok, now_ms):
+    """A Square Checkout payment link for a token pack: {pack}. Returns {url}."""
+    pack = str((req.data or {}).get("pack") or "")
+    if pack not in TOKENS["packs"]:
+        raise TWError("INVALID_ARGUMENT", "Pick a token pack.")
+    if not _square_ready():
+        raise TWError("FAILED_PRECONDITION", "Buying tokens is coming soon. You can use your free tokens now.")
+    tokens, cents = TOKENS["packs"][pack]
+    idem = str(_uuid.uuid4())
+    email = tok.get("email") if tok.get("email_verified") else None
+    res = _square_api("POST", "/v2/online-checkout/payment-links", square_link_body(uid, pack, email, _square_location(), idem))
+    link = res.get("payment_link") or {}
+    order_id, url = link.get("order_id"), link.get("url") or link.get("long_url")
+    if not order_id or not url:
+        print("[square] payment link response missing order_id/url")
+        raise TWError("UNAVAILABLE", "Checkout isn't available right now. Try again in a minute.")
+    db.collection("squareCheckouts").document(order_id).set({
+        "uid": uid, "pack": pack, "tokens": tokens, "amountCents": cents, "currency": "USD", "status": "pending",
+        "paymentLinkId": link.get("id"), "env": _square_env(),
+        "createdAt": now_ms})
+    print("[square] checkout created env=%s order=%s pack=%s uid=%s" % (_square_env(), order_id, pack, uid[:6]))
+    return {"url": url}
+
+
+def square_verify(body, signature, key, url=None):
+    """Square webhook signature: base64(HMAC-SHA256(signature key, notification URL + raw body))."""
+    if not key or not signature:
+        return False
+    msg = (url or SQUARE_WEBHOOK_URL).encode() + body
+    expected = _base64.b64encode(hmac.new(key.encode(), msg, _hashlib.sha256).digest()).decode()
+    return hmac.compare_digest(expected, str(signature).strip())
+
+
+def square_payment_credit(payment, checkout):
+    """Pure: None if this payment should credit tokens for this checkout, else why not."""
+    if not checkout:
+        return "not one of our checkouts"
+    if payment.get("status") != "COMPLETED":
+        return "status %s" % payment.get("status")
+    if checkout.get("status") != "pending":
+        return "already %s" % checkout.get("status")
+    money = payment.get("amount_money") or {}
+    if money.get("amount") != checkout.get("amountCents") or money.get("currency") != checkout.get("currency", "USD"):
+        return "amount mismatch"
+    return None
+
+
+@https_fn.on_request(secrets=["SQUARE_WEBHOOK_SIGNATURE_KEY"])
+def squareWebhook(req: https_fn.Request) -> https_fn.Response:
+    """Square payment notifications. Verified by signature; credits each order exactly once."""
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
+    raw = req.get_data()
+    if not square_verify(raw, req.headers.get("x-square-hmacsha256-signature", ""), os.environ.get("SQUARE_WEBHOOK_SIGNATURE_KEY", "").strip()):
+        print("[square] webhook rejected: bad signature")
+        return https_fn.Response("Bad signature", status=403)
+    try:
+        event = json.loads(raw.decode())
+    except Exception:
+        return https_fn.Response("Bad JSON", status=400)
+    etype, eid = event.get("type"), str(event.get("event_id") or "")
+    payment = ((event.get("data") or {}).get("object") or {}).get("payment") or {}
+    if etype not in ("payment.created", "payment.updated") or not payment.get("order_id") or not eid:
+        print("[square] event %s %s ignored" % (etype, eid[:12]))
+        return https_fn.Response("ignored", status=200)
+    db, now_ms = firestore.client(), int(_time.time() * 1000)
+    order_id, pay_id = str(payment["order_id"]), str(payment.get("id") or "")
+    cref, eref = db.collection("squareCheckouts").document(order_id), db.collection("squareEvents").document(eid)
+
+    @firestore.transactional
+    def txn(t):
+        if eref.get(transaction=t).exists:
+            return "duplicate event"
+        cs = cref.get(transaction=t)
+        checkout = cs.to_dict() if cs.exists else None
+        why = square_payment_credit(payment, checkout)
+        wref = ws = None
+        if not why:  # every read happens before any write in a Firestore transaction
+            wref = db.collection("wallets").document(checkout["uid"])
+            ws = wref.get(transaction=t)
+        t.set(eref, {"type": etype, "orderId": order_id, "paymentId": pay_id, "status": payment.get("status"), "result": why or "credited", "at": now_ms})
+        if why:
+            return why
+        wallet = ws.to_dict() if ws.exists else tk_new_wallet(now_ms)
+        wallet, line = tk_credit(wallet, checkout["tokens"], now_ms, "purchase", "Bought %d tokens" % checkout["tokens"], order_id)
+        t.set(wref, wallet)
+        t.set(wref.collection("ledger").document(), line)
+        t.update(cref, {"status": "credited", "paymentId": pay_id, "creditedAt": now_ms})
+        t.set(db.collection("purchases").document("sq_" + order_id), {"uid": checkout["uid"], "pack": checkout["pack"], "tokens": checkout["tokens"],
+                                                                     "amountCents": checkout["amountCents"], "provider": "square", "paymentId": pay_id, "at": now_ms})
+        return None
+
+    try:
+        why = txn(db.transaction())
+    except Exception as e:
+        print("[square] webhook %s failed: %s" % (eid[:12], type(e).__name__))
+        return https_fn.Response("retry", status=500)  # Square retries
+    print("[square] event %s %s order=%s status=%s -> %s" % (etype, eid[:12], order_id, payment.get("status"), why or "credited"))
+    return https_fn.Response("ok", status=200)

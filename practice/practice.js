@@ -875,7 +875,8 @@
     try { var q = db.collection('alerts').orderBy('createdAt', 'desc').limit(40); } catch (e) { agentAlerts = []; return; }
     q.get().then(function (snap) {
       var latest = {};
-      snap.forEach(function (d) { var a = d.data(); a.id = d.id; if (AGENTS[a.strategy] && !latest[a.strategy] && a.status === 'qualified') latest[a.strategy] = a; });
+      // a live (token-locked) alert has no ticker yet, so it's skipped until the close
+      snap.forEach(function (d) { var a = d.data(); a.id = d.id; if (AGENTS[a.strategy] && !latest[a.strategy] && a.status === 'qualified' && a.ticker) latest[a.strategy] = a; });
       agentAlerts = Object.keys(AGENTS).map(function (k) { return latest[k] || { strategy: k, none: true }; });
       if (tab === 'agents') renderTabs();
     }).catch(function () { agentAlerts = []; if (tab === 'agents') renderTabs(); });
@@ -885,8 +886,8 @@
     if (!agentAlerts.length) return '<p class="pt-empty">Agent signals load from the live alert feed. They\'re not reachable right now.</p>';
     return '<p class="pt-fine" style="margin-bottom:10px">Test a Zelos agent in Trade War with virtual money: each card is that agent\'s latest qualified setup. <b>Trade it in Trade War</b> loads it into your ticket with its stop and target; you still review and place the order.</p><div class="pt-agents">' +
       agentAlerts.map(function (a) {
-        var name = AGENTS[a.strategy], own = ownedSkills.indexOf(a.strategy) !== -1;
-        var badge = '<span class="pt-abadge' + (own ? ' is-own' : '') + '">' + (own ? 'Your agent' : 'Preview') + '</span>';
+        var name = AGENTS[a.strategy], own = !!(window.ZelosTokens && ZelosTokens.hasAccess(a.strategy, a.id)); // an active scanner pass
+        var badge = '<span class="pt-abadge' + (own ? ' is-own' : '') + '">' + (own ? 'Your pass' : 'Preview') + '</span>';
         if (a.none) return '<div class="pt-agent"><div class="pt-ahead"><b>' + name + '</b>' + badge + '</div><p class="pt-fine">No qualified setup in the latest scans.</p></div>';
         var inU = !!NAMES[a.ticker], isOpt = a.strategy === 'options-scanner';
         var rr = a.entry && a.stop && a.target1 ? Math.abs(a.target1 - a.entry) / Math.abs(a.entry - a.stop) : null;

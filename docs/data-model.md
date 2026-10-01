@@ -75,8 +75,7 @@ Public read (so the Arsenal page works signed-out), admin-maintained.
 {
   name: "Swing Trader",
   tagline: "Pullback / bull-flag / breakout-retest setups.",
-  priceLabel: "$20",
-  gumroadUrl: "https://...",
+  priceLabel: "40 tokens / week",
   confirmationMode: "automatic" | "manual"
 }
 ```
@@ -88,7 +87,7 @@ One doc per signed-in person. Only that person can read or write it.
 ```
 {
   email: "...", displayName: "...", createdAt: <timestamp>,
-  ownedSkills: ["swing-trader"],       // which Arsenal skills they've bought
+  ownedSkills: ["swing-trader"],       // legacy (Gumroad era), unused
   watchlist: ["PFE", "NVDA"],
   xp: 340, streakDays: 4, lastActiveDate: "2026-09-19",
   notificationPrefs: { push: true, strategies: ["swing-trader", "breakout-rider"] },
@@ -103,19 +102,18 @@ One doc per signed-in person. Only that person can read or write it.
 System-written log entries behind "Recent activity" on My Zelos (xp earned,
 streak milestones, watchlist adds). Not user-editable.
 
-## How `ownedSkills` gets set
+## Tokens and live alerts
 
-Automatic: Gumroad's account-wide Ping webhook calls `gumroad_ping`
-(`functions/main.py`) on every sale, which records the purchase in
-`pendingOwnership/{email}` and applies it to `users/{uid}.ownedSkills`
-immediately if that email already has an account. See
-`docs/deploying-functions.md` for wiring up the webhook itself.
+Gumroad is retired. Scanner access is paid with tokens: see `docs/tokens.md`
+for `wallets/{uid}` (+ `ledger`), `purchases/{sessionId}` and
+`alertsLocked/{alertId}` (the full alert while it's live). While an alert is
+live, `alerts/{alertId}` holds only a teaser (`strategy`, `status`,
+`direction`, `score`, `setupLabel`, `marketRegime`, scan counts) plus
+`locked: true` and `lockedUntil` (epoch ms of the 4 pm ET close); the
+`release_alerts` job copies the full alert in after the close.
 
-Manual fallback, still available: a signed-in person can self-mark a skill
-"owned" from the Arsenal page (the "Mark ... as unlocked" links that appear
-next to anything still showing as locked) — useful if a sale happened before
-they had an account, before the webhook was wired up, or the automatic path
-ever misses one.
+`ownedSkills` on `users/{uid}` is legacy (self-reported, from the Gumroad era)
+and no longer gates or shows anything.
 
 ## How `outcome` gets filled in
 
