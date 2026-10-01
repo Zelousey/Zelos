@@ -2341,8 +2341,16 @@ def tokens_wallet(req, db, uid, tok, now_ms):
         return wallet, line
 
     wallet, line = txn(db.transaction())
+    bought = 0
+    if _square_ready():
+        try:
+            bought = square_reconcile(db, uid, now_ms)
+        except Exception as e:
+            print("[square] reconcile failed: %s" % type(e).__name__)
+        if bought:
+            wallet = db.collection("wallets").document(uid).get().to_dict() or wallet
     out = _tk_public(wallet)
-    out.update({"welcomed": bool(line), "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
+    out.update({"welcomed": bool(line), "bought": bought, "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
                 "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
                 "canBuy": _square_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
     return out
@@ -3053,14 +3061,36 @@ def square_payment_credit(payment, checkout):
     return None
 
 
+def square_webhook_urls(headers, path):
+    """Every URL Square may have signed: the configured one, plus the address this request
+    actually came in on (the cloudfunctions.net and the run.app forms of the same function)."""
+    urls = [SQUARE_WEBHOOK_URL]
+    path = path or "/"
+    for h in (headers.get("X-Forwarded-Host"), headers.get("Host")):
+        h = (h or "").split(",")[0].strip()
+        if h and _re.match(r"^[A-Za-z0-9.-]+(:\d+)?$", h):
+            for u in ("https://%s%s" % (h, path), "https://%s%s" % (h, path.rstrip("/") or "/")):
+                if u not in urls:
+                    urls.append(u)
+    return urls
+
+
+def _key_print(key):
+    """A short fingerprint of the signature key for the logs (never the key itself)."""
+    return _hashlib.sha256(key.encode()).hexdigest()[:8] if key else "missing"
+
+
 @https_fn.on_request(secrets=["SQUARE_WEBHOOK_SIGNATURE_KEY"])
 def squareWebhook(req: https_fn.Request) -> https_fn.Response:
     """Square payment notifications. Verified by signature; credits each order exactly once."""
     if req.method != "POST":
         return https_fn.Response("Method not allowed", status=405)
     raw = req.get_data()
-    if not square_verify(raw, req.headers.get("x-square-hmacsha256-signature", ""), os.environ.get("SQUARE_WEBHOOK_SIGNATURE_KEY", "").strip()):
-        print("[square] webhook rejected: bad signature")
+    key, sig = os.environ.get("SQUARE_WEBHOOK_SIGNATURE_KEY", "").strip(), req.headers.get("x-square-hmacsha256-signature", "")
+    urls = square_webhook_urls(req.headers, req.path)
+    if not any(square_verify(raw, sig, key, u) for u in urls):
+        print("[square] webhook rejected: bad signature (signature header %s, key length %d, key print %s, tried %s)"
+              % ("present" if sig else "MISSING", len(key), _key_print(key), " | ".join(urls)))
         return https_fn.Response("Bad signature", status=403)
     try:
         event = json.loads(raw.decode())
@@ -3072,6 +3102,18 @@ def squareWebhook(req: https_fn.Request) -> https_fn.Response:
         print("[square] event %s %s ignored" % (etype, eid[:12]))
         return https_fn.Response("ignored", status=200)
     db, now_ms = firestore.client(), int(_time.time() * 1000)
+    try:
+        why = square_credit(db, payment, eid, etype, now_ms)
+    except Exception as e:
+        print("[square] webhook %s failed: %s" % (eid[:12], type(e).__name__))
+        return https_fn.Response("retry", status=500)  # Square retries
+    print("[square] event %s %s order=%s status=%s -> %s" % (etype, eid[:12], payment.get("order_id"), payment.get("status"), why or "credited"))
+    return https_fn.Response("ok", status=200)
+
+
+def square_credit(db, payment, eid, etype, now_ms):
+    """Credit the checkout this payment belongs to, exactly once. Returns None if credited,
+    else why not. Used by the webhook and by square_reconcile."""
     order_id, pay_id = str(payment["order_id"]), str(payment.get("id") or "")
     cref, eref = db.collection("squareCheckouts").document(order_id), db.collection("squareEvents").document(eid)
 
@@ -3098,10 +3140,30 @@ def squareWebhook(req: https_fn.Request) -> https_fn.Response:
                                                                      "amountCents": checkout["amountCents"], "provider": "square", "paymentId": pay_id, "at": now_ms})
         return None
 
-    try:
-        why = txn(db.transaction())
-    except Exception as e:
-        print("[square] webhook %s failed: %s" % (eid[:12], type(e).__name__))
-        return https_fn.Response("retry", status=500)  # Square retries
-    print("[square] event %s %s order=%s status=%s -> %s" % (etype, eid[:12], order_id, payment.get("status"), why or "credited"))
-    return https_fn.Response("ok", status=200)
+    return txn(db.transaction())
+
+
+def square_reconcile(db, uid, now_ms):
+    """Backup for a missed or rejected webhook: ask Square about this person's pending
+    checkouts (last 30 days) and credit any that were paid. Returns tokens credited."""
+    got = 0
+    for snap in db.collection("squareCheckouts").where("uid", "==", uid).where("status", "==", "pending").limit(5).stream():
+        co = snap.to_dict()
+        if now_ms - (co.get("createdAt") or 0) > 30 * 86400000 or co.get("env", "sandbox") != _square_env():
+            continue
+        try:
+            order = _square_api("GET", "/v2/orders/%s" % urllib.parse.quote(snap.id)).get("order") or {}
+            for tender in order.get("tenders") or []:
+                pid = tender.get("payment_id") or tender.get("id")
+                if not pid:
+                    continue
+                pay = _square_api("GET", "/v2/payments/%s" % urllib.parse.quote(pid)).get("payment") or {}
+                if pay.get("order_id") != snap.id:
+                    continue
+                why = square_credit(db, pay, "reconcile-" + pid, "reconcile", now_ms)
+                print("[square] reconcile order=%s status=%s -> %s" % (snap.id, pay.get("status"), why or "credited"))
+                if not why:
+                    got += co.get("tokens") or 0
+        except TWError:
+            continue
+    return got
