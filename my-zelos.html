@@ -210,7 +210,7 @@
 </nav>
 
 <section class="section-tight">
-  <div class="shell-narrow">
+  <div class="shell-app">
     <div>
       <p class="eyebrow">My Zelos</p>
       <h1 style="font-size:1.5rem; margin-top:6px;">Your account, in one place</h1>
@@ -281,6 +281,7 @@
       <!-- Notifications -->
       <div class="card">
         <div class="card-head"><h2>Notifications</h2></div>
+        <div id="pushRow"></div>
         <div class="pref-row">
           <input type="checkbox" id="emailPrefCheckbox">
           <div>
@@ -349,6 +350,7 @@
 </script>
 
 <script src="zelos-theme-toggle.js"></script>
+<script src="zelos-tabbar.js"></script>
 <script src="zelos-icons.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -359,6 +361,8 @@
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
 <script src="zelos-tokens.js"></script>
+<script src="zelos-push.js"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){if(window.ZelosPush)ZelosPush.mount(document.getElementById("pushRow"));});</script>
 <script>
 (function(){
   var SKILLS = {

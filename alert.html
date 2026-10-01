@@ -29,326 +29,204 @@
 <meta property="og:title" content="Zelos Alert">
 <meta property="og:description" content="A Zelos trade alert — full analysis: setup, entry, stop, target, technicals, and risk.">
 <meta property="og:url" content="https://agentictrading.info/alert.html">
-<meta property="og:image" content="https://agentictrading.info/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:image" content="https://agentictrading.info/images/alert-zelos.png">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="512">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Zelos Alert">
 <meta name="twitter:description" content="A Zelos trade alert — full analysis: setup, entry, stop, target, technicals, and risk.">
-<meta name="twitter:image" content="https://agentictrading.info/og-image.png">
+<meta name="twitter:image" content="https://agentictrading.info/images/alert-zelos.png">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
-  :root{ color-scheme: dark; }
+  :root{ color-scheme: dark; --risk-soft:var(--danger-soft); }
   *{ box-sizing:border-box; }
-  body{ margin:0; }
   [hidden]{ display:none !important; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); min-height:100vh; }
 
-  :root{ --risk-soft:var(--danger-soft); }
-
-  body{
-    background:var(--bg);
-    color:var(--ink);
-    font-family:var(--sans);
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    padding:32px 16px 64px;
-  }
-
-  .page-wrap{ display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:460px; }
-  .top-row{ display:flex; align-items:center; justify-content:space-between; width:100%; align-self:flex-start; }
-  .back-link{
-    font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted);
-    text-decoration:none; display:flex; align-items:center; gap:7px;
-  }
+  .al-top{ display:flex; align-items:center; gap:10px; max-width:1200px; margin:0 auto; padding:18px 24px 0; }
+  .back-link{ font-family:var(--mono); font-weight:700; font-size:0.85rem; color:var(--muted); text-decoration:none; display:flex; align-items:center; gap:7px; }
   .back-link .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
   .back-link:hover{ color:var(--accent); }
+  .al-top .spacer{ flex:1; }
 
-  .ticket{
-    width:100%;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    overflow:hidden;
-  }
+  .al-page{ max-width:1200px; margin:0 auto; padding:18px 24px 72px; }
+  .load-state{ padding:80px 24px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:0.85rem; }
 
-  .head{
-    padding:22px 24px 18px;
-    border-bottom:1px dashed var(--border);
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-  .head-row{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:12px;
-  }
-  .ticker{
-    font-family:var(--mono);
-    font-weight:700;
-    font-size:2rem;
-    letter-spacing:0.01em;
-  }
-  .score{
-    font-family:var(--mono);
-    font-size:0.8rem;
-    font-weight:500;
-    color:var(--muted);
-    white-space:nowrap;
-  }
-  .score b{ color:var(--ink); font-weight:600; }
-  .setup{
-    font-size:0.95rem;
-    color:var(--muted);
-  }
-  .status{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    font-family:var(--mono);
-    font-size:0.7rem;
-    letter-spacing:0.08em;
-    text-transform:uppercase;
-    color:var(--accent);
-    width:fit-content;
-  }
-  .status::before{
-    content:"";
-    width:6px;
-    height:6px;
-    border-radius:50%;
-    background:var(--accent);
-  }
-  .status.is-watching{ color:var(--gold); }
-  .status.is-watching::before{ background:var(--gold); }
+  /* hero */
+  .al-hero{ position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:30px 34px; border-radius:20px;
+    background:radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 55%), var(--surface); border:1px solid var(--border); }
+  .al-hero.is-short{ background:radial-gradient(120% 140% at 0% 0%, var(--danger-soft), transparent 55%), var(--surface); }
+  .al-kicker{ font-family:var(--mono); font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent); }
+  .ticker{ display:block; font-family:var(--mono); font-weight:700; font-size:clamp(2.4rem, 6vw, 4rem); letter-spacing:0.01em; line-height:1.05; margin:6px 0 8px; }
+  .setup{ font-size:1rem; color:var(--muted); max-width:60ch; }
+  .status{ display:inline-flex; align-items:center; gap:7px; margin-top:12px; padding:5px 11px; border-radius:999px; font-family:var(--mono); font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); background:var(--accent-soft); width:fit-content; }
+  .status::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .status.is-watching{ color:var(--gold); background:var(--gold-soft); }
+  .score{ flex:none; position:relative; width:128px; height:128px; }
+  .score svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .score .ring-bg{ stroke:var(--border); }
+  .score .ring{ stroke:var(--accent); stroke-linecap:round; transition:stroke-dasharray .8s ease; }
+  .score .score-txt{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:var(--mono); }
+  .score .score-txt b{ font-size:2rem; line-height:1; }
+  .score .score-txt small{ color:var(--muted); font-size:0.72rem; margin-top:4px; }
 
-  .ledger{
-    padding:18px 24px;
-    display:flex;
-    flex-direction:column;
-  }
-  .row{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    padding:9px 0;
-    border-bottom:1px solid var(--border-soft);
-    gap:16px;
-  }
-  .row:last-child{ border-bottom:none; }
-  .label{
-    font-size:0.82rem;
-    color:var(--muted);
-  }
-  .value{
-    font-family:var(--mono);
-    font-variant-numeric:tabular-nums;
-    font-size:0.98rem;
-    font-weight:600;
-    text-align:right;
-  }
-  .value.risk{ color:var(--danger); }
-  .value.accent{ color:var(--accent); }
+  /* layout */
+  .al-grid{ display:grid; grid-template-columns:minmax(0, 1.65fr) minmax(300px, 1fr); gap:20px; margin-top:20px; align-items:start; }
+  .al-main, .al-side{ display:flex; flex-direction:column; gap:20px; min-width:0; }
+  .al-side{ position:sticky; top:16px; }
+  .al-sec{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px 24px; }
+  .al-sec > h2{ margin:0 0 14px; font-size:0.78rem; font-family:var(--mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); font-weight:600; }
 
-  .rr{
-    margin:6px 24px 20px;
-    padding:14px 16px;
-    background:var(--accent-soft);
-    border-radius:3px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-  }
-  .rr .label{
-    font-size:0.78rem;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    color:var(--accent);
-    font-weight:600;
-  }
-  .rr .value{
-    font-size:1.3rem;
-    color:var(--accent);
-  }
+  /* price ladder */
+  .ladder{ position:relative; height:70px; margin:6px 6px 22px; }
+  .ladder .track{ position:absolute; left:0; right:0; top:30px; height:10px; border-radius:999px; background:var(--surface-2); }
+  .ladder .zone{ position:absolute; top:30px; height:10px; }
+  .ladder .zone.risk{ background:var(--danger); opacity:.75; border-radius:999px 0 0 999px; }
+  .ladder .zone.reward{ background:var(--accent); opacity:.85; border-radius:0 999px 999px 0; }
+  .ladder .mk{ position:absolute; top:22px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; white-space:nowrap; }
+  .ladder .mk i{ width:3px; height:26px; border-radius:2px; background:var(--ink); }
+  .ladder .mk span{ font-family:var(--mono); font-size:0.7rem; color:var(--muted); margin-top:4px; }
+  .ladder .mk b{ position:absolute; top:-20px; font-family:var(--mono); font-size:0.78rem; }
+  .ladder .mk.is-stop b{ color:var(--danger); } .ladder .mk.is-t b{ color:var(--accent); }
 
-  .cap{
-    margin:0 24px 20px;
-    padding:12px 14px;
-    border:1px solid var(--border);
-    border-radius:3px;
-    font-size:0.82rem;
-    color:var(--muted);
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    font-family:var(--mono);
-    font-variant-numeric:tabular-nums;
-  }
-  .cap .value{ color:var(--ink); font-size:0.82rem; }
+  .ledger{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+  .row{ display:flex; flex-direction:column; gap:4px; padding:12px 14px; border-radius:12px; background:var(--surface-2); }
+  .label{ font-size:0.74rem; color:var(--muted); }
+  .value{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:1.05rem; font-weight:600; }
+  .value.risk{ color:var(--danger); } .value.accent{ color:var(--accent); }
+  .ledger .row.is-wide{ grid-column:1 / -1; } .ledger .row.is-wide .value{ font-family:var(--sans); font-size:0.92rem; font-weight:500; }
+  .rr-cap{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+  .rr{ flex:1 1 200px; padding:14px 16px; background:var(--accent-soft); border-radius:12px; display:flex; align-items:center; justify-content:space-between; }
+  .rr .label{ text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); font-weight:600; }
+  .rr .value{ font-size:1.35rem; color:var(--accent); }
+  .cap{ flex:1 1 200px; padding:14px 16px; border:1px solid var(--border); border-radius:12px; font-size:0.84rem; color:var(--muted); display:flex; justify-content:space-between; gap:12px; }
+  .cap .value{ color:var(--ink); font-size:0.84rem; }
 
-  /* ---- full analysis ---- */
-  .analysis{
-    margin:0 24px 20px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-  }
-  .analysis-block{
-    border:1px solid var(--border);
-    border-radius:3px;
-    padding:14px 16px;
-  }
-  .analysis-block h3{
-    margin:0 0 8px;
-    font-family:var(--mono);
-    font-size:0.72rem;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color:var(--muted);
-    font-weight:600;
-  }
-  .analysis-block p{
-    margin:0;
-    font-size:0.9rem;
-    line-height:1.55;
-    color:var(--ink);
-  }
-  .tech-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));
-    gap:10px;
-  }
-  .tech-item{ display:flex; flex-direction:column; gap:2px; }
-  .tech-item .k{ font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; }
-  .tech-item .v{ font-family:var(--mono); font-weight:600; font-size:0.92rem; }
-
-  .outcome{
-    margin:0 24px 20px;
-    padding:12px 16px;
-    border-radius:3px;
-    font-size:0.85rem;
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    align-items:center;
-  }
+  .outcome{ padding:14px 18px; border-radius:14px; font-size:0.9rem; display:flex; justify-content:space-between; gap:12px; align-items:center; }
   .outcome.result-open{ background:var(--gold-soft); color:var(--gold); }
   .outcome.result-hit-target{ background:var(--accent-soft); color:var(--accent); }
   .outcome.result-stopped-out{ background:var(--danger-soft); color:var(--danger); }
-  .outcome.result-expired, .outcome.result-no-trade{ background:transparent; border:1px solid var(--border); color:var(--muted); }
-  .outcome .tag{ font-family:var(--mono); font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; }
+  .outcome.result-expired, .outcome.result-no-trade{ border:1px solid var(--border); color:var(--muted); }
+  .outcome .tag{ font-family:var(--mono); font-weight:700; font-size:0.74rem; text-transform:uppercase; letter-spacing:0.05em; }
 
-  .foot{
-    padding:16px 24px 22px;
-    border-top:1px dashed var(--border);
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .reply{
-    font-size:0.84rem;
-    line-height:1.5;
-  }
-  .fine{
-    font-size:0.72rem;
-    color:var(--muted);
-    line-height:1.5;
-  }
-  .stamp{
-    font-family:var(--mono);
-    font-size:0.68rem;
-    color:var(--muted);
-    letter-spacing:0.03em;
-  }
+  .analysis{ display:flex; flex-direction:column; gap:20px; }
+  .analysis-block p{ margin:0; font-size:0.95rem; line-height:1.65; }
+  .tech-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; }
+  .tech-item{ display:flex; flex-direction:column; gap:3px; padding:10px 12px; border-radius:10px; background:var(--surface-2); }
+  .tech-item .k{ font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+  .tech-item .v{ font-family:var(--mono); font-weight:600; font-size:0.92rem; }
 
-  @media (max-width:420px){
-    .ticker{ font-size:1.7rem; }
-  }
+  /* actions */
+  .al-actions h3{ margin:0 0 4px; font-size:1.05rem; }
+  .al-actions p{ margin:0 0 14px; font-size:0.84rem; color:var(--muted); line-height:1.5; }
+  .tw-btns{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .tw-btn{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:14px 10px; border-radius:12px; font-weight:800; font-size:1rem; text-decoration:none; text-align:center; border:1px solid transparent; }
+  .tw-btn small{ font-weight:500; font-size:0.72rem; opacity:.85; }
+  .tw-btn.buy{ background:linear-gradient(180deg,#10b981,#059669); color:#04140d; }
+  .tw-btn.sell{ background:linear-gradient(180deg,#f87171,#dc2626); color:#1a0505; }
+  .tw-btn:hover{ filter:brightness(1.08); }
+  .tw-btn.is-off{ background:var(--surface-2); color:var(--muted); border-color:var(--border); pointer-events:none; }
+  .tw-tag{ display:inline-block; margin-bottom:10px; padding:3px 9px; border-radius:999px; font-family:var(--mono); font-size:0.66rem; letter-spacing:0.08em; color:#f2d38a; border:1px solid rgba(232,178,61,.5); background:rgba(232,178,61,.08); }
+  .share-btn{ width:100%; font:inherit; font-weight:700; padding:11px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); cursor:pointer; }
+  #pushRow .zp-row{ margin:0; border-radius:16px; padding:16px 18px; }
 
-  .load-state{
-    padding:60px 24px;
-    text-align:center;
-    color:var(--muted);
-    font-family:var(--mono);
-    font-size:0.85rem;
+  .foot{ display:flex; flex-direction:column; gap:8px; padding:4px 2px; }
+  .reply{ font-size:0.86rem; line-height:1.5; color:var(--muted); }
+  .fine{ font-size:0.72rem; color:var(--muted); line-height:1.55; }
+  .stamp{ font-family:var(--mono); font-size:0.68rem; color:var(--muted); letter-spacing:0.03em; }
+  .zt-lock{ margin:0 0 4px !important; }
+
+  @media (max-width:860px){
+    .al-grid{ grid-template-columns:1fr; }
+    .al-side{ position:static; order:-1; }
+    .al-top, .al-page{ padding-left:16px; padding-right:16px; }
+    .al-hero{ padding:22px 20px; border-radius:16px; }
+    .score{ width:96px; height:96px; } .score .score-txt b{ font-size:1.5rem; }
+    .al-sec{ padding:18px 16px; }
   }
+  @media (max-width:420px){ .al-hero{ flex-direction:column; align-items:flex-start; } .ledger{ grid-template-columns:1fr 1fr; } }
 </style>
 </head>
 <body class="zt">
-<div class="page-wrap">
-<div class="top-row">
-  <a class="back-link" href="index.html"><span class="dot"></span>Zelos &middot; home</a>
-  <span data-zt-slot style="margin-left:auto; margin-right:8px;"></span>
+<header class="al-top">
+  <a class="back-link" href="index.html"><span class="dot"></span>Zelos</a>
+  <a class="back-link" href="alert-history.html" style="font-weight:500;">All alerts</a>
+  <span class="spacer"></span>
+  <span data-zt-slot></span>
   <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-blue"></i><i class="sw-white"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
-</div>
+</header>
 
-<div class="ticket" id="zelosLoading">
-  <div class="load-state">Loading alert…</div>
-</div>
+<main class="al-page">
+<div class="al-sec" id="zelosLoading"><div class="load-state">Loading alert…</div></div>
 
-<div class="ticket" id="zelosTicket" hidden>
-  <div class="head">
-    <div class="head-row">
+<div id="zelosTicket" hidden>
+  <section class="al-hero" id="fHero">
+    <div>
+      <span class="al-kicker" id="fKicker">Zelos alert</span>
       <span class="ticker" id="fTicker">&mdash;</span>
-      <span class="score" id="fScoreWrap" hidden>score <b id="fScore">&mdash;</b>/<span id="fScoreMax">80</span></span>
+      <div class="setup" id="fSetup"></div>
+      <span class="status" id="fStatus"></span>
     </div>
-    <div class="setup" id="fSetup"></div>
-    <span class="status" id="fStatus"></span>
-  </div>
-
-  <div class="ledger" id="fLedger"></div>
-
-  <div class="rr" id="fRR" hidden>
-    <span class="label">Reward : Risk</span>
-    <span class="value" id="fRRValue">&mdash;</span>
-  </div>
-
-  <div class="cap" id="fCap" hidden>
-    <span>Suggested size</span>
-    <span class="value" id="fCapValue">&mdash;</span>
-  </div>
-
-  <div class="outcome" id="fOutcome" hidden>
-    <span class="tag" id="fOutcomeTag"></span>
-    <span id="fOutcomeNote"></span>
-  </div>
-
-  <div class="analysis">
-    <div class="analysis-block" id="fReasoningBlock" hidden>
-      <h3>Reasoning</h3>
-      <p id="fReasoning"></p>
+    <div class="score" id="fScoreWrap" hidden>
+      <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/><circle class="ring" id="fRing" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-dasharray="0 400"/></svg>
+      <div class="score-txt"><b id="fScore">&mdash;</b><small>of <span id="fScoreMax">80</span></small></div>
     </div>
-    <div class="analysis-block" id="fTechBlock" hidden>
-      <h3>Technicals</h3>
-      <div class="tech-grid" id="fTechGrid"></div>
-    </div>
-    <div class="analysis-block" id="fRiskBlock" hidden>
-      <h3>Risk notes</h3>
-      <p id="fRiskNotes"></p>
-    </div>
-  </div>
+  </section>
 
-  <div class="foot">
-    <div class="reply" id="fMarketRegime"></div>
-    <div class="fine">Rule-based scan only — general information, the same for every subscriber, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
-    <div class="fine">Zelos never connects to any brokerage account, never asks for your credentials, and never places, cancels, or modifies an order. If you choose to act on this alert, you do so entirely on your own, in your own account, on your own judgment.</div>
-    <div class="stamp" id="fStamp"></div>
+  <div class="al-grid">
+    <div class="al-main">
+      <section class="al-sec" id="fPlan">
+        <h2>Trade plan</h2>
+        <div class="ladder" id="fLadder" hidden></div>
+        <div class="ledger" id="fLedger"></div>
+        <div class="rr-cap">
+          <div class="rr" id="fRR" hidden><span class="label">Reward : Risk</span><span class="value" id="fRRValue">&mdash;</span></div>
+          <div class="cap" id="fCap" hidden><span>Suggested size</span><span class="value" id="fCapValue">&mdash;</span></div>
+        </div>
+      </section>
+
+      <div class="outcome" id="fOutcome" hidden><span class="tag" id="fOutcomeTag"></span><span id="fOutcomeNote"></span></div>
+
+      <div class="analysis">
+        <section class="al-sec analysis-block" id="fReasoningBlock" hidden><h2>Why this setup</h2><p id="fReasoning"></p></section>
+        <section class="al-sec analysis-block" id="fTechBlock" hidden><h2>Technicals</h2><div class="tech-grid" id="fTechGrid"></div></section>
+        <section class="al-sec analysis-block" id="fRiskBlock" hidden><h2>Risk notes</h2><p id="fRiskNotes"></p></section>
+      </div>
+
+      <div class="foot">
+        <div class="reply" id="fMarketRegime"></div>
+        <div class="fine">Rule-based scan only — general information, the same for every subscriber, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
+        <div class="fine">Zelos never connects to any brokerage account, never asks for your credentials, and never places, cancels, or modifies a real order. The buttons on this page only trade your virtual Trade War account.</div>
+        <div class="stamp" id="fStamp"></div>
+      </div>
+    </div>
+
+    <aside class="al-side">
+      <section class="al-sec al-actions">
+        <span class="tw-tag">TRADE WAR · VIRTUAL MONEY</span>
+        <h3>Practice this trade</h3>
+        <p id="fTwNote">Loads this setup into your $10,000 Trade War account with its stop and target. You review it before anything is placed. Never a real brokerage account.</p>
+        <div class="tw-btns">
+          <a class="tw-btn buy" id="fBuy" href="practice/index.html">Buy<small>in Trade War</small></a>
+          <a class="tw-btn sell" id="fSell" href="practice/index.html">Sell<small>in Trade War</small></a>
+        </div>
+      </section>
+      <div id="pushRow"></div>
+      <button class="share-btn" type="button" id="fShare">Share this alert</button>
+    </aside>
   </div>
 </div>
 
-<div class="ticket" id="zelosNotFound" hidden>
+<div class="al-sec" id="zelosNotFound" hidden>
   <div class="load-state">Couldn't find that alert. It may have expired, or the link is off — <a href="index.html" style="color:var(--accent);">head back to Zelos</a>.</div>
 </div>
-
-</div>
-
+</main>
 <script src="zelos-theme-toggle.js"></script>
+<script src="zelos-tabbar.js"></script>
 <script src="zelos-icons.js"></script>
 
 <!-- Firebase (compat build, matches leaderboard.js's pattern) -->
@@ -359,6 +237,8 @@
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
 <script src="zelos-tokens.js"></script>
+<script src="zelos-push.js"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){if(window.ZelosPush)ZelosPush.mount(document.getElementById("pushRow"));});</script>
 <script>
 (function(){
   var SAMPLE = {
@@ -396,10 +276,16 @@
     document.getElementById('fTicker').textContent = a.ticker || '—';
     document.title = 'Zelos Alert — ' + (a.ticker || '');
 
+    var NAMES = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+    var dir = String(a.direction || '').toLowerCase(), short = /short|put|bear/.test(dir);
+    document.getElementById('fKicker').textContent = (NAMES[a.strategy] || 'Zelos') + (dir ? ' · ' + dir : '');
+    document.getElementById('fHero').classList.toggle('is-short', short);
     if (a.score !== undefined && a.score !== null) {
+      var max = a.scoreMax || 80, frac = Math.max(0, Math.min(1, a.score / max)), C = 2 * Math.PI * 52;
       document.getElementById('fScoreWrap').hidden = false;
       document.getElementById('fScore').textContent = a.score;
-      document.getElementById('fScoreMax').textContent = a.scoreMax || 80;
+      document.getElementById('fScoreMax').textContent = max;
+      document.getElementById('fRing').setAttribute('stroke-dasharray', (frac * C).toFixed(1) + ' ' + C.toFixed(1));
     }
     document.getElementById('fSetup').textContent = a.setupLabel || '';
 
@@ -416,10 +302,12 @@
     if (a.target2 !== undefined) rows.push(['Target 2', fmtMoney(a.target2), '']);
     if (a.riskPerShare !== undefined) rows.push(['Risk / share', fmtMoney(a.riskPerShare), 'risk']);
     if (a.rewardPerShare !== undefined) rows.push(['Reward / share (T1)', fmtMoney(a.rewardPerShare, true), 'accent']);
-    if (a.optionsRule) rows.push(['Strike / expiration rule', a.optionsRule, '']);
+    if (a.optionsRule) rows.push(['Strike / expiration rule', esc(a.optionsRule), '', 'is-wide']);
     ledger.innerHTML = rows.map(function(r){
-      return '<div class="row"><span class="label">'+r[0]+'</span><span class="value '+r[2]+'">'+r[1]+'</span></div>';
+      return '<div class="row '+(r[3]||'')+'"><span class="label">'+r[0]+'</span><span class="value '+r[2]+'">'+r[1]+'</span></div>';
     }).join('');
+    ladder(a);
+    trade(a);
 
     if (a.rewardRiskRatio) {
       document.getElementById('fRR').hidden = false;
@@ -458,6 +346,37 @@
     document.getElementById('fStamp').textContent = fmtStamp(a.createdAt);
   }
 
+  function esc(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  // Stop -> entry -> targets, drawn to scale: red is what you risk, green what you aim for.
+  function ladder(a){
+    var el = document.getElementById('fLadder');
+    var pts = [['Stop', a.stop, 'is-stop'], ['Entry', a.entry, ''], ['Target 1', a.target1, 'is-t'], ['Target 2', a.target2, 'is-t']].filter(function(p){ return typeof p[1] === 'number' && isFinite(p[1]); });
+    if (pts.length < 3 || typeof a.entry !== 'number') { el.hidden = true; return; }
+    var vals = pts.map(function(p){ return p[1]; }), lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (hi <= lo) { el.hidden = true; return; }
+    var flip = a.stop > a.entry; // short: stop above entry, so draw high -> low
+    var x = function(v){ var f = (v - lo) / (hi - lo); return (6 + (flip ? 1 - f : f) * 88).toFixed(2); };
+    var far = pts.filter(function(p){ return p[2] === 'is-t'; }).pop();
+    var zone = function(cls, v1, v2){ var a1 = +x(v1), a2 = +x(v2); return '<div class="zone '+cls+'" style="left:'+Math.min(a1,a2)+'%;width:'+Math.abs(a2-a1)+'%"></div>'; };
+    el.innerHTML = '<div class="track"></div>' + (typeof a.stop === 'number' ? zone('risk', a.stop, a.entry) : '') + (far ? zone('reward', a.entry, far[1]) : '') +
+      pts.map(function(p){ return '<div class="mk '+p[2]+'" style="left:'+x(p[1])+'%"><b>$'+p[1].toFixed(2)+'</b><i></i><span>'+p[0]+'</span></div>'; }).join('');
+    el.hidden = false;
+  }
+  // Buy / Sell in the virtual Trade War account (practice/index.html loads it into the ticket).
+  function trade(a){
+    var ok = !!a.ticker && a.status !== 'no-qualifying-setup' && !!id, buy = document.getElementById('fBuy'), sell = document.getElementById('fSell');
+    [buy, sell].forEach(function(b){ b.classList.toggle('is-off', !ok); });
+    if (ok) { buy.href = 'practice/index.html?alert=' + encodeURIComponent(id) + '&side=buy'; sell.href = 'practice/index.html?alert=' + encodeURIComponent(id) + '&side=sell'; }
+    buy.innerHTML = (a.ticker ? 'Buy ' + esc(a.ticker) : 'Buy') + '<small>in Trade War</small>';
+    sell.innerHTML = (a.ticker ? 'Sell ' + esc(a.ticker) : 'Sell') + '<small>in Trade War</small>';
+    document.getElementById('fTwNote').textContent = ok ? 'Loads this setup into your $10,000 Trade War account with its stop and target. You review it before anything is placed. Never a real brokerage account.'
+      : a.status === 'no-qualifying-setup' ? 'No trade today, so there\u2019s nothing to practice. Check back next session.' : 'Unlock the alert to practice it in your Trade War account.';
+  }
+  document.getElementById('fShare').onclick = function(){
+    var url = location.href, t = document.title;
+    if (navigator.share) return navigator.share({ title: t, url: url }).catch(function(){});
+    try { navigator.clipboard.writeText(url); this.textContent = 'Link copied'; } catch (e) {}
+  };
   function showNotFound(){
     document.getElementById('zelosLoading').hidden = true;
     document.getElementById('zelosNotFound').hidden = false;
@@ -490,6 +409,7 @@
           render(r.alert);
           if (r.locked) {
             document.getElementById('fTicker').textContent = 'Locked';
+            trade({ status: a.status });
             document.title = 'Zelos Alert — live until the close';
             var ledger = document.getElementById('fLedger');
             var card = ZelosTokens.lockCard(a, id, function (f) { card.remove(); ledger.hidden = false; render(f); });

@@ -238,5 +238,55 @@ class Founder(unittest.TestCase):
         self.assertEqual(m._ip_hash(""), "")
 
 
+class Push(unittest.TestCase):
+    def test_wants(self):
+        self.assertTrue(m.push_wants(None, "swing-trader"))                       # never touched: all on
+        self.assertTrue(m.push_wants({"strategies": ["swing-trader"]}, "swing-trader"))
+        self.assertFalse(m.push_wants({"strategies": ["swing-trader"]}, "options-scanner"))
+        self.assertFalse(m.push_wants({"strategies": []}, "swing-trader"))
+
+    def test_message_is_a_teaser(self):
+        a = dict(AlertLocking.FULL, strategy="breakout-rider")
+        title, body, link, image = m.push_alert_message("breakout-rider-2026-10-01", a)
+        self.assertEqual(title, "New Breakout Rider alert")
+        self.assertIn("score 59/80", body)
+        self.assertNotIn("PFE", title + body)       # never the ticker
+        self.assertNotIn("27.72", body)             # or the levels
+        self.assertEqual(link, "https://agentictrading.info/alert.html?id=breakout-rider-2026-10-01")
+        self.assertTrue(image.endswith("/images/alert-breakout-rider.png"))
+
+    def test_send_drops_dead_tokens(self):
+        import types
+        fake = types.ModuleType("firebase_admin.messaging")
+        class UnregisteredError(Exception): pass
+        class R:
+            def __init__(self, ok, exc=None): self.success, self.exception = ok, exc
+        sent_msgs = []
+        fake.Message = lambda **kw: kw
+        fake.WebpushConfig = lambda **kw: kw
+        fake.WebpushNotification = lambda **kw: kw
+        fake.WebpushFCMOptions = lambda **kw: kw
+        def send_each(msgs):
+            sent_msgs.extend(msgs)
+            return types.SimpleNamespace(responses=[R(True) if x["token"] != "dead" else R(False, UnregisteredError()) for x in msgs])
+        fake.send_each = send_each
+        old = sys.modules.get("firebase_admin.messaging")
+        sys.modules["firebase_admin.messaging"] = fake
+        import firebase_admin
+        had = getattr(firebase_admin, "messaging", None)
+        firebase_admin.messaging = fake
+        try:
+            sent, dead = m._push_send([("a", "tok1"), ("b", "dead"), ("c", "tok3")], "T", "B", "https://x/l", "https://x/i.png", "tag1")
+        finally:
+            if old is None: sys.modules.pop("firebase_admin.messaging", None)
+            else: sys.modules["firebase_admin.messaging"] = old
+            if had is None:
+                try: del firebase_admin.messaging
+                except AttributeError: pass
+            else: firebase_admin.messaging = had
+        self.assertEqual((sent, dead), (2, ["b"]))
+        self.assertEqual(sent_msgs[0]["webpush"]["fcm_options"]["link"], "https://x/l")
+
+
 if __name__ == "__main__":
     unittest.main()

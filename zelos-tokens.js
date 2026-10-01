@@ -66,7 +66,8 @@
   function toast(t) {
     style();
     var el = d.createElement('div'); el.className = 'zt-toast'; el.setAttribute('role', 'status');
-    el.style.bottom = (20 + d.querySelectorAll('.zt-toast').length * 74) + 'px';
+    var base = d.documentElement.classList.contains('has-tabbar') && global.innerWidth <= 760 ? 84 : 20;
+    el.style.bottom = (base + d.querySelectorAll('.zt-toast').length * 74) + 'px';
     el.innerHTML = '<span class="zt-coin" aria-hidden="true"></span><span>' + esc(t) + '</span>';
     el.onclick = function () { el.remove(); open(); };
     d.body.appendChild(el); setTimeout(function () { el.classList.add('is-gone'); setTimeout(function () { el.remove(); }, 400); }, 7000);

@@ -398,6 +398,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Push notifications: device tokens and the "already notified" record per alert.
+    // Server only (push_register / push_unregister / publish_alert).
+    match /pushTokens/{id} {
+      allow read, write: if false;
+    }
+    match /alertPushes/{alertId} {
+      allow read, write: if false;
+    }
+
     // Retired with Gumroad: old purchase claims. Nothing reads or writes them now.
     match /pendingOwnership/{email} {
       allow read, write: if false;

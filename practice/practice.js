@@ -900,6 +900,31 @@
           (own ? '' : '<a class="pt-fine pt-alink" href="../arsenal.html">Get the ' + name + ' agent</a>') + '</div>';
       }).join('') + '</div>';
   }
+  // practice/index.html?alert=<id>&side=buy|sell (the Buy / Sell buttons on an alert page):
+  // load that alert into the Trade War ticket. Virtual money only; you still review and place it.
+  function fromAlertLink() {
+    var q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
+    var id = q.get('alert'), want = q.get('side') === 'sell' ? 'sell' : 'buy';
+    if (!id || !db || !/^[a-z-]+-\d{4}-\d{2}-\d{2}$/.test(id)) return;
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    db.collection('alerts').doc(id).get().then(function (s) {
+      if (!s.exists) return null;
+      var a = Object.assign({ id: id }, s.data());
+      if (a.ticker) return a;
+      return new Promise(function (res) { var un = firebase.auth().onAuthStateChanged(function () { un(); res(); }); })
+        .then(function () { return window.ZelosTokens ? ZelosTokens.full(a, id) : null; });
+    }).then(function (a) {
+      if (!a || !a.ticker) return toast('Unlock this alert first, then you can trade it in Trade War.', true);
+      if (!NAMES[a.ticker]) return toast(esc(a.ticker) + ' isn\'t in the Trade War stock list yet.', true);
+      agentAlerts = (agentAlerts || []).filter(function (x) { return x.strategy !== a.strategy; }).concat([a]);
+      if (want === 'sell') {
+        selectSymbol(a.ticker); ticket.mode = 'stock'; side = 'sell'; ticket.type = 'market';
+        var r = document.querySelector('[name="ptType"][value="market"]'); if (r) r.checked = true;
+        renderAll(); toast('Loaded a sell of ' + esc(a.ticker) + ' in your Trade War account. Set how many shares and review it.');
+      } else useAgent(a.strategy);
+      var t = document.querySelector('.pt-ticket-col'); if (t && t.scrollIntoView) t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }).catch(function () { toast('Couldn\'t load that alert.', true); });
+  }
   function useAgent(strategy) {
     var a = (agentAlerts || []).filter(function (x) { return x.strategy === strategy; })[0]; if (!a || !NAMES[a.ticker]) return;
     selectSymbol(a.ticker);
@@ -1168,6 +1193,16 @@
     $('ptModalCancel').addEventListener('click', function () { $('ptConfirm').hidden = true; });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('ptConfirm').hidden = true; if (chart.placing) { chart.placing = null; ['ptAlertAdd', 'ptAbc'].forEach(function (id) { $(id).classList.remove('is-on'); $(id).setAttribute('aria-pressed', 'false'); }); renderAll(); } document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); } });
     document.querySelectorAll('.pt-tab').forEach(function (t) { t.addEventListener('click', function () { tab = t.getAttribute('data-tab'); renderTabs(); }); });
+    // XP & Missions lives in the tabs below the chart: a floating shortcut jumps there
+    (function () {
+      var tabsEl = document.querySelector('.pt-tabs'); if (!tabsEl) return;
+      var jump = document.createElement('button'); jump.type = 'button'; jump.className = 'pt-xp-jump'; jump.innerHTML = '<span aria-hidden="true">⚡</span> XP &amp; Missions';
+      jump.onclick = function () { tab = 'progress'; renderTabs(); tabsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      document.body.appendChild(jump);
+      if (window.IntersectionObserver) new IntersectionObserver(function (es) {
+        var seen = es[0].isIntersecting || es[0].boundingClientRect.top < 0; jump.classList.toggle('is-hidden', seen);
+      }, { rootMargin: '0px 0px -30% 0px' }).observe(tabsEl);
+    })();
     $('ptTabBody').addEventListener('click', function (e) {
       var tg = e.target.closest('button,a'); if (!tg) return;
       var s = tg.getAttribute('data-sym'), c = tg.getAttribute('data-cancel'), cl = tg.getAttribute('data-close'), oc = tg.getAttribute('data-optclose'), os = tg.getAttribute('data-optsym'), ag = tg.getAttribute('data-agent');
@@ -1267,7 +1302,7 @@
       UNIVERSE = res[0].symbols; UNIVERSE.forEach(function (u) { NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
       hist = {}; [res[1].symbols, res[2].symbols].forEach(function (src) { Object.keys(src).forEach(function (k) { hist[k] = src[k]; }); });
       if (!NAMES[sel]) sel = UNIVERSE[0].sym;
-      tick(); showGate();
+      tick(); showGate(); fromAlertLink();
     }).catch(function () { toast('Couldn\'t load price history. Refresh to try again.', true); });
 
     var cfg = window.ZELOS_FIREBASE_CONFIG;
