@@ -179,21 +179,9 @@
 </nav>
 
 <main class="pt-shell">
+  <h1 class="pt-sr">Trade War: your $10,000 virtual trading account</h1>
   <div id="twTop" class="twh-wrap"></div>
-  <div class="pt-top">
-    <div class="pt-title">
-      <span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> &middot; <span id="ptUser">Guest</span></span>
-      <h1>Trade War</h1>
-      <span class="pt-lvl" id="ptLevel" hidden></span>
-    </div>
-    <div class="pt-acct" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money.">
-      <span class="is-main"><small>Account value</small><b id="ptEquity">$10,000.00</b></span>
-      <span><small>Today</small><b id="ptDay">+$0.00</b></span>
-      <span><small>Total P&amp;L</small><b id="ptTotal">+$0.00</b></span>
-      <span><small>Open P&amp;L</small><b id="ptOpen">+$0.00</b></span>
-      <span><small>Buying power</small><b id="ptBP">$10,000.00</b></span>
-    </div>
-  </div>
+  <div id="twTiles" class="twh-tiles" aria-label="Missions, achievements, leaderboards, friends"></div>
   <div class="pt-statusbar">
     <span class="pt-feed" id="ptFeed">Connecting to live prices…</span>
     <span class="pt-clock" id="ptClock">Market closed</span>
@@ -208,17 +196,30 @@
   <div class="pt-recovery" id="ptRecovery" hidden></div>
 
   <div class="pt-grid">
-    <aside class="pt-card pt-watch-card" aria-label="Stocks">
-      <input class="pt-search" id="ptSearch" type="search" placeholder="Search stocks &amp; ETFs" aria-label="Search stocks">
+    <section class="pt-card pt-acard" aria-label="Main account">
+      <div class="pt-acard-head"><span class="pt-acard-k">Main account &middot; <span class="zm-tag is-war">VIRTUAL</span></span><button class="pt-linkbtn" type="button" id="ptHistBtn">History &rsaquo;</button></div>
+      <b class="pt-acard-eq" id="ptEquity">$10,000.00</b>
+      <span class="pt-acard-since"><b id="ptTotal">+$0.00</b> <span id="ptSinceLbl">since start</span></span>
+      <div class="pt-acard-chart"><canvas id="ptAcctChart" aria-label="Account value history, resets marked"></canvas></div>
+      <div class="pt-acard-foot"><span id="ptAcctNote">Account #1</span><span class="pt-acard-rng" id="ptAcctRng"><button type="button" data-ar="31">1M</button><button type="button" data-ar="92">3M</button><button type="button" data-ar="all" class="is-on">ALL</button></span></div>
+      <div class="pt-acard-stats" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money. RESET on the chart marks where you started over."><span><small>Today</small><b id="ptDay">+$0.00</b></span><span><small>Open P&amp;L</small><b id="ptOpen">+$0.00</b></span><span><small>Buying power</small><b id="ptBP">$10,000.00</b></span></div>
+    </section>
+
+    <aside class="pt-card pt-watch-card" aria-label="Stocks and crypto">
+      <input class="pt-search" id="ptSearch" type="search" placeholder="Search stocks, ETFs &amp; crypto" aria-label="Search stocks and crypto">
       <div class="pt-watch" id="ptWatch"></div>
     </aside>
 
     <section class="pt-card pt-main" aria-label="Chart">
       <div class="pt-qhead">
         <h2 id="ptSym">NVDA</h2><span class="pt-name" id="ptName"></span>
+        <span class="pt-dd pt-news-dd">
+          <button class="pt-chip pt-news-btn" type="button" id="ptNewsBtn" aria-haspopup="true" aria-expanded="false">News <em id="ptNewsN" hidden></em> <span class="pt-caret">&#9662;</span></button>
+          <div class="pt-menu pt-news" id="ptNewsMenu" hidden></div>
+        </span>
+        <span class="pt-earn" id="ptEarn" hidden></span>
         <span class="pt-px" id="ptPx">–</span><span class="pt-chg" id="ptChg"></span>
       </div>
-      <div class="pt-stats" id="ptStats"></div>
       <div class="pt-toolbar">
         <span class="pt-dd">
           <button class="pt-chip pt-dd-btn" type="button" id="ptTfBtn" aria-haspopup="true" aria-expanded="false" title="Timeframe">D</button>
@@ -250,6 +251,7 @@
         <button class="pt-chip" type="button" id="ptZoomOut" aria-label="Zoom out">&minus;</button>
       </div>
       <div class="pt-chart-wrap"><canvas class="pt-chart" id="ptChart" aria-label="Price chart"></canvas></div>
+      <div class="pt-stats" id="ptStats"></div>
       <p class="pt-hint">Scroll to zoom &middot; drag to pan &middot; hover for exact values. Dashed lines are your average cost and open orders.</p>
     </section>
 
@@ -326,8 +328,8 @@
   </section>
 
   <section id="twHub" class="twh-hub" aria-label="Trade War home"></section>
-  <section class="pt-about">
-    <h2>How Trade War works</h2>
+  <details class="pt-about">
+    <summary>How Trade War works</summary>
     <p><b>Trade War is virtual.</b> Every trade here uses virtual money from a $10,000 starting balance, marked <b>TRADE WAR — VIRTUAL</b>. Your
     real trades live separately in the <a href="../real/">Real Trade Journal</a>, marked <b>REAL TRADE</b>. The two never mix: Trade War
     leaderboards only rank virtual accounts, and your profile shows each side on its own. Both earn XP on the same account.</p>
@@ -342,8 +344,10 @@
     expiration settle at their intrinsic value.</p>
     <p><b>Agent signals.</b> The Agent signals tab shows the latest setup from each Zelos agent. One click loads it into your ticket with its
     stop and target so you can test the agent with virtual money.</p>
-    <p><b>Timeframes.</b> Daily and weekly charts go back to 2024. The 5-minute, 15-minute and 1-hour charts are built from the live
+    <p><b>Timeframes.</b> Daily and weekly charts go back to 2024. The 5-minute, 15-minute and 1-hour charts come from the live
     price feed during market hours and keep the last five sessions.</p>
+    <p><b>Crypto.</b> Bitcoin, Ethereum and the rest of the Crypto 24/7 list trade around the clock in your Main account, in fractions of a coin
+    (Trade War matches stay stocks only). Crypto orders are good til cancelled.</p>
     <p><b>Your account</b> is saved in this browser. Sign in with Google and it follows you to any device and shows on the
     <a href="../leaderboard.html">leaderboard</a> (public numbers only: name, balance, trades; turn it off any time in Performance).
     If the account drops below $2,500 you can reset it to $10,000; resets are counted on your stats.
@@ -351,7 +355,7 @@
     <a href="../games/grade-the-setup.html">Grade the Setup</a>.</p>
     <p class="pt-fine">Trade War is virtual trading for practice, competition and education only. Not investment advice, no real orders, no brokerage connection.
     Quotes may be delayed or briefly unavailable; holidays aren't modelled.</p>
-  </section>
+  </details>
 </main>
 
 <div class="pt-vmoney" aria-hidden="true">Trade War &middot; virtual money</div>

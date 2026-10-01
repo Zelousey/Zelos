@@ -290,6 +290,14 @@
   .hub-foot{ display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:0.72rem; color:var(--muted); }
   .hub-foot a{ color:var(--accent); text-decoration:none; font-weight:600; }
   .hub-news{ display:flex; flex-direction:column; }
+  .hub-mv-tabs{ display:flex; gap:2px; margin:2px 0 8px; border-bottom:1px solid var(--border-soft); }
+  .hub-mv-tabs button{ font:600 0.76rem var(--sans); color:var(--muted); background:none; border:0; border-bottom:2px solid transparent; padding:6px 8px; cursor:pointer; }
+  .hub-mv-tabs button.is-on{ color:var(--ink); border-bottom-color:var(--accent); }
+  .hub-mv{ list-style:none; margin:0; padding:0; }
+  .hub-mv li{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-top:1px solid var(--border-soft); font-size:0.84rem; }
+  .hub-mv li:first-child{ border-top:0; }
+  .hub-mv li span{ min-width:0; } .hub-mv li b{ font-family:var(--mono); } .hub-mv li small{ display:block; color:var(--muted); font-size:0.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hub-mv li em{ font:600 0.8rem var(--mono); font-style:normal; text-align:right; white-space:nowrap; }
   .hub-news a{ display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--border-soft); color:var(--ink); text-decoration:none; }
   .hub-news a:first-child{ border-top:none; }
   .hub-news a:hover .hub-h{ color:var(--accent); }
@@ -533,6 +541,12 @@
         <div id="hubTrending"><div class="empty">Loading…</div></div>
       </div>
 
+      <div data-widget="movers" data-title="Market movers &amp; crypto" data-w="3" class="card">
+        <div class="card-head"><h2>Market movers</h2></div>
+        <div class="hub-mv-tabs" role="tablist" id="hubMoversTabs"><button type="button" data-mv="gainers" class="is-on">Gainers</button><button type="button" data-mv="losers">Losers</button><button type="button" data-mv="actives">Active</button><button type="button" data-mv="crypto">Crypto</button></div>
+        <div id="hubMovers"><div class="empty">Loading…</div></div>
+      </div>
+
       <div data-widget="status" data-title="Market status" data-w="3" class="card">
         <div class="card-head"><h2>Market status</h2></div>
         <div class="status-line" id="marketStatus">Loading…</div>
@@ -743,9 +757,9 @@
 <script>
   // Command Center presets per mode (zelos-dashboard-layout.js): ids listed first, then everything else; `hide` starts removed.
   window.ZELOS_DASH_PRESETS = {
-    real: { order: ['watchlist', 'realtrades', 'status', 'viz', 'sectors', 'watchnews', 'trending', 'pulse', 'agents', 'active', 'exchanges', 'trader', 'skills'],
+    real: { order: ['watchlist', 'realtrades', 'status', 'viz', 'sectors', 'movers', 'watchnews', 'trending', 'pulse', 'agents', 'active', 'exchanges', 'trader', 'skills'],
             hide: ['practice', 'boards', 'missions', 'challenges', 'achievements', 'progress'] },
-    war: { order: ['practice', 'trader', 'boards', 'missions', 'challenges', 'achievements', 'trending', 'watchnews', 'status', 'sectors'],
+    war: { order: ['practice', 'trader', 'boards', 'missions', 'challenges', 'achievements', 'movers', 'trending', 'watchnews', 'status', 'sectors'],
            hide: ['viz', 'exchanges', 'agents', 'pulse', 'active', 'skills', 'watchlist', 'realtrades', 'progress'] }
   };
 </script>

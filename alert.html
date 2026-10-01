@@ -134,6 +134,46 @@
   .share-btn{ width:100%; font:inherit; font-weight:700; padding:11px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); cursor:pointer; }
   #pushRow .zn-row{ margin:0; border-radius:16px; padding:16px 18px; }
 
+  /* research on the ticker (markets/research_<SYM>, FMP via market_research) */
+  .rs-warn{ display:flex; gap:12px; align-items:flex-start; padding:14px 18px; border-radius:14px; border:1px solid rgba(232,178,61,.55); background:rgba(232,178,61,.1); font-size:0.9rem; line-height:1.5; }
+  .rs-warn b{ color:#f2d38a; }
+  .rs-warn .ic{ font-size:1.2rem; line-height:1.2; }
+  .rs-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin:0 0 14px; }
+  .rs-head h2{ margin:0; font-size:0.78rem; font-family:var(--mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .rs-head small{ font-size:0.72rem; color:var(--muted); }
+  .rs-tabs{ display:flex; gap:4px; flex-wrap:wrap; margin:-4px 0 14px; border-bottom:1px solid var(--border); }
+  .rs-tabs button{ font:600 0.82rem var(--sans); color:var(--muted); background:none; border:0; border-bottom:2px solid transparent; padding:8px 10px; cursor:pointer; }
+  .rs-tabs button[aria-selected="true"]{ color:var(--ink); border-bottom-color:var(--accent); }
+  .rs-pane[hidden]{ display:none; }
+  .rs-target{ position:relative; height:30px; margin:8px 4px 0; }
+  .rs-target .bar{ position:absolute; left:0; right:0; top:11px; height:8px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border); }
+  .rs-target .mk{ position:absolute; top:3px; width:4px; height:24px; margin-left:-2px; border-radius:2px; background:var(--muted); }
+  .rs-target .mk.is-cons{ background:var(--accent); } .rs-target .mk.is-px{ background:var(--ink); } .rs-target .mk.is-t1{ background:#e8b23d; }
+  .rs-ends{ display:flex; justify-content:space-between; font:500 0.72rem var(--mono); color:var(--muted); margin:4px 4px 0; }
+  .rs-legend{ display:flex; flex-wrap:wrap; gap:6px 18px; margin:12px 0 0; font-size:0.84rem; }
+  .rs-legend span{ display:inline-flex; align-items:center; gap:7px; } .rs-legend b{ font-family:var(--mono); }
+  .rs-legend i{ width:10px; height:10px; border-radius:2px; background:var(--muted); } .rs-legend .is-cons i{ background:var(--accent); } .rs-legend .is-px i{ background:var(--ink); } .rs-legend .is-t1 i{ background:#e8b23d; }
+  .rs-pane .rs-sub{ margin:22px 0 6px; font-size:0.72rem; font-family:var(--mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .rs-pane .rs-note{ font-size:0.86rem; color:var(--muted); line-height:1.55; margin:12px 0 0; }
+  .rs-note b{ color:var(--ink); }
+  .rs-kv{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; }
+  .rs-kv div{ display:flex; flex-direction:column; gap:3px; padding:10px 12px; border-radius:10px; background:var(--surface-2); min-width:0; }
+  .rs-kv .k{ font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; }
+  .rs-kv .v{ font-family:var(--mono); font-weight:600; font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rs-list{ list-style:none; margin:0; padding:0; }
+  .rs-list li{ display:flex; justify-content:space-between; gap:12px; padding:9px 2px; border-bottom:1px solid var(--border); font-size:0.88rem; }
+  .rs-list li:last-child{ border-bottom:0; }
+  .rs-list small{ color:var(--muted); font-family:var(--mono); font-size:0.74rem; white-space:nowrap; }
+  .rs-list .up{ color:var(--accent); } .rs-list .dn{ color:var(--danger); }
+  .rs-news a{ display:flex; gap:12px; padding:10px 2px; border-bottom:1px solid var(--border); color:var(--ink); text-decoration:none; }
+  .rs-news a:last-child{ border-bottom:0; }
+  .rs-news a:hover b{ color:var(--accent); }
+  .rs-news img, .rs-news .ph{ width:76px; height:48px; flex:none; border-radius:8px; object-fit:cover; background:var(--accent-soft); }
+  .rs-news b{ display:block; font-size:0.9rem; line-height:1.35; } .rs-news small{ display:block; color:var(--muted); font-size:0.74rem; margin-top:3px; }
+  .rs-pane .rs-about{ font-size:0.9rem; line-height:1.6; color:var(--ink-2, var(--ink)); margin:12px 0 0; }
+  .rs-empty{ color:var(--muted); font-size:0.88rem; }
+  .al-sec .rs-fine{ font-size:0.72rem; color:var(--muted); margin:14px 0 0; }
+
   .foot{ display:flex; flex-direction:column; gap:8px; padding:4px 2px; }
   .reply{ font-size:0.86rem; line-height:1.5; color:var(--muted); }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.55; }
@@ -196,6 +236,14 @@
         <section class="al-sec analysis-block" id="fTechBlock" hidden><h2>Technicals</h2><div class="tech-grid" id="fTechGrid"></div></section>
         <section class="al-sec analysis-block" id="fRiskBlock" hidden><h2>Risk notes</h2><p id="fRiskNotes"></p></section>
       </div>
+
+      <div class="rs-warn" id="rsEarn" hidden><span class="ic" aria-hidden="true">&#9888;</span><span id="rsEarnTxt"></span></div>
+      <section class="al-sec" id="rsBlock" hidden>
+        <div class="rs-head"><h2 id="rsTitle">Research</h2><small id="rsStamp"></small></div>
+        <div class="rs-tabs" role="tablist" id="rsTabs"></div>
+        <div id="rsPanes"></div>
+        <p class="rs-fine">Company and analyst data: Financial Modeling Prep. Shown for context only; it isn't part of the Zelos score and isn't advice.</p>
+      </section>
 
       <div class="foot">
         <div class="reply" id="fMarketRegime"></div>
@@ -342,10 +390,98 @@
       document.getElementById('fRiskNotes').textContent = a.riskNotes;
     }
 
+    research(a);
     document.getElementById('fMarketRegime').textContent = a.marketRegime || '';
     document.getElementById('fStamp').textContent = fmtStamp(a.createdAt);
   }
 
+  // ---- research on the ticker: analyst targets, ratings, earnings, company, insiders, news
+  var rsFor = null;
+  function research(a){
+    var sym = String(a.ticker || '').toUpperCase();
+    if (!id || !sym || !/^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) || !window.firebase) { document.getElementById('rsBlock').hidden = true; document.getElementById('rsEarn').hidden = true; return; }
+    if (rsFor === sym) return;
+    rsFor = sym;
+    var ref = firebase.firestore().collection('markets').doc('research_' + sym.replace('.', '-'));
+    ref.get().then(function(s){
+      var d = s.exists ? s.data() : null;
+      if (d) showResearch(a, d);
+      if ((!d || Date.now() / 1000 - (d.fetchedAt || 0) > 12 * 3600) && window.ZelosTokens && ZelosTokens.call) {
+        return ZelosTokens.call('market_research', { symbol: sym }).then(function(r){ if (r && r.symbol === sym && rsFor === sym) showResearch(a, r); });
+      }
+    }).catch(function(){});
+  }
+  function big(n){ if (n == null || !isFinite(n)) return '—'; var x = Math.abs(n), s = n < 0 ? '-' : ''; return s + '$' + (x >= 1e12 ? (x / 1e12).toFixed(2) + 'T' : x >= 1e9 ? (x / 1e9).toFixed(1) + 'B' : x >= 1e6 ? (x / 1e6).toFixed(1) + 'M' : x.toLocaleString('en-US')); }
+  function pctS(n){ return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'; }
+  function day(ds){ try { return new Date(ds.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-US', { month:'short', day:'numeric', year: ds.slice(0, 4) === String(new Date().getFullYear()) ? undefined : 'numeric', timeZone:'UTC' }); } catch (e) { return ds; } }
+  function nyToday(){ var p = {}; new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date()).forEach(function(x){ p[x.type] = x.value; }); return p.year + '-' + p.month + '-' + p.day; }
+  function showResearch(a, d){
+    var sym = d.symbol, panes = [], P = d.profile || {}, T = d.target, px = P.price || a.entry;
+    document.getElementById('rsTitle').textContent = 'Research · ' + (d.name && d.name !== sym ? d.name : sym);
+    document.getElementById('rsStamp').textContent = d.updatedAt ? 'Updated ' + new Date(d.updatedAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+    // earnings warning: a report before the trade has time to play out can gap straight through the stop
+    var E = d.earnings, warn = document.getElementById('rsEarn');
+    if (E && E.date) {
+      var dd = Math.round((new Date(E.date + 'T12:00:00Z') - new Date(nyToday() + 'T12:00:00Z')) / 864e5);
+      warn.hidden = !(dd >= 0 && dd <= 21);
+      if (!warn.hidden) document.getElementById('rsEarnTxt').innerHTML = '<b>' + esc(sym) + ' reports earnings ' + (dd === 0 ? 'today' : dd === 1 ? 'tomorrow' : 'in ' + dd + ' days') + '</b> (' + esc(day(E.date)) + (E.eps != null ? ', EPS estimate $' + (+E.eps).toFixed(2) : '') + '). ' +
+        'Stocks can jump or drop hard on the report, right past a stop. Many swing traders close or size down before earnings.';
+    } else warn.hidden = true;
+    // analysts
+    var h = '';
+    if (T && T.targetConsensus) {
+      var pts = [['is-px', px, 'Now'], ['is-t1', a.target1, 'Target 1 (this alert)'], ['is-cons', T.targetConsensus, 'Analysts\' average']].filter(function(p){ return typeof p[1] === 'number' && isFinite(p[1]) && p[1] > 0; });
+      var vals = pts.map(function(p){ return p[1]; }).concat([T.targetLow, T.targetHigh]).filter(function(v){ return typeof v === 'number' && v > 0; });
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+      var x = function(v){ return (1 + (v - lo) / Math.max(1e-9, hi - lo) * 98).toFixed(2); };
+      h += '<div class="rs-target" aria-hidden="true"><div class="bar"></div>' + pts.map(function(p){ return '<div class="mk ' + p[0] + '" style="left:' + x(p[1]) + '%"></div>'; }).join('') + '</div>' +
+        '<div class="rs-ends"><span>Lowest target $' + (+T.targetLow).toFixed(2) + '</span><span>Highest $' + (+T.targetHigh).toFixed(2) + '</span></div>' +
+        '<div class="rs-legend">' + pts.map(function(p){ return '<span class="' + p[0] + '"><i></i>' + p[2] + ' <b>$' + p[1].toFixed(2) + '</b></span>'; }).join('') + '</div>';
+      var up = px ? (T.targetConsensus / px - 1) * 100 : null;
+      h += '<p class="rs-note">Wall Street\'s average 12-month target is <b>$' + T.targetConsensus.toFixed(2) + '</b>' + (up != null ? ' (' + pctS(up) + ' from ' + (P.price ? 'the latest price' : 'entry') + ')' : '') +
+        ', in a range of $' + (+T.targetLow).toFixed(2) + ' to $' + (+T.targetHigh).toFixed(2) + '.' + (typeof a.target1 === 'number' ? ' This alert\'s Target 1 ($' + a.target1.toFixed(2) + ') is ' + (a.target1 <= T.targetConsensus ? 'below' : 'above') + ' the average target.' : '') + '</p>';
+    }
+    if (d.grades && d.grades.length) {
+      h += '<h3 class="rs-sub">Latest analyst ratings</h3><ul class="rs-list">' + d.grades.map(function(g){
+        var cls = /up/.test(g.action) ? 'up' : /down/.test(g.action) ? 'dn' : '';
+        return '<li><span><b>' + esc(g.firm) + '</b> ' + (g.from && g.from !== g.to ? esc(g.from) + ' &rarr; ' : '') + '<b class="' + cls + '">' + esc(g.to) + '</b></span><small class="' + cls + '">' + esc(g.action || '') + ' · ' + esc(day(g.date)) + '</small></li>';
+      }).join('') + '</ul>';
+    }
+    if (h) panes.push(['Analysts', h]);
+    // company
+    var M = d.metrics || {}, F = d.financials || {}, S = d.estimate || {}, kv = [];
+    if (P.sector) kv.push(['Sector', P.sector]); if (P.industry) kv.push(['Industry', P.industry]);
+    if (P.marketCap) kv.push(['Market cap', big(P.marketCap)]); if (M.pe != null) kv.push(['P/E', M.pe.toFixed(1)]);
+    if (P.beta != null) kv.push(['Beta', P.beta.toFixed(2)]); if (P.range) kv.push(['52-week range', '$' + P.range.replace('-', ' – $')]);
+    if (P.avgVolume) kv.push(['Avg volume', big(P.avgVolume).replace('$', '')]); if (M.margin != null) kv.push(['Net margin', (M.margin * 100).toFixed(1) + '%']);
+    if (M.roe != null) kv.push(['Return on equity', (M.roe * 100).toFixed(0) + '%']); if (M.divYield) kv.push(['Dividend yield', (M.divYield * 100).toFixed(2) + '%']);
+    if (F.revenue) kv.push(['Revenue ' + (F.year || ''), big(F.revenue)]); if (F.netIncome) kv.push(['Net income ' + (F.year || ''), big(F.netIncome)]);
+    if (F.eps != null) kv.push(['EPS ' + (F.year || ''), '$' + F.eps.toFixed(2)]);
+    if (S.epsAvg != null) kv.push(['EPS est. ' + (S.year || ''), '$' + S.epsAvg.toFixed(2) + (S.analysts ? ' (' + S.analysts + ')' : '')]);
+    if (S.revenueAvg) kv.push(['Revenue est. ' + (S.year || ''), big(S.revenueAvg)]);
+    if (E && E.date) kv.push(['Next earnings', day(E.date)]);
+    if (kv.length || P.description) panes.push(['Company', (kv.length ? '<div class="rs-kv">' + kv.map(function(r){ return '<div><span class="k">' + esc(r[0]) + '</span><span class="v" title="' + esc(r[1]) + '">' + esc(r[1]) + '</span></div>'; }).join('') + '</div>' : '') +
+      (P.description ? '<p class="rs-about">' + esc(P.description) + (P.description.length >= 420 ? '…' : '') + '</p>' : '')]);
+    if (d.insiders && d.insiders.length) panes.push(['Insiders', '<ul class="rs-list">' + d.insiders.map(function(t){
+      return '<li><span><b>' + esc(t.who) + '</b>' + (t.role ? ' <small>' + esc(t.role) + '</small>' : '') + '</span><small class="' + (t.buy ? 'up' : 'dn') + '">' + (t.buy ? 'Bought ' : 'Sold ') + (t.shares ? Math.round(t.shares).toLocaleString('en-US') : '') + (t.price ? ' @ $' + t.price.toFixed(2) : '') + ' · ' + esc(day(t.date)) + '</small></li>';
+    }).join('') + '</ul><p class="rs-fine">Open-market buys and sells by company insiders, from SEC Form 4 filings.</p>']);
+    if (d.news && d.news.length) panes.push(['News', '<div class="rs-news">' + d.news.map(function(n){
+      return '<a href="' + esc(n.url) + '" target="_blank" rel="noopener noreferrer">' + (n.image && /^https:/.test(n.image) ? '<img src="' + esc(n.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<i class="ph" aria-hidden="true"></i>') +
+        '<span><b>' + esc(n.headline) + '</b><small>' + esc(n.source || '') + (n.date ? ' · ' + esc(day(n.date)) : '') + '</small></span></a>';
+    }).join('') + '</div>']);
+    var block = document.getElementById('rsBlock');
+    if (!panes.length) { block.hidden = true; return; }
+    block.hidden = false;
+    var tabs = document.getElementById('rsTabs'), box = document.getElementById('rsPanes'), cur = tabs.getAttribute('data-cur') || panes[0][0];
+    if (!panes.some(function(p){ return p[0] === cur; })) cur = panes[0][0];
+    tabs.innerHTML = panes.map(function(p){ return '<button type="button" role="tab" data-rs="' + p[0] + '" aria-selected="' + (p[0] === cur) + '">' + p[0] + '</button>'; }).join('');
+    box.innerHTML = panes.map(function(p){ return '<div class="rs-pane" data-rsp="' + p[0] + '"' + (p[0] === cur ? '' : ' hidden') + '>' + p[1] + '</div>'; }).join('');
+    tabs.onclick = function(e){
+      var b = e.target.closest('[data-rs]'); if (!b) return; var k = b.getAttribute('data-rs'); tabs.setAttribute('data-cur', k);
+      tabs.querySelectorAll('[data-rs]').forEach(function(x){ x.setAttribute('aria-selected', String(x === b)); });
+      box.querySelectorAll('[data-rsp]').forEach(function(x){ x.hidden = x.getAttribute('data-rsp') !== k; });
+    };
+  }
   function esc(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
   // Stop -> entry -> targets, drawn to scale: red is what you risk, green what you aim for.
   function ladder(a){

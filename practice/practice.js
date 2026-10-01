@@ -16,6 +16,9 @@
  * Options: long calls/puts priced by a model (practice-options.js), traded in
  * market hours, settled at intrinsic value at expiration.
  *
+ * Crypto (data/crypto-universe.json): trades 24/7 in fractions of a coin, GTC
+ * only, prices from markets/crypto + markets/cryptoBars (refresh_market_data).
+ *
  * Persistence: localStorage, plus users/{uid}.practice for signed-in users.
  * Public stats go to practiceProfiles/{uid} (leaderboard + profile page)
  * unless the player turns that off. Resets are only offered below $2,500,
@@ -26,7 +29,12 @@
   var START_CASH = 10000, RESET_BELOW = 2500, KEY = 'zelosPractice-v1';
   var MAX_FILLS = 600, MAX_ORDERS = 400, MAX_TRADES = 1000;
   var TC = window.ZelosTradeChart, OPT = window.ZelosOptions, fmt = TC.fmt;
-  var NAMES = {}, GROUPS = {}, UNIVERSE = [];
+  var NAMES = {}, GROUPS = {}, UNIVERSE = [], CRYPTO = {};
+  function isCrypto(sym) { return !!CRYPTO[sym]; }
+  // crypto never closes; stocks follow the New York session
+  function symOpen(sym) { return isCrypto(sym) || marketOpen(); }
+  function pfmt(v) { return v == null || isNaN(v) ? '–' : Math.abs(v) < 2 && v !== 0 ? Number(v).toFixed(4) : fmt(v); }
+  function qtyStr(q) { return Math.abs(q - Math.round(q)) < 1e-9 ? String(Math.round(q)) : String(+(+q).toFixed(6)); }
   var $ = function (id) { return document.getElementById(id); };
   function money(n, d) { if (n == null || isNaN(n)) return '–'; var s = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: d == null ? 2 : d, maximumFractionDigits: d == null ? 2 : d }); return (n < 0 ? '-$' : '$') + s; }
   function signed(n, d) { return (n >= 0 ? '+' : '') + money(n, d); }
@@ -48,12 +56,12 @@
   function activeSession() { var p = nyParts(); if (!isWeekend(p.wd) && p.min < 960) return p.date; return nextSession(p.date); }
 
   // ------------------------------------------------------------ data
-  var hist = {}, extra = {}, quotes = {}, feed = { state: 'loading' }, series = {}, intraday = {}, intradayUnsub = null, intradaySym = null;
+  var hist = {}, extra = {}, cbars = {}, quotes = {}, cquotes = {}, feed = { state: 'loading' }, series = {}, intraday = {}, intradayUnsub = null, intradaySym = null;
   function buildSeries(sym) {
-    var rows = hist[sym] || []; var last = rows.length ? rows[rows.length - 1][0] : '';
+    var rows = hist[sym] || cbars[sym] || []; var last = rows.length ? rows[rows.length - 1][0] : '';
     var more = (extra[sym] || []).filter(function (r) { return r[0] > last; });
     var all = rows.concat(more);
-    var q = quotes[sym], live = false;
+    var q = quotes[sym] || cquotes[sym], live = false;
     if (q && q.c) {
       var qd = q.date || (q.t ? nyParts(new Date(q.t * 1000)).date : null);
       var lastD = all.length ? all[all.length - 1][0] : '';
@@ -69,10 +77,13 @@
   function price(sym) { var s = series[sym]; return s && s.n ? s.c[s.n - 1] : null; }
   function prevClose(sym) {
     var s = series[sym]; if (!s || s.n < 2) return null;
-    var q = quotes[sym]; if (q && q.pc && s.live) return q.pc;
+    var q = quotes[sym] || cquotes[sym]; if (q && q.pc && s.live) return q.pc;
     return s.c[s.n - 2];
   }
-  function isLiveTick(sym) { return feed.state === 'live' && quotes[sym] && marketOpen(); }
+  function isLiveTick(sym) {
+    if (isCrypto(sym)) { var c = cquotes[sym]; return !!(c && c.t && Date.now() / 1000 - c.t < 900); }
+    return feed.state === 'live' && quotes[sym] && marketOpen();
+  }
   function vol(sym) { var s = series[sym]; return s ? OPT.histVol(s.c, 20) : 0.4; }
 
   // ------------------------------------------------------------ timeframes
@@ -109,10 +120,10 @@
       var mins = parseInt(r[0].slice(11, 13), 10) * 60 + parseInt(r[0].slice(14, 16), 10);
       var b = 570 + Math.floor((mins - 570) / step) * step;
       var label = r[0].slice(0, 11) + ('0' + Math.floor(b / 60)).slice(-2) + ':' + ('0' + b % 60).slice(-2);
-      if (!cb || cb[0] !== label) { cb = [label, r[1], r[2], r[3], r[4], 0]; out.push(cb); }
-      else { cb[2] = Math.max(cb[2], r[2]); cb[3] = Math.min(cb[3], r[3]); cb[4] = r[4]; }
+      if (!cb || cb[0] !== label) { cb = [label, r[1], r[2], r[3], r[4], r[5] || 0]; out.push(cb); }
+      else { cb[2] = Math.max(cb[2], r[2]); cb[3] = Math.min(cb[3], r[3]); cb[4] = r[4]; cb[5] += r[5] || 0; }
     });
-    return fromRows(out, sel + ':' + tf, { intraday: true, live: marketOpen() && feed.state === 'live' });
+    return fromRows(out, sel + ':' + tf, { intraday: true, live: isCrypto(sel) ? isLiveTick(sel) : marketOpen() && feed.state === 'live' });
   }
   function watchIntraday() {
     var want = TF[tf].intraday ? sel : null;
@@ -122,7 +133,7 @@
     if (!want || !db) return;
     intradayUnsub = db.collection('markets').doc('intraday_' + want).onSnapshot(function (snap) {
       var bars = (snap.exists && snap.data().bars) || [];
-      intraday[want] = bars.map(function (b) { var p = String(b).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], 0]; });
+      intraday[want] = bars.map(function (b) { var p = String(b).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], +p[5] || 0]; });
       renderQuote();
     }, function () {});
   }
@@ -132,7 +143,7 @@
   function fresh() {
     return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
       resets: 0, resetHistory: [], epoch: 0, epochStartedAt: Date.now(), peakEquity: START_CASH, publicProfile: true, displayName: '',
-      life: null, periods: {}, hist: {}, recovery: null,
+      life: null, periods: {}, hist: {}, recovery: null, valueHist: {},
       createdAt: Date.now(), updatedAt: Date.now() };
   }
   // lifetime counters for XP and achievements (survive resets); seeded from history for older accounts
@@ -255,15 +266,15 @@
       if (cost > acct.cash + 0.005) { o.status = 'rejected'; o.note = 'Not enough cash when it triggered'; return; }
       acct.cash -= cost;
       var p = acct.positions[sym] || { qty: 0, avg: 0, openedDay: day };
-      p.avg = (p.avg * p.qty + cost) / (p.qty + qty); p.qty += qty;
+      p.avg = (p.avg * p.qty + cost) / (p.qty + qty); p.qty = +(p.qty + qty).toFixed(6);
       acct.positions[sym] = p;
       acct.fills.push({ id: uid(), sym: sym, side: 'buy', qty: qty, price: px, day: day, at: Date.now(), orderId: o.id, type: o.type });
       o.status = 'filled'; o.fillPrice = px; o.filledAt = Date.now(); o.filledDay = day;
       onActivity(sym, null, { agent: !!o.agent });
       if (o.bracket && (o.bracket.sl || o.bracket.tp)) {
         var group = uid();
-        if (o.bracket.sl) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'stop', qty: qty, stop: o.bracket.sl, tif: 'gtc', oco: group, parent: o.id, role: 'sl', placedOpen: marketOpen() }));
-        if (o.bracket.tp) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'limit', qty: qty, limit: o.bracket.tp, tif: 'gtc', oco: group, parent: o.id, role: 'tp', placedOpen: marketOpen() }));
+        if (o.bracket.sl) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'stop', qty: qty, stop: o.bracket.sl, tif: 'gtc', oco: group, parent: o.id, role: 'sl', placedOpen: symOpen(sym) }));
+        if (o.bracket.tp) acct.orders.push(newOrder({ sym: sym, side: 'sell', type: 'limit', qty: qty, limit: o.bracket.tp, tif: 'gtc', oco: group, parent: o.id, role: 'tp', placedOpen: symOpen(sym) }));
       }
     } else {
       var pos = acct.positions[sym];
@@ -272,7 +283,7 @@
       var pc = prevClose(sym), pnl = (px - pos.avg) * qty;
       acct.cash += qty * px; acct.realized += pnl;
       recordTrade({ kind: 'stock', sym: sym, label: sym, qty: qty, entry: pos.avg, exit: px, invested: pos.avg * qty, pnl: pnl, pct: (px / pos.avg - 1) * 100, openDay: pos.openedDay, closeDay: day });
-      pos.qty -= qty;
+      pos.qty = +(pos.qty - qty).toFixed(6);
       acct.fills.push({ id: uid(), sym: sym, side: 'sell', qty: qty, price: px, day: day, at: Date.now(), orderId: o.id, type: o.type, pnl: pnl, role: o.role || null, dayBase: pos.openedDay === day ? pos.avg : pc });
       o.status = 'filled'; o.fillPrice = px; o.filledAt = Date.now(); o.filledDay = day; o.qty = qty;
       if (pos.qty <= 0) delete acct.positions[sym];
@@ -288,8 +299,8 @@
   function newOrder(f) {
     return {
       id: uid(), sym: f.sym, side: f.side, type: f.type, qty: f.qty, limit: f.limit || null, stop: f.stop || null,
-      tif: f.tif || 'day', status: 'open', createdAt: Date.now(), createdDay: todayNY(), placedOpen: f.placedOpen != null ? f.placedOpen : marketOpen(),
-      session: activeSession(), bracket: f.bracket || null, oco: f.oco || null, parent: f.parent || null, role: f.role || null,
+      tif: f.tif || 'day', status: 'open', createdAt: Date.now(), createdDay: todayNY(), placedOpen: f.placedOpen != null ? f.placedOpen : symOpen(f.sym),
+      session: isCrypto(f.sym) ? todayNY() : activeSession(), bracket: f.bracket || null, oco: f.oco || null, parent: f.parent || null, role: f.role || null,
       fullPort: !!f.fullPort, agent: f.agent || null
     };
   }
@@ -310,12 +321,12 @@
     acct.orders.forEach(function (o) {
       if (o.status !== 'open') return;
       var s = series[o.sym]; if (!s || !s.n) return;
-      var firstDay = o.placedOpen ? nextSession(o.createdDay) : o.session;
+      var firstDay = isCrypto(o.sym) ? addDays(o.createdDay, 1) : o.placedOpen ? nextSession(o.createdDay) : o.session;
       for (var i = 0; i < s.n && o.status === 'open'; i++) {
         var d = s.d[i];
         if (d < firstDay) continue;
         if (o.tif === 'day' && d > o.session) break;
-        if (s.live && i === s.n - 1 && d === today && open) {
+        if (s.live && i === s.n - 1 && d === today && (open || isCrypto(o.sym))) {
           var px0 = triggerOnBar(o, { o: s.o[i], h: s.h[i], l: s.l[i] });
           if (px0 != null) { fill(o, px0, d); changed = true; }
           break;
@@ -329,7 +340,7 @@
         if (tp != null) { fill(o, tp, today); changed = true; return; }
       }
       var sessionOver = today > o.session || (today === o.session && p.min >= 960);
-      if (o.tif === 'day' && sessionOver) { o.status = 'expired'; o.note = 'Day order expired at the close'; changed = true; }
+      if (o.tif === 'day' && sessionOver && !isCrypto(o.sym)) { o.status = 'expired'; o.note = 'Day order expired at the close'; changed = true; }
     });
     if (settleExpiredOptions()) changed = true;
     return changed;
@@ -403,12 +414,12 @@
     var q = ($('ptSearch').value || '').trim().toUpperCase(), lastG = null, h = '';
     UNIVERSE.forEach(function (u) {
       var s = u.sym;
-      if (q && s.indexOf(q) !== 0 && NAMES[s].toUpperCase().indexOf(q) === -1) return;
+      if (q && s.indexOf(q) !== 0 && NAMES[s].toUpperCase().indexOf(q) === -1 && !(u.short && u.short.indexOf(q) === 0)) return;
       if (!q && u.group !== lastG) { h += '<div class="pt-wgroup">' + esc(u.group) + '</div>'; lastG = u.group; }
       var px = price(s), pc = prevClose(s), ch = px != null && pc ? (px / pc - 1) * 100 : 0, held = acct.positions[s] || acct.options.some(function (o) { return o.sym === s; });
       h += '<button type="button" class="pt-wrow' + (s === sel ? ' is-sel' : '') + '" data-sym="' + s + '">' +
         '<span class="pt-wsym">' + s + (held ? '<i class="pt-held" title="You hold this"></i>' : '') + '<small>' + esc(NAMES[s]) + '</small></span>' +
-        '<span class="pt-wpx">' + fmt(px) + '<small class="' + (ch >= 0 ? 'up' : 'dn') + '">' + pct(ch) + '</small></span></button>';
+        '<span class="pt-wpx">' + pfmt(px) + '<small class="' + (ch >= 0 ? 'up' : 'dn') + '">' + pct(ch) + '</small></span></button>';
     });
     $('ptWatch').innerHTML = h || '<p class="pt-empty">No match.</p>';
   }
@@ -431,10 +442,11 @@
     if (eq > (acct.peakEquity || 0)) acct.peakEquity = round2(eq);
     $('ptEquity').textContent = money(eq);
     $('ptTotal').textContent = signed(tot) + ' (' + pct(tot / START_CASH * 100) + ')'; $('ptTotal').className = tot >= 0 ? 'up' : 'dn';
+    renderAcctCard();
     $('ptDay').textContent = signed(dp); $('ptDay').className = dp >= 0 ? 'up' : 'dn';
     $('ptOpen').textContent = signed(op); $('ptOpen').className = op >= 0 ? 'up' : 'dn';
     $('ptBP').textContent = money(buyingPower());
-    $('ptUser').textContent = playerName();
+    if ($('ptUser')) $('ptUser').textContent = playerName();
     $('ptResetBanner').hidden = eq >= RESET_BELOW;
     renderLevelChip(); renderRecovery();
     var st = $('ptFeed'), txt, cls;
@@ -447,6 +459,111 @@
     $('ptClock').textContent = marketOpen() ? 'Market open' : 'Market closed';
     $('ptClock').className = 'pt-clock ' + (marketOpen() ? 'is-open' : '');
     renderBell();
+  }
+  // ------------------------------------------------------------ News dropdown + research (markets/research_<SYM>, FMP)
+  var research = {}, researchSym = null, researchUnsub = null, finnNews = null, finnAttr = '';
+  function watchResearch() {
+    if (researchSym === sel || !db) return; // no db yet: try again on the next render
+    if (researchUnsub) { researchUnsub(); researchUnsub = null; }
+    researchSym = sel;
+    if (isCrypto(sel)) return;
+    var sym = sel;
+    researchUnsub = db.collection('markets').doc('research_' + sym.replace('.', '-')).onSnapshot(function (sn) {
+      research[sym] = sn.exists ? sn.data() : null; if (sym === sel) renderNewsBtn();
+    }, function () {});
+  }
+  function newsFor(sym) {
+    var r = research[sym], a = ((r && r.news) || []).map(function (n) { return { headline: n.headline, source: n.source, url: n.url, when: n.date ? fmtStamp(n.date) : '', image: n.image }; });
+    if (!a.length && finnNews && finnNews[sym]) a = finnNews[sym].map(function (n) { return { headline: n.headline, source: n.source, url: n.url, when: n.datetime ? agoS(n.datetime) : '', image: n.image }; });
+    return a.filter(function (n) { return /^https?:\/\//.test(n.url || ''); });
+  }
+  function fmtStamp(str) { var m = /^(\d{4})-(\d\d)-(\d\d)(?:[ T](\d\d):(\d\d))?/.exec(str || ''); if (!m) return ''; var mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m[2] - 1]; return mo + ' ' + +m[3] + (m[4] ? ' · ' + ((+m[4] % 12) || 12) + ':' + m[5] + (+m[4] < 12 ? ' am' : ' pm') : ''); }
+  function agoS(sec) { var m = Math.max(1, Math.round((Date.now() / 1000 - sec) / 60)); return m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
+  function daysUntil(ds) { return Math.round((new Date(ds + 'T12:00:00Z') - new Date(todayNY() + 'T12:00:00Z')) / 864e5); }
+  function renderNewsBtn() {
+    watchResearch();
+    var btn = $('ptNewsBtn'); if (!btn) return;
+    var cr = isCrypto(sel), n = cr ? 0 : newsFor(sel).length, r = research[sel], earn = $('ptEarn');
+    btn.parentNode.hidden = cr;
+    $('ptNewsN').hidden = !n; $('ptNewsN').textContent = n;
+    var e = r && r.earnings, dd = e && e.date ? daysUntil(e.date) : null;
+    if (earn) {
+      earn.hidden = !(dd != null && dd >= 0 && dd <= 14);
+      if (!earn.hidden) { earn.textContent = dd === 0 ? 'Earnings today' : 'Earnings in ' + dd + ' day' + (dd === 1 ? '' : 's'); earn.title = 'Next earnings report: ' + e.date + '. Prices can jump on earnings day.'; }
+    }
+    if (!$('ptNewsMenu').hidden) renderNewsMenu();
+  }
+  function renderNewsMenu() {
+    var r = research[sel], items = newsFor(sel), px = price(sel), facts = [];
+    if (r && r.target && r.target.targetConsensus && px) { var up = (r.target.targetConsensus / px - 1) * 100; facts.push('Analysts\' target <b>$' + fmt(r.target.targetConsensus) + '</b> <span class="' + (up >= 0 ? 'up' : 'dn') + '">(' + pct(up) + ')</span>'); }
+    if (r && r.earnings && r.earnings.date) facts.push('Next earnings <b>' + shortDay(r.earnings.date) + '</b>');
+    if (r && r.grades && r.grades[0]) { var g = r.grades[0]; facts.push(esc(g.firm) + ': <b>' + esc(g.to || g.action) + '</b> <small>' + shortDay(g.date) + '</small>'); }
+    $('ptNewsMenu').innerHTML = '<div class="pt-news-head"><b>' + esc(sel) + ' news</b><button type="button" class="pt-linkbtn" data-newsx="1">close &times;</button></div>' +
+      (facts.length ? '<div class="pt-news-facts">' + facts.map(function (f) { return '<span>' + f + '</span>'; }).join('') + '</div>' : '') +
+      (items.length ? items.slice(0, 6).map(function (n) {
+        return '<a class="pt-news-item" href="' + esc(n.url) + '" target="_blank" rel="noopener noreferrer">' +
+          (n.image && /^https:/.test(n.image) ? '<img src="' + esc(n.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<i class="pt-news-ph" aria-hidden="true"></i>') +
+          '<span><b>' + esc(n.headline) + '</b><small>' + esc(n.source || '') + (n.when ? ' · ' + esc(n.when) : '') + '</small></span></a>';
+      }).join('') : '<p class="pt-empty">No recent headlines for ' + esc(sel) + ' yet.</p>') +
+      '<p class="pt-news-foot">Opens each story at its source &#8599; · ' + (r && r.news && r.news.length ? 'Data: Financial Modeling Prep' : esc(finnAttr || 'News via Finnhub')) + '</p>';
+    var x = $('ptNewsMenu').querySelector('[data-newsx]'); if (x) x.onclick = function () { $('ptNewsMenu').hidden = true; $('ptNewsBtn').setAttribute('aria-expanded', 'false'); };
+  }
+
+  // ------------------------------------------------------------ account card: value + history across resets
+  var acctRange = 'all';
+  try { var ar0 = localStorage.getItem('zelosAcctRange'); if (ar0 === '31' || ar0 === '92' || ar0 === 'all') acctRange = ar0; } catch (e) {}
+  function valuePoints() {
+    var vh = acct.valueHist || {}, today = todayNY(), resets = acct.resetHistory || [], pts = [];
+    var days = Object.keys(vh).filter(function (k) { return k !== 'seeded' && k < today; }).sort();
+    days.forEach(function (d) {
+      // a reset day: the drop (value before) first, then the fresh $10,000
+      resets.filter(function (r) { return r.day === d; }).forEach(function (r) { pts.push({ d: d, v: r.equityBefore }); pts.push({ d: d, v: START_CASH, reset: true }); });
+      pts.push({ d: d, v: vh[d] });
+    });
+    resets.forEach(function (r) { if (days.indexOf(r.day) === -1) { pts.push({ d: r.day, v: r.equityBefore }); pts.push({ d: r.day, v: START_CASH, reset: true }); } });
+    pts.sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+    if (acctRange !== 'all') { var from = addDays(todayNY(), -(+acctRange)); pts = pts.filter(function (p) { return p.d >= from; }); }
+    return pts;
+  }
+  function renderAcctCard() {
+    var lastReset = acct.resetHistory.length ? acct.resetHistory[acct.resetHistory.length - 1] : null;
+    var lbl = $('ptSinceLbl'); if (lbl) lbl.textContent = lastReset ? 'since reset' : 'since start';
+    var note = $('ptAcctNote');
+    if (note) note.textContent = 'Account #' + (acct.resets + 1) + ' · ' + (lastReset ? 'reset ' + shortDay(lastReset.day) : 'started ' + shortDay(nyParts(new Date(acct.createdAt || Date.now())).date));
+    document.querySelectorAll('#ptAcctRng [data-ar]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-ar') === acctRange); });
+    drawAcctChart();
+  }
+  function shortDay(ds) { try { return new Date(ds + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }); } catch (e) { return ds; } }
+  function drawAcctChart() {
+    var cv = $('ptAcctChart'); if (!cv || !cv.clientWidth) return;
+    var pts = valuePoints().concat([{ d: todayNY(), v: round2(equity()), now: true }]);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
+    var c = cv.getContext('2d'); c.scale(dpr, dpr); c.clearRect(0, 0, W, H);
+    if (pts.length < 2) pts.unshift({ d: '', v: START_CASH });
+    var vals = pts.map(function (p) { return p.v; }), lo = Math.min.apply(null, vals.concat([START_CASH])), hi = Math.max.apply(null, vals.concat([START_CASH])), pad = (hi - lo) * 0.12 || 60;
+    lo -= pad; hi += pad;
+    var X = function (i) { return 2 + i / (pts.length - 1) * (W - 4); }, Y = function (v) { return 4 + (hi - v) / (hi - lo) * (H - 8); };
+    var cs = getComputedStyle(document.documentElement), muted = cs.getPropertyValue('--muted').trim() || '#8b93a3';
+    c.strokeStyle = 'rgba(127,127,127,0.35)'; c.setLineDash([3, 4]); c.lineWidth = 1; c.beginPath(); c.moveTo(0, Y(START_CASH)); c.lineTo(W, Y(START_CASH)); c.stroke(); c.setLineDash([]);
+    var lastReset = -1; pts.forEach(function (p, i) { if (p.reset) lastReset = i; });
+    var cur = pts[pts.length - 1].v >= START_CASH ? '#3ecb7c' : '#e0483f';
+    // before the latest reset: grey; this account: green/red with a soft fill
+    if (lastReset > 0) {
+      c.beginPath(); for (var i = 0; i <= lastReset - 1; i++) { if (i) c.lineTo(X(i), Y(pts[i].v)); else c.moveTo(X(i), Y(pts[i].v)); }
+      c.strokeStyle = muted; c.globalAlpha = 0.7; c.lineWidth = 1.5; c.stroke(); c.globalAlpha = 1;
+    }
+    var s0 = Math.max(0, lastReset);
+    c.beginPath(); for (var j = s0; j < pts.length; j++) { if (j > s0) c.lineTo(X(j), Y(pts[j].v)); else c.moveTo(X(j), Y(pts[j].v)); }
+    c.strokeStyle = cur; c.lineWidth = 2; c.stroke();
+    c.lineTo(X(pts.length - 1), H); c.lineTo(X(s0), H); c.closePath(); c.globalAlpha = 0.12; c.fillStyle = cur; c.fill(); c.globalAlpha = 1;
+    pts.forEach(function (p, k) {
+      if (!p.reset) return;
+      var x = Math.round(X(k)) + 0.5;
+      c.strokeStyle = '#e8b23d'; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(x, 12); c.lineTo(x, H); c.stroke(); c.setLineDash([]);
+      c.font = '700 9px ' + (cs.getPropertyValue('--mono').trim() || 'monospace');
+      var tw = c.measureText('RESET').width + 8, bx = Math.min(W - tw - 1, Math.max(1, x - tw / 2));
+      c.fillStyle = '#e8b23d'; c.fillRect(bx, 0, tw, 12); c.fillStyle = '#1a1204'; c.fillText('RESET', bx + 4, 9);
+    });
   }
   function levelOf(xp) { return window.ZelosLevels ? ZelosLevels.levelForXp(xp || 0) : null; }
   function renderLevelChip() {
@@ -512,15 +629,20 @@
 
   function renderQuote() {
     var s = series[sel]; if (!s) return;
+    if (!s.n) { // a crypto coin before its first price arrives
+      $('ptSym').textContent = sel; $('ptName').textContent = NAMES[sel] || ''; $('ptPx').textContent = '–'; $('ptChg').textContent = ''; $('ptStats').innerHTML = '';
+      renderNewsBtn(); chart.empty = 'Loading prices for ' + sel + '…'; chart.s = null; chart.draw(); return;
+    }
     var px = price(sel), pc = prevClose(sel), ch = px - pc, chp = pc ? ch / pc * 100 : 0;
     $('ptSym').textContent = sel; $('ptName').textContent = NAMES[sel] || '';
-    $('ptPx').textContent = fmt(px);
-    $('ptChg').textContent = (ch >= 0 ? '+' : '') + fmt(ch) + ' (' + pct(chp) + ')'; $('ptChg').className = ch >= 0 ? 'up' : 'dn';
+    $('ptPx').textContent = pfmt(px);
+    $('ptChg').textContent = (ch >= 0 ? '+' : '') + pfmt(ch) + ' (' + pct(chp) + ')'; $('ptChg').className = ch >= 0 ? 'up' : 'dn';
+    renderNewsBtn();
     var i = s.n - 1, hi52 = Math.max.apply(null, s.h.slice(-252)), lo52 = Math.min.apply(null, s.l.slice(-252));
     var avgV = s.v.slice(-21, -1).filter(Boolean); avgV = avgV.length ? avgV.reduce(function (a, b) { return a + b; }, 0) / avgV.length : null;
     $('ptStats').innerHTML = [
-      ['Open', fmt(s.o[i])], ['High', fmt(s.h[i])], ['Low', fmt(s.l[i])], ['Prev close', fmt(pc)],
-      ['52-wk high', fmt(hi52)], ['52-wk low', fmt(lo52)], ['Avg volume', TC.fmtVol(avgV)], ['Volatility', (vol(sel) / 1.1 * 100).toFixed(0) + '%']
+      ['Open', pfmt(s.o[i])], ['High', pfmt(s.h[i])], ['Low', pfmt(s.l[i])], ['Prev close', pfmt(pc)],
+      ['52-wk high', pfmt(hi52)], ['52-wk low', pfmt(lo52)], ['Avg volume', TC.fmtVol(avgV)], ['Volatility', (vol(sel) / 1.1 * 100).toFixed(0) + '%']
     ].map(function (r) { return '<span><small>' + r[0] + '</small><b>' + r[1] + '</b></span>'; }).join('');
     var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#f4f5f7';
     var lines = [], pos = acct.positions[sel];
@@ -559,38 +681,47 @@
     $('ptStockTicket').hidden = ticket.mode !== 'stock'; $('ptOptTicket').hidden = ticket.mode !== 'options';
     $('ptBuy').classList.toggle('is-on', side === 'buy'); $('ptSell').classList.toggle('is-on', side === 'sell');
     $('ptBuy').setAttribute('aria-pressed', String(side === 'buy')); $('ptSell').setAttribute('aria-pressed', String(side === 'sell'));
+    var cr = isCrypto(sel);
+    document.querySelector('.pt-modes').hidden = cr; // no options on crypto
+    if (cr && ticket.mode === 'options') { ticket.mode = 'stock'; $('ptStockTicket').hidden = false; $('ptOptTicket').hidden = true; }
     if (ticket.mode === 'options') return renderOptTicket();
     var px = price(sel), pos = acct.positions[sel];
+    $('ptQty').step = cr ? 'any' : '1';
+    $('ptTif').disabled = cr; if (cr) $('ptTif').value = 'gtc';
     $('ptLimitRow').hidden = ticket.type !== 'limit'; $('ptStopRow').hidden = ticket.type !== 'stop';
     $('ptBracket').hidden = side !== 'buy';
-    $('ptQtyLabel').textContent = acct.fullPort ? 'Shares (Full Port: all in)' : ticket.qtyMode === 'shares' ? 'Shares' : 'Amount ($)';
+    var unit = cr ? (CRYPTO[sel].short || sel) : 'Shares';
+    $('ptQtyLabel').textContent = acct.fullPort ? unit + ' (Full Port: all in)' : ticket.qtyMode === 'shares' ? (cr ? 'Amount (' + unit + ')' : 'Shares') : 'Amount ($)';
     $('ptFullPort').checked = !!acct.fullPort; $('ptFullWarn').hidden = !acct.fullPort;
     $('ptQtyMode').hidden = !!acct.fullPort; $('ptQty').disabled = !!acct.fullPort;
     if (acct.fullPort) $('ptQty').value = fullQty() || '';
     var q = orderQty(), est = q * (ticket.type === 'limit' ? +$('ptLimit').value || px : ticket.type === 'stop' ? +$('ptStopPx').value || px : px);
     var have = pos ? pos.qty - reservedShares(sel) : 0;
     $('ptEst').innerHTML = side === 'buy' ? '<span>Buying power</span><b>' + money(buyingPower()) + '</b>' + (q ? '<span>Est. cost</span><b>' + money(est) + '</b>' : '')
-      : (pos ? '<span>Shares available</span><b>' + have + '</b>' + (q ? '<span>Est. proceeds</span><b>' + money(est) + '</b>' : '') : '<span>You don\'t hold ' + sel + '</span>');
-    var open = marketOpen(), liveOk = feed.state === 'live';
+      : (pos ? '<span>' + (cr ? 'Available' : 'Shares available') + '</span><b>' + qtyStr(have) + '</b>' + (q ? '<span>Est. proceeds</span><b>' + money(est) + '</b>' : '') : '<span>You don\'t hold ' + sel + '</span>');
+    var open = symOpen(sel), liveOk = cr ? isLiveTick(sel) : feed.state === 'live';
     $('ptWhen').textContent = ticket.type === 'market'
       ? (open ? (liveOk ? 'Fills right away at the live price.' : 'Fills right away at the last price shown.') : 'Market is closed: fills at the next open.')
       : (ticket.type === 'limit' ? (side === 'buy' ? 'Fills at your price or lower.' : 'Fills at your price or higher.') : (side === 'sell' ? 'Sells if price drops to your stop (can fill lower on a gap).' : 'Buys if price rises to your stop.'));
-    var typeTxt = ticket.type === 'market' ? 'Market' : ticket.type === 'limit' ? 'Limit ' + fmt(+$('ptLimit').value) : 'Stop ' + fmt(+$('ptStopPx').value);
-    $('ptSubmit').innerHTML = '<span class="pt-sub-main">' + (side === 'buy' ? 'Buy ' : 'Sell ') + sel + '</span><span class="pt-sub-meta">' + typeTxt + (q ? ' · ' + q + ' sh · ' + money(est) : '') + '</span>';
+    if (cr && ticket.type !== 'market') $('ptWhen').textContent += ' Crypto orders stay open until they fill or you cancel them.';
+    var typeTxt = ticket.type === 'market' ? 'Market' : ticket.type === 'limit' ? 'Limit ' + pfmt(+$('ptLimit').value) : 'Stop ' + pfmt(+$('ptStopPx').value);
+    $('ptSubmit').innerHTML = '<span class="pt-sub-main">' + (side === 'buy' ? 'Buy ' : 'Sell ') + (cr ? CRYPTO[sel].short || sel : sel) + '</span><span class="pt-sub-meta">' + typeTxt + (q ? ' · ' + qtyStr(q) + (cr ? '' : ' sh') + ' · ' + money(est) : '') + '</span>';
     $('ptSubmit').className = 'pt-submit ' + (side === 'buy' ? 'is-buy' : 'is-sell');
     if (forecastOn) { chart.forecast = forecast(); chart.draw(); }
   }
+  // whole shares for stocks; crypto trades in fractions (6 decimals)
+  function roundQty(q) { return isCrypto(sel) ? Math.floor(q * 1e6 + 1e-6) / 1e6 : Math.floor(q); }
   function fullQty() {
-    if (side === 'sell') { var p = acct.positions[sel]; return p ? Math.max(0, p.qty - reservedShares(sel)) : 0; }
+    if (side === 'sell') { var p = acct.positions[sel]; return p ? Math.max(0, +(p.qty - reservedShares(sel)).toFixed(6)) : 0; }
     var px = ticket.type === 'limit' ? +$('ptLimit').value || price(sel) : ticket.type === 'stop' ? +$('ptStopPx').value || price(sel) : price(sel);
-    return px ? Math.floor(buyingPower() / px) : 0;
+    return px ? roundQty(buyingPower() / px) : 0;
   }
   function orderQty() {
     if (acct.fullPort) return fullQty();
     var v = parseFloat($('ptQty').value); if (!(v > 0)) return 0;
-    if (ticket.qtyMode === 'shares') return Math.floor(v);
+    if (ticket.qtyMode === 'shares') return roundQty(v);
     var px = ticket.type === 'limit' ? +$('ptLimit').value || price(sel) : price(sel);
-    return px ? Math.floor(v / px) : 0;
+    return px ? roundQty(v / px) : 0;
   }
 
   function optChain() {
@@ -658,7 +789,7 @@
       h = syms.length ? '<div class="pt-subhead">Stocks ' + modeTag() + '</div><table class="pt-table"><thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Price</th><th>Market value</th><th>Today</th><th>Total P&amp;L</th><th></th></tr></thead><tbody>' +
         syms.map(function (s) {
           var p = acct.positions[s], px = price(s), pc = prevClose(s), mv = p.qty * px, pl = (px - p.avg) * p.qty, base = p.openedDay === today ? p.avg : pc, dp = (px - base) * p.qty;
-          return '<tr><td><button class="pt-link" data-sym="' + s + '">' + s + '</button></td><td>' + p.qty + '</td><td>' + fmt(p.avg) + '</td><td>' + fmt(px) + '</td><td>' + money(mv) + '</td>' +
+          return '<tr><td><button class="pt-link" data-sym="' + s + '">' + s + '</button></td><td>' + qtyStr(p.qty) + '</td><td>' + pfmt(p.avg) + '</td><td>' + pfmt(px) + '</td><td>' + money(mv) + '</td>' +
             '<td class="' + (dp >= 0 ? 'up' : 'dn') + '">' + signed(dp) + '</td><td class="' + (pl >= 0 ? 'up' : 'dn') + '">' + signed(pl) + ' (' + pct(pl / (p.avg * p.qty) * 100) + ')</td>' +
             '<td><button class="pt-mini" data-close="' + s + '">Sell all</button></td></tr>';
         }).join('') + '</tbody></table>' : '';
@@ -1002,6 +1133,7 @@
     if (o.type === 'limit') { o.limit = +(+$('ptLimit').value).toFixed(2); if (!(o.limit > 0)) return toast('Enter a limit price.', true); }
     if (o.type === 'stop') { o.stop = +(+$('ptStopPx').value).toFixed(2); if (!(o.stop > 0)) return toast('Enter a stop price.', true); }
     if (o.type === 'market') o.tif = 'day';
+    if (isCrypto(sel)) o.tif = 'gtc'; // crypto never closes, so there's no "day" to expire at
     if (side === 'buy') {
       var cost = q * (o.limit || o.stop || px);
       if (cost > buyingPower() + 0.005) return toast('Not enough buying power: that\'s ' + money(cost) + ', you have ' + money(buyingPower()) + '.', true);
@@ -1013,9 +1145,9 @@
       }
     } else {
       var pos = acct.positions[sel], have = pos ? pos.qty - reservedShares(sel) : 0;
-      if (q > have) return toast(have ? 'You can only sell ' + have + ' share' + (have === 1 ? '' : 's') + ' of ' + sel + '.' : 'You don\'t have any ' + sel + ' to sell.', true);
+      if (q > have + 1e-9) return toast(have ? 'You can only sell ' + qtyStr(have) + (isCrypto(sel) ? ' ' : ' share' + (have === 1 ? '' : 's') + ' of ') + sel + '.' : 'You don\'t have any ' + sel + ' to sell.', true);
     }
-    var desc = (o.fullPort ? 'FULL PORT · ' : '') + (side === 'buy' ? 'Buy ' : 'Sell ') + q + ' ' + sel + ' · ' + (o.type === 'market' ? 'market order' : o.type + ' @ ' + fmt(o.limit || o.stop)) +
+    var desc = (o.fullPort ? 'FULL PORT · ' : '') + (side === 'buy' ? 'Buy ' : 'Sell ') + qtyStr(q) + ' ' + sel + ' · ' + (o.type === 'market' ? 'market order' : o.type + ' @ ' + pfmt(o.limit || o.stop)) +
       (o.bracket ? ' · stop-loss ' + (o.bracket.sl ? fmt(o.bracket.sl) : 'none') + ', take-profit ' + (o.bracket.tp ? fmt(o.bracket.tp) : 'none') : '');
     $('ptModalTitle').textContent = 'Confirm order';
     $('ptModalText').innerHTML = '<b>' + esc(desc) + '</b><br>' + esc($('ptWhen').textContent) + (side === 'buy' ? '<br>Estimated ' + money(q * (o.limit || o.stop || px)) + ' of your ' + money(buyingPower()) + ' buying power.' : '');
@@ -1026,11 +1158,11 @@
   function place(f) {
     var o = newOrder(f);
     acct.orders.push(o);
-    if (o.type === 'market' && marketOpen()) fill(o, price(o.sym), todayNY());
+    if (o.type === 'market' && symOpen(o.sym)) fill(o, price(o.sym), todayNY());
     else processOrders();
     save(); renderAll();
-    if (o.status === 'filled') toast((o.side === 'buy' ? 'Bought ' : 'Sold ') + o.qty + ' ' + o.sym + ' @ ' + fmt(o.fillPrice));
-    else if (o.status === 'open') toast('Order placed: ' + o.side + ' ' + o.qty + ' ' + o.sym + (o.type === 'market' ? ' at the next open' : ' ' + o.type + ' @ ' + fmt(o.limit || o.stop)));
+    if (o.status === 'filled') toast((o.side === 'buy' ? 'Bought ' : 'Sold ') + qtyStr(o.qty) + ' ' + o.sym + ' @ ' + pfmt(o.fillPrice));
+    else if (o.status === 'open') toast('Order placed: ' + o.side + ' ' + qtyStr(o.qty) + ' ' + o.sym + (o.type === 'market' ? ' at the next open' : ' ' + o.type + ' @ ' + pfmt(o.limit || o.stop)));
     else toast('Order ' + o.status + (o.note ? ': ' + esc(o.note) : ''), true);
     $('ptQty').value = ''; ticket.agent = null;
     renderTicket();
@@ -1038,6 +1170,15 @@
   function snapshotEquity() {
     var today = todayNY(), eq = equity(), n = round2(netPnl());
     acct.equityDays[today] = round2(eq);
+    acct.valueHist = acct.valueHist || {};
+    if (!acct.valueHist.seeded) {
+      Object.keys(acct.hist || {}).forEach(function (k) { var dd = k.slice(1, 5) + '-' + k.slice(5, 7) + '-' + k.slice(7, 9); if (acct.hist[k].e != null && acct.valueHist[dd] == null) acct.valueHist[dd] = acct.hist[k].e; });
+      Object.keys(acct.equityDays || {}).forEach(function (dd) { if (acct.valueHist[dd] == null) acct.valueHist[dd] = acct.equityDays[dd]; });
+      acct.valueHist.seeded = 1;
+    }
+    acct.valueHist[today] = round2(eq);
+    var vk = Object.keys(acct.valueHist).filter(function (k) { return k !== 'seeded'; }).sort();
+    if (vk.length > 800) vk.slice(0, vk.length - 800).forEach(function (k) { delete acct.valueHist[k]; });
     var L = acct.life; if (eq > (L.peak || 0)) L.peak = round2(eq);
     // weekly / monthly / season baselines: the first time a period is seen
     if (PROG) {
@@ -1201,7 +1342,7 @@
       if (ae) { var al = ALERTS.list.filter(function (x) { return x.id === ae; })[0]; if (!al) return; var nv = prompt('New alert price for ' + al.sym + ':', fmt(al.price)); if (nv == null) return; nv = +String(nv).replace(/[^0-9.]/g, ''); if (!(nv > 0)) return toast('Enter a price above 0.', true); ALERTS.update(ae, Math.round(nv * 100) / 100, price(al.sym)); renderAll(); toast('Alert updated.'); return; }
       if (ad) { ALERTS.remove(ad); renderAll(); toast('Alert deleted.'); return; }
       if (c) { acct.orders.forEach(function (o) { if (o.id === c && o.status === 'open') { o.status = 'cancelled'; o.note = 'Cancelled by you'; } }); save(); renderAll(); toast('Order cancelled.'); }
-      if (cl) { selectSymbol(cl); ticket.mode = 'stock'; side = 'sell'; ticket.type = 'market'; document.querySelector('[name="ptType"][value="market"]').checked = true; ticket.qtyMode = 'shares'; $('ptQtyMode').textContent = 'Use $ amount'; $('ptQty').value = acct.positions[cl].qty - reservedShares(cl); renderAll(); review(); }
+      if (cl) { selectSymbol(cl); ticket.mode = 'stock'; side = 'sell'; ticket.type = 'market'; document.querySelector('[name="ptType"][value="market"]').checked = true; ticket.qtyMode = 'shares'; $('ptQtyMode').textContent = 'Use $ amount'; $('ptQty').value = qtyStr(acct.positions[cl].qty - reservedShares(cl)); renderAll(); review(); }
       if (oc || os) {
         var o = acct.options.filter(function (x) { return x.id === (oc || os); })[0]; if (!o) return;
         selectSymbol(o.sym); ticket.mode = 'options'; opt.type = o.type; opt.exp = o.exp; opt.pick = { strike: o.strike, exp: o.exp, type: o.type };
@@ -1215,7 +1356,15 @@
       if (act === 'invite' && window.ZelosSocial) ZelosSocial.shareLink('Join me in Trade War', 'Trade real stocks with $10,000 of virtual money and see if you can beat me.', $('ptInvite').value).then(function (r) { if (r === 'copied') toast('Invite link copied.'); });
     });
     // toolbar: timeframe, ranges, indicators, forecast, colors
-    menu('ptTfBtn', 'ptTfMenu'); menu('ptIndBtn', 'ptIndMenu'); menu('ptColorsBtn', 'ptColorPop');
+    $('ptNewsBtn').addEventListener('click', function () { if ($('ptNewsMenu').hidden) renderNewsMenu(); });
+    menu('ptTfBtn', 'ptTfMenu'); menu('ptIndBtn', 'ptIndMenu'); menu('ptColorsBtn', 'ptColorPop'); menu('ptNewsBtn', 'ptNewsMenu');
+    $('ptAcctRng').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-ar]'); if (!b) return;
+      acctRange = b.getAttribute('data-ar'); try { localStorage.setItem('zelosAcctRange', acctRange); } catch (err) {}
+      renderAcctCard();
+    });
+    $('ptHistBtn').addEventListener('click', function () { tab = 'performance'; renderTabs(); var l = document.querySelector('.pt-lower'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    window.addEventListener('resize', function () { clearTimeout(drawAcctChart.t); drawAcctChart.t = setTimeout(drawAcctChart, 120); });
     document.addEventListener('click', function () { document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); });
     $('ptTfMenu').addEventListener('click', function (e) {
       var b = e.target.closest('[data-tf]'); if (!b) return;
@@ -1287,9 +1436,11 @@
     Promise.all([
       fetch('../data/practice-universe.json').then(function (r) { return r.json(); }),
       fetch('../data/game-charts.json').then(function (r) { return r.json(); }),
-      fetch('../data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; })
+      fetch('../data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; }),
+      fetch('../data/crypto-universe.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: [] }; })
     ]).then(function (res) {
-      UNIVERSE = res[0].symbols; UNIVERSE.forEach(function (u) { NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
+      (res[3].symbols || []).forEach(function (u) { CRYPTO[u.sym] = u; });
+      UNIVERSE = res[0].symbols.concat(res[3].symbols || []); UNIVERSE.forEach(function (u) { NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
       hist = {}; [res[1].symbols, res[2].symbols].forEach(function (src) { Object.keys(src).forEach(function (k) { hist[k] = src[k]; }); });
       if (!NAMES[sel]) sel = UNIVERSE[0].sym;
       tick(); showGate(); fromAlertLink();
@@ -1310,6 +1461,19 @@
           feed = { state: d.error ? 'error' : freshQ ? 'live' : 'closed', error: d.error, updatedAt: d.updatedAt };
           if (UNIVERSE.length) tick();
         }, function () { feed = { state: 'none' }; if (UNIVERSE.length) tick(); });
+        // crypto: 24/7 quotes and daily history (refresh_market_data)
+        db.collection('markets').doc('crypto').onSnapshot(function (snap) {
+          var d = (snap.exists && snap.data().quotes) || {};
+          cquotes = {};
+          Object.keys(d).forEach(function (s) { var q = d[s]; q.date = q.t ? nyParts(new Date(q.t * 1000)).date : null; cquotes[s] = q; });
+          if (UNIVERSE.length) tick();
+        }, function () {});
+        db.collection('markets').doc('cryptoBars').onSnapshot(function (snap) {
+          var b = (snap.exists && snap.data().bars) || {};
+          cbars = {};
+          Object.keys(b).forEach(function (s) { cbars[s] = (b[s] || []).map(function (r) { var p = String(r).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], +p[5] || 0]; }); });
+          if (UNIVERSE.length) tick();
+        }, function () {});
         db.collection('markets').doc('dailyBars').onSnapshot(function (snap) {
           var b = (snap.exists && snap.data().bars) || {};
           extra = {};
@@ -1317,6 +1481,7 @@
           if (UNIVERSE.length) tick();
         }, function () {});
         watchIntraday();
+        db.collection('markets').doc('news').onSnapshot(function (snap) { var d = snap.exists ? snap.data() : {}; finnNews = d.bySymbol || {}; finnAttr = d.attribution || ''; if (UNIVERSE.length) renderNewsBtn(); }, function () {});
         var xpUnsub = null;
         firebase.auth().onAuthStateChanged(function (user) {
           // XP accrues to whoever is signed in, guests included (zelos-xp.js signs them in anonymously)
