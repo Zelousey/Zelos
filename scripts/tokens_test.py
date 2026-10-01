@@ -1,4 +1,4 @@
-"""Tests for the token wallet, alert locking and the Stripe webhook check in
+"""Tests for the token wallet, alert locking and the Square payment checks in
 functions/main.py (the pure parts).
 
     python3 -m unittest discover -s scripts -p "*_test.py"
@@ -81,28 +81,57 @@ class AlertLocking(unittest.TestCase):
         self.assertEqual(m.alert_lock_until(ny("2026-10-03T12:00:00-04:00")), close("2026-10-05T16:00:00-04:00"))  # Sat -> Mon
 
 
-class Stripe(unittest.TestCase):
-    SECRET = "whsec_test"
+class Square(unittest.TestCase):
+    KEY, URL = "sq_sig_key_test", "https://us-central1-leaderboard-agentictrading.cloudfunctions.net/squareWebhook"
 
-    def sig(self, payload, ts, secret=None):
-        return "t=%d,v1=%s" % (ts, hmac.new((secret or self.SECRET).encode(), b"%d." % ts + payload, hashlib.sha256).hexdigest())
+    def sig(self, body, key=None, url=None):
+        import base64
+        return base64.b64encode(hmac.new((key or self.KEY).encode(), (url or self.URL).encode() + body, hashlib.sha256).digest()).decode()
 
     def test_signature(self):
-        body, now = b'{"id":"evt_1"}', 1_760_000_000
-        self.assertTrue(m.stripe_verify(body, self.sig(body, now), self.SECRET, now))
-        self.assertFalse(m.stripe_verify(body + b" ", self.sig(body, now), self.SECRET, now))       # tampered body
-        self.assertFalse(m.stripe_verify(body, self.sig(body, now, "whsec_other"), self.SECRET, now))  # wrong secret
-        self.assertFalse(m.stripe_verify(body, self.sig(body, now - 600), self.SECRET, now))       # replayed later
-        self.assertFalse(m.stripe_verify(body, "", self.SECRET, now))
-        self.assertFalse(m.stripe_verify(body, self.sig(body, now), "", now))
+        body = b'{"event_id":"e1"}'
+        self.assertEqual(m.SQUARE_WEBHOOK_URL, self.URL)
+        self.assertTrue(m.square_verify(body, self.sig(body), self.KEY))
+        self.assertFalse(m.square_verify(body + b" ", self.sig(body), self.KEY))                        # tampered body
+        self.assertFalse(m.square_verify(body, self.sig(body, key="other"), self.KEY))                 # wrong key
+        self.assertFalse(m.square_verify(body, self.sig(body, url="https://evil.example/x"), self.KEY))  # signed for another URL
+        self.assertFalse(m.square_verify(body, "", self.KEY))
+        self.assertFalse(m.square_verify(body, self.sig(body), ""))
 
-    def test_session_credit_checks_the_amount(self):
-        ok = {"payment_status": "paid", "amount_total": 300, "client_reference_id": "u1", "metadata": {"uid": "u1", "pack": "p100", "tokens": "100"}}
-        self.assertEqual(m.tk_session_credit(ok), ("u1", "p100", 100, 300))
-        self.assertIsNone(m.tk_session_credit(dict(ok, payment_status="unpaid")))
-        self.assertIsNone(m.tk_session_credit(dict(ok, amount_total=1)))
-        self.assertIsNone(m.tk_session_credit(dict(ok, metadata={"uid": "u1", "pack": "p100", "tokens": "99999"})))
-        self.assertIsNone(m.tk_session_credit(dict(ok, metadata={"uid": "u1", "pack": "free", "tokens": "100"})))
+    def test_credit_decision(self):
+        co = {"uid": "u1", "pack": "p100", "tokens": 100, "amountCents": 300, "currency": "USD", "status": "pending"}
+        paid = {"id": "pay1", "order_id": "o1", "status": "COMPLETED", "amount_money": {"amount": 300, "currency": "USD"}}
+        self.assertIsNone(m.square_payment_credit(paid, co))
+        self.assertEqual(m.square_payment_credit(dict(paid, status="APPROVED"), co), "status APPROVED")
+        self.assertEqual(m.square_payment_credit(paid, dict(co, status="credited")), "already credited")
+        self.assertEqual(m.square_payment_credit(dict(paid, amount_money={"amount": 1, "currency": "USD"}), co), "amount mismatch")
+        self.assertEqual(m.square_payment_credit(dict(paid, amount_money={"amount": 300, "currency": "CAD"}), co), "amount mismatch")
+        self.assertEqual(m.square_payment_credit(paid, None), "not one of our checkouts")
+
+    def test_link_body_prices_come_from_the_server(self):
+        b = m.square_link_body("u1", "p350", "a@b.co", "LOC1", "idem-1")
+        self.assertEqual(b["quick_pay"]["price_money"], {"amount": 1000, "currency": "USD"})
+        self.assertEqual((b["quick_pay"]["location_id"], b["idempotency_key"], b["pre_populated_data"]["buyer_email"]), ("LOC1", "idem-1", "a@b.co"))
+        self.assertIn("350", b["quick_pay"]["name"])
+        self.assertTrue(b["checkout_options"]["redirect_url"].startswith("https://agentictrading.info/"))
+        self.assertNotIn("pre_populated_data", m.square_link_body("u1", "p100", None, "LOC1", "i"))
+        with self.assertRaises(m.TWError):
+            m.square_link_body("u1", "free", None, "LOC1", "i")
+
+    def test_ready_and_environment(self):
+        import os
+        old = dict(os.environ)
+        try:
+            os.environ["SQUARE_ACCESS_TOKEN"] = "none"
+            self.assertFalse(m._square_ready())
+            os.environ["SQUARE_ACCESS_TOKEN"] = "EAAAEXAMPLE_sandbox_token_long_enough"
+            self.assertTrue(m._square_ready())
+            os.environ.pop("SQUARE_ENVIRONMENT", None)
+            self.assertEqual(m._square_base(), "https://connect.squareupsandbox.com")
+            os.environ["SQUARE_ENVIRONMENT"] = "production"
+            self.assertEqual(m._square_base(), "https://connect.squareup.com")
+        finally:
+            os.environ.clear(); os.environ.update(old)
 
 
 if __name__ == "__main__":

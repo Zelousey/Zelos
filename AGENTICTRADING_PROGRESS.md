@@ -525,6 +525,35 @@ Owner decisions (2026-09-30):
 - set the two Stripe secrets (placeholder `none` is fine), deploy rules, deploy the 6 functions, delete `gumroad_ping`, merge
 - later: add the real Stripe keys + webhook (see `docs/tokens.md`)
 
+## Payments switched to Square (backend only, 2026-10-01)
+The owner chose **Square** instead of Stripe (Square Developer app "AgenticTrading.info", **sandbox** first). Backend only: no frontend changes this step.
+
+**Code changes:**
+- `tokens_checkout {pack}` now creates a **Square Checkout payment link** (`/v2/online-checkout/payment-links`, quick_pay) and returns `{url}`. The browser contract is unchanged.
+  - Price and credits come only from `TOKENS`; browser-sent amounts are ignored.
+  - Idempotency key per checkout; location from `SQUARE_LOCATION_ID` or the account's first active location.
+  - Saved as `squareCheckouts/{orderId}` (pending).
+- New HTTP function **`squareWebhook`**:
+  - Verifies `x-square-hmacsha256-signature` (base64 HMAC-SHA256 of the notification URL + raw body).
+  - Handles `payment.created` / `payment.updated`. Credits only `COMPLETED` payments for our own orders, with the exact amount and currency.
+  - In one transaction: wallet credit + ledger line + checkout `pending → credited` + `purchases/sq_{orderId}`, plus `squareEvents/{eventId}` as a duplicate guard. So an order can never be credited twice, whether the same event repeats or a different event arrives for the same order.
+  - 403 for a bad signature, 500 on errors (Square retries), 200 otherwise.
+  - Logs show event, order, status and outcome; never secrets or card data.
+- Stripe removed from the backend (`stripe_webhook`, the Stripe checkout and the Stripe secrets).
+- `tokens_wallet.canBuy` follows the Square token.
+
+**Config and rules:**
+- Secrets: `SQUARE_ACCESS_TOKEN`, `SQUARE_WEBHOOK_SIGNATURE_KEY`.
+- `functions/.env`: `SQUARE_ENVIRONMENT=sandbox` (non-secret).
+- Rules: `squareCheckouts`, `squareEvents`, `purchases` are server-only.
+
+**Tests:**
+- unit 104/104 (Square signature, credit decision, server-set prices, environment)
+- token rules 22/22
+- **Square E2E on emulators (real functions + a fake Square API): 26/26**: checkout URL, server price, idempotency key, location, auth refusal, bad signature, not-completed, wrong amount, credit, same-event and other-event duplicates, foreign order, other event types, purchase record, wallet UI shows the credit, logs free of secrets and card data
+
+**Frontend text still says Stripe** (tokens.html, the wallet pop-up, thank-you, Terms, Privacy). That's for the frontend step.
+
 ## Known issues
 - Finding 2 (client-trusted XP, Trade War balances and challenge baselines) remains. It is addressed by the server-side Trade War sessions (Phase 5) and the token ledger.
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.

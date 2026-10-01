@@ -68,9 +68,9 @@ with:
 firebase deploy --only firestore:rules
 ```
 
-## Stripe (token purchases)
+## Square (token purchases)
 
-See `docs/tokens.md` for the two Stripe secrets and the webhook.
+See `docs/tokens.md` for the two Square secrets and the webhook subscription.
 
 ## Redeploying after an edit
 

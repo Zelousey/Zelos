@@ -10,7 +10,7 @@ publish_alert          - a scheduled Claude task calls this over plain HTTPS
                           alert.
 release_alerts         - every weekday just after the 4 pm ET close: makes the
                           day's full alert public (see publish_alert).
-tokens_*, stripe_webhook - the token wallet, passes, unlocks and Stripe
+tokens_*, squareWebhook - the token wallet, passes, unlocks and Square
                           Checkout (see the Tokens section at the end).
 update_alert_outcomes  - a scheduled Claude task (with Robinhood market data)
                           calls this once it has decided what actually
@@ -35,7 +35,7 @@ post_to_buffer         - the same kind of scheduled Claude task calls this
 
 Every endpoint checks a shared secret before doing anything, so if any URL
 ever leaked, it could only trigger that one narrow action - never read or
-write anything else in the database, and never touch Stripe, Robinhood, or
+write anything else in the database, and never touch Square, Robinhood, or
 Buffer directly.
 """
 import hmac
@@ -2152,16 +2152,17 @@ def tw_respond(req, db, uid, now_ms):
 #   wallets/{uid}                 { balance, passes: {strategy: untilMs}, unlocked: [alertId],
 #                                   welcomed, createdAt, updatedAt }   owner-read, server-write
 #   wallets/{uid}/ledger/{id}     { type, amount (+/-), balanceAfter, note, ref, at }
-#   purchases/{stripeSessionId}   { uid, pack, tokens, amountCents, at }  server only (idempotency)
+#   purchases/sq_{orderId}        { uid, pack, tokens, amountCents, provider, paymentId, at }  server only
+#   squareCheckouts/{orderId}     a payment link we created: { uid, pack, tokens, amountCents, status }
+#   squareEvents/{eventId}        webhook events already handled (duplicate guard)
 #   alertsLocked/{alertId}        the full alert while it's live (see publish_alert); readable
 #                                 with a pass for that scanner or a single unlock
 #
 # Every balance change happens here, in a transaction that also writes the ledger
 # line, so balances can't be edited from a browser and can't be double-spent.
 # Prices are provisional (the spec keeps pricing open) and live only in TOKENS.
-# Payments: Stripe Checkout. Until the owner adds real Stripe keys (secrets
-# STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET), buying says "coming soon"; free
-# tokens, passes and unlocks work regardless.
+# Payments: Square Checkout (see the Square section below). Until the owner adds the
+# Square secrets, buying says "coming soon"; free tokens, passes and unlocks work regardless.
 # ---------------------------------------------------------------------------
 import hashlib as _hashlib
 
@@ -2172,7 +2173,6 @@ TOKENS = {
     "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
 }
 TK_UNLOCKED_MAX = 300
-STRIPE_API = "https://api.stripe.com/v1"
 SITE_URL = "https://agentictrading.info"
 
 
@@ -2268,11 +2268,7 @@ def _tk_public(wallet):
     return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:]}
 
 
-def _stripe_ready():
-    return os.environ.get("STRIPE_SECRET_KEY", "").startswith(("sk_live_", "sk_test_"))
-
-
-@https_fn.on_call(secrets=["STRIPE_SECRET_KEY"])
+@https_fn.on_call(secrets=["SQUARE_ACCESS_TOKEN"])
 @_tk_call
 def tokens_wallet(req, db, uid, tok, now_ms):
     """Your wallet (made on first use; welcome tokens once for a verified account) plus prices."""
@@ -2293,7 +2289,7 @@ def tokens_wallet(req, db, uid, tok, now_ms):
     out = _tk_public(wallet)
     out.update({"welcomed": bool(line), "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "welcome": TOKENS["welcome"]},
                 "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
-                "canBuy": _stripe_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
+                "canBuy": _square_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
     return out
 
 
@@ -2327,105 +2323,192 @@ def tokens_spend(req, db, uid, tok, now_ms):
     return out
 
 
-@https_fn.on_call(secrets=["STRIPE_SECRET_KEY"])
+# ---------------------------------------------------------------------------
+# Square payments (token packs). Two secrets, set with
+#   firebase functions:secrets:set SQUARE_ACCESS_TOKEN            (Square app -> Credentials)
+#   firebase functions:secrets:set SQUARE_WEBHOOK_SIGNATURE_KEY   (Square app -> Webhooks -> your subscription)
+# and SQUARE_ENVIRONMENT=sandbox|production in functions/.env (not a secret).
+#
+#   tokens_checkout {pack}  -> a Square Checkout payment link for that pack (server-side
+#                              price; the browser only names the pack). Remembered in
+#                              squareCheckouts/{orderId} = {uid, pack, tokens, amountCents, status}.
+#   squareWebhook           -> Square calls it on payment.created / payment.updated. The
+#                              signature is checked; a COMPLETED payment whose order is one of
+#                              our checkouts, for exactly the expected amount, credits the
+#                              buyer once (the checkout flips pending -> credited in a
+#                              transaction; squareEvents/{eventId} also skips repeats).
+# ---------------------------------------------------------------------------
+import base64 as _base64
+import uuid as _uuid
+
+SQUARE_VERSION = "2024-10-17"
+SQUARE_WEBHOOK_URL = os.environ.get("SQUARE_WEBHOOK_URL") or "https://us-central1-leaderboard-agentictrading.cloudfunctions.net/squareWebhook"
+_SQ_LOCATION = {}
+
+
+def _square_env():
+    return "production" if os.environ.get("SQUARE_ENVIRONMENT", "sandbox").strip().lower() == "production" else "sandbox"
+
+
+def _square_base():
+    # SQUARE_API_BASE only exists for local tests against a fake Square server
+    return os.environ.get("SQUARE_API_BASE") or ("https://connect.squareup.com" if _square_env() == "production" else "https://connect.squareupsandbox.com")
+
+
+def _square_ready():
+    t = os.environ.get("SQUARE_ACCESS_TOKEN", "").strip()
+    return len(t) > 20 and t.lower() not in ("none", "placeholder")
+
+
+def _square_api(method, path, body=None):
+    """One Square API call; returns parsed JSON or raises TWError (never logs the token)."""
+    rq = urllib.request.Request(_square_base() + path, method=method,
+                                data=json.dumps(body).encode() if body is not None else None,
+                                headers={"Authorization": "Bearer " + os.environ["SQUARE_ACCESS_TOKEN"].strip(),
+                                         "Square-Version": SQUARE_VERSION, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(rq, timeout=15) as r:
+            return json.loads(r.read().decode() or "{}")
+    except urllib.error.HTTPError as e:
+        try:
+            errs = json.loads(e.read().decode()).get("errors") or []
+            codes = ",".join(str(x.get("code")) for x in errs)[:120]
+        except Exception:
+            codes = "?"
+        print("[square] %s %s -> HTTP %s %s" % (method, path.split("?")[0], e.code, codes))
+    except Exception as e:
+        print("[square] %s %s failed: %s" % (method, path.split("?")[0], type(e).__name__))
+    raise TWError("UNAVAILABLE", "Checkout isn't available right now. Try again in a minute.")
+
+
+def _square_location():
+    """SQUARE_LOCATION_ID if set, else the account's first active location (cached)."""
+    loc = os.environ.get("SQUARE_LOCATION_ID", "").strip()
+    if loc:
+        return loc
+    key = _square_base()
+    if key not in _SQ_LOCATION:
+        locs = [l for l in (_square_api("GET", "/v2/locations").get("locations") or []) if l.get("status") == "ACTIVE"]
+        if not locs:
+            print("[square] no active location on this account")
+            raise TWError("UNAVAILABLE", "Checkout isn't set up yet.")
+        _SQ_LOCATION[key] = locs[0]["id"]
+    return _SQ_LOCATION[key]
+
+
+def square_link_body(uid, pack, email, location_id, idem):
+    """The CreatePaymentLink request for a pack. Prices come only from TOKENS."""
+    if pack not in TOKENS["packs"]:
+        raise TWError("INVALID_ARGUMENT", "Pick a token pack.")
+    tokens, cents = TOKENS["packs"][pack]
+    body = {"idempotency_key": idem,
+            "quick_pay": {"name": "%d AgenticTrading.info credits" % tokens, "location_id": location_id,
+                          "price_money": {"amount": cents, "currency": "USD"}},
+            "checkout_options": {"redirect_url": SITE_URL + "/tokens.html?paid=1", "ask_for_shipping_address": False},
+            "payment_note": "AgenticTrading.info credits (%s) for %s" % (pack, uid)}
+    if email:
+        body["pre_populated_data"] = {"buyer_email": email}
+    return body
+
+
+@https_fn.on_call(secrets=["SQUARE_ACCESS_TOKEN"])
 @_tk_call
 def tokens_checkout(req, db, uid, tok, now_ms):
-    """A Stripe Checkout page for a token pack: {pack}. Returns {url}."""
+    """A Square Checkout payment link for a token pack: {pack}. Returns {url}."""
     pack = str((req.data or {}).get("pack") or "")
     if pack not in TOKENS["packs"]:
         raise TWError("INVALID_ARGUMENT", "Pick a token pack.")
-    if not _stripe_ready():
+    if not _square_ready():
         raise TWError("FAILED_PRECONDITION", "Buying tokens is coming soon. You can use your free tokens now.")
     tokens, cents = TOKENS["packs"][pack]
-    form = {"mode": "payment", "client_reference_id": uid,
-            "success_url": SITE_URL + "/tokens.html?paid=1", "cancel_url": SITE_URL + "/tokens.html?cancelled=1",
-            "metadata[uid]": uid, "metadata[pack]": pack, "metadata[tokens]": str(tokens),
-            "line_items[0][quantity]": "1", "line_items[0][price_data][currency]": "usd",
-            "line_items[0][price_data][unit_amount]": str(cents),
-            "line_items[0][price_data][product_data][name]": "%d Zelos tokens" % tokens,
-            "line_items[0][price_data][product_data][description]": "Site credit for AgenticTrading.info scanner passes and alerts. Not redeemable for cash."}
-    if tok.get("email") and tok.get("email_verified"):
-        form["customer_email"] = tok["email"]
-    rq = urllib.request.Request(STRIPE_API + "/checkout/sessions", data=urllib.parse.urlencode(form).encode(), method="POST",
-                                headers={"Authorization": "Bearer " + os.environ["STRIPE_SECRET_KEY"], "Content-Type": "application/x-www-form-urlencoded"})
-    try:
-        with urllib.request.urlopen(rq, timeout=15) as r:
-            sess = json.loads(r.read().decode())
-    except Exception as e:
-        print("[tokens] Stripe checkout failed:", type(e).__name__)
+    idem = str(_uuid.uuid4())
+    email = tok.get("email") if tok.get("email_verified") else None
+    res = _square_api("POST", "/v2/online-checkout/payment-links", square_link_body(uid, pack, email, _square_location(), idem))
+    link = res.get("payment_link") or {}
+    order_id, url = link.get("order_id"), link.get("url") or link.get("long_url")
+    if not order_id or not url:
+        print("[square] payment link response missing order_id/url")
         raise TWError("UNAVAILABLE", "Checkout isn't available right now. Try again in a minute.")
-    return {"url": sess.get("url")}
+    db.collection("squareCheckouts").document(order_id).set({
+        "uid": uid, "pack": pack, "tokens": tokens, "amountCents": cents, "currency": "USD", "status": "pending",
+        "paymentLinkId": link.get("id"), "env": _square_env(),
+        "createdAt": now_ms})
+    print("[square] checkout created env=%s order=%s pack=%s uid=%s" % (_square_env(), order_id, pack, uid[:6]))
+    return {"url": url}
 
 
-def stripe_verify(payload, header, secret, now_s, tolerance=300):
-    """Stripe webhook signature check (v1 scheme): HMAC-SHA256 of '<t>.<payload>'."""
-    if not secret or not header:
+def square_verify(body, signature, key, url=None):
+    """Square webhook signature: base64(HMAC-SHA256(signature key, notification URL + raw body))."""
+    if not key or not signature:
         return False
-    parts = {}
-    for item in str(header).split(","):
-        k, _, v = item.strip().partition("=")
-        parts.setdefault(k, []).append(v)
-    try:
-        ts = int(parts.get("t", ["0"])[0])
-    except ValueError:
-        return False
-    if abs(now_s - ts) > tolerance:
-        return False
-    expected = hmac.new(secret.encode(), ("%d." % ts).encode() + payload, _hashlib.sha256).hexdigest()
-    return any(hmac.compare_digest(expected, v) for v in parts.get("v1", []))
+    msg = (url or SQUARE_WEBHOOK_URL).encode() + body
+    expected = _base64.b64encode(hmac.new(key.encode(), msg, _hashlib.sha256).digest()).decode()
+    return hmac.compare_digest(expected, str(signature).strip())
 
 
-def tk_session_credit(sess):
-    """(uid, pack, tokens, cents) for a paid Checkout session we created, else None.
-    Double-checks the amount so a tampered session can't mint tokens."""
-    meta = sess.get("metadata") or {}
-    pack, uid = meta.get("pack"), meta.get("uid") or sess.get("client_reference_id")
-    if sess.get("payment_status") != "paid" or pack not in TOKENS["packs"] or not uid:
-        return None
-    tokens, cents = TOKENS["packs"][pack]
-    if sess.get("amount_total") != cents or str(meta.get("tokens")) != str(tokens):
-        return None
-    return uid, pack, tokens, cents
+def square_payment_credit(payment, checkout):
+    """Pure: None if this payment should credit tokens for this checkout, else why not."""
+    if not checkout:
+        return "not one of our checkouts"
+    if payment.get("status") != "COMPLETED":
+        return "status %s" % payment.get("status")
+    if checkout.get("status") != "pending":
+        return "already %s" % checkout.get("status")
+    money = payment.get("amount_money") or {}
+    if money.get("amount") != checkout.get("amountCents") or money.get("currency") != checkout.get("currency", "USD"):
+        return "amount mismatch"
+    return None
 
 
-@https_fn.on_request(secrets=["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"])
-def stripe_webhook(req: https_fn.Request) -> https_fn.Response:
-    """Stripe calls this after a payment. Verified by signature; each Checkout session
-    credits tokens exactly once (purchases/{sessionId})."""
+@https_fn.on_request(secrets=["SQUARE_WEBHOOK_SIGNATURE_KEY"])
+def squareWebhook(req: https_fn.Request) -> https_fn.Response:
+    """Square payment notifications. Verified by signature; credits each order exactly once."""
     if req.method != "POST":
         return https_fn.Response("Method not allowed", status=405)
     raw = req.get_data()
-    if not stripe_verify(raw, req.headers.get("Stripe-Signature", ""), os.environ.get("STRIPE_WEBHOOK_SECRET", ""), int(_time.time())):
-        return https_fn.Response("Bad signature", status=400)
+    if not square_verify(raw, req.headers.get("x-square-hmacsha256-signature", ""), os.environ.get("SQUARE_WEBHOOK_SIGNATURE_KEY", "").strip()):
+        print("[square] webhook rejected: bad signature")
+        return https_fn.Response("Bad signature", status=403)
     try:
         event = json.loads(raw.decode())
     except Exception:
         return https_fn.Response("Bad JSON", status=400)
-    if event.get("type") not in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+    etype, eid = event.get("type"), str(event.get("event_id") or "")
+    payment = ((event.get("data") or {}).get("object") or {}).get("payment") or {}
+    if etype not in ("payment.created", "payment.updated") or not payment.get("order_id") or not eid:
+        print("[square] event %s %s ignored" % (etype, eid[:12]))
         return https_fn.Response("ignored", status=200)
-    sess = (event.get("data") or {}).get("object") or {}
-    credit = tk_session_credit(sess)
-    if not credit or not sess.get("id"):
-        return https_fn.Response("nothing to credit", status=200)
-    uid, pack, tokens, cents = credit
     db, now_ms = firestore.client(), int(_time.time() * 1000)
-    pref, wref = db.collection("purchases").document(sess["id"]), db.collection("wallets").document(uid)
+    order_id, pay_id = str(payment["order_id"]), str(payment.get("id") or "")
+    cref, eref = db.collection("squareCheckouts").document(order_id), db.collection("squareEvents").document(eid)
 
     @firestore.transactional
     def txn(t):
-        if pref.get(transaction=t).exists:
-            return False
-        ws = wref.get(transaction=t)
+        if eref.get(transaction=t).exists:
+            return "duplicate event"
+        cs = cref.get(transaction=t)
+        checkout = cs.to_dict() if cs.exists else None
+        why = square_payment_credit(payment, checkout)
+        wref = ws = None
+        if not why:  # every read happens before any write in a Firestore transaction
+            wref = db.collection("wallets").document(checkout["uid"])
+            ws = wref.get(transaction=t)
+        t.set(eref, {"type": etype, "orderId": order_id, "paymentId": pay_id, "status": payment.get("status"), "result": why or "credited", "at": now_ms})
+        if why:
+            return why
         wallet = ws.to_dict() if ws.exists else tk_new_wallet(now_ms)
-        wallet, line = tk_credit(wallet, tokens, now_ms, "purchase", "Bought %d tokens" % tokens, sess["id"])
-        t.set(pref, {"uid": uid, "pack": pack, "tokens": tokens, "amountCents": cents, "at": now_ms})
+        wallet, line = tk_credit(wallet, checkout["tokens"], now_ms, "purchase", "Bought %d tokens" % checkout["tokens"], order_id)
         t.set(wref, wallet)
         t.set(wref.collection("ledger").document(), line)
-        return True
+        t.update(cref, {"status": "credited", "paymentId": pay_id, "creditedAt": now_ms})
+        t.set(db.collection("purchases").document("sq_" + order_id), {"uid": checkout["uid"], "pack": checkout["pack"], "tokens": checkout["tokens"],
+                                                                     "amountCents": checkout["amountCents"], "provider": "square", "paymentId": pay_id, "at": now_ms})
+        return None
 
     try:
-        txn(db.transaction())
+        why = txn(db.transaction())
     except Exception as e:
-        print("[tokens] webhook credit failed:", type(e).__name__)
-        return https_fn.Response("retry", status=500)  # Stripe retries
+        print("[square] webhook %s failed: %s" % (eid[:12], type(e).__name__))
+        return https_fn.Response("retry", status=500)  # Square retries
+    print("[square] event %s %s order=%s status=%s -> %s" % (etype, eid[:12], order_id, payment.get("status"), why or "credited"))
     return https_fn.Response("ok", status=200)

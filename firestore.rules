@@ -61,8 +61,15 @@ service cloud.firestore {
         allow write: if false;
       }
     }
-    // Stripe purchases (idempotency records for the webhook): server only.
-    match /purchases/{sessionId} {
+    // Payments (Square): purchase records, the checkouts we created and the webhook
+    // events already handled. Server only.
+    match /purchases/{purchaseId} {
+      allow read, write: if false;
+    }
+    match /squareCheckouts/{orderId} {
+      allow read, write: if false;
+    }
+    match /squareEvents/{eventId} {
       allow read, write: if false;
     }
     // The full live alert while it's token-gated (the public alerts/{id} doc is a
