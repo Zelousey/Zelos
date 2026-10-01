@@ -80,7 +80,8 @@
 
   // ------------------------------------------------------------ nav chip
   function chip() {
-    var nav = d.getElementById('navAuth'); if (!nav || !me) return;
+    // the site nav, or a page's own spot for it (data-zt-slot, e.g. the alert page header)
+    var nav = d.getElementById('navAuth') || d.querySelector('[data-zt-slot]'); if (!nav || !me) return;
     var c = nav.querySelector('.zt-chip');
     if (!c) {
       c = d.createElement('button'); c.type = 'button'; c.className = 'zt-chip'; c.title = 'Your tokens';

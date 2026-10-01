@@ -746,3 +746,12 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .tw-al-px{ font-family:var(--mono); }
 @media (max-width:600px){ .tw-sltp{ grid-template-columns:1fr 1fr; } .tw-alert-row{ grid-template-columns:auto auto 1fr auto; } .tw-alert-row .tw-al-dir{ display:none; } }
 .twh-ch-st{ font-family:var(--mono); font-size:.7rem; } .twh-ch-st.is-accepted{ color:#10b981; } .twh-ch-st.is-pending{ color:#f59e0b; } .twh-ch-st.is-declined, .twh-ch-st.is-expired, .twh-ch-st.is-cancelled{ color:var(--muted); }
+
+/* ---- tokens in the Trade War strip and on your profile ---- */
+.twh-coin{ display:inline-block; width:11px; height:11px; margin-right:5px; border-radius:50%; vertical-align:-1px; background:radial-gradient(circle at 35% 35%,#ffe7a3,#e8b23d 60%,#a67a1c); }
+.twh-acct.twh-tokens{ border-color:rgba(232,178,61,.45); } .twh-acct.twh-tokens b{ color:#f2d38a; }
+.pf-tokens{ margin:12px 0; border-color:rgba(232,178,61,.4); }
+.pf-tk-top{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; }
+.pf-tk-top small{ display:block; color:var(--muted); font-size:.78rem; } .pf-tk-top b{ display:flex; align-items:center; font:700 1.5rem var(--mono); }
+.pf-tk-top b .twh-coin{ width:16px; height:16px; margin-right:8px; } .pf-tk-private{ font-size:.7rem; opacity:.8; margin-left:6px; }
+.pf-tk-acts{ display:flex; gap:8px; flex-wrap:wrap; }

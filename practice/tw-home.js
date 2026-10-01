@@ -34,7 +34,10 @@
     var nm = trader.username ? '@' + trader.username : (trader.name || (user && user.displayName ? user.displayName.split(' ')[0] : 'Guest'));
     var av = ph && /^(https:|data:image\/(jpeg|png|webp);base64,)/.test(ph) ? '<img class="twh-av" alt="" referrerpolicy="no-referrer" src="' + esc(ph) + '">' : '<span class="twh-av">' + esc(nm.replace('@', '').charAt(0).toUpperCase() || 'Z') + '</span>';
     var bal = mainBalance();
+    var T = window.ZelosTokens, tw = T && T.wallet();
+    if (T && !renderTop.hooked) { renderTop.hooked = true; T.onChange(function () { renderTop(); }); }
     var chips = '<a class="twh-acct' + (!here ? ' is-on' : '') + '" href="index.html"><small>Main account</small><b>' + (bal != null ? money(bal) : '$10,000') + '</b></a>' +
+      (user && T ? '<a class="twh-acct twh-tokens" href="../tokens.html" title="Your tokens: unlock live scanner alerts"><small>Tokens</small><b><i class="twh-coin" aria-hidden="true"></i>' + (tw ? tw.balance : '…') + '</b></a>' : '') +
       wars.filter(function (w) { return w.status === 'active' || w.status === 'lobby' || w.status === 'draft'; }).map(function (w) {
         var r = ranks[w.id], sub = w.status === 'lobby' ? 'Lobby · ' + w.players.length + '/' + w.maxPlayers : w.status === 'draft' ? 'Drafting' : r ? (r.out ? 'OUT · #' : '#') + r.rank + ' of ' + r.of + ' · ' + pct(r.pnlPct) : 'Live';
         return '<a class="twh-acct' + (here === w.id ? ' is-on' : '') + (w.status === 'active' ? ' is-live' : '') + '" href="war.html?w=' + encodeURIComponent(w.id) + '"><small>' + (w.lms ? '&#9760; ' : '⚔️ ') + esc(w.name) + '</small><b>' + sub + '</b></a>';
