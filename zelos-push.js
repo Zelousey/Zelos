@@ -64,21 +64,21 @@
     messaging().then(function (m) {
       m.onMessage(function (p) {
         var n = p.notification || {}, link = (p.fcmOptions && p.fcmOptions.link) || (p.data && p.data.link) || ROOT + 'dashboard.html';
-        var el = d.createElement('a'); el.href = link; el.className = 'zp-banner';
+        var el = d.createElement('a'); el.href = link; el.className = 'zn-banner';
         el.innerHTML = '<b>' + esc(n.title || 'Zelos') + '</b><span>' + esc(n.body || '') + '</span>';
         d.body.appendChild(el); setTimeout(function () { el.remove(); }, 9000);
       });
     }).catch(function () {});
   }
   function style() {
-    if (d.getElementById('zpStyle')) return;
-    var s = d.createElement('style'); s.id = 'zpStyle';
-    s.textContent = '.zp-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border,#262b36);border-radius:12px;background:var(--surface-2,#11151d);margin:0 0 12px}' +
-      '.zp-row .zp-txt{flex:1 1 220px;min-width:0;font-size:.86rem;line-height:1.4}.zp-row .zp-txt b{display:block;font-size:.92rem}.zp-row .zp-txt small{color:var(--muted,#8b93a3)}' +
-      '.zp-btn{font:inherit;font-weight:700;font-size:.84rem;padding:9px 14px;border-radius:10px;border:1px solid var(--border,#2b3140);background:var(--surface,#151a23);color:var(--ink,#e6e9ef);cursor:pointer}' +
-      '.zp-btn.zp-go{background:var(--accent,#3b82f6);border-color:transparent;color:#fff}.zp-btn:disabled{opacity:.6}' +
-      '.zp-msg{flex-basis:100%;font-size:.8rem;margin:0}.zp-msg.is-bad{color:#f87171}.zp-msg.is-ok{color:#10b981}' +
-      '.zp-banner{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:2200;display:flex;flex-direction:column;gap:2px;width:min(440px,calc(100vw - 24px));padding:12px 16px;border-radius:14px;background:#0d1016;border:1px solid #3b82f6;color:#f4f5f7;text-decoration:none;box-shadow:0 20px 50px rgba(0,0,0,.5);font-size:.86rem}.zp-banner span{color:#aab2c0}';
+    if (d.getElementById('znStyle')) return;
+    var s = d.createElement('style'); s.id = 'znStyle';
+    s.textContent = '.zn-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border,#262b36);border-radius:12px;background:var(--surface-2,#11151d);margin:0 0 12px}' +
+      '.zn-row .zn-txt{flex:1 1 220px;min-width:0;font-size:.86rem;line-height:1.4}.zn-row .zn-txt b{display:block;font-size:.92rem}.zn-row .zn-txt small{color:var(--muted,#8b93a3)}' +
+      '.zn-btn{font:inherit;font-weight:700;font-size:.84rem;padding:9px 14px;border-radius:10px;border:1px solid var(--border,#2b3140);background:var(--surface,#151a23);color:var(--ink,#e6e9ef);cursor:pointer}' +
+      '.zn-btn.zn-go{background:var(--accent,#3b82f6);border-color:transparent;color:#fff}.zn-btn:disabled{opacity:.6}' +
+      '.zn-msg{flex-basis:100%;font-size:.8rem;margin:0}.zn-msg.is-bad{color:#f87171}.zn-msg.is-ok{color:#10b981}' +
+      '.zn-banner{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:2200;display:flex;flex-direction:column;gap:2px;width:min(440px,calc(100vw - 24px));padding:12px 16px;border-radius:14px;background:#0d1016;border:1px solid #3b82f6;color:#f4f5f7;text-decoration:none;box-shadow:0 20px 50px rgba(0,0,0,.5);font-size:.86rem}.zn-banner span{color:#aab2c0}';
     d.head.appendChild(s);
   }
   function draw(el, msg, bad) {
@@ -91,12 +91,12 @@
       'ios-home': ['On iPhone: add Zelos to your Home Screen', 'Tap the Share button, then "Add to Home Screen". Open Zelos from the new icon and turn notifications on there.'],
       unset: ['Notifications are coming soon', 'Website notifications aren\'t switched on for the site yet.']
     }[st];
-    el.innerHTML = '<div class="zp-row"><div class="zp-txt"><b>' + bell + esc(t[0]) + '</b><small>' + esc(t[1]) + '</small></div>' +
-      (st === 'off' ? (u ? '<button class="zp-btn zp-go" type="button" data-zp="on">Turn on</button>' : '<a class="zp-btn" href="' + ROOT + 'tokens.html" style="text-decoration:none">Sign in first</a>') : '') +
-      (st === 'on' ? '<button class="zp-btn" type="button" data-zp="test">Send a test</button><button class="zp-btn" type="button" data-zp="off">Turn off</button>' : '') +
-      '<p class="zp-msg' + (bad ? ' is-bad' : msg ? ' is-ok' : '') + '" role="status">' + esc(msg || '') + '</p></div>';
-    el.querySelectorAll('[data-zp]').forEach(function (b) { b.onclick = function () {
-      var k = b.getAttribute('data-zp'); el.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+    el.innerHTML = '<div class="zn-row"><div class="zn-txt"><b>' + bell + esc(t[0]) + '</b><small>' + esc(t[1]) + '</small></div>' +
+      (st === 'off' ? (u ? '<button class="zn-btn zn-go" type="button" data-zn="on">Turn on</button>' : '<a class="zn-btn" href="' + ROOT + 'tokens.html" style="text-decoration:none">Sign in first</a>') : '') +
+      (st === 'on' ? '<button class="zn-btn" type="button" data-zn="test">Send a test</button><button class="zn-btn" type="button" data-zn="off">Turn off</button>' : '') +
+      '<p class="zn-msg' + (bad ? ' is-bad' : msg ? ' is-ok' : '') + '" role="status">' + esc(msg || '') + '</p></div>';
+    el.querySelectorAll('[data-zn]').forEach(function (b) { b.onclick = function () {
+      var k = b.getAttribute('data-zn'); el.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
       var p = k === 'on' ? enable().then(function () { return 'Done! You\'ll get new alerts here.'; })
         : k === 'off' ? disable().then(function () { return 'Turned off for this device.'; })
         : call('push_test').then(function (r) { return r.sent ? 'Sent. It should pop up in a few seconds.' : 'Couldn\'t reach this device. Turn notifications off and on again.'; });
