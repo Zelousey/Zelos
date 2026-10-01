@@ -6,7 +6,7 @@
  * (wallets/{uid}, readable by you alone) and asks Cloud Functions to change it:
  *   tokens_wallet    your wallet + prices (the first call adds the welcome tokens)
  *   tokens_spend     a 1-week scanner pass, or one live alert
- *   tokens_checkout  a Stripe Checkout page for a token pack
+ *   tokens_checkout  a Square Checkout payment link for a token pack
  *
  * Live alerts: until the 4:00 pm ET close, alerts/{id} is a teaser (locked:
  * true) and the full alert sits in alertsLocked/{id}, readable with a pass for
@@ -149,7 +149,7 @@
         '<p class="zt-muted">A 1-week scanner pass is ' + w.prices.pass + ' tokens; one live alert is ' + w.prices.unlock + '. Every alert is free for everyone after the 4:00 pm ET close.</p>' +
         '<h3>Active passes</h3>' + (passes.length ? passes.map(function (k) { return '<div class="zt-row"><span>' + esc(NAMES[k] || k) + '</span><span class="zt-muted">until ' + until(w.passes[k]) + '</span></div>'; }).join('') : '<p class="zt-muted">None. Get one on any scanner\'s locked alert, or on the <a href="' + ROOT + 'tokens.html" style="color:#9dbcff">tokens page</a>.</p>') +
         '<h3>Get tokens</h3><div class="zt-packs">' + w.packs.map(function (p) { return '<button class="zt-pack" type="button" data-pack="' + p.id + '"' + (w.canBuy ? '' : ' disabled') + '><b>' + p.tokens + '</b><span>$' + (p.cents / 100).toFixed(2) + '</span></button>'; }).join('') + '</div>' +
-        (w.canBuy ? '<p class="zt-muted">Secure checkout by Stripe. Tokens are site credit with no cash value.</p>' : '<p class="zt-muted">Buying tokens is coming soon. Your free tokens work now.</p>') +
+        (w.canBuy ? '<p class="zt-muted">Secure checkout by Square. Tokens are site credit with no cash value.</p>' : '<p class="zt-muted">Buying tokens is coming soon. Your free tokens work now.</p>') +
         '<h3>History</h3><div id="ztHist"><p class="zt-muted">Loading…</p></div><p class="zt-msg" id="ztMsg" role="status"></p>';
       body.querySelectorAll('[data-pack]').forEach(function (b) { b.onclick = function () { buy(b.getAttribute('data-pack'), m.el.querySelector('#ztMsg'), b); }; });
       history(m.el.querySelector('#ztHist'));

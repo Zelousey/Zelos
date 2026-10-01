@@ -180,7 +180,7 @@
         <div class="tk-card"><div class="price">350 <small>tokens</small></div><p>$10.00</p><button type="button" data-pack="p350">Buy</button></div>
         <div class="tk-card"><div class="price">750 <small>tokens</small></div><p>$20.00</p><button type="button" data-pack="p750">Buy</button></div>
       </div>
-      <p class="status-line" id="tkBuyNote" style="margin-top:10px;">Secure checkout by Stripe.</p>
+      <p class="status-line" id="tkBuyNote" style="margin-top:10px;">Secure checkout by Square.</p>
       <div style="margin-top:12px;"><button type="button" class="tk-btn" id="tkWallet">Wallet &amp; history</button> <button type="button" class="tk-btn gold" id="tkSignIn" hidden>Sign in with Google</button></div>
     </div>
 
@@ -281,7 +281,7 @@
     if (!p) return;
     document.querySelectorAll('[data-price]').forEach(function (el) { var k = el.getAttribute('data-price'); if (p.prices[k] != null) el.textContent = p.prices[k]; });
     document.querySelectorAll('[data-pack]').forEach(function (b) { b.disabled = !p.canBuy; });
-    $('tkBuyNote').textContent = p.canBuy ? 'Secure checkout by Stripe. Tokens are site credit with no cash value.' : 'Buying tokens is coming soon. Your free tokens work now.';
+    $('tkBuyNote').textContent = p.canBuy ? 'Secure checkout by Square. Tokens are site credit with no cash value.' : 'Buying tokens is coming soon. Your free tokens work now.';
     if (p.welcomed) say('Welcome! ' + p.prices.welcome + ' free tokens were added to your wallet.', true);
   }
   document.addEventListener('DOMContentLoaded', function () {
