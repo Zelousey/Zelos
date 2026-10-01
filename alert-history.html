@@ -106,6 +106,7 @@
           <a href="practice/index.html">Trade War<small>Your account, chart, Trade Wars &amp; invites</small></a>
           <a href="practice/index.html#start">Start a Trade War<small>Challenge a friend or your squad</small></a>
           <a href="practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
+          <a href="practice/communities.html">Communities<small>Founder Program: start one, earn tokens</small></a>
           <a href="leaderboard.html#practice">Leaderboards<small>Top Trade War traders</small></a>
           <a href="practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
           <a href="practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
@@ -155,6 +156,7 @@
       <a href="practice/index.html">Trade War</a>
       <a href="practice/index.html#start">Start a Trade War</a>
       <a href="practice/squads.html">Squads</a>
+      <a href="practice/communities.html">Communities</a>
       <a href="leaderboard.html#practice">Leaderboards</a>
       <a href="practice/profile.html">My profile</a>
       <a href="practice/index.html?tab=progress">XP &amp; Missions</a>
@@ -482,7 +484,7 @@
       return (
         '<a class="alert-row" href="alert.html?id=' + encodeURIComponent(item.id) + '">' +
           '<div class="alert-left">' +
-            '<span class="alert-ticker">' + (a.locked && !a.ticker ? '&#128274; Live' : (a.ticker || '—')) + '</span>' +
+            '<span class="alert-ticker">' + (a.locked && !a.ticker ? (a.afterClose ? '&#128274; Locked' : '&#128274; Live') : (a.ticker || '—')) + '</span>' +
             '<span class="alert-meta">' + (STRATEGY_LABEL[a.strategy] || a.strategy || '') + ' · ' + fmtStamp(a.createdAt) + '</span>' +
           '</div>' +
           '<div class="badges">' + badges + '</div>' +

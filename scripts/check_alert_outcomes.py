@@ -29,7 +29,8 @@ day, something with Robinhood MCP access and network access should:
   1. GET https://firestore.googleapis.com/v1/projects/leaderboard-agentictrading
      /databases/(default)/documents/alerts — public read, no auth needed —
      and keep every doc whose status is "qualified" and whose outcome is
-     still null/"open".
+     still null/"open". Alerts still token-gated are teasers there; their
+     full trade plan comes from the secret-gated alerts_open function.
   2. For each one, fetch daily bars from the session AFTER createdAt up to
      today via the Robinhood MCP tools (get_equity_historicals for
      swing-trader/breakout-rider; also get_equity_historicals for

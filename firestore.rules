@@ -44,7 +44,8 @@ service cloud.firestore {
     }
 
     // Alerts: the core "ALERT -> OPEN ZELOS -> SEE FULL ANALYSIS" record.
-    // Public, read-only, no gating of any kind.
+    // Public, read-only. Alerts with a trade are a teaser here until the trade
+    // finishes (the full alert is in alertsLocked, token-gated).
     match /alerts/{alertId} {
       allow read: if true;
       allow write: if false; // written only by the scan pipeline via the Admin SDK
@@ -72,9 +73,9 @@ service cloud.firestore {
     match /squareEvents/{eventId} {
       allow read, write: if false;
     }
-    // The full live alert while it's token-gated (the public alerts/{id} doc is a
-    // teaser until the close). Readable with an active pass for that scanner or a
-    // single unlock of this alert.
+    // The full alert while it's token-gated (the public alerts/{id} doc is a teaser
+    // until its trade finishes; live price before the close, cheaper after).
+    // Readable with an active pass for that scanner or a single unlock of this alert.
     match /alertsLocked/{alertId} {
       function wallet() { return get(/databases/$(database)/documents/wallets/$(request.auth.uid)).data; }
       allow get: if request.auth != null
@@ -366,6 +367,35 @@ service cloud.firestore {
       allow read: if request.auth != null
         && (request.auth.uid == userId || resource.data.referrer == request.auth.uid);
       allow update, delete: if false;
+    }
+
+    // Profile cosmetics you show (name color, badge, banner, Founder title).
+    // Public so anyone can see them; only Cloud Functions write (you buy and equip
+    // through cosmetics_buy / cosmetics_equip, which check you own it).
+    match /cosmetics/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Founder Program communities (functions/main.py community_*). Public pages,
+    // member lists and leaderboards; every change goes through Cloud Functions,
+    // which enforce one community per person and count only real members.
+    match /communities/{cid} {
+      allow read: if true;
+      allow write: if false;
+      match /members/{uid} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+    // Your membership (active days, whether you've counted for a founder): you only.
+    match /communityMembers/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    // Hashed network ids used to stop duplicate accounts counting. Server only.
+    match /communityPrivate/{cid} {
+      allow read, write: if false;
     }
 
     // Retired with Gumroad: old purchase claims. Nothing reads or writes them now.

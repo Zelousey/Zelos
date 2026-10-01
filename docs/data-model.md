@@ -109,8 +109,9 @@ for `wallets/{uid}` (+ `ledger`), `purchases/{sessionId}` and
 `alertsLocked/{alertId}` (the full alert while it's live). While an alert is
 live, `alerts/{alertId}` holds only a teaser (`strategy`, `status`,
 `direction`, `score`, `setupLabel`, `marketRegime`, scan counts) plus
-`locked: true` and `lockedUntil` (epoch ms of the 4 pm ET close); the
-`release_alerts` job copies the full alert in after the close.
+`locked: true` and `lockedUntil` (epoch ms of the 4 pm ET close). After the
+close `release_alerts` adds `afterClose: true` (cheaper unlock); the full alert
+is copied in when its outcome is final.
 
 `ownedSkills` on `users/{uid}` is legacy (self-reported, from the Gumroad era)
 and no longer gates or shows anything.

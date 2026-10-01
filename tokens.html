@@ -22,19 +22,19 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. Every alert is free for everyone after the close.">
+<meta name="description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. After the close it costs less, and every alert is free once its trade finishes.">
 <link rel="canonical" href="https://agentictrading.info/tokens.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
 <meta property="og:title" content="Zelos Tokens">
-<meta property="og:description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. Every alert is free for everyone after the close.">
+<meta property="og:description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. After the close it costs less, and every alert is free once its trade finishes.">
 <meta property="og:url" content="https://agentictrading.info/tokens.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Zelos Tokens">
-<meta name="twitter:description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. Every alert is free for everyone after the close.">
+<meta name="twitter:description" content="Tokens unlock Zelos scanner alerts while they are live: a 1-week scanner pass or a single alert. After the close it costs less, and every alert is free once its trade finishes.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.png">
 <link rel="stylesheet" href="zelos-theme.css">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -78,6 +78,7 @@
           <a href="practice/index.html">Trade War<small>Your account, chart, Trade Wars &amp; invites</small></a>
           <a href="practice/index.html#start">Start a Trade War<small>Challenge a friend or your squad</small></a>
           <a href="practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
+          <a href="practice/communities.html">Communities<small>Founder Program: start one, earn tokens</small></a>
           <a href="leaderboard.html#practice">Leaderboards<small>Top Trade War traders</small></a>
           <a href="practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
           <a href="practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
@@ -127,6 +128,7 @@
       <a href="practice/index.html">Trade War</a>
       <a href="practice/index.html#start">Start a Trade War</a>
       <a href="practice/squads.html">Squads</a>
+      <a href="practice/communities.html">Communities</a>
       <a href="leaderboard.html#practice">Leaderboards</a>
       <a href="practice/profile.html">My profile</a>
       <a href="practice/index.html?tab=progress">XP &amp; Missions</a>
@@ -157,7 +159,7 @@
       <div>
         <p class="eyebrow">Tokens</p>
         <h1 style="font-size:1.6rem; margin-top:6px;">Unlock live alerts with tokens</h1>
-        <p class="status-line" style="margin-top:6px; max-width:62ch;">Each Zelos scanner publishes its alert before the market opens. While it's live, the ticker, entry, stop, targets and reasoning are unlocked with tokens. After the 4:00 pm ET close, every alert is free for everyone.</p>
+        <p class="status-line" style="margin-top:6px; max-width:62ch;">Each Zelos scanner publishes its alert before the market opens. While it's live, the ticker, entry, stop, targets and reasoning are unlocked with tokens. After the 4:00 pm ET close it's 3 tokens, and once the trade finishes (target, stop or expiry) it's free for everyone.</p>
       </div>
       <div class="tk-bal" id="tkBal"><small>Your tokens</small><b><span class="tk-coin" aria-hidden="true"></span><span id="tkBalN">&ndash;</span></b><small id="tkBalNote">Sign in to see your wallet.</small></div>
     </div>
@@ -170,7 +172,7 @@
         <div class="tk-card" data-s="breakout-rider"><h3>Breakout Rider</h3><p>Flat bases and ascending triangles clearing resistance.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="breakout-rider">Get the pass</button></div>
         <div class="tk-card" data-s="options-scanner"><h3>Options Scanner</h3><p>Directional long call / long put ideas with a strike and expiration rule.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="options-scanner">Get the pass</button></div>
       </div>
-      <p class="status-line" style="margin-top:10px;">Just want one alert? Open it and unlock it for <b><span data-price="unlock">10</span> tokens</b>.</p>
+      <p class="status-line" style="margin-top:10px;">Just want one alert? Open it and unlock it for <b><span data-price="unlock">10</span> tokens</b> while it's live, or <b><span data-price="unlockClosed">3</span> tokens</b> after the close.</p>
     </div>
 
     <div class="tk-section"><h2>Get tokens</h2>
@@ -184,11 +186,25 @@
       <div style="margin-top:12px;"><button type="button" class="tk-btn" id="tkWallet">Wallet &amp; history</button> <button type="button" class="tk-btn gold" id="tkSignIn" hidden>Sign in with Google</button></div>
     </div>
 
+    <div class="tk-section"><h2>Earn free tokens</h2>
+      <div class="tk-grid">
+        <div class="tk-card"><h3>Daily check-in</h3><p>Visit the site any day you're signed in: +2 tokens, and +10 more on every 7th day in a row.</p><div class="price">+2 <small>a day</small></div></div>
+        <div class="tk-card"><h3>Win a Trade War</h3><p>Top 3 in a match of 4+ traders earn 25, 15 and 10. Win a 1-on-1 or a small match: 15. Survive Last Man Standing: +10 more.</p><div class="price">up to +35 <small>a match</small></div></div>
+        <div class="tk-card"><h3>Founder Program</h3><p>Start a community and get real members: 250 tokens and a Founder badge at 5, more at 10, 25, 50 and 100.</p><div class="price">up to +3,050</div><a class="tk-btn gold" href="practice/communities.html" style="text-decoration:none; display:inline-block; margin-top:8px;">Start a community</a></div>
+      </div>
+      <p class="status-line" style="margin-top:10px;">Earning needs a verified account (Google sign-in or a verified email). Trade War rewards count up to 2 matches a day, and need at least 2 verified traders who made a trade. Trade War money itself is virtual and never turns into tokens.</p>
+    </div>
+
+    <div class="tk-section"><h2>Profile looks</h2>
+      <p class="status-line" style="margin-top:6px;">Name colors (60 tokens), badges (from 40) and profile banners (from 80). They show on your profile, in communities and on leaderboards. Buy once, switch any time.</p>
+      <div style="margin-top:12px;"><button type="button" class="tk-btn gold" id="tkLooks">Open the looks shop</button></div>
+    </div>
+
     <div class="tk-section"><h2>Questions</h2>
       <div class="tk-faq">
         <details><summary>What are tokens?</summary><p>Site credit for AgenticTrading.info. They unlock live scanner alerts (a 7-day pass or one alert) and may unlock other premium tools later. They're separate from Trade War: Trade War money is virtual and can't be bought, sold or turned into tokens.</p></details>
         <details><summary>Do tokens expire? Can I cash them out?</summary><p>Tokens don't expire while the site offers them. They have no cash value, can't be transferred, sold or exchanged, and aren't refundable except where the law requires. See the <a href="terms.html" style="color:var(--accent);">Terms</a>, section 07.</p></details>
-        <details><summary>Is anything free?</summary><p>Yes. Every alert becomes free for everyone after the 4:00 pm ET close, along with the full alert history and the daily scan pages. Trade War, the Real Trade Journal and the games are free. New accounts also get free tokens.</p></details>
+        <details><summary>Is anything free?</summary><p>Yes. Every alert is free for everyone once its trade finishes (it hits a target or stop, or expires), so the full track record stays open. The daily scan pages, Trade War, Squads, Communities, the Real Trade Journal and the games are free. You can also earn free tokens: welcome tokens, a daily check-in streak, winning Trade Wars and the Founder Program.</p></details>
         <details><summary>I bought on Gumroad before. What happens?</summary><p>Thank you! Gumroad is retired and we honor what you bought: email support from the address you used and we'll add tokens for it.</p></details>
         <details><summary>Is this investment advice?</summary><p>No. Zelos alerts are rule-based, general information, the same for everyone. They're not personalized advice, and Zelos never connects to or trades in any brokerage account.</p></details>
       </div>
@@ -291,6 +307,7 @@
     firebase.auth().onAuthStateChanged(function (u) { draw(T.wallet()); if (u && !u.isAnonymous) T.ensure().then(prices, function (e) { say(e.message || String(e)); }); });
     $('tkSignIn').onclick = function () { if (window.ZelosSignIn) ZelosSignIn.google(function (t) { say(t); }); };
     $('tkWallet').onclick = function () { T.open(); };
+    $('tkLooks').onclick = function () { T.shop(); };
     document.querySelectorAll('[data-pass]').forEach(function (b) { b.onclick = function () {
       var u = firebase.auth().currentUser; if (!u || u.isAnonymous) return say('Sign in first: new accounts get free tokens.');
       b.disabled = true;

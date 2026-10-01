@@ -112,8 +112,40 @@
           groups[g].map(function (a) { return '<span class="pf-ach">' + P.badge(a.id, 38) + '<span><b>' + esc(a.label) + '</b><small>' + esc(a.desc) + '</small></span></span>'; }).join('') + '</div>';
       }).join('') : '<p class="pt-empty">No achievements yet.</p>') + '</section>';
   }
+  // Your own profile: token balance and passes (private: only you see this card)
+  var SCAN = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner' };
+  function tokensCard(box) {
+    var T = window.ZelosTokens; if (!T) return;
+    var el = document.getElementById('pfTokens');
+    if (!el) { el = document.createElement('section'); el.id = 'pfTokens'; el.className = 'pt-card ch-card pf-tokens'; box.parentNode.insertBefore(el, box.nextSibling); }
+    var draw = function (w) {
+      var passes = Object.keys((w && w.passes) || {}).filter(function (k) { return w.passes[k] > Date.now(); });
+      el.innerHTML = '<div class="pf-tk-top"><div><small>Your tokens <span class="pf-tk-private">only you can see this</span></small><b><i class="twh-coin" aria-hidden="true"></i>' + (w ? w.balance : '…') + '</b></div>' +
+        '<div class="pf-tk-acts"><button class="pt-mini pt-soc" type="button" id="pfTkWallet">Wallet &amp; history</button><button class="pt-mini pt-soc" type="button" id="pfTkLooks">Profile looks</button><a class="pt-mini" href="../tokens.html">Get tokens &amp; passes</a></div></div>' +
+        '<p class="pt-fine">' + (passes.length ? 'Active passes: ' + passes.map(function (k) { return '<b>' + esc(SCAN[k] || k) + '</b> until ' + new Date(w.passes[k]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }).join(' · ')
+          : 'No active scanner pass. Live alerts unlock with tokens; after the 4:00 pm ET close they\'re 3 tokens, then free once the trade finishes.') + '</p>';
+      el.querySelector('#pfTkWallet').onclick = function () { T.open(); };
+      el.querySelector('#pfTkLooks').onclick = function () { T.shop(); };
+    };
+    if (!tokensCard.hooked) { tokensCard.hooked = true; T.onChange(draw); }
+    draw(T.wallet());
+  }
+  // Profile looks bought with tokens (cosmetics/{uid}): name color, badge, banner, Founder title, community
+  function looks(uid, name, mine) {
+    var T = window.ZelosTokens, h1 = document.querySelector('.pf-head h1'); if (!T || !h1) return;
+    T.look(uid).then(function (lk) {
+      h1.innerHTML = T.nameHtml(name, lk);
+      var head = document.querySelector('.pf-head'), bg = T.bannerCss(lk), old = document.querySelector('.pf-banner');
+      if (old) old.remove();
+      if (bg && head) { var b = document.createElement('div'); b.className = 'pf-banner'; b.style.background = bg; head.parentNode.insertBefore(b, head); }
+      var tags = document.querySelector('.pf-tags'), c = lk.community;
+      if (tags && c && c.cid && !tags.querySelector('.pf-comm')) tags.insertAdjacentHTML('beforeend', '<a class="pf-comm" href="communities.html?c=' + encodeURIComponent(c.cid) + '">🏘️ ' + esc(c.name) + ' · ' + esc(c.state) + '</a>');
+    });
+    if (mine && !looks.hooked) { looks.hooked = true; T.onLook(function () { looks(uid, name, mine); }); }
+  }
   // Share profile · Challenge this trader · Add friend (social actions need a signed-in account)
   function actions(p, uid, mine, name) {
+    looks(uid, name, mine);
     var S = window.ZelosSocial, box = $('pfActions'); if (!S || !box) return;
     var link = S.links(uid).profile(uid), meUser = S.me();
     var war = p.equity != null;
@@ -125,6 +157,7 @@
       '<a href="index.html?tab=progress">XP, missions &amp; badges</a><a href="../real/">Real-trade statistics privacy</a></div></details>' + h +
       (war ? '<button class="pt-mini pt-soc" type="button" data-a="card">Share my Trade War card</button>' : '') + '<a class="pt-mini" href="squads.html">Trading Squads</a><a class="pt-mini" href="../real/">Real Trade Journal</a>';
     box.innerHTML = h;
+    if (mine) tokensCard(box);
     if (meUser && !mine) S.friends().then(function (f) { var b = box.querySelector('[data-a="friend"]'); if (b && f.indexOf(uid) !== -1) { b.textContent = '✓ Friends'; b.setAttribute('data-a', 'unfriend'); } });
     box.onchange = function (e) { if (e.target.getAttribute('data-a') === 'help' && window.ZelosProfile) ZelosProfile.help.set(e.target.checked); };
     box.onclick = function (e) {

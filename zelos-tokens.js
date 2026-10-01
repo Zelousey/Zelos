@@ -8,9 +8,11 @@
  *   tokens_spend     a 1-week scanner pass, or one live alert
  *   tokens_checkout  a Square Checkout payment link for a token pack
  *
- * Live alerts: until the 4:00 pm ET close, alerts/{id} is a teaser (locked:
- * true) and the full alert sits in alertsLocked/{id}, readable with a pass for
- * that scanner or a single unlock. After the close the full alert is public.
+ * Alerts with a trade: alerts/{id} is a teaser (locked: true) and the full
+ * alert sits in alertsLocked/{id}, readable with a pass for that scanner or a
+ * single unlock. Before the 4:00 pm ET close an unlock costs the live price;
+ * after it (afterClose: true) the cheaper after-close price. Once the trade
+ * finishes (target, stop or expiry) the full alert is public, free for everyone.
  *
  *   ZelosTokens.open()                         wallet pop-up
  *   ZelosTokens.full(alert, id)                Promise<full alert | null>
@@ -63,14 +65,32 @@
   function toast(t) {
     style();
     var el = d.createElement('div'); el.className = 'zt-toast'; el.setAttribute('role', 'status');
+    el.style.bottom = (20 + d.querySelectorAll('.zt-toast').length * 74) + 'px';
     el.innerHTML = '<span class="zt-coin" aria-hidden="true"></span><span>' + esc(t) + '</span>';
     el.onclick = function () { el.remove(); open(); };
     d.body.appendChild(el); setTimeout(function () { el.classList.add('is-gone'); setTimeout(function () { el.remove(); }, 400); }, 7000);
+  }
+  // Daily check-in: once per New York day (the server decides; this only avoids extra calls)
+  function nyDay() { try { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); } catch (e) { return new Date().toISOString().slice(0, 10); } }
+  function checkin(u) {
+    var key = 'ztCheckin:' + u.uid, today = nyDay();
+    try { if (localStorage.getItem(key) === today) return; } catch (e) {}
+    setTimeout(function () {
+      call('rewards_checkin').then(function (r) {
+        try { localStorage.setItem(key, today); } catch (e) {}
+        if (r && r.earned > 0) {
+          var left = r.every - (r.streak % r.every);
+          toast('+' + r.earned + ' tokens for checking in today. ' + (r.streak > 1 ? r.streak + '-day streak! ' : '') +
+            (r.streak % r.every === 0 ? 'Streak bonus included.' : left + ' more day' + (left === 1 ? '' : 's') + ' for a +' + r.bonus + ' bonus.'));
+        }
+      }, function () {});
+    }, 1500);
   }
   function watch(u) {
     if (walletUnsub) { walletUnsub(); walletUnsub = null; }
     me = u; wallet = null; emit();
     if (!u) return;
+    checkin(u);
     var f = fb(), made = false;
     walletUnsub = f.db.collection('wallets').doc(u.uid).onSnapshot(function (s) {
       if (!s.exists) { if (!made) { made = true; ensureWallet().catch(function () {}); } return; }
@@ -80,7 +100,8 @@
 
   // ------------------------------------------------------------ nav chip
   function chip() {
-    var nav = d.getElementById('navAuth'); if (!nav || !me) return;
+    // the site nav, or a page's own spot for it (data-zt-slot, e.g. the alert page header)
+    var nav = d.getElementById('navAuth') || d.querySelector('[data-zt-slot]'); if (!nav || !me) return;
     var c = nav.querySelector('.zt-chip');
     if (!c) {
       c = d.createElement('button'); c.type = 'button'; c.className = 'zt-chip'; c.title = 'Your tokens';
@@ -120,6 +141,13 @@
       '.zt-lock .zt-muted{margin-top:8px}',
       '.zt-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:2140;display:flex;gap:10px;align-items:center;max-width:min(460px,calc(100vw - 32px));padding:12px 16px;border-radius:12px;border:1px solid rgba(232,178,61,.5);background:#0d1016;color:#f4f5f7;font-size:.9rem;box-shadow:0 20px 50px rgba(0,0,0,.5);cursor:pointer;transition:opacity .35s}',
       '.zt-toast.is-gone{opacity:0}.zt-toast .zt-coin{width:18px;height:18px}',
+      '.zt-name{font-weight:inherit}.zt-prism{background:linear-gradient(90deg,#f87171,#fbbf24,#34d399,#38bdf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}',
+      '.zt-badge{font-size:.95em}.zt-founder{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:999px;border:1px solid rgba(232,178,61,.5);background:rgba(232,178,61,.1);color:#f2d38a;font:600 .7rem "IBM Plex Mono",monospace;vertical-align:middle;white-space:nowrap}',
+      '.zt-preview{display:flex;align-items:flex-end;height:74px;border-radius:12px;padding:10px 14px;margin:10px 0 4px;font-size:1.15rem;font-weight:700;border:1px solid #262b36}.zt-preview>span{background:rgba(8,10,14,.72);padding:3px 10px;border-radius:8px}',
+      '.zt-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}',
+      '.zt-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:12px;border:1px solid #2b3140;background:#11151d;color:#f4f5f7;font:inherit;cursor:pointer;text-align:center}',
+      '.zt-item b{font-size:.78rem}.zt-item small{color:#8b93a3;font-size:.7rem}.zt-item:hover:not(:disabled){border-color:#e8b23d}.zt-item.is-on{border-color:#10b981;background:rgba(16,185,129,.08)}.zt-item:disabled{opacity:.6}',
+      '.zt-item .zt-name{font-size:1.2rem;font-weight:800}.zt-sw{display:block;width:100%;height:26px;border-radius:6px}',
       '@media (max-width:420px){.zt-packs{grid-template-columns:1fr}}'
     ].join('\n');
     d.head.appendChild(s);
@@ -146,13 +174,18 @@
       body.innerHTML = '<div class="zt-bal"><span class="zt-coin" aria-hidden="true"></span>' + w.balance + '</div>' +
         (w.welcomed ? '<p class="zt-msg is-ok">Welcome! ' + w.prices.welcome + ' free tokens were added to your wallet.</p>' : '') +
         (w.needsVerify ? '<p class="zt-muted">Verify your email (or sign in with Google) to get your ' + w.prices.welcome + ' free welcome tokens.</p>' : '') +
-        '<p class="zt-muted">A 1-week scanner pass is ' + w.prices.pass + ' tokens; one live alert is ' + w.prices.unlock + '. Every alert is free for everyone after the 4:00 pm ET close.</p>' +
+        '<p class="zt-muted">A 1-week scanner pass is ' + w.prices.pass + ' tokens. One live alert is ' + w.prices.unlock + '; after the 4:00 pm ET close it\'s ' + (w.prices.unlockClosed || 3) + '. Every alert is free for everyone once its trade finishes.</p>' +
         '<h3>Active passes</h3>' + (passes.length ? passes.map(function (k) { return '<div class="zt-row"><span>' + esc(NAMES[k] || k) + '</span><span class="zt-muted">until ' + until(w.passes[k]) + '</span></div>'; }).join('') : '<p class="zt-muted">None. Get one on any scanner\'s locked alert, or on the <a href="' + ROOT + 'tokens.html" style="color:#9dbcff">tokens page</a>.</p>') +
+        '<h3>Earn free tokens</h3><div class="zt-row"><span>Daily check-in' + (wallet && wallet.checkin && wallet.checkin.streak ? ' <span class="zt-muted">(' + wallet.checkin.streak + '-day streak)</span>' : '') + '</span><span class="zt-muted">+2 a day, +10 every 7th day in a row</span></div>' +
+        '<div class="zt-row"><span>Win a Trade War</span><span class="zt-muted">up to +25</span></div>' +
+        '<div class="zt-row"><span><a href="' + ROOT + 'practice/communities.html" style="color:#9dbcff">Founder Program</a></span><span class="zt-muted">up to +3,050</span></div>' +
+        '<h3>Spend tokens</h3><div class="zt-acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="zt-btn" type="button" id="ztLooks">Profile looks</button><a class="zt-btn" style="text-decoration:none" href="' + ROOT + 'tokens.html">Scanner passes</a></div>' +
         '<h3>Get tokens</h3><div class="zt-packs">' + w.packs.map(function (p) { return '<button class="zt-pack" type="button" data-pack="' + p.id + '"' + (w.canBuy ? '' : ' disabled') + '><b>' + p.tokens + '</b><span>$' + (p.cents / 100).toFixed(2) + '</span></button>'; }).join('') + '</div>' +
         (w.canBuy ? '<p class="zt-muted">Secure checkout by Square. Tokens are site credit with no cash value.</p>' : '<p class="zt-muted">Buying tokens is coming soon. Your free tokens work now.</p>') +
         '<h3>History</h3><div id="ztHist"><p class="zt-muted">Loading…</p></div><p class="zt-msg" id="ztMsg" role="status"></p>';
       body.querySelectorAll('[data-pack]').forEach(function (b) { b.onclick = function () { buy(b.getAttribute('data-pack'), m.el.querySelector('#ztMsg'), b); }; });
       history(m.el.querySelector('#ztHist'));
+      m.el.querySelector('#ztLooks').onclick = function () { m.close(); shop(); };
     }, function (e) { body.innerHTML = '<p class="zt-msg is-bad">' + esc(errText(e)) + '</p>'; });
   }
   function history(el) {
@@ -168,7 +201,8 @@
   }
 
   // ------------------------------------------------------------ locked alerts
-  function isLocked(a) { return !!(a && a.locked && (a.lockedUntil || 0) > Date.now() - 60000); }
+  function isLocked(a) { return !!(a && a.locked); }
+  function isClosed(a) { return !!(a && (a.afterClose || (a.lockedUntil || 0) <= Date.now())); }
   // The full alert if you have a pass or unlocked it; null otherwise.
   function full(a, id) {
     var f = fb(), u = user(); if (!f || !u || !isLocked(a)) return Promise.resolve(null);
@@ -187,10 +221,12 @@
     var el = d.createElement('div'), name = NAMES[a.strategy] || 'this scanner';
     el.className = 'zt-lock';
     function draw(msg, bad) {
-      var u = user(), p = prices || {}, bal = wallet ? wallet.balance : null;
-      el.innerHTML = '<h3><span class="zt-coin" aria-hidden="true"></span>Live alert: unlock with tokens</h3>' +
-        '<div>The ticker, entry, stop, targets and full reasoning are live until the 4:00 pm ET close, then free for everyone (in about <b>' + left(a.lockedUntil) + '</b>).</div>' +
-        (u ? '<div class="zt-acts"><button class="zt-btn zt-gold" type="button" data-k="unlock">Unlock this alert · ' + (p.prices ? p.prices.unlock : 10) + ' tokens</button>' +
+      var u = user(), p = prices || {}, bal = wallet ? wallet.balance : null, closed = isClosed(a);
+      var cost = closed ? (p.prices ? p.prices.unlockClosed : 3) : (p.prices ? p.prices.unlock : 10);
+      el.innerHTML = '<h3><span class="zt-coin" aria-hidden="true"></span>' + (closed ? 'Unlock this alert with tokens' : 'Live alert: unlock with tokens') + '</h3>' +
+        (closed ? '<div>The ticker, entry, stop, targets and full reasoning. The market has closed, so it costs less now, and it\'s free for everyone once the trade finishes (target, stop or expiry).</div>'
+          : '<div>The ticker, entry, stop, targets and full reasoning. Live until the 4:00 pm ET close (in about <b>' + left(a.lockedUntil) + '</b>), then ' + (p.prices ? p.prices.unlockClosed : 3) + ' tokens, and free once the trade finishes.</div>') +
+        (u ? '<div class="zt-acts"><button class="zt-btn zt-gold" type="button" data-k="unlock">Unlock this alert · ' + cost + ' tokens</button>' +
           '<button class="zt-btn" type="button" data-k="pass">1-week ' + esc(name) + ' pass · ' + (p.prices ? p.prices.pass : 40) + ' tokens</button></div>' +
           '<div class="zt-muted">' + (bal != null ? 'You have <b>' + bal + '</b> tokens. ' : '') + '<a href="#" data-k="wallet" style="color:#9dbcff">Wallet &amp; token packs</a></div>'
           : '<div class="zt-acts"><a class="zt-btn zt-gold" href="' + ROOT + 'tokens.html" style="text-decoration:none">Sign in to get free tokens</a></div><div class="zt-muted">New accounts start with free tokens: enough for a week-long pass.</div>') +
@@ -211,6 +247,69 @@
     return el;
   }
 
+  // ------------------------------------------------------------ profile looks (cosmetics)
+  // What each item looks like; the server (COSMETICS in functions/main.py) owns names and prices.
+  var LOOKS = {
+    color: { gold: '#f2c14e', emerald: '#34d399', electric: '#38bdf8', crimson: '#fb7185', violet: '#a78bfa', rainbow: 'prism' },
+    badge: { bull: '🐂', bear: '🐻', rocket: '🚀', diamond: '💎', crown: '👑' },
+    banner: {
+      sunset: 'linear-gradient(135deg,#ff7e5f,#feb47b 45%,#6a3093)', midnight: 'linear-gradient(135deg,#0f2027,#203a43 50%,#2c5364)',
+      neon: 'linear-gradient(rgba(0,255,255,.18) 1px,transparent 1px) 0 0/18px 18px,linear-gradient(90deg,rgba(255,0,200,.18) 1px,transparent 1px) 0 0/18px 18px,linear-gradient(135deg,#12002b,#2b0050)',
+      ocean: 'linear-gradient(135deg,#1c6e8c,#2193b0 45%,#6dd5ed)', gold: 'linear-gradient(135deg,#8a6a1f,#e8c66a 30%,#b38728 60%,#fbf5b7 80%,#aa771c)'
+    }
+  };
+  var FOUNDER_ICONS = { 5: '🏛️', 10: '⭐', 25: '🏗️', 50: '🛡️', 100: '🏆' };
+  var lookCache = {};
+  // cosmetics/{uid} (public): { color, badge, banner, founder: {title, tier, cid, name} }
+  function look(uid) {
+    if (!uid) return Promise.resolve({});
+    if (!lookCache[uid]) {
+      var f = fb();
+      lookCache[uid] = !f ? Promise.resolve({}) : f.db.collection('cosmetics').doc(uid).get().then(function (s) { return s.exists ? s.data() : {}; }).catch(function () { return {}; });
+    }
+    return lookCache[uid];
+  }
+  function nameHtml(name, lk) {
+    lk = lk || {}; style();
+    var c = LOOKS.color[lk.color], st = c && c !== 'prism' ? ' style="color:' + c + '"' : '';
+    return '<span class="zt-name' + (c === 'prism' ? ' zt-prism' : '') + '"' + st + '>' + esc(name) + '</span>' +
+      (LOOKS.badge[lk.badge] ? ' <span class="zt-badge" title="' + esc(lk.badge) + '">' + LOOKS.badge[lk.badge] + '</span>' : '') +
+      (lk.founder ? ' <span class="zt-founder" title="' + esc(lk.founder.title + ' of ' + (lk.founder.name || 'a community')) + '">' + (FOUNDER_ICONS[lk.founder.tier] || '🏛️') + ' ' + esc(lk.founder.title) + '</span>' : '');
+  }
+  function bannerCss(lk) { return lk && LOOKS.banner[lk.banner] || ''; }
+  function shop() {
+    if (!user()) { location.href = ROOT + 'tokens.html'; return; }
+    var m = modal('<button class="zt-x" type="button" aria-label="Close">&times;</button><h2 id="ztTitle">Profile looks</h2><p class="zt-muted">Make your name stand out on your profile, in communities and on leaderboards. Buy once, switch any time.</p><div id="ztShop"><p class="zt-muted">Loading…</p></div><p class="zt-msg" id="ztShopMsg" role="status"></p>');
+    var box = m.el.querySelector('#ztShop'), msg = m.el.querySelector('#ztShopMsg'), state = null;
+    var me2 = user(), nm = (me2 && me2.displayName || 'You').split(' ')[0];
+    var TITLES = { color: 'Name colors', badge: 'Badges', banner: 'Profile banners' };
+    function draw() {
+      var owned = state.owned || [], lk = state.look || {};
+      box.innerHTML = '<div class="zt-preview" style="background:' + (bannerCss(lk) || '#151a23') + '"><span>' + nameHtml(nm, lk) + '</span></div>' +
+        '<p class="zt-muted">You have <b>' + (wallet ? wallet.balance : '…') + '</b> tokens.</p>' +
+        ['color', 'badge', 'banner'].map(function (k) {
+          return '<h3>' + TITLES[k] + '</h3><div class="zt-items">' + state.shop[k].map(function (it) {
+            var have = owned.indexOf(k + ':' + it.id) !== -1, on = lk[k] === it.id;
+            var sw = k === 'color' ? '<span class="zt-name' + (LOOKS.color[it.id] === 'prism' ? ' zt-prism' : '') + '" style="' + (LOOKS.color[it.id] !== 'prism' ? 'color:' + LOOKS.color[it.id] : '') + '">Aa</span>'
+              : k === 'badge' ? '<span style="font-size:1.3rem">' + LOOKS.badge[it.id] + '</span>' : '<span class="zt-sw" style="background:' + LOOKS.banner[it.id] + '"></span>';
+            return '<button type="button" class="zt-item' + (on ? ' is-on' : '') + '" data-k="' + k + '" data-id="' + it.id + '" data-have="' + (have ? 1 : 0) + '">' + sw +
+              '<b>' + esc(it.name) + '</b><small>' + (on ? 'Wearing · tap to remove' : have ? 'Owned · tap to wear' : it.price + ' tokens') + '</small></button>';
+          }).join('') + '</div>';
+        }).join('');
+      box.querySelectorAll('.zt-item').forEach(function (b) { b.onclick = function () {
+        var k = b.getAttribute('data-k'), id = b.getAttribute('data-id'), have = b.getAttribute('data-have') === '1', on = (state.look || {})[k] === id;
+        msg.className = 'zt-msg'; msg.textContent = have ? '' : 'Buying…';
+        box.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+        var p = have ? call('cosmetics_equip', { kind: k, id: on ? null : id }) : call('cosmetics_buy', { kind: k, id: id }).then(function (r) { msg.className = 'zt-msg is-ok'; msg.textContent = 'Bought! It\'s on your profile now.'; return call('cosmetics_equip'); });
+        p.then(function (r) { if (r && r.shop) state = r; else return call('cosmetics_equip').then(function (r2) { state = r2; }); })
+          .then(function () { delete lookCache[me2.uid]; draw(); emitLook(); }, function (e) { msg.className = 'zt-msg is-bad'; msg.textContent = errText(e); draw(); });
+      }; });
+    }
+    call('cosmetics_equip').then(function (r) { state = r; draw(); }, function (e) { box.innerHTML = '<p class="zt-msg is-bad">' + esc(errText(e)) + '</p>'; });
+  }
+  var lookListeners = [];
+  function emitLook() { lookListeners.forEach(function (fn) { try { fn(); } catch (e) {} }); }
+
   // ------------------------------------------------------------ boot
   function boot() {
     var f = fb(); if (!f) return;
@@ -219,6 +318,6 @@
     var nav = d.getElementById('navAuth');
     if (nav && global.MutationObserver) new MutationObserver(function () { if (me && !nav.querySelector('.zt-chip')) chip(); }).observe(nav, { childList: true });
   }
-  global.ZelosTokens = { open: open, full: full, resolve: resolve, lockCard: lockCard, isLocked: isLocked, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
+  global.ZelosTokens = { open: open, full: full, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);

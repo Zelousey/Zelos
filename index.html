@@ -155,6 +155,7 @@
           <a href="practice/index.html">Trade War<small>Your account, chart, Trade Wars &amp; invites</small></a>
           <a href="practice/index.html#start">Start a Trade War<small>Challenge a friend or your squad</small></a>
           <a href="practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
+          <a href="practice/communities.html">Communities<small>Founder Program: start one, earn tokens</small></a>
           <a href="leaderboard.html#practice">Leaderboards<small>Top Trade War traders</small></a>
           <a href="practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
           <a href="practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
@@ -206,6 +207,7 @@
       <a href="practice/index.html">Trade War</a>
       <a href="practice/index.html#start">Start a Trade War</a>
       <a href="practice/squads.html">Squads</a>
+      <a href="practice/communities.html">Communities</a>
       <a href="leaderboard.html#practice">Leaderboards</a>
       <a href="practice/profile.html">My profile</a>
       <a href="practice/index.html?tab=progress">XP &amp; Missions</a>
@@ -650,7 +652,7 @@
       var doc = snap.docs[0];
       var a = doc.data();
       body.innerHTML =
-        '<div class="alert-card-top"><span class="alert-ticker-big">' + (a.locked && !a.ticker ? '&#128274; Live' : (a.ticker || '—')) + '</span>' + statusTag(a.status) + '</div>' +
+        '<div class="alert-card-top"><span class="alert-ticker-big">' + (a.locked && !a.ticker ? (a.afterClose ? '&#128274; Locked' : '&#128274; Live') : (a.ticker || '—')) + '</span>' + statusTag(a.status) + '</div>' +
         '<div class="alert-stamp">' + (STRATEGY_LABEL[a.strategy] || a.strategy || '') + ' · ' + fmtStamp(a.createdAt) + '</div>' +
         '<div class="alert-desc">' + (a.setupLabel || 'No summary available.') + '</div>' +
         '<button class="btn btn-primary alert-view-btn" type="button">View details &rarr;</button>';

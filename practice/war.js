@@ -135,6 +135,7 @@
       var survivors = res.filter(function (r) { return !r.out; }).length;
       h += (win ? '<div class="pt-card ch-card tw-winner' + (w.lms ? ' is-lms' : '') + '"><span class="pt-kicker">' + (w.lms ? (survivors === 1 ? 'Last Man Standing' : 'Winner · ' + survivors + ' still standing at the bell') : 'Winner') + '</span><h2>🏆 ' + esc(win.name) + ' <span class="' + cls(win.pnlPct) + '">' + pct(win.pnlPct) + '</span></h2><p class="pt-fine">' +
         (w.lms && survivors === 1 ? 'Outlasted ' + (res.length - 1) + ' trader' + (res.length === 2 ? '' : 's') + '. Final results are locked.' : 'Final results, frozen when the clock ran out.') + '</p></div>' : '') +
+        ((w.rewards || []).length ? '<div class="pt-card ch-card tw-rewards"><h2>🪙 Token rewards</h2>' + w.rewards.map(function (r) { return '<p><b>' + esc((w.names || {})[r.uid] || 'Trader') + '</b> earned <b>' + r.tokens + ' tokens</b> <small class="pt-fine">' + esc(r.note) + '</small></p>'; }).join('') + '</div>' : '') +
         '<section class="pt-card ch-card"><h2>Final standings</h2>' + board(res, true) + '</section>' + (w.lms ? outsBox(w) : '');
       body(h); if (w.lms) announceOuts(w); return;
     }
@@ -198,7 +199,7 @@
     return t;
   }
   // Battlefield Ticker: server-written events (tradeWars/{id}/events)
-  var TICK_ICON = { bracket: 'target', big: 'bolt', lead: 'crown', out: 'skull', bounty: 'target', shield: 'shield', storm: 'bolt', draft: 'flag', start: 'flag', win: 'trophy', whale: 'users' };
+  var TICK_ICON = { bracket: 'target', big: 'bolt', lead: 'crown', out: 'skull', bounty: 'target', shield: 'shield', storm: 'bolt', draft: 'flag', start: 'flag', win: 'trophy', whale: 'users', reward: 'trophy' };
   function drawTicker() {
     var slot = $('twTickerSlot'); if (!slot) return;
     if (!events.length) { slot.innerHTML = ''; return; }
