@@ -174,6 +174,52 @@
   .rs-empty{ color:var(--muted); font-size:0.88rem; }
   .al-sec .rs-fine{ font-size:0.72rem; color:var(--muted); margin:14px 0 0; }
 
+  /* ---- one-screen alert (Mockup 14): stock, chart, the 3 numbers, Buy or Pass; details fold away ---- */
+  .al-sec{ border-radius:3px; }
+  .al-grid{ grid-template-columns:minmax(0, 1.5fr) minmax(320px, 1fr); margin-top:0; gap:16px; }
+  .al-hero{ display:block; padding:20px 22px; border-radius:3px; }
+  .al-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-top:4px; }
+  .al-name{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .al-hero .ticker{ display:inline; font-size:clamp(2.2rem, 6vw, 3.2rem); margin:0; }
+  .al-score{ font:700 0.8rem var(--mono); padding:4px 8px; border:1px solid var(--accent-line, var(--border)); background:var(--accent-soft); border-radius:3px; white-space:nowrap; }
+  .al-px{ text-align:right; font-family:var(--mono); } .al-px b{ display:block; font-size:1.35rem; } .al-px small{ font-size:0.78rem; color:var(--muted); }
+  .al-px small.up{ color:var(--bull, #3ecb7c); } .al-px small.dn{ color:var(--danger); }
+  .al-hero .setup{ margin:6px 0 0; font-size:0.95rem; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .al-hero .status{ margin:0; }
+  .al-chart{ height:clamp(190px, 34vh, 330px); margin-top:14px; border:1px solid var(--border); border-radius:3px; }
+  .al-chart canvas{ display:block; width:100%; height:100%; }
+  .al-hero .ladder{ margin:26px 6px 22px; }
+  .al-plan{ padding:16px; }
+  .al-nums{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
+  .al-nums span{ border:1px solid var(--border); border-radius:3px; padding:8px 10px; min-width:0; }
+  .al-nums small{ display:block; font:600 0.62rem var(--mono); letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+  .al-nums b{ font:700 1.05rem var(--mono); } .al-nums b.risk{ color:var(--danger); } .al-nums b.accent{ color:var(--accent); }
+  .al-rr{ margin-top:12px; } .al-rr .bar{ display:flex; height:10px; border-radius:2px; overflow:hidden; } .al-rr .bar i{ display:block; } .al-rr .bar .r{ background:var(--danger); } .al-rr .bar .w{ background:var(--accent); }
+  .al-rr .lg{ display:flex; justify-content:space-between; font:600 0.72rem var(--mono); color:var(--muted); margin-top:5px; }
+  .al-plan .rs-warn{ margin-top:12px; padding:10px 12px; border-radius:3px; font-size:0.84rem; }
+  .al-plan .outcome{ margin-top:12px; border-radius:3px; }
+  .al-acts{ display:grid; grid-template-columns:1.6fr 1fr; gap:8px; margin-top:12px; }
+  .tw-btn.pass{ font:inherit; font-weight:800; font-size:1rem; background:none; border:1px solid var(--border); color:var(--muted); cursor:pointer; }
+  .tw-btn.pass:hover{ color:var(--ink); border-color:var(--muted-2, var(--border)); filter:none; }
+  .al-note{ font-size:0.78rem; color:var(--muted); line-height:1.5; margin:8px 0 0; }
+  .al-link{ color:var(--accent); }
+  .al-link.is-off{ pointer-events:none; color:var(--muted); }
+  .al-more-list{ display:flex; flex-direction:column; border:1px solid var(--border); border-radius:3px; background:var(--surface); }
+  .al-more{ border-top:1px solid var(--border); } .al-more-list > :first-child, .al-more-list > #rsMore:first-child .al-more:first-child{ border-top:0; }
+  #fWhy[hidden] + #rsMore .al-more:first-child{ border-top:0; }
+  .al-more summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; padding:13px 16px; font-weight:600; font-size:0.95rem; }
+  .al-more summary::-webkit-details-marker{ display:none; }
+  .al-more summary small{ color:var(--muted); font-weight:400; font-size:0.78rem; }
+  .al-more summary::after{ content:'›'; margin-left:auto; color:var(--muted); font-size:1.2rem; transition:transform .15s; }
+  .al-more[open] summary::after{ transform:rotate(90deg); }
+  .al-more-body{ padding:0 16px 14px; font-size:0.9rem; line-height:1.6; }
+  .al-more-body p{ margin:0 0 10px; }
+  .rs-sub2{ font:600 0.66rem var(--mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin:10px 0 6px; }
+  .al-more-list .rs-src{ padding:10px 16px; margin:0; border-top:1px solid var(--border); font-size:0.72rem; color:var(--muted); line-height:1.5; }
+  .al-side{ gap:12px; }
+  #pushRow .zn-row{ border-radius:3px; }
+  .share-btn{ border-radius:3px; }
+
   .foot{ display:flex; flex-direction:column; gap:8px; padding:4px 2px; }
   .reply{ font-size:0.86rem; line-height:1.5; color:var(--muted); }
   .fine{ font-size:0.72rem; color:var(--muted); line-height:1.55; }
@@ -182,13 +228,14 @@
 
   @media (max-width:860px){
     .al-grid{ grid-template-columns:1fr; }
-    .al-side{ position:static; order:-1; }
+    .al-side{ position:static; }
     .al-top, .al-page{ padding-left:16px; padding-right:16px; }
-    .al-hero{ padding:22px 20px; border-radius:16px; }
+    .al-hero{ padding:16px; border-radius:3px; }
     .score{ width:96px; height:96px; } .score .score-txt b{ font-size:1.5rem; }
     .al-sec{ padding:18px 16px; }
   }
-  @media (max-width:420px){ .al-hero{ flex-direction:column; align-items:flex-start; } .ledger{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:420px){ .ledger{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:760px){ .al-chart{ height:180px; margin-top:10px; } .al-hero .ticker{ font-size:2.2rem; } }
 </style>
 </head>
 <body class="zt">
@@ -204,68 +251,59 @@
 <div class="al-sec" id="zelosLoading"><div class="load-state">Loading alert…</div></div>
 
 <div id="zelosTicket" hidden>
-  <section class="al-hero" id="fHero">
-    <div>
-      <span class="al-kicker" id="fKicker">Zelos alert</span>
-      <span class="ticker" id="fTicker">&mdash;</span>
-      <div class="setup" id="fSetup"></div>
-      <span class="status" id="fStatus"></span>
-    </div>
-    <div class="score" id="fScoreWrap" hidden>
-      <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/><circle class="ring" id="fRing" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-dasharray="0 400"/></svg>
-      <div class="score-txt"><b id="fScore">&mdash;</b><small>of <span id="fScoreMax">80</span></small></div>
-    </div>
-  </section>
-
   <div class="al-grid">
     <div class="al-main">
-      <section class="al-sec" id="fPlan">
-        <h2>Trade plan</h2>
-        <div class="ladder" id="fLadder" hidden></div>
-        <div class="ledger" id="fLedger"></div>
-        <div class="rr-cap">
-          <div class="rr" id="fRR" hidden><span class="label">Reward : Risk</span><span class="value" id="fRRValue">&mdash;</span></div>
-          <div class="cap" id="fCap" hidden><span>Suggested size</span><span class="value" id="fCapValue">&mdash;</span></div>
+      <section class="al-sec al-hero" id="fHero">
+        <span class="al-kicker" id="fKicker">Zelos alert</span>
+        <div class="al-head">
+          <span class="al-name"><span class="ticker" id="fTicker">&mdash;</span><span class="al-score" id="fScoreWrap" hidden><b id="fScore">&mdash;</b>/<span id="fScoreMax">80</span></span></span>
+          <span class="al-px" id="fPx" hidden><b id="fPxV"></b><small id="fPxNote"></small></span>
         </div>
+        <div class="setup"><span id="fSetup"></span> <span class="status" id="fStatus"></span></div>
+        <div class="al-chart" id="fChartWrap" hidden><canvas id="fChart" aria-label="Price chart with entry, stop and target"></canvas></div>
+        <div class="ladder" id="fLadder" hidden></div>
       </section>
-
-      <div class="outcome" id="fOutcome" hidden><span class="tag" id="fOutcomeTag"></span><span id="fOutcomeNote"></span></div>
-
-      <div class="analysis">
-        <section class="al-sec analysis-block" id="fReasoningBlock" hidden><h2>Why this setup</h2><p id="fReasoning"></p></section>
-        <section class="al-sec analysis-block" id="fTechBlock" hidden><h2>Technicals</h2><div class="tech-grid" id="fTechGrid"></div></section>
-        <section class="al-sec analysis-block" id="fRiskBlock" hidden><h2>Risk notes</h2><p id="fRiskNotes"></p></section>
-      </div>
-
-      <div class="rs-warn" id="rsEarn" hidden><span class="ic" aria-hidden="true">&#9888;</span><span id="rsEarnTxt"></span></div>
-      <section class="al-sec" id="rsBlock" hidden>
-        <div class="rs-head"><h2 id="rsTitle">Research</h2><small id="rsStamp"></small></div>
-        <div class="rs-tabs" role="tablist" id="rsTabs"></div>
-        <div id="rsPanes"></div>
-        <p class="rs-fine">Company and analyst data: Financial Modeling Prep. Shown for context only; it isn't part of the Zelos score and isn't advice.</p>
-      </section>
-
-      <div class="foot">
-        <div class="reply" id="fMarketRegime"></div>
-        <div class="fine">Rule-based scan only — general information, the same for every subscriber, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
-        <div class="fine">Zelos never connects to any brokerage account, never asks for your credentials, and never places, cancels, or modifies a real order. The buttons on this page only trade your virtual Trade War account.</div>
-        <div class="stamp" id="fStamp"></div>
-      </div>
     </div>
 
     <aside class="al-side">
-      <section class="al-sec al-actions">
-        <span class="tw-tag">TRADE WAR · VIRTUAL MONEY</span>
-        <h3>Practice this trade</h3>
-        <p id="fTwNote">Loads this setup into your $10,000 Trade War account with its stop and target. You review it before anything is placed. Never a real brokerage account.</p>
-        <div class="tw-btns">
+      <section class="al-sec al-plan" id="fPlan">
+        <div class="al-nums" id="fLedger"></div>
+        <div class="al-rr" id="fRRBar" hidden><div class="bar"><i class="r" id="fRRr"></i><i class="w" id="fRRw"></i></div><div class="lg"><span id="fRisk"></span><span id="fRRValue"></span><span id="fReward"></span></div></div>
+        <div class="rs-warn" id="rsEarn" hidden><span class="ic" aria-hidden="true">&#9888;</span><span id="rsEarnTxt"></span></div>
+        <div class="outcome" id="fOutcome" hidden><span class="tag" id="fOutcomeTag"></span><span id="fOutcomeNote"></span></div>
+        <div class="al-acts">
           <a class="tw-btn buy" id="fBuy" href="practice/index.html">Buy<small>in Trade War</small></a>
-          <a class="tw-btn sell" id="fSell" href="practice/index.html">Sell<small>in Trade War</small></a>
+          <button class="tw-btn pass" type="button" id="fPass">Pass</button>
         </div>
+        <p class="al-note" id="fTwNote">Virtual money · loads entry, stop and target into your Trade War ticket. You review it before anything is placed.</p>
       </section>
+
+      <div class="al-more-list">
+        <details class="al-more" id="fWhy" hidden><summary>Why this setup</summary>
+          <div class="al-more-body">
+            <p id="fReasoningBlock" hidden><span id="fReasoning"></span></p>
+            <div id="fTechBlock" hidden><div class="rs-sub2">Technicals</div><div class="tech-grid" id="fTechGrid"></div></div>
+            <div id="fRiskBlock" hidden><div class="rs-sub2">Risk notes</div><p id="fRiskNotes"></p></div>
+            <p class="reply" id="fMarketRegime"></p>
+          </div>
+        </details>
+        <div id="rsMore"></div>
+        <details class="al-more" id="fPlanMore"><summary>Full trade plan</summary>
+          <div class="al-more-body">
+            <div class="ledger" id="fPlanRows"></div>
+            <div class="rr-cap"><div class="cap" id="fCap" hidden><span>Suggested size</span><span class="value" id="fCapValue">&mdash;</span></div></div>
+            <p class="al-note">Already hold it in Trade War? <a class="al-link" id="fSell" href="practice/index.html">Sell in Trade War</a></p>
+          </div>
+        </details>
+      </div>
       <div id="pushRow"></div>
       <button class="share-btn" type="button" id="fShare">Share this alert</button>
     </aside>
+  </div>
+  <div class="foot">
+    <div class="fine">Rule-based scan only: general information, the same for every subscriber, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</div>
+    <div class="fine">Zelos never connects to any brokerage account, never asks for your credentials, and never places, cancels, or modifies a real order. The buttons on this page only trade your virtual Trade War account.</div>
+    <div class="stamp" id="fStamp"></div>
   </div>
 </div>
 
@@ -329,11 +367,9 @@
     document.getElementById('fKicker').textContent = (NAMES[a.strategy] || 'Zelos') + (dir ? ' · ' + dir : '');
     document.getElementById('fHero').classList.toggle('is-short', short);
     if (a.score !== undefined && a.score !== null) {
-      var max = a.scoreMax || 80, frac = Math.max(0, Math.min(1, a.score / max)), C = 2 * Math.PI * 52;
       document.getElementById('fScoreWrap').hidden = false;
       document.getElementById('fScore').textContent = a.score;
-      document.getElementById('fScoreMax').textContent = max;
-      document.getElementById('fRing').setAttribute('stroke-dasharray', (frac * C).toFixed(1) + ' ' + C.toFixed(1));
+      document.getElementById('fScoreMax').textContent = a.scoreMax || 80;
     }
     document.getElementById('fSetup').textContent = a.setupLabel || '';
 
@@ -342,25 +378,25 @@
     else if (a.status === 'watching') { statusEl.textContent = 'Watching — not yet qualified'; statusEl.className = 'status is-watching'; }
     else { statusEl.textContent = 'No qualifying setup today'; statusEl.className = 'status is-watching'; }
 
+    // the three numbers up top; everything else in "Full trade plan"
     var ledger = document.getElementById('fLedger');
+    var nums = [];
+    if (a.entry !== undefined) nums.push(['Entry', fmtMoney(a.entry), '']);
+    if (a.stop !== undefined) nums.push(['Stop', fmtMoney(a.stop), 'risk']);
+    if (a.target1 !== undefined) nums.push(['Target', fmtMoney(a.target1), 'accent']);
+    ledger.innerHTML = nums.map(function(r){ return '<span><small>'+r[0]+'</small><b class="'+r[2]+'">'+r[1]+'</b></span>'; }).join('');
+    ledger.hidden = !nums.length;
     var rows = [];
-    if (a.entry !== undefined) rows.push(['Entry (reference)', fmtMoney(a.entry), '']);
-    if (a.stop !== undefined) rows.push(['Stop', fmtMoney(a.stop), 'risk']);
-    if (a.target1 !== undefined) rows.push(['Target 1', fmtMoney(a.target1), 'accent']);
     if (a.target2 !== undefined) rows.push(['Target 2', fmtMoney(a.target2), '']);
     if (a.riskPerShare !== undefined) rows.push(['Risk / share', fmtMoney(a.riskPerShare), 'risk']);
     if (a.rewardPerShare !== undefined) rows.push(['Reward / share (T1)', fmtMoney(a.rewardPerShare, true), 'accent']);
     if (a.optionsRule) rows.push(['Strike / expiration rule', esc(a.optionsRule), '', 'is-wide']);
-    ledger.innerHTML = rows.map(function(r){
+    document.getElementById('fPlanRows').innerHTML = rows.map(function(r){
       return '<div class="row '+(r[3]||'')+'"><span class="label">'+r[0]+'</span><span class="value '+r[2]+'">'+r[1]+'</span></div>';
     }).join('');
     ladder(a);
     trade(a);
-
-    if (a.rewardRiskRatio) {
-      document.getElementById('fRR').hidden = false;
-      document.getElementById('fRRValue').textContent = a.rewardRiskRatio;
-    }
+    rrBar(a);
     if (a.suggestedSizeNote) {
       document.getElementById('fCap').hidden = false;
       document.getElementById('fCapValue').innerHTML = '&mdash; <span style="color:var(--muted); font-weight:400;">' + a.suggestedSizeNote + '</span>';
@@ -382,7 +418,7 @@
     if (a.technicals && Object.keys(a.technicals).length) {
       document.getElementById('fTechBlock').hidden = false;
       document.getElementById('fTechGrid').innerHTML = Object.keys(a.technicals).map(function(k){
-        return '<div class="tech-item"><span class="k">'+k+'</span><span class="v">'+a.technicals[k]+'</span></div>';
+        return '<div class="tech-item"><span class="k">'+esc(k)+'</span><span class="v">'+esc(a.technicals[k])+'</span></div>';
       }).join('');
     }
     if (a.riskNotes) {
@@ -390,8 +426,9 @@
       document.getElementById('fRiskNotes').textContent = a.riskNotes;
     }
 
-    research(a);
     document.getElementById('fMarketRegime').textContent = a.marketRegime || '';
+    document.getElementById('fWhy').hidden = !(a.reasoning || a.riskNotes || a.marketRegime || (a.technicals && Object.keys(a.technicals).length));
+    research(a);
     document.getElementById('fStamp').textContent = fmtStamp(a.createdAt);
   }
 
@@ -399,7 +436,7 @@
   var rsFor = null;
   function research(a){
     var sym = String(a.ticker || '').toUpperCase();
-    if (!id || !sym || !/^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) || !window.firebase) { document.getElementById('rsBlock').hidden = true; document.getElementById('rsEarn').hidden = true; return; }
+    if (!id || !sym || !/^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) || !window.firebase) { document.getElementById('rsMore').innerHTML = ''; document.getElementById('rsEarn').hidden = true; return; }
     if (rsFor === sym) return;
     rsFor = sym;
     var ref = firebase.firestore().collection('markets').doc('research_' + sym.replace('.', '-'));
@@ -417,8 +454,13 @@
   function nyToday(){ var p = {}; new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date()).forEach(function(x){ p[x.type] = x.value; }); return p.year + '-' + p.month + '-' + p.day; }
   function showResearch(a, d){
     var sym = d.symbol, panes = [], P = d.profile || {}, T = d.target, px = P.price || a.entry;
-    document.getElementById('rsTitle').textContent = 'Research · ' + (d.name && d.name !== sym ? d.name : sym);
-    document.getElementById('rsStamp').textContent = d.updatedAt ? 'Updated ' + new Date(d.updatedAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+    drawChart(a, d.bars);
+    if (P.price) {
+      document.getElementById('fPx').hidden = false; document.getElementById('fPxV').textContent = fmtMoney(P.price);
+      var vs = typeof a.entry === 'number' ? (P.price / a.entry - 1) * 100 : null;
+      document.getElementById('fPxNote').textContent = vs != null ? pctS(vs) + ' vs entry' : (d.name || '');
+      document.getElementById('fPxNote').className = vs == null ? '' : vs >= 0 ? 'up' : 'dn';
+    }
     // earnings warning: a report before the trade has time to play out can gap straight through the stop
     var E = d.earnings, warn = document.getElementById('rsEarn');
     if (E && E.date) {
@@ -447,7 +489,7 @@
         return '<li><span><b>' + esc(g.firm) + '</b> ' + (g.from && g.from !== g.to ? esc(g.from) + ' &rarr; ' : '') + '<b class="' + cls + '">' + esc(g.to) + '</b></span><small class="' + cls + '">' + esc(g.action || '') + ' · ' + esc(day(g.date)) + '</small></li>';
       }).join('') + '</ul>';
     }
-    if (h) panes.push(['Analysts', h]);
+    if (h) panes.push(['Analysts', h, T && T.targetConsensus ? 'avg target $' + (+T.targetConsensus).toFixed(2) : (d.grades || []).length + ' ratings']);
     // company
     var M = d.metrics || {}, F = d.financials || {}, S = d.estimate || {}, kv = [];
     if (P.sector) kv.push(['Sector', P.sector]); if (P.industry) kv.push(['Industry', P.industry]);
@@ -461,26 +503,19 @@
     if (S.revenueAvg) kv.push(['Revenue est. ' + (S.year || ''), big(S.revenueAvg)]);
     if (E && E.date) kv.push(['Next earnings', day(E.date)]);
     if (kv.length || P.description) panes.push(['Company', (kv.length ? '<div class="rs-kv">' + kv.map(function(r){ return '<div><span class="k">' + esc(r[0]) + '</span><span class="v" title="' + esc(r[1]) + '">' + esc(r[1]) + '</span></div>'; }).join('') + '</div>' : '') +
-      (P.description ? '<p class="rs-about">' + esc(P.description) + (P.description.length >= 420 ? '…' : '') + '</p>' : '')]);
+      (P.description ? '<p class="rs-about">' + esc(P.description) + (P.description.length >= 420 ? '…' : '') + '</p>' : ''), (d.name && d.name !== sym ? d.name : '') + (E && E.date ? ' · earnings ' + day(E.date) : '')]);
     if (d.insiders && d.insiders.length) panes.push(['Insiders', '<ul class="rs-list">' + d.insiders.map(function(t){
       return '<li><span><b>' + esc(t.who) + '</b>' + (t.role ? ' <small>' + esc(t.role) + '</small>' : '') + '</span><small class="' + (t.buy ? 'up' : 'dn') + '">' + (t.buy ? 'Bought ' : 'Sold ') + (t.shares ? Math.round(t.shares).toLocaleString('en-US') : '') + (t.price ? ' @ $' + t.price.toFixed(2) : '') + ' · ' + esc(day(t.date)) + '</small></li>';
-    }).join('') + '</ul><p class="rs-fine">Open-market buys and sells by company insiders, from SEC Form 4 filings.</p>']);
+    }).join('') + '</ul><p class="rs-fine">Open-market buys and sells by company insiders, from SEC Form 4 filings.</p>', d.insiders.length + ' recent']);
     if (d.news && d.news.length) panes.push(['News', '<div class="rs-news">' + d.news.map(function(n){
       return '<a href="' + esc(n.url) + '" target="_blank" rel="noopener noreferrer">' + (n.image && /^https:/.test(n.image) ? '<img src="' + esc(n.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<i class="ph" aria-hidden="true"></i>') +
         '<span><b>' + esc(n.headline) + '</b><small>' + esc(n.source || '') + (n.date ? ' · ' + esc(day(n.date)) : '') + '</small></span></a>';
-    }).join('') + '</div>']);
-    var block = document.getElementById('rsBlock');
-    if (!panes.length) { block.hidden = true; return; }
-    block.hidden = false;
-    var tabs = document.getElementById('rsTabs'), box = document.getElementById('rsPanes'), cur = tabs.getAttribute('data-cur') || panes[0][0];
-    if (!panes.some(function(p){ return p[0] === cur; })) cur = panes[0][0];
-    tabs.innerHTML = panes.map(function(p){ return '<button type="button" role="tab" data-rs="' + p[0] + '" aria-selected="' + (p[0] === cur) + '">' + p[0] + '</button>'; }).join('');
-    box.innerHTML = panes.map(function(p){ return '<div class="rs-pane" data-rsp="' + p[0] + '"' + (p[0] === cur ? '' : ' hidden') + '>' + p[1] + '</div>'; }).join('');
-    tabs.onclick = function(e){
-      var b = e.target.closest('[data-rs]'); if (!b) return; var k = b.getAttribute('data-rs'); tabs.setAttribute('data-cur', k);
-      tabs.querySelectorAll('[data-rs]').forEach(function(x){ x.setAttribute('aria-selected', String(x === b)); });
-      box.querySelectorAll('[data-rsp]').forEach(function(x){ x.hidden = x.getAttribute('data-rsp') !== k; });
-    };
+    }).join('') + '</div>', d.news.length + ' headline' + (d.news.length === 1 ? '' : 's')]);
+    var box = document.getElementById('rsMore'), open = {};
+    box.querySelectorAll('details[open]').forEach(function(x){ open[x.getAttribute('data-rs')] = 1; });
+    box.innerHTML = panes.map(function(p){
+      return '<details class="al-more" data-rs="' + p[0] + '"' + (open[p[0]] ? ' open' : '') + '><summary>' + p[0] + (p[2] ? '<small>' + esc(p[2]) + '</small>' : '') + '</summary><div class="al-more-body rs-pane">' + p[1] + '</div></details>';
+    }).join('') + (panes.length ? '<p class="rs-fine rs-src">Company and analyst data: Financial Modeling Prep. Context only; not part of the Zelos score and not advice.</p>' : '');
   }
   function esc(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
   // Stop -> entry -> targets, drawn to scale: red is what you risk, green what you aim for.
@@ -504,10 +539,55 @@
     [buy, sell].forEach(function(b){ b.classList.toggle('is-off', !ok); });
     if (ok) { buy.href = 'practice/index.html?alert=' + encodeURIComponent(id) + '&side=buy'; sell.href = 'practice/index.html?alert=' + encodeURIComponent(id) + '&side=sell'; }
     buy.innerHTML = (a.ticker ? 'Buy ' + esc(a.ticker) : 'Buy') + '<small>in Trade War</small>';
-    sell.innerHTML = (a.ticker ? 'Sell ' + esc(a.ticker) : 'Sell') + '<small>in Trade War</small>';
-    document.getElementById('fTwNote').textContent = ok ? 'Loads this setup into your $10,000 Trade War account with its stop and target. You review it before anything is placed. Never a real brokerage account.'
+    sell.textContent = a.ticker ? 'Sell ' + a.ticker + ' in Trade War' : 'Sell in Trade War';
+    document.getElementById('fTwNote').textContent = ok ? 'Virtual money · loads entry, stop and target into your Trade War ticket. You review it before anything is placed.'
       : a.status === 'no-qualifying-setup' ? 'No trade today, so there\u2019s nothing to practice. Check back next session.' : 'Unlock the alert to practice it in your Trade War account.';
   }
+  // risk vs reward, to Target 1
+  function rrBar(a){
+    var el = document.getElementById('fRRBar');
+    if (typeof a.entry !== 'number' || typeof a.stop !== 'number' || typeof a.target1 !== 'number') { el.hidden = true; return; }
+    var risk = Math.abs(a.entry - a.stop), rew = Math.abs(a.target1 - a.entry);
+    if (!(risk > 0) || !(rew > 0)) { el.hidden = true; return; }
+    var rp = risk / (risk + rew) * 100;
+    document.getElementById('fRRr').style.width = rp.toFixed(1) + '%';
+    document.getElementById('fRRw').style.width = (100 - rp).toFixed(1) + '%';
+    document.getElementById('fRisk').textContent = 'Risk ' + fmtMoney(risk);
+    document.getElementById('fReward').textContent = 'Reward ' + fmtMoney(rew);
+    document.getElementById('fRRValue').textContent = a.rewardRiskRatio || (rew / risk).toFixed(1) + ' : 1';
+    el.hidden = false;
+  }
+  // a small daily chart (research bars) with entry / stop / target drawn on it
+  function drawChart(a, bars){
+    var wrap = document.getElementById('fChartWrap'), cv = document.getElementById('fChart');
+    var rows = (bars || []).map(function(r){ var p = String(r).split(','); return { o:+p[1], h:+p[2], l:+p[3], c:+p[4] }; }).filter(function(b){ return b.c > 0; }).slice(-60);
+    if (rows.length < 10) { wrap.hidden = true; return; }
+    wrap.hidden = false; document.getElementById('fLadder').hidden = true;
+    var lines = [['ENTRY', a.entry, '#f4f5f7'], ['STOP', a.stop, '#f0564d'], ['T1', a.target1, '#4a86ff']].filter(function(l){ return typeof l[1] === 'number' && isFinite(l[1]); });
+    var vals = []; rows.forEach(function(b){ vals.push(b.h, b.l); }); lines.forEach(function(l){ vals.push(l[1]); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
+    var c = cv.getContext('2d'); c.scale(dpr, dpr);
+    var plotW = W - 4, bw = plotW / rows.length, Y = function(v){ return 6 + (hi - v) / (hi - lo) * (H - 12); };
+    c.strokeStyle = 'rgba(127,127,127,0.12)'; c.lineWidth = 1;
+    for (var g = 1; g < 5; g++) { c.beginPath(); c.moveTo(0, Math.round(H * g / 5) + .5); c.lineTo(W, Math.round(H * g / 5) + .5); c.stroke(); }
+    rows.forEach(function(b, i){
+      var x = 2 + i * bw + bw / 2, up = b.c >= b.o, col = up ? '#3ecb7c' : '#f0564d';
+      c.strokeStyle = col; c.beginPath(); c.moveTo(Math.round(x) + .5, Y(b.h)); c.lineTo(Math.round(x) + .5, Y(b.l)); c.stroke();
+      c.fillStyle = col; var y1 = Y(Math.max(b.o, b.c)), y2 = Y(Math.min(b.o, b.c)); c.fillRect(x - Math.max(1, bw * 0.32), y1, Math.max(2, bw * 0.64), Math.max(1, y2 - y1));
+    });
+    c.font = '700 10px "IBM Plex Mono", monospace';
+    lines.forEach(function(l){
+      var y = Math.round(Y(l[1])) + .5; c.strokeStyle = l[2]; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); c.setLineDash([]);
+      var t = l[0] + ' ' + l[1].toFixed(2), tw = c.measureText(t).width + 8, ty = Math.min(H - 14, Math.max(0, y - 7));
+      c.fillStyle = l[2]; c.fillRect(W - tw - 2, ty, tw, 14); c.fillStyle = '#0b0c10'; c.fillText(t, W - tw + 2, ty + 10);
+    });
+  }
+  // Pass: not for me. Remember it on this device and go back to the alert list.
+  document.getElementById('fPass').onclick = function(){
+    try { var p = JSON.parse(localStorage.getItem('zelosPassed') || '{}'); if (id) p[id] = Date.now(); localStorage.setItem('zelosPassed', JSON.stringify(p)); } catch (e) {}
+    if (document.referrer && document.referrer.indexOf(location.origin) === 0 && history.length > 1) history.back(); else location.href = 'alert-history.html';
+  };
   document.getElementById('fShare').onclick = function(){
     var url = location.href, t = document.title;
     if (navigator.share) return navigator.share({ title: t, url: url }).catch(function(){});

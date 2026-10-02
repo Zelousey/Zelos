@@ -24,7 +24,7 @@
   // Trade War chart (practice-chart.js): daily history + live FMP quote, your entry and fills,
   // Fibonacci, and the Trade War price alerts shared with the $10,000 account.
   var CH = window.ZelosChallenge; // Last Man Standing rule text (zelos-challenge.js)
-  var OUT_WHY = { floor: 'hit the P&L floor', bigLoss: 'took too big a loss on one trade', losses: 'ran out of losing trades', cut: 'finished last at the timed cut' };
+  var OUT_WHY = { floor: 'hit the P&L floor', bigLoss: 'took too big a loss on one trade', losses: 'ran out of losing trades', cut: 'finished last at the timed cut', surrender: 'surrendered' };
   var TC = window.ZelosTradeChart, hist = {}, extra = {}, chartEl = null, chart = null, fibOn = false;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(v, d) { d = d == null ? 2 : d; v = +v || 0; return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
@@ -116,7 +116,9 @@
       : w.status === 'draft' ? '<span class="tw-st is-live">DRAFT</span>'
       : w.status === 'ended' ? '<span class="tw-st is-done">Finished</span>' : '<span class="tw-st is-done">Cancelled</span>';
     if (w.lms) status = '<span class="tw-st is-lms">&#9760; LAST MAN STANDING</span> ' + status;
-    var h = '<div class="ch-hero"><span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> ' + status + '</span><h1>' + (w.lms ? '&#9760;' : '⚔️') + ' ' + esc(w.name) + '</h1>' +
+    var meAcct = user && (accounts || []).filter(function (a) { return a.uid === user.uid; })[0];
+    var canMore = mine && (w.status === 'lobby' || (w.status === 'active' && !(meAcct && meAcct.out)));
+    var h = '<div class="ch-hero">' + (canMore ? '<button type="button" class="tw-more" id="twMore" aria-label="More: ' + (w.status === 'lobby' ? (host ? 'invite or cancel' : 'leave') : 'surrender') + '" aria-haspopup="dialog">&#8943;</button>' : '') + '<span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> ' + status + '</span><h1>' + (w.lms ? '&#9760;' : '⚔️') + ' ' + esc(w.name) + '</h1>' +
       '<p>Hosted by ' + esc(w.hostName || 'a trader') + ' · <b>' + money(w.buyIn, 0) + '</b> virtual buy-in · ' + w.days + ' day' + (w.days === 1 ? '' : 's') + ' · ' + w.players.length + '/' + w.maxPlayers + ' players</p></div>';
     if (w.status === 'cancelled') { body(h + '<div class="pt-card ch-card"><p>The host cancelled this Trade War before it started.</p><a class="pt-btn pt-btn-go" href="war.html">Your Trade Wars</a></div>'); return; }
     if (w.status === 'lobby') {
@@ -318,6 +320,51 @@
     var gone = function () { el.classList.add('is-gone'); setTimeout(function () { el.remove(); }, 400); };
     el.onclick = gone; setTimeout(gone, me ? 5500 : 4000);
   }
+  // ⋯ menu: invite / cancel (host, lobby), leave (lobby), surrender (live)
+  function moreSheet() {
+    var w = war, host = user && w.host === user.uid, lobby = w.status === 'lobby';
+    var sh = document.createElement('div'); sh.className = 'tw-sheet'; sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true');
+    var items = lobby ? (host ? '<button type="button" data-m="invite"><b>Invite more traders</b><small>Share the invite link</small></button>' +
+        '<button type="button" data-m="cancel" class="is-bad"><b>Cancel this Trade War</b><small>Everyone is told. Nothing goes on anyone\'s record.</small></button>'
+        : '<button type="button" data-m="leave" class="is-bad"><b>Leave the lobby</b><small>It hasn\'t started, so nothing counts.</small></button>')
+      : '<button type="button" data-m="surrender" class="is-bad"><b>&#127987;&#65039; Surrender</b><small>Out in last place. Counts as a loss.</small></button>';
+    sh.innerHTML = '<div class="tw-sheet-card"><div class="tw-sheet-grab"></div><div class="tw-sheet-list">' + items + '<button type="button" data-m="close" class="is-close">Close</button></div></div>';
+    document.body.appendChild(sh);
+    var close = function () { sh.remove(); };
+    sh.addEventListener('click', function (e) {
+      if (e.target === sh) return close();
+      var b = e.target.closest('[data-m]'); if (!b) return;
+      var m = b.getAttribute('data-m');
+      if (m === 'close') return close();
+      if (m === 'invite') { close(); var sb = $('twShare'); if (sb) { sb.scrollIntoView({ behavior: 'smooth', block: 'center' }); sb.click(); } return; }
+      if (m === 'leave' || m === 'cancel') {
+        b.disabled = true;
+        call(m === 'leave' ? 'tw_leave' : 'tw_cancel', { warId: warId }).then(function () { close(); if (m === 'leave') location.href = 'index.html'; }, function (e2) { b.disabled = false; close(); msg(errText(e2)); });
+        return;
+      }
+      if (m === 'surrender') surrenderConfirm(sh);
+    });
+  }
+  function surrenderConfirm(sh) {
+    var n = (war.alive && war.alive.length) || war.players.length;
+    sh.querySelector('.tw-sheet-card').innerHTML = '<div class="tw-sheet-grab"></div><div class="tw-flag" aria-hidden="true">&#127987;&#65039;</div><h2>Surrender this Trade War?</h2>' +
+      '<p>You\'ll be marked <b>out, last place (#' + n + ' of ' + war.players.length + ')</b>. Your stocks are sold at the current price. It counts as a <b>loss</b> on your record and adds a surrender. ' +
+      'You give up any rewards from this battle. The others keep playing.</p>' +
+      '<button type="button" class="tw-hold" id="twHold"><i></i><span>Hold to surrender</span></button><button type="button" class="tw-keep" data-m="close">Keep fighting</button><p class="pt-auth-msg" id="twSurrMsg" hidden></p>';
+    var hb = $('twHold'), fill = hb.querySelector('i'), timer = null, t0 = 0, done = false;
+    function stop() { if (done) return; cancelAnimationFrame(timer); fill.style.width = '0'; }
+    function step() {
+      var k = Math.min(1, (performance.now() - t0) / 1600); fill.style.width = (k * 100).toFixed(1) + '%';
+      if (k < 1) { timer = requestAnimationFrame(step); return; }
+      done = true; hb.disabled = true; hb.querySelector('span').textContent = 'Surrendering…';
+      call('tw_surrender', { warId: warId }).then(function () { sh.remove(); }, function (e) { var m = $('twSurrMsg'); m.textContent = errText(e); m.hidden = false; hb.querySelector('span').textContent = 'Couldn\'t surrender'; });
+    }
+    function start(e) { if (done) return; e.preventDefault(); t0 = performance.now(); timer = requestAnimationFrame(step); }
+    hb.addEventListener('pointerdown', start); ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { hb.addEventListener(ev, stop); });
+    hb.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && !timer) start(e); });
+    hb.addEventListener('keyup', function (e) { if (e.key === 'Enter' || e.key === ' ') { stop(); timer = null; } });
+  }
+  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#twMore')) moreSheet(); });
   function msg(t, good) { var m = $('twMsg'); if (!m) return; m.textContent = t; m.hidden = !t; m.classList.toggle('is-ok', !!good); }
   function wireLobby() {
     if ($('twSignIn')) $('twSignIn').onclick = signIn;

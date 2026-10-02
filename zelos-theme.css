@@ -921,3 +921,38 @@ body.zt-body::after{
   .zb-av{ width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--accent); color:#fff; font:700 0.72rem var(--sans); overflow:hidden; }
   .zb-av img{ width:100%; height:100%; object-fit:cover; }
 }
+
+/* ---- App top bar on phones + the notification bell (zelos-tabbar.js) ---- */
+.zb-title{ display:none; }
+.zb-bell{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; flex-shrink:0; border-radius:3px; border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer; }
+.zb-bell[hidden]{ display:none; }
+.zb-bell svg{ width:19px; height:19px; }
+.zb-bell em{ position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:var(--danger); color:#fff; font:700 0.62rem var(--mono); font-style:normal; display:flex; align-items:center; justify-content:center; }
+.zb-bell em[hidden]{ display:none; }
+.zb-bell.has-new svg{ color:var(--gold, #e8b23d); }
+.zb-inbox{ position:fixed; top:64px; right:16px; z-index:2300; width:min(380px, calc(100vw - 32px)); max-height:min(70vh, 560px); overflow:auto; background:var(--surface); border:1px solid var(--border); border-radius:3px; box-shadow:0 24px 60px rgba(0,0,0,0.5); }
+.zb-inbox[hidden]{ display:none; }
+.zb-inbox-head{ display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid var(--border-soft); }
+.zb-inbox-head a{ font-size:0.8rem; color:var(--accent); text-decoration:none; }
+.zb-note{ display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:10px; align-items:start; padding:11px 14px; border-bottom:1px solid var(--border-soft); color:var(--ink); text-decoration:none; }
+.zb-note:hover{ background:var(--surface-2); }
+.zb-note.is-new{ background:var(--accent-soft); }
+.zb-note-ic{ font-size:1.1rem; line-height:1.3; }
+.zb-note b{ display:block; font-size:0.86rem; } .zb-note small{ display:block; color:var(--muted); font-size:0.78rem; line-height:1.4; margin-top:2px; }
+.zb-note time{ font:500 0.7rem var(--mono); color:var(--muted); }
+.zb-inbox-empty{ padding:16px 14px; color:var(--muted); font-size:0.86rem; margin:0; }
+.zb-menu-extra{ display:none; }
+.zb-menu-extra .zb-theme{ font:inherit; font-size:0.92rem; text-align:left; color:var(--ink-2); background:none; border:0; padding:11px 4px; cursor:pointer; }
+.zb-menu-extra a{ font-size:0.92rem; color:var(--ink-2); text-decoration:none; padding:11px 4px; }
+@media (max-width:760px){
+  /* the tab bar does navigation: the top bar is page name · coins · bell · menu */
+  html.has-zbtop .site-nav .nav-brand, html.has-zbtop .site-nav .theme-toggle{ display:none; }
+  html.has-zbtop .zb-title{ display:block; font-size:1.05rem; font-weight:700; margin-right:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:52vw; }
+  html.has-zbtop #navAuth > :not(.zt-chip){ display:none; }
+  html.has-zbtop #navAuth{ order:1; }
+  html.has-zbtop .zb-bell{ order:2; }
+  html.has-zbtop #navHamburger{ order:3; }
+  html.has-zbtop .zt-chip{ border-radius:3px; }
+  html.has-zbtop .zb-menu-extra{ display:flex; flex-direction:column; }
+  .zb-inbox{ top:60px; left:12px; right:12px; width:auto; max-height:calc(100dvh - 150px); }
+}

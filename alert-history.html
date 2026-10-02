@@ -91,6 +91,12 @@
   .record-bar-fill.losses{ background:var(--danger); }
   .record-note{ font-size:0.74rem; color:var(--muted); flex-basis:100%; }
 </style>
+<style>
+  .ah-seg{ display:grid; grid-template-columns:1fr 1fr; max-width:420px; margin:14px 0 12px; border:1px solid var(--border); border-radius:3px; }
+  .ah-seg button{ font:600 0.88rem var(--sans); padding:10px; background:none; border:0; color:var(--muted); cursor:pointer; }
+  .ah-seg button[aria-selected="true"]{ background:var(--surface-2); color:var(--ink); }
+  .ah-notify{ padding:18px 20px; max-width:720px; }
+</style>
 </head>
 <body class="zt zt-body">
 
@@ -196,6 +202,13 @@
       </div>
     </div>
 
+    <div class="ah-seg" role="tablist" aria-label="Alerts">
+      <button type="button" role="tab" data-ahv="history" aria-selected="true">Alert history</button>
+      <button type="button" role="tab" data-ahv="notifications" aria-selected="false">Notifications</button>
+    </div>
+    <div class="card ah-notify" id="ahNotify" hidden><h2 style="font-size:1.05rem;margin:0 0 4px">What reaches your phone</h2>
+      <p class="status-line" style="margin:0 0 6px">Every kind of notification, what it's for, and its own switch.</p><div id="ahNotifyBody"></div></div>
+    <div id="ahHistory">
     <div class="filters" id="filters">
       <button data-strategy="" class="is-active" type="button">All</button>
       <button data-strategy="swing-trader" type="button">Swing Trader</button>
@@ -206,6 +219,7 @@
     <div class="record" id="record" hidden></div>
 
     <div class="card"><div id="list"><div class="empty">Loading…</div></div></div>
+    </div>
     <p class="fine">Past alerts are informational only and not a guarantee of future results. Rule-based scans, the same for every subscriber — not personalized advice. Not a registered investment adviser.</p>
   </div>
 </section>
@@ -270,6 +284,24 @@
 <script src="zelos-xp.js"></script>
 <script src="zelos-challenge.js"></script>
 <script src="zelos-tokens.js"></script>
+<script src="zelos-push.js"></script>
+<script src="zelos-notify-settings.js"></script>
+<script>
+(function(){
+  // Alert history | Notifications (alert-history.html#notifications opens the switches)
+  var mounted = false;
+  function show(v){
+    document.querySelectorAll('[data-ahv]').forEach(function(b){ b.setAttribute('aria-selected', String(b.getAttribute('data-ahv') === v)); });
+    document.getElementById('ahHistory').hidden = v !== 'history';
+    document.getElementById('ahNotify').hidden = v !== 'notifications';
+    if (v === 'notifications' && !mounted && window.ZelosNotifySettings) { mounted = true; ZelosNotifySettings.mount(document.getElementById('ahNotifyBody')); }
+  }
+  document.querySelectorAll('[data-ahv]').forEach(function(b){ b.addEventListener('click', function(){ var v = b.getAttribute('data-ahv'); show(v); try { history.replaceState(null, '', v === 'notifications' ? '#notifications' : location.pathname); } catch (e) {} }); });
+  function fromHash(){ show(location.hash === '#notifications' ? 'notifications' : 'history'); }
+  window.addEventListener('hashchange', fromHash);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fromHash); else fromHash();
+})();
+</script>
 <script>
 (function(){
   // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----

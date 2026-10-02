@@ -1092,6 +1092,9 @@ def md_research(sym, parts, earnings=None):
                      "date": _txt(n.get("publishedDate"), 19), "image": _txt(n.get("image"), 600) if str(n.get("image") or "").startswith("https") else ""})
     if news:
         doc["news"] = news
+    bars = md_bars(parts.get("bars"), False)[-60:]
+    if bars:
+        doc["bars"] = bars  # the alert page's small chart: last ~3 months, "date,o,h,l,c,v"
     if earnings and earnings.get("date"):
         doc["earnings"] = earnings
     return doc
@@ -1109,6 +1112,7 @@ def _fmp_research_parts(sym, api_key):
         "income": ("income-statement", {"symbol": sym, "limit": 1}),
         "insiders": ("insider-trading/search", {"symbol": sym, "page": 0, "limit": 25}),
         "news": ("news/stock", {"symbols": sym, "limit": 6}),
+        "bars": ("historical-price-eod/full", {"symbol": sym, "from": datetime.fromtimestamp(_time.time() - 100 * 86400, NY).strftime("%Y-%m-%d")}),
     }
     parts = {}
     for k, (path, params) in calls.items():
@@ -2120,6 +2124,9 @@ def tw_start(req, db, uid, now_ms):
 
     txn(db.transaction())
     _tw_close_invites(db, wid, "expired", now_ms)  # the buy-in is locked: unanswered invites lapse
+    w = (war_ref.get().to_dict() or {})
+    notify_users(db, [p for p in w.get("players") or [] if p != uid], "battles", "%s has started" % (w.get("name") or "Your Trade War"),
+                 "The clock is running: %d day%s. Good luck." % (w.get("days") or 0, "" if w.get("days") == 1 else "s"), "practice/war.html?w=" + wid, "war-" + wid)
     return {"ok": True}
 
 
@@ -2138,7 +2145,57 @@ def tw_cancel(req, db, uid, now_ms):
         raise TWError("FAILED_PRECONDITION", "A Trade War can only be cancelled before it starts.")
     war_ref.update({"status": "cancelled"})
     _tw_close_invites(db, wid, "cancelled", now_ms)
+    notify_users(db, [p for p in war.get("players") or [] if p != uid], "battles", "%s was cancelled" % (war.get("name") or "A Trade War"),
+                 "The host cancelled it before it started. Nothing counts on anyone's record.", "practice/index.html", "war-" + wid)
     return {"ok": True}
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_surrender(req, db, uid, now_ms):
+    """Give up a live Trade War: everything is sold at the current price, you're out in
+    last place among those still standing, it counts as a loss (and a surrender), and
+    you give up any rewards from it. Ends the match if only one trader is left."""
+    wid = _tw_war_id(req.data)
+    war_ref = db.collection("tradeWars").document(wid)
+    prices, _, _ = _tw_prices(db)
+
+    @firestore.transactional
+    def txn(t):
+        snap = war_ref.get(transaction=t)
+        if not snap.exists:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        war = snap.to_dict()
+        if uid not in (war.get("players") or []):
+            raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
+        if war.get("status") != "active":
+            raise TWError("FAILED_PRECONDITION", "You can only surrender while the Trade War is live." if war.get("status") != "lobby"
+                          else "It hasn't started: leave the lobby instead (the host can cancel it).")
+        aref, bref = war_ref.collection("accounts").document(uid), war_ref.collection("books").document(uid)
+        a, b = aref.get(transaction=t), bref.get(transaction=t)
+        acct = a.to_dict() if a.exists else None
+        if not acct or acct.get("out"):
+            raise TWError("FAILED_PRECONDITION", "You're already out of this Trade War.")
+        alive = []
+        for p in war.get("alive") or war["players"]:
+            if p == uid:
+                alive.append(p)
+                continue
+            s2 = war_ref.collection("accounts").document(p).get(transaction=t)
+            if s2.exists and not (s2.to_dict() or {}).get("out"):
+                alive.append(p)
+        place = len(alive)
+        acct, book = tw_knock_out(acct, (b.to_dict() if b.exists else None) or tw_new_book(), prices, "surrender", place, now_ms)
+        t.set(aref, acct)
+        t.set(bref, book)
+        outs = list(war.get("outs") or []) + [{"uid": uid, "name": acct.get("name"), "reason": "surrender", "at": now_ms, "pnlPct": acct["pnlPct"], "place": place}]
+        t.update(war_ref, {"alive": [p for p in alive if p != uid], "outs": outs})
+        _tw_log(t, war_ref, tw_event("out", "%s surrendered (#%d)" % (acct.get("name") or "Trader", place), now_ms, uid=uid))
+        return place
+
+    place = txn(db.transaction())
+    tw_mark_war(db, war_ref, now_ms, prices, market_open=False)  # ends the match if one trader is left
+    return {"ok": True, "place": place}
 
 
 @https_fn.on_call()
@@ -2381,13 +2438,17 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
     you from a timed cut), roll for Volatility Storms, post lead changes to the
     Battlefield Ticker, and close the match when time is up or one trader is left."""
     rng = rng or _secrets.SystemRandom()
+    notes, ended = [], {}
 
     @firestore.transactional
     def txn(t):
+        del notes[:]
+        ended.clear()
         wsnap = ref.get(transaction=t)
         war = wsnap.to_dict() if wsnap.exists else None
         if not war or war.get("status") != "active":
             return False
+        wname, wpath = war.get("name") or "your Trade War", "practice/war.html?w=" + ref.id
         accts, books = {}, {}
         for uid in war.get("players") or []:
             a = ref.collection("accounts").document(uid).get(transaction=t)
@@ -2420,6 +2481,8 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
                     what = ("%s on %s: sold %d at %s (%s)" % ("Stop loss" if kind == "sl" else "Take profit", sym, qty, _tw_money(px), _tw_money(fill["pnl"], signed=True))
                             if open_book else ("stop loss hit" if kind == "sl" else "take profit hit"))
                     events.append(tw_event("bracket", "%s: %s" % (names.get(uid, "Trader"), what), now_ms, uid=uid))
+                    notes.append((uid, "fills", "%s hit on %s" % ("Stop loss" if kind == "sl" else "Take profit", sym),
+                                  "Sold %d at %s (%s) in %s." % (qty, _tw_money(px), _tw_money(fill["pnl"], signed=True), wname), wpath))
         if war.get("bounties"):
             update["bounties"], evs = tw_settle_bounties(war, accts, books, prices, now_ms, time_up)
             events += evs
@@ -2437,13 +2500,15 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
                 a = accts[uid]
                 outs.append({"uid": uid, "name": a.get("name"), "reason": reason, "at": now_ms, "pnlPct": a["pnlPct"], "place": a["place"]})
                 events.append(tw_event("out", "%s is knocked out (#%d)" % (a.get("name") or "Trader", a["place"]), now_ms, uid=uid))
+                notes.append((uid, "battles", "You're out of %s" % wname, "You finished #%d (%+.2f%%). Stay and watch who's left standing." % (a["place"], a["pnlPct"]), wpath))
                 knocked.add(uid)
             alive = [u for u in alive if u not in knocked]
             update.update({"alive": alive, "outs": outs})
             cut = lms.get("cutHours")
             if cut and war.get("nextCutAt") and now_ms >= war["nextCutAt"]:
                 update["nextCutAt"] = war["nextCutAt"] + cut * 3600000
-        ending = time_up or (lms and len(alive) <= 1)
+        # Last Man Standing ends with one trader left; any match ends when everyone else surrendered
+        ending = time_up or (len(alive) <= 1 and (lms or len(accts) > 1))
         if ending and not time_up and any(b["status"] == "open" for b in update.get("bounties") or war.get("bounties") or []):
             update["bounties"], evs = tw_settle_bounties(dict(war, bounties=update.get("bounties") or war.get("bounties")), accts, books, prices, now_ms, True)
             events += evs
@@ -2461,6 +2526,9 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
             if lead and lead != war.get("leader"):
                 update["leader"] = lead
                 events.append(tw_event("lead", "%s takes the lead (%+.2f%%)" % (names.get(lead, "Trader"), accts[lead]["pnlPct"]), now_ms, uid=lead))
+                if war.get("leader") in alive:
+                    notes.append((war["leader"], "battles", "You lost the lead in %s" % wname,
+                                  "%s took first place (%+.2f%%). Time to answer." % (names.get(lead, "Trader"), accts[lead]["pnlPct"]), wpath))
         else:
             rows = [{"uid": uid, "name": a.get("name"), "start": a["start"], "final": a["equity"], "pnl": a["pnl"],
                      "pnlPct": a["pnlPct"], "trades": a.get("trades", 0), "wins": a.get("wins", 0), "losses": a.get("losses", 0),
@@ -2469,6 +2537,11 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
             win = update["results"][0] if update["results"] else None
             if win:
                 events.append(tw_event("win", "%s wins the Trade War (%+.2f%%)" % (win["name"] or "Trader", win["pnlPct"]), now_ms, uid=win["uid"]))
+            ended.update(name=war.get("name") or "Trade War", results=update["results"])
+            n = len(update["results"])
+            for r in update["results"]:
+                notes.append((r["uid"], "battles", ("You won %s 🏆" if r["rank"] == 1 else "%s is over") % wname,
+                              "You finished #%d of %d (%+.2f%%)." % (r["rank"], n, r["pnlPct"] or 0), wpath))
         for uid, acct in accts.items():
             t.set(ref.collection("accounts").document(uid), acct)
             if uid in knocked or uid in touched:
@@ -2478,7 +2551,45 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
             _tw_log(t, ref, ev)
         return True
 
-    return txn(db.transaction())
+    out = txn(db.transaction())
+    if out and ended:
+        tw_record_results(db, ref.id, ended["name"], ended["results"], now_ms)
+    for uid, kind, title, body, path in (notes if out else []):
+        notify_users(db, [uid], kind, title, body, path, "war-" + ref.id)
+    return out
+
+
+def tw_record_update(rec, row, n, war_name, wid, now_ms):
+    """Pure: one player's public Trade War record after a finished match. A surrender
+    counts as a loss and also as a surrender."""
+    rec = dict(rec or {})
+    won = row.get("rank") == 1
+    surr = row.get("outReason") == "surrender"
+    rec["played"] = (rec.get("played") or 0) + 1
+    rec["wins"] = (rec.get("wins") or 0) + (1 if won else 0)
+    rec["losses"] = (rec.get("losses") or 0) + (0 if won else 1)
+    rec["surrenders"] = (rec.get("surrenders") or 0) + (1 if surr else 0)
+    recent = [x for x in (rec.get("recent") or []) if x.get("w") != wid]
+    recent.insert(0, {"w": wid, "name": str(war_name)[:40], "rank": row.get("rank"), "of": n, "pnlPct": row.get("pnlPct"), "surrendered": surr, "at": now_ms})
+    rec["recent"] = recent[:8]
+    rec["updatedAt"] = now_ms
+    return rec
+
+
+def tw_record_results(db, wid, war_name, results, now_ms):
+    """Once per match: everyone's public record in twRecords/{uid}."""
+    try:
+        db.collection("twRecorded").document(wid).create({"at": now_ms})
+    except Exception:
+        return
+    n = len(results or [])
+    for row in results or []:
+        try:
+            ref = db.collection("twRecords").document(row["uid"])
+            snap = ref.get()
+            ref.set(tw_record_update(snap.to_dict() if snap.exists else None, row, n, war_name, wid, now_ms))
+        except Exception as e:
+            print("[tw] record failed: %s" % type(e).__name__)
 
 
 def tw_draft_step(db, ref, now_ms, uid=None, sym=None, rng=None):
@@ -2682,6 +2793,9 @@ def tw_challenge(req, db, uid, now_ms):
             "symbols": extra_rules.get("symbols"),
             "status": "pending", "createdAt": now_ms, "respondedAt": None})
     batch.commit()
+    notify_users(db, targets, "challenges", "%s challenged you to a Trade War" % pname,
+                 "%s · %s virtual buy-in · %d day%s. Tap to accept or decline." % (name, _tw_money(buy_in).split(".")[0], days, "" if days == 1 else "s")
+                 + (" Last Man Standing." if lms else ""), "practice/index.html", "inv-" + wid)
     return {"warId": wid, "invited": len(targets), "mode": mode}
 
 
@@ -2695,6 +2809,7 @@ def tw_respond(req, db, uid, now_ms):
     accept = data.get("accept") is True
     inv_ref = db.collection("twInvites").document(iid)
     pname = _tw_name(db, uid, req.auth.token) if accept else None
+    seen = {}
 
     @firestore.transactional
     def txn(t):
@@ -2702,8 +2817,10 @@ def tw_respond(req, db, uid, now_ms):
         if not isnap.exists or isnap.to_dict().get("to") != uid:
             raise TWError("NOT_FOUND", "That challenge doesn't exist.")
         inv = isnap.to_dict()
+        seen.clear()
         if inv["status"] != "pending":
             return {"status": inv["status"], "warId": inv["warId"]}
+        seen.update(inv)
         war_ref = db.collection("tradeWars").document(inv["warId"])
         wsnap = war_ref.get(transaction=t)
         war = wsnap.to_dict() if wsnap.exists else None
@@ -2733,7 +2850,15 @@ def tw_respond(req, db, uid, now_ms):
         t.update(inv_ref, {"status": "accepted", "respondedAt": now_ms})
         return {"status": "accepted", "warId": inv["warId"], "started": war.get("mode") == "duel"}
 
-    return txn(db.transaction())
+    out = txn(db.transaction())
+    if seen.get("from") and out.get("status") in ("accepted", "declined"):
+        who = pname or _tw_name(db, uid, req.auth.token)
+        ok = out["status"] == "accepted"
+        notify_users(db, [seen["from"]], "challenges", "%s %s your challenge" % (who, "accepted" if ok else "declined"),
+                     ("%s is on. %s" % (seen.get("warName") or "Your Trade War", "It has started." if out.get("started") else "Start it when everyone's in."))
+                     if ok else "%s won't be playing %s." % (who, seen.get("warName") or "this Trade War"),
+                     "practice/war.html?w=" + urllib.parse.quote(seen.get("warId") or ""), "inv-" + (seen.get("warId") or ""))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -3023,7 +3148,7 @@ def rewards_checkin(req, db, uid, tok, now_ms):
 def tw_rewards(results, lms, eligible):
     """Pure: [(uid, tokens, note)] for an ended match. results is ranked (tw_rank);
     eligible is the set of uids that may earn."""
-    rows = [r for r in results or [] if r.get("uid") in eligible and (r.get("trades") or 0) >= 1]
+    rows = [r for r in results or [] if r.get("uid") in eligible and (r.get("trades") or 0) >= 1 and r.get("outReason") != "surrender"]
     out = []
     if len(rows) >= 4:
         for r, amt, place in zip(rows, EARN["twTop"], ("1st", "2nd", "3rd")):
@@ -3363,6 +3488,15 @@ def community_join(req, db, uid, tok, now_ms):
 
     out = txn(db.transaction())
     print("[community] join %s" % cid)
+    if not out.get("already"):
+        try:
+            c = cref.get().to_dict() or {}
+            if c.get("founder") and c["founder"] != uid:
+                notify_users(db, [c["founder"]], "community", "%s joined %s" % (who, c.get("name") or "your community"),
+                             "%d member%s now. They count toward your Founder milestones once they're active for %d days." % (c.get("members") or 0, "" if c.get("members") == 1 else "s", FOUNDER_ACTIVE_DAYS),
+                             "practice/communities.html", "comm-" + cid)
+        except Exception as e:
+            print("[community] notify failed: %s" % type(e).__name__)
     return out
 
 
@@ -3453,11 +3587,17 @@ def community_activity(db, uid, tok, today, now_ms, iph):
         t.set(cref.collection("members").document(uid), member_upd, merge=True)
         if cupd:
             t.update(cref, cupd)
-        return {"counted": ok, "why": why, "paid": paid}
+        return {"counted": ok, "why": why, "paid": paid, "founder": founder, "name": comm.get("name"), "cid": cid}
 
     out = txn(db.transaction())
     if out and (out["counted"] or out["paid"]):
         print("[community] activity counted=%s paid=%s" % (out["counted"], out["paid"]))
+    if out and out.get("paid"):
+        tiers = {need: (tokens, title) for need, tokens, title in FOUNDER_TIERS}
+        for need in out["paid"]:
+            tokens, title = tiers.get(need, (0, "Founder"))
+            notify_users(db, [out["founder"]], "community", "%s reached %d members" % (out.get("name") or "Your community", need),
+                         "You're a %s now: +%d tokens are in your wallet." % (title, tokens), "practice/communities.html", "comm-" + out["cid"])
     return out
 
 
@@ -3553,6 +3693,70 @@ def alert_push(db, alert_id, alert):
     guard.update({"devices": sent, "removed": len(dead)})
     print("[push] alert %s: sent %d, removed %d dead tokens" % (alert_id, sent, len(dead)))
     return sent
+
+
+# ---- personal notifications ---------------------------------------------------
+# Everything that's about *you* (not a scanner alert): challenges, battle updates,
+# friends, your community, Trade War stop loss / take profit fills. Each one lands
+# in users/{uid}/inbox (the bell on every page) and, if that kind is switched on in
+# Alerts -> Notifications (users/{uid}.notificationPrefs.types; missing = on), as a
+# push to every device the person turned notifications on for.
+NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills")
+
+
+def notify_wants(prefs, kind):
+    return ((prefs or {}).get("types") or {}).get(kind) is not False
+
+
+def notify_users(db, uids, kind, title, body, path, tag):
+    """Inbox + push for each uid. Never raises: a notification must never break the action that caused it."""
+    sent, now_ms = 0, int(_time.time() * 1000)
+    for uid in dict.fromkeys(u for u in (uids or []) if u):
+        try:
+            uref = db.collection("users").document(uid)
+            u = uref.get()
+            uref.collection("inbox").add({"kind": kind, "title": str(title)[:120], "body": str(body)[:240], "link": path, "at": now_ms, "read": False})
+            if not notify_wants((u.to_dict() or {}).get("notificationPrefs") if u.exists else None, kind):
+                continue
+            toks = [(x.id, (x.to_dict() or {}).get("token")) for x in db.collection("pushTokens").where("uid", "==", uid).stream()]
+            toks = [t for t in toks if t[1]]
+            if not toks:
+                continue
+            n, dead = _push_send(toks, str(title)[:120], str(body)[:240], SITE_URL + "/" + path.lstrip("/"), None, tag)
+            sent += n
+            for doc_id in dead:
+                db.collection("pushTokens").document(doc_id).delete()
+        except Exception as e:
+            print("[notify] %s to one user failed: %s" % (kind, type(e).__name__))
+    return sent
+
+
+@https_fn.on_call()
+@_tk_call
+def friend_ping(req, db, uid, tok, now_ms):
+    """{uid}: tell someone you added them as a friend (once per pair). If they already
+    had you, it's mutual: tell them you're friends now."""
+    to = str((req.data or {}).get("uid") or "")
+    if not _TW_UID_RE.match(to) or to == uid:
+        raise TWError("INVALID_ARGUMENT", "That trader isn't valid.")
+    me = db.collection("users").document(uid).get()
+    if to not in ((me.to_dict() or {}).get("friends") or []):
+        raise TWError("FAILED_PRECONDITION", "Add them as a friend first.")
+    guard = db.collection("friendPings").document("%s_%s" % (uid, to))
+    try:
+        guard.create({"at": now_ms})
+    except Exception:
+        return {"sent": False}
+    them = db.collection("users").document(to).get()
+    mutual = uid in ((them.to_dict() or {}).get("friends") or [])
+    who = _tw_name(db, uid, tok)
+    if mutual:
+        notify_users(db, [to], "friends", "You and %s are friends now" % who, "%s added you back. Challenge them to a Trade War." % who,
+                     "practice/profile.html?u=" + urllib.parse.quote(uid), "friend-" + uid[:12])
+    else:
+        notify_users(db, [to], "friends", "%s added you as a friend" % who, "Add them back to see each other's Trade War results and challenge each other.",
+                     "practice/profile.html?u=" + urllib.parse.quote(uid), "friend-" + uid[:12])
+    return {"sent": True, "mutual": mutual}
 
 
 @https_fn.on_call()

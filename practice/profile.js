@@ -198,10 +198,27 @@
       ]).then(function (r) {
         if (!r[0] && !r[1] && !r[2].length) return missing(mine ? 'Nothing public yet. Set up your profile, then make a trade in Trade War (with "Show my stats" on) or log a real trade in the Real Trade Journal.' : 'This trader\'s profile is private, or the link is wrong.', mine);
         show(r[0], id, mine, r[1], r[2]);
+        get(db.collection('twRecords').doc(id)).then(function (rec) { if (rec && rec.played) showRecord(rec); });
       });
     }
     if (uid) { firebase.auth().onAuthStateChanged(function (u) { load(uid, !!(u && u.uid === uid)); }); return; }
     firebase.auth().onAuthStateChanged(function (u) { if (u && !u.isAnonymous) load(u.uid, true); else missing('Pick a trader on the <a href="../leaderboard.html#practice">Trade War leaderboard</a>, or sign in to see your own profile.'); });
+  }
+  // Trade War match record (twRecords/{uid}, written by the server when a match ends).
+  // A surrender counts as a loss and is also shown on its own.
+  function showRecord(rec) {
+    var box = $('pfBody'); if (!box || box.querySelector('.pf-record')) return;
+    var wr = rec.played ? Math.round((rec.wins || 0) / rec.played * 100) : 0;
+    var el = document.createElement('section'); el.className = 'pt-card pf-card pf-record';
+    el.innerHTML = '<h2>Trade War record</h2><div class="pf-rec">' + [['Played', rec.played || 0, ''], ['Wins', rec.wins || 0, 'up'], ['Losses', rec.losses || 0, 'dn'], ['&#127987;&#65039; Surrendered', rec.surrenders || 0, '']]
+      .map(function (r) { return '<span><small>' + r[0] + '</small><b class="' + r[2] + '">' + r[1] + '</b></span>'; }).join('') + '</div>' +
+      '<p class="pt-fine">Win rate ' + wr + '%.' + (rec.surrenders ? ' Losses include ' + rec.surrenders + ' surrender' + (rec.surrenders === 1 ? '' : 's') + '.' : '') + '</p>' +
+      ((rec.recent || []).length ? '<ul class="twh-list">' + rec.recent.slice(0, 5).map(function (x) {
+        return '<li><a href="war.html?w=' + encodeURIComponent(x.w) + '">' + (x.rank === 1 ? '🏆 ' : x.surrendered ? '&#127987;&#65039; ' : '') + esc(x.name) + '</a><small>' +
+          (x.surrendered ? 'Surrendered · counted as a loss' : (x.rank === 1 ? 'Won' : 'Lost') + ' · #' + x.rank + ' of ' + x.of + (x.pnlPct != null ? ' · ' + pct(x.pnlPct) : '')) + '</small></li>';
+      }).join('') + '</ul>' : '');
+    var anchor = box.querySelector('.pf-section');
+    if (anchor) box.insertBefore(el, anchor); else box.appendChild(el);
   }
   document.addEventListener('DOMContentLoaded', start);
 })();

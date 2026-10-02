@@ -21,6 +21,7 @@ HEAD = '<link rel="stylesheet" href="../zelos-theme.css">\n<link rel="stylesheet
 BODY = '''<main class="pt-shell">
   <h1 class="pt-sr">Trade War: your $10,000 virtual trading account</h1>
   <div id="twTop" class="twh-wrap"></div>
+  <div id="zOnboard" class="tw-onboard" hidden></div>
   <div id="twTiles" class="twh-tiles" aria-label="Missions, achievements, leaderboards, friends"></div>
   <div class="pt-statusbar">
     <span class="pt-feed" id="ptFeed">Connecting to live prices…</span>

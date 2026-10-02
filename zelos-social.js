@@ -87,7 +87,10 @@
   }
   function addFriend(uid) {
     var u = me(); if (!u || uid === u.uid) return Promise.resolve();
-    return db.collection('users').doc(u.uid).set({ friends: firebase.firestore.FieldValue.arrayUnion(uid) }, { merge: true });
+    return db.collection('users').doc(u.uid).set({ friends: firebase.firestore.FieldValue.arrayUnion(uid) }, { merge: true }).then(function () {
+      // tell them (once): "X added you" or, if they already had you, "you're friends now"
+      if (window.ZelosTokens && ZelosTokens.call) ZelosTokens.call('friend_ping', { uid: uid }).catch(function () {});
+    });
   }
   function removeFriend(uid) {
     var u = me(); if (!u) return Promise.resolve();
@@ -282,6 +285,7 @@
   // +10 XP "Shared Trade War", once a day
   function shareXp(r) { if (r !== 'cancelled' && global.ZelosXP) ZelosXP.award('share', dayOf(now())); return r; }
   function shareLink(title, text, url) {
+    if (/[?&]ref=/.test(url || '')) { try { localStorage.setItem('zelosInvited', '1'); } catch (e) {} } // onboarding: "Invite a friend" done
     if (navigator.share) return navigator.share({ title: title, text: text, url: url }).then(function () { return 'shared'; }).catch(function () { return copy(url).then(function () { return 'copied'; }); }).then(shareXp);
     return copy(text + ' ' + url).then(function () { return 'copied'; }).then(shareXp);
   }
