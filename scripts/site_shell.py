@@ -17,7 +17,8 @@ _TEMPLATE = os.path.join(ROOT, 'games', 'setup-spotter.html')
 
 
 def _parts():
-    src = open(_TEMPLATE, encoding='utf-8').read()
+    # the template's own ?v= stamps are dropped here; render() re-stamps every page it writes
+    src = re.sub(r'(\.(?:js|css))\?v=[0-9a-f]+', r'\1', open(_TEMPLATE, encoding='utf-8').read())
     head_end = src.index('<style>')
     head = src[:head_end]
     nav = src[src.index('<body'):src.index('</nav>') + len('</nav>')]
@@ -96,6 +97,8 @@ def render(path, title, desc, body, extra_head='', scripts='', jsonld=None, og_t
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, 'w', encoding='utf-8') as f:
         f.write(out)
+    from stamp_assets import stamp_file  # ?v= fingerprints so phones load new JS/CSS
+    stamp_file(dest)
     return dest
 
 

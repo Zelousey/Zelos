@@ -15,6 +15,8 @@
   var S = window.ZelosSocial, P = window.ZelosProgress, L = window.ZelosLevels;
   var $ = function (id) { return document.getElementById(id); };
   var esc = S ? S.esc : function (x) { return x; };
+  // name in the trader's purchased color (zelos-tokens.js paints [data-zname])
+  function zn(uid) { return uid ? ' data-zname="' + esc(uid) + '"' : ''; }
   function money(v) { return (v < 0 ? '-$' : '$') + Math.abs(+v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function pct(v) { return (v >= 0 ? '+' : '') + (+v || 0).toFixed(2) + '%'; }
   function cls(v) { return v >= 0 ? 'up' : 'dn'; }
@@ -93,7 +95,7 @@
     h += '<div class="sq-board" data-help="Ranked by percentage growth, so everyone competes fairly whatever their balance. Tap a trader to open their profile.">' + rows.map(function (r, i) {
       var lv = L && r.p ? L.levelForXp(r.p.xp || 0) : null, me = user && r.uid === user.uid;
       return '<a class="sq-row' + (me ? ' is-me' : '') + '" href="profile.html?u=' + encodeURIComponent(r.uid) + '"><span class="sq-rank">' + (i + 1) + '</span>' +
-        '<span class="sq-name">' + (lv && L ? L.badge(lv, 22) : '') + esc(r.name) + (r.uid === sq.owner ? ' <small>owner</small>' : '') + (compDone && board === 'comp' && i === 0 ? ' 🏆' : '') + '</span>' +
+        '<span class="sq-name">' + (lv && L ? L.badge(lv, 22) : '') + '<span' + zn(r.uid) + '>' + esc(r.name) + '</span>' + (r.uid === sq.owner ? ' <small>owner</small>' : '') + (compDone && board === 'comp' && i === 0 ? ' 🏆' : '') + '</span>' +
         (r.m ? '<span class="sq-pct ' + cls(r.m.pct) + '">' + pct(r.m.pct) + '</span><span class="sq-bal">' + money(r.p.equity) + '</span><span class="sq-xp">' + ((r.p.xp || 0).toLocaleString('en-US')) + ' XP</span>'
           : '<span class="sq-pct">private</span><span class="sq-bal"></span><span class="sq-xp"></span>') + '</a>';
     }).join('') + '</div>' +
@@ -228,7 +230,7 @@
         var n = counts[k] || 0, on = user && (m.r || {})[user.uid] === k;
         return '<button type="button" class="sq-react' + (on ? ' is-on' : '') + (n ? ' has' : '') + '" data-react="' + k + '" data-id="' + esc(m.id) + '" aria-label="' + k + (n ? ' (' + n + ')' : '') + '" aria-pressed="' + !!on + '">' + ico(REACT_ICON[k]) + (n ? '<small>' + n + '</small>' : '') + '</button>';
       }).join('') + '</div>';
-      return '<div class="sq-msg' + (mine ? ' is-me' : '') + '"><div class="sq-msg-head"><b>' + esc(m.name || 'Trader') + '</b><small>' + time(m.createdAt) + '</small>' +
+      return '<div class="sq-msg' + (mine ? ' is-me' : '') + '"><div class="sq-msg-head"><b' + zn(m.author) + '>' + esc(m.name || 'Trader') + '</b><small>' + time(m.createdAt) + '</small>' +
         (mine || owner ? '<button type="button" class="sq-msg-del" data-del="' + esc(m.id) + '" aria-label="Delete message">×</button>' : '') + '</div>' +
         (m.text ? '<p>' + esc(m.text) + '</p>' : '') + (m.photo && /^data:image\/jpeg;base64,/.test(m.photo) ? '<img class="sq-msg-img" alt="Photo from ' + esc(m.name || 'a member') + '" src="' + m.photo + '">' : '') + reacts + '</div>';
     }).join('') : '<p class="pt-empty">No messages yet. Say hi to your squad.</p>';

@@ -139,6 +139,12 @@
   }
 
   // ------------------------------------------------------------ account state
+  // Sync: the account stored online (users/{uid}.practice) is the one true balance. This
+  // browser keeps a copy for speed and offline use. `synced` stays false until the online
+  // copy has been read after sign-in, and nothing is written online before that, so a stale
+  // phone can never overwrite the computer. acct.owner = whose copy this is; acct.dirty =
+  // changes made here that aren't online yet.
+  var synced = false;
   var acct = null, currentUser = null, db = null, saveTimer = null, ownedSkills = [], profile = {}; // profile: traders/{uid} (zelos-profile.js)
   function fresh() {
     return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
@@ -172,19 +178,30 @@
   function load() { try { return seedLife(migrate(JSON.parse(localStorage.getItem(KEY) || 'null'))); } catch (e) { return seedLife(fresh()); } }
   function save() {
     acct.updatedAt = Date.now();
+    acct.dirty = true;
     if (acct.fills.length > MAX_FILLS) acct.fills = acct.fills.slice(-MAX_FILLS);
     if (acct.trades.length > MAX_TRADES) acct.trades = acct.trades.slice(-MAX_TRADES);
     if (acct.orders.length > MAX_ORDERS) acct.orders = acct.orders.filter(function (o) { return o.status === 'open'; }).concat(acct.orders.filter(function (o) { return o.status !== 'open'; }).slice(-MAX_ORDERS));
     acct.summary = summary();
     try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {}
     setTimeout(checkAch, 0);
-    if (currentUser && db) {
+    if (currentUser && db && synced) {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(function () {
-        db.collection('users').doc(currentUser.uid).set({ practice: JSON.parse(JSON.stringify(acct)) }, { merge: true }).catch(function () {});
+        var copy = JSON.parse(JSON.stringify(acct)), at = acct.updatedAt, uid0 = currentUser && currentUser.uid;
+        delete copy.dirty; copy.owner = uid0;
+        db.collection('users').doc(uid0).set({ practice: copy }, { merge: true }).then(function () {
+          if (acct.updatedAt === at && currentUser && currentUser.uid === uid0) { acct.dirty = false; try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} }
+        }).catch(function () {});
         publishProfile();
       }, 900);
     }
+  }
+  // the online copy changed (another device traded): take it unless this device has unsent changes
+  function adoptRemote(remote) {
+    acct = remote; acct.dirty = false;
+    try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {}
+    if (UNIVERSE.length) tick();
   }
 
   function optionMark(o) { var S = price(o.sym); if (S == null) return o.avg; return OPT.quote(o.type, S, o.strike, o.exp, todayNY(), vol(o.sym)).mid; }
@@ -1490,10 +1507,13 @@
             var data = d.exists ? d.data() : {}, before = xpNow;
             xpNow = data.xp || 0;
             if (before == null && UNIVERSE.length) { snapshotEquity(); }
-            if (before !== xpNow && currentUser && UNIVERSE.length) save(); // republish XP / level on the public profile
+            if (before !== xpNow && currentUser && synced && UNIVERSE.length) publishProfile(); // republish XP / level on the public profile
+            // live sync: a newer online copy from another device
+            if (currentUser && synced && data.practice && !d.metadata.hasPendingWrites && !acct.dirty && (data.practice.updatedAt || 0) > (acct.updatedAt || 0)) adoptRemote(seedLife(migrate(data.practice)));
             if (UNIVERSE.length) { renderHeader(); if (tab === 'progress') renderTabs(); }
           }, function () {});
           currentUser = user && !user.isAnonymous ? user : null;
+          synced = false; clearTimeout(saveTimer);
           // the account sync below waits for the profile so the first publish uses the right name/photo
           profile = {};
           var profileReady = currentUser && window.ZelosProfile
@@ -1510,9 +1530,13 @@
             var doc = r[0];
             var data = doc.exists ? doc.data() : {};
             ownedSkills = data.ownedSkills || [];
-            var remote = data.practice ? seedLife(migrate(data.practice)) : null;
-            if (remote && (remote.updatedAt || 0) > (acct.updatedAt || 0)) { acct = remote; try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} }
-            save(); renderGate(); if (UNIVERSE.length) tick();
+            var remote = data.practice ? seedLife(migrate(data.practice)) : null, uid0 = currentUser.uid;
+            var mine = !acct.owner || acct.owner === uid0; // a copy left by another account on this device is never used
+            if (remote && (!mine || !acct.dirty || (remote.updatedAt || 0) >= (acct.updatedAt || 0))) { acct = remote; acct.dirty = false; }
+            else if (!remote && !mine) acct = seedLife(fresh());
+            acct.owner = uid0; synced = true;
+            if (acct.dirty || !remote) save(); else { try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} publishProfile(); }
+            renderGate(); if (UNIVERSE.length) tick();
           }).catch(function () {});
         });
       } catch (e) { feed = { state: 'none' }; }

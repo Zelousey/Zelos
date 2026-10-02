@@ -100,18 +100,19 @@
       '.zc-card .zc-kick{text-align:center;font-family:"IBM Plex Mono",monospace;font-weight:700;letter-spacing:.24em;font-size:.78rem;color:#7fa8ff;margin:0 0 12px}',
       '.zc-who{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:12px}',
       '.zc-av{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid rgba(74,134,255,.6);background:#161a22;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;color:#9aa4b8;flex-shrink:0}',
+      '.zc-bname{text-align:center;color:#fff;margin:2px 0 14px;font-size:1.5rem;font-weight:800;line-height:1.15;letter-spacing:-.01em;overflow-wrap:anywhere}',
       '.zc-name{font-size:1.25rem;font-weight:700;line-height:1.15}.zc-user{font-family:"IBM Plex Mono",monospace;font-size:.82rem;color:#8b93a3}',
-      '.zc-terms{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 10px}',
+      '.zc-terms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:4px 0 10px}',
       '.zc-terms span{border:1px solid #232835;border-radius:10px;padding:8px;text-align:center;background:#11151d}.zc-terms small{display:block;color:#8b93a3;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em}.zc-terms b{font-family:"IBM Plex Mono",monospace;font-size:.95rem}',
       '.zc-card .zc-fine{color:#8b93a3;font-size:.78rem;text-align:center;margin:0 0 14px;line-height:1.4}',
-      '.zc-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}',
+      '.zc-btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}',
       '.zc-btn{font:inherit;font-weight:700;font-size:.98rem;padding:12px;border-radius:12px;cursor:pointer;border:1px solid #2b3140;background:#151a23;color:#e6e9ef;transition:transform 120ms,filter 120ms,box-shadow 180ms}',
       '.zc-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.07)}.zc-btn:active:not(:disabled){transform:none}.zc-btn:disabled{opacity:.5;cursor:default}',
       '.zc-btn:focus-visible{outline:2px solid #4a86ff;outline-offset:2px}',
       '.zc-go{background:linear-gradient(180deg,#08825e,#047857);border-color:rgba(255,255,255,.06);color:#fff;box-shadow:0 10px 26px -12px rgba(5,150,105,.6),inset 0 1px 0 rgba(255,255,255,.18)}',
       '.zc-later{display:block;margin:10px auto 0;background:none;border:0;color:#8b93a3;font:inherit;font-size:.82rem;cursor:pointer;text-decoration:underline}',
       '.zc-card .zc-msg{text-align:center;font-size:.86rem;margin:10px 0 0;min-height:1em}.zc-card .zc-msg.is-bad{color:#f87171}',
-      '.zc-f{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:.84rem}.zc-f>span{color:#8b93a3;font-weight:600}',
+      '.zc-f{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:.84rem;min-width:0}.zc-f select,.zc-f input{width:100%;min-width:0;box-sizing:border-box}.zc-f>span{color:#8b93a3;font-weight:600}',
       '.zc-chips{display:flex;flex-wrap:wrap;gap:6px}.zc-chips button{font:inherit;font-weight:600;font-size:.86rem;padding:7px 12px;border-radius:999px;border:1px solid #2b3140;background:transparent;color:#cfd4dd;cursor:pointer}.zc-chips button.is-on{border-color:#4a86ff;background:#182a4a;color:#fff}',
       '.zc-chips button.is-locked{opacity:.55;cursor:not-allowed;border-style:dashed}',
       '.zc-lock{font-size:.74rem;color:#8b93a3;margin:6px 0 0}',
@@ -119,10 +120,10 @@
       '.zc-f select{font:inherit;padding:9px 10px;border-radius:8px;border:1px solid #2b3140;background:#11151d;color:#f4f5f7}',
       '.zc-card .zc-h{margin:18px 0 4px;font-size:1.15rem}',
       '.zc-lms{border:1px solid rgba(239,68,68,.35);background:linear-gradient(180deg,rgba(239,68,68,.07),transparent);border-radius:12px;padding:10px 12px 2px;margin:-4px 0 12px}',
-      '.zc-lms .zc-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.zc-lms .zc-f{margin-bottom:8px}',
+      '.zc-lms .zc-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.zc-lms .zc-f{margin-bottom:8px}',
       '.zc-card ul.zc-rules{margin:0 0 12px;padding:8px 12px 8px 28px;border:1px solid rgba(239,68,68,.35);border-radius:10px;background:rgba(239,68,68,.06);font-size:.82rem;line-height:1.45;color:#e6e9ef}',
       '.zc-more{border:1px solid #232835;border-radius:12px;padding:8px 12px;margin:0 0 12px;font-size:.84rem}.zc-more summary{cursor:pointer;font-weight:600;color:#cfd4dd}.zc-more summary small{color:#8b93a3;font-weight:400}',
-      '.zc-more .zc-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.zc-more .zc-f{margin-bottom:6px}',
+      '.zc-more .zc-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:10px}.zc-more .zc-f{margin-bottom:6px}',
       '.zc-check{display:flex;gap:8px;align-items:center;margin:4px 0;color:#cfd4dd}',
       '.zc-card ul.zc-modes{border-color:rgba(74,134,255,.35);background:rgba(74,134,255,.06)}.zc-card ul.zc-modes b{color:#9dbcff}',
       '.zc-card ul.zc-rules b{color:#fca5a5;letter-spacing:.06em;font-size:.72rem;display:block;margin:0 0 2px -16px}',
@@ -161,9 +162,10 @@
     var init = esc((inv.fromName || '?').charAt(0).toUpperCase());
     var av = inv.fromPhoto && /^(https:|data:image\/(jpeg|png|webp);base64,)/.test(inv.fromPhoto) ? '<img class="zc-av" alt="" referrerpolicy="no-referrer" src="' + esc(inv.fromPhoto) + '">' : '<span class="zc-av">' + init + '</span>';
     var m = modal(BLADES + '<p class="zc-kick" id="zcTitle">YOU\'VE BEEN CHALLENGED</p>' +
-      '<div class="zc-who">' + av + '<div><div class="zc-name">' + esc(inv.fromName || 'A trader') + '</div>' + (inv.fromUsername ? '<div class="zc-user">@' + esc(inv.fromUsername) + '</div>' : '') + '</div></div>' +
+      (inv.warName ? '<p class="zc-bname">' + (inv.lms ? '&#9760; ' : '⚔️ ') + esc(inv.warName) + '</p>' : '') +
+      '<div class="zc-who">' + av + '<div><div class="zc-name"' + (inv.from ? ' data-zname="' + esc(inv.from) + '"' : '') + '>' + esc(inv.fromName || 'A trader') + '</div>' + (inv.fromUsername ? '<div class="zc-user">@' + esc(inv.fromUsername) + '</div>' : '') + '</div></div>' +
       '<div class="zc-terms"><span><small>Battle</small><b>' + (inv.lms ? 'Last Man' : inv.mode === 'duel' ? '1 v 1' : 'Group') + '</b></span><span><small>Buy-in</small><b>' + money(inv.buyIn) + '</b></span><span><small>Length</small><b>' + inv.days + ' day' + (inv.days === 1 ? '' : 's') + '</b></span></div>' +
-      '<p class="zc-fine">' + esc(inv.warName || 'Trade War') + ' · everyone starts with the same ' + money(inv.buyIn) + ' of virtual money. Best % gain wins. Virtual only: no real money, no prizes.' + (inv.mode === 'duel' ? ' A 1 v 1 starts as soon as you accept.' : '') + '</p>' +
+      '<p class="zc-fine">Everyone starts with the same ' + money(inv.buyIn) + ' of virtual money. Best % gain wins. Virtual only: no real money, no prizes.' + (inv.mode === 'duel' ? ' A 1 v 1 starts as soon as you accept.' : '') + '</p>' +
       (inv.symbols && inv.symbols.length ? '<p class="zc-fine">Squad rule: only ' + inv.symbols.slice(0, 12).map(esc).join(', ') + (inv.symbols.length > 12 ? ' and more' : '') + ' can be traded.</p>' : '') +
       (modesText(inv.modes).length ? '<ul class="zc-rules zc-modes"><b>GAME OPTIONS</b>' + modesText(inv.modes).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' : '') +
       (inv.lms ? '<ul class="zc-rules"><b>LAST MAN STANDING</b>' + lmsRules(inv.lms, inv.buyIn).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '<li>Knocked out = your stocks are sold and your result is locked. Last trader standing wins.</li></ul>' : '') +
@@ -228,6 +230,7 @@
       var who = opts.squadId ? 'your squad' + (opts.squadName ? ' ' + opts.squadName : '') : (opts.toName || 'this trader');
       var m = modal(BLADES + '<h2 class="zc-h" id="zcTitle">' + (start ? 'Start a Trade War' : 'Challenge ' + esc(who)) + '</h2>' +
         '<p class="zc-fine" style="text-align:left">' + (start ? 'Challenge a friend by @username, pick a squad, or leave it empty to get an invite link to share. ' : 'They get a "You\'ve been challenged" card and choose to accept or decline. ') + 'Everyone starts with the same virtual buy-in. Virtual money only.</p>' +
+        '<label class="zc-f"><span>Battle name</span><input id="zcName" maxlength="40" placeholder="e.g. Friday Night Fight" autocomplete="off" required></label>' +
         (start ? '<label class="zc-f"><span>Challenge a friend (optional)</span><input id="zcUser" placeholder="@username, or leave empty for an invite link" autocapitalize="none" spellcheck="false"></label>' +
           '<div class="zc-f" id="zcSqWrap" hidden><span>Or challenge a squad</span><div class="zc-chips" id="zcSq"></div></div>' : '') +
         '<div class="zc-f"><span>Virtual buy-in (everyone starts with this)</span><div class="zc-chips" id="zcBuy">' + buyInChips(buy, xp) + '</div>' +
@@ -268,6 +271,10 @@
       $('zcSend').onclick = function () {
         var btn = this; btn.disabled = true; $('zcMsg').textContent = 'Sending…'; $('zcMsg').className = 'zc-msg';
         var data = { buyIn: buy, days: +$('zcDays').value }, bad = function (t) { btn.disabled = false; $('zcMsg').textContent = t; $('zcMsg').className = 'zc-msg is-bad'; };
+        // every battle needs its own name: people can be in several at once
+        var bname = String($('zcName').value || '').replace(/[<>]/g, '').trim();
+        if (bname.length < 2) { $('zcName').focus(); return bad('Give your battle a name, so you can tell your battles apart.'); }
+        data.name = bname.slice(0, 40);
         var md = {};
         if ($('zcDraft').value) md.draftPicks = +$('zcDraft').value;
         if ($('zcStorm').value) md.storms = $('zcStorm').value;
@@ -290,7 +297,7 @@
         else if (pickSq) { data.squadId = pickSq; p = go('tw_challenge', data); }
         else {
           var un = String($('zcUser').value || '').trim().replace(/^@/, '').toLowerCase();
-          if (!un) { data.name = data.lms ? 'Last Man Standing' : 'Trade War'; data.maxPlayers = 10; p = go('tw_create', data); }
+          if (!un) { data.maxPlayers = 10; p = go('tw_create', data); }
           else if (!/^[a-z0-9_]{3,20}$/.test(un)) return bad('Type a username like @amy_trades, or leave it empty.');
           else p = f.db.collection('usernames').doc(un).get().then(function (x) {
             if (!x.exists) throw new Error('No trader has the username @' + un + ' yet.');
@@ -300,7 +307,7 @@
         }
         p.then(null, function (e) { bad(errText(e)); });
       };
-      setTimeout(function () { try { $('zcSend').focus(); } catch (e) {} }, 60);
+      setTimeout(function () { try { $('zcName').focus(); } catch (e) {} }, 60);
     }); });
   }
 

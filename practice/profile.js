@@ -31,9 +31,10 @@
     var tier = S && p.referrals ? S.referralTier(p.referrals) : null, rs = M ? M.realStatus(logs || []) : null, rst = t.showRealStats && t.realStats ? t.realStats : null;
     var favs = {}; (logs || []).forEach(function (l) { favs[l.sym] = (favs[l.sym] || 0) + 1; });
     var favList = Object.keys(favs).sort(function (a2, b2) { return favs[b2] - favs[a2]; }).slice(0, 5);
-    var h = '<div class="pf-head"><div class="pf-id">' + (photo ? '<img class="pf-photo" src="' + esc(photo) + '" alt="" referrerpolicy="no-referrer">' : '') + (L && lv ? '<span class="pf-badge">' + L.badge(lv, photo ? 40 : 64) + '</span>' : '') +
-      '<div><span class="pt-kicker">Trader profile' + (mine ? ' &middot; your public profile' : '') + '</span>' +
-      '<h1>' + esc(name) + '</h1>' + (t.username ? '<p class="pf-handle">@' + esc(t.username) + '</p>' : '') +
+    // header: picture + level badge beside the name; bio, tags, buttons and tokens full width below
+    var h = '<div class="pf-head"><div class="pf-id"><div class="pf-pics">' + (photo ? '<img class="pf-photo" src="' + esc(photo) + '" alt="" referrerpolicy="no-referrer">' : '') + (L && lv ? '<span class="pf-badge">' + L.badge(lv, photo ? 40 : 64) + '</span>' : '') + '</div>' +
+      '<div class="pf-name"><span class="pt-kicker">' + (mine ? 'Your public profile' : 'Trader profile') + '</span>' +
+      '<h1>' + esc(name) + '</h1>' + (t.username ? '<p class="pf-handle">@' + esc(t.username) + '</p>' : '') + '</div><div class="pf-rest">' +
       (t.bio ? '<p class="pf-bio">' + esc(t.bio) + '</p>' : (mine && !t.username ? '<p class="pf-bio pt-fine">Add a picture, @username and bio so friends can find you.</p>' : '')) +
       '<div class="pf-tags">' + (lv ? '<span><b>Level ' + lv.level + '</b> ' + esc(lv.name) + '</span><span>' + xp.toLocaleString('en-US') + ' XP</span>' : '') +
       (streak ? '<span>🔥 ' + streak + '-day streak</span>' : '') + (tier ? '<span>' + tier.icon + ' ' + tier.name + ' recruiter</span>' : '') +
@@ -117,7 +118,11 @@
   function tokensCard(box) {
     var T = window.ZelosTokens; if (!T) return;
     var el = document.getElementById('pfTokens');
-    if (!el) { el = document.createElement('section'); el.id = 'pfTokens'; el.className = 'pt-card ch-card pf-tokens'; box.parentNode.insertBefore(el, box.nextSibling); }
+    if (!el) {
+      el = document.createElement('section'); el.id = 'pfTokens'; el.className = 'pt-card ch-card pf-tokens';
+      var grid = box.closest && box.closest('.pf-id'); // header grid: its own column on desktop, full width on phones
+      if (grid) grid.appendChild(el); else box.parentNode.insertBefore(el, box.nextSibling);
+    }
     var draw = function (w) {
       var passes = Object.keys((w && w.passes) || {}).filter(function (k) { return w.passes[k] > Date.now(); });
       el.innerHTML = '<div class="pf-tk-top"><div><small>Your tokens <span class="pf-tk-private">only you can see this</span></small><b><i class="twh-coin" aria-hidden="true"></i>' + (w ? w.balance : '…') + '</b></div>' +

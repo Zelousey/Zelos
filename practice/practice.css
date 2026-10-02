@@ -548,7 +548,10 @@ a.tw-tr:hover{ background:var(--surface-2); }
 @media (prefers-reduced-motion: reduce){ .tw-tr.is-moved{ animation:none; } }
 @media (max-width:900px){
   .tw-grid, .tw-live{ grid-template-columns:minmax(0,1fr); }
-  .tw-tr{ grid-template-columns:34px minmax(80px,1fr) 0 0 minmax(70px,auto) minmax(58px,auto) 0 38px; font-size:0.8rem; }
+  /* hidden cells leave the grid, so the template lists only the 5 that stay: #, trader, $ P&L, % P&L, W/L */
+  .tw-tr{ grid-template-columns:28px minmax(0,1fr) auto auto 34px; gap:8px; font-size:0.8rem; }
+  .tw-tr > span:nth-child(2){ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tw-tr > span:nth-child(5), .tw-tr > span:nth-child(6){ text-align:right; }
   .tw-tr > span:nth-child(3), .tw-tr > span:nth-child(4), .tw-tr > span:nth-child(7){ display:none; }
 }
 .tw-cta{ display:inline-block; margin-top:6px; text-decoration:none; }
@@ -748,7 +751,7 @@ a.tw-tr:hover{ background:var(--surface-2); }
 .twh-ch-st{ font-family:var(--mono); font-size:.7rem; } .twh-ch-st.is-accepted{ color:#10b981; } .twh-ch-st.is-pending{ color:#f59e0b; } .twh-ch-st.is-declined, .twh-ch-st.is-expired, .twh-ch-st.is-cancelled{ color:var(--muted); }
 
 /* ---- tokens in the Trade War strip and on your profile ---- */
-.twh-coin{ display:inline-block; width:11px; height:11px; margin-right:5px; border-radius:50%; vertical-align:-1px; background:radial-gradient(circle at 35% 35%,#ffe7a3,#e8b23d 60%,#a67a1c); }
+.twh-coin{ display:inline-block; width:13px; height:13px; margin-right:5px; vertical-align:-2px; background:var(--zt-coin, radial-gradient(circle at 35% 35%,#ffe7a3,#e8b23d 60%,#a67a1c)); }
 .twh-acct.twh-tokens{ border-color:rgba(232,178,61,.45); } .twh-acct.twh-tokens b{ color:#f2d38a; }
 .pf-tokens{ margin:12px 0; border-color:rgba(232,178,61,.4); }
 .pf-tk-top{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; }
@@ -1006,3 +1009,20 @@ details.pt-about[open] > summary::before{ content:'▾ '; }
 .tw-onboard{ margin:0 0 10px; }
 .tw-onboard .zo-card{ max-width:none; }
 @media (min-width:1181px){ .tw-onboard .zo-steps{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0 14px; } .tw-onboard .zo-step{ border-top:0; } .tw-onboard .zo-cta{ display:inline-block; width:auto; padding:10px 22px; } }
+
+/* ---- profile header: a full-width page header, not a narrow column ---- */
+.pf-head{ display:block; padding:18px 20px; border:1px solid var(--border); border-radius:var(--radius); background:linear-gradient(180deg, var(--surface), var(--bg-soft)); }
+.pf-id{ display:grid; grid-template-columns:auto minmax(0, 1fr); grid-template-areas:"pics name" "rest rest" "tok tok"; column-gap:16px; row-gap:10px; align-items:center; }
+.pf-id > .pf-tokens{ grid-area:tok; margin:0; align-self:start; }
+.pf-pics{ grid-area:pics; display:flex; align-items:center; gap:8px; }
+.pf-name{ grid-area:name; min-width:0; }
+.pf-name h1{ margin:2px 0 0; }
+.pf-name .pf-handle{ margin:2px 0 0; }
+.pf-rest{ grid-area:rest; min-width:0; }
+.pf-rest .pf-bio{ margin:0 0 8px; }
+.pf-id .pf-badge + div, .pf-photo + .pf-badge{ margin-left:0; }
+.pf-photo{ width:76px; height:76px; }
+@media (min-width:900px){
+  .pf-id{ grid-template-columns:auto minmax(0, 1fr) minmax(280px, 360px); grid-template-areas:"pics name tok" "rest rest tok"; }
+}
+@media (max-width:760px){ .pf-head{ padding:14px; } .pf-photo{ width:60px; height:60px; } .pf-badge svg{ width:40px; height:40px; } .pf-name h1{ font-size:1.6rem; } }
