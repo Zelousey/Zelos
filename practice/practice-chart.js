@@ -142,6 +142,9 @@
     try { saved = JSON.parse(localStorage.getItem('zelosPracticeInd') || 'null'); } catch (e) {}
     var self0 = this; INDICATORS.forEach(function (d) { self0.show[d.id] = saved ? !!saved[d.id] : !!DEFAULT_ON[d.id]; });
     this.lines = []; this.lastPrice = null; this.marks = []; this.colors = loadColors(); this.empty = null;
+    // 'line' (Robinhood-style live line, the default) or 'candles'; refPrice = previous close (line color + dotted line)
+    this.style = 'line'; try { this.style = localStorage.getItem('zelosChartStyle') || 'line'; } catch (e) {}
+    this.refPrice = null; this.anim = null; this.pulse = null;
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
     this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
     this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
@@ -238,13 +241,30 @@
     this.cv.width = Math.round(w * dpr); this.cv.height = Math.round(h * dpr);
     this.W = w; this.H = h; this.dpr = dpr; this.draw();
   };
+  TradeChart.prototype.setStyle = function (st) {
+    this.style = st === 'candles' ? 'candles' : 'line'; try { localStorage.setItem('zelosChartStyle', this.style); } catch (e) {} this.draw();
+  };
   TradeChart.prototype.setSeries = function (s, bars) {
+    // a new live price on the same chart glides there (line view) instead of jumping
+    if (this.s && this.s.key === s.key && s.n && this.s.n) {
+      var was = this.anim ? this.animValue() : this.s.c[this.s.n - 1], now = s.c[s.n - 1];
+      if (was !== now && this.style === 'line' && !(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches)) this.startAnim(was, now);
+    }
     // same stock and timeframe, scrolled to the latest bar: stay pinned to the right edge as bars arrive
     var keep = this.s && this.s.key === s.key && this.to === this.s.n - 1;
     var span = this.s ? this.to - this.from : null;
     this.s = s;
     if (keep && span != null) { this.to = s.n - 1; this.from = Math.max(0, this.to - span); }
     else this.setRange(bars || 126);
+  };
+  TradeChart.prototype.startAnim = function (a, b) {
+    var self = this; this.anim = { a: a, b: b, t0: (global.performance || Date).now() };
+    function step() { if (!self.anim) return; self.draw(); if ((global.performance || Date).now() - self.anim.t0 < 600) requestAnimationFrame(step); else { self.anim = null; self.draw(); } }
+    requestAnimationFrame(step);
+  };
+  TradeChart.prototype.animValue = function () {
+    if (!this.anim) return null; var k = Math.min(1, ((global.performance || Date).now() - this.anim.t0) / 600); k = 1 - Math.pow(1 - k, 3);
+    return this.anim.a + (this.anim.b - this.anim.a) * k;
   };
   TradeChart.prototype.setRange = function (bars) {
     if (!this.s) return;
@@ -274,6 +294,19 @@
     L.xAxis = H - 4;
     return L;
   };
+  // the live dot's pulse is a CSS element over the canvas, so nothing redraws every frame
+  TradeChart.prototype.placePulse = function (p) {
+    var host = this.cv.parentNode; if (!host) return;
+    if (!p) { if (this.pulse) this.pulse.style.display = 'none'; return; }
+    if (!this.pulse) {
+      if (!document.getElementById('ztcPulseCss')) { var st = document.createElement('style'); st.id = 'ztcPulseCss'; st.textContent = '.ztc-pulse{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;pointer-events:none;animation:ztcPulse 1.6s ease-out infinite}@keyframes ztcPulse{0%{box-shadow:0 0 0 0 var(--ztc-pc)}100%{box-shadow:0 0 0 14px transparent}}@media (prefers-reduced-motion:reduce){.ztc-pulse{animation:none}}'; document.head.appendChild(st); }
+      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+      this.pulse = document.createElement('span'); this.pulse.className = 'ztc-pulse'; this.pulse.setAttribute('aria-hidden', 'true'); host.appendChild(this.pulse);
+    }
+    var ox = this.cv.offsetLeft, oy = this.cv.offsetTop;
+    this.pulse.style.display = ''; this.pulse.style.left = (ox + p.x) + 'px'; this.pulse.style.top = (oy + p.y) + 'px';
+    this.pulse.style.setProperty('--ztc-pc', rgba(p.c, 0.55));
+  };
   function col(name, fb) {
     if (!name) return fb;
     if (name.charAt(0) === '#') return name;
@@ -302,8 +335,10 @@
     var overlays = INDICATORS.filter(function (d) { return d.kind === 'overlay' && show[d.id]; });
     // price range: candles, visible overlays, lines, forecast
     var lo = Infinity, hi = -Infinity, vmax = 0, i;
+    var lineMode = this.style === 'line';
     for (i = from; i <= to; i++) {
-      lo = Math.min(lo, s.l[i]); hi = Math.max(hi, s.h[i]); vmax = Math.max(vmax, s.v[i] || 0);
+      if (lineMode) { lo = Math.min(lo, s.c[i]); hi = Math.max(hi, s.c[i]); } else { lo = Math.min(lo, s.l[i]); hi = Math.max(hi, s.h[i]); }
+      vmax = Math.max(vmax, s.v[i] || 0);
       overlays.forEach(function (d) {
         var v = s.ind[d.id];
         (d.band ? d.band.map(function (k) { return v[k][i]; }) : [v[i]]).forEach(function (x) { if (x != null && x > s.l[i] * 0.6 && x < s.h[i] * 1.6) { lo = Math.min(lo, x); hi = Math.max(hi, x); } });
@@ -312,7 +347,8 @@
     this.lines.forEach(function (ln) { if (ln.price > lo * 0.8 && ln.price < hi * 1.25) { lo = Math.min(lo, ln.price); hi = Math.max(hi, ln.price); } });
     if (this.forecast) [this.forecast.sl, this.forecast.tp].forEach(function (v) { if (v) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
     this.alerts.forEach(function (a) { if (a.price > lo * 0.8 && a.price < hi * 1.25) { lo = Math.min(lo, a.price); hi = Math.max(hi, a.price); } });
-    var pad = (hi - lo) * 0.06 || 1; lo -= pad; hi += pad;
+    if (lineMode && this.refPrice && this.refPrice > lo * 0.97 && this.refPrice < hi * 1.03) { lo = Math.min(lo, this.refPrice); hi = Math.max(hi, this.refPrice); }
+    var pad = (hi - lo) * (lineMode ? 0.12 : 0.06) || (lineMode ? hi * 0.004 : 1); lo -= pad; hi += pad;
     if (this.frozen) { lo = this.frozen.lo; hi = this.frozen.hi; } // keep the scale still while dragging
     function Y(p) { return L.y0 + (hi - p) / (hi - lo) * (L.y1 - L.y0); }
     this.geo = { L: L, lo: lo, hi: hi, Y: Y, bw: bw, fx0: X(Math.min(to, s.n - 1)) + bw * 0.7 };
@@ -368,7 +404,7 @@
       pathLine(v.up, cc, 1, 0.6); pathLine(v.lo, cc, 1, 0.6); if (v.mid) pathLine(v.mid, cc, 1, 0.35, [3, 3]);
     });
     // volume (bottom 18% of the price pane)
-    if (show.vol && vmax) {
+    if (show.vol && vmax && !lineMode) {
       var vh = (L.y1 - L.y0) * 0.18;
       for (i = from; i <= to; i++) {
         if (!s.v[i]) continue;
@@ -378,8 +414,23 @@
       }
     }
     overlays.forEach(function (d) { if (!d.band) pathLine(s.ind[d.id], col(d.color, acc), 1.4); });
+    // line view: one price line, green or red against the previous close, soft fill, live dot
+    var pulseAt = null;
+    if (lineMode) {
+      var last = to === s.n - 1 && this.anim ? this.animValue() : s.c[to], ref = this.refPrice || s.o[from] || s.c[from];
+      var lc = last >= ref ? bull : bear, val = function (k) { return k === to ? last : s.c[k]; };
+      var ry = Y(ref);
+      if (ry > L.y0 && ry < L.y1) { c.strokeStyle = muted; c.globalAlpha = 0.55; c.setLineDash([2, 4]); c.lineWidth = 1; c.beginPath(); c.moveTo(L.x0, ry); c.lineTo(L.x1, ry); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; }
+      var grad = c.createLinearGradient(0, L.y0, 0, L.y1); grad.addColorStop(0, rgba(lc, 0.22)); grad.addColorStop(1, rgba(lc, 0));
+      c.beginPath(); c.moveTo(X(from), Y(val(from))); for (i = from + 1; i <= to; i++) c.lineTo(X(i), Y(val(i)));
+      c.lineTo(X(to), L.y1); c.lineTo(X(from), L.y1); c.closePath(); c.fillStyle = grad; c.fill();
+      c.beginPath(); c.moveTo(X(from), Y(val(from))); for (i = from + 1; i <= to; i++) c.lineTo(X(i), Y(val(i)));
+      c.strokeStyle = lc; c.lineWidth = 2; c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke(); c.lineJoin = 'miter'; c.lineCap = 'butt';
+      if (to === s.n - 1) { var dx = X(to), dy = Y(last); c.fillStyle = lc; c.beginPath(); c.arc(dx, dy, 4, 0, Math.PI * 2); c.fill(); if (s.live) pulseAt = { x: dx, y: dy, c: lc }; }
+    }
+    this.placePulse(pulseAt);
     // candles
-    for (i = from; i <= to; i++) {
+    for (i = lineMode ? to + 1 : from; i <= to; i++) {
       var o = s.o[i], cl = s.c[i], x = X(i), cc = cl >= o ? bull : bear;
       c.strokeStyle = cc; c.lineWidth = 1; c.beginPath(); c.moveTo(x, Y(s.h[i])); c.lineTo(x, Y(s.l[i])); c.stroke();
       var top = Y(Math.max(o, cl)), hgt = Math.max(1, Math.abs(Y(o) - Y(cl)));
@@ -487,11 +538,12 @@
     });
     // last price tag
     if (this.lastPrice != null) {
-      var ly = Y(this.lastPrice), up2 = this.lastPrice >= (s.c[s.n - 2] || this.lastPrice), pc2 = up2 ? bull : bear;
+      var lp = this.anim ? this.animValue() : this.lastPrice;
+      var ly = Y(lp), up2 = lineMode ? lp >= (this.refPrice || s.o[from] || lp) : this.lastPrice >= (s.c[s.n - 2] || this.lastPrice), pc2 = up2 ? bull : bear;
       if (ly >= L.y0 && ly <= L.y1) {
         c.strokeStyle = pc2; c.globalAlpha = 0.6; c.setLineDash([1, 3]); c.beginPath(); c.moveTo(L.x0, ly); c.lineTo(L.x1, ly); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
         c.fillStyle = pc2; c.fillRect(L.x1 + 1, ly - 9, 62, 18); c.fillStyle = lum(pc2) > 0.62 ? '#0b0c0f' : '#ffffff';
-        c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText(fmt(this.lastPrice), L.x1 + 6, ly); c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+        c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText(fmt(lp), L.x1 + 6, ly); c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
       }
     }
     // indicator panes

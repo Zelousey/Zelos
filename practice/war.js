@@ -26,6 +26,7 @@
   var CH = window.ZelosChallenge; // Last Man Standing rule text (zelos-challenge.js)
   var OUT_WHY = { floor: 'hit the P&L floor', bigLoss: 'took too big a loss on one trade', losses: 'ran out of losing trades', cut: 'finished last at the timed cut', surrender: 'surrendered' };
   var TC = window.ZelosTradeChart, hist = {}, extra = {}, chartEl = null, chart = null, fibOn = false;
+  var intra = {}, intraSym = null, intraUnsub = null; // today's 5-minute bars (markets/intraday_<SYM>) for the live line
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   // name in the trader's purchased color (zelos-tokens.js paints [data-zname])
   function zn(uid) { return uid ? ' data-zname="' + esc(uid) + '"' : ''; }
@@ -376,7 +377,10 @@
     if ($('twCancel')) $('twCancel').onclick = function () { if (!confirm('Cancel this Trade War? Players will see it was cancelled.')) return; var b = this; b.disabled = true; call('tw_cancel', { warId: warId }).catch(function (e) { b.disabled = false; msg(errText(e)); }); };
     if ($('twShare')) $('twShare').onclick = function () { var b = this; var S = window.ZelosSocial; (S && S.shareLink ? S.shareLink('Join my Trade War', 'Join my Trade War "' + war.name + '": everyone starts with ' + money(war.buyIn, 0) + ' of virtual money. Best % gain wins.', link(warId)) : Promise.resolve()).then(function (r) { if (r === 'copied') b.textContent = 'Copied ✓'; }); };
   }
+  // Stop loss / take profit is a game option the host turns on (modes.stops); off by default.
+  function stopsOn() { return !!(war && war.modes && war.modes.stops); }
   function sltpRow(p, px) {
+    if (!stopsOn()) return p && (p.sl || p.tp) ? '<div class="tw-sltp"><span class="pt-fine">Exit set earlier: ' + (p.sl ? 'stop ' + money(p.sl) : '') + (p.sl && p.tp ? ' · ' : '') + (p.tp ? 'target ' + money(p.tp) : '') + '</span><button class="pt-mini" type="button" id="twSltpClear">Clear</button></div>' : '';
     var cur = typed[ticket.sym] || p || plans[ticket.sym] || {};
     return '<div class="tw-sltp" data-help="Stop loss sells your whole position if the price falls to it; take profit sells if it rises to it. Checked every 5 minutes in market hours; fills at the market price then. You can also drag the red and green boxes on the chart.">' +
       '<label class="tw-f"><span>Stop loss</span><input id="twSL" inputmode="decimal" placeholder="optional" value="' + (cur.sl ? cur.sl.toFixed(2) : '') + '"></label>' +
@@ -397,7 +401,7 @@
     var trade = function (side) { return function () {
       var b = this; b.disabled = true; msg('');
       var req = { warId: warId, sym: ticket.sym, side: side, qty: ticket.qty };
-      if (side === 'buy') { req.sl = num('twSL'); req.tp = num('twTP'); }
+      if (side === 'buy' && stopsOn()) { req.sl = num('twSL'); req.tp = num('twTP'); }
       call('tw_trade', req).then(function (r) {
         if (side === 'buy') { delete plans[ticket.sym]; delete typed[ticket.sym]; }
         msg((side === 'buy' ? 'Bought ' : 'Sold ') + r.fill.qty + ' ' + r.fill.sym + ' at ' + money(r.fill.price) + (r.fill.pnl != null ? ' (' + signed(r.fill.pnl) + ')' : '') + (r.out ? '. That knocked you out.' : ''), !r.out);
@@ -422,10 +426,32 @@
     s.n = s.d.length;
     return TC.computeIndicators(s);
   }
+  // Today's live line: the 5-minute bars the server builds every minute, plus the latest quote.
+  function watchIntra(sym) {
+    if (sym === intraSym || !db) return;
+    if (intraUnsub) { intraUnsub(); intraUnsub = null; }
+    intraSym = sym;
+    intraUnsub = db.collection('markets').doc('intraday_' + sym).onSnapshot(function (d) {
+      intra[sym] = ((d.exists && d.data().bars) || []).map(function (b) { var p = String(b).split(','); return [p[0], +p[1], +p[2], +p[3], +p[4], +p[5] || 0]; });
+      drawChart();
+    }, function () {});
+  }
+  function lineSeries(sym) {
+    var rows = intra[sym] || []; if (!rows.length) return null;
+    var day = rows[rows.length - 1][0].slice(0, 10), q = quotes[sym];
+    if (q && q.t && nyDate(q.t * 1000) > day) return null; // no bars yet for the latest session: daily view
+    rows = rows.filter(function (r) { return r[0].slice(0, 10) === day; }).map(function (r) { return r.slice(); });
+    if (q && q.c && q.t && nyDate(q.t * 1000) === day) { var r = rows[rows.length - 1]; r[4] = q.c; r[2] = Math.max(r[2], q.c); r[3] = Math.min(r[3], q.c); }
+    var s = { sym: sym, key: sym + '|1D', d: [], o: [], h: [], l: [], c: [], v: [], intraday: true, live: !!(quoteDoc && quoteDoc.marketOpen) };
+    rows.forEach(function (r) { s.d.push(r[0]); s.o.push(r[1]); s.h.push(r[2]); s.l.push(r[3]); s.c.push(r[4]); s.v.push(r[5]); });
+    s.n = s.d.length;
+    return TC.computeIndicators(s);
+  }
   function ensureChart() {
     if (chartEl || !TC) return;
     chartEl = document.createElement('section'); chartEl.className = 'pt-card ch-card tw-chart-card';
     chartEl.innerHTML = '<div class="tw-chart-bar"><b id="twChartSym"></b><span class="tw-chart-tools">' +
+      '<button class="pt-chip" type="button" id="twStyle" title="Switch between today\'s live line and daily candles">Candles</button>' +
       '<button class="pt-chip" type="button" id="twFib" aria-pressed="false" title="Fibonacci retracement across the visible swing">Fib</button>' +
       '<button class="pt-chip" type="button" id="twAlertAdd" aria-pressed="false" title="Set a Trade War price alert: press, then click a price on the chart">&#9200; Alert</button>' +
       '<button class="pt-chip" type="button" id="twAbc" aria-pressed="false" title="Three-Legged Strategy: draw an A-B-C pullback (click the start, then the ends of legs A, B and C)">3-Leg</button>' +
@@ -434,6 +460,9 @@
       '<p class="pt-fine">Drag to pan · scroll to zoom · dashed line: your entry and P&amp;L · ▲▼ your trades · green / red boxes: take profit / stop loss (drag the edges) · ⏰ lines: your Trade War price alerts (drag to move)</p>' +
       '<div class="tw-alerts" id="twAlerts"></div>';
     chart = new TC.TradeChart(chartEl.querySelector('canvas'));
+    var styleBtn = function () { var b = chartEl.querySelector('#twStyle'); b.textContent = chart.style === 'line' ? 'Candles' : 'Line'; };
+    chartEl.querySelector('#twStyle').onclick = function () { chart.setStyle(chart.style === 'line' ? 'candles' : 'line'); styleBtn(); drawChart(); };
+    styleBtn();
     try { fibOn = localStorage.getItem('zelosPracticeFib') === '1'; } catch (e) {}
     var fib = chartEl.querySelector('#twFib'), al = chartEl.querySelector('#twAlertAdd');
     fib.classList.toggle('is-on', fibOn); fib.setAttribute('aria-pressed', String(fibOn));
@@ -481,6 +510,7 @@
   function boxes(s, px) {
     if (!sltpOn || !px || !war || war.status !== 'active') return null;
     var pos = ((book && book.positions) || {})[ticket.sym], a = s.n > 15 ? atr(s) : px * 0.02, plan = plans[ticket.sym];
+    if (!stopsOn()) return pos && (pos.sl || pos.tp) ? { entry: pos.avg, sl: pos.sl || null, tp: pos.tp || null, label: 'Exit set earlier', side: 'buy', editable: false, src: 'pos' } : null;
     if (pos) {
       if (pos.sl || pos.tp) return { entry: pos.avg, sl: pos.sl || null, tp: pos.tp || null, label: 'Your stop loss / take profit', side: 'buy', editable: true, src: 'pos' };
       return { entry: pos.avg, sl: r2(Math.min(px, pos.avg) - 1.5 * a), tp: r2(Math.max(px, pos.avg) + 3 * a), label: 'Suggested: drag to set', side: 'buy', editable: true, src: 'pos' };
@@ -505,16 +535,22 @@
   }
   function drawChart() {
     if (!chart) return;
-    var s = seriesFor(ticket.sym), pos = ((book && book.positions) || {})[ticket.sym], px = (quotes[ticket.sym] || {}).c || (s.n ? s.c[s.n - 1] : null);
+    if ($('twSltp')) $('twSltp').hidden = !stopsOn(); // the SL/TP chip only when the battle has them on
+    watchIntra(ticket.sym);
+    var ls = chart.style === 'line' ? lineSeries(ticket.sym) : null; // live line for today, else daily candles
+    var s = ls || seriesFor(ticket.sym), pos = ((book && book.positions) || {})[ticket.sym], px = (quotes[ticket.sym] || {}).c || (s.n ? s.c[s.n - 1] : null);
+    chart.refPrice = ls ? (quotes[ticket.sym] || {}).pc || null : null;
     var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#f4f5f7';
     $('twChartSym').textContent = ticket.sym + (px ? ' · ' + money(px) : '');
     chart.lines = pos ? [{ price: pos.avg, color: ink, dash: [6, 3], label: 'ENTRY ' + money(pos.avg) + ' · ' + pos.qty + ' sh · P&L ' + signed((px - pos.avg) * pos.qty) + ' (' + pct((px / pos.avg - 1) * 100) + ')' }] : [];
-    chart.marks = ((book && book.fills) || []).filter(function (f) { return f.sym === ticket.sym; }).map(function (f) { return { i: s.d.indexOf(nyDate(f.at)), price: f.price, side: f.side }; }).filter(function (m) { return m.i >= 0; });
+    // ▲▼ your trades: on today's line by their 5-minute bar, on daily candles by their day
+    var barOf = function (ms) { try { var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(ms)), g = {}; p.forEach(function (x) { g[x.type] = x.value; }); var m = Math.floor(+g.minute / 5) * 5; return g.year + '-' + g.month + '-' + g.day + ' ' + g.hour + ':' + ('0' + m).slice(-2); } catch (e) { return ''; } };
+    chart.marks = ((book && book.fills) || []).filter(function (f) { return f.sym === ticket.sym; }).map(function (f) { return { i: s.d.indexOf(ls ? barOf(f.at) : nyDate(f.at)), price: f.price, side: f.side }; }).filter(function (m) { return m.i >= 0; });
     chart.lastPrice = px; chart.fib = fibOn; chart.alerts = TC.alerts.forSym(ticket.sym);
     chart.forecast = boxes(s, px); drawAlerts();
     if (chart.placing !== 'abc') chart.abc = TC.abc.get(ticket.sym);
     chart.empty = s.n ? null : 'Loading chart…';
-    if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, 126); else chart.setSeries(s);
+    if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, ls ? 'all' : 126); else chart.setSeries(s);
     chart.draw();
   }
   function checkAlerts() {

@@ -60,6 +60,7 @@
     if (m.whale) r.push('Whale vs Minnow: top-XP players can put at most ' + m.whale.capPct + '% in one stock; everyone else gets ' + m.whale.shields + ' Shield Token' + (m.whale.shields === 1 ? '' : 's'));
     if (m.storms) r.push('Volatility Storms (' + m.storms + '): random 30-minute virtual events');
     if (m.bounties) r.push('Bounty Board: put virtual bounties on rivals');
+    if (m.stops) r.push('Stop loss & take profit: automatic exits are allowed');
     return r;
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -237,12 +238,13 @@
         (lockNote(xp) ? '<p class="zc-lock">' + lockNote(xp) + '</p>' : '') + '</div>' +
         '<label class="zc-f"><span>Length</span><select id="zcDays"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>1 week</option><option value="14">2 weeks</option><option value="30">30 days</option></select></label>' +
         '<div class="zc-f"><span>Mode</span><div class="zc-chips" id="zcMode"><button type="button" data-m="" class="is-on">Classic: best % gain wins</button><button type="button" data-m="lms">Last Man Standing</button></div></div>' +
-        '<details class="zc-more"><summary>Game options <small>draft, whales &amp; minnows, storms, bounties</small></summary><div class="zc-row">' +
+        '<details class="zc-more"><summary>Game options <small>stops, draft, whales &amp; minnows, storms, bounties</small></summary><div class="zc-row">' +
           sel('zcDraft', 'Pre-battle draft', [['', 'Off'], ['2', '2 stocks each'], ['3', '3 stocks each'], ['5', '5 stocks each']]) +
           sel('zcStorm', 'Volatility Storms', [['', 'Off'], ['rare', 'Rare (~1 a day)'], ['often', 'Often (~3 a day)']]) +
           sel('zcWhale', 'Whale vs Minnow', [['', 'Off'], ['25', 'Whales max 25% a stock'], ['50', 'Whales max 50% a stock'], ['75', 'Whales max 75% a stock']]) +
           sel('zcShields', 'Minnow Shield Tokens', [['1', '1 shield'], ['2', '2 shields'], ['3', '3 shields']]) +
-        '</div><label class="zc-check"><input type="checkbox" id="zcBounty"> Bounty Board: players can put virtual bounties on rivals</label>' +
+        '</div><label class="zc-check"><input type="checkbox" id="zcStops"> Stop loss &amp; take profit: players can set automatic exits</label>' +
+        '<label class="zc-check"><input type="checkbox" id="zcBounty"> Bounty Board: players can put virtual bounties on rivals</label>' +
         '<p class="zc-lock">Whales are the players above the match\'s median XP. Shields cancel a bounty on you or save you from a timed cut. Everything is virtual.</p></details>' +
         '<div class="zc-lms" id="zcLms" hidden><div class="zc-row">' +
           pick('floorPct', 'P&L floor', function (v) { return 'Out at -' + v + '%'; }, 10) +
@@ -280,6 +282,7 @@
         if ($('zcStorm').value) md.storms = $('zcStorm').value;
         if ($('zcWhale').value) { md.whaleCap = +$('zcWhale').value; md.whaleShields = +$('zcShields').value; }
         if ($('zcBounty').checked) md.bounties = true;
+        if ($('zcStops').checked) md.stops = true;
         if (Object.keys(md).length) data.modes = md;
         if (mode === 'lms') {
           data.lms = {}; m.el.querySelectorAll('[data-lms]').forEach(function (x) { if (x.value) data.lms[x.getAttribute('data-lms')] = +x.value; });

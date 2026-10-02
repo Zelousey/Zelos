@@ -37,7 +37,7 @@
 <meta name="twitter:title" content="Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos">
 <meta name="twitter:description" content="Trade War: a free $10,000 virtual trading account. Trade 50 real stocks and ETFs at live prices with virtual money and compete with friends. Candlestick charts with 13 indicators, market, limit, stop and bracket orders, simulated options, agent signals and a public leaderboard.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
-<link rel="stylesheet" href="../zelos-theme.css?v=963db1af">
+<link rel="stylesheet" href="../zelos-theme.css?v=f40df10e">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{ color-scheme: dark; }
@@ -45,8 +45,8 @@
   body{ margin:0; }
   [hidden]{ display:none !important; }
 </style>
-<link rel="stylesheet" href="../zelos-theme.css?v=963db1af">
-<link rel="stylesheet" href="practice.css?v=9a5bbc48">
+<link rel="stylesheet" href="../zelos-theme.css?v=f40df10e">
+<link rel="stylesheet" href="practice.css?v=6d446b7b">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
@@ -199,11 +199,11 @@
   <div class="pt-grid">
     <section class="pt-card pt-acard" aria-label="Main account">
       <div class="pt-acard-head"><span class="pt-acard-k">Main account &middot; <span class="zm-tag is-war">VIRTUAL</span></span><button class="pt-linkbtn" type="button" id="ptHistBtn">History &rsaquo;</button></div>
-      <b class="pt-acard-eq" id="ptEquity">$10,000.00</b>
-      <span class="pt-acard-since"><b id="ptTotal">+$0.00</b> <span id="ptSinceLbl">since start</span></span>
+      <b class="pt-acard-eq" id="ptEquity">…</b>
+      <span class="pt-acard-since"><b id="ptTotal">…</b> <span id="ptSinceLbl">since start</span></span>
       <div class="pt-acard-chart"><canvas id="ptAcctChart" aria-label="Account value history, resets marked"></canvas></div>
       <div class="pt-acard-foot"><span id="ptAcctNote">Account #1</span><span class="pt-acard-rng" id="ptAcctRng"><button type="button" data-ar="31">1M</button><button type="button" data-ar="92">3M</button><button type="button" data-ar="all" class="is-on">ALL</button></span></div>
-      <div class="pt-acard-stats" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money. RESET on the chart marks where you started over."><span><small>Today</small><b id="ptDay">+$0.00</b></span><span><small>Open P&amp;L</small><b id="ptOpen">+$0.00</b></span><span><small>Buying power</small><b id="ptBP">$10,000.00</b></span></div>
+      <div class="pt-acard-stats" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money. RESET on the chart marks where you started over."><span><small>Today</small><b id="ptDay">…</b></span><span><small>Open P&amp;L</small><b id="ptOpen">…</b></span><span><small>Buying power</small><b id="ptBP">…</b></span></div>
     </section>
 
     <aside class="pt-card pt-watch-card" aria-label="Stocks and crypto">
@@ -227,6 +227,7 @@
           <div class="pt-menu pt-tf-menu" id="ptTfMenu" role="menu" hidden></div>
         </span>
         <span class="pt-seg" id="ptRanges" role="group" aria-label="Range"></span>
+        <button class="pt-chip" type="button" id="ptStyle" title="Switch between a live line and candles">Candles</button>
         <span class="pt-dd">
           <button class="pt-chip pt-dd-btn" type="button" id="ptIndBtn" aria-haspopup="true" aria-expanded="false">Indicators</button>
           <div class="pt-menu pt-ind-menu" id="ptIndMenu" hidden></div>
@@ -414,7 +415,7 @@
 <script src="../firebase-config.js?v=d17d99d7"></script>
 <script src="../zelos-mood.js?v=15cc718b"></script>
 <script src="../zelos-xp.js?v=7567dfa3"></script>
-<script src="../zelos-challenge.js?v=f22fb601"></script>
+<script src="../zelos-challenge.js?v=00bf8e79"></script>
 <script src="../zelos-tokens.js?v=c13a7908"></script>
 <script src="../leaderboard.js?v=ee322309"></script>
 <script src="../zelos-signin.js?v=d00a05f1"></script>
@@ -422,11 +423,11 @@
 <script src="../zelos-levels.js?v=cacb23ea"></script>
 <script src="../zelos-progress.js?v=e914917e"></script>
 <script src="../zelos-social.js?v=fea235ed"></script>
-<script src="../zelos-profile.js?v=b1be0289"></script>
-<script src="practice-chart.js?v=3b4caa6c"></script>
+<script src="../zelos-profile.js?v=af73368c"></script>
+<script src="practice-chart.js?v=2c0f2e19"></script>
 <script src="practice-options.js?v=c55caf67"></script>
-<script src="practice.js?v=0efd485a"></script>
-<script src="tw-home.js?v=ffd825e6"></script>
+<script src="practice.js?v=5b59900f"></script>
+<script src="tw-home.js?v=02870923"></script>
 
 <script>
 (function(){
@@ -570,7 +571,7 @@
       if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
       var provider = new firebase.auth.GoogleAuthProvider();
       setMsg('Opening Google sign-in…');
-      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ var c = (e && e.code) || ''; if (c === 'auth/popup-closed-by-user') return setMsg(''); if (/popup-blocked|operation-not-supported|cancelled-popup-request|internal-error|web-storage-unsupported/.test(c)) { setMsg('Opening Google…'); return auth.signInWithRedirect(provider).catch(function(e2){ setMsg(e2.message, true); }); } setMsg(e.message, true); });
     });
   }
 

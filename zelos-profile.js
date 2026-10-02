@@ -336,7 +336,8 @@
     if (!el) return;
     style();
     var ctx = { user: null, trader: null, userdoc: null }, f = fb();
-    function signup() { var b = d.getElementById('getStartedBtn'); if (b) { b.click(); try { b.scrollIntoView({ block: 'nearest' }); } catch (e) {} } else location.href = ROOT + 'my-zelos.html'; }
+    // opened after this tap finishes, or the page's click-outside handler would close it straight away
+    function signup() { var b = d.getElementById('getStartedBtn'); if (b) { setTimeout(function () { b.click(); try { b.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 0); } else location.href = ROOT + 'my-zelos.html'; }
     function payXp(list) {
       if (!ctx.user || !global.ZelosXP) return;
       list.forEach(function (s) { if (s.done && s.xp && ls('zelosObXp-' + s.id) !== '1') { ls('zelosObXp-' + s.id, '1'); ZelosXP.award('onboard', s.id, null, s.xp); } });

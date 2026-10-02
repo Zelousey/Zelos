@@ -94,7 +94,7 @@
     'D': { label: 'Daily', short: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
     'W': { label: 'Weekly', short: 'W', ranges: [['6M', 26], ['1Y', 52], ['All', 'all']], def: 52 }
   };
-  var tf = 'D', rangeSel = null;
+  var tf = '5m', rangeSel = null; // today's live line by default; your last pick is remembered
   function fromRows(rows, key, extraProps) {
     var s = { sym: sel, key: key, d: [], o: [], h: [], l: [], c: [], v: [] };
     rows.forEach(function (r) { s.d.push(r[0]); s.o.push(r[1]); s.h.push(r[2]); s.l.push(r[3]); s.c.push(r[4]); s.v.push(r[5] || 0); });
@@ -123,6 +123,9 @@
       if (!cb || cb[0] !== label) { cb = [label, r[1], r[2], r[3], r[4], r[5] || 0]; out.push(cb); }
       else { cb[2] = Math.max(cb[2], r[2]); cb[3] = Math.min(cb[3], r[3]); cb[4] = r[4]; cb[5] += r[5] || 0; }
     });
+    // the latest quote moves today's last bar, so the line ends at the live price
+    var q = quotes[sel] || cquotes[sel], lb = out[out.length - 1];
+    if (q && q.c && q.t && lb && lb[0].slice(0, 10) === new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(q.t * 1000))) { lb[4] = q.c; lb[2] = Math.max(lb[2], q.c); lb[3] = Math.min(lb[3], q.c); }
     return fromRows(out, sel + ':' + tf, { intraday: true, live: isCrypto(sel) ? isLiveTick(sel) : marketOpen() && feed.state === 'live' });
   }
   function watchIntraday() {
@@ -144,7 +147,7 @@
   // copy has been read after sign-in, and nothing is written online before that, so a stale
   // phone can never overwrite the computer. acct.owner = whose copy this is; acct.dirty =
   // changes made here that aren't online yet.
-  var synced = false;
+  var synced = false, syncFailed = false, authReady = false; // authReady: Firebase has said whether you're signed in
   var acct = null, currentUser = null, db = null, saveTimer = null, ownedSkills = [], profile = {}; // profile: traders/{uid} (zelos-profile.js)
   function fresh() {
     return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
@@ -463,6 +466,8 @@
     $('ptDay').textContent = signed(dp); $('ptDay').className = dp >= 0 ? 'up' : 'dn';
     $('ptOpen').textContent = signed(op); $('ptOpen').className = op >= 0 ? 'up' : 'dn';
     $('ptBP').textContent = money(buyingPower());
+    // signed in but the online account hasn't loaded yet: don't flash this browser's old copy
+    if (!authReady || (currentUser && !synced && !syncFailed)) ['ptEquity', 'ptTotal', 'ptDay', 'ptOpen', 'ptBP'].forEach(function (id) { $(id).textContent = '…'; $(id).className = ''; });
     if ($('ptUser')) $('ptUser').textContent = playerName();
     $('ptResetBanner').hidden = eq >= RESET_BELOW;
     renderLevelChip(); renderRecovery();
@@ -679,6 +684,8 @@
       return { i: ds.d.indexOf(tf === 'W' ? weekKey(f.day) : f.day), price: f.price, side: f.side };
     }).filter(function (m) { return m.i >= 0; });
     chart.lastPrice = px;
+    // 1-day view: color and dotted line against yesterday's close, like a broker app
+    chart.refPrice = ds && ds.intraday && (rangeSel || TF[tf].def) === TF[tf].ranges[0][1] ? prevClose(sel) : null;
     chart.empty = null;
     if (!ds || !ds.n) {
       chart.empty = ds && ds.intraday
@@ -1313,6 +1320,10 @@
       try { localStorage.setItem('zelosPracticeFib', fibOn ? '1' : '0'); } catch (err) {} renderAll();
     });
     function abcOff() { $('ptAbc').classList.remove('is-on'); $('ptAbc').setAttribute('aria-pressed', 'false'); }
+    // Line (live, default) or Candles; the button names the other view
+    function styleBtn() { var b = $('ptStyle'); if (b) { b.textContent = chart.style === 'line' ? 'Candles' : 'Line'; b.setAttribute('aria-label', 'Show ' + b.textContent.toLowerCase()); } }
+    if ($('ptStyle')) $('ptStyle').addEventListener('click', function () { chart.setStyle(chart.style === 'line' ? 'candles' : 'line'); styleBtn(); });
+    styleBtn();
     $('ptAbc').addEventListener('click', function () {
       if (chart.placing === 'abc') { chart.placing = null; abcOff(); renderAll(); return; }
       if (TC.abc.get(sel)) {
@@ -1501,6 +1512,7 @@
         db.collection('markets').doc('news').onSnapshot(function (snap) { var d = snap.exists ? snap.data() : {}; finnNews = d.bySymbol || {}; finnAttr = d.attribution || ''; if (UNIVERSE.length) renderNewsBtn(); }, function () {});
         var xpUnsub = null;
         firebase.auth().onAuthStateChanged(function (user) {
+          authReady = true;
           // XP accrues to whoever is signed in, guests included (zelos-xp.js signs them in anonymously)
           if (xpUnsub) { xpUnsub(); xpUnsub = null; }
           if (user) xpUnsub = db.collection('users').doc(user.uid).onSnapshot(function (d) {
@@ -1526,7 +1538,10 @@
           }
           $('ptSync').textContent = currentUser ? 'Saved to your account' : 'Saved in this browser · sign in to keep it everywhere';
           if (!currentUser) { renderGate(); if (UNIVERSE.length) renderHeader(); return; }
+          var syncUser = currentUser;
+          (function loadOnline(tries) {
           Promise.all([db.collection('users').doc(currentUser.uid).get(), profileReady]).then(function (r) {
+            if (currentUser !== syncUser) return; // signed out / switched while loading
             var doc = r[0];
             var data = doc.exists ? doc.data() : {};
             ownedSkills = data.ownedSkills || [];
@@ -1536,11 +1551,18 @@
             else if (!remote && !mine) acct = seedLife(fresh());
             acct.owner = uid0; synced = true;
             if (acct.dirty || !remote) save(); else { try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} publishProfile(); }
-            renderGate(); if (UNIVERSE.length) tick();
-          }).catch(function () {});
+            syncFailed = false; renderGate(); if (UNIVERSE.length) tick();
+          }).catch(function () {
+            // couldn't reach the account: keep retrying; after a few tries show this device's copy
+            // (still never written online until the real one has loaded)
+            if (currentUser !== syncUser) return;
+            if (tries >= 2) { syncFailed = true; if (UNIVERSE.length) renderHeader(); }
+            setTimeout(function () { if (currentUser === syncUser && !synced) loadOnline(tries + 1); }, Math.min(30000, 2000 * (tries + 1)));
+          });
+          })(0);
         });
-      } catch (e) { feed = { state: 'none' }; }
-    } else feed = { state: 'none' };
+      } catch (e) { feed = { state: 'none' }; authReady = true; }
+    } else { feed = { state: 'none' }; authReady = true; }
     setInterval(function () { if (!UNIVERSE.length) return; renderHeader(); if (marketOpen()) tick(); }, 15000);
   }
   document.addEventListener('zelos:profile', function (e) { profile = e.detail || {}; if (acct) { renderGate(); if (UNIVERSE.length) renderHeader(); save(); } });
