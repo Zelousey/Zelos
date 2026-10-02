@@ -96,8 +96,91 @@
     var f = fb(), made = false;
     walletUnsub = f.db.collection('wallets').doc(u.uid).onSnapshot(function (s) {
       if (!s.exists) { if (!made) { made = true; ensureWallet().catch(function () {}); } return; }
-      wallet = s.data(); emit(); chip();
+      var before = wallet && typeof wallet.balance === 'number' ? wallet.balance : null;
+      wallet = s.data(); emit();
+      if (before != null && wallet.balance > before) reward(wallet.balance - before, before);
+      chip();
     }, function () {});
+  }
+
+  // ------------------------------------------------------------ coin reward
+  // Tokens credited (check-in, Trade War reward, purchase, Founder milestone): pixel
+  // coins burst from the middle of the screen, spin, and fly into your token chip,
+  // which counts up and bumps. ~1.5 s on a temporary overlay that removes itself;
+  // skipped with reduced motion or when no chip is on screen.
+  var shownBal = null, COINPAL = { o: '#3a2604', g: '#f0b434', y: '#ffe08a', G: '#b07a12', b: '#3f74e8', B: '#2452b8', l: '#8fb8ff', w: '#ffffff' }, COIN_G = null;
+  function coinGrid() {
+    var rows = [[7,8],[5,10],[3,12],[1,14],[1,14],[1,14],[1,14],[1,14],[1,14],[1,14],[1,14],[1,14],[1,14],[3,12],[5,10],[7,8]], N = 16, depth = [];
+    for (var y = 0; y < N; y++) { depth.push([]); for (var x = 0; x < N; x++) depth[y].push(x >= rows[y][0] && x <= rows[y][1] ? 99 : -1); }
+    for (var dd = 0; dd < 6; dd++) for (var y2 = 0; y2 < N; y2++) for (var x2 = 0; x2 < N; x2++) {
+      if (depth[y2][x2] !== 99) continue;
+      var edge = [[1,0],[-1,0],[0,1],[0,-1]].some(function (q) { var a = y2 + q[1], b = x2 + q[0]; return a < 0 || b < 0 || a >= N || b >= N || (depth[a][b] !== 99 && depth[a][b] < dd) || (depth[a][b] === -1 && dd === 0); });
+      if (edge) depth[y2][x2] = dd;
+    }
+    var g = depth.map(function (r, yy) { return r.map(function (v, xx) {
+      if (v < 0) return '.'; if (v === 0) return 'o'; if (v === 1) return (xx + yy) % 2 ? 'G' : 'g'; if (v === 2) return 'y';
+      return xx + yy < 11 ? 'l' : yy > 10 ? 'B' : 'b'; }); });
+    [[5,5],[6,5],[7,5],[8,5],[9,5],[10,5],[9,6],[8,7],[7,8],[6,9],[5,10],[6,10],[7,10],[8,10],[9,10],[10,10]].forEach(function (q) { g[q[1]][q[0]] = 'w'; });
+    return g;
+  }
+  function drawCoin(ctx, cx, cy, frame, S) { // frame 0..7: face, turning, edge-on, back
+    COIN_G = COIN_G || coinGrid();
+    var f = ((frame % 8) + 8) % 8, squash = [1, .78, .48, .2, .2, .2, .48, .78][f], edge = f >= 3 && f <= 5, back = f > 4, x0 = Math.round(cx), y0 = Math.round(cy) - 8;
+    if (f === 4) {
+      for (var y = 0; y < 16; y++) { ctx.fillStyle = y === 0 || y === 15 ? COINPAL.o : (y % 2 ? '#f0b434' : '#b07a12'); ctx.fillRect((x0 - 1) * S, (y0 + y) * S, 2 * S, S); }
+      ctx.fillStyle = COINPAL.o; ctx.fillRect((x0 - 2) * S, (y0 + 1) * S, S, 14 * S); ctx.fillRect((x0 + 1) * S, (y0 + 1) * S, S, 14 * S); return;
+    }
+    var w = Math.max(3, Math.round(16 * squash)), left = x0 - Math.floor(w / 2);
+    for (var j = 0; j < w; j++) { var sx = Math.min(15, Math.floor((j + .5) / w * 16));
+      for (var yy = 0; yy < 16; yy++) { var v = COIN_G[yy][sx]; if (v === '.') continue; if (back && v === 'w') v = 'B'; if (edge && v !== 'o' && j > 0 && j < w - 1) v = yy % 2 ? 'g' : 'G';
+        ctx.fillStyle = COINPAL[v]; ctx.fillRect((left + j) * S, (y0 + yy) * S, S, S); } }
+  }
+  function visibleChip() {
+    var cs = d.querySelectorAll('.zt-chip');
+    for (var i = 0; i < cs.length; i++) { var r = cs[i].getBoundingClientRect(); if (r.width && r.bottom > 0 && r.top < global.innerHeight) return cs[i]; }
+    return null;
+  }
+  function reward(amount, from) {
+    var target = visibleChip();
+    if (!target || (global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    var S = global.innerWidth < 600 ? 2 : 3, cv = d.createElement('canvas'), W = Math.ceil(global.innerWidth / S), H = Math.ceil(global.innerHeight / S);
+    cv.width = W * S; cv.height = H * S; cv.setAttribute('aria-hidden', 'true');
+    cv.style.cssText = 'position:fixed;inset:0;width:' + W * S + 'px;height:' + H * S + 'px;z-index:2200;pointer-events:none';
+    d.body.appendChild(cv);
+    var ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    var tr = (target.querySelector('.zt-coin') || target).getBoundingClientRect(), tx = (tr.left + tr.width / 2) / S, ty = (tr.top + tr.height / 2) / S;
+    var ox = W / 2, oy = H * 0.55, n = Math.max(3, Math.min(18, Math.round(Math.sqrt(amount) * 1.6))), step = amount / n, parts = [], sparks = [];
+    shownBal = from; chip();
+    for (var i = 0; i < n; i++) parts.push({ x: ox, y: oy, vx: (Math.random() - .5) * (2.2 + n / 12), vy: -2.4 - Math.random() * 2.2, age: 0, delay: i * 1.5, home: 30 + Math.random() * 14, frame: Math.floor(Math.random() * 8) });
+    function sparkle(x, y, k, spread) { for (var q = 0; q < k; q++) sparks.push({ x: x + (Math.random() - .5) * spread, y: y + (Math.random() - .5) * spread, life: 14 + Math.random() * 14, age: 0 }); }
+    function star(x, y, a) { x = Math.round(x); y = Math.round(y); ctx.fillStyle = a > .5 ? '#ffffff' : '#ffd970'; ctx.fillRect(x * S, y * S, S, S); ctx.fillStyle = '#f0b434'; [[1,0],[-1,0],[0,1],[0,-1]].forEach(function (q) { ctx.fillRect((x + q[0]) * S, (y + q[1]) * S, S, S); }); }
+    sparkle(ox, oy, 8 + n / 2, 26);
+    var plus = d.createElement('div'); plus.textContent = '+' + amount; plus.setAttribute('aria-hidden', 'true');
+    plus.style.cssText = 'position:fixed;left:50%;top:' + (oy * S - 40) + 'px;transform:translateX(-50%);z-index:2201;pointer-events:none;font:800 1.4rem "IBM Plex Mono",monospace;color:#ffe08a;text-shadow:2px 2px 0 #5c3f06;transition:transform 1.1s ease-out,opacity 1.1s ease-in';
+    d.body.appendChild(plus); requestAnimationFrame(function () { plus.style.transform = 'translate(-50%,-40px)'; plus.style.opacity = '0'; });
+    var started = Date.now();
+    function loop() {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (var k = parts.length - 1; k >= 0; k--) {
+        var p = parts[k]; if (p.delay > 0) { p.delay--; continue; }
+        p.age++; if (p.age % 3 === 0) p.frame++;
+        if (p.age < p.home) { p.x += p.vx; p.y += p.vy; p.vy += .16; p.vx *= .985; }
+        else {
+          var t = Math.min(1, (p.age - p.home) / 22), e = t * t * t; if (p.sx == null) { p.sx = p.x; p.sy = p.y; }
+          p.x = p.sx + (tx - p.sx) * e; p.y = p.sy + (ty - p.sy) * e - Math.sin(t * Math.PI) * 14;
+          if (t >= 1) {
+            parts.splice(k, 1); shownBal = parts.length ? Math.min(from + amount, Math.round(shownBal + step)) : null; chip();
+            var c = visibleChip(); if (c && c.animate) c.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 280, easing: 'cubic-bezier(.3,1.6,.5,1)' });
+            sparkle(tx, ty, 2, 10); continue;
+          }
+        }
+        drawCoin(ctx, p.x, p.y, p.frame, S);
+      }
+      for (var j = sparks.length - 1; j >= 0; j--) { var sp = sparks[j]; sp.age++; if (sp.age > sp.life) { sparks.splice(j, 1); continue; } if ((sp.age >> 1) % 3 !== 2) star(sp.x, sp.y, 1 - sp.age / sp.life); }
+      if ((parts.length || sparks.length) && Date.now() - started < 4000) requestAnimationFrame(loop);
+      else { cv.remove(); plus.remove(); shownBal = null; chip(); }
+    }
+    requestAnimationFrame(loop);
   }
 
   // ------------------------------------------------------------ nav chip
@@ -110,7 +193,7 @@
       c.onclick = function (e) { e.preventDefault(); e.stopPropagation(); open(); };
       nav.insertBefore(c, nav.firstChild);
     }
-    var t = wallet ? String(wallet.balance) : '…';
+    var t = wallet ? String(shownBal != null ? shownBal : wallet.balance) : '…';
     if (c.textContent !== t + ' tokens') c.innerHTML = '<span class="zt-coin" aria-hidden="true"></span>' + t + '<span class="zt-sr"> tokens</span>';
   }
 
@@ -122,7 +205,9 @@
       '.zt-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}',
       '.zt-chip{display:inline-flex;align-items:center;gap:6px;margin-right:8px;padding:5px 10px;border-radius:999px;border:1px solid rgba(232,178,61,.45);background:rgba(232,178,61,.08);color:#f2d38a;font:600 .82rem "IBM Plex Mono",monospace;cursor:pointer;vertical-align:middle}',
       '.zt-chip:hover{background:rgba(232,178,61,.16)}',
-      '.zt-coin{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe7a3,#e8b23d 60%,#a67a1c);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.18);flex-shrink:0}',
+      // the Z token: hex coin, ridged gold edge, gold trim, blue enamel center, white Z (one image for every coin on the site)
+      ':root{--zt-coin:url("data:image/svg+xml,%3Csvg viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3ClinearGradient id=\'zg\' x1=\'0\' y1=\'0\' x2=\'1\' y2=\'1\'%3E%3Cstop offset=\'0\' stop-color=\'%23ffe9a3\'/%3E%3Cstop offset=\'.45\' stop-color=\'%23f0b434\'/%3E%3Cstop offset=\'1\' stop-color=\'%239a6a0c\'/%3E%3C/linearGradient%3E%3ClinearGradient id=\'zt\' x1=\'0\' y1=\'0\' x2=\'0\' y2=\'1\'%3E%3Cstop offset=\'0\' stop-color=\'%23fff4cc\'/%3E%3Cstop offset=\'1\' stop-color=\'%23d99a1e\'/%3E%3C/linearGradient%3E%3CradialGradient id=\'zb\' cx=\'38%25\' cy=\'30%25\' r=\'80%25\'%3E%3Cstop offset=\'0\' stop-color=\'%238fb8ff\'/%3E%3Cstop offset=\'.5\' stop-color=\'%233f74e8\'/%3E%3Cstop offset=\'1\' stop-color=\'%23173a8f\'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpolygon points=\'50.00,2.00 91.57,26.00 91.57,74.00 50.00,98.00 8.43,74.00 8.43,26.00\' fill=\'url(%23zg)\' stroke=\'%235c3f06\' stroke-width=\'2\' stroke-linejoin=\'round\'/%3E%3Cpolygon points=\'50.00,6.50 87.67,28.25 87.67,71.75 50.00,93.50 12.33,71.75 12.33,28.25\' fill=\'none\' stroke=\'%237a5208\' stroke-width=\'7\' stroke-dasharray=\'2.1 2.3\' stroke-linejoin=\'round\' opacity=\'.85\'/%3E%3Cpolygon points=\'50.00,11.00 83.77,30.50 83.77,69.50 50.00,89.00 16.23,69.50 16.23,30.50\' fill=\'url(%23zt)\' stroke=\'%237a5208\' stroke-width=\'1.2\' stroke-linejoin=\'round\'/%3E%3Cpolygon points=\'50.00,16.00 79.44,33.00 79.44,67.00 50.00,84.00 20.56,67.00 20.56,33.00\' fill=\'url(%23zb)\' stroke=\'%230f2a6b\' stroke-width=\'2\' stroke-linejoin=\'round\'/%3E%3Cpath d=\'M36 34 H64 V41 L46 60 H64 V67 H36 V60 L54 41 H36 Z\' fill=\'%230f2a6b\' transform=\'translate(1.6 2)\' opacity=\'.55\'/%3E%3Cpath d=\'M36 34 H64 V41 L46 60 H64 V67 H36 V60 L54 41 H36 Z\' fill=\'%23ffffff\' stroke=\'%23e8b23d\' stroke-width=\'1.6\' stroke-linejoin=\'round\'/%3E%3Cpath d=\'M37.5 35.5 H62.5\' stroke=\'%23ffffff\' stroke-width=\'1\' opacity=\'.9\'/%3E%3Cpath d=\'M24 30 L44 19\' stroke=\'%23ffffff\' stroke-width=\'3\' stroke-linecap=\'round\' opacity=\'.25\'/%3E%3C/svg%3E") center/contain no-repeat}',
+      '.zt-coin{width:14px;height:14px;background:var(--zt-coin);flex-shrink:0}',
       '.zt-back{position:fixed;inset:0;z-index:2150;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(3,4,8,.78)}',
       '.zt-card{width:min(460px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:#0d1016;color:#f4f5f7;border:1px solid #262b36;border-radius:16px;padding:20px 22px;box-shadow:0 40px 90px rgba(0,0,0,.6);font-size:.9rem;line-height:1.45}',
       '.zt-card h2{margin:0 0 4px;font-size:1.2rem}.zt-card h3{margin:16px 0 6px;font-size:.92rem}',
@@ -368,6 +453,6 @@
     var nav = d.getElementById('navAuth');
     if (nav && global.MutationObserver) new MutationObserver(function () { if (me && !nav.querySelector('.zt-chip')) chip(); }).observe(nav, { childList: true });
   }
-  global.ZelosTokens = { open: open, full: full, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
+  global.ZelosTokens = { open: open, full: full, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, reward: reward, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);
