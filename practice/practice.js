@@ -144,7 +144,7 @@
   // copy has been read after sign-in, and nothing is written online before that, so a stale
   // phone can never overwrite the computer. acct.owner = whose copy this is; acct.dirty =
   // changes made here that aren't online yet.
-  var synced = false;
+  var synced = false, syncFailed = false, authReady = false; // authReady: Firebase has said whether you're signed in
   var acct = null, currentUser = null, db = null, saveTimer = null, ownedSkills = [], profile = {}; // profile: traders/{uid} (zelos-profile.js)
   function fresh() {
     return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
@@ -463,6 +463,8 @@
     $('ptDay').textContent = signed(dp); $('ptDay').className = dp >= 0 ? 'up' : 'dn';
     $('ptOpen').textContent = signed(op); $('ptOpen').className = op >= 0 ? 'up' : 'dn';
     $('ptBP').textContent = money(buyingPower());
+    // signed in but the online account hasn't loaded yet: don't flash this browser's old copy
+    if (!authReady || (currentUser && !synced && !syncFailed)) ['ptEquity', 'ptTotal', 'ptDay', 'ptOpen', 'ptBP'].forEach(function (id) { $(id).textContent = '…'; $(id).className = ''; });
     if ($('ptUser')) $('ptUser').textContent = playerName();
     $('ptResetBanner').hidden = eq >= RESET_BELOW;
     renderLevelChip(); renderRecovery();
@@ -1501,6 +1503,7 @@
         db.collection('markets').doc('news').onSnapshot(function (snap) { var d = snap.exists ? snap.data() : {}; finnNews = d.bySymbol || {}; finnAttr = d.attribution || ''; if (UNIVERSE.length) renderNewsBtn(); }, function () {});
         var xpUnsub = null;
         firebase.auth().onAuthStateChanged(function (user) {
+          authReady = true;
           // XP accrues to whoever is signed in, guests included (zelos-xp.js signs them in anonymously)
           if (xpUnsub) { xpUnsub(); xpUnsub = null; }
           if (user) xpUnsub = db.collection('users').doc(user.uid).onSnapshot(function (d) {
@@ -1526,7 +1529,10 @@
           }
           $('ptSync').textContent = currentUser ? 'Saved to your account' : 'Saved in this browser · sign in to keep it everywhere';
           if (!currentUser) { renderGate(); if (UNIVERSE.length) renderHeader(); return; }
+          var syncUser = currentUser;
+          (function loadOnline(tries) {
           Promise.all([db.collection('users').doc(currentUser.uid).get(), profileReady]).then(function (r) {
+            if (currentUser !== syncUser) return; // signed out / switched while loading
             var doc = r[0];
             var data = doc.exists ? doc.data() : {};
             ownedSkills = data.ownedSkills || [];
@@ -1536,11 +1542,18 @@
             else if (!remote && !mine) acct = seedLife(fresh());
             acct.owner = uid0; synced = true;
             if (acct.dirty || !remote) save(); else { try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} publishProfile(); }
-            renderGate(); if (UNIVERSE.length) tick();
-          }).catch(function () {});
+            syncFailed = false; renderGate(); if (UNIVERSE.length) tick();
+          }).catch(function () {
+            // couldn't reach the account: keep retrying; after a few tries show this device's copy
+            // (still never written online until the real one has loaded)
+            if (currentUser !== syncUser) return;
+            if (tries >= 2) { syncFailed = true; if (UNIVERSE.length) renderHeader(); }
+            setTimeout(function () { if (currentUser === syncUser && !synced) loadOnline(tries + 1); }, Math.min(30000, 2000 * (tries + 1)));
+          });
+          })(0);
         });
-      } catch (e) { feed = { state: 'none' }; }
-    } else feed = { state: 'none' };
+      } catch (e) { feed = { state: 'none' }; authReady = true; }
+    } else { feed = { state: 'none' }; authReady = true; }
     setInterval(function () { if (!UNIVERSE.length) return; renderHeader(); if (marketOpen()) tick(); }, 15000);
   }
   document.addEventListener('zelos:profile', function (e) { profile = e.detail || {}; if (acct) { renderGate(); if (UNIVERSE.length) renderHeader(); save(); } });

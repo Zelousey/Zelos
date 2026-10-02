@@ -37,7 +37,7 @@
 <meta name="twitter:title" content="Zelos Setup Guide">
 <meta name="twitter:description" content="A few steps to start reading your Zelos alert page — no account, no connection, nothing to install.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
-<link rel="stylesheet" href="zelos-theme.css?v=963db1af">
+<link rel="stylesheet" href="zelos-theme.css?v=f40df10e">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{ color-scheme: dark; }
@@ -513,7 +513,7 @@
       if (!ready) return setMsg('Can\'t reach sign-in right now.', true);
       var provider = new firebase.auth.GoogleAuthProvider();
       setMsg('Opening Google sign-in…');
-      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ setMsg(e.message, true); });
+      auth.signInWithPopup(provider).then(goToDashboardAfterAuth).catch(function(e){ var c = (e && e.code) || ''; if (c === 'auth/popup-closed-by-user') return setMsg(''); if (/popup-blocked|operation-not-supported|cancelled-popup-request|internal-error|web-storage-unsupported/.test(c)) { setMsg('Opening Google…'); return auth.signInWithRedirect(provider).catch(function(e2){ setMsg(e2.message, true); }); } setMsg(e.message, true); });
     });
   }
 

@@ -949,6 +949,10 @@ body.zt-body::after{
   html.has-zbtop .site-nav .nav-brand, html.has-zbtop .site-nav .theme-toggle{ display:none; }
   html.has-zbtop .zb-title{ display:block; font-size:1.05rem; font-weight:700; margin-right:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:52vw; }
   html.has-zbtop #navAuth > :not(.zt-chip){ display:none; }
+  /* the sign-in box still opens (My Zelos → Sign in), as a sheet under the top bar */
+  html.has-zbtop #navAuth > div:has(> .auth-pop:not([hidden])){ display:block; }
+  html.has-zbtop #navAuth > div:has(> .auth-pop:not([hidden])) > button{ display:none; }
+  html.has-zbtop #navAuth .auth-pop:not([hidden]){ display:flex; position:fixed; top:calc(64px + env(safe-area-inset-top)); left:12px; right:12px; width:auto; z-index:2300; }
   html.has-zbtop #navAuth{ order:1; }
   html.has-zbtop .zb-bell{ order:2; }
   html.has-zbtop #navHamburger{ order:3; }

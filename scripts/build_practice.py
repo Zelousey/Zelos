@@ -39,11 +39,11 @@ BODY = '''<main class="pt-shell">
   <div class="pt-grid">
     <section class="pt-card pt-acard" aria-label="Main account">
       <div class="pt-acard-head"><span class="pt-acard-k">Main account &middot; <span class="zm-tag is-war">VIRTUAL</span></span><button class="pt-linkbtn" type="button" id="ptHistBtn">History &rsaquo;</button></div>
-      <b class="pt-acard-eq" id="ptEquity">$10,000.00</b>
-      <span class="pt-acard-since"><b id="ptTotal">+$0.00</b> <span id="ptSinceLbl">since start</span></span>
+      <b class="pt-acard-eq" id="ptEquity">…</b>
+      <span class="pt-acard-since"><b id="ptTotal">…</b> <span id="ptSinceLbl">since start</span></span>
       <div class="pt-acard-chart"><canvas id="ptAcctChart" aria-label="Account value history, resets marked"></canvas></div>
       <div class="pt-acard-foot"><span id="ptAcctNote">Account #1</span><span class="pt-acard-rng" id="ptAcctRng"><button type="button" data-ar="31">1M</button><button type="button" data-ar="92">3M</button><button type="button" data-ar="all" class="is-on">ALL</button></span></div>
-      <div class="pt-acard-stats" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money. RESET on the chart marks where you started over."><span><small>Today</small><b id="ptDay">+$0.00</b></span><span><small>Open P&amp;L</small><b id="ptOpen">+$0.00</b></span><span><small>Buying power</small><b id="ptBP">$10,000.00</b></span></div>
+      <div class="pt-acard-stats" data-help="Account value is your cash plus what your positions are worth at live prices. Everyone starts with $10,000 of virtual money; nothing here is real money. RESET on the chart marks where you started over."><span><small>Today</small><b id="ptDay">…</b></span><span><small>Open P&amp;L</small><b id="ptOpen">…</b></span><span><small>Buying power</small><b id="ptBP">…</b></span></div>
     </section>
 
     <aside class="pt-card pt-watch-card" aria-label="Stocks and crypto">
