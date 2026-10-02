@@ -146,7 +146,7 @@ class ChallengeValidation(unittest.TestCase):
     ME = "me_uid_123"
 
     def v(self, **kw):
-        d = {"to": "friend_uid_1", "buyIn": 500, "days": 7}
+        d = {"to": "friend_uid_1", "buyIn": 500, "days": 7, "name": "Friday Night Fight"}
         d.update(kw)
         return m.tw_validate_challenge(d, self.ME)
 
@@ -154,7 +154,13 @@ class ChallengeValidation(unittest.TestCase):
         targets, buy_in, days, name, squad, lms = self.v()
         self.assertIsNone(lms)
         self.assertEqual((targets, buy_in, days, squad), (["friend_uid_1"], 500, 7, None))
-        self.assertEqual(name, "Head-to-head")
+        self.assertEqual(name, "Friday Night Fight")
+
+    def test_every_battle_needs_its_own_name(self):
+        for bad in (None, "", " ", "x", "<>"):
+            with self.assertRaises(m.TWError):
+                self.v(name=bad)
+        self.assertEqual(self.v(name="  <b>Rematch</b> " + "z" * 50)[3], ("bRematch/b " + "z" * 50)[:40])
 
     def test_list_dedupes_and_drops_self(self):
         self.assertEqual(self.v(to=["a_uid_111", self.ME, "a_uid_111", "b_uid_222"])[0], ["a_uid_111", "b_uid_222"])
@@ -178,10 +184,10 @@ class ChallengeValidation(unittest.TestCase):
             self.v(days=2)
 
     def test_squad_challenge(self):
-        targets, _, _, name, squad, _ = m.tw_validate_challenge({"squadId": "abcdefghijkm", "buyIn": 1000, "days": 3}, self.ME)
-        self.assertEqual((targets, squad, name), ([], "abcdefghijkm", "Squad Trade War"))
+        targets, _, _, name, squad, _ = m.tw_validate_challenge({"squadId": "abcdefghijkm", "buyIn": 1000, "days": 3, "name": "Desk vs Desk"}, self.ME)
+        self.assertEqual((targets, squad, name), ([], "abcdefghijkm", "Desk vs Desk"))
         with self.assertRaises(m.TWError):
-            m.tw_validate_challenge({"squadId": "bad id", "buyIn": 1000, "days": 3}, self.ME)
+            m.tw_validate_challenge({"squadId": "bad id", "buyIn": 1000, "days": 3, "name": "Desk vs Desk"}, self.ME)
 
 
 class MarkAndRank(unittest.TestCase):
@@ -216,8 +222,8 @@ class LastManStanding(unittest.TestCase):
         self.assertEqual(m.tw_validate_lms({"lms": {"cutHours": 6}}, 1), {"cutHours": 6})
 
     def test_challenge_carries_the_rules(self):
-        self.assertEqual(m.tw_validate_challenge({"to": "friend_uid_1", "buyIn": 500, "days": 3, "lms": {"maxLossPct": 5}}, "me_uid_123")[5], {"maxLossPct": 5})
-        self.assertEqual(m.tw_validate_challenge({"to": "friend_uid_1", "buyIn": 500, "days": 3, "lms": {"maxLossPct": 5}}, "me_uid_123")[3], "Last Man Standing")
+        r = m.tw_validate_challenge({"to": "friend_uid_1", "buyIn": 500, "days": 3, "name": "Last one out", "lms": {"maxLossPct": 5}}, "me_uid_123")
+        self.assertEqual((r[5], r[3]), ({"maxLossPct": 5}, "Last one out"))
 
     def test_each_rule_knocks_you_out(self):
         self.assertEqual(m.tw_out_reason(self.acct(-10.0), {"floorPct": 10}), "floor")

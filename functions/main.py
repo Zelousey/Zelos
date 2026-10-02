@@ -2725,8 +2725,11 @@ def tw_validate_challenge(data, uid):
             raise TWError("INVALID_ARGUMENT", "Challenge up to %d players at a time." % TW_MAX_INVITEES)
     _, buy_in, days, _ = tw_validate_create({"name": "x", "buyIn": data.get("buyIn"), "days": data.get("days"), "maxPlayers": 2})
     lms = tw_validate_lms(data, days)
-    name = str(data.get("name") or "").strip() or ("Last Man Standing" if lms else "Squad Trade War" if squad_id else "Head-to-head")
-    return targets, buy_in, days, _re.sub(r"[<>]", "", name)[:40], squad_id, lms
+    # every battle has its own name (people can be in several at once)
+    name = _re.sub(r"[<>]", "", str(data.get("name") or "")).strip()[:40]
+    if len(name) < 2:
+        raise TWError("INVALID_ARGUMENT", "Give your battle a name, so you can tell your battles apart.")
+    return targets, buy_in, days, name, squad_id, lms
 
 
 def tw_squad_rules(config):
@@ -3766,7 +3769,8 @@ def push_register(req, db, uid, tok, now_ms):
     if not (20 <= len(token) <= 4096) or not _re.match(r"^[A-Za-z0-9_:.\-]+$", token):
         raise TWError("INVALID_ARGUMENT", "That device couldn't be registered.")
     ref = db.collection("pushTokens").document(_push_id(token))
-    ref.set({"uid": uid, "token": token, "createdAt": now_ms, "lastSeen": now_ms}, merge=True)
+    old = ref.get()
+    ref.set(dict({"uid": uid, "token": token, "lastSeen": now_ms}, **({} if old.exists else {"createdAt": now_ms})), merge=True)
     mine = sorted([s for s in db.collection("pushTokens").where("uid", "==", uid).stream()], key=lambda s: (s.to_dict() or {}).get("lastSeen") or 0)
     for s in mine[:-PUSH_MAX_TOKENS]:
         s.reference.delete()
@@ -3788,7 +3792,15 @@ def push_unregister(req, db, uid, tok, now_ms):
 @https_fn.on_call()
 @_tk_call
 def push_test(req, db, uid, tok, now_ms):
-    toks = [(s.id, (s.to_dict() or {}).get("token")) for s in db.collection("pushTokens").where("uid", "==", uid).stream()]
+    """{token?}: send a test to this device (its current token, registered on the spot
+    if it's new or belonged to another sign-in), else to every device on the account."""
+    token = str((req.data or {}).get("token") or "")
+    if 20 <= len(token) <= 4096 and _re.match(r"^[A-Za-z0-9_:.\-]+$", token):
+        ref = db.collection("pushTokens").document(_push_id(token))
+        ref.set({"uid": uid, "token": token, "lastSeen": now_ms}, merge=True)
+        toks = [(ref.id, token)]
+    else:
+        toks = [(s.id, (s.to_dict() or {}).get("token")) for s in db.collection("pushTokens").where("uid", "==", uid).stream()]
     toks = [t for t in toks if t[1]]
     if not toks:
         raise TWError("FAILED_PRECONDITION", "Turn on notifications on this device first.")

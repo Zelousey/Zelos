@@ -39,6 +39,9 @@
   var LV = [[0, '#8a909c'], [10, '#d08a52'], [50, '#e3e8ef'], [150, '#ffd45c'], [400, '#7fb0ff'], [1000, '#b9a8ff'], [2000, '#ff8a5c'], [3500, '#4fe0c1'], [6000, '#ff6fb5'], [10000, '#ffe27a'], [16000, '#9fd3ff']];
   function ring(xp) { var c = LV[0][1]; LV.forEach(function (l) { if ((xp || 0) >= l[0]) c = l[1]; }); return c; }
   function pageName() {
+    if (/\/practice\/profile\.html$/.test(path)) return 'Profile';
+    if (/\/practice\/war\.html$/.test(path)) return 'Battle';
+    if (/\/practice\/(squads|communities)\.html$/.test(path)) return /squads/.test(path) ? 'Squads' : 'Communities';
     for (var i = 0; i < tabs.length; i++) if (tabs[i][3].test(path)) return /\/alert\.html$/.test(path) ? 'Alert' : tabs[i][0];
     if (/\/(my-zelos|tokens)\.html$/.test(path)) return /tokens/.test(path) ? 'Tokens' : 'My Zelos';
     var t = (d.title || 'Zelos').split(/\s[|:—–]\s|:\s/)[0].replace(/^Zelos\s*[—–-]\s*/, '').trim();
@@ -127,6 +130,12 @@
           var c = ring(xp); av.style.boxShadow = '0 0 0 2px ' + c + ', 0 0 8px ' + c + '88';
         }
         paint();
+        // keep this device's notifications connected on every page (zelos-push.js refresh())
+        try {
+          if ('Notification' in window && Notification.permission === 'granted' && !window.ZelosPush && window.ZelosTokens && !d.querySelector('script[src*="zelos-push.js"]')) {
+            var ps = d.createElement('script'); ps.src = ROOT + 'zelos-push.js'; d.head.appendChild(ps);
+          }
+        } catch (e) {}
         if (!db) return;
         unsubT = db.collection('traders').doc(uid).onSnapshot(function (s) { trader = s.exists ? s.data() : {}; paint(); }, function () {});
         unsubU = db.collection('users').doc(uid).onSnapshot(function (s) { xp = (s.exists && s.data().xp) || 0; paint(); }, function () {});

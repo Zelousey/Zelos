@@ -29,6 +29,8 @@
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // name in the trader's purchased color (zelos-tokens.js paints [data-zname])
+  function zn(uid) { return uid ? ' data-zname="' + esc(uid) + '"' : ''; }
   function money(v) { return (v < 0 ? '-$' : '$') + Math.abs(+v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function signed(v) { return (v >= 0 ? '+' : '-') + money(Math.abs(v)); }
   function cls(v) { return v >= 0 ? 'hub-up' : 'hub-dn'; }
@@ -166,7 +168,7 @@
     if (!top) { if (!u) loadTop(); el.innerHTML = '<div class="empty">Loading…</div>'; return; }
     var row = function (r, i) {
       var me = u && r.uid === u.uid, g = +r.growthPct || 0;
-      return '<a class="hub-ch' + (me ? ' inc' : '') + '" href="practice/profile.html?u=' + encodeURIComponent(r.uid) + '"><span>' + (i + 1) + '. ' + esc(r.name || 'Trader') + '</span><small>' + money(r.equity).replace('.00', '') + ' · <span class="' + cls(g) + '">' + (g >= 0 ? '+' : '') + g.toFixed(1) + '%</span></small></a>';
+      return '<a class="hub-ch' + (me ? ' inc' : '') + '" href="practice/profile.html?u=' + encodeURIComponent(r.uid) + '"><span>' + (i + 1) + '. <span' + zn(r.uid) + '>' + esc(r.name || 'Trader') + '</span></span><small>' + money(r.equity).replace('.00', '') + ' · <span class="' + cls(g) + '">' + (g >= 0 ? '+' : '') + g.toFixed(1) + '%</span></small></a>';
     };
     el.innerHTML = '<div class="hub-sub">Global</div>' + (top.length ? top.map(row).join('') : '<p class="card-sub" style="margin:0">No Trade War accounts yet.</p>') +
       (friendList && friendList.length > 1 ? '<div class="hub-sub">Friends</div>' + friendList.slice(0, 5).map(row).join('') : '') +

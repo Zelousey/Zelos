@@ -13,10 +13,16 @@
   'use strict';
   var d = document, ROOT = /\/(games|learn|scan|practice|real)\//.test(location.pathname) ? '../' : '';
   var MSG_URL = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js';
-  var KEY = 'zpToken', mounts = [];
+  var KEY = 'zpToken', UKEY = 'zpTokenUid', AKEY = 'zpTokenAt', mounts = [], refreshing = null;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function saved() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
-  function save(t) { try { if (t) localStorage.setItem(KEY, t); else localStorage.removeItem(KEY); } catch (e) {} }
+  function save(t, uid) {
+    try {
+      if (t) { localStorage.setItem(KEY, t); localStorage.setItem(UKEY, uid || ''); localStorage.setItem(AKEY, String(Date.now())); }
+      else { localStorage.removeItem(KEY); localStorage.removeItem(UKEY); localStorage.removeItem(AKEY); }
+    } catch (e) {}
+  }
+  function ls(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
   function ios() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
   function standalone() { return (global.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
   function supported() { return 'serviceWorker' in navigator && 'Notification' in global && 'PushManager' in global; }
@@ -26,7 +32,9 @@
     if (ios() && !standalone()) return 'ios-home';
     if (!supported()) return 'unsupported';
     if (Notification.permission === 'denied') return 'blocked';
-    return Notification.permission === 'granted' && saved() ? 'on' : 'off';
+    if (Notification.permission !== 'granted') return 'off';
+    // permission is what the browser remembers; the token we refresh on every visit (refresh())
+    return saved() || refreshing ? 'on' : 'off';
   }
   var msgP = null;
   function messaging() {
@@ -49,8 +57,36 @@
       return messaging().then(function (m) { return m.getToken({ vapidKey: global.ZELOS_VAPID_KEY, serviceWorkerRegistration: reg }); });
     }).then(function (token) {
       if (!token) throw new Error('This browser didn\'t give a notification token. Try again.');
-      return call('push_register', { token: token }).then(function () { save(token); listen(); return token; });
+      var prev = saved();
+      return call('push_register', { token: token }).then(function () {
+        if (prev && prev !== token) call('push_unregister', { token: prev }).catch(function () {});
+        save(token, user().uid); listen(); return token;
+      });
     });
+  }
+  // Every visit, once permission is granted: get this device's current token (Firebase
+  // rotates them) and re-register it if it changed, belongs to another account, or
+  // hasn't been confirmed for a day. This is what keeps notifications connected after
+  // you leave and come back; nobody should have to turn them off and on again.
+  function refresh() {
+    var u = user();
+    if (!u || !global.ZELOS_VAPID_KEY || !supported() || Notification.permission !== 'granted' || (ios() && !standalone())) return Promise.resolve(false);
+    if (refreshing) return refreshing;
+    refreshing = navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function (reg) {
+      return messaging().then(function (m) { return m.getToken({ vapidKey: global.ZELOS_VAPID_KEY, serviceWorkerRegistration: reg }); });
+    }).then(function (token) {
+      if (!token) return false;
+      var prev = saved(), fresh = Date.now() - (+ls(AKEY) || 0) < 864e5;
+      if (token === prev && ls(UKEY) === u.uid && fresh) return true;
+      return call('push_register', { token: token }).then(function () {
+        if (prev && prev !== token) call('push_unregister', { token: prev }).catch(function () {});
+        save(token, u.uid); return true;
+      });
+    }).catch(function () { return false; }).then(function (ok) {
+      refreshing = null; if (ok) listen(); redraw(); return ok;
+    });
+    redraw();
+    return refreshing;
   }
   function disable() {
     var t = saved(); save('');
@@ -99,15 +135,16 @@
       var k = b.getAttribute('data-zn'); el.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
       var p = k === 'on' ? enable().then(function () { return 'Done! You\'ll get new alerts here.'; })
         : k === 'off' ? disable().then(function () { return 'Turned off for this device.'; })
-        : call('push_test').then(function (r) { return r.sent ? 'Sent. It should pop up in a few seconds.' : 'Couldn\'t reach this device. Turn notifications off and on again.'; });
+        : refresh().then(function () { return call('push_test', { token: saved() }); }).then(function (r) { return r.sent ? 'Sent. It should pop up in a few seconds.' : 'Couldn\'t reach this device. Check that notifications are allowed for Zelos in your phone\'s settings.'; });
       p.then(function (m) { redraw(m); }, function (e) { redraw(String((e && e.message) || e).replace(/^FirebaseError: /, ''), true); });
     }; });
   }
   function redraw(msg, bad) { mounts.forEach(function (el) { draw(el, msg, bad); }); }
   function mount(el) { if (!el) return; style(); mounts.push(el); draw(el); }
   function boot() {
-    try { firebase.auth().onAuthStateChanged(function () { redraw(); listen(); }); } catch (e) {}
+    try { firebase.auth().onAuthStateChanged(function () { redraw(); refresh(); }); } catch (e) {}
+    d.addEventListener('visibilitychange', function () { if (d.visibilityState === 'visible') refresh(); });
   }
-  global.ZelosPush = { mount: mount, state: state, enable: enable, disable: disable };
+  global.ZelosPush = { mount: mount, state: state, enable: enable, disable: disable, refresh: refresh };
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);

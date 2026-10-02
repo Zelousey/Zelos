@@ -20,6 +20,8 @@
   var db = null, user = null, wars = [], ranks = {}, invites = [], xp = 0, trader = {};
   var here = new URLSearchParams(location.search).get('w'), onHome = !!$('twHub');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // name in the trader's purchased color (zelos-tokens.js paints [data-zname])
+  function zn(uid) { return uid ? ' data-zname="' + esc(uid) + '"' : ''; }
   function money(v, dd) { dd = dd == null ? 2 : dd; v = +v || 0; return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: dd, maximumFractionDigits: dd }); }
   function pct(v) { v = +v || 0; return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
   function mainBalance() {
@@ -45,11 +47,11 @@
         return '<a class="twh-acct' + (here === w.id ? ' is-on' : '') + (w.status === 'active' ? ' is-live' : '') + '" href="war.html?w=' + encodeURIComponent(w.id) + '"><small>' + (w.lms ? '&#9760; ' : '⚔️ ') + esc(w.name) + '</small><b>' + sub + '</b></a>';
       }).join('');
     el.innerHTML = '<div class="twh-top">' +
-      '<a class="twh-me" href="profile.html">' + av + '<span><b>' + esc(nm) + '</b>' + (lv ? '<small>Level ' + lv.level + ' · ' + esc(lv.name) + ' · ' + xp.toLocaleString('en-US') + ' XP</small><i class="twh-xp"><i style="width:' + prog + '%"></i></i>' : '') + '</span></a>' +
+      '<a class="twh-me" href="profile.html">' + av + '<span><b' + zn(user && user.uid) + '>' + esc(nm) + '</b>' + (lv ? '<small>Level ' + lv.level + ' · ' + esc(lv.name) + ' · ' + xp.toLocaleString('en-US') + ' XP</small><i class="twh-xp"><i style="width:' + prog + '%"></i></i>' : '') + '</span></a>' +
       '<nav class="twh-accts" aria-label="Your Trade War accounts">' + chips + '</nav>' +
       '<button type="button" class="twh-start" id="twhStart">+ Start a Trade War</button></div>' + battleBanner() +
       (invites.length ? '<div class="twh-inv">' + invites.map(function (i) {
-        return '<div class="twh-inv-row"><span>' + (i.lms ? '&#9760;' : '⚔️') + ' <b>' + esc(i.fromName || 'A trader') + '</b> challenged you' + (i.lms ? ' to Last Man Standing' : '') + ' · ' + money(i.buyIn, 0) + ' buy-in · ' + i.days + 'd' +
+        return '<div class="twh-inv-row"><span>' + (i.lms ? '&#9760;' : '⚔️') + ' <b' + zn(i.from) + '>' + esc(i.fromName || 'A trader') + '</b> challenged you' + (i.lms ? ' to Last Man Standing' : '') + (i.warName ? ': <b class="twh-inv-name">' + esc(i.warName) + '</b>' : '') + ' · ' + money(i.buyIn, 0) + ' buy-in · ' + i.days + 'd' +
           (i.lms && window.ZelosChallenge ? '<small class="twh-inv-rules">' + ZelosChallenge.lmsRules(i.lms, i.buyIn).map(esc).join(' · ') + '</small>' : '') + '</span>' +
           '<span><button type="button" class="twh-no" data-inv="' + esc(i.id) + '" data-ok="0">Decline</button><button type="button" class="twh-yes" data-inv="' + esc(i.id) + '" data-ok="1">Accept</button></span></div>';
       }).join('') + '</div>' : '');
@@ -128,7 +130,7 @@
         '<h3 class="twh-sh">Challenges</h3>' + (extra.challenges == null ? (user ? '<p class="pt-empty">Loading…</p>' : '<p class="pt-empty">Sign in to see your challenges.</p>')
           : extra.challenges.length ? '<ul class="twh-list">' + extra.challenges.map(function (c) {
             var sent = user && c.from === user.uid, who = sent ? (c.toName || 'Trader') : (c.fromName || 'Trader'), go = c.status === 'accepted' || (sent && c.status === 'pending');
-            var label = (sent ? 'You &rarr; <b>' + esc(who) + '</b>' : '<b>' + esc(who) + '</b> &rarr; you') + ' <small>' + money(c.buyIn, 0) + (c.lms ? ' · Last Man' : '') + '</small>';
+            var label = (sent ? 'You &rarr; <b' + zn(c.to) + '>' + esc(who) + '</b>' : '<b' + zn(c.from) + '>' + esc(who) + '</b> &rarr; you') + ' <small>' + (c.warName ? esc(c.warName) + ' · ' : '') + money(c.buyIn, 0) + (c.lms ? ' · Last Man' : '') + '</small>';
             return '<li>' + (go ? '<a href="war.html?w=' + encodeURIComponent(c.warId) + '">' + label + '</a>' : '<span>' + label + '</span>') + '<small class="twh-ch-st is-' + esc(c.status) + '">' + (ST[c.status] || esc(c.status)) + '</small></li>';
           }).join('') + '</ul>' : '<p class="pt-empty">No challenges yet. Tap <b>+ Start a Trade War</b> to challenge a friend or your squad.</p>'),
       link: '<button type="button" class="twh-ch" data-start="1">+ Start a Trade War</button>' };
@@ -186,7 +188,7 @@
       var rows = []; s.forEach(function (x) { rows.push(Object.assign({ uid: x.id }, x.data())); });
       extra.rows = rows;
       extra.board = rows.length ? '<ol class="twh-list twh-board">' + rows.map(function (r, i) {
-        return '<li class="' + (user && r.uid === user.uid ? 'is-me' : '') + '"><a href="profile.html?u=' + encodeURIComponent(r.uid) + '">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.') + ' ' + esc(r.name || 'Trader') + '</a><small class="' + ((r.growthPct || 0) >= 0 ? 'up' : 'dn') + '">' + pct(r.growthPct) + '</small></li>';
+        return '<li class="' + (user && r.uid === user.uid ? 'is-me' : '') + '"><a href="profile.html?u=' + encodeURIComponent(r.uid) + '">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.') + ' <span' + zn(r.uid) + '>' + esc(r.name || 'Trader') + '</span></a><small class="' + ((r.growthPct || 0) >= 0 ? 'up' : 'dn') + '">' + pct(r.growthPct) + '</small></li>';
       }).join('') + '</ol>' : '<p class="pt-empty">No traders on the board yet.</p>';
       renderHub(extra);
     }).catch(function () { extra.board = '<p class="pt-empty">Leaderboard unavailable.</p>'; renderHub(extra); });
@@ -202,7 +204,7 @@
       if (!f.length) { extra.friends = '<p class="pt-empty">No friends yet. Open a trader\'s profile and tap <b>+ Add friend</b>.</p>'; return renderHub(extra); }
       return Promise.all(f.map(function (id) { return db.collection('practiceProfiles').doc(id).get().then(function (x) { return { uid: id, p: x.exists ? x.data() : {} }; }).catch(function () { return { uid: id, p: {} }; }); })).then(function (list) {
         extra.friends = '<ul class="twh-list">' + list.map(function (r) {
-          return '<li><a href="profile.html?u=' + encodeURIComponent(r.uid) + '">' + esc(r.p.name || 'Trader') + '</a><button type="button" class="twh-ch" data-ch="' + esc(r.uid) + '" data-chn="' + esc(r.p.name || 'Trader') + '">⚔️ Challenge</button></li>';
+          return '<li><a href="profile.html?u=' + encodeURIComponent(r.uid) + '"' + zn(r.uid) + '>' + esc(r.p.name || 'Trader') + '</a><button type="button" class="twh-ch" data-ch="' + esc(r.uid) + '" data-chn="' + esc(r.p.name || 'Trader') + '">⚔️ Challenge</button></li>';
         }).join('') + '</ul>';
         renderHub(extra);
       });

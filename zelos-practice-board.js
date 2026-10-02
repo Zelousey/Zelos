@@ -25,6 +25,8 @@
   ];
   var state = { tab: 'all', cat: 'pct' }, unsub = null, el = null;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // name in the trader's purchased color (zelos-tokens.js paints [data-zname])
+  function zn(uid) { return uid ? ' data-zname="' + esc(uid) + '"' : ''; }
   function money(v) { return '$' + Math.round(+v || 0).toLocaleString('en-US'); }
   function signedMoney(v) { return (v >= 0 ? '+' : '-') + money(Math.abs(v)); }
   function pct(v) { return (v >= 0 ? '+' : '') + (+v || 0).toFixed(1) + '%'; }
@@ -42,7 +44,7 @@
     var lv = L ? L.levelForXp(r.xp || 0) : null;
     return '<a class="board-row pb-row' + (r.uid === meUid ? ' is-me' : '') + '" href="practice/profile.html?u=' + encodeURIComponent(r.uid) + '"><span class="board-rank">' + (i + 1) + '</span>' +
       '<span class="board-name">' + (r.photo ? '<img class="pb-photo" src="' + esc(r.photo) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<span class="pb-photo pb-initial">' + esc(String(r.name || 'T').charAt(0).toUpperCase()) + '</span>') +
-        (lv && L ? L.badge(lv, 20) + ' ' : '') + esc(r.name || 'Trader') + '</span>' +
+        (lv && L ? L.badge(lv, 20) + ' ' : '') + '<span' + zn(r.uid) + '>' + esc(r.name || 'Trader') + '</span></span>' +
       '<span class="board-sub">' + sub + '</span><span class="board-score">' + main + '</span><span class="board-go">Stats &rarr;</span></a>';
   }
   function stdSub(r, extra) {

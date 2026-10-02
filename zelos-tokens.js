@@ -279,6 +279,53 @@
       (lk.founder ? ' <span class="zt-founder" title="' + esc(lk.founder.title + ' of ' + (lk.founder.name || 'a community')) + '">' + (FOUNDER_ICONS[lk.founder.tier] || '🏛️') + ' ' + esc(lk.founder.title) + '</span>' : '');
   }
   function bannerCss(lk) { return lk && LOOKS.banner[lk.banner] || ''; }
+
+  // ------------------------------------------------------------ name colors everywhere
+  // One property per trader: cosmetics/{uid} (server-written). Any element with
+  // data-zname="<uid>" shows that trader's name in their color, with their badge
+  // (data-zname-full adds the Founder title). Renderers only add the attribute; this
+  // paints every such element on the page, including ones drawn later (live
+  // leaderboards, chat), with one batched read per trader per page.
+  var looksIn = {}, UID_OK = /^[A-Za-z0-9_\-]{1,128}$/;
+  function lookNow(uid) { return looksIn[uid]; }
+  function fetchLooks(uids) {
+    var f = fb(); if (!f || !global.firebase || !firebase.firestore.FieldPath) return Promise.resolve();
+    var jobs = [];
+    for (var i = 0; i < uids.length; i += 30) {
+      var part = uids.slice(i, i + 30);
+      part.forEach(function (u) { looksIn[u] = looksIn[u] || null; });
+      jobs.push(f.db.collection('cosmetics').where(firebase.firestore.FieldPath.documentId(), 'in', part).get().then(function (s) {
+        var got = {}; s.forEach(function (x) { got[x.id] = x.data(); });
+        part.forEach(function (u) { looksIn[u] = got[u] || {}; lookCache[u] = Promise.resolve(looksIn[u]); });
+      }, function () { part.forEach(function (u) { looksIn[u] = {}; }); }));
+    }
+    return Promise.all(jobs);
+  }
+  function paintEl(el, lk) {
+    el.setAttribute('data-znp', '1');
+    var full = el.hasAttribute('data-zname-full');
+    if (!LOOKS.color[lk.color] && !LOOKS.badge[lk.badge] && !(full && lk.founder)) return;
+    var nm = el.getAttribute('data-zntext') || el.textContent;
+    el.setAttribute('data-zntext', nm);
+    el.innerHTML = nameHtml(nm, full ? lk : { color: lk.color, badge: lk.badge });
+  }
+  function paintNames() {
+    var need = [];
+    d.querySelectorAll('[data-zname]:not([data-znp])').forEach(function (el) {
+      var u = el.getAttribute('data-zname');
+      if (!UID_OK.test(u)) return el.setAttribute('data-znp', '1');
+      if (looksIn[u]) paintEl(el, looksIn[u]);
+      else if (!(u in looksIn) && need.indexOf(u) === -1) need.push(u);
+    });
+    if (need.length) fetchLooks(need).then(paintNames);
+  }
+  function hasName(n) { return n.nodeType === 1 && (n.hasAttribute('data-zname') || !!n.querySelector('[data-zname]')); }
+  function watchNames() {
+    style(); paintNames();
+    if (global.MutationObserver) new MutationObserver(function (ms) {
+      for (var i = 0; i < ms.length; i++) for (var j = 0; j < ms[i].addedNodes.length; j++) if (hasName(ms[i].addedNodes[j])) return paintNames();
+    }).observe(d.body, { childList: true, subtree: true });
+  }
   function shop() {
     if (!user()) { location.href = ROOT + 'tokens.html'; return; }
     var m = modal('<button class="zt-x" type="button" aria-label="Close">&times;</button><h2 id="ztTitle">Profile looks</h2><p class="zt-muted">Make your name stand out on your profile, in communities and on leaderboards. Buy once, switch any time.</p><div id="ztShop"><p class="zt-muted">Loading…</p></div><p class="zt-msg" id="ztShopMsg" role="status"></p>');
@@ -304,7 +351,7 @@
         box.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
         var p = have ? call('cosmetics_equip', { kind: k, id: on ? null : id }) : call('cosmetics_buy', { kind: k, id: id }).then(function (r) { msg.className = 'zt-msg is-ok'; msg.textContent = 'Bought! It\'s on your profile now.'; return call('cosmetics_equip'); });
         p.then(function (r) { if (r && r.shop) state = r; else return call('cosmetics_equip').then(function (r2) { state = r2; }); })
-          .then(function () { delete lookCache[me2.uid]; draw(); emitLook(); }, function (e) { msg.className = 'zt-msg is-bad'; msg.textContent = errText(e); draw(); });
+          .then(function () { delete lookCache[me2.uid]; delete looksIn[me2.uid]; d.querySelectorAll('[data-zname="' + me2.uid + '"]').forEach(function (el) { if (el.hasAttribute('data-zntext')) el.textContent = el.getAttribute('data-zntext'); el.removeAttribute('data-znp'); }); paintNames(); draw(); emitLook(); }, function (e) { msg.className = 'zt-msg is-bad'; msg.textContent = errText(e); draw(); });
       }; });
     }
     call('cosmetics_equip').then(function (r) { state = r; draw(); }, function (e) { box.innerHTML = '<p class="zt-msg is-bad">' + esc(errText(e)) + '</p>'; });
@@ -317,9 +364,10 @@
     var f = fb(); if (!f) return;
     style();
     f.auth.onAuthStateChanged(function (u) { watch(u && !u.isAnonymous ? u : null); chip(); });
+    watchNames();
     var nav = d.getElementById('navAuth');
     if (nav && global.MutationObserver) new MutationObserver(function () { if (me && !nav.querySelector('.zt-chip')) chip(); }).observe(nav, { childList: true });
   }
-  global.ZelosTokens = { open: open, full: full, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
+  global.ZelosTokens = { open: open, full: full, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);

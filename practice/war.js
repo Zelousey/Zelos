@@ -27,6 +27,8 @@
   var OUT_WHY = { floor: 'hit the P&L floor', bigLoss: 'took too big a loss on one trade', losses: 'ran out of losing trades', cut: 'finished last at the timed cut', surrender: 'surrendered' };
   var TC = window.ZelosTradeChart, hist = {}, extra = {}, chartEl = null, chart = null, fibOn = false;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // name in the trader's purchased color (zelos-tokens.js paints [data-zname])
+  function zn(uid) { return uid ? ' data-zname="' + esc(uid) + '"' : ''; }
   function money(v, d) { d = d == null ? 2 : d; v = +v || 0; return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
   function signed(v) { return (v >= 0 ? '+' : '-') + money(Math.abs(v)); }
   function pct(v) { v = +v || 0; return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
@@ -102,7 +104,7 @@
         var rank = final ? r.rank : i + 1, was = prevRanks[r.uid]; ranks[r.uid] = rank;
         var move = !final && was && was !== rank ? (rank < was ? '<i class="tw-mv up" aria-label="up">▲</i>' : '<i class="tw-mv dn" aria-label="down">▼</i>') : '';
         var me = user && r.uid === user.uid;
-        return '<a class="tw-tr' + (me ? ' is-me' : '') + (move ? ' is-moved' : '') + (r.out ? ' is-out' : '') + '" role="row" href="profile.html?u=' + encodeURIComponent(r.uid) + '"><span>' + (final && rank === 1 ? '🏆' : rank) + move + '</span><span><b>' + esc(r.name || 'Trader') + '</b>' + (me ? ' <small>you</small>' : '') + (r.out ? ' <small class="tw-out-tag" title="' + esc(OUT_WHY[r.outReason] || 'knocked out') + '">OUT</small>' : '') + roleTags(r.uid) + '</span>' +
+        return '<a class="tw-tr' + (me ? ' is-me' : '') + (move ? ' is-moved' : '') + (r.out ? ' is-out' : '') + '" role="row" href="profile.html?u=' + encodeURIComponent(r.uid) + '"><span>' + (final && rank === 1 ? '🏆' : rank) + move + '</span><span><b' + zn(r.uid) + '>' + esc(r.name || 'Trader') + '</b>' + (me ? ' <small>you</small>' : '') + (r.out ? ' <small class="tw-out-tag" title="' + esc(OUT_WHY[r.outReason] || 'knocked out') + '">OUT</small>' : '') + roleTags(r.uid) + '</span>' +
           '<span>' + money(r.start, 0) + '</span><span>' + money(final ? r.final : r.equity) + '</span><span class="' + cls(r.pnl) + '">' + signed(r.pnl) + '</span><span class="' + cls(r.pnlPct) + '"><b>' + pct(r.pnlPct) + '</b></span>' +
           '<span>' + (r.trades || 0) + '</span><span>' + (r.wins || 0) + '/' + (r.losses || 0) + '</span></a>';
       }).join('') + '</div>';
@@ -119,11 +121,11 @@
     var meAcct = user && (accounts || []).filter(function (a) { return a.uid === user.uid; })[0];
     var canMore = mine && (w.status === 'lobby' || (w.status === 'active' && !(meAcct && meAcct.out)));
     var h = '<div class="ch-hero">' + (canMore ? '<button type="button" class="tw-more" id="twMore" aria-label="More: ' + (w.status === 'lobby' ? (host ? 'invite or cancel' : 'leave') : 'surrender') + '" aria-haspopup="dialog">&#8943;</button>' : '') + '<span class="pt-kicker"><span class="zm-tag is-war">TRADE WAR — VIRTUAL</span> ' + status + '</span><h1>' + (w.lms ? '&#9760;' : '⚔️') + ' ' + esc(w.name) + '</h1>' +
-      '<p>Hosted by ' + esc(w.hostName || 'a trader') + ' · <b>' + money(w.buyIn, 0) + '</b> virtual buy-in · ' + w.days + ' day' + (w.days === 1 ? '' : 's') + ' · ' + w.players.length + '/' + w.maxPlayers + ' players</p></div>';
+      '<p>Hosted by <span' + zn(w.host) + '>' + esc(w.hostName || 'a trader') + '</span> · <b>' + money(w.buyIn, 0) + '</b> virtual buy-in · ' + w.days + ' day' + (w.days === 1 ? '' : 's') + ' · ' + w.players.length + '/' + w.maxPlayers + ' players</p></div>';
     if (w.status === 'cancelled') { body(h + '<div class="pt-card ch-card"><p>The host cancelled this Trade War before it started.</p><a class="pt-btn pt-btn-go" href="war.html">Your Trade Wars</a></div>'); return; }
     if (w.status === 'lobby') {
       var waiting = (w.invited || []).filter(function (u) { return w.players.indexOf(u) === -1; }).length;
-      h += '<div class="tw-grid"><section class="pt-card ch-card"><h2>Players</h2><ul class="tw-players">' + w.players.map(function (u) { return '<li>' + esc((w.names || {})[u] || 'Trader') + (u === w.host ? ' <small>host</small>' : '') + '</li>'; }).join('') + '</ul>' +
+      h += '<div class="tw-grid"><section class="pt-card ch-card"><h2>Players</h2><ul class="tw-players">' + w.players.map(function (u) { return '<li><span' + zn(u) + '>' + esc((w.names || {})[u] || 'Trader') + '</span>' + (u === w.host ? ' <small>host</small>' : '') + '</li>'; }).join('') + '</ul>' +
         (waiting ? '<p class="pt-fine">&#9203; Waiting for ' + waiting + ' challenged player' + (waiting === 1 ? '' : 's') + ' to accept.' + (w.mode === 'duel' ? ' The Trade War starts as soon as they do.' : '') + '</p>' : '');
       if (!user) h += '<button class="pt-btn pt-btn-go" type="button" id="twSignIn">Sign in to join</button>' + AUTH_MSG;
       else if (!mine) h += '<button class="pt-btn pt-btn-go" type="button" id="twJoin">Join with ' + money(w.buyIn, 0) + ' virtual</button><p class="pt-fine">You\'ll start with exactly the same virtual money as everyone else. Nothing is taken from your $10,000 account.</p>';
@@ -135,9 +137,9 @@
     if (w.status === 'ended') {
       var res = w.results || [], win = res[0];
       var survivors = res.filter(function (r) { return !r.out; }).length;
-      h += (win ? '<div class="pt-card ch-card tw-winner' + (w.lms ? ' is-lms' : '') + '"><span class="pt-kicker">' + (w.lms ? (survivors === 1 ? 'Last Man Standing' : 'Winner · ' + survivors + ' still standing at the bell') : 'Winner') + '</span><h2>🏆 ' + esc(win.name) + ' <span class="' + cls(win.pnlPct) + '">' + pct(win.pnlPct) + '</span></h2><p class="pt-fine">' +
+      h += (win ? '<div class="pt-card ch-card tw-winner' + (w.lms ? ' is-lms' : '') + '"><span class="pt-kicker">' + (w.lms ? (survivors === 1 ? 'Last Man Standing' : 'Winner · ' + survivors + ' still standing at the bell') : 'Winner') + '</span><h2>🏆 <span' + zn(win.uid) + '>' + esc(win.name) + '</span> <span class="' + cls(win.pnlPct) + '">' + pct(win.pnlPct) + '</span></h2><p class="pt-fine">' +
         (w.lms && survivors === 1 ? 'Outlasted ' + (res.length - 1) + ' trader' + (res.length === 2 ? '' : 's') + '. Final results are locked.' : 'Final results, frozen when the clock ran out.') + '</p></div>' : '') +
-        ((w.rewards || []).length ? '<div class="pt-card ch-card tw-rewards"><h2>🪙 Token rewards</h2>' + w.rewards.map(function (r) { return '<p><b>' + esc((w.names || {})[r.uid] || 'Trader') + '</b> earned <b>' + r.tokens + ' tokens</b> <small class="pt-fine">' + esc(r.note) + '</small></p>'; }).join('') + '</div>' : '') +
+        ((w.rewards || []).length ? '<div class="pt-card ch-card tw-rewards"><h2>🪙 Token rewards</h2>' + w.rewards.map(function (r) { return '<p><b' + zn(r.uid) + '>' + esc((w.names || {})[r.uid] || 'Trader') + '</b> earned <b>' + r.tokens + ' tokens</b> <small class="pt-fine">' + esc(r.note) + '</small></p>'; }).join('') + '</div>' : '') +
         '<section class="pt-card ch-card"><h2>Final standings</h2>' + board(res, true) + '</section>' + (w.lms ? outsBox(w) : '');
       body(h); if (w.lms) announceOuts(w); return;
     }
@@ -289,14 +291,14 @@
     all.sort(function (a, b) { return b.at - a.at; });
     var name = function (u) { return (war.names || {})[u] || 'Trader'; };
     return '<div class="tw-feed"><h3>Everyone\'s trades</h3>' + (all.length ? all.slice(0, 25).map(function (f) {
-      return '<div class="tw-feed-row"><span><b>' + esc(user && f.uid === user.uid ? 'You' : name(f.uid)) + '</b> ' + (f.auto === 'sl' ? 'hit their stop loss: sold' : f.auto === 'tp' ? 'took profit: sold' : f.auto ? 'sold out' : f.side === 'buy' ? 'bought' : 'sold') + ' ' + f.qty + ' ' + esc(f.sym) + ' @ ' + money(f.price) + '</span>' +
+      return '<div class="tw-feed-row"><span><b' + (user && f.uid === user.uid ? '' : zn(f.uid)) + '>' + esc(user && f.uid === user.uid ? 'You' : name(f.uid)) + '</b> ' + (f.auto === 'sl' ? 'hit their stop loss: sold' : f.auto === 'tp' ? 'took profit: sold' : f.auto ? 'sold out' : f.side === 'buy' ? 'bought' : 'sold') + ' ' + f.qty + ' ' + esc(f.sym) + ' @ ' + money(f.price) + '</span>' +
         (f.pnl != null ? '<span class="' + cls(f.pnl) + '">' + signed(f.pnl) + '</span>' : '<span></span>') + '<small>' + new Date(f.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</small></div>';
     }).join('') : '<p class="pt-empty">No trades yet.</p>') + '</div>';
   }
   function outsBox(w) {
     var outs = (w.outs || []).slice().reverse();
     return '<div class="tw-outs"><h3>Eliminations</h3>' + (outs.length ? outs.map(function (o) {
-      return '<div class="tw-out-row"><span class="tw-out-x" aria-hidden="true"></span><span><b>' + esc(o.name || 'Trader') + '</b> ' + esc(OUT_WHY[o.reason] || 'was knocked out') + '</span><span class="' + cls(o.pnlPct) + '">' + pct(o.pnlPct) + '</span><span>#' + o.place + '</span></div>';
+      return '<div class="tw-out-row"><span class="tw-out-x" aria-hidden="true"></span><span><b' + zn(o.uid) + '>' + esc(o.name || 'Trader') + '</b> ' + esc(OUT_WHY[o.reason] || 'was knocked out') + '</span><span class="' + cls(o.pnlPct) + '">' + pct(o.pnlPct) + '</span><span>#' + o.place + '</span></div>';
     }).join('') : '<p class="pt-empty">Nobody is out yet.</p>') + '</div>';
   }
   // A short banner when someone is knocked out. Shown once per elimination per device;

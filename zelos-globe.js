@@ -35,7 +35,7 @@
  *   });
  *
  * Performance: devicePixelRatio is capped, the render loop pauses when the
- * globe is scrolled off-screen or the tab is hidden, and the loop stops
+ * globe is scrolled off-screen, while the page is scrolling, or the tab is hidden, and the loop stops
  * entirely if the container is removed from the page.
  */
 (function (global) {
@@ -50,6 +50,11 @@
     } catch (e) {}
     return '/data/countries-110m.geojson';
   })();
+  // While the page scrolls the globe holds still: redrawing its full-screen
+  // shader every frame competes with the scroll on phones. It turns slowly, so
+  // the pause doesn't show; it picks up again 160ms after the last scroll.
+  var scrollingUntil = 0;
+  try { global.addEventListener('scroll', function () { scrollingUntil = performance.now() + 160; }, { passive: true }); } catch (e) {}
   var MARKETS_URL = COUNTRIES_URL.replace('countries-110m.geojson', 'globe-markets.json');
   // live copy published by the daily market-map job (public read); the static
   // file above is the fallback, so the globe always has something to show
@@ -840,6 +845,7 @@
 
     function frame(now, once) {
       if (state.destroyed) return;
+      if (!once && !state.dragging && now < scrollingUntil) { last = now; raf = requestAnimationFrame(frame); return; }
       var dt = Math.min(64, now - last); last = now;
       var time = now - t0;
       if (now - sunAt > 30000) { sun = sunVector(new Date()); sunAt = now; }
