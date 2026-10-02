@@ -97,6 +97,31 @@
     unsubs.push(ref.collection('events').orderBy('at', 'desc').limit(30).onSnapshot(function (s) { events = []; s.forEach(function (d) { events.push(d.data()); }); drawTicker(); }, function () {}));
     if (R(war).viewTrades) unsubs.push(ref.collection('books').onSnapshot(function (s) { books = {}; s.forEach(function (d) { books[d.id] = d.data(); }); render(); }, function () {}));
   }
+  // ------------------------------------------------------------ the arena (Mockup 16)
+  // A live battle gets its own look: Battle Mode bar with the name and a ticking clock,
+  // and a VS strip, you against the leader (or the trader right behind you when you lead).
+  function clockText(ms) { if (ms <= 0) return '0:00:00'; var s = Math.floor(ms / 1000), d = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60; return (d ? d + 'd ' : '') + ('0' + hh).slice(-2) + ':' + ('0' + mm).slice(-2) + ':' + ('0' + ss).slice(-2); }
+  setInterval(function () { var c = document.getElementById('twClockT'); if (c && war && war.endAt) c.textContent = clockText(war.endAt - Date.now()); }, 1000);
+  function fighter(a, w, me, mePct, right) {
+    var nm = me ? 'You' : (a ? (w.names || {})[a.uid] || 'Trader' : '–'), p = me ? mePct : a ? a.pnlPct : 0;
+    var ini = me ? ((w.names || {})[user.uid] || 'You') : nm, av = '<span class="tw-fav' + (me ? ' is-me' : '') + '">' + esc(ini.replace('@', '').charAt(0).toUpperCase()) + '</span>';
+    var txt = '<span class="tw-ftxt"><b' + (a && !me ? zn(a.uid) : '') + '>' + esc(nm) + '</b><small class="' + cls(p) + '">' + pct(p) + '</small></span>';
+    return '<div class="tw-fighter' + (right ? ' is-r' : '') + '">' + (right ? txt + av : av + txt) + '</div>';
+  }
+  function arenaHead(w, canMore, mePct) {
+    var sorted = accounts.slice().sort(function (a, b) { return ((a.out ? 1 : 0) - (b.out ? 1 : 0)) || (b.pnlPct - a.pnlPct); });
+    var i = -1; sorted.forEach(function (a, k) { if (a.uid === user.uid) i = k; });
+    var opp = i <= 0 ? sorted[1] : sorted[i - 1], oppPct = opp ? opp.pnlPct || 0 : 0;
+    var share = Math.max(6, Math.min(94, 50 + (mePct - oppPct) * 8));
+    var kind = w.lms ? '&#9760; Last Man Standing' : w.players.length === 2 ? '1 v 1' : w.players.length + ' players';
+    return '<div class="tw-arena-bar">' +
+      '<span class="tw-am">&#9876; BATTLE MODE</span><h1>' + esc(w.name) + '</h1><span class="tw-am-meta">' + kind + ' · ' + money(w.buyIn, 0) + ' buy-in</span>' +
+      '<span class="tw-clock"><small>ENDS IN</small><b id="twClockT">' + clockText((w.endAt || 0) - Date.now()) + '</b></span>' +
+      (canMore ? '<button type="button" class="tw-more" id="twMore" aria-label="More: surrender" aria-haspopup="dialog">&#8943;</button>' : '') + '</div>' +
+      '<div class="tw-vs">' + fighter(null, w, true, mePct) + '<span class="tw-vsx">VS</span>' + fighter(opp, w, false, mePct, true) +
+      '<div class="tw-tug" title="You vs ' + esc(opp ? (w.names || {})[opp.uid] || 'your rival' : 'your rival') + '"><i style="width:' + share.toFixed(1) + '%"></i></div>' +
+      (opp ? '<small class="tw-vs-note">' + (i === 0 ? 'You lead. Chasing you: ' : 'Next to beat: ') + esc((w.names || {})[opp.uid] || 'Trader') + '</small>' : '') + '</div>';
+  }
   function board(rows, final) {
     rows = rows.slice().sort(function (a, b) { return ((a.out ? 1 : 0) - (b.out ? 1 : 0)) || (a.out ? (a.place || 0) - (b.place || 0) : 0) || (b.pnlPct - a.pnlPct) || (b.pnl - a.pnl); });
     var ranks = {};
@@ -113,6 +138,7 @@
     return h;
   }
   function render() {
+    document.documentElement.classList.toggle('tw-arena', !!(war && war.status === 'active' && user && war.players.indexOf(user.uid) !== -1));
     if (!war) return;
     var w = war, mine = user && w.players.indexOf(user.uid) !== -1, host = user && w.host === user.uid;
     var status = w.status === 'active' ? '<span class="tw-st is-live">LIVE · ' + left(w.endAt - Date.now()) + '</span>' : w.status === 'lobby' ? '<span class="tw-st">Lobby · waiting to start</span>'
@@ -156,7 +182,7 @@
     var livePnl = liveEq - (me.start || w.buyIn);
     if (me.out) { liveEq = me.equity; livePnl = me.pnl; open = false; }
     var canTrade = open && !halted;
-    h += '<div id="twTickerSlot"></div>' + stormBar(storm);
+    h = arenaHead(w, canMore, livePnl / (me.start || w.buyIn) * 100) + '<div id="twTickerSlot"></div>' + stormBar(storm);
     if (w.lms) {
       var alive = (w.alive || w.players).length;
       h += '<div class="tw-lms-bar"><span><b>' + alive + '</b> of ' + w.players.length + ' still standing</span>' +

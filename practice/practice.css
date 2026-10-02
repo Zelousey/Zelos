@@ -1055,3 +1055,31 @@ details.pt-about[open] > summary::before{ content:'▾ '; }
   .pt-at-pl{ grid-area:pl; text-align:left; } .pt-at-pl small{ display:inline; margin-left:6px; }
   .pt-at-mid{ grid-area:mid; } .pt-at-val{ display:none; }
 }
+
+/* ---- Battle arena: a live battle looks different from the dashboard (Mockup 16) ---- */
+html.tw-arena body{ background:radial-gradient(120% 60% at 50% -10%, rgba(240,86,77,0.13), transparent 60%), linear-gradient(180deg, #110a0c, var(--bg) 40%) no-repeat, var(--bg); }
+html.tw-arena .pt-card{ border-color:#3a1c20; }
+html.tw-arena .tw-chart-card{ border-color:#4a2126; }
+.tw-arena-bar{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px 16px; margin:4px 0 0; border:1px solid #5a2328; border-bottom:0; border-radius:3px 3px 0 0; background:linear-gradient(90deg, #3a1114, #1a0d10 40%, #1a0d10 60%, #3a1114); }
+.tw-arena-bar h1{ margin:0; font-size:1.35rem; line-height:1.2; min-width:0; overflow-wrap:anywhere; }
+.tw-am{ font:700 0.7rem var(--mono); letter-spacing:0.2em; color:#ff8a7a; white-space:nowrap; }
+.tw-am-meta{ color:var(--muted); font-size:0.85rem; margin-right:auto; }
+.tw-clock{ display:inline-flex; align-items:baseline; gap:8px; padding:5px 12px; border:1px solid #6a2a2f; background:#24090c; border-radius:3px; }
+.tw-clock small{ font:700 0.62rem var(--mono); letter-spacing:0.14em; color:#ff8a7a; } .tw-clock b{ font:700 1.25rem var(--mono); color:#fff; font-variant-numeric:tabular-nums; }
+.tw-arena-bar .tw-more{ position:static; }
+.tw-vs{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; padding:12px 16px 14px; margin-bottom:12px; border:1px solid #5a2328; border-top:1px solid #2a1418; border-radius:0 0 3px 3px; background:rgba(20,8,10,0.7); }
+.tw-fighter{ display:flex; align-items:center; gap:10px; min-width:0; } .tw-fighter.is-r{ justify-content:flex-end; text-align:right; }
+.tw-fav{ width:42px; height:42px; flex:none; border-radius:50%; display:flex; align-items:center; justify-content:center; font:800 1.05rem var(--sans); background:#3a3f4c; box-shadow:0 0 0 2px #e3e8ef; }
+.tw-fav.is-me{ background:#173a8f; box-shadow:0 0 0 2px #ffd45c; }
+.tw-ftxt{ min-width:0; } .tw-ftxt b{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .tw-ftxt small{ font:700 0.95rem var(--mono); }
+.tw-vsx{ font:900 1.35rem var(--sans); color:#ff6a5a; text-shadow:0 0 18px rgba(255,90,70,0.6); }
+.tw-tug{ grid-column:1 / -1; height:9px; background:#3a1114; position:relative; overflow:hidden; border-radius:2px; }
+.tw-tug i{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg, #1f8f57, #3ecb7c); transition:width .6s ease; }
+.tw-tug::after{ content:""; position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.25); }
+.tw-vs-note{ grid-column:1 / -1; color:var(--muted); font-size:0.78rem; text-align:center; margin-top:-4px; }
+@media (max-width:760px){
+  .tw-arena-bar{ gap:8px; padding:10px 12px; } .tw-arena-bar h1{ font-size:1.05rem; flex:1 1 60%; } .tw-am-meta{ width:100%; order:5; font-size:0.78rem; }
+  .tw-clock{ padding:3px 8px; } .tw-clock b{ font-size:0.95rem; }
+  .tw-vs{ padding:10px 12px; gap:8px; } .tw-fav{ width:34px; height:34px; font-size:0.9rem; } .tw-ftxt small{ font-size:0.82rem; } .tw-vsx{ font-size:1.05rem; }
+}
+@media (prefers-reduced-motion:reduce){ .tw-tug i{ transition:none; } }
