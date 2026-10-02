@@ -1027,3 +1027,31 @@ details.pt-about[open] > summary::before{ content:'▾ '; }
   .pf-id{ grid-template-columns:auto minmax(0, 1fr) minmax(280px, 360px); grid-template-areas:"pics name tok" "rest rest tok"; }
 }
 @media (max-width:760px){ .pf-head{ padding:14px; } .pf-photo{ width:60px; height:60px; } .pf-badge svg{ width:40px; height:40px; } .pf-name h1{ font-size:1.6rem; } }
+
+/* ---- Active Trades: your open positions right under the chart (Mockup 17) ---- */
+.pt-active{ margin:10px 0 4px; border:1px solid var(--accent-line, #2c4d8a); background:linear-gradient(180deg, rgba(74,134,255,0.07), transparent 70%); border-radius:3px; }
+.pt-at-h{ display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border-soft); font-family:var(--mono); }
+.pt-at-h > b:first-child{ font-size:0.72rem; letter-spacing:0.12em; }
+.pt-at-n{ background:var(--accent); color:#fff; font:700 0.7rem var(--mono); padding:1px 7px; border-radius:3px; }
+.pt-at-tl{ font:500 0.78rem var(--sans); color:var(--muted); margin-left:auto; }
+.pt-at-h .up, .pt-at-h .dn{ font-size:0.9rem; }
+.pt-at-row{ display:grid; grid-template-columns:minmax(64px, auto) minmax(0, 1fr) auto auto auto; gap:12px; align-items:center; padding:9px 12px; border-bottom:1px solid var(--border-soft); cursor:pointer; }
+.pt-at-row:last-child{ border-bottom:0; }
+.pt-at-row:hover, .pt-at-row.is-sel{ background:rgba(74,134,255,0.06); }
+.pt-at-row:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+.pt-at-sym{ font:700 0.9rem var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+.pt-at-mid{ min-width:0; } .pt-at-mid small{ display:block; color:var(--muted); font-size:0.74rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pt-at-bar{ display:block; height:4px; margin-top:5px; background:var(--border-soft); } .pt-at-bar i{ display:block; height:100%; } .pt-at-bar i.up{ background:var(--bull, #3ecb7c); } .pt-at-bar i.dn{ background:var(--danger, #e0483f); }
+.pt-at-pl{ font:700 0.88rem var(--mono); text-align:right; white-space:nowrap; } .pt-at-pl small{ display:block; font-size:0.7rem; opacity:0.85; }
+.pt-at-val{ font:500 0.8rem var(--mono); color:var(--muted); text-align:right; white-space:nowrap; }
+.pt-at-close{ font:700 0.78rem var(--sans); padding:7px 14px; border:1px solid rgba(224,72,63,0.55); color:#ff8a7a; background:rgba(224,72,63,0.08); border-radius:3px; cursor:pointer; }
+.pt-at-close:hover{ background:rgba(224,72,63,0.18); }
+@media (max-width:760px){
+  .pt-at-rows{ display:flex; gap:8px; overflow-x:auto; padding:8px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .pt-at-rows::-webkit-scrollbar{ display:none; }
+  .pt-at-row{ flex:0 0 172px; scroll-snap-align:start; grid-template-columns:1fr auto; grid-template-areas:"sym close" "pl pl" "mid mid"; gap:4px 8px; border:1px solid var(--border); padding:9px; }
+  .pt-at-row:last-child{ border-bottom:1px solid var(--border); }
+  .pt-at-sym{ grid-area:sym; } .pt-at-close{ grid-area:close; padding:3px 8px; }
+  .pt-at-pl{ grid-area:pl; text-align:left; } .pt-at-pl small{ display:inline; margin-left:6px; }
+  .pt-at-mid{ grid-area:mid; } .pt-at-val{ display:none; }
+}

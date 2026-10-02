@@ -457,6 +457,7 @@
       '<button class="pt-chip" type="button" id="twAbc" aria-pressed="false" title="Three-Legged Strategy: draw an A-B-C pullback (click the start, then the ends of legs A, B and C)">3-Leg</button>' +
       '<button class="pt-chip" type="button" id="twSltp" aria-pressed="false" title="Stop Loss / Take Profit boxes: drag the red and green edges">SL/TP</button></span></div>' +
       '<canvas class="tw-chart" id="twChart" aria-label="Trade War chart"></canvas>' +
+      '<div class="pt-active" id="twActive" hidden></div>' +
       '<p class="pt-fine">Drag to pan · scroll to zoom · dashed line: your entry and P&amp;L · ▲▼ your trades · green / red boxes: take profit / stop loss (drag the edges) · ⏰ lines: your Trade War price alerts (drag to move)</p>' +
       '<div class="tw-alerts" id="twAlerts"></div>';
     chart = new TC.TradeChart(chartEl.querySelector('canvas'));
@@ -552,6 +553,36 @@
     chart.empty = s.n ? null : 'Loading chart…';
     if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, ls ? 'all' : 126); else chart.setSeries(s);
     chart.draw();
+    renderActive();
+  }
+  // Active Trades under the battle chart: live P&L per position and a one-tap Close
+  // (asks once, then sells the whole position through tw_trade like the Sell button).
+  function renderActive() {
+    var el = $('twActive'); if (!el) return;
+    var pos = (book && book.positions) || {}, live = war && war.status === 'active', syms = Object.keys(pos).filter(function (k) { return pos[k] && pos[k].qty > 0; });
+    el.hidden = !syms.length; if (!syms.length) { el.innerHTML = ''; return; }
+    var rows = syms.map(function (k) { var p = pos[k], px = (quotes[k] || {}).c || p.avg; return { sym: k, qty: p.qty, avg: p.avg, px: px, pnl: (px - p.avg) * p.qty, pct: (px / p.avg - 1) * 100, sl: p.sl, tp: p.tp }; });
+    var tot = rows.reduce(function (t, r) { return t + r.pnl; }, 0);
+    el.innerHTML = '<div class="pt-at-h"><b>ACTIVE TRADES</b><span class="pt-at-n">' + rows.length + '</span><span class="pt-at-tl">Open P&amp;L</span><b class="' + cls(tot) + '">' + signed(tot) + '</b></div><div class="pt-at-rows">' +
+      rows.map(function (r) {
+        var good = r.pnl >= 0, w = r.tp && good ? (r.px - r.avg) / (r.tp - r.avg) : r.sl && !good ? (r.avg - r.px) / (r.avg - r.sl) : Math.abs(r.pct) / 10;
+        w = Math.max(3, Math.min(100, Math.round(w * 100)));
+        return '<div class="pt-at-row' + (r.sym === ticket.sym ? ' is-sel' : '') + '" data-at="' + esc(r.sym) + '" role="button" tabindex="0"><span class="pt-at-sym">' + esc(r.sym) + '</span>' +
+          '<span class="pt-at-mid"><small>' + r.qty + ' share' + (r.qty === 1 ? '' : 's') + ' · avg ' + money(r.avg) + (r.sl ? ' · stop ' + money(r.sl) : '') + (r.tp ? ' · target ' + money(r.tp) : '') + '</small><i class="pt-at-bar"><i class="' + (good ? 'up' : 'dn') + '" style="width:' + w + '%"></i></i></span>' +
+          '<span class="pt-at-pl ' + (good ? 'up' : 'dn') + '">' + signed(r.pnl) + '<small>' + pct(r.pct) + '</small></span><span class="pt-at-val">' + money(r.px * r.qty) + '</span>' +
+          (live ? '<button type="button" class="pt-at-close" data-close="' + esc(r.sym) + '">Close</button>' : '<span></span>') + '</div>';
+      }).join('') + '</div>';
+    el.onclick = function (e) {
+      var c = e.target.closest('[data-close]');
+      if (c) {
+        var sym = c.getAttribute('data-close'), p = pos[sym], px = (quotes[sym] || {}).c || p.avg;
+        if (!confirm('Close ' + sym + '? Sell all ' + p.qty + ' shares at market (about ' + money(px) + '). You lock in about ' + signed((px - p.avg) * p.qty) + '.' + (p.sl || p.tp ? ' Your stop and target are cleared.' : ''))) return;
+        c.disabled = true;
+        call('tw_trade', { warId: warId, sym: sym, side: 'sell', qty: p.qty }).then(function (r) { msg('Closed ' + sym + ': sold ' + r.fill.qty + ' at ' + money(r.fill.price) + (r.fill.pnl != null ? ' (' + signed(r.fill.pnl) + ')' : '') + '.', true); }, function (err) { c.disabled = false; msg(errText(err)); });
+        return;
+      }
+      var r = e.target.closest('[data-at]'); if (r && r.getAttribute('data-at') !== ticket.sym) { ticket.sym = r.getAttribute('data-at'); ticket.qty = pos[ticket.sym].qty; render(); }
+    };
   }
   function checkAlerts() {
     if (!TC) return;

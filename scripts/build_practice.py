@@ -93,6 +93,7 @@ BODY = '''<main class="pt-shell">
         <button class="pt-chip" type="button" id="ptZoomOut" aria-label="Zoom out">&minus;</button>
       </div>
       <div class="pt-chart-wrap"><canvas class="pt-chart" id="ptChart" aria-label="Price chart"></canvas></div>
+      <div class="pt-active" id="ptActive" hidden></div>
       <div class="pt-stats" id="ptStats"></div>
       <p class="pt-hint">Scroll to zoom &middot; drag to pan &middot; hover for exact values. Dashed lines are your average cost and open orders.</p>
     </section>
