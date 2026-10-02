@@ -94,7 +94,7 @@
     'D': { label: 'Daily', short: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
     'W': { label: 'Weekly', short: 'W', ranges: [['6M', 26], ['1Y', 52], ['All', 'all']], def: 52 }
   };
-  var tf = 'D', rangeSel = null;
+  var tf = '5m', rangeSel = null; // today's live line by default; your last pick is remembered
   function fromRows(rows, key, extraProps) {
     var s = { sym: sel, key: key, d: [], o: [], h: [], l: [], c: [], v: [] };
     rows.forEach(function (r) { s.d.push(r[0]); s.o.push(r[1]); s.h.push(r[2]); s.l.push(r[3]); s.c.push(r[4]); s.v.push(r[5] || 0); });
@@ -123,6 +123,9 @@
       if (!cb || cb[0] !== label) { cb = [label, r[1], r[2], r[3], r[4], r[5] || 0]; out.push(cb); }
       else { cb[2] = Math.max(cb[2], r[2]); cb[3] = Math.min(cb[3], r[3]); cb[4] = r[4]; cb[5] += r[5] || 0; }
     });
+    // the latest quote moves today's last bar, so the line ends at the live price
+    var q = quotes[sel] || cquotes[sel], lb = out[out.length - 1];
+    if (q && q.c && q.t && lb && lb[0].slice(0, 10) === new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(q.t * 1000))) { lb[4] = q.c; lb[2] = Math.max(lb[2], q.c); lb[3] = Math.min(lb[3], q.c); }
     return fromRows(out, sel + ':' + tf, { intraday: true, live: isCrypto(sel) ? isLiveTick(sel) : marketOpen() && feed.state === 'live' });
   }
   function watchIntraday() {
@@ -681,6 +684,8 @@
       return { i: ds.d.indexOf(tf === 'W' ? weekKey(f.day) : f.day), price: f.price, side: f.side };
     }).filter(function (m) { return m.i >= 0; });
     chart.lastPrice = px;
+    // 1-day view: color and dotted line against yesterday's close, like a broker app
+    chart.refPrice = ds && ds.intraday && (rangeSel || TF[tf].def) === TF[tf].ranges[0][1] ? prevClose(sel) : null;
     chart.empty = null;
     if (!ds || !ds.n) {
       chart.empty = ds && ds.intraday
@@ -1315,6 +1320,10 @@
       try { localStorage.setItem('zelosPracticeFib', fibOn ? '1' : '0'); } catch (err) {} renderAll();
     });
     function abcOff() { $('ptAbc').classList.remove('is-on'); $('ptAbc').setAttribute('aria-pressed', 'false'); }
+    // Line (live, default) or Candles; the button names the other view
+    function styleBtn() { var b = $('ptStyle'); if (b) { b.textContent = chart.style === 'line' ? 'Candles' : 'Line'; b.setAttribute('aria-label', 'Show ' + b.textContent.toLowerCase()); } }
+    if ($('ptStyle')) $('ptStyle').addEventListener('click', function () { chart.setStyle(chart.style === 'line' ? 'candles' : 'line'); styleBtn(); });
+    styleBtn();
     $('ptAbc').addEventListener('click', function () {
       if (chart.placing === 'abc') { chart.placing = null; abcOff(); renderAll(); return; }
       if (TC.abc.get(sel)) {

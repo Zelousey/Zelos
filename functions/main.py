@@ -1594,6 +1594,12 @@ def tw_start_fields(war, now_ms, xps=None, rng=None):
 # ---------------------------------------------------------------------------
 TW_MODE_OPTS = {"draftPicks": (2, 3, 5), "whaleCap": (25, 50, 75), "whaleShields": (1, 2, 3), "storms": ("rare", "often")}
 TW_DRAFT_PICK_MS = 45000
+# Stop loss / take profit is a game option ("stops"), off unless the host turns it on.
+# Exits already set on open positions keep working and can still be cleared.
+
+
+def tw_stops_on(war):
+    return bool((war.get("modes") or {}).get("stops"))
 TW_DRAFT_IDLE_MS = 120000     # a draft nobody touches is finished by the 5-minute job
 TW_STORM_MS = 30 * 60000
 TW_STORM_CHANCE = {"rare": 1 / 78.0, "often": 3 / 78.0}  # per 5-minute check: ~1 or ~3 a trading day
@@ -1633,6 +1639,10 @@ def tw_validate_modes(data, days):
         if raw["bounties"] is not True:
             raise bad
         out["bounties"] = True
+    if raw.get("stops"):
+        if raw["stops"] is not True:
+            raise bad
+        out["stops"] = True
     return out
 
 
@@ -2213,8 +2223,6 @@ def tw_trade(req, db, uid, now_ms):
     prices, tradable, why = _tw_prices(db)
     if not tradable:
         raise TWError("FAILED_PRECONDITION", why)
-    # optional Stop Loss / Take Profit attached to a buy (checked against the live price)
-    sl, tp = tw_check_bracket(prices.get(sym), data.get("sl"), data.get("tp")) if side == "buy" else (None, None)
     war_ref = db.collection("tradeWars").document(wid)
     acct_ref = war_ref.collection("accounts").document(uid)
     book_ref = war_ref.collection("books").document(uid)
@@ -2237,6 +2245,8 @@ def tw_trade(req, db, uid, now_ms):
         storm = tw_storm_now(war.get("storm"), now_ms)
         if storm and storm.get("kind") == "halt" and storm.get("sym") == sym:
             raise TWError("FAILED_PRECONDITION", "%s is halted by a Volatility Storm (a virtual game event) for a few more minutes." % sym)
+        # optional Stop Loss / Take Profit on a buy, only when the battle has them on
+        sl, tp = tw_check_bracket(prices.get(sym), data.get("sl"), data.get("tp")) if side == "buy" and tw_stops_on(war) else (None, None)
         allowed = (war.get("rules") or {}).get("symbols")
         if allowed and sym not in allowed:
             listed = ", ".join(allowed[:12]) + (" and more" if len(allowed) > 12 else "")
@@ -2304,6 +2314,8 @@ def tw_bracket(req, db, uid, now_ms):
             raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
         if war["status"] != "active":
             raise TWError("FAILED_PRECONDITION", "This Trade War isn't live.")
+        if (sl or tp) and not tw_stops_on(war):
+            raise TWError("FAILED_PRECONDITION", "Stop loss and take profit are off in this Trade War.")
         acct = war_ref.collection("accounts").document(uid).get(transaction=t).to_dict() or {}
         if acct.get("out"):
             raise TWError("FAILED_PRECONDITION", "You've been knocked out.")

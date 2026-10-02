@@ -289,6 +289,14 @@ class AdvancedGameplay(unittest.TestCase):
         def choice(self, x): return x[0]
         def random(self): return 0.0
 
+    def test_stops_are_a_game_option(self):
+        self.assertEqual(m.tw_validate_modes({"modes": {"stops": True}}, 3), {"stops": True})
+        with self.assertRaises(m.TWError):
+            m.tw_validate_modes({"modes": {"stops": "yes"}}, 3)
+        self.assertFalse(m.tw_stops_on({"modes": {}}))
+        self.assertFalse(m.tw_stops_on({}))
+        self.assertTrue(m.tw_stops_on({"modes": {"stops": True}}))
+
     def test_modes_validation(self):
         self.assertEqual(m.tw_validate_modes({}, 7), {})
         self.assertEqual(m.tw_validate_modes({"modes": {"draftPicks": 3, "whaleCap": 50, "whaleShields": 2, "storms": "rare", "bounties": True}}, 7),

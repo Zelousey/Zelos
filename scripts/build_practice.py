@@ -67,6 +67,7 @@ BODY = '''<main class="pt-shell">
           <div class="pt-menu pt-tf-menu" id="ptTfMenu" role="menu" hidden></div>
         </span>
         <span class="pt-seg" id="ptRanges" role="group" aria-label="Range"></span>
+        <button class="pt-chip" type="button" id="ptStyle" title="Switch between a live line and candles">Candles</button>
         <span class="pt-dd">
           <button class="pt-chip pt-dd-btn" type="button" id="ptIndBtn" aria-haspopup="true" aria-expanded="false">Indicators</button>
           <div class="pt-menu pt-ind-menu" id="ptIndMenu" hidden></div>
