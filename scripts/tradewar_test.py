@@ -470,3 +470,28 @@ class Prices(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NotifySurrender(unittest.TestCase):
+    def test_notify_wants_defaults_on(self):
+        self.assertTrue(m.notify_wants(None, "battles"))
+        self.assertTrue(m.notify_wants({"types": {"friends": False}}, "battles"))
+        self.assertFalse(m.notify_wants({"types": {"friends": False}}, "friends"))
+
+    def test_record_counts_surrender_as_loss(self):
+        r = m.tw_record_update(None, {"uid": "a", "rank": 1, "pnlPct": 4.0}, 3, "Fight", "w1", T0)
+        self.assertEqual((r["played"], r["wins"], r["losses"], r["surrenders"]), (1, 1, 0, 0))
+        r = m.tw_record_update(r, {"uid": "a", "rank": 3, "pnlPct": -2.0, "out": True, "outReason": "surrender"}, 3, "Duel", "w2", T0 + 1)
+        self.assertEqual((r["played"], r["wins"], r["losses"], r["surrenders"]), (2, 1, 1, 1))
+        self.assertEqual([x["w"] for x in r["recent"]], ["w2", "w1"])
+        self.assertTrue(r["recent"][0]["surrendered"])
+        r2 = m.tw_record_update(r, {"uid": "a", "rank": 3, "outReason": "surrender"}, 3, "Duel", "w2", T0 + 2)
+        self.assertEqual(len(r2["recent"]), 2)  # same match never listed twice
+
+    def test_surrender_forfeits_rewards(self):
+        res = [{"uid": "a", "rank": 1, "trades": 2}, {"uid": "b", "rank": 2, "trades": 2, "out": True, "outReason": "surrender"}]
+        self.assertEqual(m.tw_rewards(res, None, {"a", "b"}), [])  # only one eligible finisher left: no duel prize
+        res4 = [{"uid": u, "rank": i + 1, "trades": 1} for i, u in enumerate("abcd")] + [{"uid": "e", "rank": 5, "trades": 3, "out": True, "outReason": "surrender"}]
+        res4[0], res4[4] = res4[0], res4[4]
+        paid = m.tw_rewards(res4, None, set("abcde"))
+        self.assertNotIn("e", [p[0] for p in paid])

@@ -1,7 +1,20 @@
 /*!
- * Zelos mobile tab bar: Home · Dashboard · Trade War · Alerts · Account, fixed to the
- * bottom of the screen on phones (styles in zelos-theme.css, .zb-bar; hidden above 760px).
- * The full menu stays in the hamburger. Games keep the whole screen, so no bar there.
+ * Zelos app bars.
+ *
+ * Phones (styles in zelos-theme.css, hidden above 760px):
+ *   - bottom tab bar: Home · Dashboard · Trade War · Alerts · Account. The Account tab
+ *     shows your own avatar (traders/{uid}.avatar, else your sign-in photo) in a ring
+ *     the color of your level.
+ *   - top bar: the page name, your coins (zelos-tokens.js chip), the bell and the menu.
+ *     The logo, theme switch and Log in / Get Started move out of the way; the theme
+ *     switch and sign in / out live at the bottom of the menu instead.
+ *
+ * Every size: the bell (.zb-bell) opens your notifications: challenges, battle
+ * updates, friends, your community and Trade War fills, written by the server to
+ * users/{uid}/inbox. Opening it marks them read. Alerts → Notifications
+ * (alert-history.html#notifications) has the switches for what reaches your phone.
+ *
+ * Games keep the whole screen, so no bars there.
  */
 (function () {
   'use strict';
@@ -15,30 +28,118 @@
     bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'
   };
   function svg(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[k] + '</svg>'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var tabs = [
     ['Home', 'index.html', 'home', /^\/(index\.html)?$/],
     ['Dashboard', 'dashboard.html', 'dash', /\/dashboard\.html$/],
     ['Trade War', 'practice/index.html', 'war', /\/practice\//],
     ['Alerts', 'alert-history.html', 'bell', /\/(alert-history|alert|swing-trader|breakout-rider|options-scanner|daily-market)\.html$/]
   ];
+  // level ring colors (same tiers as zelos-levels.js)
+  var LV = [[0, '#8a909c'], [10, '#d08a52'], [50, '#e3e8ef'], [150, '#ffd45c'], [400, '#7fb0ff'], [1000, '#b9a8ff'], [2000, '#ff8a5c'], [3500, '#4fe0c1'], [6000, '#ff6fb5'], [10000, '#ffe27a'], [16000, '#9fd3ff']];
+  function ring(xp) { var c = LV[0][1]; LV.forEach(function (l) { if ((xp || 0) >= l[0]) c = l[1]; }); return c; }
+  function pageName() {
+    for (var i = 0; i < tabs.length; i++) if (tabs[i][3].test(path)) return /\/alert\.html$/.test(path) ? 'Alert' : tabs[i][0];
+    if (/\/(my-zelos|tokens)\.html$/.test(path)) return /tokens/.test(path) ? 'Tokens' : 'My Zelos';
+    var t = (d.title || 'Zelos').split(/\s[|:—–]\s|:\s/)[0].replace(/^Zelos\s*[—–-]\s*/, '').trim();
+    return t.length > 22 ? t.slice(0, 21) + '…' : t;
+  }
+
+  var bar, bell, inbox = [], unsubInbox = null, uid = null, db = null;
   function build() {
-    var bar = d.createElement('nav'); bar.className = 'zb-bar'; bar.setAttribute('aria-label', 'Main');
+    bar = d.createElement('nav'); bar.className = 'zb-bar'; bar.setAttribute('aria-label', 'Main');
     bar.innerHTML = tabs.map(function (t) {
       return '<a href="' + ROOT + t[1] + '"' + (t[3].test(path) ? ' class="is-on" aria-current="page"' : '') + '>' + svg(t[2]) + '<span>' + t[0] + '</span></a>';
-    }).join('') + '<a href="' + ROOT + 'my-zelos.html" id="zbAcct"' + (/\/(my-zelos|tokens)\.html$/.test(path) ? ' class="is-on"' : '') + '><span class="zb-av">?</span><span>Account</span></a>';
+    }).join('') + '<a href="' + ROOT + 'my-zelos.html" id="zbAcct"' + (/\/(my-zelos|tokens)\.html$/.test(path) || /\/practice\/profile\.html$/.test(path) ? ' class="is-on"' : '') + '><span class="zb-av">?</span><span>Account</span></a>';
     d.body.appendChild(bar); d.documentElement.classList.add('has-tabbar');
-    function hook() {
-      try {
-        if (!window.firebase || !firebase.apps || !firebase.apps.length) return false;
-        firebase.auth().onAuthStateChanged(function (u) {
-          var av = bar.querySelector('.zb-av'); if (!av) return;
-          if (u && !u.isAnonymous) av.innerHTML = u.photoURL && /^https:/.test(u.photoURL) ? '<img src="' + u.photoURL.replace(/"/g, '') + '" alt="" referrerpolicy="no-referrer">' : ((u.displayName || u.email || 'Z').charAt(0).toUpperCase());
-          else av.textContent = '?';
-        });
-        return true;
-      } catch (e) { return false; }
-    }
+    topBar();
     if (!hook()) window.addEventListener('load', function () { if (!hook()) setTimeout(hook, 1500); });
+  }
+
+  // ------------------------------------------------------------ top bar
+  function topBar() {
+    var nav = d.querySelector('.site-nav .shell'), ham = d.getElementById('navHamburger');
+    if (!nav || !ham) return;
+    d.documentElement.classList.add('has-zbtop');
+    var title = d.createElement('b'); title.className = 'zb-title'; title.textContent = pageName();
+    nav.insertBefore(title, nav.firstChild);
+    bell = d.createElement('button'); bell.type = 'button'; bell.className = 'zb-bell'; bell.hidden = true;
+    bell.setAttribute('aria-label', 'Notifications'); bell.setAttribute('aria-haspopup', 'true');
+    bell.innerHTML = svg('bell') + '<em hidden></em>';
+    ham.parentNode.insertBefore(bell, ham);
+    var pop = d.createElement('div'); pop.className = 'zb-inbox'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Notifications');
+    d.body.appendChild(pop);
+    bell.onclick = function (e) { e.stopPropagation(); if (pop.hidden) openInbox(pop); else pop.hidden = true; };
+    d.addEventListener('click', function (e) { if (!pop.hidden && !pop.contains(e.target)) pop.hidden = true; });
+    d.addEventListener('keydown', function (e) { if (e.key === 'Escape') pop.hidden = true; });
+    // the menu gets what the top bar no longer shows: theme + account
+    var panel = d.getElementById('navMobilePanel');
+    if (panel && !panel.querySelector('.zb-menu-extra')) {
+      var x = d.createElement('div'); x.className = 'zb-menu-extra';
+      x.innerHTML = '<div class="nav-mobile-label">Settings</div><a href="' + ROOT + 'alert-history.html#notifications">Notifications</a>' +
+        '<button type="button" class="zb-theme">Switch background theme</button><a href="' + ROOT + 'my-zelos.html" class="zb-acct-link">My account &amp; sign in</a>';
+      panel.appendChild(x);
+      x.querySelector('.zb-theme').onclick = function () { var t = d.getElementById('themeToggle'); if (t) t.click(); };
+    }
+  }
+  function ago(ms) { var m = Math.max(1, Math.round((Date.now() - ms) / 60000)); return m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; }
+  var ICON = { challenges: '⚔️', battles: '🏁', friends: '👋', community: '🏝️', fills: '🎯' };
+  function renderInbox(pop) {
+    pop.innerHTML = '<div class="zb-inbox-head"><b>Notifications</b><a href="' + ROOT + 'alert-history.html#notifications">Settings</a></div>' +
+      (inbox.length ? inbox.map(function (n) {
+        var link = /^[a-z0-9_\-\/.]+(\?[\w=&%.\-]*)?$/i.test(n.link || '') ? ROOT + n.link : '#';
+        return '<a class="zb-note' + (n.read ? '' : ' is-new') + '" href="' + esc(link) + '"><span class="zb-note-ic" aria-hidden="true">' + (ICON[n.kind] || '🔔') + '</span>' +
+          '<span><b>' + esc(n.title) + '</b><small>' + esc(n.body) + '</small></span><time>' + ago(n.at || Date.now()) + '</time></a>';
+      }).join('') : '<p class="zb-inbox-empty">Nothing yet. Challenges, battle updates, friend adds and your community show up here.</p>');
+  }
+  function openInbox(pop) {
+    renderInbox(pop); pop.hidden = false;
+    var unread = inbox.filter(function (n) { return !n.read; });
+    if (db && uid && unread.length) {
+      var b = db.batch();
+      unread.forEach(function (n) { b.update(db.collection('users').doc(uid).collection('inbox').doc(n.id), { read: true }); });
+      b.commit().catch(function () {});
+    }
+  }
+  function badge() {
+    if (!bell) return;
+    var n = inbox.filter(function (x) { return !x.read; }).length, em = bell.querySelector('em');
+    em.hidden = !n; em.textContent = n > 9 ? '9+' : n;
+    bell.classList.toggle('has-new', !!n);
+  }
+
+  // ------------------------------------------------------------ signed-in bits
+  function hook() {
+    try {
+      if (!window.firebase || !firebase.apps || !firebase.apps.length) return false;
+      var hasFs = typeof firebase.firestore === 'function';
+      db = hasFs ? firebase.firestore() : null;
+      var unsubT = null, unsubU = null, trader = {}, xp = 0;
+      firebase.auth().onAuthStateChanged(function (u) {
+        var av = bar.querySelector('.zb-av');
+        [unsubT, unsubU, unsubInbox].forEach(function (f) { if (f) f(); }); unsubT = unsubU = unsubInbox = null; inbox = []; badge();
+        if (!u || u.isAnonymous) { uid = null; av.textContent = '?'; av.style.boxShadow = ''; if (bell) bell.hidden = true; return; }
+        uid = u.uid; trader = {}; xp = 0;
+        function paint() {
+          var ph = trader.avatar || trader.photo || u.photoURL;
+          if (ph && /^(https:|data:image\/(jpeg|png|webp);base64,)/.test(ph)) av.innerHTML = '<img src="' + esc(ph) + '" alt="" referrerpolicy="no-referrer">';
+          else av.textContent = ((trader.username || u.displayName || u.email || 'Z').charAt(0) || 'Z').toUpperCase();
+          var c = ring(xp); av.style.boxShadow = '0 0 0 2px ' + c + ', 0 0 8px ' + c + '88';
+        }
+        paint();
+        if (!db) return;
+        unsubT = db.collection('traders').doc(uid).onSnapshot(function (s) { trader = s.exists ? s.data() : {}; paint(); }, function () {});
+        unsubU = db.collection('users').doc(uid).onSnapshot(function (s) { xp = (s.exists && s.data().xp) || 0; paint(); }, function () {});
+        if (bell) {
+          bell.hidden = false;
+          unsubInbox = db.collection('users').doc(uid).collection('inbox').orderBy('at', 'desc').limit(20).onSnapshot(function (s) {
+            inbox = []; s.forEach(function (x) { inbox.push(Object.assign({ id: x.id }, x.data())); });
+            badge(); var pop = d.querySelector('.zb-inbox'); if (pop && !pop.hidden) renderInbox(pop);
+          }, function () {});
+        }
+      });
+      return true;
+    } catch (e) { return false; }
   }
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', build); else build();
 })();

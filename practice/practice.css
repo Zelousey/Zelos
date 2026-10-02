@@ -974,3 +974,35 @@ details.pt-about[open] > summary::before{ content:'▾ '; }
   .twh-sectors{ grid-template-columns:1fr; }
   .pt-news-item img, .pt-news-ph{ width:56px; height:40px; }
 }
+
+/* ---- battle room ⋯ menu: invite / cancel / leave / surrender (war.js) ---- */
+.ch-hero{ position:relative; }
+.tw-more{ position:absolute; top:0; right:0; width:40px; height:36px; font-size:1.3rem; line-height:1; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); cursor:pointer; }
+.tw-more:hover{ border-color:var(--accent-line); }
+.tw-sheet{ position:fixed; inset:0; z-index:950; display:flex; align-items:flex-end; justify-content:center; background:rgba(4,6,10,0.6); }
+.tw-sheet-card{ width:min(520px, 100%); background:var(--surface); border:1px solid var(--border); border-bottom:0; border-radius:var(--radius) var(--radius) 0 0; padding:10px 18px calc(18px + env(safe-area-inset-bottom)); animation:twh-battle-in .2s var(--ease-out, ease-out); }
+@media (min-width:761px){ .tw-sheet{ align-items:center; } .tw-sheet-card{ border-bottom:1px solid var(--border); border-radius:var(--radius); } }
+.tw-sheet-grab{ width:40px; height:4px; border-radius:2px; background:var(--border); margin:0 auto 10px; }
+.tw-sheet-list{ display:flex; flex-direction:column; }
+.tw-sheet-list button{ display:block; text-align:left; font:inherit; color:var(--ink); background:none; border:0; border-top:1px solid var(--border-soft); padding:13px 2px; cursor:pointer; }
+.tw-sheet-list button:first-child{ border-top:0; }
+.tw-sheet-list button b{ display:block; font-size:0.95rem; } .tw-sheet-list button small{ color:var(--muted); font-size:0.8rem; }
+.tw-sheet-list button.is-bad b{ color:#f07068; }
+.tw-sheet-list button.is-close{ text-align:center; color:var(--muted); }
+.tw-sheet-list button:disabled{ opacity:0.5; }
+.tw-flag{ font-size:2rem; }
+.tw-sheet-card h2{ margin:6px 0 8px; font-size:1.25rem; }
+.tw-sheet-card > p{ color:var(--muted); font-size:0.9rem; line-height:1.55; margin:0 0 14px; }
+.tw-sheet-card > p b{ color:var(--ink); }
+.tw-hold{ position:relative; overflow:hidden; width:100%; padding:14px; border:0; border-radius:14px; font:800 1rem var(--sans); color:#fff; cursor:pointer; background:linear-gradient(180deg, var(--tw-sell-top), var(--tw-sell)); touch-action:none; user-select:none; -webkit-user-select:none; }
+.tw-hold i{ position:absolute; left:0; top:0; bottom:0; width:0; background:rgba(255,255,255,0.22); }
+.tw-hold span{ position:relative; }
+.tw-keep{ width:100%; margin-top:8px; padding:12px; font:600 0.92rem var(--sans); color:var(--ink); background:none; border:1px solid var(--border); border-radius:var(--radius); cursor:pointer; }
+.pf-record{ margin:14px 0; }
+.pf-rec{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; }
+.pf-rec span{ border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:8px 10px; }
+.pf-rec small{ display:block; font:600 0.6rem var(--mono); letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+.pf-rec b{ font:700 1.25rem var(--mono); }
+.tw-onboard{ margin:0 0 10px; }
+.tw-onboard .zo-card{ max-width:none; }
+@media (min-width:1181px){ .tw-onboard .zo-steps{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0 14px; } .tw-onboard .zo-step{ border-top:0; } .tw-onboard .zo-cta{ display:inline-block; width:auto; padding:10px 22px; } }

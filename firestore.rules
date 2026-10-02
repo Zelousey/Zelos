@@ -85,6 +85,13 @@ service cloud.firestore {
       allow list, write: if false;
     }
 
+    // Public Trade War record per player (played / wins / losses / surrenders, recent
+    // matches). Written only by the server when a match ends (tw_record_results).
+    match /twRecords/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Globe market map (country moves, trending stocks, linked US-listed names).
     // Public read; written only by publish_market_map via the Admin SDK.
     match /markets/{docId} {
@@ -109,6 +116,15 @@ service cloud.firestore {
       // Written by zelos-xp.js client-side, only ever to your own subcollection.
       match /activity/{activityId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // The bell: notifications about you (challenges, battles, friends, community,
+      // fills), written by the server. You can read them, mark them read, or delete them.
+      match /inbox/{noteId} {
+        allow read, delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) && request.resource.data.read is bool;
+        allow create: if false;
       }
 
       // Real Trade Journal (REAL mode): trades this person made at their own

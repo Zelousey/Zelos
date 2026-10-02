@@ -85,11 +85,11 @@
     'challenge-join': ['trade-war', 'Trade War challenge'], 'challenge-win': ['trade-war', 'Won a Trade War challenge'],
     'referral': ['social', 'Friend joined'], 'referral-welcome': ['social', 'Joined from an invite'],
     'real-trade': ['real', 'Real Trading Activity'], 'trading-tools': ['real', 'Used trading tools'], 'share': ['social', 'Shared Trade War'],
-    'mission': ['missions', 'Mission'], 'achievement': ['achievements', 'Achievement']
+    'mission': ['missions', 'Mission'], 'achievement': ['achievements', 'Achievement'], 'onboard': ['platform', 'Getting set up']
   };
   var SOURCE_NAMES = { 'trade-war': 'Trade War', real: 'Real Trading', training: 'Training', social: 'Social', missions: 'Missions', achievements: 'Achievements', platform: 'Platform' };
   // types whose amount the caller chooses, with a hard cap so a bad call can't mint a fortune
-  var VARIABLE = { 'mission': 300, 'achievement': 500 };
+  var VARIABLE = { 'mission': 300, 'achievement': 500, 'onboard': 50 };
 
   // Local tally of XP earned today / this week (ET), for the "Earn N XP" missions
   // in zelos-progress.js. Browser-local on purpose: it's a mission counter, not a balance.
