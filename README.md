@@ -69,7 +69,7 @@ secrets described there.
 ## Arcade training games (real charts)
 
 - `games/chart-replay.html` (flagship simulator), `games/grade-the-setup.html`, `games/stop-drill.html`, `games/daily-challenge.html`
-- Shared engine: `games/zelos-chart-engine.js` + `games/zelos-games.css`. Chart data: `data/game-charts.json` (real daily bars, 30 symbols, 2024–2026).
+- Shared engine: `games/zelos-chart-engine.js` + `games/zelos-games.css`. Chart data: about 2 years of real daily bars that the server saves from Marketstack (`markets/history_<n>`, loaded by `zelos-mdata.js`).
 - Pages are generated: edit `scripts/build_games.py` / `scripts/page-src/games/*.js`, then run `python3 scripts/build_games.py`.
 - New leaderboard ids (`chart-replay`, `grade-the-setup`, `stop-drill`, `daily-YYYY-MM-DD`) are registered in `leaderboard.js`. Matching Realtime Database rules are in `database.rules.json` (paste into Firebase console → Realtime Database → Rules).
 - Scores can carry an optional `ref` (Chart Replay sends its chart seed) so a leaderboard row opens that exact chart. The rule for `ref` is in `database.rules.json`; until it's pasted into the console, `leaderboard.js` retries the push without `ref`, so scores still post.
@@ -82,14 +82,14 @@ One account, two modes that never mix: **Trade War** (`practice/`, the $10,000 v
 ### Trade War details
 
 - `practice/index.html`: paper trading on 50 real stocks and ETFs with live prices, a full chart (13 toggleable indicators, SL/TP forecast boxes), market/limit/stop/bracket orders, simulated options (long calls/puts, modeled prices) and agent signals. Built by `python3 scripts/build_practice.py`; logic in `practice/practice.js`, chart in `practice/practice-chart.js`, option pricing in `practice/practice-options.js`.
-- The stock list is `data/practice-universe.json` (single source of truth; the build copies it to `functions/practice_universe.json` for the price function). Extra price history lives in `data/practice-extra.json`.
-- Live quotes come from the `refresh_quotes` Cloud Function (FMP → Firestore `markets/quotes`); headlines from `refresh_news` (→ `markets/news`). Setup: `docs/practice-account.md`. Without them the page uses the latest daily close.
+- The stock list is `data/practice-universe.json` (single source of truth; the build copies it to `functions/practice_universe.json` for the price function).
+- Prices come from the `refresh_quotes` Cloud Function (Marketstack → Firestore `markets/quotes`, every 15 minutes on the Basic plan). Setup: `docs/market-data.md`. Without them the page uses the latest daily close.
 - Accounts are saved in localStorage, and to `users/{uid}.practice` for signed-in users. Signed-in players publish public stats to `practiceProfiles/{uid}` (leaderboard + `practice/profile.html`).
 - The dashboard's Practice Account, Watchlist news and Trending news widgets live in `zelos-dash-hub.js`.
 - XP, levels, missions, achievements, seasons, recovery goals: `zelos-progress.js` (+ `zelos-xp.js`, `zelos-levels.js`). Challenges, squads, friends, referrals, share cards: `zelos-social.js`, pages `practice/challenge.html` and `practice/squads.html`. Practice leaderboards (all-time, weekly, monthly, season, friends): `zelos-practice-board.js`. Details: `docs/practice-account.md`.
 - What's next: `docs/roadmap.md`.
 - Timeframes: 5m / 15m / 1H (from the function's 5-minute bars in `markets/intraday_<SYM>`), D, W. Candle color presets and custom colors are saved as `zelosChartColors` in localStorage and also used by the Arcade charts. Full Port (all-in sizing plus the green/red glow) is a toggle on the order ticket.
-- The home page preview chart is real data: `python3 scripts/build_home_promo.py` redraws it from `data/game-charts.json`.
+- The home page preview chart is a fixed picture; `scripts/build_home_promo.py` needs a local bars file to redraw it (the old data file was retired).
 
 ## Themes, levels, dashboard
 

@@ -21,7 +21,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var db, auth, fns, user = null, unsubs = [], quotes = {}, quoteDoc = {}, universe = [], warId = null, war = null, accounts = [], book = null, books = {}, events = [], prevRanks = {};
   var ticket = { sym: 'AAPL', qty: 1 };
-  // Trade War chart (practice-chart.js): daily history + live FMP quote, your entry and fills,
+  // Trade War chart (practice-chart.js): daily history + the latest Marketstack price, your entry and fills,
   // Fibonacci, and the Trade War price alerts shared with the $10,000 account.
   var CH = window.ZelosChallenge; // Last Man Standing rule text (zelos-challenge.js)
   var OUT_WHY = { floor: 'hit the P&L floor', bigLoss: 'took too big a loss on one trade', losses: 'ran out of losing trades', cut: 'finished last at the timed cut', surrender: 'surrendered' };
@@ -632,8 +632,8 @@
     fetch('../data/practice-universe.json').then(function (r) { return r.json(); }).then(function (u) { universe = (u.symbols || []).slice(0, 55); if (war) render(); }).catch(function () {});
     db.collection('markets').doc('quotes').onSnapshot(function (d) { quoteDoc = d.exists ? d.data() : {}; quotes = quoteDoc.quotes || {}; checkAlerts(); if (war && war.status === 'active') render(); }, function () {});
     Promise.all([
-      fetch('../data/game-charts.json').then(function (r) { return r.json(); }),
-      fetch('../data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; })
+      ZelosData.history(),
+      Promise.resolve({ symbols: {} })
     ]).then(function (res) { hist = {}; [res[0].symbols, res[1].symbols].forEach(function (src) { Object.keys(src || {}).forEach(function (k) { hist[k] = src[k]; }); }); drawChart(); }).catch(function () {});
     db.collection('markets').doc('dailyBars').onSnapshot(function (d) {
       var b = (d.exists && d.data().bars) || {}; extra = {};

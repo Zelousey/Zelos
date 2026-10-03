@@ -118,11 +118,11 @@
     var ORDER = ['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD', 'DOGEUSD', 'ADAUSD', 'AVAXUSD', 'LTCUSD'], rk = function (k) { var i = ORDER.indexOf(k); return i < 0 ? 99 : i; };
     var rows = mvTab === 'crypto' ? Object.keys((crypto && crypto.quotes) || {}).sort(function (x, y) { return rk(x) - rk(y); }).map(function (k) { var q = crypto.quotes[k]; return { sym: k.replace(/USD$/, ''), name: q.name, price: q.c, chPct: q.chPct != null ? q.chPct : (q.pc ? (q.c / q.pc - 1) * 100 : 0) }; })
       : ((movers && movers[mvTab]) || []);
-    if (!rows.length) { el.innerHTML = '<div class="empty">' + (mvTab === 'crypto' ? 'Crypto prices load here.' : 'Movers load during market hours.') + '</div>'; return; }
+    if (!rows.length) { el.innerHTML = '<div class="empty">' + (!movers ? 'Movers load during market hours.' : mvTab === 'gainers' ? 'No stocks on the list are up today.' : mvTab === 'losers' ? 'No stocks on the list are down today.' : 'No trading yet today.') + '</div>'; return; }
     el.innerHTML = '<ul class="hub-mv">' + rows.slice(0, 7).map(function (r) {
       var px = +r.price || 0, ch = +r.chPct || 0;
       return '<li><span><b>' + esc(r.sym) + '</b><small>' + esc(r.name || '') + '</small></span><em class="' + cls(ch) + '">$' + px.toLocaleString('en-US', { minimumFractionDigits: px < 2 ? 4 : 2, maximumFractionDigits: px < 2 ? 4 : 2 }) + '<br>' + (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%</em></li>';
-    }).join('') + '</ul><div class="hub-foot"><span>' + (mvTab === 'crypto' ? '<a href="practice/index.html">Trade crypto 24/7 in Trade War &rarr;</a>' : 'Whole US market · Financial Modeling Prep') + '</span></div>';
+    }).join('') + '</ul><div class="hub-foot"><span>' + (mvTab === 'crypto' ? '<a href="practice/index.html">Trade crypto 24/7 in Trade War &rarr;</a>' : 'Among Zelos stocks · prices by Marketstack') + '</span></div>';
   }
   function watchedTickers() {
     var t = [];
@@ -313,7 +313,6 @@
       if (!firebase.apps.length) firebase.initializeApp(cfg);
       var db = firebase.firestore();
       db.collection('markets').doc('quotes').onSnapshot(function (snap) { quotes = (snap.exists && snap.data().quotes) || {}; renderPractice(); renderReal(); }, function () {});
-      db.collection('markets').doc('news').onSnapshot(function (snap) { news = snap.exists ? snap.data() : null; renderWatchNews(); renderTrending(); }, function () {});
       db.collection('markets').doc('movers').onSnapshot(function (snap) { movers = snap.exists ? snap.data() : null; renderMovers(); }, function () {});
       db.collection('markets').doc('crypto').onSnapshot(function (snap) { crypto = snap.exists ? snap.data() : null; renderMovers(); renderPractice(); }, function () {});
       var mt = $('hubMoversTabs'); if (mt) mt.addEventListener('click', function (e) { var b = e.target.closest('[data-mv]'); if (b) { mvTab = b.getAttribute('data-mv'); renderMovers(); } });

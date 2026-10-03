@@ -134,7 +134,7 @@
   .share-btn{ width:100%; font:inherit; font-weight:700; padding:11px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); cursor:pointer; }
   #pushRow .zn-row{ margin:0; border-radius:16px; padding:16px 18px; }
 
-  /* research on the ticker (markets/research_<SYM>, FMP via market_research) */
+  /* research on the ticker (markets/research_<SYM>: SEC EDGAR company data via market_research) */
   .rs-warn{ display:flex; gap:12px; align-items:flex-start; padding:14px 18px; border-radius:14px; border:1px solid rgba(232,178,61,.55); background:rgba(232,178,61,.1); font-size:0.9rem; line-height:1.5; }
   .rs-warn b{ color:#f2d38a; }
   .rs-warn .ic{ font-size:1.2rem; line-height:1.2; }
@@ -442,6 +442,7 @@
     var ref = firebase.firestore().collection('markets').doc('research_' + sym.replace('.', '-'));
     ref.get().then(function(s){
       var d = s.exists ? s.data() : null;
+      if (d && d.source !== 'SEC EDGAR') d = null; // from the retired source: refetch
       if (d) showResearch(a, d);
       if ((!d || Date.now() / 1000 - (d.fetchedAt || 0) > 12 * 3600) && window.ZelosTokens && ZelosTokens.call) {
         return ZelosTokens.call('market_research', { symbol: sym }).then(function(r){ if (r && r.symbol === sym && rsFor === sym) showResearch(a, r); });
@@ -515,7 +516,7 @@
     box.querySelectorAll('details[open]').forEach(function(x){ open[x.getAttribute('data-rs')] = 1; });
     box.innerHTML = panes.map(function(p){
       return '<details class="al-more" data-rs="' + p[0] + '"' + (open[p[0]] ? ' open' : '') + '><summary>' + p[0] + (p[2] ? '<small>' + esc(p[2]) + '</small>' : '') + '</summary><div class="al-more-body rs-pane">' + p[1] + '</div></details>';
-    }).join('') + (panes.length ? '<p class="rs-fine rs-src">Company and analyst data: Financial Modeling Prep. Context only; not part of the Zelos score and not advice.</p>' : '');
+    }).join('') + (panes.length ? '<p class="rs-fine rs-src">Company data: SEC EDGAR filings. Prices: Marketstack. Context only; not part of the Zelos score and not advice.</p>' : '');
   }
   function esc(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
   // Stop -> entry -> targets, drawn to scale: red is what you risk, green what you aim for.
