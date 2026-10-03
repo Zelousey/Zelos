@@ -47,7 +47,8 @@
     var d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4);
     return d ? d + 'd ' + h + 'h left' : h ? h + 'h ' + m + 'm left' : m + 'm left';
   }
-  function link(id) { return SITE + '/practice/war.html?w=' + encodeURIComponent(id); }
+  // share links open the invite landing page ("<you> invited you to trade with $10,000"), which leads here
+  function link(id) { var S = window.ZelosSocial; return user && S && S.links ? S.links(user.uid).battle(id, war && war.id === id ? war.name : '') : SITE + '/practice/war.html?w=' + encodeURIComponent(id); }
   function tradable() {
     var age = quoteDoc.updatedAt ? (Date.now() - new Date(quoteDoc.updatedAt).getTime()) / 1000 : 1e9;
     return !!quoteDoc.marketOpen && age < 180;

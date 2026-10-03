@@ -258,6 +258,15 @@ def build_social_pages():
     print('built practice/squads.html')
 
 
+def build_invite():
+    render('practice/invite.html', 'You\'re invited to trade with $10,000 | AgenticTrading',
+           'A friend invited you to AgenticTrading: a free $10,000 virtual trading account with real, live prices. Battle them, join their squad, or just start trading.',
+           '<main class="pt-shell iv-shell"><div id="ivBody"><p class="pt-empty">Loading your invite…</p></div>'
+           '<p class="pt-fine pf-fine">Virtual money only: no cash value, no deposits, no prizes. Not investment advice.</p></main>',
+           HEAD, SOCIAL_SCRIPTS + '<script src="invite.js"></script>\n')
+    print('built practice/invite.html')
+
+
 def build_war():
     render('practice/war.html', 'Trade War Matches: Equal Buy-In Trading Competitions | Zelos',
            'Create a Trade War: pick a virtual buy-in, invite friends, and everyone starts with the same money. Best % gain wins. Virtual money only.',
@@ -294,6 +303,7 @@ def main():
     build_profile()
     build_social_pages()
     build_war()
+    build_invite()
     # the price function reads the same stock list, so it can never drift from the page
     shutil.copyfile(os.path.join(ROOT, 'data', 'practice-universe.json'), os.path.join(ROOT, 'functions', 'practice_universe.json'))
     print('copied data/practice-universe.json -> functions/practice_universe.json')

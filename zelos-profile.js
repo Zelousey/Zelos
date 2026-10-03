@@ -367,7 +367,11 @@
         var a = this.getAttribute('data-act');
         if (a === 'signup') return signup();
         if (a === 'profile') return openEditor({ onNeedSignIn: signup }).then(function (out) { if (out) { ctx.trader = out; render(); } });
-        if (a === 'invite') return inviteSheet(ctx, f);
+        if (a === 'invite') { // the Invite a Friend sheet (zelos-invite.js); the old copy-link box if it can't load
+          ls('zelosInvited', '1'); markStep(f, ctx.user && ctx.user.uid, 'invited');
+          if (global.ZelosInvite) return ZelosInvite.open();
+          var sc = d.createElement('script'); sc.src = ROOT + 'zelos-invite.js'; sc.onload = function () { ZelosInvite.open(); }; sc.onerror = function () { inviteSheet(ctx, f); }; d.head.appendChild(sc); return;
+        }
         if (a === 'app') return appSheet(ctx, f);
         if (a === 'notify') return notifySheet();
       }; });
