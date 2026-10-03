@@ -73,6 +73,10 @@ service cloud.firestore {
     match /squareEvents/{eventId} {
       allow read, write: if false;
     }
+    // Site owner accounts (sales.html). Added by hand in the Firebase console; server only.
+    match /admins/{uid} {
+      allow read, write: if false;
+    }
     // The full alert while it's token-gated (the public alerts/{id} doc is a teaser
     // until its trade finishes; live price before the close, cheaper after).
     // Readable with an active pass for that scanner or a single unlock of this alert.

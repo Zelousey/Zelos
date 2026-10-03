@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /thank-you.html
+Disallow: /sales.html
 Disallow: /alert.html
 Disallow: /going-to-gumroad.html
 Disallow: /going-to-gumroad-breakout.html
