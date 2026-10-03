@@ -221,7 +221,7 @@
       return;
     }
     var lv = L ? L.levelForXp(xp) : null, nx = L ? L.nextLevelForXp(xp) : null, pctLv = lv && nx ? (xp - lv.xp) / (nx.xp - lv.xp) * 100 : 100;
-    el.innerHTML = '<div class="hub-trader">' + (L && lv ? L.badge(lv, 48) : '') + '<span><small>Level ' + (lv ? lv.level : 0) + ' · ' + esc(lv ? lv.title : '') + '</small><b>' + esc(lv ? lv.name : '') + '</b></span></div>' +
+    el.innerHTML = '<div class="hub-trader">' + (L && lv ? (L.framed ? L.framed(lv, 54) : L.badge(lv, 48)) : '') + '<span><small>Level ' + (lv ? lv.level : 0) + ' · ' + esc(lv ? lv.title : '') + '</small><b>' + esc(lv ? lv.name : '') + '</b></span></div>' +
       '<div class="hub-xpbar"><i style="width:' + Math.max(0, Math.min(100, pctLv)).toFixed(1) + '%"></i></div><small style="font:0.72rem var(--mono);color:var(--muted)">' + xp.toLocaleString('en-US') + ' XP' + (nx ? ' · ' + (nx.xp - xp) + ' to ' + esc(nx.name) : '') + '</small>' +
       '<div class="hub-pnl-grid" style="margin-bottom:0"><span><small>Streak</small><b>' + (sk ? '🔥 ' + sk : '0') + '</b></span>' +
       '<span><small>Leaderboard</small><b>' + (ranks && ranks.global ? '#' + ranks.global : ranks && ranks.globalOut ? '100+' : '–') + '</b></span>' +

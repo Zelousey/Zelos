@@ -32,7 +32,7 @@
     var favs = {}; (logs || []).forEach(function (l) { favs[l.sym] = (favs[l.sym] || 0) + 1; });
     var favList = Object.keys(favs).sort(function (a2, b2) { return favs[b2] - favs[a2]; }).slice(0, 5);
     // header: picture + level badge beside the name; bio, tags, buttons and tokens full width below
-    var h = '<div class="pf-head"><div class="pf-id"><div class="pf-pics">' + (photo ? '<img class="pf-photo" src="' + esc(photo) + '" alt="" referrerpolicy="no-referrer">' : '') + (L && lv ? '<span class="pf-badge">' + L.badge(lv, photo ? 40 : 64) + '</span>' : '') + '</div>' +
+    var h = '<div class="pf-head"><div class="pf-id"><div class="pf-pics">' + (photo ? '<img class="pf-photo" src="' + esc(photo) + '" alt="" referrerpolicy="no-referrer">' : '') + (L && lv ? '<span class="pf-badge">' + (L.framed ? L.framed(lv, photo ? 52 : 76) : L.badge(lv, photo ? 40 : 64)) + '</span>' : '') + '</div>' +
       '<div class="pf-name"><span class="pt-kicker">' + (mine ? 'Your public profile' : 'Trader profile') + '</span>' +
       '<h1>' + esc(name) + '</h1>' + (t.username ? '<p class="pf-handle">@' + esc(t.username) + '</p>' : '') + '</div><div class="pf-rest">' +
       (t.bio ? '<p class="pf-bio">' + esc(t.bio) + '</p>' : (mine && !t.username ? '<p class="pf-bio pt-fine">Add a picture, @username and bio so friends can find you.</p>' : '')) +

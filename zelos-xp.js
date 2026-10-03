@@ -100,7 +100,7 @@
     var y = d.getUTCFullYear(), first = new Date(Date.UTC(y, 0, 4));
     return y + '_' + String(1 + Math.round(((d - first) / 864e5 - 3 + ((first.getUTCDay() + 6) % 7)) / 7)).padStart(2, '0');
   }
-  function logXp(amount, type) {
+  function logXp(amount, type, total) {
     var today = dateStrET(0), wk = weekKey(today), l;
     try { l = JSON.parse(localStorage.getItem(LOG_KEY) || '{}'); } catch (e) { l = {}; }
     if (!l.day || l.day.date !== today) l.day = { date: today, xp: 0 };
@@ -108,7 +108,7 @@
     l.day.xp += amount; l.week.xp += amount;
     try { localStorage.setItem(LOG_KEY, JSON.stringify(l)); } catch (e) {}
     var src = SOURCES[type] || ['platform', type];
-    try { document.dispatchEvent(new CustomEvent('zelos:xp', { detail: { type: type, amount: amount, source: src[0], label: src[1], day: l.day.xp, week: l.week.xp } })); } catch (e) {}
+    try { document.dispatchEvent(new CustomEvent('zelos:xp', { detail: { type: type, amount: amount, source: src[0], label: src[1], day: l.day.xp, week: l.week.xp, total: total } })); } catch (e) {}
   }
 
   // Level-ups get a full-screen celebration (zelos-levels.js) on whatever page
@@ -253,7 +253,7 @@
         });
       });
     }).then(function (result) {
-      if (result.awarded) { maybeCelebrate(result.before, result.xp); logXp(amount, type); }
+      if (result.awarded) { maybeCelebrate(result.before, result.xp); logXp(amount, type, result.xp); }
       cb(result.awarded, { xp: result.xp, streakDays: result.streakDays });
     }).catch(function (e) {
       console.warn('[ZelosXP] award failed:', type, refId, e);

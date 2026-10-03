@@ -1164,3 +1164,5 @@ html.tw-arena .tw-chart-card{ border-color:#4a2126; }
 }
 .pt-strat-link{ display:block; margin:0 0 10px; padding:9px 12px; border:1px solid var(--accent-line, #2c4d8a); border-radius:3px; background:var(--accent-soft, #182a4a); color:#cfe0ff; font-size:0.84rem; text-decoration:none; }
 .pt-strat-link:hover{ color:#fff; }
+.pf-badge .zlv-frame .zlv-badge{ width:66% !important; height:66% !important; }
+@media (max-width:760px){ .pf-badge .zlv-frame{ width:46px !important; height:46px !important; } }

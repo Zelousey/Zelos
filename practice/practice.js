@@ -1531,6 +1531,8 @@
       acctRange = b.getAttribute('data-ar'); try { localStorage.setItem('zelosAcctRange', acctRange); } catch (err) {}
       renderAcctCard();
     });
+    // arriving from an XP toast / "View missions": jump to the XP & missions tab
+    if (qTab === 'progress') setTimeout(function () { var l = document.querySelector('.pt-lower'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 600);
     $('ptHistBtn').addEventListener('click', function () { tab = 'performance'; renderTabs(); var l = document.querySelector('.pt-lower'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
     window.addEventListener('resize', function () { clearTimeout(drawAcctChart.t); drawAcctChart.t = setTimeout(drawAcctChart, 120); });
     document.addEventListener('click', function () { document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); });
