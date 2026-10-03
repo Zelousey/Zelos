@@ -150,7 +150,7 @@
   var synced = false, syncFailed = false, authReady = false; // authReady: Firebase has said whether you're signed in
   var acct = null, currentUser = null, db = null, saveTimer = null, ownedSkills = [], profile = {}; // profile: traders/{uid} (zelos-profile.js)
   function fresh() {
-    return { v: 2, cash: START_CASH, positions: {}, options: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
+    return { v: 2, cash: START_CASH, positions: {}, options: [], strategies: [], orders: [], fills: [], trades: [], realized: 0, equityDays: {},
       resets: 0, resetHistory: [], epoch: 0, epochStartedAt: Date.now(), peakEquity: START_CASH, publicProfile: true, displayName: '',
       life: null, periods: {}, hist: {}, recovery: null, valueHist: {},
       createdAt: Date.now(), updatedAt: Date.now() };
@@ -210,15 +210,24 @@
   function optionMark(o) { var S = price(o.sym); if (S == null) return o.avg; return OPT.quote(o.type, S, o.strike, o.exp, todayNY(), vol(o.sym)).mid; }
   function stockValue() { var t = 0; Object.keys(acct.positions).forEach(function (s) { t += acct.positions[s].qty * (price(s) || acct.positions[s].avg); }); return t; }
   function optionsValue() { return acct.options.reduce(function (t, o) { return t + o.qty * 100 * optionMark(o); }, 0); }
-  function equity() { return acct.cash + stockValue() + optionsValue(); }
+  // Three-leg strategies (strategies.html): one position, legs marked like single options.
+  // value < 0 for a credit trade (what it would cost to close); collateral holds buying power for its max loss.
+  function stratValue(st, side) {
+    var S = price(st.sym); if (S == null) return st.net * -100 * (st.count || 1);
+    return st.legs.reduce(function (t, l) { var q = OPT.quote(l.type, S, l.strike, st.exp, todayNY(), vol(st.sym)); return t + l.qty * (side ? (l.qty > 0 ? q.bid : q.ask) : q.mid); }, 0) * 100 * (st.count || 1);
+  }
+  function strategiesValue() { return (acct.strategies || []).reduce(function (t, st) { return t + stratValue(st); }, 0); }
+  function strategyCollateral() { return (acct.strategies || []).reduce(function (t, st) { return t + (st.collateral || 0); }, 0); }
+  function equity() { return acct.cash + stockValue() + optionsValue() + strategiesValue(); }
   function openPnl() {
     var t = 0;
     Object.keys(acct.positions).forEach(function (s) { var p = acct.positions[s]; t += p.qty * ((price(s) || p.avg) - p.avg); });
     acct.options.forEach(function (o) { t += o.qty * 100 * (optionMark(o) - o.avg); });
+    (acct.strategies || []).forEach(function (st) { t += stratValue(st) - st.net * 100 * (st.count || 1); });
     return t;
   }
   function reservedCash() { return acct.orders.reduce(function (t, o) { return o.status === 'open' && o.side === 'buy' ? t + o.qty * (o.limit || o.stop || price(o.sym) || 0) : t; }, 0); }
-  function buyingPower() { return Math.max(0, acct.cash - reservedCash()); }
+  function buyingPower() { return Math.max(0, acct.cash - reservedCash() - strategyCollateral()); }
   function reservedShares(sym) { return acct.orders.reduce(function (t, o) { return o.status === 'open' && o.side === 'sell' && o.sym === sym && !o.oco ? t + o.qty : t; }, 0); }
   function dayPnl() {
     var t = 0, today = todayNY();
@@ -392,6 +401,14 @@
   // at expiration a long option is worth exactly its intrinsic value
   function settleExpiredOptions() {
     var today = todayNY(), p = nyParts(), changed = false;
+    (acct.strategies || []).slice().forEach(function (st) {
+      if (!(today > st.exp || (today === st.exp && p.min >= 960))) return;
+      var S = price(st.sym); if (S == null) return;
+      var val = st.legs.reduce(function (t, l) { return t + l.qty * Math.max(0, l.type === 'call' ? S - l.strike : l.strike - S); }, 0) * 100 * (st.count || 1);
+      var pnl = closeStrategyAt(st, val, 'Expired');
+      notify('Strategy expired: ' + st.label, 'Settled with ' + st.sym + ' at $' + S.toFixed(2) + ' · ' + signed(pnl));
+      changed = true;
+    });
     acct.options.slice().forEach(function (o) {
       var done = today > o.exp || (today === o.exp && p.min >= 960);
       if (!done) return;
@@ -1121,6 +1138,49 @@
     watchIntraday();
     renderAll();
   }
+  // ------------------------------------------------------------ three-leg strategies
+  function closeStrategyAt(st, value, why) {
+    var pnl = value - st.net * 100 * (st.count || 1);
+    acct.cash += value; acct.realized += pnl;
+    recordTrade({ kind: 'option', sym: st.sym, label: st.label, qty: st.count || 1, entry: st.net, exit: value / 100 / (st.count || 1), invested: Math.abs(st.net) * 100 * (st.count || 1), pnl: pnl, pct: st.net ? pnl / Math.abs(st.net * 100 * (st.count || 1)) * 100 : 0, openDay: st.openDay, closeDay: todayNY() });
+    acct.fills.push({ id: uid(), sym: st.sym, side: 'sell', qty: st.count || 1, price: value / 100, day: todayNY(), at: Date.now(), option: st.id, type: 'strategy', pnl: pnl, note: why });
+    acct.strategies = acct.strategies.filter(function (x) { return x !== st; });
+    onActivity(st.sym, pnl, { option: true });
+    return pnl;
+  }
+  var pendingStrategy = (function () { try { var v = new URLSearchParams(location.search).get('strategy'); return v ? JSON.parse(v) : null; } catch (e) { return null; } })();
+  // index.html?strategy=... from the Three-Leg Strategies page: price it now and ask before opening
+  function fromStrategyLink() {
+    var p = pendingStrategy; if (!p || !UNIVERSE.length || !window.ZelosStrategies) return;
+    if (!authReady || (currentUser && !synced && !syncFailed)) return; // wait for your real account
+    pendingStrategy = null; try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    var Z = window.ZelosStrategies, strat = Z.byId(p.kind);
+    var legs = Array.isArray(p.legs) ? p.legs.map(function (l) { return { type: l[0] === 'put' ? 'put' : 'call', strike: +l[1], qty: Math.round(+l[2]) }; }) : [];
+    if (!strat || legs.length !== 3 || legs.some(function (l) { return !(l.strike > 0) || !l.qty || Math.abs(l.qty) > 2; }) || !NAMES[p.sym] || isCrypto(p.sym) || !/^\d{4}-\d{2}-\d{2}$/.test(p.exp || '') || p.exp <= todayNY()) return toast('That strategy link isn\'t valid any more. Pick one again on the Strategies page.', true);
+    if (!marketOpen()) return toast('Options trade during market hours (9:30 am to 4:00 pm Eastern). Open it again from the Strategies page then.', true);
+    if (p.s && price(p.sym) && Math.abs(price(p.sym) / p.s - 1) > 0.03) return toast(p.sym + ' has moved since that scan ($' + (+p.s).toFixed(2) + ' then, ' + money(price(p.sym)) + ' now). Pick the strategy again so the strikes fit.', true);
+    var S = price(p.sym), plan = { kind: p.kind, sym: p.sym, exp: p.exp, legs: legs }, pr = Z.price(plan, S, todayNY(), vol(p.sym)), stt = Z.stats(plan, pr.net);
+    // credit trades hold margin like a broker does for a short put: about 20% of the stock, never more than the max loss
+    var debit = pr.net > 0, margin = Math.round(Math.min(stt.maxLoss, 0.2 * S * 100) * 100) / 100, need = debit ? pr.net * 100 : margin;
+    if (need > buyingPower() + 0.005) return toast('Not enough buying power: this needs ' + money(need) + ', you have ' + money(buyingPower()) + '.', true);
+    selectSymbol(p.sym);
+    var label = p.sym + ' ' + strat.label;
+    $('ptModalTitle').textContent = 'Open ' + label + '?';
+    $('ptModalText').innerHTML = esc(pr.legs.map(function (l) { return (l.qty > 0 ? 'Buy ' : 'Sell ') + Math.abs(l.qty) + ' ' + p.sym + ' $' + l.strike + ' ' + (l.type === 'call' ? 'call' : 'put') + ' @ ' + l.px.toFixed(2); }).join(' · ')) + ' · expires ' + esc(p.exp) + '<br>' +
+      (debit ? 'You pay <b>' + money(pr.net * 100) + '</b> (your max loss). Max profit about <b class="up">' + money(stt.maxProfit) + '</b>.' : 'You collect <b class="up">' + money(-pr.net * 100) + '</b>. ' + money(margin) + ' of buying power is held as margin while it\'s open; the most it can lose is ' + money(stt.maxLoss) + '.') + '<br>Virtual money only.';
+    $('ptModalGo').textContent = 'Open strategy'; $('ptModalGo').disabled = false; $('ptConfirm').hidden = false;
+    $('ptModalGo').onclick = function () {
+      $('ptConfirm').hidden = true;
+      acct.strategies = acct.strategies || [];
+      acct.cash -= pr.net * 100;
+      var st = { id: uid(), sym: p.sym, kind: p.kind, label: label, exp: p.exp, legs: legs, net: pr.net, count: 1, collateral: debit ? 0 : margin, openDay: todayNY() };
+      acct.strategies.push(st);
+      acct.fills.push({ id: uid(), sym: p.sym, side: 'buy', qty: 1, price: pr.net, day: todayNY(), at: Date.now(), option: st.id, type: 'strategy' });
+      onActivity(p.sym, null, { option: true });
+      save(); renderAll(); toast('Opened ' + esc(label) + (debit ? ' for ' + money(pr.net * 100) : ': collected ' + money(-pr.net * 100)));
+    };
+  }
+
   // ------------------------------------------------------------ Active Trades (under the chart)
   // Every open position with live P&L, how far it is toward its target (green) or stop
   // (red), and Close: asks once, cancels that position's stop / target orders and sells
@@ -1132,6 +1192,10 @@
     var rows = Object.keys(acct.positions).map(function (sym) {
       var p = acct.positions[sym], px = price(sym) || p.avg, x = exitsFor(sym);
       return { kind: 'stock', key: sym, sym: sym, label: isCrypto(sym) ? (CRYPTO[sym].short || sym) : sym, qty: p.qty, avg: p.avg, px: px, pnl: (px - p.avg) * p.qty, pct: (px / p.avg - 1) * 100, value: px * p.qty, sl: x.sl, tp: x.tp };
+    });
+    (acct.strategies || []).forEach(function (st) {
+      var v = stratValue(st), cost = st.net * 100 * (st.count || 1), pnl = v - cost;
+      rows.push({ kind: 'strategy', key: st.id, sym: st.sym, label: st.label, qty: st.count || 1, avg: st.net, px: v / 100, pnl: pnl, pct: cost ? pnl / Math.abs(cost) * 100 : 0, value: v, st: st });
     });
     acct.options.forEach(function (o) {
       var m = optionMark(o);
@@ -1147,7 +1211,8 @@
       '<div class="pt-at-rows">' + rows.map(function (r) {
         var good = r.pnl >= 0, w = r.tp && good ? (r.px - r.avg) / (r.tp - r.avg) : r.sl && !good ? (r.avg - r.px) / (r.avg - r.sl) : Math.abs(r.pct) / 10;
         w = Math.max(3, Math.min(100, Math.round(w * 100)));
-        var sub = r.kind === 'option' ? r.qty + ' contract' + (r.qty === 1 ? '' : 's') + ' · avg ' + pfmt(r.avg) : qtyStr(r.qty) + (isCrypto(r.sym) ? ' ' + r.label : ' share' + (r.qty === 1 ? '' : 's')) + ' · avg ' + pfmt(r.avg) + (r.sl ? ' · stop ' + pfmt(r.sl) : '') + (r.tp ? ' · target ' + pfmt(r.tp) : '');
+        var sub = r.kind === 'strategy' ? r.st.legs.map(function (l) { return (l.qty > 0 ? '+' : '') + l.qty + ' ' + l.strike + (l.type === 'call' ? 'C' : 'P'); }).join(' ') + ' · exp ' + r.st.exp + (r.st.net >= 0 ? ' · paid ' + money(r.st.net * 100) : ' · collected ' + money(-r.st.net * 100)) :
+          r.kind === 'option' ? r.qty + ' contract' + (r.qty === 1 ? '' : 's') + ' · avg ' + pfmt(r.avg) : qtyStr(r.qty) + (isCrypto(r.sym) ? ' ' + r.label : ' share' + (r.qty === 1 ? '' : 's')) + ' · avg ' + pfmt(r.avg) + (r.sl ? ' · stop ' + pfmt(r.sl) : '') + (r.tp ? ' · target ' + pfmt(r.tp) : '');
         return '<div class="pt-at-row' + (r.sym === sel ? ' is-sel' : '') + '" data-at="' + esc(r.key) + '" role="button" tabindex="0" title="Show ' + esc(r.sym) + ' on the chart">' +
           '<span class="pt-at-sym">' + esc(r.kind === 'option' ? r.label : r.label) + '</span>' +
           '<span class="pt-at-mid"><small>' + esc(sub) + '</small><i class="pt-at-bar"><i class="' + (good ? 'up' : 'dn') + '" style="width:' + w + '%"></i></i></span>' +
@@ -1158,6 +1223,15 @@
   }
   function closeTrade(key) {
     var r = activeRows().filter(function (x) { return x.key === key; })[0]; if (!r) return;
+    if (r.kind === 'strategy') {
+      if (!marketOpen()) return toast('Options trade during market hours (9:30 am to 4:00 pm Eastern).', true);
+      var back2 = stratValue(r.st, true), pl2 = back2 - r.st.net * 100 * (r.st.count || 1);
+      $('ptModalTitle').textContent = 'Close ' + r.label + '?';
+      $('ptModalText').innerHTML = 'Close all three legs at the bid / ask (' + (back2 >= 0 ? 'you get about ' : 'it costs about ') + esc(money(Math.abs(back2))) + '). You lock in about <b class="' + (pl2 >= 0 ? 'up' : 'dn') + '">' + esc(signed(pl2)) + '</b>.';
+      $('ptModalGo').textContent = 'Close trade'; $('ptModalGo').disabled = false; $('ptConfirm').hidden = false;
+      $('ptModalGo').onclick = function () { $('ptConfirm').hidden = true; var st = (acct.strategies || []).filter(function (x) { return x.id === key; })[0]; if (!st) return; var pnl = closeStrategyAt(st, stratValue(st, true), 'Closed'); toast('Closed ' + esc(st.label) + ' · ' + signed(pnl)); save(); renderAll(); };
+      return;
+    }
     var open = r.kind === 'option' ? marketOpen() : symOpen(r.sym);
     if (r.kind === 'option' && !open) return toast('Options trade during market hours (9:30 am to 4:00 pm Eastern).', true);
     var bid = r.kind === 'option' ? OPT.quote(r.opt.type, price(r.sym), r.opt.strike, r.opt.exp, todayNY(), vol(r.sym)).bid : r.px;
@@ -1537,7 +1611,7 @@
       UNIVERSE = res[0].symbols.concat(res[3].symbols || []); UNIVERSE.forEach(function (u) { NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
       hist = {}; [res[1].symbols, res[2].symbols].forEach(function (src) { Object.keys(src).forEach(function (k) { hist[k] = src[k]; }); });
       if (!NAMES[sel]) sel = UNIVERSE[0].sym;
-      tick(); showGate(); fromAlertLink();
+      tick(); showGate(); fromAlertLink(); fromStrategyLink();
     }).catch(function () { toast('Couldn\'t load price history. Refresh to try again.', true); });
 
     var cfg = window.ZELOS_FIREBASE_CONFIG;
@@ -1603,7 +1677,7 @@
             ZelosSocial.myReferrals(currentUser.uid).then(function (ids) { if (ids.length !== referralCount) { referralCount = ids.length; checkAch(); save(); } });
           }
           $('ptSync').textContent = currentUser ? 'Saved to your account' : 'Saved in this browser · sign in to keep it everywhere';
-          if (!currentUser) { renderGate(); if (UNIVERSE.length) renderHeader(); return; }
+          if (!currentUser) { renderGate(); if (UNIVERSE.length) { renderHeader(); fromStrategyLink(); } return; }
           var syncUser = currentUser;
           (function loadOnline(tries) {
           Promise.all([db.collection('users').doc(currentUser.uid).get(), profileReady]).then(function (r) {
@@ -1617,7 +1691,7 @@
             else if (!remote && !mine) acct = seedLife(fresh());
             acct.owner = uid0; synced = true;
             if (acct.dirty || !remote) save(); else { try { localStorage.setItem(KEY, JSON.stringify(acct)); } catch (e) {} publishProfile(); }
-            syncFailed = false; renderGate(); if (UNIVERSE.length) tick();
+            syncFailed = false; renderGate(); if (UNIVERSE.length) { tick(); fromStrategyLink(); }
           }).catch(function () {
             // couldn't reach the account: keep retrying; after a few tries show this device's copy
             // (still never written online until the real one has loaded)
