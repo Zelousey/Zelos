@@ -1,41 +1,17 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js) -->
-<script src="zelos-consent.js?v=4d7d45b3"></script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4B3ZC5XRX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-Y4B3ZC5XRX');
-</script>
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Market 3D — Zelos</title>
+<meta name="robots" content="noindex,nofollow">
+<title>Zelos Sales</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-title" content="Zelos">
-<meta name="theme-color" content="#0c0d10">
-<meta name="description" content="The world's major stock exchanges on a live 3D globe: which are open right now, with the real day/night line, plus US index and sector quotes.">
-<link rel="canonical" href="https://agentictrading.info/market-3d.html">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Market 3D — Zelos">
-<meta property="og:description" content="The world's major stock exchanges on a live 3D globe, open or closed right now.">
-<meta property="og:url" content="https://agentictrading.info/market-3d.html">
-<meta property="og:image" content="https://agentictrading.info/og-image.jpg">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Market 3D — Zelos">
-<meta name="twitter:description" content="Global markets on a live, rotating 3D globe.">
-<meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
 <link rel="stylesheet" href="zelos-theme.css?v=1911ab88">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
@@ -43,12 +19,33 @@
   *{ box-sizing:border-box; }
   body{ margin:0; }
   [hidden]{ display:none !important; }
-
-  .globe-toolbar{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
-  .globe-toolbar p{ color:var(--muted); font-size:0.85rem; max-width:64ch; }
-
-  .disclosures{ margin-top:22px; background:var(--danger-soft); border-left:3px solid var(--danger); border-radius:2px 3px 3px 2px; padding:16px 18px; font-size:0.82rem; color:var(--ink); line-height:1.55; }
-
+  .sl-msg{ margin-top:14px; padding:12px 14px; border:1px solid var(--border); border-radius:2px; font-size:.9rem; line-height:1.55; }
+  .sl-msg.bad{ border-color:rgba(239,68,68,.55); background:rgba(239,68,68,.08); }
+  .sl-msg code{ font-family:var(--mono); background:var(--surface-2); padding:2px 6px; user-select:all; word-break:break-all; }
+  .sl-msg ol{ margin:8px 0 0; padding-left:20px; }
+  .sl-env{ display:inline-block; font:700 .7rem var(--mono); letter-spacing:.08em; padding:3px 8px; border:1px solid var(--border); margin-left:8px; vertical-align:middle; }
+  .sl-env.live{ color:#10b981; border-color:rgba(16,185,129,.55); } .sl-env.test{ color:#e8b23d; border-color:rgba(232,178,61,.55); }
+  .sl-tiles{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:18px; }
+  .sl-tile{ background:var(--surface); border:1px solid var(--border); border-radius:2px; padding:14px 16px; }
+  .sl-tile small{ display:block; color:var(--muted); font:600 .72rem var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+  .sl-tile b{ display:block; font:700 1.6rem var(--mono); margin-top:6px; color:var(--ink); }
+  .sl-tile span{ display:block; color:var(--muted); font-size:.8rem; margin-top:2px; }
+  .sl-card{ background:var(--surface); border:1px solid var(--border); border-radius:2px; padding:16px; margin-top:12px; }
+  .sl-card h2{ font-size:1rem; margin:0 0 10px; }
+  .sl-chart{ position:relative; }
+  .sl-chart svg{ display:block; width:100%; height:170px; overflow:visible; }
+  .sl-axis{ display:flex; justify-content:space-between; color:var(--muted); font:500 .72rem var(--mono); margin-top:6px; }
+  .sl-tip{ position:absolute; pointer-events:none; background:var(--surface-2); border:1px solid var(--border); padding:6px 9px; font:600 .78rem var(--mono); color:var(--ink); white-space:nowrap; transform:translate(-50%,-100%); }
+  .sl-sub{ display:flex; gap:18px; flex-wrap:wrap; color:var(--muted); font-size:.85rem; }
+  .sl-sub b{ color:var(--ink); font-family:var(--mono); }
+  .sl-table{ width:100%; border-collapse:collapse; font-size:.86rem; }
+  .sl-table th{ text-align:left; color:var(--muted); font:600 .72rem var(--mono); letter-spacing:.06em; text-transform:uppercase; padding:8px 6px; border-bottom:1px solid var(--border); }
+  .sl-table td{ padding:9px 6px; border-bottom:1px solid var(--border); color:var(--ink); }
+  .sl-table td.num{ text-align:right; font-family:var(--mono); } .sl-table th.num{ text-align:right; }
+  .sl-table td.dim{ color:var(--muted); font-family:var(--mono); font-size:.76rem; }
+  .sl-scroll{ overflow-x:auto; }
+  .sl-btn{ font:inherit; font-weight:700; padding:10px 14px; border-radius:2px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); cursor:pointer; }
+  @media (max-width:760px){ .sl-tiles{ grid-template-columns:1fr 1fr; } .sl-hide-sm{ display:none; } }
 </style>
 </head>
 <body class="zt zt-body">
@@ -72,7 +69,7 @@
         </div>
       </div>
       <div class="nav-drop">
-        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Trading Tools <span class="nav-drop-caret">&#9662;</span></button>
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trading Tools <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
           <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
           <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
@@ -140,47 +137,22 @@
   </div>
 </nav>
 
+
 <section class="section-tight">
   <div class="shell">
-    <div class="globe-toolbar">
-      <div>
-        <div class="eyebrow">Zelos &middot; Market 3D</div>
-        <h1 style="font-size:1.7rem; margin-top:8px;">Global markets, on a globe.</h1>
-        <p style="margin-top:8px;">Seventeen major stock exchanges on a live globe. Green markers are inside their regular trading session right now; the day/night line follows the real position of the sun. Drag to rotate, scroll to zoom, hover a marker for its hours.</p>
+    <p class="eyebrow">Owner only</p>
+    <h1 style="font-size:1.6rem; margin-top:6px;">Token sales <span class="sl-env" id="slEnv" hidden></span></h1>
+    <p class="status-line" style="margin-top:6px; max-width:70ch;">Every token pack bought through Square checkout. The money goes to your Square account, where the same sales show under Transactions. This page reads the site's own purchase records, so it also shows who bought.</p>
+    <div id="slMsg" class="sl-msg" role="status">Loading…</div>
+    <div id="slBody" hidden>
+      <div class="sl-tiles" id="slTiles"></div>
+      <div class="sl-card"><h2>Last 30 days</h2><div class="sl-chart" id="slChart"></div>
+        <div class="sl-sub" id="slSub" style="margin-top:10px;"></div></div>
+      <div class="sl-card"><h2>Purchases <small class="status-line" id="slCount"></small></h2>
+        <div class="sl-scroll"><table class="sl-table"><thead><tr><th>When</th><th>Buyer</th><th>Pack</th><th class="num">Amount</th><th class="sl-hide-sm">Square payment</th></tr></thead><tbody id="slRows"></tbody></table></div>
       </div>
+      <p style="margin-top:12px;"><button class="sl-btn" type="button" id="slRefresh">Refresh</button></p>
     </div>
-
-    <div class="globe-page-grid">
-      <div>
-        <div class="globe-panel">
-          <h3>US market &amp; sectors</h3>
-          <div id="tvQuotes" data-zm="quotes"></div>
-        </div>
-      </div>
-
-      <div>
-        <div class="globe-frame">
-          <div class="globe-wrap" id="marketGlobe"></div>
-          <div class="globe-live-tag"><span class="dot"></span><span id="globeOpenCount">Exchange hours</span> &middot; <span id="globeClock"></span></div>
-        </div>
-        <div class="globe-hint">Hover a country for its market &middot; click to pin &middot; drag to rotate &middot; scroll to zoom</div>
-      </div>
-
-      <div>
-        <div class="globe-panel">
-          <h3>Biggest country moves</h3>
-          <div id="countryMovers"><div style="color:var(--muted); font-size:0.8rem;">Loading…</div></div>
-          <p id="moversAsOf" style="margin-top:10px; font-size:0.7rem; color:var(--muted);"></p>
-        </div>
-        <div class="globe-panel">
-          <h3>Exchanges right now</h3>
-          <div id="exchangeList"></div>
-          <p style="margin-top:10px; font-size:0.7rem; color:var(--muted);">Regular sessions in each exchange's local time. Public holidays and half-days aren't included.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="disclosures">Index and sector quotes are end-of-day values from Yahoo Finance, updated automatically after the 4 pm ET close. Exchange open/closed status is calculated from each exchange's regular hours and doesn't account for holidays. Nothing on this page connects to a brokerage account, places an order, or constitutes personalized investment advice.</div>
   </div>
 </section>
 
@@ -199,20 +171,6 @@
     <div class="footer-fine">Zelos is a rule-based scan, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
   </div>
 </footer>
-
-<!-- Firebase (compat build) -->
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=d17d99d7"></script>
-<script src="zelos-mood.js?v=15cc718b"></script>
-<script src="zelos-xp.js?v=a6826374"></script>
-<script src="zelos-challenge.js?v=00bf8e79"></script>
-<script src="zelos-tokens.js?v=c13a7908"></script>
-
-<!-- 3D globe — globe.gl bundles three.js; mock heat data for this first pass.
-     Rendering pauses off-screen / when the tab is hidden — see zelos-globe.js -->
-<script src="zelos-globe.js?v=a449c64d"></script>
 
 <script>
 (function(){
@@ -246,9 +204,92 @@
 })();
 </script>
 
+<script src="zelos-theme-toggle.js?v=d98ff742"></script>
+<script src="zelos-tabbar.js?v=1049f7a9"></script>
+<script src="zelos-icons.js?v=15f39d86"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js?v=d17d99d7"></script>
+<script src="zelos-tokens.js?v=c13a7908"></script>
+<script src="zelos-signin.js?v=d00a05f1"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function usd(c) { return '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function msg(html, bad) { var m = $('slMsg'); m.innerHTML = html; m.hidden = !html; m.className = 'sl-msg' + (bad ? ' bad' : ''); }
+  var PACKS = { p100: '100 tokens', p350: '350 tokens', p750: '750 tokens' };
+  function tile(label, t) { return '<div class="sl-tile"><small>' + label + '</small><b>' + usd(t.cents) + '</b><span>' + t.count + ' sale' + (t.count === 1 ? '' : 's') + ' · ' + t.tokens.toLocaleString('en-US') + ' tokens</span></div>'; }
+  function chart(days) {
+    var box = $('slChart'), W = 600, H = 170, pad = 1, max = Math.max.apply(null, days.map(function (d) { return d.cents; }).concat([100]));
+    var bw = (W - 8) / days.length, s = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Sales per day, last 30 days">';
+    s += '<line x1="0" y1="' + (H - pad) + '" x2="' + W + '" y2="' + (H - pad) + '" stroke="var(--border)" stroke-width="1"/>';
+    days.forEach(function (d, i) {
+      var h = d.cents ? Math.max(3, (d.cents / max) * (H - pad - 8)) : 0, x = 4 + i * bw;
+      if (h) s += '<rect x="' + (x + 1) + '" y="' + (H - pad - h) + '" width="' + Math.max(1, bw - 2) + '" height="' + h + '" fill="var(--accent)"/>';
+      s += '<rect class="sl-hit" data-i="' + i + '" x="' + x + '" y="0" width="' + bw + '" height="' + H + '" fill="transparent"/>';
+    });
+    s += '</svg><div class="sl-axis"><span>' + days[0].day.slice(5) + '</span><span>' + days[14].day.slice(5) + '</span><span>Today</span></div><div class="sl-tip" hidden></div>';
+    box.innerHTML = s;
+    var tip = box.querySelector('.sl-tip'), svg = box.querySelector('svg');
+    svg.addEventListener('mousemove', function (e) {
+      var t = e.target.closest('.sl-hit'); if (!t) { tip.hidden = true; return; }
+      var d = days[+t.getAttribute('data-i')], r = box.getBoundingClientRect();
+      tip.hidden = false; tip.textContent = d.day + ' · ' + usd(d.cents) + ' · ' + d.count + ' sale' + (d.count === 1 ? '' : 's');
+      tip.style.left = Math.min(r.width - 80, Math.max(80, e.clientX - r.left)) + 'px'; tip.style.top = (e.clientY - r.top - 8) + 'px';
+    });
+    svg.addEventListener('mouseleave', function () { tip.hidden = true; });
+  }
+  function render(r) {
+    var env = $('slEnv'); env.hidden = false; env.textContent = r.env === 'production' ? 'LIVE' : 'TEST MODE'; env.className = 'sl-env ' + (r.env === 'production' ? 'live' : 'test');
+    var t = r.totals;
+    $('slTiles').innerHTML = tile('Today', t.today) + tile('Last 7 days', t.d7) + tile('This month', t.month) + tile('All time', t.all);
+    chart(r.days);
+    var packs = Object.keys(r.packs).sort().map(function (k) { return esc(PACKS[k] || k) + ': <b>' + r.packs[k].count + '</b>'; }).join(' · ');
+    $('slSub').innerHTML = '<span>Buyers: <b>' + r.buyers + '</b></span><span>Checkouts opened (30 days): <b>' + r.checkouts30.started + '</b>, paid <b>' + r.checkouts30.paid + '</b></span>' + (packs ? '<span>' + packs + '</span>' : '');
+    $('slCount').textContent = r.recent.length ? '(latest ' + r.recent.length + ')' : '';
+    $('slRows').innerHTML = r.recent.length ? r.recent.map(function (p) {
+      var when = new Date(p.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      var who = p.name ? '@' + esc(p.name) : '<span class="dim">' + esc((p.uid || '').slice(0, 8)) + '…</span>';
+      return '<tr><td>' + when + '</td><td>' + who + '</td><td>' + esc(PACKS[p.pack] || p.pack) + '</td><td class="num">' + usd(p.cents) + '</td><td class="dim sl-hide-sm">' + esc(p.paymentId) + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" style="color:var(--muted)">No sales yet. They appear here as soon as Square confirms a payment.</td></tr>';
+    $('slBody').hidden = false;
+  }
+  function load(u) {
+    msg('Loading…');
+    ZelosTokens.call('admin_sales', {}).then(function (r) { msg(''); render(r); }, function (e) {
+      var m = String(e.message || e).replace(/^FirebaseError: /, '');
+      if (/only for the site owner/i.test(m)) {
+        msg('This page is only for the site owner. If that\'s you, add your account once in the Firebase console:<ol>' +
+          '<li>Open <b>Firestore Database</b> for project <b>leaderboard-agentictrading</b>.</li>' +
+          '<li>Click <b>+ Start collection</b>, name it <code>admins</code>.</li>' +
+          '<li>For <b>Document ID</b> paste your account ID: <code>' + esc(u.uid) + '</code></li>' +
+          '<li>Add any field (for example <code>note</code> = <code>owner</code>), save, then refresh this page.</li></ol>', true);
+      } else msg(esc(m), true);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.firebase || !window.ZelosTokens) return msg('Could not load. Refresh the page.', true);
+    if (window.ZelosSignIn) ZelosSignIn.finish(function (t) { msg(esc(t), true); });
+    $('slRefresh').onclick = function () { var u = firebase.auth().currentUser; if (u) load(u); };
+    firebase.auth().onAuthStateChanged(function (u) {
+      $('slBody').hidden = true;
+      if (!u || u.isAnonymous) {
+        msg('Sign in with the owner account to see sales. <button class="sl-btn" type="button" id="slSignIn" style="margin-left:8px">Sign in with Google</button>');
+        $('slSignIn').onclick = function () { if (window.ZelosSignIn) ZelosSignIn.google(function (t) { msg(esc(t), true); }); };
+        return;
+      }
+      load(u);
+    });
+  });
+})();
+</script>
 <script>
 (function(){
-  // ---- auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
+  // ---- nav auth: Log in / Get Started popover ↔ signed-in "My Zelos ▾" account menu ----
   var cfg = window.ZELOS_FIREBASE_CONFIG;
   var ready = !!(cfg && cfg.projectId && window.firebase);
   var auth = null, db = null;
@@ -387,68 +428,5 @@
   } else { renderSignedOut(); }
 })();
 </script>
-
-<script>
-(function(){
-  // ---- the 3D globe itself ----
-  var el = document.getElementById('marketGlobe');
-  if (!el || !window.ZelosGlobe) return;
-  var globe = ZelosGlobe.mount({
-    style: 'blend',
-    el: el,
-    autoRotate: true,
-    enableZoom: true,
-    altitude: 2.2
-  });
-
-  // country movers list: click one to spin the globe there and open its card
-  if (globe) globe.markets().then(function(m){
-    var host = document.getElementById('countryMovers'); if (!host) return;
-    if (!m || !m.countries) { host.innerHTML = '<div style="color:var(--muted); font-size:0.8rem;">Market map unavailable right now.</div>'; return; }
-    var rows = Object.keys(m.countries).map(function(k){ var c = m.countries[k]; return { iso:k, name:c.name, chg:c.chg, t:c.trending }; })
-      .filter(function(r){ return r.chg != null && r.iso !== 'USA'; })
-      .sort(function(a,b){ return Math.abs(b.chg) - Math.abs(a.chg); }).slice(0, 8);
-    host.innerHTML = rows.map(function(r){
-      return '<button type="button" class="globe-stat-row" data-iso="' + r.iso + '" style="width:100%; background:none; border:0; border-bottom:1px solid var(--border-soft, var(--border)); color:inherit; font:inherit; cursor:pointer; text-align:left; padding:9px 0;">' +
-        '<span>' + r.name + (r.t ? ' <span style="color:var(--muted); font-size:0.74rem;">' + r.t.sym + '</span>' : '') + '</span>' +
-        '<span class="chg ' + (r.chg >= 0 ? 'up' : 'dn') + '">' + (r.chg >= 0 ? '+' : '&minus;') + Math.abs(r.chg).toFixed(2) + '%</span></button>';
-    }).join('');
-    host.querySelectorAll('[data-iso]').forEach(function(b){ b.addEventListener('click', function(){ globe.focusCountry(b.getAttribute('data-iso')); }); });
-    var asof = document.getElementById('moversAsOf');
-    if (asof && m.asOf) asof.textContent = 'Country ETF moves in USD, as of the ' + m.asOf + ' close. Hover or click any country on the globe for its trending stock and linked US-listed names.';
-  });
-
-  // live exchange list, from the same session rules the globe markers use
-  var list = document.getElementById('exchangeList'), countEl = document.getElementById('globeOpenCount');
-  function renderExchanges(){
-    var xs = ZelosGlobe.exchanges();
-    var open = xs.filter(function(x){ return x.open; }).length;
-    if (countEl) countEl.textContent = open ? (open + ' of ' + xs.length + ' exchanges open') : 'All major exchanges closed';
-    if (!list) return;
-    xs.sort(function(a,b){ return (b.open - a.open); });
-    list.innerHTML = xs.map(function(x){
-      return '<div class="globe-stat-row"><span><b style="font-weight:600;">' + x.id + '</b> <span style="color:var(--muted); font-size:0.78rem;">' + x.city + '</span></span>' +
-        '<span class="chg ' + (x.open ? 'up' : '') + '" style="font-size:0.72rem; text-align:right;">' + x.label.replace(' · ', '<br>') + '</span></div>';
-    }).join('');
-  }
-  renderExchanges(); setInterval(renderExchanges, 60000);
-
-
-  var clock = document.getElementById('globeClock');
-  function tick(){
-    if (!clock) return;
-    var now = new Date();
-    clock.textContent = now.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' ' +
-      now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
-  }
-  tick();
-  setInterval(tick, 30000);
-})();
-</script>
-
-<script src="zelos-market.js?v=cb8b8487"></script>
-<script src="zelos-theme-toggle.js?v=d98ff742"></script>
-<script src="zelos-tabbar.js?v=1049f7a9"></script>
-<script src="zelos-icons.js?v=15f39d86"></script>
 </body>
 </html>

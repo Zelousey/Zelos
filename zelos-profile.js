@@ -77,7 +77,7 @@
       '.zo-sheet-card{width:min(480px,100%);max-height:88vh;overflow:auto;background:var(--surface,#15171c);border:1px solid var(--border,#262a34);border-radius:3px;box-shadow:0 30px 80px rgba(0,0,0,.55)}',
       '.zo-sheet-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border-soft,#1d2028)}.zo-sheet-head b{font-size:1.05rem}',
       '.zo-x{font-size:1.5rem;line-height:1;background:none;border:0;color:var(--muted,#9599a3);cursor:pointer}.zo-sheet-body{padding:14px 16px 18px}',
-      '.zo-video{display:block;width:100%;max-height:52vh;background:#000;border:1px solid var(--border,#262a34);border-radius:3px;margin-bottom:10px}',
+      '.zo-video{display:block;width:auto;max-width:100%;height:auto;max-height:52vh;margin:0 auto 10px;background:#000;border:1px solid var(--border,#262a34);border-radius:3px}',
       '.zo-p{font-size:.9rem;color:var(--muted,#9599a3);line-height:1.5;margin:0 0 10px}.zo-p b{color:var(--ink,#f4f5f7)}',
       '.zo-g{font:600 .64rem var(--mono,monospace);letter-spacing:.1em;text-transform:uppercase;color:var(--muted,#9599a3);margin:12px 0 4px}',
       '.zo-how{margin:0;padding:0;list-style:none;counter-reset:zo}.zo-how li{counter-increment:zo;display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border-soft,#1d2028);font-size:.92rem}',
@@ -304,9 +304,11 @@
     if (f && uid) f.db.collection('users').doc(uid).set({ onboard: o }, { merge: true }).catch(function () {});
   }
   function appSheet(ctx, f) {
-    var vid = global.ZELOS_TOUR_VIDEO || '';
+    // your how-to recording (contacts and other apps blurred), H.264 so every browser plays it
+    var vid = global.ZELOS_TOUR_VIDEO || 'images/tour/add-to-home.mp4', poster = global.ZELOS_TOUR_POSTER || 'images/tour/add-to-home.jpg';
     var sh = sheet('Add Zelos to your phone',
-      (vid ? '<video class="zo-video" controls playsinline preload="metadata"' + (global.ZELOS_TOUR_POSTER ? ' poster="' + esc(ROOT + global.ZELOS_TOUR_POSTER) + '"' : '') + ' src="' + esc(ROOT + vid) + '"></video>' : '') +
+      (vid ? '<video class="zo-video" controls playsinline muted loop autoplay preload="metadata" poster="' + esc(ROOT + poster) + '" aria-label="How to add Zelos to your Home Screen">' +
+        '<source src="' + esc(ROOT + vid) + '" type="video/mp4">' + (/\.mp4$/.test(vid) ? '<source src="' + esc(ROOT + vid.replace(/\.mp4$/, '.webm')) + '" type="video/webm">' : '') + '</video>' : '') +
       '<p class="zo-p">Zelos opens full screen from your Home Screen, like an app. No App Store needed.</p>' +
       (isIOS() ? '<div class="zo-g">On iPhone (Safari)</div><ol class="zo-how"><li>Tap the <b>Share</b> button <span aria-hidden="true">&#x2B06;&#xFE0E;</span></li><li>Tap <b>Add to Home Screen</b></li><li>Open Zelos from the new icon</li></ol>'
         : '<div class="zo-g">On Android or a computer</div>' + (installEvt ? '<button type="button" class="zp-btn is-go zo-wide" id="zoInstall">Install Zelos</button>' : '<ol class="zo-how"><li>Open your browser menu <b>&#8942;</b></li><li>Tap <b>Install app</b> or <b>Add to Home screen</b></li></ol>')) +

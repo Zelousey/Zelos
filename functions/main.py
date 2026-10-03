@@ -4042,6 +4042,73 @@ def square_credit(db, payment, eid, etype, now_ms):
     return txn(db.transaction())
 
 
+# ---------------------------------------------------------------------------
+# Owner-only sales report (sales.html). Only accounts listed in admins/{uid} can read it;
+# that collection is server-only (rules deny all browser access) and is added by hand in
+# the Firebase console: Firestore -> admins -> document ID = your account ID.
+# ---------------------------------------------------------------------------
+def sales_summary(purchases, checkouts, now_ms):
+    """Pure: totals and recent sales. purchases/checkouts are lists of dicts (at/createdAt in ms)."""
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+    ny = ZoneInfo("America/New_York")
+    now = datetime.fromtimestamp(now_ms / 1000, timezone.utc).astimezone(ny)
+    day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    starts = {"today": day0.timestamp() * 1000, "d7": now_ms - 7 * 864e5, "d30": now_ms - 30 * 864e5,
+              "month": day0.replace(day=1).timestamp() * 1000}
+    def blank():
+        return {"count": 0, "cents": 0, "tokens": 0}
+    tot = {k: blank() for k in ["all"] + list(starts)}
+    packs, buyers = {}, set()
+    for p in purchases:
+        at, cents, tokens = int(p.get("at") or 0), int(p.get("amountCents") or 0), int(p.get("tokens") or 0)
+        for k in tot:
+            if k == "all" or at >= starts[k]:
+                tot[k]["count"] += 1; tot[k]["cents"] += cents; tot[k]["tokens"] += tokens
+        pk = packs.setdefault(p.get("pack") or "?", blank())
+        pk["count"] += 1; pk["cents"] += cents; pk["tokens"] += tokens
+        if p.get("uid"):
+            buyers.add(p["uid"])
+    started = [c for c in checkouts if int(c.get("createdAt") or 0) >= starts["d30"]]
+    paid = sum(1 for c in started if c.get("status") == "credited")
+    # one row per day for the last 30 days (oldest first), for the chart
+    days = []
+    for i in range(29, -1, -1):
+        d = (day0.timestamp() * 1000) - i * 864e5
+        days.append({"day": datetime.fromtimestamp(d / 1000, ny).strftime("%Y-%m-%d"), "cents": 0, "count": 0})
+    idx = {r["day"]: r for r in days}
+    for p in purchases:
+        k = datetime.fromtimestamp(int(p.get("at") or 0) / 1000, ny).strftime("%Y-%m-%d")
+        if k in idx:
+            idx[k]["cents"] += int(p.get("amountCents") or 0); idx[k]["count"] += 1
+    recent = sorted(purchases, key=lambda p: -int(p.get("at") or 0))[:200]
+    return {"totals": tot, "packs": packs, "buyers": len(buyers), "days": days,
+            "checkouts30": {"started": len(started), "paid": paid},
+            "recent": [{"at": int(p.get("at") or 0), "uid": p.get("uid"), "pack": p.get("pack"), "tokens": int(p.get("tokens") or 0),
+                        "cents": int(p.get("amountCents") or 0), "provider": p.get("provider") or "square", "paymentId": p.get("paymentId") or ""}
+                       for p in recent]}
+
+
+@https_fn.on_call()
+@_tk_call
+def admin_sales(req, db, uid, tok, now_ms):
+    """Owner-only: token sales totals and the latest purchases, with buyers' @usernames."""
+    if not db.collection("admins").document(uid).get().exists:
+        raise TWError("PERMISSION_DENIED", "This page is only for the site owner.")
+    purchases = [d.to_dict() for d in db.collection("purchases").order_by("at", direction=firestore.Query.DESCENDING).limit(2000).stream()]
+    checkouts = [d.to_dict() for d in db.collection("squareCheckouts").where("createdAt", ">=", now_ms - 30 * 86400000).stream()]
+    out = sales_summary(purchases, checkouts, now_ms)
+    names = {}
+    for u in {r["uid"] for r in out["recent"] if r.get("uid")}:
+        t = db.collection("traders").document(u).get()
+        d = t.to_dict() if t.exists else {}
+        names[u] = d.get("username") or d.get("name") or ""
+    for r in out["recent"]:
+        r["name"] = names.get(r.get("uid"), "")
+    out["env"] = _square_env()
+    return out
+
+
 def square_reconcile(db, uid, now_ms):
     """Backup for a missed or rejected webhook: ask Square about this person's pending
     checkouts (last 30 days) and credit any that were paid. Returns tokens credited."""

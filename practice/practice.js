@@ -604,6 +604,12 @@
       var tw = c.measureText('RESET').width + 8, bx = Math.min(W - tw - 1, Math.max(1, x - tw / 2));
       c.fillStyle = '#e8b23d'; c.fillRect(bx, 0, tw, 12); c.fillStyle = '#1a1204'; c.fillText('RESET', bx + 4, 9);
     });
+    // where a comeback was completed (Mockup 6): a dot in the tier's color on that day
+    ((acct.life && acct.life.comebackLog) || []).forEach(function (cb) {
+      var k = -1; pts.forEach(function (p, i) { if (p.d === cb.day && !p.reset) k = i; }); if (k < 0) return;
+      var col = cb.low <= 1000 ? '#f2c14e' : cb.low <= 5000 ? '#c9d1dc' : '#cd7f45';
+      c.beginPath(); c.arc(X(k), Y(pts[k].v), 5, 0, Math.PI * 2); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = '#11141b'; c.stroke();
+    });
   }
   function levelOf(xp) { return window.ZelosLevels ? ZelosLevels.levelForXp(xp || 0) : null; }
   function renderLevelChip() {
@@ -1358,6 +1364,11 @@
       r.low = round2(Math.min(r.low, eq));
       if (!r.halfway && r.low < START_CASH * 0.95 && eq >= r.low + (START_CASH - r.low) / 2) { r.halfway = true; toast('<b>Halfway back.</b> You\'ve recovered half of what the account lost. Keep going.'); }
       if (eq >= START_CASH) {
+        if (r.low <= START_CASH * 0.9) {
+          // deepest completed comeback decides the tier (Comeback Kid ≤ $9,000, Back from the Brink ≤ $5,000, Phoenix ≤ $1,000)
+          L.deepestComeback = L.deepestComeback == null ? r.low : Math.min(L.deepestComeback, r.low);
+          L.comebackLog = (L.comebackLog || []).concat([{ low: r.low, from: r.since, day: today }]).slice(-20);
+        }
         if (r.low <= START_CASH * 0.9) { L.comebacks = (L.comebacks || 0) + 1; toast('<b>Comeback complete!</b> From ' + money(r.low) + ' back to ' + money(START_CASH) + ' without a reset.'); }
         acct.recovery = null;
       }
@@ -1367,7 +1378,7 @@
   function achCtx() {
     var L = acct.life, s = PROG && PROG.season(), c = {
       fills: L.fills, wins: acct.trades.filter(function (t) { return t.pnl > 0; }).length, tpExits: L.tpExits, bestWinStreak: winStreakBest(acct.trades),
-      symbols: L.symbols.length, optionTrades: L.optionTrades, agentTrades: L.agentTrades, trades: acct.trades.length, peak: L.peak, comebacks: L.comebacks,
+      symbols: L.symbols.length, optionTrades: L.optionTrades, agentTrades: L.agentTrades, trades: acct.trades.length, peak: L.peak, comebacks: L.comebacks, deepestComeback: L.deepestComeback,
       referrals: referralCount, seasonTraded: {}, seasonPct: {}
     };
     if (PROG) PROG.SEASONS.forEach(function (se) {
@@ -1531,6 +1542,8 @@
       acctRange = b.getAttribute('data-ar'); try { localStorage.setItem('zelosAcctRange', acctRange); } catch (err) {}
       renderAcctCard();
     });
+    // arriving from an XP toast / "View missions": jump to the XP & missions tab
+    if (qTab === 'progress') setTimeout(function () { var l = document.querySelector('.pt-lower'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 600);
     $('ptHistBtn').addEventListener('click', function () { tab = 'performance'; renderTabs(); var l = document.querySelector('.pt-lower'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
     window.addEventListener('resize', function () { clearTimeout(drawAcctChart.t); drawAcctChart.t = setTimeout(drawAcctChart, 120); });
     document.addEventListener('click', function () { document.querySelectorAll('.pt-menu').forEach(function (x) { x.hidden = true; }); });

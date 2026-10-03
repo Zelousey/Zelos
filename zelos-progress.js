@@ -143,7 +143,7 @@
       if (st.day.done[m.id] || count(m, 'day') < m.goal) return;
       st.day.done[m.id] = true; changed = true;
       award('mission', 'd:' + st.day.date + ':' + m.id, m.xp);
-      toast('<b>Mission complete</b> ' + esc(m.label) + ' <em>+' + m.xp + ' XP</em>', 'mission');
+      card({ kicker: 'Mission complete', title: m.label, xp: m.xp, note: Object.keys(st.day.done).length + ' of ' + DAILY.length + ' daily missions done', kind: 'mission' });
     });
     var doneN = Object.keys(st.day.done).length;
     if (doneN >= STREAK_NEED && st.streak.lastDate !== st.day.date) {
@@ -153,14 +153,14 @@
       st.week.counts.mday = (st.week.counts.mday || 0) + 1; changed = true;
       toast('<b>' + s.days + '-day streak</b> ' + (s.days === 1 ? 'started. Come back tomorrow to keep it going.' : 'Keep it going tomorrow.'), 'streak');
       STREAK_REWARDS.forEach(function (r) {
-        if (s.days === r[0]) { award('mission', 'streak:' + s.start + ':' + r[0], r[1]); toast('<b>Streak reward</b> ' + r[0] + ' days in a row <em>+' + r[1] + ' XP</em>', 'streak'); }
+        if (s.days === r[0]) { award('mission', 'streak:' + s.start + ':' + r[0], r[1]); card({ kicker: 'Streak reward', title: r[0] + ' days in a row', desc: 'You finished your daily missions ' + r[0] + ' days running.', xp: r[1], kind: 'streak' }); }
       });
     }
     WEEKLY.forEach(function (m) {
       if (st.week.done[m.id] || count(m, 'week') < m.goal) return;
       st.week.done[m.id] = true; changed = true;
       award('mission', 'w:' + st.week.key + ':' + m.id, m.xp);
-      toast('<b>Weekly mission complete</b> ' + esc(m.label) + ' <em>+' + m.xp + ' XP</em>', 'mission');
+      card({ kicker: 'Weekly mission complete', title: m.label, xp: m.xp, kind: 'mission' });
     });
     if (changed) { save(); checkAchievements({}); }
   }
@@ -199,7 +199,9 @@
     ['club-25k', '$25K Club', 'Grow the account to $25,000', '💰', 150, 'Milestones', function (c) { return c.peak >= 25000; }],
     ['club-50k', '$50K Club', 'Grow the account to $50,000', '🏦', 300, 'Milestones', function (c) { return c.peak >= 50000; }],
     ['club-100k', '$100K Club', 'Grow the account to $100,000', '👑', 500, 'Milestones', function (c) { return c.peak >= 100000; }],
-    ['comeback-kid', 'Comeback Kid', 'Recover from $9,000 or lower back to $10,000 without a reset', '🦅', 150, 'Milestones', function (c) { return c.comebacks >= 1; }],
+    ['comeback-kid', 'Comeback Kid', 'Fall to $9,000 or less, then climb back to $10,000 without a reset', '🦅', 150, 'Milestones', function (c) { return c.comebacks >= 1; }],
+    ['comeback-brink', 'Back from the Brink', 'Fall to $5,000 or less, then climb back to $10,000 without a reset', '🦅', 300, 'Milestones', function (c) { return c.deepestComeback != null && c.deepestComeback <= 5000; }],
+    ['comeback-phoenix', 'Phoenix', 'Fall to $1,000 or less, then climb all the way back to $10,000 without a reset', '🦅', 600, 'Milestones', function (c) { return c.deepestComeback != null && c.deepestComeback <= 1000; }],
     ['sharp-eye', 'Sharp Eye', 'Grade 25 setups', '👁️', 50, 'Training', function (c) { return c.grade >= 25; }],
     ['on-a-roll', 'On a Roll', 'Keep a 7-day mission streak', '📅', 75, 'Training', function (c) { return c.bestStreak >= 7; }],
     ['challenger', 'Challenger', 'Start or accept a friend challenge', '⚔️', 50, 'Social', function (c) { return c.challenges >= 1; }],
@@ -230,13 +232,29 @@
       if (!ok) return;
       st.achievements[a.id] = Date.now(); fresh.push(a.id);
       award('achievement', a.id, a.xp);
-      toast('<span class="zp-ico">' + a.icon + '</span><b>Achievement unlocked: ' + esc(a.label) + '</b> <em>+' + a.xp + ' XP</em>', 'ach');
+      card({ kicker: 'Achievement unlocked', title: a.label, desc: a.desc, xp: a.xp, icon: badge(a.id, 46), kind: 'ach' });
     });
     if (fresh.length) save();
     return fresh;
   }
+  // Comeback tiers (Mockup 6): bronze / silver / gold shields with a dip-and-recover line
+  var SHIELDS = { 'comeback-kid': ['#cd7f45', '#6d3d15', '#ffd9b3', null, 1], 'comeback-brink': ['#c9d1dc', '#69727f', '#ffffff', '#c9d1dc', 2], 'comeback-phoenix': ['#f2c14e', '#8a5d0a', '#fff4c7', '#f2c14e', 3] };
+  function shield(id, size, locked) {
+    var t = SHIELDS[id], a = BY_ID[id], g = 'zpsh-' + id, c1 = t[0], c2 = t[1], c3 = t[2], glow = locked ? null : t[3], stars = '';
+    for (var i = 0; i < t[4]; i++) { var x = 60 + (i - (t[4] - 1) / 2) * 14; stars += '<path d="M' + x + ' 92 l2.5 5 5.5 .8 -4 3.9 .9 5.5 -4.9-2.6 -4.9 2.6 .9-5.5 -4-3.9 5.5-.8z"/>'; }
+    return '<svg class="zp-shield' + (locked ? ' is-locked' : '') + '" width="' + size + '" height="' + Math.round(size * 1.1) + '" viewBox="0 0 120 132" role="img" aria-label="' + esc(a.label) + '"><title>' + esc(a.label + ': ' + a.desc) + '</title>' +
+      '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c3 + '"/><stop offset=".5" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs>' +
+      (glow ? '<circle cx="60" cy="62" r="56" fill="' + glow + '" opacity=".22"/><circle cx="60" cy="62" r="46" fill="' + glow + '" opacity=".18"/>' : '') +
+      '<path d="M60 8 L104 24 V62 C104 92 84 112 60 124 C36 112 16 92 16 62 V24 Z" fill="url(#' + g + ')" stroke="' + c2 + '" stroke-width="2"/>' +
+      '<path d="M60 18 L95 31 V62 C95 86 79 103 60 113 C41 103 25 86 25 62 V31 Z" fill="#11141b"/>' +
+      '<line x1="32" y1="46" x2="88" y2="46" stroke="rgba(255,255,255,.18)" stroke-dasharray="3 3"/>' +
+      '<path d="M30 44 C40 50 46 70 54 84 C62 74 72 56 88 40" fill="none" stroke="' + c3 + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="54" cy="84" r="4.5" fill="#f0564d"/><path d="M80 38 L89 38 L89 47" fill="none" stroke="' + c3 + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<g fill="' + c3 + '">' + stars + '</g></svg>';
+  }
   function badge(id, size, locked) {
     var a = BY_ID[id]; if (!a) return '';
+    if (SHIELDS[id]) return shield(id, size || 40, locked);
     return '<span class="zp-badge' + (locked ? ' is-locked' : '') + '" style="--zp-s:' + (size || 40) + 'px" title="' + esc(a.label + ': ' + a.desc) + '">' + a.icon + '</span>';
   }
 
@@ -261,8 +279,80 @@
       '.zp-badge{display:inline-flex;align-items:center;justify-content:center;width:var(--zp-s);height:var(--zp-s);font-size:calc(var(--zp-s) * .5);line-height:1;flex:none;' +
       'clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);background:linear-gradient(135deg,#ffd45c,#b07a12);box-shadow:inset 0 0 0 2px rgba(255,255,255,.2);}' +
       '.zp-badge.is-locked{background:linear-gradient(135deg,#3a3f4a,#23262d);filter:grayscale(1);opacity:.55;}' +
+      '.zp-shield{flex:none;display:inline-block;vertical-align:middle}.zp-shield.is-locked{filter:grayscale(1);opacity:.5}' +
       '@media (prefers-reduced-motion:reduce){.zp-toast{animation:none;}}';
+    css += '.zp-xstack{position:fixed;right:20px;bottom:20px;z-index:9001;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}' +
+      '.zp-xt{pointer-events:auto;display:flex;align-items:center;gap:12px;min-width:250px;max-width:320px;padding:11px 14px;border-radius:3px;background:#121624;border:1px solid rgba(124,108,255,.45);color:#f4f5f7;text-decoration:none;box-shadow:0 14px 34px rgba(0,0,0,.45);font-family:var(--sans,system-ui);animation:zp-in .25s ease-out;transition:opacity .35s,transform .35s}' +
+      '.zp-xt.is-out,.zp-card.is-out{opacity:0;transform:translateY(8px)}' +
+      '.zp-pill{flex:none;width:40px;height:40px;border-radius:3px;display:flex;align-items:center;justify-content:center;font:800 .82rem var(--mono,monospace);color:#fff;background:linear-gradient(135deg,#4a86ff,#8f5bff)}' +
+      '.zp-tt{min-width:0;flex:1}.zp-tt b{display:block;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zp-tt small{display:block;color:#9aa3b5;font-size:.76rem;margin-top:2px}' +
+      '.zp-bar{display:block;height:4px;margin-top:5px;background:rgba(255,255,255,.08)}.zp-bar i{display:block;height:100%;background:linear-gradient(90deg,#4a86ff,#8f5bff)}' +
+      '.zp-cards{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:9002;display:flex;flex-direction:column;gap:10px;width:min(420px,calc(100vw - 24px));pointer-events:none}' +
+      '.zp-card{pointer-events:auto;padding:16px 18px;border-radius:3px;background:linear-gradient(180deg,#16203a,#101521);border:1px solid rgba(74,134,255,.45);color:#f4f5f7;box-shadow:0 20px 50px rgba(0,0,0,.55);font-family:var(--sans,system-ui);animation:zp-down .28s cubic-bezier(.2,1.2,.4,1);transition:opacity .3s,transform .3s}' +
+      '.zp-card.k-ach{border-color:rgba(232,178,61,.55)}.zp-card.k-streak{border-color:rgba(255,138,61,.55)}' +
+      '.zp-ch{display:flex;gap:12px;align-items:flex-start}.zp-ci{flex:none}.zp-k{display:block;font:700 .68rem var(--mono,monospace);letter-spacing:.16em;text-transform:uppercase;color:#7fa8ff}.zp-card.k-ach .zp-k{color:#f2c14e}.zp-card.k-streak .zp-k{color:#ff9a5c}' +
+      '.zp-t{display:block;font-size:1.15rem;margin-top:4px}.zp-card p{margin:4px 0 0;color:#b9c1d0;font-size:.86rem;line-height:1.45}' +
+      '.zp-gain{display:flex;align-items:center;gap:8px;margin-top:12px;padding:9px 12px;border:1px solid rgba(62,203,124,.35);background:rgba(62,203,124,.08);border-radius:3px;font-size:.88rem;color:#d6f5e3}' +
+      '.zp-ok{width:22px;height:22px;border-radius:50%;background:#3ecb7c;color:#06210f;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem}' +
+      '.zp-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.zp-go,.zp-later{padding:10px;border-radius:3px;font:700 .88rem var(--sans,system-ui);text-align:center;cursor:pointer;text-decoration:none}' +
+      '.zp-go{background:#4a86ff;color:#fff;border:0}.zp-later{background:none;border:1px solid rgba(255,255,255,.14);color:#c9cfdb}' +
+      '@keyframes zp-down{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}' +
+      '@media (max-width:760px){.zp-xstack{left:12px;right:12px;bottom:auto;top:calc(64px + env(safe-area-inset-top));align-items:stretch}.zp-xt{max-width:none}.zp-cards{top:calc(64px + env(safe-area-inset-top))}body:has(.zp-card) .zp-xstack{visibility:hidden}}' +
+      '@media (prefers-reduced-motion:reduce){.zp-xt,.zp-card{animation:none;transition:none}}';
     var el = document.createElement('style'); el.id = 'zp-style'; el.textContent = css; document.head.appendChild(el);
+  }
+  // ------------------------------------------------------------ XP notifications (Mockup 3)
+  // small toast for +XP (bottom-right on computers, top on phones; groups bursts), a slide-down
+  // card for missions / achievements / streak rewards, and the level-up moment (zelos-levels.js).
+  // None of them fire while an order confirmation or another dialog is open: they wait.
+  var PROOT = /\/(learn|scan|practice|real|games)\//.test(location.pathname) ? '../' : '';
+  var MISSIONS_URL = PROOT + 'practice/index.html?tab=progress';
+  function busy() { return !!document.querySelector('#ptConfirm:not([hidden]), .zc-back, .ziv-back, .zlv-overlay, .zt-back'); }
+  function whenFree(fn, tries) { if (!busy() || (tries || 0) > 75) return fn(); setTimeout(function () { whenFree(fn, (tries || 0) + 1); }, 800); }
+  function xstack() {
+    var el = document.querySelector('.zp-xstack');
+    if (!el) { el = document.createElement('div'); el.className = 'zp-xstack'; el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+    return el;
+  }
+  var lastXp = null;
+  function levelLine(total) {
+    var L = global.ZelosLevels; if (total == null || !L) return '';
+    var lv = L.levelForXp(total), nx = L.nextLevelForXp(total), pct = nx ? Math.round((total - lv.xp) / (nx.xp - lv.xp) * 100) : 100;
+    return '<small>Level ' + lv.level + ' · ' + total.toLocaleString('en-US') + (nx ? ' / ' + nx.xp.toLocaleString('en-US') : '') + ' XP</small><i class="zp-bar"><i style="width:' + pct + '%"></i></i>';
+  }
+  function xpToast(amount, label, total) {
+    if (!document.body) return;
+    injectStyle();
+    var now = Date.now();
+    if (lastXp && now - lastXp.at < 10000 && lastXp.el.isConnected) { // several XP events close together: one toast
+      lastXp.amount += amount; lastXp.n++; lastXp.at = now; if (total != null) lastXp.total = total;
+      lastXp.el.querySelector('.zp-pill').textContent = '+' + lastXp.amount;
+      lastXp.el.querySelector('.zp-tt').innerHTML = '<b>+' + lastXp.amount + ' XP · ' + lastXp.n + ' actions</b>' + levelLine(lastXp.total);
+      clearTimeout(lastXp.t); lastXp.t = fade(lastXp.el, 4000); return;
+    }
+    whenFree(function () {
+      var el = document.createElement('a'); el.className = 'zp-xt'; el.href = MISSIONS_URL;
+      el.innerHTML = '<span class="zp-pill">+' + amount + '</span><span class="zp-tt"><b>' + esc(label) + '</b>' + levelLine(total) + '</span>';
+      xstack().appendChild(el);
+      lastXp = { el: el, amount: amount, n: 1, at: Date.now(), total: total, t: fade(el, 4000) };
+    });
+  }
+  function fade(el, ms) { return setTimeout(function () { el.classList.add('is-out'); setTimeout(function () { el.remove(); }, 400); }, ms); }
+  function card(o) {
+    if (!document.body) return;
+    injectStyle();
+    whenFree(function () {
+      var host = document.querySelector('.zp-cards');
+      if (!host) { host = document.createElement('div'); host.className = 'zp-cards'; host.setAttribute('aria-live', 'polite'); document.body.appendChild(host); }
+      var el = document.createElement('div'); el.className = 'zp-card k-' + (o.kind || 'ach'); el.setAttribute('role', 'status');
+      el.innerHTML = '<div class="zp-ch">' + (o.icon ? '<span class="zp-ci">' + o.icon + '</span>' : '') + '<div><small class="zp-k">' + esc(o.kicker) + '</small><b class="zp-t">' + esc(o.title) + '</b>' + (o.desc ? '<p>' + esc(o.desc) + '</p>' : '') + '</div></div>' +
+        (o.xp ? '<div class="zp-gain"><span class="zp-ok" aria-hidden="true">&#10003;</span><b>+' + o.xp + ' XP</b>' + (o.note ? ' · ' + esc(o.note) : '') + '</div>' : '') +
+        '<div class="zp-btns"><a class="zp-go" href="' + MISSIONS_URL + '">View missions</a><button type="button" class="zp-later">Later</button></div>';
+      host.appendChild(el);
+      while (host.children.length > 2) host.firstChild.remove();
+      el.querySelector('.zp-later').onclick = function () { el.classList.add('is-out'); setTimeout(function () { el.remove(); }, 300); };
+      fade(el, 8000);
+    });
   }
   function toast(html, kind) {
     if (!document.body) return;
@@ -278,7 +368,7 @@
   document.addEventListener('zelos:xp', function (e) {
     var d = e.detail || {};
     // missions and achievements announce themselves; everything else gets a small labeled XP toast
-    if (d.amount && d.type !== 'mission' && d.type !== 'achievement' && d.type !== 'daily-checkin') toast('<em style="margin:0">+' + d.amount + ' XP</em> ' + esc(d.label || ''), d.source === 'real' ? 'real' : d.source === 'trade-war' ? 'war' : 'xp');
+    if (d.amount && d.type !== 'mission' && d.type !== 'achievement' && d.type !== 'daily-checkin') xpToast(d.amount, d.label || 'XP earned', d.total);
     evaluateMissions();
   });
   window.addEventListener('storage', function (e) { if (e.key === KEY) { st = load(); try { document.dispatchEvent(new CustomEvent('zelos:progress')); } catch (er) {} } });
@@ -289,6 +379,6 @@
     unlocked: function () { return JSON.parse(JSON.stringify(st.achievements)); }, badge: badge,
     SEASONS: SEASONS, season: season, seasonFor: seasonFor, periodKeys: periodKeys, weekKey: weekKey, monthKey: monthKey, weekStart: weekStart, todayNY: todayNY,
     streak: streakDays, totals: function () { return JSON.parse(JSON.stringify(st.totals)); },
-    ref: ref, attach: attach, detach: detach, toast: toast, esc: esc
+    ref: ref, attach: attach, detach: detach, toast: toast, card: card, xpToast: xpToast, whenFree: whenFree, esc: esc
   };
 })(window);

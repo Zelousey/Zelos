@@ -15,6 +15,7 @@
  *   LEVELS                       — [{ level, xp, name, title, colors }]
  *   levelForXp(xp) / nextLevelForXp(xp)
  *   badge(levelOrNumber, size)   — inline SVG string
+ *   framed(levelOrNumber, size)  — the badge inside its tier frame (Mockup 4)
  *   celebrate(level, opts)       — full-screen level-up moment. opts: { xp, gained }
  *                                  Deduped: the same level is only celebrated once
  *                                  per browser, so two tabs (or the dashboard's live
@@ -90,6 +91,49 @@
     return s + '</svg>';
   }
 
+  // ------------------------------------------------------------ badge frames (Mockup 4)
+  // The same badge; the frame around it levels up with you:
+  //   Lv 0 clean ring · 1-2 metal rim · 3-4 gold rim, slow shimmer · 5-7 double ring + breathing aura
+  //   8-9 bright rim + orbiting sparks · 10 prism ring with a light sweep.
+  // CSS only (transform / opacity), off with "reduce motion"; small sizes get just the rim.
+  var FRAME_ID = 'zlv-frame-style';
+  function frameStyle() {
+    if (document.getElementById(FRAME_ID)) return;
+    var st = document.createElement('style'); st.id = FRAME_ID;
+    st.textContent =
+      '.zlv-frame{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;vertical-align:middle;--rw:3px}' +
+      '.zlv-frame::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--rim)}' +
+      '.zlv-frame>.zlv-in{position:absolute;inset:var(--rw);border-radius:50%;background:radial-gradient(circle at 50% 35%,#1b2130,#0b0e15);display:flex;align-items:center;justify-content:center}' +
+      '.zlv-frame .zlv-badge{position:relative}' +
+      '.zlv-frame.t0{--rw:2px;--rim:#3a3f4a}' +
+      '.zlv-frame.t1{--rim:linear-gradient(135deg,var(--c2),var(--c0) 35%,var(--c1) 70%,var(--c0))}' +
+      '.zlv-frame.t2{--rim:conic-gradient(var(--c0),var(--c2),var(--c0) 30%,var(--c1) 50%,var(--c0) 70%,var(--c2) 85%,var(--c0));box-shadow:0 0 14px var(--glow)}' +
+      '.zlv-frame.t2::before{animation:zlvSpin 9s linear infinite}' +
+      '.zlv-frame.t3{--rim:linear-gradient(135deg,var(--c2),var(--c0) 50%,var(--c1));animation:zlvBreathe 4s ease-in-out infinite}' +
+      '.zlv-frame.t3::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:1.5px solid var(--c0);opacity:.55}' +
+      '.zlv-frame.t4{--rim:conic-gradient(var(--c2),var(--c0),var(--c2),var(--c0),var(--c2));box-shadow:0 0 18px var(--glow)}' +
+      '.zlv-frame.t4::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:1.5px dashed var(--c0);opacity:.7;animation:zlvSpin 14s linear infinite reverse}' +
+      '.zlv-frame.t5{--rim:conic-gradient(#ff6fb5,#ffd45c,#4fe0c1,#7fb0ff,#b9a8ff,#ff6fb5);box-shadow:0 0 22px rgba(159,211,255,.55)}' +
+      '.zlv-frame.t5::before{animation:zlvSpin 5s linear infinite}' +
+      '.zlv-frame.t5::after{content:"";position:absolute;inset:-9px;z-index:-1;border-radius:50%;background:conic-gradient(rgba(255,111,181,.35),rgba(255,212,92,.35),rgba(79,224,193,.35),rgba(127,176,255,.35),rgba(185,168,255,.35),rgba(255,111,181,.35));filter:blur(6px);animation:zlvSpin 8s linear infinite reverse}' +
+      '.zlv-orbit{position:absolute;inset:-7px;border-radius:50%;animation:zlvSpin 6s linear infinite;pointer-events:none}' +
+      '.zlv-orbit i{position:absolute;width:6px;height:6px;margin:-3px;border-radius:50%;background:#fff;box-shadow:0 0 8px var(--c0),0 0 3px #fff}' +
+      '.zlv-orbit i:nth-child(1){left:50%;top:0}.zlv-orbit i:nth-child(2){left:93%;top:75%}.zlv-orbit i:nth-child(3){left:7%;top:75%;width:4px;height:4px}' +
+      '.zlv-frame.is-sm{--rw:2px;box-shadow:none;animation:none}.zlv-frame.is-sm::before{animation:none}.zlv-frame.is-sm::after,.zlv-frame.is-sm .zlv-orbit{display:none}' +
+      '@keyframes zlvSpin{to{transform:rotate(360deg)}}' +
+      '@keyframes zlvBreathe{0%,100%{box-shadow:0 0 10px var(--glow)}50%{box-shadow:0 0 26px var(--glow),0 0 4px var(--c2)}}' +
+      '@media (prefers-reduced-motion:reduce){.zlv-frame,.zlv-frame::before,.zlv-frame::after,.zlv-orbit{animation:none!important}}';
+    document.head.appendChild(st);
+  }
+  function tier(n) { return n >= 10 ? 5 : n >= 8 ? 4 : n >= 5 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0; }
+  function framed(lv, size) {
+    if (typeof lv === 'number') lv = LEVELS[Math.max(0, Math.min(LEVELS.length - 1, lv))];
+    size = size || 48; frameStyle();
+    var t = tier(lv.level), c = lv.colors, sm = size < 40;
+    return '<span class="zlv-frame t' + t + (sm ? ' is-sm' : '') + '" title="Level ' + lv.level + ' · ' + lv.name + '" style="width:' + size + 'px;height:' + size + 'px;--c0:' + c[0] + ';--c1:' + c[1] + ';--c2:' + c[2] + ';--glow:' + c[0] + '88">' +
+      '<span class="zlv-in">' + badge(lv, Math.round(size * 0.66)) + '</span>' + (t >= 4 && !sm ? '<span class="zlv-orbit" aria-hidden="true"><i></i><i></i><i></i></span>' : '') + '</span>';
+  }
+
   // ------------------------------------------------------------ celebration
   var STYLE_ID = 'zlv-style';
   function injectStyle() {
@@ -97,7 +141,7 @@
     var css =
       '.zlv-overlay{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;' +
       'background:rgba(4,6,12,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:zlv-fade .25s ease-out;}' +
-      '.zlv-card{position:relative;width:min(380px,100%);text-align:center;padding:34px 24px 24px;border-radius:14px;overflow:hidden;' +
+      '.zlv-card{position:relative;width:min(380px,100%);text-align:center;padding:34px 24px 24px;border-radius:4px;overflow:hidden;' +
       'background:linear-gradient(180deg,#141a28,#0b0e15);border:1px solid var(--zlv-c0);color:#f4f6fb;font-family:var(--sans,system-ui,sans-serif);' +
       'box-shadow:0 0 0 1px rgba(255,255,255,0.04),0 0 60px var(--zlv-glow),0 30px 80px rgba(0,0,0,0.6);animation:zlv-pop .55s cubic-bezier(.2,1.4,.4,1);}' +
       '.zlv-rays{position:absolute;left:50%;top:92px;width:520px;height:520px;margin:-260px 0 0 -260px;pointer-events:none;opacity:.35;' +
@@ -105,11 +149,13 @@
       '-webkit-mask:radial-gradient(circle,#000 0,#000 30%,transparent 62%);mask:radial-gradient(circle,#000 0,#000 30%,transparent 62%);animation:zlv-spin 14s linear infinite;}' +
       '.zlv-badge-wrap{position:relative;display:inline-block;animation:zlv-badge 1s cubic-bezier(.2,1.5,.35,1) .1s both;filter:drop-shadow(0 0 18px var(--zlv-glow));}' +
       '.zlv-kicker{position:relative;margin-top:14px;font-family:var(--mono,ui-monospace,monospace);font-size:.72rem;letter-spacing:.3em;text-transform:uppercase;color:var(--zlv-c2);}' +
-      '.zlv-title{position:relative;margin:6px 0 2px;font-size:2.1rem;font-weight:800;letter-spacing:.02em;line-height:1.1;' +
+      '.zlv-title{position:relative;margin:6px 0 2px;font-size:1.7rem;font-weight:800;letter-spacing:.02em;line-height:1.1;' +
       'background:linear-gradient(90deg,var(--zlv-c2),var(--zlv-c0),var(--zlv-c2));background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:zlv-shine 2.4s linear infinite;}' +
       '.zlv-sub{position:relative;font-size:.95rem;color:#c9cfdb;}' +
       '.zlv-xp{position:relative;margin-top:10px;font-family:var(--mono,ui-monospace,monospace);font-size:.8rem;color:#8f97a8;}' +
-      '.zlv-btn{position:relative;margin-top:18px;font:700 .92rem/1 var(--sans,system-ui,sans-serif);padding:12px 22px;border-radius:8px;border:none;cursor:pointer;color:#0b0e15;background:var(--zlv-c2);}' +
+      '.zlv-chips{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:12px}.zlv-chip{font:700 .7rem/1 var(--mono,ui-monospace,monospace);letter-spacing:.06em;padding:6px 9px;border:1px solid var(--zlv-c2);color:var(--zlv-c2);border-radius:2px;background:rgba(0,0,0,.25)}' +
+      '.zlv-btns{position:relative;display:flex;gap:8px;justify-content:center;margin-top:18px}.zlv-btns .zlv-btn{margin-top:0}.zlv-btn2{display:inline-flex;align-items:center;font:700 .92rem/1 var(--sans,system-ui,sans-serif);padding:12px 18px;border-radius:2px;border:1px solid rgba(255,255,255,.25);color:#e8ebf2;text-decoration:none;background:transparent}' +
+      '.zlv-btn{position:relative;margin-top:18px;font:700 .92rem/1 var(--sans,system-ui,sans-serif);padding:12px 22px;border-radius:2px;border:none;cursor:pointer;color:#0b0e15;background:var(--zlv-c2);}' +
       '.zlv-btn:focus-visible{outline:2px solid #fff;outline-offset:2px;}' +
       '.zlv-confetti{position:absolute;inset:0;pointer-events:none;}' +
       '@keyframes zlv-fade{from{opacity:0}to{opacity:1}}' +
@@ -146,6 +192,7 @@
   }
 
   var SEEN_KEY = 'zelosLevelCelebrated';
+  var PROFILE_URL = (/\/(learn|scan|practice|real|games)\//.test(location.pathname) ? '../' : '') + 'practice/profile.html';
   function celebrate(lv, opts) {
     if (typeof lv === 'number') lv = LEVELS[lv];
     if (!lv || lv.level < 1) return;
@@ -155,19 +202,26 @@
       if (seen >= lv.level && !opts.force) return;
       global.localStorage.setItem(SEEN_KEY, String(lv.level));
     } catch (e) { /* no storage: celebrate anyway */ }
-    if (!document.body) return document.addEventListener('DOMContentLoaded', function () { celebrate(lv, opts); });
+    show(lv, opts, 0);
+  }
+  var BUSY = '#ptConfirm:not([hidden]), .zc-back, .ziv-back, .zt-back';
+  function show(lv, opts, tries) {
+    if (!document.body) return document.addEventListener('DOMContentLoaded', function () { show(lv, opts, tries); });
+    // wait until an order confirmation or another dialog is closed
+    if (tries < 75 && document.querySelector(BUSY)) return setTimeout(function () { show(lv, opts, tries + 1); }, 800);
     injectStyle();
     var c = lv.colors;
     var ov = document.createElement('div');
     ov.className = 'zlv-overlay'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Level up: ' + lv.name);
     ov.style.setProperty('--zlv-c0', c[0]); ov.style.setProperty('--zlv-c2', c[2]); ov.style.setProperty('--zlv-glow', c[0] + '88');
     ov.innerHTML = '<div class="zlv-card"><div class="zlv-rays"></div>' +
-      '<div class="zlv-badge-wrap">' + badge(lv, 116) + '</div>' +
-      '<div class="zlv-kicker">Level ' + lv.level + ' unlocked</div>' +
-      '<div class="zlv-title">LEVEL UP!</div>' +
-      '<div class="zlv-sub">You\'re now <b>' + lv.name + '</b> &middot; ' + lv.title + '</div>' +
+      '<div class="zlv-badge-wrap">' + framed(lv, 132) + '</div>' +
+      '<div class="zlv-kicker">Level up</div>' +
+      '<div class="zlv-title">Level ' + lv.level + ' &middot; ' + lv.name + '</div>' +
+      '<div class="zlv-sub">' + lv.title + '</div>' +
       (opts.xp != null ? '<div class="zlv-xp">' + (opts.gained ? '+' + opts.gained + ' XP &middot; ' : '') + opts.xp + ' XP total</div>' : '') +
-      '<button class="zlv-btn" type="button">Keep trading &rarr;</button></div>';
+      '<div class="zlv-chips">' + (lv.level > 1 && tier(lv.level) !== tier(lv.level - 1) ? '<span class="zlv-chip">New badge frame</span>' : '') + '<span class="zlv-chip">New badge</span></div>' +
+      '<div class="zlv-btns"><button class="zlv-btn" type="button">Nice!</button><a class="zlv-btn2" href="' + PROFILE_URL + '">See profile</a></div></div>';
     document.body.appendChild(ov);
     var card = ov.querySelector('.zlv-card');
     confetti(card, [c[0], c[2]]);
@@ -185,5 +239,5 @@
     setTimeout(close, 9000);
   }
 
-  global.ZelosLevels = { LEVELS: LEVELS, levelForXp: levelForXp, nextLevelForXp: nextLevelForXp, badge: badge, celebrate: celebrate };
+  global.ZelosLevels = { LEVELS: LEVELS, levelForXp: levelForXp, nextLevelForXp: nextLevelForXp, badge: badge, framed: framed, tier: tier, celebrate: celebrate };
 })(window);

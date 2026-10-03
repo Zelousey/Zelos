@@ -132,6 +132,31 @@
   }
 
   // ------------------------------------------------------------ signed-in bits
+  // computers: a small "Lv N · XP" chip beside the account menu, linking to XP & missions.
+  // The account button is drawn by each page after sign-in, so keep looking for it a little while.
+  var chipXp = null, chipTimer = null;
+  function xpChip(v) {
+    chipXp = v; clearInterval(chipTimer); placeChip();
+    if (v != null) { var n = 0; chipTimer = setInterval(function () { if (placeChip() || ++n > 20) clearInterval(chipTimer); }, 1000); }
+  }
+  function placeChip() {
+    var old = d.querySelector('.zb-xpchip');
+    if (chipXp == null) { if (old) old.remove(); return true; }
+    if (!window.ZelosLevels) { // pages without the level script: load it once
+      if (!d.querySelector('script[src*="zelos-levels.js"]')) { var ls = d.createElement('script'); ls.src = ROOT + 'zelos-levels.js'; ls.onload = placeChip; d.head.appendChild(ls); }
+      return false;
+    }
+    var btn = d.getElementById('accountBtn'), host = btn && btn.closest('.nav-drop');
+    if (!host) return false;
+    var L = window.ZelosLevels, lv = L.levelForXp(chipXp), nx = L.nextLevelForXp(chipXp);
+    var pct = nx ? Math.max(0, Math.min(100, (chipXp - lv.xp) / (nx.xp - lv.xp) * 100)) : 100, c = ring(chipXp);
+    var el = old || d.createElement('a');
+    el.className = 'zb-xpchip'; el.href = ROOT + 'practice/index.html?tab=progress'; el.title = 'XP & missions';
+    el.innerHTML = '<i style="background:conic-gradient(' + c + ' ' + pct + '%, rgba(255,255,255,.12) 0)"><b>' + lv.level + '</b></i><span>Lv ' + lv.level + ' &middot; ' + chipXp.toLocaleString('en-US') + ' XP</span>';
+    if (el.nextSibling !== host) host.parentNode.insertBefore(el, host);
+    return true;
+  }
+
   function hook() {
     try {
       if (!window.firebase || !firebase.apps || !firebase.apps.length) return false;
@@ -141,13 +166,14 @@
       firebase.auth().onAuthStateChanged(function (u) {
         var av = bar.querySelector('.zb-av');
         [unsubT, unsubU, unsubInbox].forEach(function (f) { if (f) f(); }); unsubT = unsubU = unsubInbox = null; inbox = []; badge();
-        if (!u || u.isAnonymous) { uid = null; av.textContent = '?'; av.style.boxShadow = ''; if (bell) bell.hidden = true; return; }
+        if (!u || u.isAnonymous) { xpChip(null); uid = null; av.textContent = '?'; av.style.boxShadow = ''; if (bell) bell.hidden = true; return; }
         uid = u.uid; trader = {}; xp = 0;
         function paint() {
           var ph = trader.avatar || trader.photo || u.photoURL;
           if (ph && /^(https:|data:image\/(jpeg|png|webp);base64,)/.test(ph)) av.innerHTML = '<img src="' + esc(ph) + '" alt="" referrerpolicy="no-referrer">';
           else av.textContent = ((trader.username || u.displayName || u.email || 'Z').charAt(0) || 'Z').toUpperCase();
           var c = ring(xp); av.style.boxShadow = '0 0 0 2px ' + c + ', 0 0 8px ' + c + '88';
+          xpChip(xp);
         }
         paint();
         // keep this device's notifications connected on every page (zelos-push.js refresh())
@@ -155,6 +181,11 @@
           if ('Notification' in window && Notification.permission === 'granted' && !window.ZelosPush && window.ZelosTokens && !d.querySelector('script[src*="zelos-push.js"]')) {
             var ps = d.createElement('script'); ps.src = ROOT + 'zelos-push.js'; d.head.appendChild(ps);
           }
+        } catch (e) {}
+        // Founder Program popup (decides for itself whether to show)
+        try {
+          if (window.ZelosFounder) ZelosFounder.maybe(uid);
+          else if (!d.querySelector('script[src*="zelos-founder.js"]')) { var fs = d.createElement('script'); fs.src = ROOT + 'zelos-founder.js'; fs.onload = function () { if (window.ZelosFounder && uid === u.uid) ZelosFounder.maybe(uid); }; d.head.appendChild(fs); }
         } catch (e) {}
         if (!db) return;
         unsubT = db.collection('traders').doc(uid).onSnapshot(function (s) { trader = s.exists ? s.data() : {}; paint(); }, function () {});

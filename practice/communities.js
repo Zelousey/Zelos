@@ -112,6 +112,8 @@
         Object.keys(STATES).map(function (k) { return '<option value="' + k + '">' + esc(STATES[k]) + '</option>'; }).join('') + '</select><button class="pt-btn pt-btn-go" type="button" id="cmCreate">Create</button></div>' +
         '<p class="pt-fine" id="cmMsg"></p><p class="pt-fine">Example: <b>Zelos Clan</b>, Connecticut. Get 5 real members through your invite link and you\'re an official Founder.</p>') + '</div>';
       var b = $('cmCreate'); if (!b) return;
+      // arriving from the Founder popup: the start form, ready to type
+      if (location.hash === '#start') { var nm = $('cmName'); if (nm) { nm.scrollIntoView({ block: 'center' }); try { nm.focus({ preventScroll: true }); } catch (e) {} } }
       b.onclick = function () {
         b.disabled = true; $('cmMsg').textContent = 'Creating…';
         T().call('community_create', { name: $('cmName').value, state: $('cmNewState').value }).then(function (r) { location.search = '?c=' + encodeURIComponent(r.cid); },
