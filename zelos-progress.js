@@ -199,7 +199,9 @@
     ['club-25k', '$25K Club', 'Grow the account to $25,000', '💰', 150, 'Milestones', function (c) { return c.peak >= 25000; }],
     ['club-50k', '$50K Club', 'Grow the account to $50,000', '🏦', 300, 'Milestones', function (c) { return c.peak >= 50000; }],
     ['club-100k', '$100K Club', 'Grow the account to $100,000', '👑', 500, 'Milestones', function (c) { return c.peak >= 100000; }],
-    ['comeback-kid', 'Comeback Kid', 'Recover from $9,000 or lower back to $10,000 without a reset', '🦅', 150, 'Milestones', function (c) { return c.comebacks >= 1; }],
+    ['comeback-kid', 'Comeback Kid', 'Fall to $9,000 or less, then climb back to $10,000 without a reset', '🦅', 150, 'Milestones', function (c) { return c.comebacks >= 1; }],
+    ['comeback-brink', 'Back from the Brink', 'Fall to $5,000 or less, then climb back to $10,000 without a reset', '🦅', 300, 'Milestones', function (c) { return c.deepestComeback != null && c.deepestComeback <= 5000; }],
+    ['comeback-phoenix', 'Phoenix', 'Fall to $1,000 or less, then climb all the way back to $10,000 without a reset', '🦅', 600, 'Milestones', function (c) { return c.deepestComeback != null && c.deepestComeback <= 1000; }],
     ['sharp-eye', 'Sharp Eye', 'Grade 25 setups', '👁️', 50, 'Training', function (c) { return c.grade >= 25; }],
     ['on-a-roll', 'On a Roll', 'Keep a 7-day mission streak', '📅', 75, 'Training', function (c) { return c.bestStreak >= 7; }],
     ['challenger', 'Challenger', 'Start or accept a friend challenge', '⚔️', 50, 'Social', function (c) { return c.challenges >= 1; }],
@@ -235,8 +237,24 @@
     if (fresh.length) save();
     return fresh;
   }
+  // Comeback tiers (Mockup 6): bronze / silver / gold shields with a dip-and-recover line
+  var SHIELDS = { 'comeback-kid': ['#cd7f45', '#6d3d15', '#ffd9b3', null, 1], 'comeback-brink': ['#c9d1dc', '#69727f', '#ffffff', '#c9d1dc', 2], 'comeback-phoenix': ['#f2c14e', '#8a5d0a', '#fff4c7', '#f2c14e', 3] };
+  function shield(id, size, locked) {
+    var t = SHIELDS[id], a = BY_ID[id], g = 'zpsh-' + id, c1 = t[0], c2 = t[1], c3 = t[2], glow = locked ? null : t[3], stars = '';
+    for (var i = 0; i < t[4]; i++) { var x = 60 + (i - (t[4] - 1) / 2) * 14; stars += '<path d="M' + x + ' 92 l2.5 5 5.5 .8 -4 3.9 .9 5.5 -4.9-2.6 -4.9 2.6 .9-5.5 -4-3.9 5.5-.8z"/>'; }
+    return '<svg class="zp-shield' + (locked ? ' is-locked' : '') + '" width="' + size + '" height="' + Math.round(size * 1.1) + '" viewBox="0 0 120 132" role="img" aria-label="' + esc(a.label) + '"><title>' + esc(a.label + ': ' + a.desc) + '</title>' +
+      '<defs><linearGradient id="' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c3 + '"/><stop offset=".5" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs>' +
+      (glow ? '<circle cx="60" cy="62" r="56" fill="' + glow + '" opacity=".22"/><circle cx="60" cy="62" r="46" fill="' + glow + '" opacity=".18"/>' : '') +
+      '<path d="M60 8 L104 24 V62 C104 92 84 112 60 124 C36 112 16 92 16 62 V24 Z" fill="url(#' + g + ')" stroke="' + c2 + '" stroke-width="2"/>' +
+      '<path d="M60 18 L95 31 V62 C95 86 79 103 60 113 C41 103 25 86 25 62 V31 Z" fill="#11141b"/>' +
+      '<line x1="32" y1="46" x2="88" y2="46" stroke="rgba(255,255,255,.18)" stroke-dasharray="3 3"/>' +
+      '<path d="M30 44 C40 50 46 70 54 84 C62 74 72 56 88 40" fill="none" stroke="' + c3 + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="54" cy="84" r="4.5" fill="#f0564d"/><path d="M80 38 L89 38 L89 47" fill="none" stroke="' + c3 + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<g fill="' + c3 + '">' + stars + '</g></svg>';
+  }
   function badge(id, size, locked) {
     var a = BY_ID[id]; if (!a) return '';
+    if (SHIELDS[id]) return shield(id, size || 40, locked);
     return '<span class="zp-badge' + (locked ? ' is-locked' : '') + '" style="--zp-s:' + (size || 40) + 'px" title="' + esc(a.label + ': ' + a.desc) + '">' + a.icon + '</span>';
   }
 
@@ -261,6 +279,7 @@
       '.zp-badge{display:inline-flex;align-items:center;justify-content:center;width:var(--zp-s);height:var(--zp-s);font-size:calc(var(--zp-s) * .5);line-height:1;flex:none;' +
       'clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);background:linear-gradient(135deg,#ffd45c,#b07a12);box-shadow:inset 0 0 0 2px rgba(255,255,255,.2);}' +
       '.zp-badge.is-locked{background:linear-gradient(135deg,#3a3f4a,#23262d);filter:grayscale(1);opacity:.55;}' +
+      '.zp-shield{flex:none;display:inline-block;vertical-align:middle}.zp-shield.is-locked{filter:grayscale(1);opacity:.5}' +
       '@media (prefers-reduced-motion:reduce){.zp-toast{animation:none;}}';
     css += '.zp-xstack{position:fixed;right:20px;bottom:20px;z-index:9001;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}' +
       '.zp-xt{pointer-events:auto;display:flex;align-items:center;gap:12px;min-width:250px;max-width:320px;padding:11px 14px;border-radius:3px;background:#121624;border:1px solid rgba(124,108,255,.45);color:#f4f5f7;text-decoration:none;box-shadow:0 14px 34px rgba(0,0,0,.45);font-family:var(--sans,system-ui);animation:zp-in .25s ease-out;transition:opacity .35s,transform .35s}' +
