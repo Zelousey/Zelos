@@ -43,4 +43,8 @@ check "Top losers"                      "biggest-losers"
 check "Ratios (P/E etc.)"               "ratios-ttm?symbol=AAPL"
 check "Insider trades (one stock)"      "insider-trading/search?symbol=AAPL&page=0&limit=1"
 check "Crypto quote (for later)"        "quote?symbol=BTCUSD"
+# strategy scanner (one broad scan over a large universe)
+check "Stock screener (build universe)"  "company-screener?marketCapMoreThan=2000000000&volumeMoreThan=500000&priceMoreThan=10&isActivelyTrading=true&limit=5"
+check "Bulk end-of-day (all stocks)"     "eod-bulk?date=$(date -d 'yesterday' +%F 2>/dev/null || date +%F)"
+check "Options chain (if FMP has one)"   "options-chain?symbol=AAPL"
 unset KEY
