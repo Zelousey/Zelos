@@ -47,7 +47,8 @@
     var d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4);
     return d ? d + 'd ' + h + 'h left' : h ? h + 'h ' + m + 'm left' : m + 'm left';
   }
-  function link(id) { return SITE + '/practice/war.html?w=' + encodeURIComponent(id); }
+  // share links open the invite landing page ("<you> invited you to trade with $10,000"), which leads here
+  function link(id) { var S = window.ZelosSocial; return user && S && S.links ? S.links(user.uid).battle(id, war && war.id === id ? war.name : '') : SITE + '/practice/war.html?w=' + encodeURIComponent(id); }
   function tradable() {
     var age = quoteDoc.updatedAt ? (Date.now() - new Date(quoteDoc.updatedAt).getTime()) / 1000 : 1e9;
     return !!quoteDoc.marketOpen && age < 180;
@@ -97,6 +98,31 @@
     unsubs.push(ref.collection('events').orderBy('at', 'desc').limit(30).onSnapshot(function (s) { events = []; s.forEach(function (d) { events.push(d.data()); }); drawTicker(); }, function () {}));
     if (R(war).viewTrades) unsubs.push(ref.collection('books').onSnapshot(function (s) { books = {}; s.forEach(function (d) { books[d.id] = d.data(); }); render(); }, function () {}));
   }
+  // ------------------------------------------------------------ the arena (Mockup 16)
+  // A live battle gets its own look: Battle Mode bar with the name and a ticking clock,
+  // and a VS strip, you against the leader (or the trader right behind you when you lead).
+  function clockText(ms) { if (ms <= 0) return '0:00:00'; var s = Math.floor(ms / 1000), d = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60; return (d ? d + 'd ' : '') + ('0' + hh).slice(-2) + ':' + ('0' + mm).slice(-2) + ':' + ('0' + ss).slice(-2); }
+  setInterval(function () { var c = document.getElementById('twClockT'); if (c && war && war.endAt) c.textContent = clockText(war.endAt - Date.now()); }, 1000);
+  function fighter(a, w, me, mePct, right) {
+    var nm = me ? 'You' : (a ? (w.names || {})[a.uid] || 'Trader' : '–'), p = me ? mePct : a ? a.pnlPct : 0;
+    var ini = me ? ((w.names || {})[user.uid] || 'You') : nm, av = '<span class="tw-fav' + (me ? ' is-me' : '') + '">' + esc(ini.replace('@', '').charAt(0).toUpperCase()) + '</span>';
+    var txt = '<span class="tw-ftxt"><b' + (a && !me ? zn(a.uid) : '') + '>' + esc(nm) + '</b><small class="' + cls(p) + '">' + pct(p) + '</small></span>';
+    return '<div class="tw-fighter' + (right ? ' is-r' : '') + '">' + (right ? txt + av : av + txt) + '</div>';
+  }
+  function arenaHead(w, canMore, mePct) {
+    var sorted = accounts.slice().sort(function (a, b) { return ((a.out ? 1 : 0) - (b.out ? 1 : 0)) || (b.pnlPct - a.pnlPct); });
+    var i = -1; sorted.forEach(function (a, k) { if (a.uid === user.uid) i = k; });
+    var opp = i <= 0 ? sorted[1] : sorted[i - 1], oppPct = opp ? opp.pnlPct || 0 : 0;
+    var share = Math.max(6, Math.min(94, 50 + (mePct - oppPct) * 8));
+    var kind = w.lms ? '&#9760; Last Man Standing' : w.players.length === 2 ? '1 v 1' : w.players.length + ' players';
+    return '<div class="tw-arena-bar">' +
+      '<span class="tw-am">&#9876; BATTLE MODE</span><h1>' + esc(w.name) + '</h1><span class="tw-am-meta">' + kind + ' · ' + money(w.buyIn, 0) + ' buy-in</span>' +
+      '<span class="tw-clock"><small>ENDS IN</small><b id="twClockT">' + clockText((w.endAt || 0) - Date.now()) + '</b></span>' +
+      (canMore ? '<button type="button" class="tw-more" id="twMore" aria-label="More: surrender" aria-haspopup="dialog">&#8943;</button>' : '') + '</div>' +
+      '<div class="tw-vs">' + fighter(null, w, true, mePct) + '<span class="tw-vsx">VS</span>' + fighter(opp, w, false, mePct, true) +
+      '<div class="tw-tug" title="You vs ' + esc(opp ? (w.names || {})[opp.uid] || 'your rival' : 'your rival') + '"><i style="width:' + share.toFixed(1) + '%"></i></div>' +
+      (opp ? '<small class="tw-vs-note">' + (i === 0 ? 'You lead. Chasing you: ' : 'Next to beat: ') + esc((w.names || {})[opp.uid] || 'Trader') + '</small>' : '') + '</div>';
+  }
   function board(rows, final) {
     rows = rows.slice().sort(function (a, b) { return ((a.out ? 1 : 0) - (b.out ? 1 : 0)) || (a.out ? (a.place || 0) - (b.place || 0) : 0) || (b.pnlPct - a.pnlPct) || (b.pnl - a.pnl); });
     var ranks = {};
@@ -113,6 +139,7 @@
     return h;
   }
   function render() {
+    document.documentElement.classList.toggle('tw-arena', !!(war && war.status === 'active' && user && war.players.indexOf(user.uid) !== -1));
     if (!war) return;
     var w = war, mine = user && w.players.indexOf(user.uid) !== -1, host = user && w.host === user.uid;
     var status = w.status === 'active' ? '<span class="tw-st is-live">LIVE · ' + left(w.endAt - Date.now()) + '</span>' : w.status === 'lobby' ? '<span class="tw-st">Lobby · waiting to start</span>'
@@ -156,7 +183,7 @@
     var livePnl = liveEq - (me.start || w.buyIn);
     if (me.out) { liveEq = me.equity; livePnl = me.pnl; open = false; }
     var canTrade = open && !halted;
-    h += '<div id="twTickerSlot"></div>' + stormBar(storm);
+    h = arenaHead(w, canMore, livePnl / (me.start || w.buyIn) * 100) + '<div id="twTickerSlot"></div>' + stormBar(storm);
     if (w.lms) {
       var alive = (w.alive || w.players).length;
       h += '<div class="tw-lms-bar"><span><b>' + alive + '</b> of ' + w.players.length + ' still standing</span>' +
@@ -457,6 +484,7 @@
       '<button class="pt-chip" type="button" id="twAbc" aria-pressed="false" title="Three-Legged Strategy: draw an A-B-C pullback (click the start, then the ends of legs A, B and C)">3-Leg</button>' +
       '<button class="pt-chip" type="button" id="twSltp" aria-pressed="false" title="Stop Loss / Take Profit boxes: drag the red and green edges">SL/TP</button></span></div>' +
       '<canvas class="tw-chart" id="twChart" aria-label="Trade War chart"></canvas>' +
+      '<div class="pt-active" id="twActive" hidden></div>' +
       '<p class="pt-fine">Drag to pan · scroll to zoom · dashed line: your entry and P&amp;L · ▲▼ your trades · green / red boxes: take profit / stop loss (drag the edges) · ⏰ lines: your Trade War price alerts (drag to move)</p>' +
       '<div class="tw-alerts" id="twAlerts"></div>';
     chart = new TC.TradeChart(chartEl.querySelector('canvas'));
@@ -552,6 +580,36 @@
     chart.empty = s.n ? null : 'Loading chart…';
     if (!chart.s || chart.s.key !== s.key) chart.setSeries(s, ls ? 'all' : 126); else chart.setSeries(s);
     chart.draw();
+    renderActive();
+  }
+  // Active Trades under the battle chart: live P&L per position and a one-tap Close
+  // (asks once, then sells the whole position through tw_trade like the Sell button).
+  function renderActive() {
+    var el = $('twActive'); if (!el) return;
+    var pos = (book && book.positions) || {}, live = war && war.status === 'active', syms = Object.keys(pos).filter(function (k) { return pos[k] && pos[k].qty > 0; });
+    el.hidden = !syms.length; if (!syms.length) { el.innerHTML = ''; return; }
+    var rows = syms.map(function (k) { var p = pos[k], px = (quotes[k] || {}).c || p.avg; return { sym: k, qty: p.qty, avg: p.avg, px: px, pnl: (px - p.avg) * p.qty, pct: (px / p.avg - 1) * 100, sl: p.sl, tp: p.tp }; });
+    var tot = rows.reduce(function (t, r) { return t + r.pnl; }, 0);
+    el.innerHTML = '<div class="pt-at-h"><b>ACTIVE TRADES</b><span class="pt-at-n">' + rows.length + '</span><span class="pt-at-tl">Open P&amp;L</span><b class="' + cls(tot) + '">' + signed(tot) + '</b></div><div class="pt-at-rows">' +
+      rows.map(function (r) {
+        var good = r.pnl >= 0, w = r.tp && good ? (r.px - r.avg) / (r.tp - r.avg) : r.sl && !good ? (r.avg - r.px) / (r.avg - r.sl) : Math.abs(r.pct) / 10;
+        w = Math.max(3, Math.min(100, Math.round(w * 100)));
+        return '<div class="pt-at-row' + (r.sym === ticket.sym ? ' is-sel' : '') + '" data-at="' + esc(r.sym) + '" role="button" tabindex="0"><span class="pt-at-sym">' + esc(r.sym) + '</span>' +
+          '<span class="pt-at-mid"><small>' + r.qty + ' share' + (r.qty === 1 ? '' : 's') + ' · avg ' + money(r.avg) + (r.sl ? ' · stop ' + money(r.sl) : '') + (r.tp ? ' · target ' + money(r.tp) : '') + '</small><i class="pt-at-bar"><i class="' + (good ? 'up' : 'dn') + '" style="width:' + w + '%"></i></i></span>' +
+          '<span class="pt-at-pl ' + (good ? 'up' : 'dn') + '">' + signed(r.pnl) + '<small>' + pct(r.pct) + '</small></span><span class="pt-at-val">' + money(r.px * r.qty) + '</span>' +
+          (live ? '<button type="button" class="pt-at-close" data-close="' + esc(r.sym) + '">Close</button>' : '<span></span>') + '</div>';
+      }).join('') + '</div>';
+    el.onclick = function (e) {
+      var c = e.target.closest('[data-close]');
+      if (c) {
+        var sym = c.getAttribute('data-close'), p = pos[sym], px = (quotes[sym] || {}).c || p.avg;
+        if (!confirm('Close ' + sym + '? Sell all ' + p.qty + ' shares at market (about ' + money(px) + '). You lock in about ' + signed((px - p.avg) * p.qty) + '.' + (p.sl || p.tp ? ' Your stop and target are cleared.' : ''))) return;
+        c.disabled = true;
+        call('tw_trade', { warId: warId, sym: sym, side: 'sell', qty: p.qty }).then(function (r) { msg('Closed ' + sym + ': sold ' + r.fill.qty + ' at ' + money(r.fill.price) + (r.fill.pnl != null ? ' (' + signed(r.fill.pnl) + ')' : '') + '.', true); }, function (err) { c.disabled = false; msg(errText(err)); });
+        return;
+      }
+      var r = e.target.closest('[data-at]'); if (r && r.getAttribute('data-at') !== ticket.sym) { ticket.sym = r.getAttribute('data-at'); ticket.qty = pos[ticket.sym].qty; render(); }
+    };
   }
   function checkAlerts() {
     if (!TC) return;

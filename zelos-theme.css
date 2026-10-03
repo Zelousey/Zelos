@@ -960,3 +960,7 @@ body.zt-body::after{
   html.has-zbtop .zb-menu-extra{ display:flex; flex-direction:column; }
   .zb-inbox{ top:60px; left:12px; right:12px; width:auto; max-height:calc(100dvh - 150px); }
 }
+/* Invite a Friend menu entry (zelos-tabbar.js) */
+.zb-invite{ font-weight:700 !important; color:#fff !important; }
+.zb-invite-m{ display:block; margin:0 0 6px; padding:12px 14px; background:var(--accent-soft, #182a4a); border-left:3px solid var(--accent, #4a86ff); text-decoration:none; }
+.zb-invite-d{ background:var(--accent-soft, #182a4a); border-left:3px solid var(--accent, #4a86ff); }

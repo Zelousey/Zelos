@@ -72,7 +72,7 @@
   function render(user) {
     var sq = current; if (!sq) return;
     var cfg = sq.config || {}, isMember = user && sq.members.indexOf(user.uid) !== -1, isOwner = user && sq.owner === user.uid;
-    var link = S.links(user ? user.uid : null).squad(sq.id);
+    var link = S.links(user ? user.uid : null).squad(sq.id, sq.name);
     var compOn = sq.comp && Date.now() < sq.comp.end, compDone = sq.comp && Date.now() >= sq.comp.end;
     if (!sq.comp && board === 'comp') board = 'all';
     var h = '<div class="ch-hero"><span class="pt-kicker">Trading Squad · ' + sq.members.length + ' member' + (sq.members.length === 1 ? '' : 's') + (isMember && sq.code ? ' · room code <b class="sq-code">' + esc(sq.code) + '</b>' : '') + '</span><h1>👥 ' + esc(sq.name) + '</h1>' +

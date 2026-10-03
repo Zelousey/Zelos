@@ -93,6 +93,7 @@ BODY = '''<main class="pt-shell">
         <button class="pt-chip" type="button" id="ptZoomOut" aria-label="Zoom out">&minus;</button>
       </div>
       <div class="pt-chart-wrap"><canvas class="pt-chart" id="ptChart" aria-label="Price chart"></canvas></div>
+      <div class="pt-active" id="ptActive" hidden></div>
       <div class="pt-stats" id="ptStats"></div>
       <p class="pt-hint">Scroll to zoom &middot; drag to pan &middot; hover for exact values. Dashed lines are your average cost and open orders.</p>
     </section>
@@ -137,6 +138,7 @@ BODY = '''<main class="pt-shell">
           <button class="pt-submit is-buy" type="button" id="ptSubmit"><span class="pt-sub-main">Buy</span></button>
         </div>
         <div id="ptOptTicket" hidden>
+          <a class="pt-strat-link" href="strategies.html">Three-leg strategies: butterflies &amp; jade lizards, built for you &rarr;</a>
           <div class="pt-sides pt-otypes">
             <button class="pt-side is-on" type="button" data-otype="call">Calls</button>
             <button class="pt-side" type="button" data-otype="put">Puts</button>
@@ -245,7 +247,7 @@ PROFILE_BODY = '''<main class="pt-shell pf-shell">
 SOCIAL_SCRIPTS = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
                   '<script src="../zelos-social.js"></script>\n<script src="../zelos-profile.js"></script>\n')
 CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; '
-          '<a href="squads.html">Squads</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav>')
+          '<a href="squads.html">Squads</a> &middot; <a href="strategies.html">3-Leg Strategies</a> &middot; <a href="../leaderboard.html#practice">Leaderboards</a></nav>')
 
 
 def build_social_pages():
@@ -255,6 +257,28 @@ def build_social_pages():
            '<p class="pt-fine pf-fine">Squads are private: only people with the invite link or room code can find one. Members see each other\'s public Trade War (virtual) stats, and only members can read the squad chat.</p></main>',
            HEAD, SOCIAL_SCRIPTS + '<script src="squads.js"></script>\n', robots='noindex')
     print('built practice/squads.html')
+
+
+def build_invite():
+    render('practice/invite.html', 'You\'re invited to trade with $10,000 | AgenticTrading',
+           'A friend invited you to AgenticTrading: a free $10,000 virtual trading account with real, live prices. Battle them, join their squad, or just start trading.',
+           '<main class="pt-shell iv-shell"><div id="ivBody"><p class="pt-empty">Loading your invite…</p></div>'
+           '<p class="pt-fine pf-fine">Virtual money only: no cash value, no deposits, no prizes. Not investment advice.</p></main>',
+           HEAD, SOCIAL_SCRIPTS + '<script src="invite.js"></script>\n')
+    print('built practice/invite.html')
+
+
+def build_strategies():
+    render('practice/strategies.html', 'Three-Leg Options Strategies: Butterfly and Jade Lizard Scanner | Zelos',
+           'A scanner that finds the stock and builds the whole three-leg options trade: bullish and bearish butterflies and jade lizards, with cost, max profit and loss, breakevens and a payoff chart. Virtual money only.',
+           '<main class="pt-shell st-shell">' + CRUMBS + '<section class="st-card"><div class="st-hd"><h2>Three-Leg Strategies</h2><span class="st-tabs" id="stTabs"></span><span class="st-when" id="stWhen"></span></div>'
+           '<div class="st-g"><div class="st-res" id="stList"></div><div class="st-det" id="stDetail"><p class="st-empty">Scanning the stock list…</p></div></div></section>'
+           '<div class="st-mini"><div><h4>Bullish Butterfly</h4><p>Calls · debit · best if the stock rises to the middle strike.</p><div><span class="up">Buy 1 lower call</span><span class="dn">Sell 2 middle calls</span><span class="up">Buy 1 upper call</span></div></div>'
+           '<div><h4>Bearish Butterfly</h4><p>Puts · debit · best if the stock falls to the middle strike.</p><div><span class="up">Buy 1 upper put</span><span class="dn">Sell 2 middle puts</span><span class="up">Buy 1 lower put</span></div></div>'
+           '<div><h4>Jade Lizard</h4><p>Credit · neutral to bullish · the credit covers the call spread, so there\'s no risk to the upside.</p><div><span class="dn">Sell 1 put</span><span class="dn">Sell 1 call</span><span class="up">Buy 1 higher call</span></div></div></div>'
+           '<p class="pt-fine pf-fine">Scans the Trade War stock list in your browser with the same data and options model for everyone: nobody\'s personal AI has to be running. Virtual money only, not investment advice. The 3-Leg chart drawing tool (A-B-C pullback) is a different feature and stays on the chart.</p></main>',
+           HEAD, '<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n<script src="strategies.js"></script>\n<script src="strategies-page.js"></script>\n')
+    print('built practice/strategies.html')
 
 
 def build_war():
@@ -285,7 +309,7 @@ def main():
         'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
     }
     scripts = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
-               '<script src="../zelos-profile.js"></script>\n<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n'
+               '<script src="../zelos-profile.js"></script>\n<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n<script src="strategies.js"></script>\n'
                '<script src="practice.js"></script>\n<script src="tw-home.js"></script>\n')
     render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos', desc, BODY, HEAD, scripts,
            jsonld=[ld, breadcrumbs([('Zelos', ''), ('Trade War', None)])])
@@ -293,6 +317,8 @@ def main():
     build_profile()
     build_social_pages()
     build_war()
+    build_invite()
+    build_strategies()
     # the price function reads the same stock list, so it can never drift from the page
     shutil.copyfile(os.path.join(ROOT, 'data', 'practice-universe.json'), os.path.join(ROOT, 'functions', 'practice_universe.json'))
     print('copied data/practice-universe.json -> functions/practice_universe.json')

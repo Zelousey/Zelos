@@ -45,9 +45,11 @@
   function links(uid) {
     return {
       profile: function (u) { return SITE + '/practice/profile.html?u=' + encodeURIComponent(u || uid); },
-      invite: function () { return SITE + '/practice/?ref=' + encodeURIComponent(uid); },
+      // invites open the landing page (practice/invite.html): "<you> invited you to trade with $10,000"
+      invite: function () { return SITE + '/practice/invite.html?ref=' + encodeURIComponent(uid); },
+      battle: function (id, name) { return SITE + '/practice/invite.html?ref=' + encodeURIComponent(uid) + '&battle=' + encodeURIComponent(id) + (name ? '&bn=' + encodeURIComponent(String(name).slice(0, 40)) : ''); },
       war: function (id) { return SITE + '/practice/war.html?w=' + encodeURIComponent(id); },
-      squad: function (id) { return SITE + '/practice/squads.html?s=' + encodeURIComponent(id) + (uid ? '&ref=' + encodeURIComponent(uid) : ''); }
+      squad: function (id, name) { return uid ? SITE + '/practice/invite.html?ref=' + encodeURIComponent(uid) + '&squad=' + encodeURIComponent(id) + (name ? '&sn=' + encodeURIComponent(String(name).slice(0, 32)) : '') : SITE + '/practice/squads.html?s=' + encodeURIComponent(id); }
     };
   }
 

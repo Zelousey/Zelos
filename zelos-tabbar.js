@@ -40,6 +40,7 @@
   function ring(xp) { var c = LV[0][1]; LV.forEach(function (l) { if ((xp || 0) >= l[0]) c = l[1]; }); return c; }
   function pageName() {
     if (/\/practice\/profile\.html$/.test(path)) return 'Profile';
+    if (/\/practice\/invite\.html$/.test(path)) return 'You\'re invited';
     if (/\/practice\/war\.html$/.test(path)) return 'Battle';
     if (/\/practice\/(squads|communities)\.html$/.test(path)) return /squads/.test(path) ? 'Squads' : 'Communities';
     for (var i = 0; i < tabs.length; i++) if (tabs[i][3].test(path)) return /\/alert\.html$/.test(path) ? 'Alert' : tabs[i][0];
@@ -56,7 +57,26 @@
     }).join('') + '<a href="' + ROOT + 'my-zelos.html" id="zbAcct"' + (/\/(my-zelos|tokens)\.html$/.test(path) || /\/practice\/profile\.html$/.test(path) ? ' class="is-on"' : '') + '><span class="zb-av">?</span><span>Account</span></a>';
     d.body.appendChild(bar); d.documentElement.classList.add('has-tabbar');
     topBar();
+    addInviteEntries();
     if (!hook()) window.addEventListener('load', function () { if (!hook()) setTimeout(hook, 1500); });
+  }
+
+  // ------------------------------------------------------------ Invite a Friend (menu entry, every page)
+  // Top of the phone menu and of the desktop account dropdown; loads zelos-invite.js on demand.
+  function openInvite(e) {
+    if (e) e.preventDefault();
+    if (window.ZelosInvite) return ZelosInvite.open();
+    var sc = d.createElement('script'); sc.src = ROOT + 'zelos-invite.js'; sc.onload = function () { if (window.ZelosInvite) ZelosInvite.open(); }; d.head.appendChild(sc);
+  }
+  function inviteLink(cls) { var a = d.createElement('a'); a.href = '#invite'; a.className = 'zb-invite ' + (cls || ''); a.innerHTML = '&#127873; Invite a Friend'; a.onclick = openInvite; return a; }
+  function addInviteEntries() {
+    var panel = d.getElementById('navMobilePanel');
+    if (panel && !panel.querySelector('.zb-invite')) panel.insertBefore(inviteLink('zb-invite-m'), panel.firstChild);
+    var nav = d.getElementById('navAuth');
+    function desk() { var ap = d.getElementById('accountPanel'); if (ap && !ap.querySelector('.zb-invite')) ap.insertBefore(inviteLink('zb-invite-d'), ap.firstChild); }
+    desk();
+    if (nav && window.MutationObserver) new MutationObserver(desk).observe(nav, { childList: true, subtree: true });
+    if (location.hash === '#invite') setTimeout(openInvite, 1200);
   }
 
   // ------------------------------------------------------------ top bar
