@@ -182,6 +182,11 @@
             var ps = d.createElement('script'); ps.src = ROOT + 'zelos-push.js'; d.head.appendChild(ps);
           }
         } catch (e) {}
+        // Founder Program popup (decides for itself whether to show)
+        try {
+          if (window.ZelosFounder) ZelosFounder.maybe(uid);
+          else if (!d.querySelector('script[src*="zelos-founder.js"]')) { var fs = d.createElement('script'); fs.src = ROOT + 'zelos-founder.js'; fs.onload = function () { if (window.ZelosFounder && uid === u.uid) ZelosFounder.maybe(uid); }; d.head.appendChild(fs); }
+        } catch (e) {}
         if (!db) return;
         unsubT = db.collection('traders').doc(uid).onSnapshot(function (s) { trader = s.exists ? s.data() : {}; paint(); }, function () {});
         unsubU = db.collection('users').doc(uid).onSnapshot(function (s) { xp = (s.exists && s.data().xp) || 0; paint(); }, function () {});
