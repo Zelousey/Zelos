@@ -47,27 +47,23 @@ closes. Live prices need the `refresh_quotes` Cloud Function turned on once.
 
 ## How it works
 
-- `refresh_quotes` (in `functions/main.py`) runs every minute on weekdays between
-  9:00 and 16:59 New York time. It only calls Financial Modeling Prep (FMP, the
-  paid quote provider) from 9:25 to 16:10.
-- Each run fetches one quote for each practice symbol from FMP's
-  `stable/quote` endpoint and writes them to the Firestore doc
-  `markets/quotes` (`source: "fmp"`). Every open practice page listens to that
-  doc, so there's only ever one caller to FMP, however many people are trading.
-- During the session it also folds each minute's price into 5-minute bars, one
-  doc per symbol (`markets/intraday_<SYM>`, last 5 sessions). The page's 5m, 15m
-  and 1H charts are built from these, so the bars start filling in from the
-  first session after deploying.
-- After the close it adds the day's bar to `markets/dailyBars`, so charts keep
-  moving forward day by day.
-- `refresh_news` runs every 10 minutes. It fetches the latest general market
-  headlines plus company news for the 5 practice symbols refreshed longest ago (6
-  calls a run), and writes everything to one doc, `markets/news`. The dashboard's
-  Trending news and Watchlist news widgets read it. Headlines link to the
-  publisher, and the widgets show "News via Finnhub".
-- The FMP key (`FMP_API_KEY`, quotes) and the Finnhub key (`FINNHUB_API_KEY`,
-  news, and the fallback quote provider) live only in the functions' secret
-  config. They are never in this repo and never sent to a browser.
+Prices come from Marketstack. Its paid plans allow showing the data on the site. Full details
+are in `docs/market-data.md`.
+
+- **Live prices:** `refresh_quotes` updates `markets/quotes` every 15 minutes during market
+  hours on the Basic plan. Every open page listens to that one doc, so there's only one caller
+  to Marketstack, however many people are trading.
+- **Charts:** 15-minute bars go in `markets/intraday_<SYM>` (last 5 sessions). The page's 15m
+  and 1H charts are built from these. The 5m view needs the Professional plan.
+- **History:** after the close, `refresh_market_data` saves about 2 years of daily bars
+  (`markets/history_<n>`) and the last 90 sessions (`markets/dailyBars`). Pages load the
+  history through `zelos-mdata.js`.
+- **Company dropdown:** facts and insider trades from SEC EDGAR.
+- **Retired:** no news headlines (the old Finnhub feed was personal-use only), and crypto is
+  paused.
+- **Keys:** the Marketstack key (`MARKETSTACK_API_KEY`) and the SEC contact (`SEC_CONTACT`) live
+  only in the functions' secret config. They are never in this repo and never sent to a
+  browser.
 - `firestore.rules` already allows public reads of `markets/*` and blocks browser
   writes, so no rules change is needed.
 

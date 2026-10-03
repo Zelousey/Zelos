@@ -55,7 +55,7 @@ BODY = '''<main class="pt-shell">
       <div class="pt-qhead">
         <h2 id="ptSym">NVDA</h2><span class="pt-name" id="ptName"></span>
         <span class="pt-dd pt-news-dd">
-          <button class="pt-chip pt-news-btn" type="button" id="ptNewsBtn" aria-haspopup="true" aria-expanded="false">News <em id="ptNewsN" hidden></em> <span class="pt-caret">&#9662;</span></button>
+          <button class="pt-chip pt-news-btn" type="button" id="ptNewsBtn" aria-haspopup="true" aria-expanded="false">Company <em id="ptNewsN" hidden></em> <span class="pt-caret">&#9662;</span></button>
           <div class="pt-menu pt-news" id="ptNewsMenu" hidden></div>
         </span>
         <span class="pt-earn" id="ptEarn" hidden></span>
@@ -277,7 +277,7 @@ def build_strategies():
            '<div><h4>Bearish Butterfly</h4><p>Puts · debit · best if the stock falls to the middle strike.</p><div><span class="up">Buy 1 upper put</span><span class="dn">Sell 2 middle puts</span><span class="up">Buy 1 lower put</span></div></div>'
            '<div><h4>Jade Lizard</h4><p>Credit · neutral to bullish · the credit covers the call spread, so there\'s no risk to the upside.</p><div><span class="dn">Sell 1 put</span><span class="dn">Sell 1 call</span><span class="up">Buy 1 higher call</span></div></div></div>'
            '<p class="pt-fine pf-fine">Scans the Trade War stock list in your browser with the same data and options model for everyone: nobody\'s personal AI has to be running. Virtual money only, not investment advice. The 3-Leg chart drawing tool (A-B-C pullback) is a different feature and stays on the chart.</p></main>',
-           HEAD, '<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n<script src="strategies.js"></script>\n<script src="strategies-page.js"></script>\n')
+           HEAD, '<script src="../zelos-mdata.js"></script>\n<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n<script src="strategies.js"></script>\n<script src="strategies-page.js"></script>\n')
     print('built practice/strategies.html')
 
 
@@ -286,7 +286,7 @@ def build_war():
            'Create a Trade War: pick a virtual buy-in, invite friends, and everyone starts with the same money. Best % gain wins. Virtual money only.',
            '<main class="pt-shell ch-shell"><div id="twTop" class="twh-wrap"></div>' + CRUMBS + '<div id="twBody"><p class="pt-empty">Loading…</p></div>'
            '<p class="pt-fine pf-fine">Trade War matches use virtual money only: no cash value, no deposits, no prizes. Separate from your Main account and from real trading.</p></main>',
-           HEAD, SOCIAL_SCRIPTS + '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>\n<script src="practice-chart.js"></script>\n<script src="war.js"></script>\n<script src="tw-home.js"></script>\n', robots='noindex')
+           HEAD, SOCIAL_SCRIPTS + '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="practice-chart.js"></script>\n<script src="war.js"></script>\n<script src="tw-home.js"></script>\n', robots='noindex')
     print('built practice/war.html')
 
 
@@ -309,7 +309,7 @@ def main():
         'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
     }
     scripts = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
-               '<script src="../zelos-profile.js"></script>\n<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n<script src="strategies.js"></script>\n'
+               '<script src="../zelos-profile.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n<script src="strategies.js"></script>\n'
                '<script src="practice.js"></script>\n<script src="tw-home.js"></script>\n')
     render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos', desc, BODY, HEAD, scripts,
            jsonld=[ld, breadcrumbs([('Zelos', ''), ('Trade War', None)])])
@@ -324,6 +324,8 @@ def main():
     print('copied data/practice-universe.json -> functions/practice_universe.json')
     shutil.copyfile(os.path.join(ROOT, 'data', 'crypto-universe.json'), os.path.join(ROOT, 'functions', 'crypto_universe.json'))
     print('copied data/crypto-universe.json -> functions/crypto_universe.json')
+    shutil.copyfile(os.path.join(ROOT, 'scripts', 'page-src', 'country_links.py'), os.path.join(ROOT, 'functions', 'country_links.py'))
+    print('copied scripts/page-src/country_links.py -> functions/country_links.py (globe country list)')
 
 
 if __name__ == '__main__':

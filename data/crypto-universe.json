@@ -1,13 +1,55 @@
 {
-  "note": "Crypto in the Trade War Main account (virtual money, trades 24/7). Prices: refresh_market_data (functions/main.py) -> markets/crypto. scripts/build_practice.py copies this next to functions/main.py.",
-  "symbols": [
-    {"sym": "BTCUSD", "name": "Bitcoin", "short": "BTC", "group": "Crypto 24/7"},
-    {"sym": "ETHUSD", "name": "Ethereum", "short": "ETH", "group": "Crypto 24/7"},
-    {"sym": "SOLUSD", "name": "Solana", "short": "SOL", "group": "Crypto 24/7"},
-    {"sym": "XRPUSD", "name": "XRP", "short": "XRP", "group": "Crypto 24/7"},
-    {"sym": "DOGEUSD", "name": "Dogecoin", "short": "DOGE", "group": "Crypto 24/7"},
-    {"sym": "ADAUSD", "name": "Cardano", "short": "ADA", "group": "Crypto 24/7"},
-    {"sym": "AVAXUSD", "name": "Avalanche", "short": "AVAX", "group": "Crypto 24/7"},
-    {"sym": "LTCUSD", "name": "Litecoin", "short": "LTC", "group": "Crypto 24/7"}
+  "note": "Crypto is PAUSED: the old price source was licensed for personal use only. pausedSymbols keeps the list so existing positions still show a name and their last price. To bring crypto back with a licensed source, move pausedSymbols back to symbols and remove paused.",
+  "paused": true,
+  "symbols": [],
+  "pausedSymbols": [
+    {
+      "sym": "BTCUSD",
+      "name": "Bitcoin",
+      "short": "BTC",
+      "group": "Crypto 24/7"
+    },
+    {
+      "sym": "ETHUSD",
+      "name": "Ethereum",
+      "short": "ETH",
+      "group": "Crypto 24/7"
+    },
+    {
+      "sym": "SOLUSD",
+      "name": "Solana",
+      "short": "SOL",
+      "group": "Crypto 24/7"
+    },
+    {
+      "sym": "XRPUSD",
+      "name": "XRP",
+      "short": "XRP",
+      "group": "Crypto 24/7"
+    },
+    {
+      "sym": "DOGEUSD",
+      "name": "Dogecoin",
+      "short": "DOGE",
+      "group": "Crypto 24/7"
+    },
+    {
+      "sym": "ADAUSD",
+      "name": "Cardano",
+      "short": "ADA",
+      "group": "Crypto 24/7"
+    },
+    {
+      "sym": "AVAXUSD",
+      "name": "Avalanche",
+      "short": "AVAX",
+      "group": "Crypto 24/7"
+    },
+    {
+      "sym": "LTCUSD",
+      "name": "Litecoin",
+      "short": "LTC",
+      "group": "Crypto 24/7"
+    }
   ]
 }

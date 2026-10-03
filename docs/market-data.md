@@ -1,74 +1,72 @@
-# Market data from FMP (paid plan)
+# Market data: Marketstack (prices) + SEC EDGAR (company facts)
 
-Everything below runs server-side in `functions/main.py`. The `FMP_API_KEY` secret never
-reaches a browser: pages only read the public, read-only `markets/*` docs.
+Everything below runs on the server (`functions/main.py`, shaping in `functions/mdata.py`).
+Browsers only read the public, read-only `markets/*` docs, so the number of Marketstack
+requests stays the same no matter how many people visit.
 
-## refresh_market_data (every 5 minutes, around the clock)
+## Why these sources
 
-Each run does only what's due. Its bookkeeping lives in `serverMeta/marketData`, which no
-browser can read.
+The site may only show data it is licensed to show:
 
-| What | Doc | When |
+- **Marketstack's paid plans include commercial use.** On the Basic plan ($9.99/month) prices
+  update every 15 minutes during market hours.
+- **SEC EDGAR is public government data:** company facts, financials and insider trades.
+- **Retired:**
+  - FMP and Finnhub personal plans, and the Yahoo chart feed: these are personal use only.
+  - The Robinhood exports that used to live in `data/`.
+  - News headlines, analyst targets and earnings dates: none are shown until there's a
+    licensed source.
+- **Crypto is paused.** `data/crypto-universe.json` has `"paused": true`. Open crypto positions
+  keep their last price.
+
+## What runs when
+
+| Job | Writes | When |
 |---|---|---|
-| Crypto quotes (BTC, ETH, SOL, XRP, DOGE, ADA, AVAX, LTC) | `markets/crypto` | every run |
-| Crypto 5-minute bars, last 3 days | `markets/intraday_<SYM>` | every 15 min |
-| Crypto daily bars, ~400 days | `markets/cryptoBars` | once a day |
-| Top gainers, losers, most active, sector performance | `markets/movers` | every 15 min, weekdays 9:30 to 4:30 ET |
-| Real 5-minute bars with volume for the Trade War stock list (5 sessions) | `markets/intraday_<SYM>` | once, after the close (4:15 pm ET) |
-| Daily volume for the stock list | `markets/dailyBars` | once, after the close |
-| Earnings calendar, next 45 days | `markets/earnings` | once a day |
-| Company research for 2 stock-list symbols (oldest first) | `markets/research_<SYM>` | each run outside 9:25 to 4:10 ET |
+| `refresh_quotes` | `markets/quotes`, `markets/intraday_<SYM>` (15-minute bars, 5 sessions), `markets/movers` | every `QUOTE_EVERY_MIN` minutes in market hours (9:31, 9:46 … 4:01, plus 4:06) |
+| `refresh_market_data` after the close | `markets/dailyBars` (90 sessions), `markets/history_<n>` + `markets/historyIndex` (~2 years), `markets/snapshot` (ticker tape), `markets/globe`, full-day intraday bars | once a weekday, 4:20 pm or later; also on the very first run |
+| `refresh_market_data` outside market hours | `markets/research_<SYM>` (SEC profile, last fiscal year, insider trades, P/E, 60 daily bars) | 2 stock-list symbols a run, each once a day |
+| `market_research({symbol})` | the same research doc for any ticker (alert pages) | on demand, cached 12 hours, at most 60 fresh lookups a day |
 
-The crypto list is `data/crypto-universe.json`. `scripts/build_practice.py` copies it next to
-`main.py`.
+Movers are computed from the Zelos stock list, not the whole market. Indexes are shown through
+the ETFs that track them (S&P 500 → SPY, Nasdaq 100 → QQQ, Dow → DIA).
 
-## market_research (callable)
+## Request budget (Basic plan: 10,000 a month)
 
-`{symbol}` returns that ticker's research doc. Alert pages call it for tickers outside the
-Trade War list.
+| Use | Requests |
+|---|---|
+| Price updates | 2 a run × 27 runs a day → about 1,150 a month |
+| After the close | about 14 a day → about 300 a month |
+| First run | about 60 once, for 2 years of history; then a full refresh once a month |
+| Research | 0 for stock-list symbols; 1 for other tickers, at most 60 a day |
 
-- Served from the cache when it's under 12 hours old.
-- Fresh fetches are capped at 300 a day (`serverMeta/researchBudget`).
-- Junk symbols and crypto are rejected.
+## Settings
 
-A research doc holds:
+Secrets, set once in Cloud Shell:
 
-- **Profile:** sector, industry, market cap, beta, 52-week range, description.
-- **Analysts:** average, high and low price targets, plus the latest 6 ratings.
-- **Next-year estimates:** EPS, revenue, number of analysts.
-- **Ratios:** P/E, margin, ROE, dividend yield.
-- **Last fiscal year:** revenue, net income, EPS.
-- **Insiders:** recent open-market buys and sells.
-- **News:** 6 headlines.
-- **Next earnings date.**
+```
+firebase functions:secrets:set MARKETSTACK_API_KEY
+firebase functions:secrets:set SEC_CONTACT        # an email the SEC can reach you at; kept out of the public repo
+```
 
-## Where it shows
+Settings in `functions/.env`:
 
-**Trade War**
-- Crypto in the watchlist ("Crypto 24/7"). It trades around the clock in the Main account, in
-  fractions of a coin, good til cancelled. Matches stay stocks only.
-- The News dropdown, with the analyst target, next earnings and the latest rating.
-- An "Earnings in N days" badge.
-- The Market movers tile.
-
-**Alert pages**
-- An earnings warning when a report is 3 weeks away or less.
-- Research tabs: Analysts, Company, Insiders, News.
-
-**Dashboard**
-- The "Market movers" widget: gainers, losers, most active and crypto.
+- `QUOTE_EVERY_MIN=15` and `MS_INTERVAL=15min` fit the Basic plan.
+- On the Professional plan, use `QUOTE_EVERY_MIN=1` and `MS_INTERVAL=5min`.
 
 ## Deploy
 
 ```
-firebase deploy --only functions:refresh_market_data
-firebase deploy --only functions:market_research
+firebase deploy --only functions:refresh_quotes,functions:refresh_market_data,functions:market_research
+firebase functions:delete refresh_news --force
 ```
 
-Then run `bash scripts/fmp_check.sh` to confirm the plan covers each endpoint. Anything it
-reports as not in the plan is skipped quietly: the doc just leaves that part out.
+Then run `bash scripts/marketstack_check.sh` to confirm the key works. It prints whether each
+part of the plan works, and never prints the key.
 
 ## Local testing
 
-- `FMP_BASE_URL` in `functions/.env.local` points the functions at a fake FMP server.
-- Never set it in production.
+`functions/.env.local` points the functions at a local stand-in through `MARKETSTACK_BASE_URL`,
+`SEC_BASE_URL` and `SEC_WWW_URL`. Never set those in production.
+
+Unit tests: `python3 scripts/marketstack_test.py`.

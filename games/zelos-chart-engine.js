@@ -47,7 +47,7 @@
   // ------------------------------------------------------------ data
   function load() {
     if (cache) return Promise.resolve(cache);
-    return fetch(DATA_URL).then(function (r) { if (!r.ok) throw new Error('chart data ' + r.status); return r.json(); })
+    return (global.ZelosData ? global.ZelosData.history() : fetch(DATA_URL).then(function (r) { if (!r.ok) throw new Error('chart data ' + r.status); return r.json(); }))
       .then(function (j) {
         var series = {};
         Object.keys(j.symbols).forEach(function (sym) {

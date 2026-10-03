@@ -1,8 +1,9 @@
 """Draws the home page's "$10,000 Practice Account" preview: a real candlestick
-chart (NVDA's latest 48 daily bars from data/game-charts.json) with volume, a
+chart (NVDA's latest 48 daily bars, from the history the server saves from Marketstack:
+markets/history_<n>, read through Firestore's public REST endpoint) with volume, a
 20-day average, a price axis and a trading-screen frame, as inline SVG.
 
-    python3 scripts/build_home_promo.py
+    python3 scripts/build_home_promo.py            # after refresh_market_data has run once
 
 It replaces whatever sits between the PROMO-CHART markers in index.html, so
 it can be re-run whenever the chart data is refreshed.
@@ -19,8 +20,24 @@ PRICE_B, VOL_T, VOL_B = 178, 192, 238
 UP, DOWN = '#3ecb7c', '#e0483f'
 
 
+REST = 'https://firestore.googleapis.com/v1/projects/leaderboard-agentictrading/databases/(default)/documents/markets/'
+
+
+def load_rows(sym):
+    import urllib.request
+    def doc(i):
+        with urllib.request.urlopen(REST + i, timeout=30) as r:
+            return json.load(r).get('fields', {})
+    parts = int(doc('historyIndex')['parts']['integerValue'])
+    for i in range(parts):
+        data = json.loads(doc('history_%d' % i)['json']['stringValue'])
+        if sym in data:
+            return data[sym]
+    raise SystemExit('%s not in the saved history yet: run after refresh_market_data has run once' % sym)
+
+
 def main():
-    rows = json.load(open(os.path.join(ROOT, 'data', 'game-charts.json')))['symbols'][SYM]
+    rows = load_rows(SYM)
     closes = [r[4] for r in rows]
     sma = [sum(closes[i - 19:i + 1]) / 20 if i >= 19 else None for i in range(len(closes))]
     rows, sma = rows[-BARS:], sma[-BARS:]
