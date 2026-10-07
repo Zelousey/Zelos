@@ -31,5 +31,5 @@ Node 22.22+ is required.
   `markets/*` Firestore docs written by Cloud Functions.
 - Never trust a value computed in the browser for money, balances, permissions or
   results: call the existing Cloud Function.
-- Practice, Real Trading and Trade War stay separate (separate modules, no shared balances).
+- Practice (solo virtual account) and Trade War (matches) stay separate: separate modules, no shared balances. The app has no real-trading module; it is a simulated trading competition.
 - No new dependency without a reason written in the PR.

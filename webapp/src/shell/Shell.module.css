@@ -53,6 +53,8 @@
 .navItem.active svg { color: var(--accent); }
 .navItem svg { flex: none; }
 .navText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.newDot { width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--accent); flex: none; }
+.collapsed .newDot { position: absolute; top: 6px; right: 10px; }
 
 .collapsed .brandText,
 .collapsed .navText,
@@ -82,6 +84,7 @@
 .topActions { margin-left: auto; display: flex; align-items: center; gap: var(--space-1); }
 .bellBtn { position: relative; }
 .bellCount { position: absolute; top: 4px; right: 2px; pointer-events: none; }
+.menuBtn { display: none; }
 .avatarBtn { display: grid; place-items: center; width: var(--tap); height: var(--tap); padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--radius-pill); }
 .avatar { display: grid; place-items: center; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-2); font-weight: 600; font-size: var(--text-sm); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -148,24 +151,40 @@ a.notifItem:hover { background: var(--surface-hover); }
     z-index: 30;
     height: calc(var(--tabbar-h) + var(--safe-bottom));
     padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
-    background: var(--nav-bg);
+    background: var(--bg);
     backdrop-filter: saturate(140%) blur(14px);
     -webkit-backdrop-filter: saturate(140%) blur(14px);
     border-top: 1px solid var(--border-soft);
   }
+  .menuBtn { display: inline-flex; }
+  .topActions { gap: 0; }
   .tab {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     min-height: var(--tap);
-    border: 0;
-    background: transparent;
+    padding-top: 6px;
     color: var(--muted);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
+  /* the icon sits in a pill that fills in when the tab is selected */
+  .tabIcon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 30px;
+    border-radius: var(--radius-pill);
+    transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  }
+  .tabLabel { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.01em; line-height: 1; transition: color var(--dur-base) var(--ease-out); }
+  .tab:active .tabIcon { transform: scale(0.92); }
   .tab.active { color: var(--link); }
+  .tab.active .tabIcon { background: var(--accent-soft); color: var(--link); }
+  .tab.active .tabIcon svg { stroke-width: 2.2; }
+  .tab.active .tabLabel { color: var(--ink); font-weight: 600; }
+  .tabDot { position: absolute; top: 9px; left: calc(50% + 9px); width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
 }

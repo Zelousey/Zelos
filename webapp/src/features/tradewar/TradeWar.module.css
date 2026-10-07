@@ -1,0 +1,42 @@
+.stack { display: grid; gap: var(--space-6); }
+.sectionTitle { margin: 0 0 var(--space-3); font-size: var(--text-md); font-weight: 600; color: var(--ink); }
+
+/* ---------- practice account */
+.practice { display: grid; gap: var(--space-4); border-color: var(--accent-line); background: linear-gradient(180deg, var(--accent-soft), transparent 70%), var(--surface); }
+.practiceHead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.practiceTitle { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--ink); }
+.practiceTitle svg { color: var(--link); }
+.kpis { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: var(--space-4); }
+.big { font-size: var(--text-2xl); }
+.practiceFoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border-soft); }
+.muted { color: var(--muted); font-size: var(--text-sm); }
+.actions { display: flex; gap: var(--space-2); }
+.cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.cta p { margin: 0; color: var(--ink-2); max-width: 52ch; }
+
+/* ---------- compete tiles */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--space-3); }
+.tile {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.tile:hover { border-color: var(--accent-line); background: var(--surface-2); }
+.tileIcon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--accent-soft); color: var(--link); }
+.tileText { display: grid; gap: 2px; min-width: 0; }
+.tileText b { font-size: var(--text-md); }
+.tileText span { color: var(--ink-2); font-size: var(--text-sm); }
+.tileText small { display: inline-flex; align-items: center; gap: 4px; margin-top: var(--space-1); color: var(--muted); font-size: var(--text-xs); }
+
+@media (max-width: 760px) {
+  .stack { gap: var(--space-5); }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpis > :first-child { grid-column: 1 / -1; }
+  .actions { width: 100%; }
+  .actions > * { flex: 1; }
+}

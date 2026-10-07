@@ -5,7 +5,7 @@
 > (that is `MASTER_PLAN.md` plus `AGENTICTRADING_MASTER_SPEC.md`).
 > A new Claude session should be able to continue from this file alone.
 >
-> **Last verified against the repository:** 2026-10-07 (after PR #33; app build phase started on `claude/app-foundation`).
+> **Last verified against the repository:** 2026-10-07 (after PR #36; app restructure in progress on `claude/app-structure`).
 
 ## 1. Product
 AgenticTrading.info ("Zelos") is a trading education, scanning and simulated-competition site for retail traders.
@@ -50,11 +50,12 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 - Profiles, usernames (unique reservations), squads, communities, friends, invites, Founder program, XP notifications and level badges.
 - Dashboard layout editor; themes (Black/Blue/White).
 - Web push and the bell inbox.
+- **App at `/app/` (PRs #34–#36, live 2026-10-07):** React + TypeScript app shell (`webapp/`), Dashboard, Markets and Chart screens on the Marketstack `markets/*` docs, and the **server-side practice account** (engine `functions/practice.py`, callables `practice_*`, fills after every price refresh, nightly revalue) with the app's Practice and order-ticket screens. The owner deployed the functions and rules before merging #36; six unchanged functions (`tw_*`, `update_alert_outcomes`) failed to update on the first try and were re-deployed (owner reported "deploy complete"). The site is published by `.github/workflows/pages.yml` (Pages source = GitHub Actions).
 
 ## 4. Partially completed / unverified
 - **Deploy of 2026-10-07:** the owner deployed functions, Firestore rules and RTDB rules from the PR #32 branch, then merged it, and reported it done. The first deploy attempt partly failed (some scheduled functions, an IAM error); a re-run was needed. Claude verified the Marketstack docs in `markets/*` directly; it cannot reach Cloud Functions, so the function list was confirmed by the owner, not by Claude. Still to watch: the first market session after the deploy (`markets/quotes.source` should change from `fmp` to Marketstack).
 - Live market prices: never confirmed during a market session.
-- Missions and the solo $10,000 practice account are **client-side** (localStorage + `users/{uid}`). XP itself is server-awarded (`xp_award`); see §7.
+- Missions are still **client-side** (localStorage + `users/{uid}`) and read the classic page's counters; the $10,000 practice account is now server-side (§3). XP is server-awarded; see §7.
 - Rules/emulator tests exist only as past session results, not as committed tests.
 - Legal pages are drafted; lawyer review still recommended (`docs/LEGAL_APP_STORE.md`).
 
@@ -70,8 +71,9 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 | 2026-10-03 / 10-07 | Market data: **Marketstack** (commercial-use prices) + **SEC EDGAR** (company facts). FMP/Finnhub personal plans, Yahoo and Robinhood exports are personal-use only and are retired. News, analyst targets and earnings dates are hidden until a licensed source exists. Crypto paused. Owner confirmed on 2026-10-07. |
 | 2026-10-07 | The repository docs (this file first) are the handoff system between Claude sessions. |
 | 2026-10-07 | **App build approach A:** new React + TypeScript app in `webapp/` at `/app/`, beside the classic site; features migrate one module at a time; same Firebase/functions/rules/data. No UI component library. |
-| 2026-10-07 | App modules: **Practice** (solo virtual account), **Real Trading** and **Trade War** (competitive matches) are separate. Owner confirmed the naming. |
+| 2026-10-07 | App modules: **Practice** (solo virtual account) and **Trade War** (competitive matches) are separate. Owner confirmed the naming. |
 | 2026-10-07 | **Practice account moves to the server** (owner): fresh $10,000 for everyone, old browser accounts archived read-only (unverified); stocks/ETFs first, options next; the classic practice page hands off to the app. Market/limit/stop orders fill only on prices observed after the order (no look-ahead). Details: `docs/PRACTICE_SERVER.md`. |
+| 2026-10-07 | **App restructure (owner's UX checklist):** the app is named **Zelos Trade War** and positioned as a *simulated trading competition*, never a brokerage. Phone tab bar: **Dashboard · Market · Trade War · Alerts · News**; top bar: Profile · Notifications · ☰ menu (everything else). **Practice lives inside Trade War.** **Alerts tab = Zelos trade-signal alerts;** invites, challenges and friend requests go to the bell. **Real Trading is removed from the app only** (the website's Real Trade Journal page stays; its data is untouched). Zelos News = in-app announcements about Zelos, not financial news. Build order: (1) structure, (2) Market + one large chart experience + the globe, (3) Dashboard redesign, (4) invites + animations, (5) onboarding + launch animation. |
 | Standing | Hybrid web-first / native-ready direction; Capacitor to be evaluated later. The web app must keep working on its own. |
 | Standing | Firebase stays the backend unless inspection shows a concrete reason to change. |
 
@@ -98,25 +100,26 @@ Still open:
 Recommended direction: **hybrid web-first / native-ready**. Keep improving the existing static site; prepare for Capacitor packaging later without rewriting it.
 
 ## 9. Important product separations
-- Real Trading (journal) ≠ Trade War (virtual). Modes never mix (`zelos-modes.js`).
+- The app has no real-trading feature. On the website, the Real Trade Journal (`real/`) ≠ Trade War (virtual); modes never mix (`zelos-modes.js`).
 - Trade War matches are separate from the solo $10,000 practice account.
 - Social/community features stay out of the solo trading workflow.
 - Financial values are trusted only when computed server-side.
 
 ## 10. Current priorities (app build phase)
-1. **M1 app foundation** (PR from `claude/app-foundation`): shell, routing, components, CI job, Pages workflow. Owner then switches Pages source to "GitHub Actions" and adds `webapp` as a required check.
-2. **M2** Dashboard → Markets → Chart screens in the app, reading the existing `markets/*` data (branch `claude/app-markets`, built on M1).
-3. **M3 practice account on the server** (branch `claude/practice-server`): engine, callables, fills after each price update, rules, app Practice + order ticket, classic widgets switched, classic practice page hands off. **Deploy functions + rules first, then merge** (`docs/OWNER_DEPLOY_RUNBOOK.md`, section "Practice account").
-4. Then move, in order: Real Trading, Alerts, Trade War, Options, Crypto, Profile/Social, Missions/XP, Arcade, Tokens.
-5. Capacitor (iOS first) once the core flow is solid; TestFlight for private testing on the owner's phone. Payment decision needed before App Store submission (Apple IAP rule 3.1.1, see `docs/APP_ARCHITECTURE.md`).
-6. Watch: live quotes at the next market open (`markets/quotes.source` should become Marketstack).
+Following the owner's UX checklist (2026-10-07), one PR per step, each tried by the owner before the next:
+1. **Structure** (branch `claude/app-structure`): five-tab bar, ☰ menu, Trade War hub (Practice inside it), Zelos News, Real Trading out of the app, app renamed Zelos Trade War, tab bar redesign.
+2. **Market and charts:** one large chart experience with an asset switcher and mini-chart previews; the website's 3D globe (`market-3d.html`) brought into Market. The globe's country/world moves are mock + Yahoo data today: in the app it shows only real data (exchange open/closed, day/night line, US indexes and sectors from Marketstack) unless the owner approves a world-markets data source.
+3. **Dashboard redesign** from the owner's reference image (image still to be sent).
+4. **Invites:** Battle / Team up / Invite / Coach, clear recipient screens, accept animations. Prank invite: recommended against (clarity first).
+5. **Onboarding + first steps,** short branded launch animation.
+Then: Capacitor (iOS first) → TestFlight. Before App Store submission: Sign in with Apple (required with Google sign-in), the token-purchase decision (Apple IAP rule 3.1.1), and every classic hand-off moved into the app (several classic pages still link to the website's Real Trading page).
+
+**Waiting on the owner:** the dashboard reference image; approval for a server-backed "Post news" screen (new Firestore collection + rules; until then posts ship in `webapp/src/features/news/news.ts`); whether BTC/crypto charts are wanted (needs a licensed crypto data source); repo ruleset fixes (§5).
 
 ## 11. Open pull requests / work in flight
-- #34 `claude/app-foundation`: M1 app foundation (see §10).
-- #35 `claude/app-markets` (on top of #34): M2 Dashboard, Markets, Chart. Also adds `destroy()` to the shared chart engine (`practice/practice-chart.js`, additive; classic pages restamped).
-- `claude/practice-server` (on top of #35): M3 server-side practice account. Needs a backend deploy before merging.
+- `claude/app-structure`: step 1 above.
 
-Recently done: #31 docs + CI, #32 Marketstack + server XP + account deletion (deployed 2026-10-07), #33 deploy notes.
+Recently done: #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
 
 ## 12. Non-negotiable principles
 - Never trust client-submitted prices, balances, permissions, quotas, payment states or user IDs.

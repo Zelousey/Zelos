@@ -1,14 +1,14 @@
 import { NavLink } from 'react-router';
-import { GROUP_LABEL, GROUP_ORDER, moreModules } from '../app/modules';
+import { GROUP_LABEL, GROUP_ORDER, menuModules } from '../app/modules';
 import { t } from '../lib/i18n';
 import { Icon, Sheet } from '../ui';
 import s from './Shell.module.css';
 
-/** Phone "More" tab: every module that isn't one of the four tabs, as a grouped list (like the desktop sidebar's groups). */
-export function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const mods = moreModules();
+/** The ☰ menu (top-right on phones): every listed module that isn't a tab, grouped like the desktop sidebar. */
+export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const mods = menuModules();
   return (
-    <Sheet open={open} onClose={onClose} title={t('nav.more')} placement="bottom" labelledBy="more-title">
+    <Sheet open={open} onClose={onClose} title={t('nav.menu')} placement="bottom" labelledBy="menu-title">
       {GROUP_ORDER.map((g) => {
         const list = mods.filter((m) => m.group === g);
         if (!list.length) return null;

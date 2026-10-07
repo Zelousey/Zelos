@@ -25,7 +25,7 @@ test('full flow: dashboard → markets → search → chart → practice trade',
   await page.getByRole('link', { name: 'All markets →' }).click();
   await expect(page).toHaveURL(/\/app\/markets$/);
   await page.getByRole('searchbox').fill('nvi');
-  const rows = page.getByRole('list', { name: 'Markets' }).getByRole('link');
+  const rows = page.getByRole('list', { name: 'Market' }).getByRole('link');
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('NVDA');
   await expect(rows.first()).toContainText(price('NVDA'));
@@ -87,7 +87,7 @@ test('phone: chart controls fit one row and the trade bar is above the tab bar',
   await page.goto('markets/AAPL');
   const bar = page.getByRole('link', { name: 'Practice trade · AAPL' });
   await expect(bar).toBeVisible();
-  const tabbar = page.getByRole('navigation', { name: 'Main' }).filter({ has: page.getByRole('button', { name: 'More' }) });
+  const tabbar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
   const [b, tb] = await Promise.all([bar.boundingBox(), tabbar.boundingBox()]);
   expect(b!.y + b!.height).toBeLessThanOrEqual(tb!.y + 1);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
