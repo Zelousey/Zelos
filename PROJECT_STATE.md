@@ -70,7 +70,8 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 | 2026-10-03 / 10-07 | Market data: **Marketstack** (commercial-use prices) + **SEC EDGAR** (company facts). FMP/Finnhub personal plans, Yahoo and Robinhood exports are personal-use only and are retired. News, analyst targets and earnings dates are hidden until a licensed source exists. Crypto paused. Owner confirmed on 2026-10-07. |
 | 2026-10-07 | The repository docs (this file first) are the handoff system between Claude sessions. |
 | 2026-10-07 | **App build approach A:** new React + TypeScript app in `webapp/` at `/app/`, beside the classic site; features migrate one module at a time; same Firebase/functions/rules/data. No UI component library. |
-| 2026-10-07 | App modules: Practice (solo virtual account), Real Trading and Trade War are separate modules. (The classic site brands the solo $10k account "Trade War"; in the app it is "Practice". Owner to confirm the naming.) |
+| 2026-10-07 | App modules: **Practice** (solo virtual account), **Real Trading** and **Trade War** (competitive matches) are separate. Owner confirmed the naming. |
+| 2026-10-07 | **Practice account moves to the server** (owner): fresh $10,000 for everyone, old browser accounts archived read-only (unverified); stocks/ETFs first, options next; the classic practice page hands off to the app. Market/limit/stop orders fill only on prices observed after the order (no look-ahead). Details: `docs/PRACTICE_SERVER.md`. |
 | Standing | Hybrid web-first / native-ready direction; Capacitor to be evaluated later. The web app must keep working on its own. |
 | Standing | Firebase stays the backend unless inspection shows a concrete reason to change. |
 
@@ -88,7 +89,7 @@ Fixed in PR #32 (deployed 2026-10-07):
 - Account deletion: `account_delete` + a "Delete your account" card on My Zelos (needs a fresh sign-in). Keeps purchase/Square records.
 
 Still open:
-- Solo practice-account numbers (`practiceProfiles`) are browser-computed, so that leaderboard can still be inflated within the bound. Real fix = server-side solo account (large; not started).
+- Practice numbers become server-computed with the practice-server PR (below); until it is deployed, the classic browser account and its leaderboard can still be inflated.
 - `users/{uid}.friends` is owner-writable and read by `friend_ping` (worst case: pings to non-friends, one per pair). Low risk.
 - `users/{uid}.ownedSkills` is owner-writable (legacy Gumroad field); nothing on the server trusts it.
 - Arcade scores are still self-reported by the game page (capped by rules).
@@ -105,14 +106,15 @@ Recommended direction: **hybrid web-first / native-ready**. Keep improving the e
 ## 10. Current priorities (app build phase)
 1. **M1 app foundation** (PR from `claude/app-foundation`): shell, routing, components, CI job, Pages workflow. Owner then switches Pages source to "GitHub Actions" and adds `webapp` as a required check.
 2. **M2** Dashboard → Markets → Chart screens in the app, reading the existing `markets/*` data (branch `claude/app-markets`, built on M1).
-3. **M3** Practice trade flow → open positions, on the same practice account the classic page uses.
+3. **M3 practice account on the server** (branch `claude/practice-server`): engine, callables, fills after each price update, rules, app Practice + order ticket, classic widgets switched, classic practice page hands off. **Deploy functions + rules first, then merge** (`docs/OWNER_DEPLOY_RUNBOOK.md`, section "Practice account").
 4. Then move, in order: Real Trading, Alerts, Trade War, Options, Crypto, Profile/Social, Missions/XP, Arcade, Tokens.
 5. Capacitor (iOS first) once the core flow is solid; TestFlight for private testing on the owner's phone. Payment decision needed before App Store submission (Apple IAP rule 3.1.1, see `docs/APP_ARCHITECTURE.md`).
 6. Watch: live quotes at the next market open (`markets/quotes.source` should become Marketstack).
 
 ## 11. Open pull requests / work in flight
 - #34 `claude/app-foundation`: M1 app foundation (see §10).
-- `claude/app-markets` (on top of #34): M2 Dashboard, Markets, Chart. Also adds `destroy()` to the shared chart engine (`practice/practice-chart.js`, additive; classic pages restamped).
+- #35 `claude/app-markets` (on top of #34): M2 Dashboard, Markets, Chart. Also adds `destroy()` to the shared chart engine (`practice/practice-chart.js`, additive; classic pages restamped).
+- `claude/practice-server` (on top of #35): M3 server-side practice account. Needs a backend deploy before merging.
 
 Recently done: #31 docs + CI, #32 Marketstack + server XP + account deletion (deployed 2026-10-07), #33 deploy notes.
 

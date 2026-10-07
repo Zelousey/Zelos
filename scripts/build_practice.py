@@ -244,6 +244,30 @@ PROFILE_BODY = '''<main class="pt-shell pf-shell">
 </main>'''
 
 
+
+# Since 2026-10-07 the practice account lives on the server and trading happens in the app
+# (/app/practice). practice/index.html keeps the Trade War home (your trader card, challenges,
+# matches, tiles) and points to the app for trading. The old in-browser trading page (BODY,
+# practice.js) is no longer published; its source stays for reference until it's removed.
+HOME_BODY = '''<main class="pt-shell">
+  <h1 class="pt-sr">Trade War and your practice account</h1>
+  <div id="twTop" class="twh-wrap"></div>
+  <div id="zOnboard" class="tw-onboard" hidden></div>
+  <div id="twTiles" class="twh-tiles" aria-label="Missions, achievements, leaderboards, friends"></div>
+  <section class="pt-moved" aria-labelledby="ptMovedTitle">
+    <h2 id="ptMovedTitle">Your $10,000 practice account moved into the Zelos app</h2>
+    <p>Practice trading now happens in the app. Prices, fills and balances are kept on Zelos's servers, so every
+    leaderboard is fair. Market, limit and stop orders, stop-loss and take-profit on the chart, your positions and history.</p>
+    <p class="pt-moved-fine">Everyone started fresh at $10,000 on the new account. If you traded here before, that account is kept
+    read-only in the app (Practice &rarr; Classic account). Options trading is coming to the app next.</p>
+    <div class="pt-moved-btns">
+      <a class="pt-btn pt-btn-go" href="../app/practice">Open Practice</a>
+      <a class="pt-btn" href="war.html">Trade War matches</a>
+    </div>
+  </section>
+  <section id="twHub" class="twh-hub" aria-label="Trade War home"></section>
+</main>'''
+
 SOCIAL_SCRIPTS = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n'
                   '<script src="../zelos-social.js"></script>\n<script src="../zelos-profile.js"></script>\n')
 CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; '
@@ -286,7 +310,7 @@ def build_war():
            'Create a Trade War: pick a virtual buy-in, invite friends, and everyone starts with the same money. Best % gain wins. Virtual money only.',
            '<main class="pt-shell ch-shell"><div id="twTop" class="twh-wrap"></div>' + CRUMBS + '<div id="twBody"><p class="pt-empty">Loading…</p></div>'
            '<p class="pt-fine pf-fine">Trade War matches use virtual money only: no cash value, no deposits, no prizes. Separate from your Main account and from real trading.</p></main>',
-           HEAD, SOCIAL_SCRIPTS + '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="practice-chart.js"></script>\n<script src="war.js"></script>\n<script src="tw-home.js"></script>\n', robots='noindex')
+           HEAD, SOCIAL_SCRIPTS + '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="practice-chart.js"></script>\n<script src="war.js"></script>\n<script src="../zelos-practice-acct.js"></script>\n<script src="tw-home.js"></script>\n', robots='noindex')
     print('built practice/war.html')
 
 
@@ -299,8 +323,8 @@ def build_profile():
 
 
 def main():
-    desc = ('Trade War: a free $10,000 virtual trading account. Trade 50 real stocks and ETFs at live prices with virtual money and compete with friends. Candlestick charts with 13 '
-            'indicators, market, limit, stop and bracket orders, simulated options, agent signals and a public leaderboard.')
+    desc = ('Trade War and your free $10,000 practice account: trade real stocks and ETFs with virtual money in the Zelos app, compete with friends '
+            'in Trade War matches and climb fair, server-checked leaderboards.')
     ld = {
         '@context': 'https://schema.org', '@type': 'WebApplication', 'name': 'Zelos Trade War ($10,000 virtual trading account)',
         'url': SITE + '/practice/', 'description': desc, 'applicationCategory': 'FinanceApplication',
@@ -309,9 +333,8 @@ def main():
         'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
     }
     scripts = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
-               '<script src="../zelos-profile.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="practice-chart.js"></script>\n<script src="practice-options.js"></script>\n<script src="strategies.js"></script>\n'
-               '<script src="practice.js"></script>\n<script src="tw-home.js"></script>\n')
-    render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos', desc, BODY, HEAD, scripts,
+               '<script src="../zelos-profile.js"></script>\n<script src="../zelos-practice-acct.js"></script>\n<script src="tw-home.js"></script>\n')
+    render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos', desc, HOME_BODY, HEAD, scripts,
            jsonld=[ld, breadcrumbs([('Zelos', ''), ('Trade War', None)])])
     print('built practice/index.html')
     build_profile()

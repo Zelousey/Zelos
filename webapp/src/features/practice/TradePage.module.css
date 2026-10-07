@@ -1,0 +1,24 @@
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+.sym { font-family: var(--mono); font-size: var(--text-xl); font-weight: 700; }
+.name { color: var(--muted); font-size: var(--text-sm); }
+.px { text-align: right; }
+.last { font-family: var(--mono); font-size: var(--text-xl); font-weight: 600; font-variant-numeric: tabular-nums; display: block; }
+.layout { display: grid; gap: var(--space-4); }
+@media (min-width: 1000px) { .layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; } }
+.layout > * { min-width: 0; }
+.chartControls { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); }
+.chartBody { padding: var(--space-3); }
+.ticket { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding: var(--space-4); }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); }
+.qtyRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: end; }
+.bracket { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); border: 1px dashed var(--border); border-radius: var(--radius); }
+.toggle { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); cursor: pointer; min-height: var(--tap); }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent-fill); }
+.hint { font-size: var(--text-xs); color: var(--muted); }
+.summary { display: grid; gap: 4px; padding: var(--space-3); background: var(--bg-soft); border-radius: var(--radius); font-size: var(--text-sm); }
+.summary .num { font-weight: 600; }
+.note { font-size: var(--text-xs); color: var(--muted); }
+.confirm { display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+.confirm dt { color: var(--muted); font-size: var(--text-xs); }
+.confirm dd { margin: 0 0 var(--space-2); font-family: var(--mono); }
+@media (max-width: 760px) { .ticket { padding: var(--space-3); } }

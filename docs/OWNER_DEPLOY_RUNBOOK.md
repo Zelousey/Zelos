@@ -81,3 +81,33 @@ If PR B was already merged, use **Revert** on that PR in GitHub too. Then tell C
 Google Cloud console → APIs & Services → Credentials → the "Browser key" → Application
 restrictions → **Websites** → add `https://agentictrading.info/*` and
 `https://leaderboard-agentictrading.firebaseapp.com/*` → Save.
+
+
+---
+
+# Practice account on the server (the practice-server PR)
+
+Same pattern as before: **deploy the backend first, then merge.** About 10 minutes.
+
+Before you start: merge the app PRs that come before it (#34, then #35) if you haven't.
+
+1. Cloud Shell:
+   ```
+   cd ~/Zelos && git fetch origin && git checkout claude/practice-server && git pull
+   source functions/venv/bin/activate && pip install -r functions/requirements.txt
+   npx -y firebase-tools@latest deploy --only functions,firestore:rules --project leaderboard-agentictrading
+   ```
+   It adds five functions (`practice_account`, `practice_order`, `practice_cancel`,
+   `practice_reset`, `practice_settings`) and updates `refresh_quotes` and `refresh_market_data`.
+   If some functions fail with a permissions/IAM message, run the same command again.
+2. Merge the PR on GitHub. The app's Practice screen goes live, and the classic practice page
+   becomes the Trade War home with an "Open Practice" button.
+3. Check: open https://agentictrading.info/app/practice, sign in, press **Start with $10,000**,
+   place a small market order. During market hours it fills at the next price update (within
+   about 15 minutes); the Activity list and your balance update by themselves.
+
+Between step 1 and step 2 the classic practice page can still place browser-only trades, but
+its leaderboard numbers stop updating (the new rules only let the server write them). Do the
+two steps back to back.
+
+**Undo:** `git checkout main && npx -y firebase-tools@latest deploy --only functions,firestore:rules --project leaderboard-agentictrading`, and revert the PR if it was merged.

@@ -24,14 +24,11 @@
   function zn(uid) { return uid ? ' data-zname="' + esc(uid) + '"' : ''; }
   function money(v, dd) { dd = dd == null ? 2 : dd; v = +v || 0; return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: dd, maximumFractionDigits: dd }); }
   function pct(v) { v = +v || 0; return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
-  // Signed in: the online account (users/{uid}.practice) is the only source, so every
-  // device shows the same number; until it loads the tile says "…", never a made-up $10,000.
-  var onlineBal = null, authReady = false;
-  function mainBalance() {
-    if (!authReady || user) return onlineBal;
-    try { var a = JSON.parse(localStorage.getItem('zelosPractice-v1') || 'null'); if (a && a.summary && a.summary.equity != null) return a.summary.equity; } catch (e) {}
-    return null;
-  }
+  // Signed in: the server practice account (zelos-practice-acct.js) is the only source;
+  // until it loads the tile says "…", never a made-up number. Signed out: the fresh $10,000.
+  var onlineBal = null, authReady = false, unwatchAcct = null;
+  function mainBalance() { return authReady && !user ? null : onlineBal; }
+  var PRACTICE_URL = window.ZelosPracticeAcct ? ZelosPracticeAcct.APP_URL : '../app/practice';
 
   // ------------------------------------------------------------ top strip
   function renderTop() {
@@ -44,7 +41,7 @@
     var bal = mainBalance();
     var T = window.ZelosTokens, tw = T && T.wallet();
     if (T && !renderTop.hooked) { renderTop.hooked = true; T.onChange(function () { renderTop(); }); }
-    var chips = '<a class="twh-acct' + (!here ? ' is-on' : '') + '" href="index.html"><small>Main account</small><b>' + (bal != null ? money(bal) : !authReady || user ? '…' : '$10,000') + '</b></a>' +
+    var chips = '<a class="twh-acct' + (!here ? ' is-on' : '') + '" href="' + PRACTICE_URL + '"><small>Practice account</small><b>' + (bal != null ? money(bal) : !authReady || user ? '…' : '$10,000') + '</b></a>' +
       (user && T ? '<a class="twh-acct twh-tokens" href="../tokens.html" title="Your tokens: unlock live scanner alerts"><small>Tokens</small><b><i class="twh-coin" aria-hidden="true"></i>' + (tw ? tw.balance : '…') + '</b></a>' : '') +
       wars.filter(function (w) { return w.status === 'active' || w.status === 'lobby' || w.status === 'draft'; }).map(function (w) {
         var r = ranks[w.id], sub = w.status === 'lobby' ? 'Lobby · ' + w.players.length + '/' + w.maxPlayers : w.status === 'draft' ? 'Drafting' : r ? (r.out ? 'OUT · #' : '#') + r.rank + ' of ' + r.of + ' · ' + pct(r.pnlPct) : 'Live';
@@ -245,10 +242,10 @@
       db.collection('traders').doc(user.uid).get().then(function (t) { trader = t.exists ? t.data() : {}; renderTop(); }).catch(function () {});
       db.collection('users').doc(user.uid).onSnapshot(function (u2) {
         var dd = u2.exists ? u2.data() : {}; xp = dd.xp || 0;
-        var sm = dd.practice && dd.practice.summary;
-        onlineBal = sm && sm.equity != null ? sm.equity : dd.practice ? null : 10000; // no online account yet = the fresh $10,000
         renderTop();
       }, function () {});
+      if (unwatchAcct) unwatchAcct();
+      unwatchAcct = window.ZelosPracticeAcct ? ZelosPracticeAcct.watch(db, user.uid, function (a) { onlineBal = a ? a.equity : 10000; renderTop(); }) : null;
       db.collection('twInvites').where('to', '==', user.uid).where('status', '==', 'pending').onSnapshot(function (s) {
         invites = []; s.forEach(function (x) { invites.push(Object.assign({ id: x.id }, x.data())); }); renderTop();
       }, function () {});

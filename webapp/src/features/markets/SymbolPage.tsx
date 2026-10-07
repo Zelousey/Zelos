@@ -4,17 +4,17 @@
  * Prices come from markets/quotes (live, every 15 min in market hours), bars from
  * markets/intraday_SYM and the daily history.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { SYMBOL_RE, useIntraday, useQuotes } from '../../data/markets';
+import { SYMBOL_RE } from '../../data/markets';
 import { instrument, INDEX_ETFS } from '../../data/universe';
-import { useHistory } from '../../data/useHistory';
 import { formatCompact, formatMarketTime, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
 import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Stat, Tabs } from '../../ui';
 import { ChartView } from '../charts/ChartView';
-import { barsFor, TIMEFRAMES, type Timeframe } from '../charts/series';
+import { TIMEFRAMES, type Timeframe } from '../charts/series';
+import { useSymbolBars } from '../charts/useSymbolBars';
 import { StatusLine } from './StatusLine';
 import { rememberSymbol } from './useLastSymbol';
 import s from './SymbolPage.module.css';
@@ -51,24 +51,14 @@ export default function SymbolPage() {
 }
 
 function SymbolView({ sym, name }: { sym: string; name: string }) {
-  const quotes = useQuotes();
   const [tf, setTfState] = useState<Timeframe>(initialTf);
   const tfDef = TIMEFRAMES.find((x) => x.id === tf)!;
   const [range, setRange] = useState<number | 'all'>(tfDef.def);
   const [style, setStyleState] = useState<'line' | 'candles'>(() => (readString(STYLE_KEY) === 'candles' ? 'candles' : 'line'));
   const [showTable, setShowTable] = useState(false);
-  const history = useHistory(tf === 'D' || tf === 'W');
-  const intraday = useIntraday(tf === '15m' || tf === '1h' ? sym : null);
+  const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
 
   useEffect(() => rememberSymbol(sym), [sym]);
-
-  const q = quotes.status === 'ready' ? quotes.data.quotes[sym] : undefined;
-  const built = useMemo(
-    () => barsFor(tf, { history: history.data[sym], intraday: intraday.status === 'ready' ? intraday.data : [], quote: q }),
-    [tf, history.data, sym, intraday, q],
-  );
-  const loading = tf === 'D' || tf === 'W' ? history.status === 'loading' : intraday.status === 'loading';
-  const failed = tf === 'D' || tf === 'W' ? history.status === 'error' : intraday.status === 'error';
 
   const lastBar = built.bars[built.bars.length - 1];
   const prevBar = built.bars[built.bars.length - 2];
@@ -119,7 +109,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
             </div>
           </div>
           {failed ? (
-            <ErrorState compact onRetry={history.retry} />
+            <ErrorState compact onRetry={retry} />
           ) : !loading && built.bars.length === 0 ? (
             <EmptyState icon="chart" body={built.intraday ? t('chart.noIntraday') : t('chart.noData', { sym })} compact />
           ) : (

@@ -159,25 +159,39 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Trade War public profiles: the $10,000 virtual account (PRACTICE mode),
-    // for the Trade War leaderboards + practice/profile.html.
-    // One doc per signed-in player, keyed by their uid, holding ONLY public
-    // numbers: display name, balance, growth, resets, closed-trade stats. No
-    // email or login details are ever written here. Anyone can read (the
-    // leaderboard works signed out); only the owner can write or delete their
-    // own doc, and only from a real (non-anonymous) account. A player who turns
-    // their stats private deletes the doc. Same client-side trust trade-off as
-    // XP above: it's virtual money, so a determined person could inflate their
-    // own numbers via devtools.
+    // Public practice profiles (leaderboards, practice/profile.html). Since 2026-10-07 the
+    // numbers are computed and written by the server (practice_* functions) from the server
+    // practice account, so they can't be inflated from a browser. The owner may still update
+    // their display identity (zelos-profile.js keeps name/username/photo in sync) and the
+    // cosmetic achievements/streak, or delete the doc (hide their stats).
     match /practiceProfiles/{userId} {
       allow read: if true;
       allow delete: if request.auth != null && request.auth.uid == userId;
-      allow create, update: if isRealAccount() && request.auth.uid == userId
+      allow create: if false;
+      allow update: if isRealAccount() && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'username', 'photo', 'achievements', 'streak'])
         && request.resource.data.name is string && request.resource.data.name.size() <= 24
-        && request.resource.data.equity is number
-        && request.resource.data.equity >= 0 && request.resource.data.equity <= 100000000
         && validPhoto(request.resource.data.get('photo', null))
-        && (request.resource.data.get('username', null) == null || validUsername(request.resource.data.username));
+        && (request.resource.data.get('username', null) == null || validUsername(request.resource.data.username))
+        && (request.resource.data.get('achievements', []) is list && request.resource.data.get('achievements', []).size() <= 80)
+        && (request.resource.data.get('streak', 0) is int && request.resource.data.get('streak', 0) >= 0 && request.resource.data.get('streak', 0) <= 3650);
+    }
+
+    // The practice account itself and its history: owner reads, only the server writes
+    // (orders, fills and balances are decided by Cloud Functions on server prices).
+    match /practiceAccounts/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+      match /history/{eventId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+
+    // The old browser-written account, archived read-only when the server account opened.
+    match /practiceArchive/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
     }
 
     // Username reservations: one doc per taken username, naming its owner, so

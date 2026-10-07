@@ -42,7 +42,7 @@ export const MODULES: AppModule[] = [
   { id: 'markets', path: 'markets', label: 'nav.markets', icon: 'markets', group: 'main', status: 'ready', tab: 2, load: () => import('../features/markets/MarketsModule') },
   { id: 'charts', path: 'charts', label: 'nav.charts', icon: 'chart', group: 'main', status: 'ready', load: () => import('../features/charts/ChartsRedirect') },
 
-  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'trade', status: 'classic', classicPath: 'practice/index.html', tab: 3 },
+  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'trade', status: 'ready', tab: 3, load: () => import('../features/practice/PracticeModule') },
   { id: 'real', path: 'real', label: 'nav.real', icon: 'real', group: 'trade', status: 'classic', classicPath: 'real/index.html' },
   { id: 'trade-war', path: 'trade-war', label: 'nav.tradeWar', icon: 'war', group: 'trade', status: 'classic', classicPath: 'practice/war.html' },
 
