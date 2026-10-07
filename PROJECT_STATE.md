@@ -5,7 +5,7 @@
 > (that is `MASTER_PLAN.md` plus `AGENTICTRADING_MASTER_SPEC.md`).
 > A new Claude session should be able to continue from this file alone.
 >
-> **Last verified against the repository:** 2026-10-07 (commit `c3554cb` on `main` + the PRs listed in §11).
+> **Last verified against the repository:** 2026-10-07 (after PR #31 and PR #32 merged and the owner deployed).
 
 ## 1. Product
 AgenticTrading.info ("Zelos") is a trading education, scanning and simulated-competition site for retail traders.
@@ -34,7 +34,7 @@ Live areas:
 | Server logic | Python 3.12, `functions/main.py` (~4,500 lines) plus helper modules `mdata.py` (market data), `xp.py` (XP rules), `country_links.py`. About 40 Cloud Functions: alert publishing/release, outcomes, Buffer posting, market data jobs, `market_research`, Trade War (`tw_*`), tokens/wallet, rewards, cosmetics, communities, push, Square checkout + `squareWebhook`, `admin_sales`, `xp_award`, `account_delete`. |
 | Firebase project | `leaderboard-agentictrading` (`.firebaserc`). There is **one project**: no separate dev/staging project. Local testing uses the emulators (`firebase.emu.tmp.json`). |
 | Payments | **Square** (Checkout payment links + HMAC-verified, idempotent webhook). `functions/.env` has `SQUARE_ENVIRONMENT=production`. Stripe and Gumroad are retired. |
-| Market data | **Marketstack** prices (quotes every 15 min, 15-min bars, ~2 yrs daily history) and **SEC EDGAR** company data, fetched only by scheduled functions (`functions/mdata.py`) into public read-only `markets/*` docs. Pages read those (`zelos-mdata.js`); the old `data/*.json` price files are gone. News, analyst targets, earnings dates hidden; crypto paused. See `docs/market-data.md`, `DATA_PROVIDERS.md`. **Live only after the PR B deploy (§11).** |
+| Market data | **Marketstack** prices (quotes every 15 min, 15-min bars, ~2 yrs daily history) and **SEC EDGAR** company data, fetched only by scheduled functions (`functions/mdata.py`) into public read-only `markets/*` docs. Pages read those (`zelos-mdata.js`); the old `data/*.json` price files are gone. News, analyst targets, earnings dates hidden; crypto paused. See `docs/market-data.md`, `DATA_PROVIDERS.md`. Live since 2026-10-07 (first `refresh_market_data` run filled `markets/historyIndex`, `snapshot`, `dailyBars` from Marketstack). |
 | PWA | `manifest.json`, icons, `firebase-messaging-sw.js` (push only; no offline caching service worker). |
 | CI | `.github/workflows/ci.yml`: job `checks` (Python syntax, unit tests, JS syntax, JSON validity, secret-file guard), job `rules` (Firestore + RTDB rules tests on emulators), job `functions-e2e` (xp_award + account_delete on emulators). Plus GitHub's built-in Pages deploy. |
 | Tests | `scripts/*_test.py` (7 suites incl. `marketstack_test.py`, `xp_test.py`). `tests/rules/`: `rules.test.js` (19 rules tests) and `functions.e2e.mjs` (20 end-to-end checks); run with `cd tests/rules && npm ci && npm test` / `npm run test:functions` (needs Java). Older per-phase emulator suites from `AGENTICTRADING_PROGRESS.md` were never committed. |
@@ -51,9 +51,9 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 - Web push and the bell inbox.
 
 ## 4. Partially completed / unverified
-- **Production deploy state is unknown.** Several phases were logged as "code done, owner must deploy rules + functions". Nobody has confirmed the deployed Firestore rules and functions match `main`. Claude sessions have no Firebase credentials.
+- **Deploy of 2026-10-07:** the owner deployed functions, Firestore rules and RTDB rules from the PR #32 branch, then merged it, and reported it done. The first deploy attempt partly failed (some scheduled functions, an IAM error); a re-run was needed. Claude verified the Marketstack docs in `markets/*` directly; it cannot reach Cloud Functions, so the function list was confirmed by the owner, not by Claude. Still to watch: the first market session after the deploy (`markets/quotes.source` should change from `fmp` to Marketstack).
 - Live market prices: never confirmed during a market session.
-- Missions and the solo $10,000 practice account are **client-side** (localStorage + `users/{uid}`). XP itself is server-awarded once PR B is deployed; see §7.
+- Missions and the solo $10,000 practice account are **client-side** (localStorage + `users/{uid}`). XP itself is server-awarded (`xp_award`); see §7.
 - Rules/emulator tests exist only as past session results, not as committed tests.
 - Legal pages are drafted; lawyer review still recommended (`docs/LEGAL_APP_STORE.md`).
 
@@ -78,7 +78,7 @@ Good:
 - Square webhook verifies signatures and is idempotent.
 
 Open:
-Fixed in PR B (effective once deployed):
+Fixed in PR #32 (deployed 2026-10-07):
 - XP is awarded only by `xp_award`: amounts come from server tables, refIds are shape- and date-checked, alerts/referrals are verified to exist, daily limits apply. Rules block browser writes to `xp`, `streakDays`, `lastAlertOpenDate` and the activity ledger. Note: the server still can't *see* most activities (a mission done, a trade made in the solo account), so XP is now bounded (max ~2,500/day) rather than proven.
 - Arcade scores need a Firebase user (guests included), carry the uid, and are limited to one per player per 10 seconds.
 - `practiceProfiles.equity` must be between 0 and 100,000,000.
@@ -101,15 +101,18 @@ Recommended direction: **hybrid web-first / native-ready**. Keep improving the e
 
 ## 10. Current priorities
 1. Owner: set up branch protection properly (see `docs/DEVELOPMENT_WORKFLOW.md`), with `checks`, `rules`, `functions-e2e` as required checks.
-2. Owner: follow `docs/OWNER_DEPLOY_RUNBOOK.md` (deploy, fill market data, merge PR B).
+2. Owner: delete stale branches `claude/rs-plcmdi`, `claude/pensive-babbage-4ry1bi`, `agent-a-logo-for-sharing-links-7e2f`, `claude/agentictrading-master-spec`, `claude/docs-ci-square-wording`, `claude/marketstack-security` (Claude's environment can't delete branches).
 3. Find a licensed options-chain source for the Options Scanner (`DATA_PROVIDERS.md`).
 4. Legal/privacy/App Store readiness review.
 5. Native packaging evaluation (Capacitor).
 6. Performance measurement.
 
 ## 11. Open pull requests / work in flight
-- **PR A — docs, CI, cleanup** (`claude/docs-ci-square-wording`): this rewrite, `ci.yml`, untracked `__pycache__`. Safe to merge any time.
-- **PR B — Marketstack + security** (`claude/marketstack-security`): Marketstack/SEC EDGAR data, server-side XP, signed-in arcade scores, account deletion, committed rules/e2e tests. **Deploy functions + rules first, then merge.** Steps: `docs/OWNER_DEPLOY_RUNBOOK.md`.
+None open. Recently done:
+- **#31** (merged 2026-10-07): docs rewrite, CI (`ci.yml`).
+- **#32** (merged + deployed 2026-10-07): Marketstack/SEC EDGAR data, server-side XP, signed-in arcade scores, account deletion, committed rules/e2e tests. Runbook kept at `docs/OWNER_DEPLOY_RUNBOOK.md` (its rollback section still applies).
+
+Next recommended action: owner enables the `main` ruleset (§5), then check live quotes during the next market session.
 
 ## 12. Non-negotiable principles
 - Never trust client-submitted prices, balances, permissions, quotas, payment states or user IDs.
