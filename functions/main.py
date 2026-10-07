@@ -56,6 +56,9 @@ import time as _time
 from firebase_functions import https_fn, scheduler_fn
 from firebase_admin import initialize_app, firestore
 
+import mdata as MD  # Marketstack + SEC market data (the sources the site may show)
+import xp as XP  # XP award rules (server-decided amounts and limits)
+
 initialize_app()
 
 ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner"}
@@ -208,7 +211,8 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request(secrets=["ZELOS_PUBLISH_SECRET"])
 def publish_market_map(req: https_fn.Request) -> https_fn.Response:
-    """Stores the globe's country market map (built by scripts/build_market_map.py)
+    """Stores the globe's country market map (refresh_market_data now builds it from Marketstack after each close;
+    this endpoint stays for manual fixes)
     at markets/globe, as one JSON string so the browser can read it with a single
     public GET. Same shared-secret gate as publish_alert."""
     if req.method != "POST":
@@ -652,74 +656,37 @@ def _fetch_all_quotes(api_key):
 @scheduler_fn.on_schedule(
     schedule="* 9-16 * * 1-5",
     timezone=scheduler_fn.Timezone("America/New_York"),
-    secrets=["FMP_API_KEY"],
+    secrets=["MARKETSTACK_API_KEY"],
     timeout_sec=55,
     memory=256,
 )
 def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
+    """Stock prices from Marketstack (see functions/mdata.py). Wakes every minute but only
+    calls Marketstack every QUOTE_EVERY_MIN minutes (15 on the Basic plan), one minute after
+    each bar closes, plus once at 4:06 pm for the closing prices."""
     now = datetime.now(NY)
     minutes = now.hour * 60 + now.minute
-    if minutes < 9 * 60 + 25 or minutes > 16 * 60 + 10:
+    every = MD.quote_every_min()
+    due = SESSION_OPEN < minutes <= SESSION_CLOSE + 1 and (minutes - SESSION_OPEN - 1) % every == 0
+    if not (due or minutes == SESSION_CLOSE + 6):
         return
-    api_key = os.environ.get("FMP_API_KEY", "").strip()
     db = firestore.client()
-    doc = db.collection("markets").document("quotes")
-    if not api_key:
-        doc.set({"error": "missing-key", "checkedAt": now.isoformat()}, merge=True)
+    key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
+    if not key:
+        db.collection("markets").document("quotes").set({"error": "missing-key", "checkedAt": now.isoformat()}, merge=True)
         return
-
-    quotes, error = _fetch_all_quotes(api_key)
-    if error and not quotes:
-        # keep the last good prices; just flag the problem so the page can say so
-        doc.set({"error": error, "checkedAt": now.isoformat()}, merge=True)
-        print("[refresh_quotes] FMP error:", error)
-        return
-
-    # a symbol that failed this round (timeout, rate limit) keeps its last good
-    # quote instead of dropping off the page for a minute
     try:
-        prev = doc.get()
-        for sym, q in (((prev.to_dict() or {}).get("quotes") or {}) if prev.exists else {}).items():
-            if sym in PRACTICE_SYMBOLS and sym not in quotes:
-                quotes[sym] = q
+        n = ms_run_quotes(db, key, now)
+        print("[refresh_quotes] %d prices" % n)
+    except MD.MsKeyRejected:
+        db.collection("markets").document("quotes").set({"error": "auth", "checkedAt": now.isoformat()}, merge=True)
+        print("[refresh_quotes] Marketstack rejected the key")
+    except MD.MsQuota:
+        db.collection("markets").document("quotes").set({"error": "quota", "checkedAt": now.isoformat()}, merge=True)
+        print("[refresh_quotes] Marketstack monthly requests used up")
     except Exception as e:
-        print("[refresh_quotes] couldn't read previous quotes:", type(e).__name__)
-
-    today = now.strftime("%Y-%m-%d")
-    session_open = 9 * 60 + 30 <= minutes < 16 * 60
-    doc.set({
-        "source": "fmp",
-        "updatedAt": now.isoformat(),
-        "date": today,
-        "marketOpen": session_open,
-        "error": None,
-        "quotes": quotes,
-    })
-    try:
-        _update_intraday(db, quotes, now)
-    except Exception as e:  # never let chart bookkeeping stop the quotes
-        print("[refresh_quotes] intraday update failed:", type(e).__name__, e)
-
-    # after the close: record today's bar once the quotes are from today.
-    # Firestore can't store nested arrays, so each bar is kept as a
-    # "date,o,h,l,c,v" string; the page splits it back apart.
-    if minutes >= 16 * 60 + 2:
-        bars_ref = db.collection("markets").document("dailyBars")
-        snap = bars_ref.get()
-        stored = (snap.to_dict() or {}).get("bars", {}) if snap.exists else {}
-        bars = {sym: [str(r) for r in rows] for sym, rows in stored.items()}
-        changed = False
-        for sym, q in quotes.items():
-            qdate = datetime.fromtimestamp(q.get("t") or 0, NY).strftime("%Y-%m-%d")
-            if qdate != today or not q.get("o"):
-                continue
-            row = ",".join(str(x) for x in (today, q["o"], q["h"], q["l"], q["c"], 0))
-            series = [r for r in bars.get(sym, []) if not r.startswith(today + ",")]
-            series.append(row)
-            bars[sym] = series[-DAILY_BARS_KEEP:]
-            changed = True
-        if changed:
-            bars_ref.set({"updatedAt": now.isoformat(), "bars": bars})
+        db.collection("markets").document("quotes").set({"error": type(e).__name__, "checkedAt": now.isoformat()}, merge=True)
+        print("[refresh_quotes] failed:", type(e).__name__, e)
 
 
 # ---------------------------------------------------------------------------
@@ -800,55 +767,9 @@ NEWS_PROVIDER = {
 }
 
 
-@scheduler_fn.on_schedule(
-    schedule="*/10 * * * *",
-    timezone=scheduler_fn.Timezone("America/New_York"),
-    secrets=["FINNHUB_API_KEY"],
-    timeout_sec=60,
-    memory=256,
-)
-def refresh_news(event: scheduler_fn.ScheduledEvent) -> None:
-    api_key = os.environ.get("FINNHUB_API_KEY", "").strip()
-    if not api_key:
-        return
-    now = datetime.now(NY)
-    db = firestore.client()
-    ref = db.collection("markets").document("news")
-    snap = ref.get()
-    doc = (snap.to_dict() or {}) if snap.exists else {}
-    by_symbol = {k: v for k, v in (doc.get("bySymbol") or {}).items() if k in PRACTICE_SYMBOLS}
-    stamps = {k: v for k, v in (doc.get("symbolsUpdatedAt") or {}).items() if k in PRACTICE_SYMBOLS}
-    general, errors = doc.get("general") or [], []
-    try:
-        general = NEWS_PROVIDER["general"](api_key) or general
-    except Exception as e:
-        errors.append("general: %s" % type(e).__name__)
-    # the symbols refreshed longest ago (never-fetched first)
-    due = sorted(PRACTICE_SYMBOLS, key=lambda s: stamps.get(s, ""))[:NEWS_SYMBOLS_PER_RUN]
-    for sym in due:
-        try:
-            by_symbol[sym] = NEWS_PROVIDER["company"](sym, api_key, now)
-            stamps[sym] = now.isoformat()
-        except urllib.error.HTTPError as e:
-            errors.append("%s: http %d" % (sym, e.code))
-            stamps[sym] = now.isoformat()  # retried next lap, so one bad symbol can't stall the rotation
-            if e.code in (401, 403, 429):
-                break
-        except Exception as e:
-            errors.append("%s: %s" % (sym, type(e).__name__))
-            stamps[sym] = now.isoformat()
-    ref.set({
-        "provider": NEWS_PROVIDER["name"],
-        "attribution": NEWS_PROVIDER["attribution"],
-        "attributionUrl": NEWS_PROVIDER["attributionUrl"],
-        "updatedAt": now.isoformat(),
-        "general": general,
-        "bySymbol": by_symbol,
-        "symbolsUpdatedAt": stamps,
-        "error": "; ".join(errors)[:300] or None,
-    })
-    if errors:
-        print("[refresh_news]", "; ".join(errors))
+# refresh_news was retired: Finnhub's free plan is for personal use only, so its headlines
+# can't be shown on the site. The helpers above stay for a licensed news source later.
+# Remove the deployed copy once: firebase functions:delete refresh_news --force
 
 
 # ---------------------------------------------------------------------------
@@ -875,7 +796,7 @@ def refresh_news(event: scheduler_fn.ScheduledEvent) -> None:
 # ---------------------------------------------------------------------------
 FMP_BASE = os.environ.get("FMP_BASE_URL") or "https://financialmodelingprep.com/stable/"  # override only for local testing
 RESEARCH_MAX_AGE_S = 12 * 3600
-RESEARCH_DAILY_BUDGET = 300
+RESEARCH_DAILY_BUDGET = 60  # each fresh lookup can use a Marketstack request
 RESEARCH_PER_RUN = 2
 CRYPTO_INTRADAY_DAYS = 3
 CRYPTO_DAILY_KEEP = 400
@@ -886,7 +807,8 @@ _SYM_RE = _re_md.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
 def _load_crypto_symbols():
     try:
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "crypto_universe.json"), encoding="utf-8") as f:
-            rows = json.load(f)["symbols"]
+            d = json.load(f)
+        rows = d.get("symbols") or d.get("pausedSymbols") or []  # paused: still recognised as crypto, never fetched
         out = [(str(u["sym"]).upper(), str(u.get("name") or u["sym"])) for u in rows]
         if out:
             return out[:12]
@@ -1297,42 +1219,316 @@ def md_due(now, state):
 @scheduler_fn.on_schedule(
     schedule="*/5 * * * *",
     timezone=scheduler_fn.Timezone("America/New_York"),
-    secrets=["FMP_API_KEY"],
-    timeout_sec=300,
+    secrets=["MARKETSTACK_API_KEY", "SEC_CONTACT"],
+    timeout_sec=540,
     memory=512,
 )
 def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
-    api_key = os.environ.get("FMP_API_KEY", "").strip()
-    if not api_key:
-        return
+    """Marketstack + SEC jobs, each only when due (state in serverMeta/marketData):
+      - once: remove data from the old personal-use sources (news, earnings, FMP research, crypto)
+      - after the close: daily bars, 2-year history, the ticker-tape snapshot, the globe,
+        and full-day 15-minute bars for the stock list
+      - outside market hours: SEC research for 2 stock-list symbols a run, oldest first"""
+    key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
     now = datetime.now(NY)
     db = firestore.client()
     sref = db.collection("serverMeta").document("marketData")
     snap = sref.get()
     state = (snap.to_dict() or {}) if snap.exists else {}
-    due = md_due(now, state)
     try:
-        _md_crypto(db, api_key, now, state)
-        if due["movers"]:
-            _md_movers(db, api_key, now)
-            state["moversAt"] = int(now.timestamp())
-        if due["earnings"]:
-            _md_earnings(db, api_key, now)
-            state["earningsDay"] = now.strftime("%Y-%m-%d")
-        if due["afterClose"]:
-            print("[market] after-close bars for %d symbols" % _md_after_close(db, api_key, now))
-            state["closeDay"] = now.strftime("%Y-%m-%d")
-        if due["research"]:
-            _md_research_rotation(db, api_key, now, state)
-        state["error"] = None
-    except _FmpKeyRejected:
+        if state.get("cleanup") != "licensed-v1":
+            ms_cleanup_old_sources(db)
+            state["cleanup"] = "licensed-v1"
+        if not key:
+            state["error"] = "missing-key"
+        else:
+            due = ms_due(now, state)
+            if due["afterClose"]:
+                print("[market] after close:", ms_after_close(db, key, now, state))
+                state["closeDay"] = now.strftime("%Y-%m-%d")
+            if due["research"]:
+                ms_research_rotation(db, key, now, state)
+            state["error"] = None
+    except MD.MsKeyRejected:
         state["error"] = "auth"
-        print("[market] FMP rejected the API key")
+        print("[market] Marketstack rejected the key")
+    except MD.MsQuota:
+        state["error"] = "quota"
+        print("[market] Marketstack monthly requests used up")
     except Exception as e:
         state["error"] = type(e).__name__
         print("[market] run failed:", type(e).__name__, e)
     state["ranAt"] = now.isoformat()
     sref.set(state)
+
+
+# ---------------------------------------------------------------------------
+# Marketstack + SEC jobs (pure shaping lives in functions/mdata.py)
+# ---------------------------------------------------------------------------
+def _load_universe_meta():
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "practice_universe.json"), encoding="utf-8") as f:
+            rows = json.load(f)["symbols"]
+        return {str(u["sym"]).upper(): str(u.get("name") or u["sym"]) for u in rows}, {str(u["sym"]).upper(): str(u.get("group") or "") for u in rows}
+    except Exception:
+        return {}, {}
+
+
+UNIVERSE_NAMES, UNIVERSE_GROUPS = _load_universe_meta()
+
+
+def _load_countries():
+    try:
+        import country_links  # copied next to this file by scripts/build_practice.py
+        return country_links.COUNTRIES
+    except Exception as e:
+        print("[market] country list unavailable:", type(e).__name__)
+        return {}
+
+
+def _history_symbols():
+    return sorted(set(PRACTICE_SYMBOLS) | set(MD.SNAP_SYMBOLS))
+
+
+def ms_run_quotes(db, key, now):
+    """Today's intraday bars for the stock list -> quotes, intraday docs and movers."""
+    today = now.strftime("%Y-%m-%d")
+    iv = MD.ms_interval()
+    rows = []
+    for ch in MD.chunks(PRACTICE_SYMBOLS, 100):
+        rows += MD.ms_rows("intraday", {"symbols": ",".join(ch), "interval": iv, "date_from": today, "sort": "ASC"}, key, max_pages=4)
+    bars = MD.ms_intraday_bars(rows)
+    dsnap = db.collection("markets").document("dailyBars").get()
+    daily = ((dsnap.to_dict() or {}).get("bars") or {}) if dsnap.exists else {}
+    quotes = {}
+    for sym in PRACTICE_SYMBOLS:
+        q = MD.ms_quote([b for b in bars.get(sym, []) if b[:10] == today], MD.prev_close(daily.get(sym), today), MD.interval_minutes(iv))
+        if q:
+            quotes[sym] = q
+    qref = db.collection("markets").document("quotes")
+    if not quotes:
+        qref.set({"checkedAt": now.isoformat(), "error": None}, merge=True)  # holiday or before the first bar
+        return 0
+    try:
+        prev = qref.get()
+        pd = (prev.to_dict() or {}) if prev.exists else {}
+        if pd.get("date") == today:
+            for sym, q in (pd.get("quotes") or {}).items():
+                if sym in PRACTICE_SYMBOLS and sym not in quotes:
+                    quotes[sym] = q
+    except Exception as e:
+        print("[refresh_quotes] couldn't read previous quotes:", type(e).__name__)
+    mins = now.hour * 60 + now.minute
+    label = iv.replace("min", "m").replace("1hour", "60m")
+    qref.set({"source": "marketstack", "updatedAt": now.isoformat(), "date": today, "marketOpen": SESSION_OPEN <= mins < SESSION_CLOSE,
+              "every": MD.quote_every_min(), "interval": label, "error": None, "quotes": quotes})
+    batch = db.batch()
+    for sym, b in bars.items():
+        if sym not in PRACTICE_SYMBOLS:
+            continue
+        ref = db.collection("markets").document("intraday_" + sym)
+        snap = ref.get()
+        d = (snap.to_dict() or {}) if snap.exists else {}
+        old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label else []
+        batch.set(ref, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday(old, b)})
+    batch.commit()
+    mv = MD.ms_movers(quotes, UNIVERSE_NAMES, UNIVERSE_GROUPS)
+    mv.update({"updatedAt": now.isoformat(), "date": today, "source": "Marketstack"})
+    db.collection("markets").document("movers").set(mv)
+    return len(quotes)
+
+
+def ms_due(now, state):
+    """Which jobs this run does (pure; unit-tested)."""
+    mins, wd, today = now.hour * 60 + now.minute, now.weekday(), now.strftime("%Y-%m-%d")
+    weekday = wd < 5
+    return {
+        "afterClose": (weekday and 16 * 60 + 20 <= mins < 20 * 60 and state.get("closeDay") != today) or not state.get("historyAt"),
+        "research": not (weekday and 9 * 60 + 25 <= mins <= 16 * 60 + 10),
+    }
+
+
+def _write_history(db, daily, now):
+    syms = sorted(daily)
+    parts = MD.chunks(syms, MD.HISTORY_PER_DOC)
+    batch = db.batch()
+    for i, part in enumerate(parts):
+        blob = {s: MD.history_rows(daily[s]) for s in part}
+        batch.set(db.collection("markets").document("history_%d" % i), {"json": json.dumps(blob, separators=(",", ":")), "updatedAt": now.isoformat()})
+    batch.set(db.collection("markets").document("historyIndex"), {"parts": len(parts), "symbols": syms, "updatedAt": now.isoformat(), "source": "Marketstack"})
+    batch.commit()
+
+
+def _read_history(db):
+    idx = db.collection("markets").document("historyIndex").get()
+    n = int(((idx.to_dict() or {}).get("parts") or 0)) if idx.exists else 0
+    out = {}
+    for i in range(n):
+        d = db.collection("markets").document("history_%d" % i).get()
+        try:
+            for s, rows in json.loads((d.to_dict() or {}).get("json") or "{}").items():
+                out[s] = [",".join(str(x) for x in r) for r in rows]
+        except Exception:
+            pass
+    return out
+
+
+def ms_after_close(db, key, now, state):
+    """Daily bars, history, snapshot, globe and the day's full 15-minute bars."""
+    today = now.strftime("%Y-%m-%d")
+    hist_syms = _history_symbols()
+    countries = _load_countries()
+    globe_syms = MD.globe_symbols(countries) if countries else []
+    full = not state.get("historyAt") or now.timestamp() - state.get("historyAt", 0) > 30 * 86400
+    # recent daily bars for everything we show (one paginated request per 100 symbols)
+    frm = (now - MD.timedelta(days=45)).strftime("%Y-%m-%d")
+    recent = {}
+    for ch in MD.chunks(sorted(set(hist_syms) | set(globe_syms)), 100):
+        recent.update(MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": ",".join(ch), "date_from": frm, "sort": "ASC"}, key)))
+    # history: a full ~2 years once a month, otherwise extend what's stored
+    if full:
+        hfrm = (now - MD.timedelta(days=int(MD.HISTORY_DAYS * 1.45))).strftime("%Y-%m-%d")
+        hist = {}
+        for ch in MD.chunks(hist_syms, 100):
+            hist.update(MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": ",".join(ch), "date_from": hfrm, "sort": "ASC"}, key, max_pages=80)))
+    else:
+        hist = _read_history(db)
+    for s in hist_syms:
+        if recent.get(s):
+            hist[s] = MD.merge_series(hist.get(s, []), recent[s], MD.HISTORY_DAYS)
+    hist = {s: rows for s, rows in hist.items() if rows and s in hist_syms}
+    if hist:
+        _write_history(db, hist, now)
+        if full:
+            state["historyAt"] = int(now.timestamp())
+    # dailyBars (charts, previous close)
+    ref = db.collection("markets").document("dailyBars")
+    snap = ref.get()
+    stored = ((snap.to_dict() or {}).get("bars") or {}) if snap.exists else {}
+    bars = {s: MD.merge_series([str(r) for r in stored.get(s, []) if str(r).split(",")[5:6] != ["0"]] if s in stored else [], hist.get(s) or recent.get(s) or [], MD.DAILY_BARS_KEEP)
+            for s in PRACTICE_SYMBOLS if hist.get(s) or recent.get(s)}
+    if bars:
+        ref.set({"updatedAt": now.isoformat(), "source": "Marketstack", "bars": bars})
+    # ticker tape / market overview, and the globe
+    snapd = MD.build_snapshot({s: hist.get(s) or recent.get(s) for s in MD.SNAP_SYMBOLS if hist.get(s) or recent.get(s)}, now)
+    if snapd["items"]:
+        db.collection("markets").document("snapshot").set({"json": json.dumps(snapd, separators=(",", ":")), "updatedAt": now.isoformat()})
+    if countries:
+        g = MD.build_globe(countries, MD.moves_from_daily({s: recent[s] for s in globe_syms if s in recent}))
+        if g["asOf"]:
+            db.collection("markets").document("globe").set({"json": json.dumps(g, ensure_ascii=False, separators=(",", ":")), "asOf": g["asOf"], "updatedAt": now.isoformat()})
+    # the day's complete 15-minute bars (and the last few sessions) for the stock list
+    iv = MD.ms_interval()
+    label = iv.replace("min", "m").replace("1hour", "60m")
+    ifrm = (now - MD.timedelta(days=8)).strftime("%Y-%m-%d")
+    rows = []
+    for ch in MD.chunks(PRACTICE_SYMBOLS, 100):
+        rows += MD.ms_rows("intraday", {"symbols": ",".join(ch), "interval": iv, "date_from": ifrm, "sort": "ASC"}, key, max_pages=12)
+    ib = MD.ms_intraday_bars(rows)
+    batch = db.batch()
+    for sym, b in ib.items():
+        if sym in PRACTICE_SYMBOLS:
+            batch.set(db.collection("markets").document("intraday_" + sym), {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday([], b)})
+    batch.commit()
+    return {"history": len(hist), "daily": len(bars), "snapshot": len(snapd["items"]), "intraday": len(ib), "full": full}
+
+
+def _sec_cik(db, sym, now):
+    ref = db.collection("serverMeta").document("secCik")
+    snap = ref.get()
+    d = (snap.to_dict() or {}) if snap.exists else {}
+    m = {}
+    try:
+        m = json.loads(d.get("json") or "{}")
+    except Exception:
+        m = {}
+    if not m or now.timestamp() - (d.get("at") or 0) > 30 * 86400:
+        m = MD.sec_cik_map(MD.sec_get(MD.SEC_WWW + "/files/company_tickers.json"))
+        if m:
+            ref.set({"json": json.dumps(m, separators=(",", ":")), "at": int(now.timestamp())})
+    return m.get(sym.replace(".", "-"))
+
+
+def _sec_insiders(sub, cik, limit=8):
+    rec = ((sub or {}).get("filings") or {}).get("recent") or {}
+    out = []
+    forms, accs, docs = rec.get("form") or [], rec.get("accessionNumber") or [], rec.get("primaryDocument") or []
+    for i, f in enumerate(forms):
+        if f != "4" or i >= len(accs) or i >= len(docs):
+            continue
+        url = "%s/Archives/edgar/data/%d/%s/%s" % (MD.SEC_WWW, cik, accs[i].replace("-", ""), docs[i].split("/")[-1])
+        try:
+            out += MD.sec_form4(MD.sec_get(url, raw=True))
+        except Exception as e:
+            print("[research] form 4: %s" % type(e).__name__)
+        limit -= 1
+        if limit <= 0:
+            break
+    return out
+
+
+def ms_refresh_research(db, sym, key, now):
+    """One ticker's research doc: SEC profile, last fiscal year, insider trades + 60 daily bars."""
+    bars = None
+    dsnap = db.collection("markets").document("dailyBars").get()
+    stored = ((dsnap.to_dict() or {}).get("bars") or {}).get(sym) if dsnap.exists else None
+    if stored:
+        bars = [str(r) for r in stored]
+    elif key:
+        frm = (now - MD.timedelta(days=100)).strftime("%Y-%m-%d")
+        bars = MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": sym, "date_from": frm, "sort": "ASC"}, key, max_pages=1)).get(sym)
+    price = MD._num(str(bars[-1]).split(",")[4]) if bars else None
+    sub = facts = None
+    ins = []
+    cik = None
+    try:
+        cik = _sec_cik(db, sym, now)
+    except Exception as e:
+        print("[research] cik map: %s" % type(e).__name__)
+    if cik:
+        try:
+            sub = MD.sec_get("%s/submissions/CIK%010d.json" % (MD.SEC_BASE, cik))
+        except Exception as e:
+            print("[research] %s submissions: %s" % (sym, type(e).__name__))
+        try:
+            facts = MD.sec_get("%s/api/xbrl/companyfacts/CIK%010d.json" % (MD.SEC_BASE, cik))
+        except Exception as e:
+            print("[research] %s facts: %s" % (sym, type(e).__name__))
+        ins = _sec_insiders(sub, cik) if sub else []
+    doc = MD.sec_research(sym, sub, facts, ins, bars, price)
+    if cik:
+        doc["cik"] = "%010d" % cik
+    doc["updatedAt"] = now.isoformat()
+    doc["fetchedAt"] = int(now.timestamp())
+    db.collection("markets").document("research_" + sym.replace(".", "-")).set(doc)
+    return doc
+
+
+def ms_research_rotation(db, key, now, state):
+    stamps = dict(state.get("researchAt") or {})
+    due = sorted(PRACTICE_SYMBOLS, key=lambda s: stamps.get(s, 0))[:RESEARCH_PER_RUN]
+    for sym in due:
+        if now.timestamp() - stamps.get(sym, 0) < 20 * 3600:
+            break
+        try:
+            ms_refresh_research(db, sym, key, now)
+        except (MD.MsKeyRejected, MD.MsQuota):
+            raise
+        except Exception as e:
+            print("[research] %s: %s" % (sym, type(e).__name__))
+        stamps[sym] = int(now.timestamp())
+    state["researchAt"] = {k: v for k, v in stamps.items() if k in PRACTICE_SYMBOLS}
+
+
+def ms_cleanup_old_sources(db):
+    """One-time: stop showing anything from the personal-use sources."""
+    m = db.collection("markets")
+    for doc_id in ("news", "earnings", "cryptoBars"):
+        m.document(doc_id).delete()
+    # crypto is paused: keep the last prices (so open crypto positions still have a value) but say so
+    m.document("crypto").set({"paused": True}, merge=True)
+    for d in m.where("source", "==", "Financial Modeling Prep").stream():
+        d.reference.delete()
 
 
 def research_budget_ok(db, now):
@@ -1352,27 +1548,30 @@ def research_budget_ok(db, now):
     return take(db.transaction())
 
 
-@https_fn.on_call(secrets=["FMP_API_KEY"], timeout_sec=60)
+@https_fn.on_call(secrets=["MARKETSTACK_API_KEY", "SEC_CONTACT"], timeout_sec=60)
 def market_research(req: https_fn.CallableRequest):
-    """{symbol} -> that ticker's research doc (cached up to 12 hours). Open to
-    everyone (alert pages work signed out); fresh fetches are capped per day."""
+    """{symbol} -> that ticker's research doc (SEC company data + Marketstack prices), cached
+    up to 12 hours. Open to everyone (alert pages work signed out); fresh fetches are capped
+    per day so nobody can use up the plan."""
     sym = str((req.data or {}).get("symbol") or "").strip().upper()
-    if not _SYM_RE.match(sym) or sym in CRYPTO_SYMBOLS:
+    if not _SYM_RE.match(sym) or sym in CRYPTO_SYMBOLS or sym.endswith("USD") and len(sym) > 5:
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "That isn't a stock symbol.")
     db = firestore.client()
     now = datetime.now(NY)
     ref = db.collection("markets").document("research_" + sym.replace(".", "-"))
     snap = ref.get()
     cached = (snap.to_dict() or {}) if snap.exists else None
+    if cached and cached.get("source") != "SEC EDGAR":
+        cached = None  # from the old source: never serve it
     if cached and now.timestamp() - (cached.get("fetchedAt") or 0) < RESEARCH_MAX_AGE_S:
         return cached
-    api_key = os.environ.get("FMP_API_KEY", "").strip()
-    if not api_key or not research_budget_ok(db, now):
+    key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
+    if not research_budget_ok(db, now):
         if cached:
             return cached
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.RESOURCE_EXHAUSTED, "Research is busy right now. Try again later.")
     try:
-        return md_refresh_research(db, sym, api_key, now)
+        return ms_refresh_research(db, sym, key, now)
     except Exception as e:
         print("[research] on demand %s: %s" % (sym, type(e).__name__))
         if cached:
@@ -4133,3 +4332,164 @@ def square_reconcile(db, uid, now_ms):
         except TWError:
             continue
     return got
+
+
+# ---------------------------------------------------------------- XP (server-decided)
+#   xp_award {type, refId}  -> {awarded, xp, streakDays}
+# The browser used to write users/{uid}.xp itself. Now only this function does: the
+# amount comes from functions/xp.py, never from the browser, and the activity ledger
+# users/{uid}/activity/{type:refId} (the dedup record) is server-only too.
+# Anonymous visitors earn XP as before (it carries over when they sign up).
+#   xpState/{uid}   server-only: {day, counts: {type: n}, xp} for the daily limits
+
+@https_fn.on_call()
+def xp_award(req: https_fn.CallableRequest):
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to earn XP.")
+    uid, data = a.uid, req.data or {}
+    kind = str(data.get("type") or "")[:40]
+    db, now_ms = firestore.client(), int(_time.time() * 1000)
+    today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
+    try:
+        amount, ref_id, why = XP.decide(kind, data.get("refId"), today)
+        if why:
+            return {"awarded": False, "reason": why}
+        # alert-open must name a real alert (teaser docs live in alerts/)
+        if kind == "alert-open" and not db.collection("alerts").document(ref_id).get().exists:
+            return {"awarded": False, "reason": "bad-ref"}
+        # referral XP only when that friend's referral record really names you
+        if kind == "referral":
+            r = db.collection("referrals").document(ref_id).get()
+            if not r.exists or (r.to_dict() or {}).get("referrer") != uid:
+                return {"awarded": False, "reason": "bad-ref"}
+        if kind == "referral-welcome" and not db.collection("referrals").document(uid).get().exists:
+            return {"awarded": False, "reason": "bad-ref"}
+
+        uref = db.collection("users").document(uid)
+        eref = uref.collection("activity").document((kind + ":" + ref_id)[:400].replace("/", "_"))
+        sref = db.collection("xpState").document(uid)
+        src = XP.SOURCES.get(kind, ("platform", kind))
+
+        @firestore.transactional
+        def txn(t):
+            ev, us, st = eref.get(transaction=t), uref.get(transaction=t), sref.get(transaction=t)
+            u = us.to_dict() if us.exists else {}
+            s = st.to_dict() if st.exists else {}
+            if s.get("day") != today:
+                s = {"day": today, "counts": {}, "xp": 0}
+            before = max(0, int(u.get("xp") or 0))
+            upd, awarded = {}, False
+            if not ev.exists:
+                amt, _, why2 = XP.decide(kind, ref_id, today, s.get("counts") or {}, int(s.get("xp") or 0))
+                if not why2:
+                    upd["xp"] = before + amt
+                    t.set(eref, {"type": kind, "refId": ref_id, "xp": amt, "source": src[0], "label": src[1],
+                                 "createdAt": firestore.SERVER_TIMESTAMP})
+                    counts = dict(s.get("counts") or {})
+                    counts[kind] = counts.get(kind, 0) + 1
+                    t.set(sref, {"day": today, "counts": counts, "xp": int(s.get("xp") or 0) + amt})
+                    awarded = True
+            if kind == "alert-open":
+                upd.update(XP.streak_update(u, today, yesterday))
+            if upd:
+                t.set(uref, upd, merge=True)
+            return {"awarded": awarded, "before": before, "xp": upd.get("xp", before),
+                    "streakDays": upd.get("streakDays", int(u.get("streakDays") or 0))}
+
+        return txn(db.transaction())
+    except https_fn.HttpsError:
+        raise
+    except Exception as e:
+        print("[xp] award failed: %s" % type(e).__name__)
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+
+
+# ---------------------------------------------------------------- account deletion
+#   account_delete {confirm: "DELETE"} -> {deleted: true}
+# Deletes the signed-in person's account and personal data, as the Privacy Policy
+# promises. Needs a sign-in from the last 10 minutes (the page re-asks for it), so a
+# stolen, idle session can't wipe an account. Kept on purpose (legal/tax/fraud records):
+# purchases/*, squareCheckouts/*, squareEvents/*. Past Trade War match results stay with
+# the match (other players' standings depend on them) but the account behind them is gone.
+
+ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "traders", "strategyVotes", "referrals",
+                "cosmetics", "twRecords", "xpState")
+ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",)}
+
+
+def _delete_collection(ref, batch_size=200):
+    while True:
+        docs = list(ref.limit(batch_size).stream())
+        if not docs:
+            return
+        b = ref._client.batch()
+        for d in docs:
+            b.delete(d.reference)
+        b.commit()
+
+
+def account_recent_login(tok, now_s, max_age_s=600):
+    """Pure: True if the ID token's sign-in time is within max_age_s."""
+    try:
+        return now_s - int(tok.get("auth_time") or 0) <= max_age_s
+    except (TypeError, ValueError):
+        return False
+
+
+@https_fn.on_call(timeout_sec=120)
+def account_delete(req: https_fn.CallableRequest):
+    from firebase_admin import auth as fb_auth
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in first.")
+    if (req.data or {}).get("confirm") != "DELETE":
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Confirmation missing.")
+    if not account_recent_login(a.token or {}, int(_time.time())):
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, "Please sign in again, then delete.")
+    uid, db = a.uid, firestore.client()
+    try:
+        # leave a community (keeps its counters right); founders' communities stay, minus them
+        ms = db.collection("communityMembers").document(uid).get()
+        m = ms.to_dict() if ms.exists else {}
+        if m.get("cid"):
+            cs = db.collection("communities").document(m["cid"]).get()
+
+            @firestore.transactional
+            def leave(t):
+                _leave_writes(t, db, uid, m, cs.to_dict() if cs.exists else None)
+            leave(db.transaction())
+            if cs.exists and (cs.to_dict() or {}).get("founder") == uid:
+                db.collection("communities").document(m["cid"]).update({"founderName": ""})
+        db.collection("communityMembers").document(uid).delete()
+
+        # squads: leave each; a squad you own with nobody else in it is deleted
+        for sq in db.collection("squads").where("members", "array_contains", uid).stream():
+            d = sq.to_dict() or {}
+            others = [x for x in d.get("members") or [] if x != uid]
+            if not others:
+                _delete_collection(sq.reference.collection("messages"))
+                sq.reference.delete()
+                if d.get("code"):
+                    db.collection("squadCodes").document(d["code"]).delete()
+            else:
+                upd = {"members": others, "names." + uid: firestore.DELETE_FIELD}
+                if d.get("owner") == uid:
+                    upd["owner"] = others[0]
+                sq.reference.update(upd)
+
+        for snap in db.collection("usernames").where("uid", "==", uid).stream():
+            snap.reference.delete()
+        for snap in db.collection("pushTokens").where("uid", "==", uid).stream():
+            snap.reference.delete()
+        for col in ACCOUNT_DOCS:
+            ref = db.collection(col).document(uid)
+            for sub in ACCOUNT_SUBCOLLECTIONS.get(col, ()):
+                _delete_collection(ref.collection(sub))
+            ref.delete()
+        fb_auth.delete_user(uid)
+        print("[account] deleted one account")
+        return {"deleted": True}
+    except Exception as e:
+        print("[account] delete failed: %s" % type(e).__name__)
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Couldn't delete everything. Email support and we'll finish it.")

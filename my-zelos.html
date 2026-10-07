@@ -308,6 +308,15 @@
         <div class="card-head"><h2>Sign out</h2></div>
         <button class="btn" id="signOutBtnCard" type="button">Sign out of Zelos</button>
       </div>
+
+      <div class="card" id="deleteCard">
+        <div class="card-head"><h2>Delete your account</h2></div>
+        <div class="card-note">This permanently deletes your Zelos account: profile, username, XP, Trade War profile, Real Trade Journal, token balance, squads and community membership. It can't be undone. Purchase records are kept as the law requires (see the <a href="privacy.html" style="color:var(--accent);">Privacy Policy</a>).</div>
+        <label for="deleteConfirm" class="card-note" style="display:block; margin-top:12px;">Type <b>DELETE</b> to confirm</label>
+        <input id="deleteConfirm" type="text" autocomplete="off" spellcheck="false" style="margin-top:6px; padding:8px 10px; border-radius:8px; border:1px solid var(--border, #333); background:transparent; color:inherit; max-width:220px;">
+        <div style="margin-top:12px;"><button class="btn" id="deleteBtn" type="button" disabled style="border-color:#e5484d; color:#e5484d;">Delete my account</button></div>
+        <div class="card-note" id="deleteMsg" role="status" style="margin-top:10px;"></div>
+      </div>
     </div>
 
     <p class="fine" style="margin-top:22px;">Rule-based scans only — general information, not personalized advice. Not a registered investment adviser. Trading involves risk, including loss of principal.</p>
@@ -371,7 +380,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=d17d99d7"></script>
 <script src="zelos-mood.js?v=15cc718b"></script>
-<script src="zelos-xp.js?v=a6826374"></script>
+<script src="zelos-xp.js?v=16f3ec46"></script>
 <script src="zelos-challenge.js?v=00bf8e79"></script>
 <script src="zelos-tokens.js?v=c13a7908"></script>
 <script src="zelos-push.js?v=3c36384d"></script>
@@ -663,6 +672,48 @@
   }
 
   document.getElementById('signOutBtnCard').addEventListener('click', function(){ if (auth) auth.signOut(); });
+
+  // Account deletion (account_delete in functions/main.py). The server wants a sign-in
+  // from the last 10 minutes, so we ask the person to confirm who they are first.
+  (function(){
+    var input = document.getElementById('deleteConfirm'), btn = document.getElementById('deleteBtn'), msg = document.getElementById('deleteMsg');
+    input.addEventListener('input', function(){ btn.disabled = input.value.trim() !== 'DELETE'; });
+    function loadFns(){
+      if (firebase.functions) return Promise.resolve(firebase.functions());
+      return new Promise(function(resolve, reject){
+        var sc = document.createElement('script'); sc.src = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js';
+        sc.onload = function(){ resolve(firebase.functions()); }; sc.onerror = reject; document.head.appendChild(sc);
+      });
+    }
+    function reauth(user){
+      var ids = (user.providerData || []).map(function(p){ return p.providerId; });
+      if (ids.indexOf('google.com') !== -1) return user.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
+      if (ids.indexOf('password') !== -1) {
+        var pw = window.prompt('Enter your Zelos password to confirm.');
+        if (!pw) return Promise.reject(new Error('cancelled'));
+        return user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email, pw));
+      }
+      return Promise.resolve();
+    }
+    btn.addEventListener('click', function(){
+      var user = auth && auth.currentUser;
+      if (!user || user.isAnonymous || input.value.trim() !== 'DELETE') return;
+      btn.disabled = true; msg.textContent = 'Confirming it\'s you…';
+      reauth(user).then(function(){ return user.getIdToken(true); })
+        .then(function(){ msg.textContent = 'Deleting your account…'; return loadFns(); })
+        .then(function(f){ return f.httpsCallable('account_delete')({ confirm: 'DELETE' }); })
+        .then(function(){
+          try { Object.keys(localStorage).filter(function(k){ return /^zelos/i.test(k) && k !== 'zelosTheme'; }).forEach(function(k){ localStorage.removeItem(k); }); } catch (e) {}
+          msg.textContent = 'Your account has been deleted.';
+          return auth.signOut().catch(function(){});
+        })
+        .then(function(){ setTimeout(function(){ location.href = 'index.html'; }, 1500); })
+        .catch(function(e){
+          btn.disabled = false;
+          msg.textContent = (e && e.message === 'cancelled') ? 'Cancelled. Nothing was deleted.' : ((e && e.message) || 'Something went wrong. Nothing was deleted.');
+        });
+    });
+  })();
 
   if (ready) {
     auth.onAuthStateChanged(function(user){

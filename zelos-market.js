@@ -1,9 +1,9 @@
 /* zelos-market.js — Zelos' own market widgets (replaces the TradingView
  * ticker tape, mini symbol overview and market-quotes embeds).
  *
- * Reads data/market-snapshot.json (refreshed after every close by the
- * "Update market data" GitHub Action, scripts/update_market_snapshot.py)
- * and renders into any of:
+ * Reads the snapshot the server saves after every close (markets/snapshot, built from
+ * Marketstack prices by refresh_market_data; loaded through zelos-mdata.js) and renders
+ * into any of:
  *
  *   <div data-zm="tape"></div>                 scrolling ticker banner
  *   <div data-zm="overview" data-sym="SPX"></div>  mini chart card (1M)
@@ -12,7 +12,8 @@
  * TradingView is only used for the full Live Chart now.
  */
 (function(){
-  var SRC = 'data/market-snapshot.json';
+  // indexes are shown through the ETFs that track them; old page markup still says SPX/NDX/DJX
+  var ALIAS = { SPX: 'SPY', NDX: 'QQQ', COMP: 'QQQ', DJX: 'DIA', DJI: 'DIA' };
   // pages in sub-folders (learn/, scan/) need a relative prefix
   var base = (document.currentScript && document.currentScript.getAttribute('data-base')) || '';
 
@@ -44,7 +45,7 @@
   }
   function srcName(data){ return data.sourceShort || 'Market data'; }
   function closeLabel(data){
-    var spx = data.items && data.items.SPX;
+    var spx = data.items && (data.items.SPY || data.items.SPX);
     var iso = (spx && spx.asOf) || data.generatedAt;
     try {
       return 'Close ' + new Date(iso).toLocaleDateString('en-US', { timeZone:'America/New_York', month:'short', day:'numeric' });
@@ -77,7 +78,7 @@
 
   // ---------------------------------------------------------------- overview
   function renderOverview(el, data){
-    var sym = el.getAttribute('data-sym') || 'SPX';
+    var sym = el.getAttribute('data-sym') || 'SPY'; if (!data.items[sym] && ALIAS[sym]) sym = ALIAS[sym];
     var sp = data.spark && data.spark[sym];
     var it = data.items[sym];
     if (!sp || !it || sp.points.length < 2){ el.innerHTML = '<div class="zm-empty">Market data unavailable.</div>'; return; }
@@ -149,9 +150,9 @@
 
   var targets = document.querySelectorAll('[data-zm]');
   if (!targets.length) return;
-  fetch(base + SRC + '?v=' + Math.floor(Date.now() / 600000), { cache: 'no-cache' })
-    .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+  (window.ZelosData ? window.ZelosData.json('snapshot') : Promise.resolve(null))
     .then(function(data){
+      if (!data || !data.items) throw new Error('no snapshot');
       targets.forEach(function(el){
         var t = el.getAttribute('data-zm');
         try {

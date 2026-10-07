@@ -3,7 +3,7 @@
  *
  * A persistent simulated brokerage account: real prices, virtual money.
  *
- * Prices: live quotes the refresh_quotes Cloud Function pulls from FMP
+ * Prices: the refresh_quotes Cloud Function pulls them from Marketstack (every 15 minutes on the Basic plan)
  * into Firestore markets/quotes every minute in market hours, on top of daily
  * history (data/game-charts.json + data/practice-extra.json + markets/dailyBars).
  * With no live feed it falls back to the latest close and says so.
@@ -88,13 +88,12 @@
 
   // ------------------------------------------------------------ timeframes
   var TF = {
-    '5m': { label: '5 minutes', short: '5m', intraday: 5, ranges: [['1D', 78], ['2D', 156], ['5D', 390]], def: 78 },
     '15m': { label: '15 minutes', short: '15m', intraday: 15, ranges: [['1D', 26], ['2D', 52], ['5D', 130]], def: 52 },
     '1h': { label: '1 hour', short: '1H', intraday: 60, ranges: [['1D', 7], ['5D', 35]], def: 35 },
     'D': { label: 'Daily', short: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
     'W': { label: 'Weekly', short: 'W', ranges: [['6M', 26], ['1Y', 52], ['All', 'all']], def: 52 }
   };
-  var tf = '5m', rangeSel = null; // today's live line by default; your last pick is remembered
+  var tf = '15m', rangeSel = null; // today's line by default (15-minute prices); your last pick is remembered
   function fromRows(rows, key, extraProps) {
     var s = { sym: sel, key: key, d: [], o: [], h: [], l: [], c: [], v: [] };
     rows.forEach(function (r) { s.d.push(r[0]); s.o.push(r[1]); s.h.push(r[2]); s.l.push(r[3]); s.c.push(r[4]); s.v.push(r[5] || 0); });
@@ -500,7 +499,7 @@
     $('ptClock').className = 'pt-clock ' + (marketOpen() ? 'is-open' : '');
     renderBell();
   }
-  // ------------------------------------------------------------ News dropdown + research (markets/research_<SYM>, FMP)
+  // ------------------------------------------------------------ Company dropdown (markets/research_<SYM>: SEC EDGAR company data)
   var research = {}, researchSym = null, researchUnsub = null, finnNews = null, finnAttr = '';
   function watchResearch() {
     if (researchSym === sel || !db) return; // no db yet: try again on the next render
@@ -513,8 +512,8 @@
     }, function () {});
   }
   function newsFor(sym) {
-    var r = research[sym], a = ((r && r.news) || []).map(function (n) { return { headline: n.headline, source: n.source, url: n.url, when: n.date ? fmtStamp(n.date) : '', image: n.image }; });
-    if (!a.length && finnNews && finnNews[sym]) a = finnNews[sym].map(function (n) { return { headline: n.headline, source: n.source, url: n.url, when: n.datetime ? agoS(n.datetime) : '', image: n.image }; });
+    var a = [];
+    // no headlines: news feeds on this site need a display license
     return a.filter(function (n) { return /^https?:\/\//.test(n.url || ''); });
   }
   function fmtStamp(str) { var m = /^(\d{4})-(\d\d)-(\d\d)(?:[ T](\d\d):(\d\d))?/.exec(str || ''); if (!m) return ''; var mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m[2] - 1]; return mo + ' ' + +m[3] + (m[4] ? ' · ' + ((+m[4] % 12) || 12) + ':' + m[5] + (+m[4] < 12 ? ' am' : ' pm') : ''); }
@@ -533,19 +532,20 @@
     }
     if (!$('ptNewsMenu').hidden) renderNewsMenu();
   }
+  function bigUsd(n) { if (n == null) return '–'; var a = Math.abs(n), s = n < 0 ? '-' : ''; return a >= 1e12 ? s + '$' + (a / 1e12).toFixed(2) + 'T' : a >= 1e9 ? s + '$' + (a / 1e9).toFixed(1) + 'B' : a >= 1e6 ? s + '$' + (a / 1e6).toFixed(0) + 'M' : s + '$' + fmt(a); }
   function renderNewsMenu() {
-    var r = research[sel], items = newsFor(sel), px = price(sel), facts = [];
-    if (r && r.target && r.target.targetConsensus && px) { var up = (r.target.targetConsensus / px - 1) * 100; facts.push('Analysts\' target <b>$' + fmt(r.target.targetConsensus) + '</b> <span class="' + (up >= 0 ? 'up' : 'dn') + '">(' + pct(up) + ')</span>'); }
-    if (r && r.earnings && r.earnings.date) facts.push('Next earnings <b>' + shortDay(r.earnings.date) + '</b>');
-    if (r && r.grades && r.grades[0]) { var g = r.grades[0]; facts.push(esc(g.firm) + ': <b>' + esc(g.to || g.action) + '</b> <small>' + shortDay(g.date) + '</small>'); }
-    $('ptNewsMenu').innerHTML = '<div class="pt-news-head"><b>' + esc(sel) + ' news</b><button type="button" class="pt-linkbtn" data-newsx="1">close &times;</button></div>' +
-      (facts.length ? '<div class="pt-news-facts">' + facts.map(function (f) { return '<span>' + f + '</span>'; }).join('') + '</div>' : '') +
-      (items.length ? items.slice(0, 6).map(function (n) {
-        return '<a class="pt-news-item" href="' + esc(n.url) + '" target="_blank" rel="noopener noreferrer">' +
-          (n.image && /^https:/.test(n.image) ? '<img src="' + esc(n.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<i class="pt-news-ph" aria-hidden="true"></i>') +
-          '<span><b>' + esc(n.headline) + '</b><small>' + esc(n.source || '') + (n.when ? ' · ' + esc(n.when) : '') + '</small></span></a>';
-      }).join('') : '<p class="pt-empty">No recent headlines for ' + esc(sel) + ' yet.</p>') +
-      '<p class="pt-news-foot">Opens each story at its source &#8599; · ' + (r && r.news && r.news.length ? 'Data: Financial Modeling Prep' : esc(finnAttr || 'News via Finnhub')) + '</p>';
+    var r = research[sel], px = price(sel), facts = [], fin = r && r.financials, ins = (r && r.insiders) || [];
+    if (r && r.profile && r.profile.industry) facts.push(esc(r.profile.industry));
+    if (fin && fin.revenue != null) facts.push('Revenue <b>' + bigUsd(fin.revenue) + '</b>' + (fin.year ? ' <small>FY' + esc(fin.year) + '</small>' : ''));
+    if (fin && fin.netIncome != null) facts.push('Net income <b>' + bigUsd(fin.netIncome) + '</b>');
+    if (fin && fin.eps != null) facts.push('EPS <b>$' + fmt(fin.eps) + '</b>' + (fin.eps > 0 && px ? ' · P/E <b>' + (px / fin.eps).toFixed(1) + '</b>' : ''));
+    var link = r && r.cik ? 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=' + encodeURIComponent(r.cik) : 'https://www.sec.gov/edgar/search/#/q=' + encodeURIComponent(sel);
+    $('ptNewsMenu').innerHTML = '<div class="pt-news-head"><b>' + esc((r && r.name) || sel) + '</b><button type="button" class="pt-linkbtn" data-newsx="1">close &times;</button></div>' +
+      (facts.length ? '<div class="pt-news-facts">' + facts.map(function (f) { return '<span>' + f + '</span>'; }).join('') + '</div>' : '<p class="pt-empty">Company facts for ' + esc(sel) + ' load after the next market close.</p>') +
+      (ins.length ? '<div class="pt-news-ins"><b>Insider trades</b>' + ins.slice(0, 4).map(function (t) {
+        return '<span class="' + (t.buy ? 'up' : 'dn') + '">' + (t.buy ? 'Bought' : 'Sold') + ' ' + (t.shares ? Math.round(t.shares).toLocaleString('en-US') : '') + (t.price ? ' @ $' + fmt(t.price) : '') + ' <small>' + esc(t.who || '') + (t.date ? ' · ' + shortDay(t.date) : '') + '</small></span>';
+      }).join('') + '</div>' : '') +
+      '<p class="pt-news-foot"><a href="' + link + '" target="_blank" rel="noopener noreferrer">All filings on SEC.gov &#8599;</a> · Company data: SEC EDGAR · Prices: Marketstack</p>';
     var x = $('ptNewsMenu').querySelector('[data-newsx]'); if (x) x.onclick = function () { $('ptNewsMenu').hidden = true; $('ptNewsBtn').setAttribute('aria-expanded', 'false'); };
   }
 
@@ -1616,12 +1616,13 @@
     // universe + history
     Promise.all([
       fetch('../data/practice-universe.json').then(function (r) { return r.json(); }),
-      fetch('../data/game-charts.json').then(function (r) { return r.json(); }),
-      fetch('../data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; }),
+      ZelosData.history(),
+      Promise.resolve({ symbols: {} }),
       fetch('../data/crypto-universe.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: [] }; })
     ]).then(function (res) {
-      (res[3].symbols || []).forEach(function (u) { CRYPTO[u.sym] = u; });
-      UNIVERSE = res[0].symbols.concat(res[3].symbols || []); UNIVERSE.forEach(function (u) { NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
+      var cryptoList = res[3].paused ? (res[3].pausedSymbols || []) : (res[3].symbols || []);
+      cryptoList.forEach(function (u) { CRYPTO[u.sym] = u; NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
+      UNIVERSE = res[0].symbols.concat(res[3].paused ? [] : cryptoList); UNIVERSE.forEach(function (u) { NAMES[u.sym] = u.name; GROUPS[u.sym] = u.group; });
       hist = {}; [res[1].symbols, res[2].symbols].forEach(function (src) { Object.keys(src).forEach(function (k) { hist[k] = src[k]; }); });
       if (!NAMES[sel]) sel = UNIVERSE[0].sym;
       tick(); showGate(); fromAlertLink(); fromStrategyLink();
@@ -1662,7 +1663,6 @@
           if (UNIVERSE.length) tick();
         }, function () {});
         watchIntraday();
-        db.collection('markets').doc('news').onSnapshot(function (snap) { var d = snap.exists ? snap.data() : {}; finnNews = d.bySymbol || {}; finnAttr = d.attribution || ''; if (UNIVERSE.length) renderNewsBtn(); }, function () {});
         var xpUnsub = null;
         firebase.auth().onAuthStateChanged(function (user) {
           authReady = true;

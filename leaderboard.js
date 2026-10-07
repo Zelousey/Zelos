@@ -88,21 +88,34 @@
     return (gameInfo(gameId) && gameInfo(gameId).isCurrency) ? ('$' + withCommas) : withCommas;
   }
 
+  // Scores need a Firebase user (zelos-xp.js signs every visitor in anonymously), so each
+  // row carries its uid and the rules allow one score per player every 10 seconds
+  // (lastPost/<uid>, written in the same update). See database.rules.json.
+  function currentUser() {
+    if (!firebase.auth) return Promise.resolve(null);
+    var auth = firebase.auth();
+    if (auth.currentUser) return Promise.resolve(auth.currentUser);
+    return new Promise(function (resolve) {
+      var done = false, unsub = auth.onAuthStateChanged(function (u) { if (u && !done) { done = true; unsub(); resolve(u); } });
+      setTimeout(function () { if (!done) { done = true; unsub(); resolve(auth.currentUser); } }, 8000);
+    });
+  }
+
   function submitScore(gameId, score, cb, ref) {
     var database = ensureInit();
     var n = Math.round(score);
     if (!database || !gameInfo(gameId) || !(n > 0)) { if (cb) cb(false); return; }
     var name = sanitizeName(getName());
-    var entry = { name: name, score: n, ts: Date.now() };
-    var push = function (e) { return database.ref('scores/' + gameId).push(e); };
     var withRef = ref != null && /^[\w.-]{1,64}$/.test(String(ref));
-    if (withRef) entry.ref = String(ref);
-    push(entry)
-      .catch(function (err) {
-        if (!withRef) throw err;
-        delete entry.ref; // rules deployed before the ref field existed reject it — post the plain score
-        return push(entry);
-      })
+    currentUser().then(function (user) {
+      if (!user) throw new Error('no user');
+      var entry = { name: name, score: n, ts: Date.now(), uid: user.uid };
+      if (withRef) entry.ref = String(ref);
+      var key = database.ref('scores/' + gameId).push().key, upd = {};
+      upd['scores/' + gameId + '/' + key] = entry;
+      upd['lastPost/' + user.uid] = firebase.database.ServerValue.TIMESTAMP;
+      return database.ref().update(upd);
+    })
       .then(function () { if (cb) cb(true); })
       .catch(function () { if (cb) cb(false); });
     // Small, once-per-day XP for playing — separate system (zelos-xp.js, Firestore),

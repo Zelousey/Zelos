@@ -47,27 +47,23 @@ closes. Live prices need the `refresh_quotes` Cloud Function turned on once.
 
 ## How it works
 
-- `refresh_quotes` (in `functions/main.py`) runs every minute on weekdays between
-  9:00 and 16:59 New York time. It only calls Financial Modeling Prep (FMP, the
-  paid quote provider) from 9:25 to 16:10.
-- Each run fetches one quote for each practice symbol from FMP's
-  `stable/quote` endpoint and writes them to the Firestore doc
-  `markets/quotes` (`source: "fmp"`). Every open practice page listens to that
-  doc, so there's only ever one caller to FMP, however many people are trading.
-- During the session it also folds each minute's price into 5-minute bars, one
-  doc per symbol (`markets/intraday_<SYM>`, last 5 sessions). The page's 5m, 15m
-  and 1H charts are built from these, so the bars start filling in from the
-  first session after deploying.
-- After the close it adds the day's bar to `markets/dailyBars`, so charts keep
-  moving forward day by day.
-- `refresh_news` runs every 10 minutes. It fetches the latest general market
-  headlines plus company news for the 5 practice symbols refreshed longest ago (6
-  calls a run), and writes everything to one doc, `markets/news`. The dashboard's
-  Trending news and Watchlist news widgets read it. Headlines link to the
-  publisher, and the widgets show "News via Finnhub".
-- The FMP key (`FMP_API_KEY`, quotes) and the Finnhub key (`FINNHUB_API_KEY`,
-  news, and the fallback quote provider) live only in the functions' secret
-  config. They are never in this repo and never sent to a browser.
+Prices come from Marketstack. Its paid plans allow showing the data on the site. Full details
+are in `docs/market-data.md`.
+
+- **Live prices:** `refresh_quotes` updates `markets/quotes` every 15 minutes during market
+  hours on the Basic plan. Every open page listens to that one doc, so there's only one caller
+  to Marketstack, however many people are trading.
+- **Charts:** 15-minute bars go in `markets/intraday_<SYM>` (last 5 sessions). The page's 15m
+  and 1H charts are built from these. The 5m view needs the Professional plan.
+- **History:** after the close, `refresh_market_data` saves about 2 years of daily bars
+  (`markets/history_<n>`) and the last 90 sessions (`markets/dailyBars`). Pages load the
+  history through `zelos-mdata.js`.
+- **Company dropdown:** facts and insider trades from SEC EDGAR.
+- **Retired:** no news headlines (the old Finnhub feed was personal-use only), and crypto is
+  paused.
+- **Keys:** the Marketstack key (`MARKETSTACK_API_KEY`) and the SEC contact (`SEC_CONTACT`) live
+  only in the functions' secret config. They are never in this repo and never sent to a
+  browser.
 - `firestore.rules` already allows public reads of `markets/*` and blocks browser
   writes, so no rules change is needed.
 
@@ -97,14 +93,14 @@ computer with [Node.js](https://nodejs.org) installed.
    normal):
 
    ```
-   firebase functions:secrets:set FMP_API_KEY
-   firebase functions:secrets:set FINNHUB_API_KEY
+   firebase functions:secrets:set MARKETSTACK_API_KEY
+   firebase functions:secrets:set SEC_CONTACT
    ```
 
 4. Deploy the practice functions:
 
    ```
-   firebase deploy --only functions:refresh_quotes,functions:refresh_news
+   firebase deploy --only functions:refresh_quotes,functions:refresh_market_data,functions:market_research
    ```
 
    If it asks to enable the Cloud Scheduler or Secret Manager APIs, say yes.
@@ -121,7 +117,7 @@ repo was cloned the first time, and run:
 cd ~/Zelos && git pull
 source functions/venv/bin/activate
 pip install -r functions/requirements.txt
-npx -y firebase-tools@latest deploy --only functions:refresh_quotes,functions:refresh_news --project leaderboard-agentictrading
+npx -y firebase-tools@latest deploy --only functions:refresh_quotes,functions:refresh_market_data,functions:market_research --project leaderboard-agentictrading
 ```
 
 The secret stays set; there's no need to enter the key again.
@@ -131,9 +127,9 @@ The secret stays set; there's no need to enter the key again.
 - During market hours, open `https://agentictrading.info/practice/`. Within a
   minute or two the status line should read **"Live prices · updated Xs ago"**
   with a green dot.
-- If it says **"Live feed error (API key rejected)"**, the FMP key is wrong,
-  revoked, or its plan doesn't cover the quote endpoint. Set `FMP_API_KEY` again
-  (step 3) and redeploy (step 4).
+- If it says **"Live feed error (API key rejected)"**, the Marketstack key is wrong,
+  revoked, or its plan doesn't cover the endpoint. Set `MARKETSTACK_API_KEY` again
+  (step 3) and redeploy (step 4). `bash scripts/marketstack_check.sh` tests the key.
 - Outside market hours it reads **"Market closed · prices as of …"**, which is
   correct.
 - Logs: Firebase console → Functions → `refresh_quotes` → Logs. To trigger a run
@@ -185,7 +181,11 @@ details. Turning off "Show my stats on the leaderboard" deletes the doc.
 
 ## XP, missions, achievements and the social layer
 
-All client-side, on top of the same Firebase project. No new Cloud Functions.
+Missions, achievements and the social layer run in the browser. **XP itself is awarded
+by the server** (`xp_award` in `functions/main.py`; amounts, refId shapes and daily
+limits in `functions/xp.py`), and the rules stop the browser writing `users/{uid}.xp`.
+When a mission or achievement table changes in `zelos-progress.js`, change
+`functions/xp.py` too (`scripts/xp_test.py` fails if they drift).
 
 - **XP and levels** (`zelos-xp.js`, `zelos-levels.js`): practice trades (+5, first 10 a
   day), winning trades (+10, first 10 a day), finished Grade the Setup games (+10, 5 a
@@ -228,7 +228,6 @@ the page and the functions can't drift apart. Redeploy the functions afterwards.
 Keep it at 55 symbols or fewer (`refresh_quotes` makes one call per symbol
 every minute and must finish inside its 55-second timeout).
 
-Price history for charts comes from `data/game-charts.json` and
-`data/practice-extra.json`. A new symbol needs its daily history added to
-`practice-extra.json` too, or its chart starts short and grows from the live
-daily bars.
+Price history for charts comes from the server (`markets/history_<n>`, about two
+years of Marketstack daily bars, refreshed by `refresh_market_data`; see
+`docs/market-data.md`). A new symbol gets its history on the next full refresh.

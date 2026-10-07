@@ -16,11 +16,10 @@ rules_version = '2';
 //     readable and writable only by that signed-in person.
 //   - the skills catalog (what's for sale) is public read, admin-only write.
 //
-// Known trade-off: XP/streaks are awarded client-side (zelos-xp.js), not by a
-// server function, so a signed-in person could technically edit their own xp
-// field via devtools if they really wanted to. There's no money or real
-// account access riding on it, so this is an accepted limitation, not an
-// oversight — revisit only if XP ever gates something that matters.
+// XP: awarded only by the xp_award Cloud Function (amounts and daily limits in
+// functions/xp.py). The browser can't write users/{uid}.xp, streakDays,
+// lastAlertOpenDate or the activity ledger, because Trade War buy-in tiers,
+// the whale role and community limits read XP on the server.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -113,13 +112,22 @@ service cloud.firestore {
     // A user's own profile: owned skills, watchlist, xp, streaks, settings.
     // Only that person can read or write their own doc — never anyone else's.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate']; }
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      // a new doc may only start XP and the streak at zero
+      allow create: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.get('xp', 0) == 0
+        && request.resource.data.get('streakDays', 0) == 0
+        && !('lastAlertOpenDate' in request.resource.data);
+      allow update: if request.auth != null && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields());
 
       // XP/streak event ledger — also doubles as the dedup record that stops the
       // same alert (or the same day's check-in/arcade play) from paying out twice.
-      // Written by zelos-xp.js client-side, only ever to your own subcollection.
+      // Written only by the xp_award function; you can read your own.
       match /activity/{activityId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // xp_award writes it
       }
 
       // The bell: notifications about you (challenges, battles, friends, community,
@@ -167,6 +175,7 @@ service cloud.firestore {
       allow create, update: if isRealAccount() && request.auth.uid == userId
         && request.resource.data.name is string && request.resource.data.name.size() <= 24
         && request.resource.data.equity is number
+        && request.resource.data.equity >= 0 && request.resource.data.equity <= 100000000
         && validPhoto(request.resource.data.get('photo', null))
         && (request.resource.data.get('username', null) == null || validUsername(request.resource.data.username));
     }
@@ -428,6 +437,11 @@ service cloud.firestore {
     }
 
     // Retired with Gumroad: old purchase claims. Nothing reads or writes them now.
+    // XP daily limits (xp_award). Server only.
+    match /xpState/{uid} {
+      allow read, write: if false;
+    }
+
     match /pendingOwnership/{email} {
       allow read, write: if false;
     }

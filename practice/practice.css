@@ -1166,3 +1166,10 @@ html.tw-arena .tw-chart-card{ border-color:#4a2126; }
 .pt-strat-link:hover{ color:#fff; }
 .pf-badge .zlv-frame .zlv-badge{ width:66% !important; height:66% !important; }
 @media (max-width:760px){ .pf-badge .zlv-frame{ width:46px !important; height:46px !important; } }
+/* Company dropdown: insider trades (SEC Form 4) */
+.pt-news-ins { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: .84rem; }
+.pt-news-ins > b { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.pt-news-ins span { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; }
+.pt-news-ins span.up { color: var(--bull, #3ecb7c); } .pt-news-ins span.dn { color: var(--danger, #e0483f); }
+.pt-news-ins small { color: var(--muted); }
+.pt-news-foot a { color: inherit; }

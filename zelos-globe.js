@@ -62,7 +62,8 @@
   var marketsPromise = null;
   function loadMarkets() {
     if (marketsPromise) return marketsPromise;
-    function fromStatic() { return fetch(MARKETS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+    // the map comes only from the server's saved copy (Marketstack prices); the old data file is retired
+    function fromStatic() { return Promise.resolve(null); }
     marketsPromise = fetch(MARKETS_FIRESTORE).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (doc) {
         var j = doc && doc.fields && doc.fields.json && doc.fields.json.stringValue;

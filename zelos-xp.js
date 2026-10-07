@@ -5,6 +5,7 @@
  *   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
  *   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
  *   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+ *   (firebase-functions-compat.js is loaded on demand for the xp_award call)
  *   <script src="firebase-config.js"></script>  (or "../firebase-config.js" from games/)
  *
  * Optional, not required for awarding but needed for a page to know why nothing
@@ -210,51 +211,30 @@
     });
   }
 
+  // The server decides every award (xp_award in functions/main.py, amounts and daily
+  // limits in functions/xp.py): the browser can no longer write xp itself. The local
+  // POINTS/VARIABLE tables above only pre-filter obviously unknown types.
+  var FNS_URL = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js';
+  var fnsPromise = null;
+  function functions() {
+    if (!fnsPromise) fnsPromise = new Promise(function (resolve, reject) {
+      if (firebase.functions) return resolve(firebase.functions());
+      var s = document.createElement('script'); s.src = FNS_URL;
+      s.onload = function () { try { resolve(firebase.functions()); } catch (e) { reject(e); } };
+      s.onerror = function () { fnsPromise = null; reject(new Error('functions sdk')); };
+      document.head.appendChild(s);
+    });
+    return fnsPromise;
+  }
+
   function awardForUser(type, refId, user, cb, amount) {
-    var dedupKey = (refId === undefined || refId === null || refId === '') ? dateStrET(0) : String(refId);
-    var eventId = type + ':' + dedupKey;
-    var userRef = db.collection('users').doc(user.uid);
-    var eventRef = userRef.collection('activity').doc(eventId);
-    var today = dateStrET(0);
-    var yesterday = dateStrET(-1);
-
-    db.runTransaction(function (tx) {
-      return tx.get(eventRef).then(function (eventDoc) {
-        return tx.get(userRef).then(function (userDoc) {
-          var data = userDoc.exists ? (userDoc.data() || {}) : {};
-          var updates = {};
-          var awardedThisCall = false;
-
-          if (!eventDoc.exists) {
-            updates.xp = (data.xp || 0) + amount;
-            var src = SOURCES[type] || ['platform', type];
-            tx.set(eventRef, {
-              type: type, refId: dedupKey, xp: amount, source: src[0], label: src[1],
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            awardedThisCall = true;
-          }
-
-          if (type === 'alert-open' && data.lastAlertOpenDate !== today) {
-            updates.streakDays = (data.lastAlertOpenDate === yesterday) ? ((data.streakDays || 0) + 1) : 1;
-            updates.lastAlertOpenDate = today;
-          }
-
-          if (Object.keys(updates).length) {
-            tx.set(userRef, updates, { merge: true });
-          }
-
-          return {
-            before: data.xp || 0,
-            awarded: awardedThisCall,
-            xp: updates.xp !== undefined ? updates.xp : (data.xp || 0),
-            streakDays: updates.streakDays !== undefined ? updates.streakDays : (data.streakDays || 0)
-          };
-        });
-      });
-    }).then(function (result) {
-      if (result.awarded) { maybeCelebrate(result.before, result.xp); logXp(amount, type, result.xp); }
-      cb(result.awarded, { xp: result.xp, streakDays: result.streakDays });
+    var ref = (refId === undefined || refId === null || refId === '') ? dateStrET(0) : String(refId);
+    functions().then(function (f) {
+      return f.httpsCallable('xp_award')({ type: type, refId: ref });
+    }).then(function (r) {
+      var res = (r && r.data) || {};
+      if (res.awarded) { maybeCelebrate(res.before || 0, res.xp); logXp(res.xp - (res.before || 0), type, res.xp); }
+      cb(!!res.awarded, res.xp === undefined ? undefined : { xp: res.xp, streakDays: res.streakDays || 0 });
     }).catch(function (e) {
       console.warn('[ZelosXP] award failed:', type, refId, e);
       cb(false);

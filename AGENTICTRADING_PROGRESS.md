@@ -8,6 +8,13 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 - Next: **Phase 8: Last Man Standing / elimination (§10)**.
 - Phase 1 (FMP) still needs the live-price check at a market open.
 
+## 2026-10-07 — Project review, docs, CI, Marketstack merge, security fixes
+Current-state summary now lives in `PROJECT_STATE.md` (canonical handoff). This log keeps the detail.
+- PR A (`claude/docs-ci-square-wording`): docs rewritten to match the repo; `.github/workflows/ci.yml`.
+- PR B (`claude/marketstack-security`): the Marketstack/SEC EDGAR branch merged with `main`; `xp_award` (server XP, `functions/xp.py`); rules lock XP fields and the activity ledger; arcade scores need a user + 10 s rate limit; `practiceProfiles.equity` bounded; `account_delete` + My Zelos card; Privacy Policy points to it; `firebase.json` deploys RTDB rules.
+- Tests: unit suites all pass (incl. new `xp_test.py`, 12 tests); rules 19/19 on emulators (the same tests fail 7/19 against the old rules); functions end-to-end 20/20 on emulators. All committed under `tests/rules/` and run in CI.
+- Deployed: **No.** Owner follows `docs/OWNER_DEPLOY_RUNBOOK.md`, then merges PR B.
+
 ## Status log
 | Phase | Status | Files changed | Tests | Deployed |
 | --- | --- | --- | --- | --- |

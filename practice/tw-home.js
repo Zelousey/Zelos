@@ -148,7 +148,7 @@
         }).join('') + '</div>' + ((mv.sectors || []).length ? '<h3 class="twh-sh">Sectors today</h3><div class="twh-sectors">' + mv.sectors.map(function (x) {
           var w = Math.min(100, Math.abs(x.chPct) * 40);
           return '<div><span>' + esc(x.sector) + '</span><i class="' + (x.chPct >= 0 ? 'up' : 'dn') + '"><i style="width:' + w.toFixed(0) + '%"></i></i><small class="' + (x.chPct >= 0 ? 'up' : 'dn') + '">' + pct(x.chPct) + '</small></div>';
-        }).join('') + '</div>' : '') + '<p class="pt-fine">Whole US market, not just the Trade War list. Data: Financial Modeling Prep. Refreshes every 15 minutes in market hours.</p>'
+        }).join('') + '</div>' : '') + '<p class="pt-fine">Among the Trade War stock list. Prices: Marketstack. Refreshes every 15 minutes in market hours.</p>'
         : '<p class="pt-empty">Market movers load during market hours.</p>', link: '' };
     return out;
   }

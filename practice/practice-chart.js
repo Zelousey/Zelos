@@ -672,14 +672,14 @@
   };
 
   // ------------------------------------------------------------ mount anywhere
-  // Our chart on any page (dashboard, alert pop-ups): daily history from data/ plus
-  // the live FMP quote from markets/quotes. opts: { root, sym, pick, db, height,
+  // Our chart on any page (dashboard, alert pop-ups): daily history the server saves
+  // (zelos-mdata.js) plus the latest price from markets/quotes. opts: { root, sym, pick, db, height,
   // lines: [..] | fn(sym) -> [..], bars, missing: fn(sym) -> message }
   var histP = null;
   function loadHistory(root) {
     if (!histP) histP = Promise.all([
-      fetch((root || '') + 'data/game-charts.json').then(function (r) { return r.json(); }),
-      fetch((root || '') + 'data/practice-extra.json').then(function (r) { return r.json(); }).catch(function () { return { symbols: {} }; })
+      (window.ZelosData ? ZelosData.history() : Promise.resolve({ symbols: {} })),
+      Promise.resolve({ symbols: {} })
     ]).then(function (res) { var h = {}; [res[0].symbols, res[1].symbols].forEach(function (src) { Object.keys(src || {}).forEach(function (k) { h[k] = src[k]; }); }); return h; });
     return histP;
   }
