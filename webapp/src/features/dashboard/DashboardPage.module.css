@@ -1,0 +1,37 @@
+.grid { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) {
+  .grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .indexes { grid-column: span 12; }
+  .movers { grid-column: span 7; }
+  .sectors { grid-column: span 5; }
+  .watch { grid-column: span 7; }
+  .practice { grid-column: span 5; }
+}
+@media (min-width: 1400px) {
+  .movers { grid-column: span 5; }
+  .sectors { grid-column: span 3; }
+  .watch { grid-column: span 4; }
+  .practice { grid-column: span 12; }
+}
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); padding: var(--space-4); color: var(--ink); }
+.tile:hover { background: var(--surface-2); }
+.tileNote { color: var(--muted); font-size: var(--text-xs); margin-top: var(--space-2); }
+@media (max-width: 760px) {
+  .tiles { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 calc(-1 * var(--space-3)); padding: 0 var(--space-3); }
+  .tiles::-webkit-scrollbar { display: none; }
+  .tiles > * { flex: 0 0 78%; scroll-snap-align: start; }
+}
+.sectorList { list-style: none; margin: 0; padding: var(--space-2) 0; }
+.sectorRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(40px, 80px) 64px; align-items: center; gap: var(--space-3); padding: 6px var(--space-4); font-size: var(--text-sm); }
+.track { position: relative; height: 6px; background: var(--surface-2); border-radius: 3px; }
+.track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border); }
+.bar { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+.barUp { left: 50%; background: var(--bull); }
+.barDown { right: 50%; background: var(--danger); }
+.pct { text-align: right; }
+.foot { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-soft); color: var(--muted); font-size: var(--text-xs); display: flex; justify-content: space-between; gap: var(--space-3); align-items: center; }
+.practiceBody { display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
+.practiceBody p { color: var(--ink-2); font-size: var(--text-sm); }
+.sectorName { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.signin { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); color: var(--ink-2); font-size: var(--text-sm); }

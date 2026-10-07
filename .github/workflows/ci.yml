@@ -146,5 +146,12 @@ jobs:
       - name: Browser
         run: npx playwright install --with-deps chromium
 
-      - name: Browser smoke tests
+      # the browser tests run against the Auth + Firestore emulators (fake demo project),
+      # seeded with real-shaped market data; the emulators need Java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Browser tests (phone + desktop, accessibility, market flow)
         run: npm run test:e2e

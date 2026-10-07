@@ -195,11 +195,19 @@
       if (!self.s) return; e.preventDefault();
       self.zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15, pos(e).x);
     }, { passive: false });
-    if ('ResizeObserver' in global) new ResizeObserver(function () { self.resize(); }).observe(canvas);
-    else global.addEventListener('resize', function () { self.resize(); });
-    global.addEventListener('zelos:theme', function () { self.draw(); });
+    this._onResize = function () { self.resize(); };
+    this._onTheme = function () { self.draw(); };
+    if ('ResizeObserver' in global) { this._ro = new ResizeObserver(this._onResize); this._ro.observe(canvas); }
+    else global.addEventListener('resize', this._onResize);
+    global.addEventListener('zelos:theme', this._onTheme);
     this.resize();
   }
+  // Stop observing the canvas and the window (the app calls this when a chart screen closes).
+  TradeChart.prototype.destroy = function () {
+    if (this._ro) this._ro.disconnect(); else global.removeEventListener('resize', this._onResize);
+    global.removeEventListener('zelos:theme', this._onTheme);
+    this.anim = null; this.s = null;
+  };
   TradeChart.prototype.toggle = function (id, on) {
     this.show[id] = on == null ? !this.show[id] : !!on;
     try { localStorage.setItem('zelosPracticeInd', JSON.stringify(this.show)); } catch (e) {}

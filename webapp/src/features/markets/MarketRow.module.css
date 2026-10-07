@@ -1,0 +1,19 @@
+.list { list-style: none; margin: 0; padding: 0; }
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: var(--space-2) var(--space-4);
+  color: var(--ink);
+  border-top: 1px solid var(--border-soft);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.list > li:first-child .row { border-top: 0; }
+.row:hover { background: var(--surface-hover); }
+.id { min-width: 0; display: flex; flex-direction: column; }
+.sym { font-family: var(--mono); font-weight: 600; font-size: var(--text-sm); }
+.name { color: var(--muted); font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.price { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: var(--text-sm); text-align: right; }
+.chg { min-width: 76px; text-align: right; font-size: var(--text-sm); }

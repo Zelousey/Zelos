@@ -1,0 +1,50 @@
+.layout { display: grid; gap: var(--space-4); }
+@media (min-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; } }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3) var(--space-5); margin-bottom: var(--space-4); }
+.ident { display: flex; flex-direction: column; gap: 2px; }
+.sym { font-family: var(--mono); font-size: var(--text-xl); font-weight: 700; letter-spacing: 0.01em; }
+.name { color: var(--muted); font-size: var(--text-sm); }
+.price { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.last { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: 600; line-height: 1.1; }
+.today { font-size: var(--text-sm); }
+.today span:last-child { color: var(--muted); margin-left: 6px; font-family: var(--sans); }
+.controls { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); }
+.controls > div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chartBody { padding: var(--space-3); }
+.note { padding: var(--space-3) var(--space-4) 0; color: var(--muted); font-size: var(--text-sm); }
+.tableToggle { padding: 0 var(--space-4) var(--space-3); }
+.tableWrap { overflow-x: auto; padding: 0 var(--space-4) var(--space-4); }
+.table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.table caption { text-align: left; color: var(--muted); font-size: var(--text-xs); padding-bottom: var(--space-2); }
+.table th, .table td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table th { color: var(--muted); font-weight: 600; font-size: var(--text-xs); }
+.side { display: grid; gap: var(--space-4); }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.tradeHint { color: var(--muted); font-size: var(--text-xs); margin-top: var(--space-2); text-align: center; }
+.actionBar { display: none; }
+
+/* Phone: the trade action is always reachable at the bottom of the screen. */
+@media (max-width: 760px) {
+  .last { font-size: var(--text-xl); }
+  .desktopTrade { display: none; }
+  .actionBar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--tabbar-h) + var(--safe-bottom));
+    z-index: 25;
+    padding: var(--space-2) var(--space-3);
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-soft);
+  }
+  .layout { padding-bottom: 72px; }
+  /* one swipeable row of chart controls instead of three stacked rows */
+  .controls { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: var(--space-2) var(--space-3); justify-content: flex-start; }
+  .controls::-webkit-scrollbar { display: none; }
+  .controls > div { flex-wrap: nowrap; }
+  .chartBody { padding: var(--space-2); }
+}
