@@ -69,11 +69,32 @@ test('alerts: public read, no write', async () => {
   await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'alerts/a1')));
   await assertFails(setDoc(doc(real('alice').firestore(), 'alerts/a2'), { t: 1 }));
 });
-test('practiceProfiles equity must be in range', async () => {
+test('practice profiles: numbers are server-only, identity is the owner\'s', async () => {
   const db = real('alice').firestore();
-  await assertSucceeds(setDoc(doc(db, 'practiceProfiles/alice'), { name: 'Al', equity: 12000 }));
-  await assertFails(setDoc(doc(db, 'practiceProfiles/alice'), { name: 'Al', equity: 1e12 }));
-  await assertFails(setDoc(doc(db, 'practiceProfiles/alice'), { name: 'Al', equity: -5 }));
+  await assertFails(setDoc(doc(db, 'practiceProfiles/alice'), { name: 'Al', equity: 12000 })); // no browser-created profiles
+  await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'practiceProfiles/alice'), { name: 'Al', equity: 10000, trades: 0 }));
+  await assertFails(updateDoc(doc(db, 'practiceProfiles/alice'), { equity: 1e9 }));
+  await assertFails(updateDoc(doc(db, 'practiceProfiles/alice'), { name: 'Ally', trades: 500 }));
+  await assertSucceeds(updateDoc(doc(db, 'practiceProfiles/alice'), { name: 'Ally', username: 'ally', photo: null }));
+  await assertSucceeds(updateDoc(doc(db, 'practiceProfiles/alice'), { achievements: ['first-trade'], streak: 3 }));
+  await assertFails(updateDoc(doc(db, 'practiceProfiles/alice'), { streak: 1e6 }));
+  await assertFails(updateDoc(doc(real('bob').firestore(), 'practiceProfiles/alice'), { name: 'Hacked' }));
+  await assertSucceeds(deleteDoc(doc(db, 'practiceProfiles/alice'))); // hide your stats
+});
+test('practice account and archive: owner reads, nobody writes', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'practiceAccounts/alice'), { cash: 10000 });
+    await setDoc(doc(c.firestore(), 'practiceAccounts/alice/history/h1'), { kind: 'fill' });
+    await setDoc(doc(c.firestore(), 'practiceArchive/alice'), { equity: 5 });
+  });
+  const db = real('alice').firestore();
+  await assertSucceeds(getDoc(doc(db, 'practiceAccounts/alice')));
+  await assertSucceeds(getDoc(doc(db, 'practiceAccounts/alice/history/h1')));
+  await assertSucceeds(getDoc(doc(db, 'practiceArchive/alice')));
+  await assertFails(updateDoc(doc(db, 'practiceAccounts/alice'), { cash: 1e9 }));
+  await assertFails(setDoc(doc(db, 'practiceAccounts/alice/history/x'), { kind: 'fill' }));
+  await assertFails(setDoc(doc(db, 'practiceArchive/alice'), { equity: 1e9 }));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'practiceAccounts/alice')));
 });
 
 // ---------------------------------------------------------------- Realtime DB: arcade scores

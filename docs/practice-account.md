@@ -1,3 +1,7 @@
+> **Changed 2026-10-07:** the $10,000 practice account now lives on the server and trading
+> happens in the app (`/app/practice`). See `docs/PRACTICE_SERVER.md`. The browser-account
+> details below describe the retired classic page and are kept for reference.
+
 # Trade War and Real Trading: setup and how it works
 
 AgenticTrading.info has **one account** (XP, levels, streaks, achievements,

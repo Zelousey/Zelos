@@ -58,6 +58,7 @@ from firebase_admin import initialize_app, firestore
 
 import mdata as MD  # Marketstack + SEC market data (the sources the site may show)
 import xp as XP  # XP award rules (server-decided amounts and limits)
+import practice as PR  # practice account engine (server-side fills, see functions/practice.py)
 
 initialize_app()
 
@@ -657,7 +658,7 @@ def _fetch_all_quotes(api_key):
     schedule="* 9-16 * * 1-5",
     timezone=scheduler_fn.Timezone("America/New_York"),
     secrets=["MARKETSTACK_API_KEY"],
-    timeout_sec=55,
+    timeout_sec=120,
     memory=256,
 )
 def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
@@ -675,8 +676,10 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     if not key:
         db.collection("markets").document("quotes").set({"error": "missing-key", "checkedAt": now.isoformat()}, merge=True)
         return
+    fetched = None
     try:
-        n = ms_run_quotes(db, key, now)
+        n, q, bars = ms_run_quotes(db, key, now)
+        fetched = (q, bars)
         print("[refresh_quotes] %d prices" % n)
     except MD.MsKeyRejected:
         db.collection("markets").document("quotes").set({"error": "auth", "checkedAt": now.isoformat()}, merge=True)
@@ -687,6 +690,13 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     except Exception as e:
         db.collection("markets").document("quotes").set({"error": type(e).__name__, "checkedAt": now.isoformat()}, merge=True)
         print("[refresh_quotes] failed:", type(e).__name__, e)
+    # practice accounts: fill / expire open orders on the prices just fetched (separately, so a
+    # problem here never stops prices updating)
+    try:
+        if fetched is not None:
+            print("[practice] orders pass:", practice_pass(db, fetched[0], fetched[1], int(now.timestamp() * 1000)))
+    except Exception as e:
+        print("[practice] orders pass failed:", type(e).__name__, e)
 
 
 # ---------------------------------------------------------------------------
@@ -1246,6 +1256,10 @@ def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
             if due["afterClose"]:
                 print("[market] after close:", ms_after_close(db, key, now, state))
                 state["closeDay"] = now.strftime("%Y-%m-%d")
+                try:
+                    print("[practice] nightly revalue:", practice_revalue_all(db, int(now.timestamp() * 1000)))
+                except Exception as e:
+                    print("[practice] nightly revalue failed:", type(e).__name__, e)
             if due["research"]:
                 ms_research_rotation(db, key, now, state)
             state["error"] = None
@@ -1308,7 +1322,7 @@ def ms_run_quotes(db, key, now):
     qref = db.collection("markets").document("quotes")
     if not quotes:
         qref.set({"checkedAt": now.isoformat(), "error": None}, merge=True)  # holiday or before the first bar
-        return 0
+        return 0, {}, bars
     try:
         prev = qref.get()
         pd = (prev.to_dict() or {}) if prev.exists else {}
@@ -1335,7 +1349,7 @@ def ms_run_quotes(db, key, now):
     mv = MD.ms_movers(quotes, UNIVERSE_NAMES, UNIVERSE_GROUPS)
     mv.update({"updatedAt": now.isoformat(), "date": today, "source": "Marketstack"})
     db.collection("markets").document("movers").set(mv)
-    return len(quotes)
+    return len(quotes), quotes, bars
 
 
 def ms_due(now, state):
@@ -4350,7 +4364,7 @@ def xp_award(req: https_fn.CallableRequest):
     uid, data = a.uid, req.data or {}
     kind = str(data.get("type") or "")[:40]
     db, now_ms = firestore.client(), int(_time.time() * 1000)
-    today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
+    today = _ny_day(now_ms)
     try:
         amount, ref_id, why = XP.decide(kind, data.get("refId"), today)
         if why:
@@ -4366,43 +4380,53 @@ def xp_award(req: https_fn.CallableRequest):
         if kind == "referral-welcome" and not db.collection("referrals").document(uid).get().exists:
             return {"awarded": False, "reason": "bad-ref"}
 
-        uref = db.collection("users").document(uid)
-        eref = uref.collection("activity").document((kind + ":" + ref_id)[:400].replace("/", "_"))
-        sref = db.collection("xpState").document(uid)
-        src = XP.SOURCES.get(kind, ("platform", kind))
-
-        @firestore.transactional
-        def txn(t):
-            ev, us, st = eref.get(transaction=t), uref.get(transaction=t), sref.get(transaction=t)
-            u = us.to_dict() if us.exists else {}
-            s = st.to_dict() if st.exists else {}
-            if s.get("day") != today:
-                s = {"day": today, "counts": {}, "xp": 0}
-            before = max(0, int(u.get("xp") or 0))
-            upd, awarded = {}, False
-            if not ev.exists:
-                amt, _, why2 = XP.decide(kind, ref_id, today, s.get("counts") or {}, int(s.get("xp") or 0))
-                if not why2:
-                    upd["xp"] = before + amt
-                    t.set(eref, {"type": kind, "refId": ref_id, "xp": amt, "source": src[0], "label": src[1],
-                                 "createdAt": firestore.SERVER_TIMESTAMP})
-                    counts = dict(s.get("counts") or {})
-                    counts[kind] = counts.get(kind, 0) + 1
-                    t.set(sref, {"day": today, "counts": counts, "xp": int(s.get("xp") or 0) + amt})
-                    awarded = True
-            if kind == "alert-open":
-                upd.update(XP.streak_update(u, today, yesterday))
-            if upd:
-                t.set(uref, upd, merge=True)
-            return {"awarded": awarded, "before": before, "xp": upd.get("xp", before),
-                    "streakDays": upd.get("streakDays", int(u.get("streakDays") or 0))}
-
-        return txn(db.transaction())
+        return xp_grant(db, uid, kind, ref_id, now_ms)
     except https_fn.HttpsError:
         raise
     except Exception as e:
         print("[xp] award failed: %s" % type(e).__name__)
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+
+
+def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
+    """Award XP once per (kind, refId), with the daily limits in functions/xp.py, in one
+    transaction. `counted=True` (server-side grants such as practice fills) numbers the refId
+    itself: "<today>:<n>" with n = how many of that kind were granted today + 1."""
+    today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
+    uref = db.collection("users").document(uid)
+    sref = db.collection("xpState").document(uid)
+    src = XP.SOURCES.get(kind, ("platform", kind))
+
+    @firestore.transactional
+    def txn(t):
+        st, us = sref.get(transaction=t), uref.get(transaction=t)
+        u = us.to_dict() if us.exists else {}
+        s = st.to_dict() if st.exists else {}
+        if s.get("day") != today:
+            s = {"day": today, "counts": {}, "xp": 0}
+        ref = "%s:%d" % (today, (s.get("counts") or {}).get(kind, 0) + 1) if counted else ref_id
+        eref = uref.collection("activity").document((kind + ":" + ref)[:400].replace("/", "_"))
+        ev = eref.get(transaction=t)
+        before = max(0, int(u.get("xp") or 0))
+        upd, awarded = {}, False
+        if not ev.exists:
+            amt, _, why2 = XP.decide(kind, ref, today, s.get("counts") or {}, int(s.get("xp") or 0))
+            if not why2:
+                upd["xp"] = before + amt
+                t.set(eref, {"type": kind, "refId": ref, "xp": amt, "source": src[0], "label": src[1],
+                             "createdAt": firestore.SERVER_TIMESTAMP})
+                counts = dict(s.get("counts") or {})
+                counts[kind] = counts.get(kind, 0) + 1
+                t.set(sref, {"day": today, "counts": counts, "xp": int(s.get("xp") or 0) + amt})
+                awarded = True
+        if kind == "alert-open":
+            upd.update(XP.streak_update(u, today, yesterday))
+        if upd:
+            t.set(uref, upd, merge=True)
+        return {"awarded": awarded, "before": before, "xp": upd.get("xp", before),
+                "streakDays": upd.get("streakDays", int(u.get("streakDays") or 0))}
+
+    return txn(db.transaction())
 
 
 # ---------------------------------------------------------------- account deletion
@@ -4413,9 +4437,9 @@ def xp_award(req: https_fn.CallableRequest):
 # purchases/*, squareCheckouts/*, squareEvents/*. Past Trade War match results stay with
 # the match (other players' standings depend on them) but the account behind them is gone.
 
-ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "traders", "strategyVotes", "referrals",
+ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "practiceAccounts", "practiceArchive", "traders", "strategyVotes", "referrals",
                 "cosmetics", "twRecords", "xpState")
-ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",)}
+ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",), "practiceAccounts": ("history",)}
 
 
 def _delete_collection(ref, batch_size=200):
@@ -4493,3 +4517,327 @@ def account_delete(req: https_fn.CallableRequest):
     except Exception as e:
         print("[account] delete failed: %s" % type(e).__name__)
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Couldn't delete everything. Email support and we'll finish it.")
+
+
+# ---------------------------------------------------------------- practice account (server-side)
+# The $10,000 practice account lives on the server (decided 2026-10-07; engine in
+# functions/practice.py, unit tests in scripts/practice_test.py):
+#   practiceAccounts/{uid}            the account (cash, positions, open orders, stats). Owner reads, server writes.
+#   practiceAccounts/{uid}/history/*  closed orders, fills and trades. Owner reads, server writes.
+#   practiceArchive/{uid}             the old browser-written account, kept read-only (unverified).
+#   practiceProfiles/{uid}            public leaderboard numbers, written here (same shape as before).
+# Callables: practice_account (create), practice_order, practice_cancel, practice_reset,
+# practice_settings. Fills happen in practice_pass (after every price refresh) on prices
+# observed after each order was placed; practice_revalue_all marks every account after the close.
+
+import secrets as _secrets
+
+def _pr_universe():
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "practice_universe.json"), encoding="utf-8") as f:
+            rows = json.load(f)["symbols"]
+        return frozenset(str(r["sym"]).upper() for r in rows if str(r.get("group") or "") != "Crypto")
+    except Exception:
+        return frozenset(PRACTICE_SYMBOLS)
+
+
+PRACTICE_UNIVERSE = _pr_universe()
+
+
+def _pr_user(req):
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to use your practice account.")
+    tok = a.token or {}
+    if ((tok.get("firebase") or {}).get("sign_in_provider")) == "anonymous":
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Create a free account to start your practice account.")
+    return a.uid, tok
+
+
+def _pr_quotes(db):
+    """{SYM: {"c": price, "t": epoch s}} from markets/quotes (the server's own prices)."""
+    snap = db.collection("markets").document("quotes").get()
+    out = {}
+    for sym, q in (((snap.to_dict() or {}).get("quotes") or {}) if snap.exists else {}).items():
+        try:
+            c = float(q.get("c"))
+            if c > 0:
+                out[str(sym)] = {"c": c, "t": int(q.get("t") or 0)}
+        except (TypeError, ValueError, AttributeError):
+            continue
+    return out
+
+
+def _pr_prices(quotes):
+    return {s: q["c"] for s, q in quotes.items()}
+
+
+def _pr_bars(raw_bars):
+    """ms_run_quotes bars {SYM: ["YYYY-MM-DD HH:MM,o,h,l,c,v", ...]} -> {SYM: [[label, o, h, l, c, v], ...]}."""
+    out = {}
+    for sym, rows in (raw_bars or {}).items():
+        lst = []
+        for r in rows:
+            p = str(r).split(",")
+            try:
+                lst.append([p[0], float(p[1]), float(p[2]), float(p[3]), float(p[4]), float(p[5]) if len(p) > 5 else 0])
+            except (IndexError, ValueError):
+                continue
+        out[sym] = lst
+    return out
+
+
+def _pr_identity(db, uid, tok):
+    t = db.collection("traders").document(uid).get()
+    d = (t.to_dict() or {}) if t.exists else {}
+    photo = d.get("avatar") or d.get("photo") or (tok.get("picture") if tok else None)
+    if not (isinstance(photo, str) and (photo.startswith("https://") or photo.startswith("data:image/")) and len(photo) <= 20000):
+        photo = None
+    name = d.get("name") or ((tok or {}).get("name") or "").split(" ")[0] or "Trader-" + uid[:4]
+    return {"name": str(name)[:24], "username": d.get("username") if isinstance(d.get("username"), str) else None, "photo": photo}
+
+
+def _pr_events(db, uid, events, t=None):
+    col = db.collection("practiceAccounts").document(uid).collection("history")
+    for e in events:
+        rec = dict(e.get("order") or e.get("trade") or {k: v for k, v in e.items() if k != "kind"})
+        rec["kind"] = e["kind"]
+        rec["at"] = rec.get("closedAt") or rec.get("at") or int(_time.time() * 1000)
+        ref = col.document()
+        if t is not None:
+            t.set(ref, rec)
+        else:
+            ref.set(rec)
+
+
+def _pr_after(db, uid, events, now_ms, tok=None):
+    """Outside the account transaction: XP for fills/wins, then the public profile."""
+    if any(e["kind"] == "fill" for e in events):
+        try:  # onboarding checklist: "Make your first trade" (zelos-profile.js reads onboard.trade)
+            db.collection("users").document(uid).set({"onboard": {"trade": True}}, merge=True)
+        except Exception as ex:
+            print("[practice] onboard flag failed:", type(ex).__name__)
+    for e in events:
+        try:
+            if e["kind"] == "fill":
+                xp_grant(db, uid, "practice-trade", None, now_ms, counted=True)
+            if e["kind"] == "trade" and e["trade"]["pnl"] > 0:
+                xp_grant(db, uid, "practice-win", None, now_ms, counted=True)
+        except Exception as ex:
+            print("[practice] xp grant failed:", type(ex).__name__)
+    _pr_publish(db, uid, now_ms, tok)
+
+
+def _pr_publish(db, uid, now_ms, tok=None, quotes=None, acct=None):
+    ref = db.collection("practiceAccounts").document(uid)
+    if acct is None:
+        snap = ref.get()
+        if not snap.exists:
+            return
+        acct = snap.to_dict()
+    pref = db.collection("practiceProfiles").document(uid)
+    if not acct.get("publicProfile", True):
+        pref.delete()
+        return
+    quotes = quotes if quotes is not None else _pr_quotes(db)
+    eq = PR.equity(acct, _pr_prices(quotes))
+    old = pref.get()
+    keep = (old.to_dict() or {}) if old.exists else {}
+    prof = PR.build_profile(acct, eq, now_ms, _pr_identity(db, uid, tok), _user_xp(db, uid), keep)
+    pref.set(prof)
+
+
+def _pr_http(e):
+    return https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, str(e))
+
+
+def _pr_call(fn):
+    def wrapper(req):
+        uid, tok = _pr_user(req)
+        try:
+            return fn(req, firestore.client(), uid, tok, int(_time.time() * 1000))
+        except PR.OrderError as e:
+            raise _pr_http(e)
+        except https_fn.HttpsError:
+            raise
+        except Exception as e:
+            print("[practice] %s failed: %s" % (fn.__name__, type(e).__name__))
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Nothing was changed. Try again.")
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+@https_fn.on_call()
+@_pr_call
+def practice_account(req, db, uid, tok, now_ms):
+    """Open your server practice account ($10,000) if you don't have one. The first time, the
+    old browser-written account is copied to practiceArchive/{uid} (read-only, unverified)."""
+    ref = db.collection("practiceAccounts").document(uid)
+    aref = db.collection("practiceArchive").document(uid)
+    uref = db.collection("users").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if snap.exists:
+            return False
+        arc, u = aref.get(transaction=t), uref.get(transaction=t)
+        acct = PR.new_account(now_ms)
+        PR.mark(acct, PR.START_CASH, now_ms, 0)
+        if not arc.exists and u.exists:
+            old = PR.archive_classic((u.to_dict() or {}).get("practice"))
+            if old:
+                old["archivedAt"] = now_ms
+                t.set(aref, old)
+                acct["archivedClassic"] = True
+        t.set(ref, acct)
+        return True
+
+    created = txn(db.transaction())
+    if created:
+        _pr_publish(db, uid, now_ms, tok)
+    return {"created": created}
+
+
+@https_fn.on_call()
+@_pr_call
+def practice_order(req, db, uid, tok, now_ms):
+    """{sym, side, type, qty, limit?, stop?, tif?, bracket?: {sl?, tp?}} -> {order}. The order is
+    checked here and fills later, on prices observed after this moment (see functions/practice.py)."""
+    quotes = _pr_quotes(db)
+    data = req.data if isinstance(req.data, dict) else {}
+    sym = str(data.get("sym") or "").upper()
+    ref = db.collection("practiceAccounts").document(uid)
+    oid = _secrets.token_hex(8)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if not snap.exists:
+            raise PR.OrderError("Open your practice account first.")
+        acct = snap.to_dict()
+        o = PR.validate_order(acct, data, (quotes.get(sym) or {}).get("c"), PRACTICE_UNIVERSE, now_ms, oid)
+        PR.add_order(acct, o)
+        acct["updatedAt"] = now_ms
+        t.set(ref, acct)
+        return o
+
+    return {"order": txn(db.transaction())}
+
+
+@https_fn.on_call()
+@_pr_call
+def practice_cancel(req, db, uid, tok, now_ms):
+    """{orderId} -> {cancelled: true}"""
+    oid = (req.data or {}).get("orderId") if isinstance(req.data, dict) else None
+    if not isinstance(oid, str) or not PR.ORDER_ID_RE.match(oid):
+        raise PR.OrderError("That order isn't open any more.")
+    ref = db.collection("practiceAccounts").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if not snap.exists:
+            raise PR.OrderError("Open your practice account first.")
+        acct = snap.to_dict()
+        events = PR.cancel_order(acct, oid, now_ms)
+        acct["updatedAt"] = now_ms
+        t.set(ref, acct)
+        _pr_events(db, uid, events, t)
+        return True
+
+    return {"cancelled": txn(db.transaction())}
+
+
+@https_fn.on_call()
+@_pr_call
+def practice_reset(req, db, uid, tok, now_ms):
+    """Back to $10,000 (only once the account is below $2,500). Counts as a public reset."""
+    quotes = _pr_quotes(db)
+    ref = db.collection("practiceAccounts").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if not snap.exists:
+            raise PR.OrderError("Open your practice account first.")
+        acct = snap.to_dict()
+        fresh, events = PR.reset_account(acct, PR.equity(acct, _pr_prices(quotes)), now_ms)
+        t.set(ref, fresh)
+        _pr_events(db, uid, events, t)
+        return fresh["resets"]
+
+    resets = txn(db.transaction())
+    _pr_publish(db, uid, now_ms, tok, quotes)
+    return {"resets": resets}
+
+
+@https_fn.on_call()
+@_pr_call
+def practice_settings(req, db, uid, tok, now_ms):
+    """{publicProfile: bool}: show or hide your numbers on the public leaderboards."""
+    data = req.data if isinstance(req.data, dict) else {}
+    if not isinstance(data.get("publicProfile"), bool):
+        raise PR.OrderError("Nothing to change.")
+    ref = db.collection("practiceAccounts").document(uid)
+    if not ref.get().exists:
+        raise PR.OrderError("Open your practice account first.")
+    ref.update({"publicProfile": data["publicProfile"], "updatedAt": now_ms})
+    _pr_publish(db, uid, now_ms, tok)
+    return {"publicProfile": data["publicProfile"]}
+
+
+def practice_pass(db, quotes, raw_bars, now_ms):
+    """After a price refresh: fill or expire open orders in every account that has some."""
+    q = {s: {"c": v.get("c"), "t": v.get("t")} for s, v in (quotes or {}).items() if v and v.get("c")}
+    bars = _pr_bars(raw_bars)
+    fills = accounts = 0
+    for snap in db.collection("practiceAccounts").where("openOrders", ">", 0).stream():
+        uid = snap.id
+        ref = snap.reference
+
+        @firestore.transactional
+        def txn(t):
+            s2 = ref.get(transaction=t)
+            acct = s2.to_dict() if s2.exists else None
+            if not acct or not acct.get("orders"):
+                return []
+            events = PR.process_orders(acct, q, bars, now_ms)
+            if events:
+                acct["updatedAt"] = now_ms
+                t.set(ref, acct)
+                _pr_events(db, uid, events, t)
+            return events
+
+        try:
+            events = txn(db.transaction())
+        except Exception as e:
+            print("[practice] pass failed for one account:", type(e).__name__)
+            continue
+        accounts += 1
+        if any(e["kind"] == "fill" for e in events):
+            fills += sum(1 for e in events if e["kind"] == "fill")
+            try:
+                _pr_after(db, uid, events, now_ms)
+            except Exception as e:
+                print("[practice] after-fill update failed:", type(e).__name__)
+    return {"accounts": accounts, "fills": fills}
+
+
+def practice_revalue_all(db, now_ms):
+    """After the close: mark every account at the closing prices (peak, period baselines, daily
+    history) and refresh its public profile."""
+    quotes = _pr_quotes(db)
+    prices = _pr_prices(quotes)
+    n = 0
+    for snap in db.collection("practiceAccounts").stream():
+        try:
+            acct = snap.to_dict()
+            eq = PR.equity(acct, prices)
+            PR.mark(acct, eq, now_ms, _user_xp(db, snap.id))
+            snap.reference.update({"peak": acct["peak"], "periods": acct["periods"], "hist": acct["hist"], "markedAt": now_ms})
+            _pr_publish(db, snap.id, now_ms, None, quotes, acct)
+            n += 1
+        except Exception as e:
+            print("[practice] revalue failed for one account:", type(e).__name__)
+    return n

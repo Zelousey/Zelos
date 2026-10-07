@@ -7,8 +7,16 @@
  * switch to the Capacitor Firebase Authentication plugin (popups don't work there).
  */
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
 import { auth } from './firebase';
+import { useEmulators } from './firebaseConfig';
+
+// Browser tests only (emulator build): sign in with email/password, since Google's popup
+// can't be driven in CI. Vite drops this from normal builds (useEmulators is false there).
+if (useEmulators) {
+  (window as unknown as { __zelosTestSignIn?: (email: string, pw: string) => Promise<unknown> }).__zelosTestSignIn = (email, pw) =>
+    signInWithEmailAndPassword(auth(), email, pw).catch(() => createUserWithEmailAndPassword(auth(), email, pw));
+}
 
 export type AuthState = {
   ready: boolean;

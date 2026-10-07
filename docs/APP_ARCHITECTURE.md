@@ -140,7 +140,8 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 | Dashboard | `/app/dashboard` | In the app: index ETF tiles with sparklines, top movers, sectors, watchlist, practice entry |
 | Markets | `/app/markets` | In the app: stock list with live prices, search, group filter |
 | Chart | `/app/markets/:sym` (`/app/charts` → last symbol) | In the app: 15m/1H/D/W, ranges, line/candles, today's stats, data table, Practice trade action |
-| Practice trade / positions | `/app/practice/...` | Next (M3) |
+| Practice | `/app/practice` | In the app: server account (value, P&L, positions with Close, open orders with Cancel, activity, archive, privacy, reset) |
+| Practice trade | `/app/practice/trade/:sym` | In the app: order ticket (market/limit/stop, day/GTC, stop-loss + take-profit dragged on the chart), confirm step. See `docs/PRACTICE_SERVER.md` |
 | Everything else | — | Hand-off to the classic page |
 
 ## Performance baseline (first build, 2026-10-07)

@@ -10,9 +10,9 @@
  *   Trade Wars            #hubChallenges  your Trade War matches (live, lobby, finished), squads
  *   Achievements          #hubAchievements unlocked badges
  *
- * Practice numbers come from the account summary the practice page saves
- * (localStorage zelosPractice-v1, or users/{uid}.practice when signed in,
- * whichever is newer), re-priced live from markets/quotes.
+ * Practice numbers come from the server practice account (practiceAccounts/{uid},
+ * via zelos-practice-acct.js), re-priced live from markets/quotes. Trading happens
+ * in the app (/app/practice).
  *
  * News comes from markets/news, written every 10 minutes by the refresh_news
  * Cloud Function. Items are provider-neutral ({headline, source, url,
@@ -41,19 +41,26 @@
   }
 
   // ---------------------------------------------------------------- practice
-  function localAcct() { try { return JSON.parse(localStorage.getItem(PKEY) || 'null'); } catch (e) { return null; } }
-  function account() {
-    var a = localAcct(), r = userDoc && userDoc.practice;
-    if (r && (!a || (r.updatedAt || 0) > (a.updatedAt || 0))) a = r;
-    return a;
+  var serverAcct = null, unwatchAcct = null, acctUid = null;
+  function watchAcct(uid) {
+    if (uid === acctUid) return;
+    acctUid = uid; serverAcct = null;
+    if (unwatchAcct) { unwatchAcct(); unwatchAcct = null; }
+    if (uid && window.ZelosPracticeAcct) unwatchAcct = ZelosPracticeAcct.watch(firebase.firestore(), uid, function (a) { serverAcct = a; renderPractice(); });
+    renderPractice();
   }
+  // the old renderer's shape: { summary: { cash, positions }, trades }
+  function account() {
+    return serverAcct ? { summary: { cash: serverAcct.cash, positions: serverAcct.positions }, trades: serverAcct.best } : null;
+  }
+  var APP = window.ZelosPracticeAcct ? ZelosPracticeAcct.APP_URL : 'app/practice';
   function renderPractice() {
     var el = $('hubPractice'); if (!el) return;
     var a = account(), s = a && a.summary;
     if (!a) {
       el.innerHTML = '<div class="hub-pnl-main"><span><small>Account value</small><b>$10,000.00</b></span></div>' +
         '<p class="card-sub" style="margin:8px 0 0">Trade real stocks at live prices with $10,000 of virtual money. Your P&amp;L shows up here.</p>' +
-        '<div class="hub-foot"><a href="practice/">Enter Trade War &rarr;</a></div>';
+        '<div class="hub-foot"><a href="' + APP + '">Open Practice &rarr;</a></div>';
       return;
     }
     var today = todayNY(), cash = s ? s.cash : (a.cash || START), positions = s ? s.positions || [] : [];
@@ -80,7 +87,7 @@
       }).join('') + (rows.length > 4 ? '<div class="hub-pos"><small>+' + (rows.length - 4) + ' more</small></div>' : '') : '<div class="empty">No open positions.</div>') +
       bestHtml(a) +
       '<div class="hub-btns"><a href="practice/?tab=progress">Share my account</a><a href="practice/#start">⚔️ Start a Trade War</a></div>' +
-      '<div class="hub-foot"><span>' + (live ? 'Live prices' : 'Last close') + (optVal ? ' · options as of your last visit' : '') + ' · <b>TRADE WAR — VIRTUAL</b></span><a href="practice/">Trade &rarr;</a></div>';
+      '<div class="hub-foot"><span>' + (live ? 'Live prices' : 'Last close') + ' · <b>PRACTICE — VIRTUAL</b></span><a href="' + APP + '">Trade &rarr;</a></div>';
   }
   // biggest closed virtual winners
   function bestHtml(a) {
@@ -293,7 +300,7 @@
 
   // ---------------------------------------------------------------- wiring
   function renderAll() { renderPractice(); renderWatchNews(); renderTrending(); renderSocial(); }
-  document.addEventListener('zelos:userdoc', function (e) { userDoc = e.detail || null; renderPractice(); renderWatchNews(); renderTrader(); onUser(userDoc ? realUser() : null); });
+  document.addEventListener('zelos:userdoc', function (e) { userDoc = e.detail || null; var ru = userDoc ? realUser() : null; watchAcct(ru ? ru.uid : null); renderPractice(); renderWatchNews(); renderTrader(); onUser(ru); });
   document.addEventListener('zelos:progress', function () { renderMissions(); renderAchievements(); renderTrader(); });
   document.addEventListener('zelos:dashmode', syncMode);
   document.addEventListener('DOMContentLoaded', function () {

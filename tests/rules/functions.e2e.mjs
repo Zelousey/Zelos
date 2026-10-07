@@ -49,7 +49,7 @@ await signOut(auth);
 const u = (await createUserWithEmailAndPassword(auth, 'del@example.com', 'secret123')).user;
 await setDoc(doc(db, 'users', u.uid), { xp: 0, watchlist: ['AAPL'] });
 await call('xp_award', { type: 'daily-checkin' });
-await setDoc(doc(db, 'practiceProfiles', u.uid), { name: 'Del', equity: 10000 });
+await admin('practiceProfiles/' + u.uid, { name: { stringValue: 'Del' }, equity: { integerValue: '10000' } });
 await admin('wallets/' + u.uid, { balance: { integerValue: 7 } });
 await admin('purchases/sq_1', { uid: { stringValue: u.uid } });
 const arr = (...v) => ({ arrayValue: { values: v.map((x) => ({ stringValue: x })) } });
@@ -73,6 +73,46 @@ ok(!(await adminGet('usernames/deluser')), 'username released');
 const users = await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${P}/accounts`, { headers: { Authorization: 'Bearer owner' } }).then((x) => x.json()).catch(() => null);
 const lookup = await fetch(`http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/${P}/accounts:lookup`, { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ localId: [u.uid] }) }).then((x) => x.json());
 ok(!lookup.users, 'Firebase Auth user deleted');
+
+// --- practice account (server-side)
+await signOut(auth);
+await admin('markets/quotes', { quotes: { mapValue: { fields: { AAPL: { mapValue: { fields: { c: { doubleValue: 100 }, t: { integerValue: String(Math.floor(Date.now() / 1000)) } } } } } } } });
+const p = (await createUserWithEmailAndPassword(auth, 'trader@example.com', 'secret123')).user;
+// an old browser-written account to archive
+await setDoc(doc(db, 'users', p.uid), { xp: 0, practice: { cash: 999999, summary: { equity: 999999 }, trades: [{ sym: 'AAPL', pnl: 5, qty: 1 }, 'junk'] } });
+r = await call('practice_account', {});
+ok(r.created, 'practice account opened');
+r = await call('practice_account', {});
+ok(!r.created, 'opening again changes nothing');
+const acct = (await getDoc(doc(db, 'practiceAccounts', p.uid))).data();
+ok(acct.cash === 10000 && acct.openOrders === 0, 'fresh $10,000, whatever the old browser account said');
+const arc = (await getDoc(doc(db, 'practiceArchive', p.uid))).data();
+ok(arc && arc.verified === false && arc.equity === 999999 && arc.trades.length === 1, 'old account archived read-only and marked unverified');
+const prof = await adminGet('practiceProfiles/' + p.uid);
+ok(prof && Number(prof.fields.equity.integerValue ?? prof.fields.equity.doubleValue) === 10000 && prof.fields.source.stringValue === 'server', 'public profile written by the server');
+const bad = async (data, re, msg) => { let e = null; try { await call('practice_order', data); } catch (x) { e = x; } ok(e && re.test(e.message), msg); };
+await bad({ sym: 'ZZZZ', side: 'buy', qty: 1 }, /stock list/, 'unknown symbol refused');
+await bad({ sym: 'AAPL', side: 'buy', qty: 101 }, /buying power/, 'more than the cash refused (price comes from the server)');
+await bad({ sym: 'AAPL', side: 'sell', qty: 1 }, /don't own/, 'no shorting');
+await bad({ sym: 'AAPL', side: 'buy', qty: 1, bracket: { sl: 120 } }, /below the entry/, 'bad stop-loss refused');
+r = await call('practice_order', { sym: 'AAPL', side: 'buy', qty: 10, type: 'limit', limit: 95, tif: 'gtc', bracket: { sl: 90, tp: 110 }, price: 1 });
+ok(r.order && r.order.limit === 95 && r.order.qty === 10 && !('price' in r.order), 'limit order with bracket accepted; extra fields ignored');
+let a2 = (await getDoc(doc(db, 'practiceAccounts', p.uid))).data();
+ok(a2.openOrders === 1 && a2.cash === 10000, 'order is open; cash untouched until it fills');
+let blocked = 0;
+try { await updateDoc(doc(db, 'practiceAccounts', p.uid), { cash: 1e9 }); } catch (e) { blocked = 1; }
+ok(blocked, 'browser cannot change the practice account');
+r = await call('practice_cancel', { orderId: r.order.id });
+a2 = (await getDoc(doc(db, 'practiceAccounts', p.uid))).data();
+ok(r.cancelled && a2.openOrders === 0, 'order cancelled');
+let e2 = null; try { await call('practice_reset', {}); } catch (x) { e2 = x; } ok(e2 && /below/.test(e2.message), 'reset only below $2,500');
+await call('practice_settings', { publicProfile: false });
+ok(!(await adminGet('practiceProfiles/' + p.uid)), 'hiding stats removes the public profile');
+await call('practice_settings', { publicProfile: true });
+ok(!!(await adminGet('practiceProfiles/' + p.uid)), 'showing stats brings it back');
+await signOut(auth);
+await signInAnonymously(auth);
+let e3 = null; try { await call('practice_account', {}); } catch (x) { e3 = x; } ok(e3 && /account/.test(e3.message), 'guests must create an account first');
 
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

@@ -276,7 +276,7 @@
     var pushOn = !!(global.ZelosPush && ZelosPush.state() === 'on');
     var list = [
       { id: 'profile', label: 'Set up your profile', hint: 'Picture and @username', done: !!(t.username && t.name), cta: 'Set up profile', act: 'profile', xp: 25 },
-      { id: 'trade', label: 'Make your first trade', hint: 'Virtual money, real prices', done: fills > 0, cta: 'Make a trade', href: ROOT + 'practice/index.html', xp: 25 },
+      { id: 'trade', label: 'Make your first trade', hint: 'Virtual money, real prices', done: fills > 0 || !!ob.trade, cta: 'Make a trade', href: ROOT + 'app/practice', xp: 25 },
       { id: 'invite', label: 'Invite a friend', hint: 'You both get +50 XP when they join', done: !!(ob.invited || ls('zelosInvited') === '1' || (ctx.userdoc && (ctx.userdoc.referralCount || 0) > 0)), cta: 'Invite a friend', act: 'invite', xp: 0 },
       { id: 'app', label: 'Add Zelos to your phone', hint: 'Opens full screen, like an app', done: !!(ob.app || ls('zelosAppInstalled') === '1'), cta: 'Add to your phone', act: 'app', xp: 50 },
       { id: 'notify', label: 'Turn on notifications', hint: 'Challenges, battles, alerts', done: pushOn || !!ob.notify, cta: 'Turn on notifications', act: 'notify', xp: 50 }

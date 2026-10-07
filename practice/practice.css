@@ -1173,3 +1173,11 @@ html.tw-arena .tw-chart-card{ border-color:#4a2126; }
 .pt-news-ins span.up { color: var(--bull, #3ecb7c); } .pt-news-ins span.dn { color: var(--danger, #e0483f); }
 .pt-news-ins small { color: var(--muted); }
 .pt-news-foot a { color: inherit; }
+
+/* practice/index.html: the practice account moved into the app (2026-10-07) */
+.pt-moved{ margin:18px 0; padding:22px; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
+.pt-moved h2{ margin:0 0 8px; font-size:1.15rem; }
+.pt-moved p{ margin:0 0 10px; color:var(--ink-2); max-width:70ch; }
+.pt-moved .pt-moved-fine{ color:var(--muted); font-size:0.88rem; }
+.pt-moved-btns{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.pt-moved-btns a{ text-decoration:none; }

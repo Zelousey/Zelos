@@ -146,12 +146,23 @@ jobs:
       - name: Browser
         run: npx playwright install --with-deps chromium
 
-      # the browser tests run against the Auth + Firestore emulators (fake demo project),
-      # seeded with real-shaped market data; the emulators need Java
+      # the browser tests run against the Auth + Firestore + Functions emulators (fake demo
+      # project), seeded with real-shaped market data; the emulators need Java, the Python
+      # functions need their virtualenv (functions/venv)
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
-      - name: Browser tests (phone + desktop, accessibility, market flow)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Functions virtualenv
+        working-directory: .
+        run: |
+          python -m venv functions/venv
+          functions/venv/bin/pip install -r functions/requirements.txt
+
+      - name: Browser tests (phone + desktop, accessibility, market and practice flows)
         run: npm run test:e2e
