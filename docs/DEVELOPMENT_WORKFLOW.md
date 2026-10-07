@@ -81,13 +81,14 @@ Recommended ruleset (target: default branch, **Enforcement: Active**):
 - Restrict deletions: on.
 - Block force pushes: on.
 - Require a pull request before merging: on, 0 required approvals (solo owner), require conversation resolution.
-- Require status checks to pass: on, add the check named **`checks`** (from `ci.yml`; it appears after CI has run once).
+- Require status checks to pass: on, add the checks **`checks`**, **`rules`**, **`functions-e2e`** and **`webapp`** (from `ci.yml`; each appears after CI has run once).
 - Do **not** turn on "Restrict updates" or "Restrict creations": with an empty bypass list they block every merge.
 
 ## CI
 `.github/workflows/ci.yml` runs on every PR and push to `main`: Python syntax, `scripts/*_test.py`,
 `node --check` on every `.js`, JSON validity, and a guard against committed secret files.
-Run the same locally before pushing:
+For the app, run `npm run check` (and `npm run test:e2e`) inside `webapp/`.
+For everything else, run the same locally before pushing:
 ```
 python3 -m py_compile functions/*.py scripts/*.py
 for t in scripts/*_test.py; do python3 -I "$t" || break; done

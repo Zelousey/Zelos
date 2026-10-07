@@ -3,6 +3,7 @@
 > What the system actually is (verified 2026-10-07), followed by the direction it is moving in.
 
 ## Current foundation
+- **The app (`webapp/`, at `/app/`):** React + TypeScript single-page app that the product is moving into. Full details: `docs/APP_ARCHITECTURE.md`. Everything below describes the classic site and the shared backend.
 - **Frontend:** static HTML/CSS/vanilla JavaScript. No bundler, no framework, no npm build.
   Shared modules are plain `<script>` files at the repo root (`zelos-*.js`), styling in `zelos-theme.css`.
 - **Generated pages:** Python builders in `scripts/build_*.py` write `games/`, `learn/`, `scan/`,
@@ -53,8 +54,8 @@ Continue with the current web application and evolve it into:
 3. A native-ready web architecture.
 4. A Capacitor-based iOS/Android application if evaluation confirms it is appropriate.
 
-Do not rewrite the application solely to make a native app. A move to a bundler/framework is
-**not** decided; it would be a major change needing owner approval.
+Do not rewrite the application solely to make a native app. Decided 2026-10-07: a Vite + React +
+TypeScript app in `webapp/` beside the classic site (not a rewrite); see `docs/APP_ARCHITECTURE.md`.
 
 ## Native strategy
 Evaluate Capacitor for notifications, secure storage, haptics, lifecycle, deep links, networking,
