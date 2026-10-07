@@ -1,0 +1,59 @@
+name: CI
+
+# Fast checks on every pull request and every push to main. No secrets, no deploys:
+# it only reads the code. Make "checks" a required status check in the main-branch
+# ruleset so nothing merges while it is red.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'   # same as the Cloud Functions runtime (firebase.json)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Python syntax (functions + scripts)
+        run: python -m py_compile functions/*.py scripts/*.py scripts/page-src/*.py scripts/page-src/learn/*.py
+
+      - name: Unit tests
+        run: |
+          set -e
+          for t in scripts/*_test.py; do
+            echo "::group::$t"
+            python -I "$t"
+            echo "::endgroup::"
+          done
+
+      - name: JavaScript syntax
+        run: |
+          set -e
+          find . -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+
+      - name: JSON files parse
+        run: |
+          set -e
+          find . -name '*.json' -not -path './.git/*' -print0 | xargs -0 -n1 python -c 'import json,sys; json.load(open(sys.argv[1]))'
+
+      - name: No secret files committed
+        run: |
+          bad=$(git ls-files | grep -E '(^|/)(\.env\.local|\.secret\.local|.*service-?account.*\.json|.*-firebase-adminsdk-.*\.json)$' || true)
+          if [ -n "$bad" ]; then echo "Secret-looking files are committed:"; echo "$bad"; exit 1; fi
