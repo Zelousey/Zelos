@@ -1,0 +1,21 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--border-soft);
+}
+.accent { background: var(--accent-soft); color: var(--link); border-color: transparent; }
+.up { background: color-mix(in srgb, var(--bull) 16%, transparent); color: var(--up-ink); border-color: transparent; }
+.down { background: var(--danger-soft); color: var(--down-ink); border-color: transparent; }
+.gold { background: var(--gold-soft); color: var(--gold); border-color: transparent; }
+.violet { background: var(--violet-soft); color: var(--violet); border-color: transparent; }
+.count { min-width: 18px; height: 18px; padding: 0 5px; justify-content: center; background: var(--sell-fill); color: var(--on-fill); border: 0; font-family: var(--mono); }

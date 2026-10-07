@@ -119,3 +119,32 @@ jobs:
       - name: Functions end-to-end
         run: npm run test:functions
         working-directory: tests/rules
+
+  webapp:
+    # The app (webapp/): lint, typecheck, unit tests, production build, then browser
+    # smoke tests (phone + desktop, accessibility) against that build.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke tests
+        run: npm run test:e2e

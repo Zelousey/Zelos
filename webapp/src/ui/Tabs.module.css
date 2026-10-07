@@ -1,0 +1,6 @@
+.list { display: flex; gap: 2px; padding: 3px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius); overflow-x: auto; scrollbar-width: none; }
+.list::-webkit-scrollbar { display: none; }
+.tab { flex: 0 0 auto; min-height: 32px; padding: 0 var(--space-3); border: 0; border-radius: calc(var(--radius) - 2px); background: transparent; color: var(--muted); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected='true'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+.stretch .tab { flex: 1 1 0; }

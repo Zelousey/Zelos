@@ -1,0 +1,164 @@
+/*
+ * Zelos design tokens for the app.
+ *
+ * The colour values are the same as the classic site's zelos-theme.css (Black default,
+ * Blue, White), so both look like one product. src/styles/tokens.test.ts fails if they
+ * drift apart. Only surfaces and text change between themes; accent blue, violet, gold,
+ * green and red stay fixed so charts and badges read the same everywhere.
+ *
+ * App-only tokens (spacing, radii, type scale, layout sizes) live at the bottom.
+ */
+:root {
+  color-scheme: dark;
+
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 260ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.25, 1);
+
+  --bg: #0c0d10;
+  --bg-soft: #101216;
+  --surface: #15171c;
+  --surface-2: #1a1d23;
+  --surface-hover: #22252c;
+  --border: #2b2e35;
+  --border-soft: #1d1f24;
+  --nav-bg: rgba(10, 11, 14, 0.88);
+
+  --ink: #f4f5f7;
+  --ink-2: #d6d9de;
+  --muted: #9599a3;
+  --muted-2: #5c6068;
+
+  --chart-bg: rgba(0, 0, 0, 0.25);
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-cross: rgba(255, 255, 255, 0.35);
+  --chart-label-ink: #0b0c0f;
+
+  --accent: #4a86ff;
+  --accent-ink: #f5f8ff;
+  --accent-soft: #182a4a;
+  --accent-line: #2c4d8a;
+  --accent-glow: rgba(74, 134, 255, 0.42);
+
+  --violet: #8f7bf6;
+  --violet-soft: #241f3f;
+  --gold: #e8b23d;
+  --gold-soft: #3a2a0c;
+  --bull: #3ecb7c;
+  --amber: #f2b33d;
+  --amber-soft: #3a2a10;
+  --danger: #e0483f;
+  --danger-soft: #3a1712;
+
+  --candle-up: var(--accent);
+  --candle-down: var(--ink);
+
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* ---- app-only tokens ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+
+  --sidebar-w: 232px;
+  --sidebar-w-collapsed: 64px;
+  --topbar-h: 56px;
+  --tabbar-h: 64px;
+  --tap: 44px; /* minimum touch target (Apple HIG) */
+
+  /* Readable-text and filled-control colours (app-only). The brand colours above stay as
+     they are; these are the shades that meet WCAG AA (4.5:1) for small text, checked by
+     the axe test in e2e/shell.spec.ts. */
+  --accent-fill: #2563eb; /* filled primary buttons, white text 5.2:1 */
+  --accent-fill-hover: #1d4ed8;
+  --on-fill: #ffffff;
+  --buy-fill: #15803d;
+  --sell-fill: #c62828;
+  --link: #6c9dff;
+  --up-ink: #3ecb7c;
+  --down-ink: #ff6b61;
+
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+:root[data-theme='black'] {
+  color-scheme: dark;
+}
+
+:root[data-theme='blue'] {
+  color-scheme: dark;
+  --bg: #081226;
+  --bg-soft: #0b1830;
+  --surface: #0f1e3a;
+  --surface-2: #132544;
+  --surface-hover: #1a2f55;
+  --border: #243d68;
+  --border-soft: #172a4c;
+  --nav-bg: rgba(7, 15, 32, 0.88);
+  --ink: #eef3ff;
+  --ink-2: #cbd7ef;
+  --muted: #8ea3c8;
+  --muted-2: #586d94;
+  --accent-soft: #16305e;
+  --chart-bg: rgba(3, 9, 22, 0.45);
+}
+
+:root[data-theme='white'] {
+  color-scheme: light;
+  --bg: #f4f5f8;
+  --bg-soft: #eceef2;
+  --surface: #ffffff;
+  --surface-2: #f3f4f7;
+  --surface-hover: #e9ecf1;
+  --border: #d3d8e0;
+  --border-soft: #e3e6eb;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --ink: #12151b;
+  --ink-2: #2d323b;
+  --muted: #5b6370;
+  --muted-2: #98a0ac;
+  --accent: #2f6bea;
+  --accent-soft: #e2ebff;
+  --accent-line: #9dbbff;
+  --accent-glow: rgba(47, 107, 234, 0.28);
+  --violet-soft: #ece8ff;
+  --gold: #b98110;
+  --gold-soft: #fbefd2;
+  --bull: #1f9d5a;
+  --amber-soft: #fcefd6;
+  --danger: #d23a31;
+  --danger-soft: #fbe2df;
+  --chart-bg: #fbfbfd;
+  --chart-grid: rgba(0, 0, 0, 0.07);
+  --chart-cross: rgba(0, 0, 0, 0.35);
+  --chart-label-ink: #ffffff;
+  --shadow-pop: 0 12px 32px rgba(18, 21, 27, 0.16);
+  --link: #1d4ed8;
+  --up-ink: #166534;
+  --down-ink: #b91c1c;
+}

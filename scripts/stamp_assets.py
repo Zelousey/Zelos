@@ -15,7 +15,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {".git", "node_modules", "functions", "scripts", "docs", "data"}
+SKIP_DIRS = {".git", "node_modules", "functions", "scripts", "docs", "data", "webapp", "tests"}
 NEVER = {"firebase-messaging-sw.js"}
 REF = re.compile(r'''(?P<attr>\b(?:src|href))=(?P<q>["'])(?P<path>(?!https?:|//|data:|#|mailto:)[^"'?#]+\.(?:js|css))(?:\?v=[0-9a-f]*)?(?P=q)''')
 

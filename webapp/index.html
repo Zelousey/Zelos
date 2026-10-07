@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" data-theme="black">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c0d10" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="robots" content="noindex" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Zelos" />
+    <meta name="description" content="Zelos: market dashboard, charts, practice trading and rule-based alerts." />
+    <title>Zelos</title>
+    <link rel="icon" href="/app/icons/icon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/app/icons/icon-180.png" />
+    <link rel="manifest" href="/app/manifest.webmanifest" />
+    <!-- Apply the saved theme before first paint (same key as the classic site). -->
+    <script>
+      try { var t = localStorage.getItem('zelosTheme'); if (t === 'blue' || t === 'white' || t === 'black') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Zelos needs JavaScript. The classic site is at <a href="/">agentictrading.info</a>.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

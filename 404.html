@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+/* App deep links (e.g. /app/markets/AAPL) have no file on GitHub Pages, so they land here.
+   Send them back to the app with the path in ?r=; the app restores it (webapp/src/app/router.tsx). */
+(function(){var p=location.pathname;if(p.indexOf('/app/')===0&&p!=='/app/'){location.replace('/app/?r='+encodeURIComponent(p+location.search+location.hash));}})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
