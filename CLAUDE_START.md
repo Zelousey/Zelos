@@ -14,7 +14,7 @@ Before writing implementation code:
 5. Read `DATA_PROVIDERS.md`.
 6. Inspect the actual repository structure.
 7. Inspect Git status and recent history.
-8. Inspect `package.json` and build/test/lint scripts.
+8. Inspect the build/test scripts (`scripts/build_*.py`, `scripts/*_test.py`, `.github/workflows/ci.yml`). There is no `package.json`: the frontend is static HTML/JS.
 9. Inspect Firebase configuration.
 10. Inspect Firestore rules and indexes.
 11. Inspect Cloud Functions.
