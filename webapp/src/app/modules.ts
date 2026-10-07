@@ -38,9 +38,9 @@ export type AppModule = {
 };
 
 export const MODULES: AppModule[] = [
-  { id: 'dashboard', path: 'dashboard', label: 'nav.dashboard', icon: 'dashboard', group: 'main', status: 'classic', classicPath: 'dashboard.html', tab: 1 },
-  { id: 'markets', path: 'markets', label: 'nav.markets', icon: 'markets', group: 'main', status: 'classic', classicPath: 'daily-market.html', tab: 2 },
-  { id: 'charts', path: 'charts', label: 'nav.charts', icon: 'chart', group: 'main', status: 'classic', classicPath: 'practice/index.html' },
+  { id: 'dashboard', path: 'dashboard', label: 'nav.dashboard', icon: 'dashboard', group: 'main', status: 'ready', classicPath: 'dashboard.html', tab: 1, load: () => import('../features/dashboard/DashboardPage') },
+  { id: 'markets', path: 'markets', label: 'nav.markets', icon: 'markets', group: 'main', status: 'ready', tab: 2, load: () => import('../features/markets/MarketsModule') },
+  { id: 'charts', path: 'charts', label: 'nav.charts', icon: 'chart', group: 'main', status: 'ready', load: () => import('../features/charts/ChartsRedirect') },
 
   { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'trade', status: 'classic', classicPath: 'practice/index.html', tab: 3 },
   { id: 'real', path: 'real', label: 'nav.real', icon: 'real', group: 'trade', status: 'classic', classicPath: 'real/index.html' },

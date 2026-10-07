@@ -25,7 +25,9 @@ export default defineConfig({
       },
     },
   },
-  server: { port: 5173 },
+  // The app bundles a few shared files from the repo root (data/practice-universe.json, the
+  // classic chart engine), so the dev server may read one level up.
+  server: { port: 5173, fs: { allow: ['..'] } },
   preview: { port: 4173 },
   test: {
     environment: 'jsdom',

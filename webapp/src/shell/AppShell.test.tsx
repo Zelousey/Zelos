@@ -9,6 +9,8 @@ const authState = { ready: true, user: null as null | { uid: string; isAnonymous
 vi.mock('../lib/auth', () => ({ useAuth: () => authState }));
 const inbox = { items: [] as unknown[], unread: 0, error: false, markAllRead: vi.fn(async () => {}) };
 vi.mock('./useInbox', () => ({ useInbox: () => inbox }));
+// screens' market data: stay "loading" (no network in unit tests)
+vi.mock('../data/liveDoc', () => ({ useLiveDoc: () => ({ status: 'loading' }) }));
 
 // jsdom lacks <dialog>.showModal; the Sheet falls back to the open attribute.
 function renderAt(path: string) {

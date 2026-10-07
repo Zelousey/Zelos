@@ -28,4 +28,6 @@ export function applyTheme(theme: Theme): void {
 export function setTheme(theme: Theme): void {
   writeString(THEME_KEY, theme);
   applyTheme(theme);
+  // canvases (the chart engine) redraw on this event, same as on the classic site
+  window.dispatchEvent(new CustomEvent('zelos:theme', { detail: { theme } }));
 }

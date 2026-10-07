@@ -1,0 +1,9 @@
+.tools { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
+@media (min-width: 761px) { .tools { grid-template-columns: minmax(220px, 320px) minmax(0, 1fr); align-items: center; } }
+.search { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--muted); }
+.search:focus-within { border-color: var(--accent); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; color: var(--ink); font-size: var(--text-md); }
+.status { display: flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: var(--text-xs); margin-bottom: var(--space-3); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-2); flex: none; }
+.open .dot { background: var(--bull); }
+.scope { color: var(--muted); font-size: var(--text-xs); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-soft); }

@@ -104,14 +104,15 @@ Recommended direction: **hybrid web-first / native-ready**. Keep improving the e
 
 ## 10. Current priorities (app build phase)
 1. **M1 app foundation** (PR from `claude/app-foundation`): shell, routing, components, CI job, Pages workflow. Owner then switches Pages source to "GitHub Actions" and adds `webapp` as a required check.
-2. **M2** Dashboard → Markets → Chart screens in the app, reading the existing `markets/*` data.
+2. **M2** Dashboard → Markets → Chart screens in the app, reading the existing `markets/*` data (branch `claude/app-markets`, built on M1).
 3. **M3** Practice trade flow → open positions, on the same practice account the classic page uses.
 4. Then move, in order: Real Trading, Alerts, Trade War, Options, Crypto, Profile/Social, Missions/XP, Arcade, Tokens.
 5. Capacitor (iOS first) once the core flow is solid; TestFlight for private testing on the owner's phone. Payment decision needed before App Store submission (Apple IAP rule 3.1.1, see `docs/APP_ARCHITECTURE.md`).
 6. Watch: live quotes at the next market open (`markets/quotes.source` should become Marketstack).
 
 ## 11. Open pull requests / work in flight
-- `claude/app-foundation`: M1 app foundation (see §10).
+- #34 `claude/app-foundation`: M1 app foundation (see §10).
+- `claude/app-markets` (on top of #34): M2 Dashboard, Markets, Chart. Also adds `destroy()` to the shared chart engine (`practice/practice-chart.js`, additive; classic pages restamped).
 
 Recently done: #31 docs + CI, #32 Marketstack + server XP + account deletion (deployed 2026-10-07), #33 deploy notes.
 

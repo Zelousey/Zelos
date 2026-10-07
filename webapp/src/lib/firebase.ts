@@ -7,15 +7,22 @@
  * call one.
  */
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth, type Auth } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
 import type { Functions } from 'firebase/functions';
-import { firebaseConfig } from './firebaseConfig';
+import { firebaseConfig, useEmulators } from './firebaseConfig';
 
 let app: FirebaseApp | null = null;
 
 export function firebaseApp(): FirebaseApp {
-  if (!app) app = initializeApp(firebaseConfig);
+  if (!app) {
+    app = initializeApp(firebaseConfig);
+    if (useEmulators) {
+      // test builds only (see firebaseConfig.ts)
+      connectAuthEmulator(getAuth(app), 'http://127.0.0.1:9099', { disableWarnings: true });
+      connectFirestoreEmulator(getFirestore(app), '127.0.0.1', 8080);
+    }
+  }
   return app;
 }
 
@@ -29,7 +36,12 @@ export function db(): Firestore {
 
 let fnsPromise: Promise<Functions> | null = null;
 export function functions(): Promise<Functions> {
-  if (!fnsPromise) fnsPromise = import('firebase/functions').then((m) => m.getFunctions(firebaseApp()));
+  if (!fnsPromise)
+    fnsPromise = import('firebase/functions').then((m) => {
+      const f = m.getFunctions(firebaseApp());
+      if (useEmulators) m.connectFunctionsEmulator(f, '127.0.0.1', 5001);
+      return f;
+    });
   return fnsPromise;
 }
 

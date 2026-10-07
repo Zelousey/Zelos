@@ -10,8 +10,11 @@ takes over its features one module at a time. Architecture, decisions and the na
 npm ci                 # install exactly what package-lock.json says
 npm run dev            # local dev server → http://localhost:5173/app/
 npm run check          # lint + typecheck + unit tests + production build (what CI runs)
-npm run test:e2e       # browser smoke tests against the build (phone + desktop, axe)
-                       # in a Claude cloud session: PW_CHROMIUM=/opt/pw-browsers/chromium npm run test:e2e
+npm run test:e2e       # browser tests (phone + desktop, axe, market flow) against a test build
+                       # on the local Firebase emulators seeded with e2e/fixtures/markets.json.
+                       # Needs Java. Extra args go to Playwright: npm run test:e2e -- e2e/markets.spec.ts
+                       # Claude cloud session: unset the proxy variables and set
+                       # PW_CHROMIUM=/opt/pw-browsers/chromium
 ```
 Node 22.22+ is required.
 

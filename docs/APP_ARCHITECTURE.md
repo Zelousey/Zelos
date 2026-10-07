@@ -24,7 +24,7 @@ but full reloads remain); (C) rewrite everything at once (high risk). A was chos
 | Firebase | Modular SDK v12 | Same project/config as the classic site (shared sign-in), ships only what's imported. |
 | Styling | CSS Modules + design tokens (`src/styles/tokens.css`) | No UI library: our own components, so the app doesn't look generic. |
 | Fonts | IBM Plex Sans/Mono, self-hosted (`@fontsource`) | Same fonts as the site; works offline and in the native app; no Google Fonts request. |
-| Tests | Vitest + Testing Library (unit), Playwright + axe (browser, accessibility) | Run in CI on every PR. |
+| Tests | Vitest + Testing Library (unit), Playwright + axe (browser, accessibility) | Run in CI on every PR. Browser tests use a `--mode e2e` build that talks to the local Auth + Firestore emulators (fake `demo-zelos` project) seeded with a trimmed copy of real `markets/*` docs (`webapp/e2e/fixtures/markets.json`). Normal builds can't reach the emulators. |
 
 No component library, state library or CSS framework was added. Add one only with a stated reason.
 
@@ -84,6 +84,15 @@ buttons (`--accent-fill`, `--buy-fill`, `--sell-fill`, `--up-ink`, `--down-ink`,
 theme passes WCAG AA; the axe browser test checks all three themes.
 
 ## Data
+Readers live in `src/data/`: `markets.ts` (typed, validated parsers for `markets/quotes`,
+`movers`, `snapshot`, `intraday_SYM`, `historyIndex`/`history_n`), `liveDoc.ts` (one shared
+`onSnapshot` listener per document, kept a few seconds after the last screen leaves, so
+moving between screens doesn't re-read), `universe.ts` (the stock list, bundled from
+`data/practice-universe.json`), `marketStatus.ts` (the "Market open · updated … · source" line).
+Charts use the classic site's engine (`practice/practice-chart.js`, bundled, wrapped by
+`features/charts/ChartView.tsx`; timeframe building in `features/charts/series.ts`), so both
+draw the same charts and share indicator/style preferences.
+
 The app uses the **existing** market-data architecture: scheduled Cloud Functions fetch
 Marketstack/SEC EDGAR and write public read-only `markets/*` docs; the app reads those.
 There is no second data system and no provider key in the app. Anything money-like or
@@ -124,6 +133,15 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 | Network | `navigator.onLine` | `@capacitor/network` |
 | Payments | Square checkout links | **Decision needed:** Apple requires In-App Purchase for digital goods (guideline 3.1.1). Tokens bought inside the iOS app must use IAP, or purchasing must be hidden in the iOS app. |
 | Classic pages | same-origin links | must be fully moved into the app (or opened in an in-app browser) before App Store review |
+
+## Screens in the app (status)
+| Screen | Route | Status |
+|---|---|---|
+| Dashboard | `/app/dashboard` | In the app: index ETF tiles with sparklines, top movers, sectors, watchlist, practice entry |
+| Markets | `/app/markets` | In the app: stock list with live prices, search, group filter |
+| Chart | `/app/markets/:sym` (`/app/charts` → last symbol) | In the app: 15m/1H/D/W, ranges, line/candles, today's stats, data table, Practice trade action |
+| Practice trade / positions | `/app/practice/...` | Next (M3) |
+| Everything else | — | Hand-off to the classic page |
 
 ## Performance baseline (first build, 2026-10-07)
 Gzipped JS: app ~10 KB, React + router ~98 KB, Firebase Auth ~30 KB, Firestore ~129 KB
