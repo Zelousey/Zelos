@@ -1,0 +1,76 @@
+name: Deploy site
+
+# Publishes agentictrading.info to GitHub Pages: the classic site (repo root, as before)
+# plus the app, built from webapp/ into /app/.
+#
+# It runs only after the CI workflow has passed on a push to main, so a red build never
+# reaches the live site. One-time setting this needs (repo owner):
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Until that is switched, GitHub keeps serving the main branch directly and /app/ is
+# simply not published.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # deploy exactly the commit CI tested
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Build the app
+        working-directory: webapp
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          # Same files GitHub Pages served from the branch before: every committed file
+          # except dotfiles/dot-folders (Jekyll skipped those) and the app/test sources.
+          git archive HEAD | tar -x -C _site
+          find _site -name '.*' -prune -exec rm -rf {} +
+          rm -rf _site/webapp _site/tests
+          mkdir -p _site/app
+          cp -R webapp/dist/. _site/app/
+          test -f _site/CNAME && test -f _site/index.html && test -f _site/app/index.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
