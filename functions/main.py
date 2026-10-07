@@ -57,6 +57,7 @@ from firebase_functions import https_fn, scheduler_fn
 from firebase_admin import initialize_app, firestore
 
 import mdata as MD  # Marketstack + SEC market data (the sources the site may show)
+import xp as XP  # XP award rules (server-decided amounts and limits)
 
 initialize_app()
 
@@ -4331,3 +4332,164 @@ def square_reconcile(db, uid, now_ms):
         except TWError:
             continue
     return got
+
+
+# ---------------------------------------------------------------- XP (server-decided)
+#   xp_award {type, refId}  -> {awarded, xp, streakDays}
+# The browser used to write users/{uid}.xp itself. Now only this function does: the
+# amount comes from functions/xp.py, never from the browser, and the activity ledger
+# users/{uid}/activity/{type:refId} (the dedup record) is server-only too.
+# Anonymous visitors earn XP as before (it carries over when they sign up).
+#   xpState/{uid}   server-only: {day, counts: {type: n}, xp} for the daily limits
+
+@https_fn.on_call()
+def xp_award(req: https_fn.CallableRequest):
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to earn XP.")
+    uid, data = a.uid, req.data or {}
+    kind = str(data.get("type") or "")[:40]
+    db, now_ms = firestore.client(), int(_time.time() * 1000)
+    today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
+    try:
+        amount, ref_id, why = XP.decide(kind, data.get("refId"), today)
+        if why:
+            return {"awarded": False, "reason": why}
+        # alert-open must name a real alert (teaser docs live in alerts/)
+        if kind == "alert-open" and not db.collection("alerts").document(ref_id).get().exists:
+            return {"awarded": False, "reason": "bad-ref"}
+        # referral XP only when that friend's referral record really names you
+        if kind == "referral":
+            r = db.collection("referrals").document(ref_id).get()
+            if not r.exists or (r.to_dict() or {}).get("referrer") != uid:
+                return {"awarded": False, "reason": "bad-ref"}
+        if kind == "referral-welcome" and not db.collection("referrals").document(uid).get().exists:
+            return {"awarded": False, "reason": "bad-ref"}
+
+        uref = db.collection("users").document(uid)
+        eref = uref.collection("activity").document((kind + ":" + ref_id)[:400].replace("/", "_"))
+        sref = db.collection("xpState").document(uid)
+        src = XP.SOURCES.get(kind, ("platform", kind))
+
+        @firestore.transactional
+        def txn(t):
+            ev, us, st = eref.get(transaction=t), uref.get(transaction=t), sref.get(transaction=t)
+            u = us.to_dict() if us.exists else {}
+            s = st.to_dict() if st.exists else {}
+            if s.get("day") != today:
+                s = {"day": today, "counts": {}, "xp": 0}
+            before = max(0, int(u.get("xp") or 0))
+            upd, awarded = {}, False
+            if not ev.exists:
+                amt, _, why2 = XP.decide(kind, ref_id, today, s.get("counts") or {}, int(s.get("xp") or 0))
+                if not why2:
+                    upd["xp"] = before + amt
+                    t.set(eref, {"type": kind, "refId": ref_id, "xp": amt, "source": src[0], "label": src[1],
+                                 "createdAt": firestore.SERVER_TIMESTAMP})
+                    counts = dict(s.get("counts") or {})
+                    counts[kind] = counts.get(kind, 0) + 1
+                    t.set(sref, {"day": today, "counts": counts, "xp": int(s.get("xp") or 0) + amt})
+                    awarded = True
+            if kind == "alert-open":
+                upd.update(XP.streak_update(u, today, yesterday))
+            if upd:
+                t.set(uref, upd, merge=True)
+            return {"awarded": awarded, "before": before, "xp": upd.get("xp", before),
+                    "streakDays": upd.get("streakDays", int(u.get("streakDays") or 0))}
+
+        return txn(db.transaction())
+    except https_fn.HttpsError:
+        raise
+    except Exception as e:
+        print("[xp] award failed: %s" % type(e).__name__)
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+
+
+# ---------------------------------------------------------------- account deletion
+#   account_delete {confirm: "DELETE"} -> {deleted: true}
+# Deletes the signed-in person's account and personal data, as the Privacy Policy
+# promises. Needs a sign-in from the last 10 minutes (the page re-asks for it), so a
+# stolen, idle session can't wipe an account. Kept on purpose (legal/tax/fraud records):
+# purchases/*, squareCheckouts/*, squareEvents/*. Past Trade War match results stay with
+# the match (other players' standings depend on them) but the account behind them is gone.
+
+ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "traders", "strategyVotes", "referrals",
+                "cosmetics", "twRecords", "xpState")
+ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",)}
+
+
+def _delete_collection(ref, batch_size=200):
+    while True:
+        docs = list(ref.limit(batch_size).stream())
+        if not docs:
+            return
+        b = ref._client.batch()
+        for d in docs:
+            b.delete(d.reference)
+        b.commit()
+
+
+def account_recent_login(tok, now_s, max_age_s=600):
+    """Pure: True if the ID token's sign-in time is within max_age_s."""
+    try:
+        return now_s - int(tok.get("auth_time") or 0) <= max_age_s
+    except (TypeError, ValueError):
+        return False
+
+
+@https_fn.on_call(timeout_sec=120)
+def account_delete(req: https_fn.CallableRequest):
+    from firebase_admin import auth as fb_auth
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in first.")
+    if (req.data or {}).get("confirm") != "DELETE":
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Confirmation missing.")
+    if not account_recent_login(a.token or {}, int(_time.time())):
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, "Please sign in again, then delete.")
+    uid, db = a.uid, firestore.client()
+    try:
+        # leave a community (keeps its counters right); founders' communities stay, minus them
+        ms = db.collection("communityMembers").document(uid).get()
+        m = ms.to_dict() if ms.exists else {}
+        if m.get("cid"):
+            cs = db.collection("communities").document(m["cid"]).get()
+
+            @firestore.transactional
+            def leave(t):
+                _leave_writes(t, db, uid, m, cs.to_dict() if cs.exists else None)
+            leave(db.transaction())
+            if cs.exists and (cs.to_dict() or {}).get("founder") == uid:
+                db.collection("communities").document(m["cid"]).update({"founderName": ""})
+        db.collection("communityMembers").document(uid).delete()
+
+        # squads: leave each; a squad you own with nobody else in it is deleted
+        for sq in db.collection("squads").where("members", "array_contains", uid).stream():
+            d = sq.to_dict() or {}
+            others = [x for x in d.get("members") or [] if x != uid]
+            if not others:
+                _delete_collection(sq.reference.collection("messages"))
+                sq.reference.delete()
+                if d.get("code"):
+                    db.collection("squadCodes").document(d["code"]).delete()
+            else:
+                upd = {"members": others, "names." + uid: firestore.DELETE_FIELD}
+                if d.get("owner") == uid:
+                    upd["owner"] = others[0]
+                sq.reference.update(upd)
+
+        for snap in db.collection("usernames").where("uid", "==", uid).stream():
+            snap.reference.delete()
+        for snap in db.collection("pushTokens").where("uid", "==", uid).stream():
+            snap.reference.delete()
+        for col in ACCOUNT_DOCS:
+            ref = db.collection(col).document(uid)
+            for sub in ACCOUNT_SUBCOLLECTIONS.get(col, ()):
+                _delete_collection(ref.collection(sub))
+            ref.delete()
+        fb_auth.delete_user(uid)
+        print("[account] deleted one account")
+        return {"deleted": True}
+    except Exception as e:
+        print("[account] delete failed: %s" % type(e).__name__)
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Couldn't delete everything. Email support and we'll finish it.")

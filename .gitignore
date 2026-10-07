@@ -5,3 +5,5 @@ firestore-debug.log
 *-debug.log
 functions/.secret.local
 functions/.env.local
+tests/rules/node_modules/
+firebase.e2e.tmp.json

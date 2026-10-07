@@ -2,19 +2,23 @@
 
 > This file prevents unnecessary data-plan upgrades. Verify actual requirements and provider documentation before purchasing anything.
 
-## Required data inventory
+## Required data inventory (decided 2026-10-07: Marketstack + SEC EDGAR)
 
 | Data | Required | Real-time required | Provider | Plan | Commercial rights verified | Status |
 |---|---|---|---|---|---|---|
-| Stock quotes | Yes | TBD | FMP | TBD | TBD | Verify |
-| Historical stock prices | Yes | No | FMP | TBD | TBD | Verify |
-| Intraday chart data | Yes | TBD | FMP | TBD | TBD | Verify |
-| Options chains | Yes | TBD | FMP/other | TBD | TBD | Verify |
-| News headlines | Yes | TBD | FMP/other | TBD | TBD | Verify |
-| Earnings dates | Yes | No | FMP/other | TBD | TBD | Verify |
-| Market movers | Yes | TBD | FMP/other | TBD | TBD | Verify |
-| Crypto | Yes | TBD | FMP/other | TBD | TBD | Verify |
-| Analyst targets | If needed | No | TBD | TBD | TBD | Verify |
+| Stock quotes | Yes | No (15-min is fine on Basic) | Marketstack | Basic ($9.99/mo, 10,000 req/mo) | Paid plans include commercial use, per Marketstack; owner to confirm on their account | Code ready (PR B), not deployed |
+| Historical stock prices (~2 yrs daily) | Yes | No | Marketstack | Basic | As above | Code ready |
+| Intraday chart data | Yes | No | Marketstack (15-min bars) | Basic; Professional for 1/5-min | As above | Code ready |
+| Market movers | Yes | No | Computed from the Zelos stock list (Marketstack quotes) | — | — | Code ready |
+| Company profile, financials, insider trades | Yes | No | SEC EDGAR | Free public data | Public government data; SEC asks for a contact email in the User-Agent (`SEC_CONTACT`) | Code ready |
+| Options chains | Yes (Options Scanner) | TBD | **None licensed yet** | — | — | Gap |
+| News headlines | Wanted | No | **None licensed yet** (Finnhub retired) | — | — | Hidden until licensed |
+| Earnings dates | Wanted | No | **None licensed yet** | — | — | Hidden until licensed |
+| Analyst targets | If needed | No | **None licensed yet** | — | — | Hidden |
+| Crypto | Wanted | TBD | **None licensed yet** | — | — | Paused (`data/crypto-universe.json`) |
+
+Retired as personal-use only: FMP and Finnhub personal plans, Yahoo's chart feed, Robinhood exports.
+Details, request budget and settings: `docs/market-data.md`.
 
 ## Rules
 1. Never assume a plan includes a feature.
@@ -67,19 +71,7 @@ Research public/open APIs only after:
 
 Do not assume an open-source API is commercially safe simply because its code is public.
 
-## Current FMP investigation
-The existing application has used FMP server-side infrastructure and an `FMP_API_KEY` secret.
-
-Verify:
-- Current plan
-- Current endpoint
-- Secret configuration
-- Cloud Function environment
-- Scheduler
-- Firestore quote pipeline
-- Expected fields
-- Browser fallback behavior
-- Rate limits
-- Error handling
-
-Do not remove the existing fallback provider until the replacement is verified.
+## Open questions
+- Options chains for the Options Scanner: which licensed source, and at what cost?
+- Is the Basic plan's 15-minute delay acceptable long-term, or is Professional needed?
+- Confirm Marketstack's attribution requirements and show them on pages that display prices.

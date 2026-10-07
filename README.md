@@ -71,7 +71,7 @@ secrets described there.
 - `games/chart-replay.html` (flagship simulator), `games/grade-the-setup.html`, `games/stop-drill.html`, `games/daily-challenge.html`
 - Shared engine: `games/zelos-chart-engine.js` + `games/zelos-games.css`. Chart data: about 2 years of real daily bars that the server saves from Marketstack (`markets/history_<n>`, loaded by `zelos-mdata.js`).
 - Pages are generated: edit `scripts/build_games.py` / `scripts/page-src/games/*.js`, then run `python3 scripts/build_games.py`.
-- New leaderboard ids (`chart-replay`, `grade-the-setup`, `stop-drill`, `daily-YYYY-MM-DD`) are registered in `leaderboard.js`. Matching Realtime Database rules are in `database.rules.json` (paste into Firebase console → Realtime Database → Rules).
+- New leaderboard ids (`chart-replay`, `grade-the-setup`, `stop-drill`, `daily-YYYY-MM-DD`) are registered in `leaderboard.js`. Matching Realtime Database rules are in `database.rules.json` (deploy with `firebase deploy --only database`). Scores need a Firebase user (every visitor gets a guest one) and are limited to one per player every 10 seconds.
 - Scores can carry an optional `ref` (Chart Replay sends its chart seed) so a leaderboard row opens that exact chart. The rule for `ref` is in `database.rules.json`; until it's pasted into the console, `leaderboard.js` retries the push without `ref`, so scores still post.
 - Engine features the games use: forecast boxes (`chart.box`), draggable stop/target handles (`chart.handles` + `onDrag`), on-chart prompts (`chart.prompt`), the "what happened next" banner and bar-by-bar `chart.reveal()`.
 
