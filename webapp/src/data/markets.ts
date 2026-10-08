@@ -64,7 +64,8 @@ export function parseSnapshotDoc(d: DocumentData): SnapshotDoc {
   return { items: j.items ?? {}, groups: { tape: j.groups?.tape ?? [], indices: j.groups?.indices ?? [], sectors: j.groups?.sectors ?? [] }, spark: j.spark ?? {}, sourceShort: j.sourceShort ?? 'Marketstack' };
 }
 
-/** "YYYY-MM-DD[ HH:MM],o,h,l,c,v" strings → bars, skipping malformed rows. */
+/** "YYYY-MM-DD[ HH:MM],o,h,l,c,v" strings → bars, skipping malformed rows and impossible
+ *  prices (zero or negative: the provider has sent bars with a $0 low/close). */
 export function parseBarStrings(rows: unknown): Bar[] {
   if (!Array.isArray(rows)) return [];
   const out: Bar[] = [];
@@ -72,7 +73,7 @@ export function parseBarStrings(rows: unknown): Bar[] {
     const p = String(r).split(',');
     if (p.length < 5) continue;
     const [d, o, h, l, c, v] = [p[0]!, +p[1]!, +p[2]!, +p[3]!, +p[4]!, +(p[5] ?? 0) || 0];
-    if (!/^\d{4}-\d{2}-\d{2}/.test(d) || ![o, h, l, c].every(Number.isFinite)) continue;
+    if (!/^\d{4}-\d{2}-\d{2}/.test(d) || ![o, h, l, c].every((x) => Number.isFinite(x) && x > 0)) continue;
     out.push([d, o, h, l, c, v]);
   }
   return out;
@@ -96,7 +97,7 @@ export function loadHistory(): Promise<Record<string, Bar[]>> {
         const blob = JSON.parse(String(d.data()?.json ?? '{}')) as Record<string, unknown[]>;
         for (const [sym, rows] of Object.entries(blob)) {
           if (!SYMBOL_RE.test(sym) || !Array.isArray(rows)) continue;
-          out[sym] = rows.filter((r): r is Bar => Array.isArray(r) && r.length >= 5 && typeof r[0] === 'string').map((r) => [r[0], +r[1], +r[2], +r[3], +r[4], +(r[5] ?? 0) || 0]);
+          out[sym] = parseBarStrings(rows.filter((r): r is unknown[] => Array.isArray(r) && r.length >= 5 && typeof r[0] === 'string').map((r) => r.join(',')));
         }
       }
       return out;

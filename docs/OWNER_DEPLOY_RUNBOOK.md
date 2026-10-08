@@ -111,3 +111,32 @@ its leaderboard numbers stop updating (the new rules only let the server write t
 two steps back to back.
 
 **Undo:** `git checkout main && npx -y firebase-tools@latest deploy --only functions,firestore:rules --project leaderboard-agentictrading`, and revert the PR if it was merged.
+
+# Fix: live prices stuck since 2026-10-07 (the marketstack-fix PR)
+
+**What was wrong.** Every 15-minute price refresh asked Marketstack for all 50 stocks in one
+intraday request, and that request timed out (`markets/quotes` showed `error: TimeoutError`,
+prices frozen at the 2026-10-06 close, practice orders not filling). Daily prices kept working.
+Separately, Marketstack sent some daily bars with a $0 low/close (e.g. 2026-04-07/08 and
+2026-06-04 for SPY, DIA, META and ~20 others), which drew spikes to zero on charts.
+
+**The fix.** Intraday requests go 10 stocks at a time, wait up to 40 s, retry once on a timeout,
+and a group that still fails no longer stops the others. A time budget keeps the run inside its
+limit. The after-close job no longer fails (and re-runs all evening) when only the intraday step
+fails. Bars with a zero or negative price are never stored, and the next after-close run removes
+the bad ones already stored. The app's charts also ignore such bars.
+
+Deploy only the two functions that changed (about 3 minutes), then merge:
+```
+cd ~/Zelos && git fetch origin && git checkout claude/marketstack-fix && git pull
+source functions/venv/bin/activate && pip install -r functions/requirements.txt
+npx -y firebase-tools@latest deploy --only functions:refresh_quotes,functions:refresh_market_data --project leaderboard-agentictrading
+```
+If it shows an IAM/permission error, run the last line again. Then merge the PR on GitHub.
+
+**Check (next market day, after 9:46 am New York time):** open the app's Market tab; the status
+line should say the market is open with a recent "updated" time, and prices should move every
+15 minutes. If they don't, run `bash scripts/marketstack_check.sh` in Cloud Shell and send Claude
+the output (it never prints the key).
+
+**Undo:** `git checkout main` and run the same deploy line.

@@ -658,7 +658,7 @@ def _fetch_all_quotes(api_key):
     schedule="* 9-16 * * 1-5",
     timezone=scheduler_fn.Timezone("America/New_York"),
     secrets=["MARKETSTACK_API_KEY"],
-    timeout_sec=120,
+    timeout_sec=300,
     memory=256,
 )
 def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
@@ -1308,9 +1308,9 @@ def ms_run_quotes(db, key, now):
     """Today's intraday bars for the stock list -> quotes, intraday docs and movers."""
     today = now.strftime("%Y-%m-%d")
     iv = MD.ms_interval()
-    rows = []
-    for ch in MD.chunks(PRACTICE_SYMBOLS, 100):
-        rows += MD.ms_rows("intraday", {"symbols": ",".join(ch), "interval": iv, "date_from": today, "sort": "ASC"}, key, max_pages=4)
+    rows, failed = MD.ms_rows_chunked("intraday", {"interval": iv, "date_from": today, "sort": "ASC"}, PRACTICE_SYMBOLS, key, size=10, max_pages=4, timeout=40, budget=200)
+    if failed:
+        print("[refresh_quotes] no prices this run for %d symbols (Marketstack timed out or failed)" % len(failed))
     bars = MD.ms_intraday_bars(rows)
     dsnap = db.collection("markets").document("dailyBars").get()
     daily = ((dsnap.to_dict() or {}).get("bars") or {}) if dsnap.exists else {}
@@ -1435,15 +1435,22 @@ def ms_after_close(db, key, now, state):
     iv = MD.ms_interval()
     label = iv.replace("min", "m").replace("1hour", "60m")
     ifrm = (now - MD.timedelta(days=8)).strftime("%Y-%m-%d")
-    rows = []
-    for ch in MD.chunks(PRACTICE_SYMBOLS, 100):
-        rows += MD.ms_rows("intraday", {"symbols": ",".join(ch), "interval": iv, "date_from": ifrm, "sort": "ASC"}, key, max_pages=12)
-    ib = MD.ms_intraday_bars(rows)
-    batch = db.batch()
-    for sym, b in ib.items():
-        if sym in PRACTICE_SYMBOLS:
-            batch.set(db.collection("markets").document("intraday_" + sym), {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday([], b)})
-    batch.commit()
+    # (a failure here must not undo the day's work above, or the job re-runs all evening)
+    ib = {}
+    try:
+        rows, failed = MD.ms_rows_chunked("intraday", {"interval": iv, "date_from": ifrm, "sort": "ASC"}, PRACTICE_SYMBOLS, key, size=10, max_pages=6, timeout=45, budget=200)
+        if failed:
+            print("[after-close] intraday bars missing for %d symbols" % len(failed))
+        ib = MD.ms_intraday_bars(rows)
+        batch = db.batch()
+        for sym, b in ib.items():
+            if sym in PRACTICE_SYMBOLS:
+                batch.set(db.collection("markets").document("intraday_" + sym), {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday([], b)})
+        batch.commit()
+    except (MD.MsKeyRejected, MD.MsQuota):
+        raise
+    except Exception as e:
+        print("[after-close] intraday bars failed:", type(e).__name__, e)
     return {"history": len(hist), "daily": len(bars), "snapshot": len(snapd["items"]), "intraday": len(ib), "full": full}
 
 

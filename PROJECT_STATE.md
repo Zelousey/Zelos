@@ -59,6 +59,7 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 - Legal pages are drafted; lawyer review still recommended (`docs/LEGAL_APP_STORE.md`).
 
 ## 5. Known issues
+- **Live prices stuck since 2026-10-07 (fix ready, branch `claude/marketstack-fix`):** every 15-minute Marketstack intraday request (all 50 stocks at once) timed out, so `markets/quotes` stayed at the 2026-10-06 close (`error: TimeoutError`), `intraday_*` docs were never rewritten, practice orders could not fill, and the after-close job re-ran all evening. Daily (EOD) data was fine. Also: Marketstack sent daily bars with a $0 low/close (2026-04-07/08, 2026-06-04; 22 symbols incl. SPY), which drew spikes to zero on charts. The fix chunks intraday requests (10 symbols, 40 s, one retry, time budget), isolates failures, rejects non-positive prices and cleans stored history. Owner deploys `refresh_quotes` + `refresh_market_data` (runbook: "Fix: live prices stuck"), then merges. Verify at the next market open.
 - **Branch protection:** ruleset "Zelos Protection Main" exists but is **disabled**, and it lets the Admin/Maintain/Write roles bypass it, so it would not protect `main` even if enabled. It also has no "require a pull request" or "require status checks" rule. Recommended settings are in `docs/DEVELOPMENT_WORKFLOW.md`.
 - README mentions `.github/workflows/scan-pages.yml`; it does not exist, so `scan/` pages are only rebuilt by hand.
 - Firebase web API key is public by design; it should be restricted to the site's domains in Google Cloud Console → Credentials.
