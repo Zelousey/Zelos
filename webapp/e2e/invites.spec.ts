@@ -76,7 +76,7 @@ test('invite a friend by username: Accept right in their bell', async ({ browser
   await host.getByLabel('Or send it to a Zelos user').fill('@' + uname);
   await host.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(host.getByRole('status').filter({ hasText: `Sent to @${uname}` })).toBeVisible();
-  // coach is listed as coming soon
+  // coach stays locked below Level 3
   await host.getByRole('button', { name: 'Make another invite' }).click();
   await expect(host.getByRole('button', { name: /^Coach/ })).toBeDisabled();
 

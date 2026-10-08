@@ -150,6 +150,23 @@ test('missions are counted by the server: browsers cannot write them', async () 
   await assertSucceeds(updateDoc(doc(real('alice').firestore(), 'users/alice'), { watchlist: ['AAPL'] }));
 });
 
+test('coaching: only the coach and the student can read it; nobody writes from the browser', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'coachings/alice_bob'), { coach: 'alice', student: 'bob', status: 'active' });
+    await setDoc(doc(c.firestore(), 'coachings/alice_bob/notes/n1'), { from: 'alice', text: 'hi' });
+    await setDoc(doc(c.firestore(), 'coaches/alice'), { badge: true });
+  });
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'coachings/alice_bob')));
+  await assertSucceeds(getDocs(query(collection(real('bob').firestore(), 'coachings'), where('student', '==', 'bob'))));
+  await assertSucceeds(getDoc(doc(real('bob').firestore(), 'coachings/alice_bob/notes/n1')));
+  await assertFails(getDoc(doc(real('carol').firestore(), 'coachings/alice_bob')));
+  await assertFails(getDoc(doc(real('carol').firestore(), 'coachings/alice_bob/notes/n1')));
+  await assertFails(setDoc(doc(real('bob').firestore(), 'coachings/alice_bob/notes/n2'), { from: 'bob', text: 'x' }));
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'coachings/alice_bob'), { status: 'ended' }));
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'coaches/alice')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'coaches/alice'), { badge: true }));
+});
+
 // ---------------------------------------------------------------- invites + referrals: server-written
 test('invites: anyone can open one by its code; only the server writes them', async () => {
   await env.withSecurityRulesDisabled(async (c) => {

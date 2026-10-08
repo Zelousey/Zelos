@@ -4467,7 +4467,7 @@ def xp_award(req: https_fn.CallableRequest):
     db, now_ms = firestore.client(), int(_time.time() * 1000)
     today = _ny_day(now_ms)
     try:
-        if kind == "mission":  # paid only by the server's own mission counter now
+        if kind in XP.SERVER_ONLY:  # missions and coaching are paid only by the server
             return {"awarded": False, "reason": "server-counted"}
         amount, ref_id, why = XP.decide(kind, data.get("refId"), today)
         if why:
@@ -4560,12 +4560,16 @@ def mission_record(db, uid, ev, now_ms, n=1, ref=None):
             snap = uref.get(transaction=t)
             doc = (snap.to_dict() or {}) if snap.exists else {}
             state = MS.seed_streak(doc.get("missions"), doc.get("progress"))
+            before = MS.roll(state, today, wk)["day"]["counts"].get(ev, 0)
             new, done = MS.apply(state, ev, today, yesterday, wk, n=n, ref=ref)
             t.set(uref, {"missions": new}, merge=True)
-            return done
+            return done, new["day"]["counts"].get(ev, 0) - before
 
-        for ref_id in txn(db.transaction()):
+        done, counted = txn(db.transaction())
+        for ref_id in done:
             xp_grant(db, uid, "mission", ref_id, now_ms)
+        if counted > 0 and ev in CO.KINDS:
+            coach_progress(db, uid, ev, counted, now_ms)
     except Exception as e:
         print("[missions] %s for one user failed: %s" % (ev, type(e).__name__))
 
@@ -4592,7 +4596,7 @@ def mission_event(req: https_fn.CallableRequest):
 # the match (other players' standings depend on them) but the account behind them is gone.
 
 ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "practiceAccounts", "practiceArchive", "traders", "strategyVotes", "referrals",
-                "cosmetics", "twRecords", "xpState", "inviteState")
+                "cosmetics", "twRecords", "xpState", "inviteState", "coaches")
 ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",), "practiceAccounts": ("history",)}
 
 
@@ -4656,6 +4660,10 @@ def account_delete(req: https_fn.CallableRequest):
                     upd["owner"] = others[0]
                 sq.reference.update(upd)
 
+        # coaching you're part of ends
+        for fld in ("coach", "student"):
+            for snap in db.collection("coachings").where(fld, "==", uid).where("status", "==", "active").stream():
+                snap.reference.update({"status": "ended", "endedAt": int(_time.time() * 1000), "endedBy": "deleted"})
         # invite links you made stop working (they carry your public name)
         for snap in db.collection("invites").where("from", "==", uid).stream():
             snap.reference.update({"status": "cancelled", "fromName": "Trader", "fromUsername": None, "fromPhoto": None})
@@ -5222,8 +5230,8 @@ def invite_create(req, db, uid, tok, now_ms):
     st_ref = db.collection("inviteState").document(uid)
     st = INV.day_state((st_ref.get().to_dict() or {}) if st_ref.get().exists else {}, _ny_day(now_ms))
     # one reusable "join Zelos" link per person while it's valid
-    if kind == "join" and st.get("join"):
-        old = db.collection("invites").document(st["join"]).get()
+    if kind in ("join", "coach") and st.get(kind):
+        old = db.collection("invites").document(st[kind]).get()
         if old.exists and not INV.usable(old.to_dict(), now_ms + 86400000):
             return {"code": old.id, "url": _inv_url(old.id), "reused": True}
     if st["created"] >= INV.MAX_CREATED_PER_DAY:
@@ -5237,6 +5245,13 @@ def invite_create(req, db, uid, tok, now_ms):
         war = w.to_dict() if w.exists else None
         INV.check_battle(war, uid)
         inv.update({"warId": target, "warName": str(war.get("name") or "Trade War")[:40], "buyIn": war.get("buyIn"), "days": war.get("days")})
+    elif kind == "coach":
+        u = db.collection("users").document(uid).get()
+        if not CO.can_coach((u.to_dict() or {}).get("xp") if u.exists else 0):
+            raise INV.InviteError("FAILED_PRECONDITION", "Coaching unlocks at Level 3 (Gold, 150 XP).")
+        active = sum(1 for _ in db.collection("coachings").where("coach", "==", uid).where("status", "==", "active").limit(CO.MAX_STUDENTS + 1).stream())
+        if active >= CO.MAX_STUDENTS:
+            raise INV.InviteError("FAILED_PRECONDITION", "You already coach %d students, the most at one time." % CO.MAX_STUDENTS)
     elif kind == "squad":
         q = db.collection("squads").document(target).get()
         squad = q.to_dict() if q.exists else None
@@ -5245,8 +5260,8 @@ def invite_create(req, db, uid, tok, now_ms):
     code = "".join(_secrets.choice(INV.CODE_ALPHABET) for _ in range(INV.CODE_LEN))
     db.collection("invites").document(code).set(inv)
     st["created"] += 1
-    if kind == "join":
-        st["join"] = code
+    if kind in ("join", "coach"):
+        st[kind] = code
     st_ref.set(st)
     return {"code": code, "url": _inv_url(code), "reused": False}
 
@@ -5290,6 +5305,7 @@ def invite_send(req, db, uid, tok, now_ms):
         "battle": ("%s invited you to a Trade War" % who, "%s · %s virtual buy-in. Tap to join." % (inv.get("warName") or "Trade War", _tw_money(inv.get("buyIn") or 0).split(".")[0])),
         "squad": ("%s invited you to their squad" % who, "Team up in %s and climb the squad leaderboard together." % (inv.get("squadName") or "their squad")),
         "join": ("%s invited you to Zelos Trade War" % who, "Trade real stocks with a virtual $10,000 and compete with friends."),
+        "coach": ("%s offered to be your coach" % who, "Your coach sees your progress and trades, sets tasks and sends tips. You both earn XP."),
     }[inv["kind"]]
     notify_users(db, [to], "challenges" if inv["kind"] == "battle" else "friends", title, body, "app/i/" + code, "invite-" + code,
                  action={"type": "invite", "code": code, "kind": inv["kind"]})
@@ -5313,6 +5329,8 @@ def invite_accept(req, db, uid, tok, now_ms):
         raise INV.InviteError("FAILED_PRECONDITION", "That's your own invite. Share it with a friend.")
     pname = _tw_name(db, uid, tok)
     out = {"kind": inv["kind"], "warId": inv.get("warId"), "squadId": inv.get("squadId"), "referral": False, "xp": 0, "again": again}
+    if inv["kind"] == "coach":
+        out["coachingId"] = coach_start(db, inv["from"], inv.get("fromName"), uid, pname, now_ms)
     if inv["kind"] == "battle":
         _tw_join(db, inv["warId"], uid, pname, now_ms)
     elif inv["kind"] == "squad":
@@ -5377,3 +5395,216 @@ def referral_claim(req, db, uid, tok, now_ms):
     if recorded:
         _inv_befriend(db, ref, uid)
     return {"recorded": recorded}
+
+
+# ---------------------------------------------------------------------------
+# Coach / Learn (functions/coaching.py). Started by accepting a "coach" invite.
+#   coach_refresh {coachingId}                    -> {summary}   rebuild what the coach sees
+#   coach_task    {coachingId, kind, n, days, text}            coach sets a task
+#   coach_task_update {coachingId, taskId, action: tick|confirm|reject|cancel}
+#   coach_note    {coachingId, text, reaction?, tradeId?}       either side; a reaction to a trade
+#   coach_end     {coachingId}                                  either side
+# Everything is written here; the two people can read their coaching and its tasks and notes.
+# ---------------------------------------------------------------------------
+import coaching as CO
+
+
+def _co_http(e):
+    return https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), e.message)
+
+
+def _co_get(db, cid, uid, active=True):
+    """(ref, doc, role) for a coaching this person belongs to, or CoachError."""
+    if not isinstance(cid, str) or not _re.match(r"^[A-Za-z0-9_-]{6,260}$", cid):
+        raise CO.CoachError("INVALID_ARGUMENT", "That coaching isn't valid.")
+    ref = db.collection("coachings").document(cid)
+    snap = ref.get()
+    doc = snap.to_dict() if snap.exists else None
+    if not doc or uid not in (doc.get("coach"), doc.get("student")):
+        raise CO.CoachError("NOT_FOUND", "That coaching doesn't exist.")
+    if active and doc.get("status") != "active":
+        raise CO.CoachError("FAILED_PRECONDITION", "This coaching has ended.")
+    return ref, doc, "coach" if uid == doc.get("coach") else "student"
+
+
+def coach_summary(db, student, now_ms):
+    u = db.collection("users").document(student).get()
+    p = db.collection("practiceProfiles").document(student).get()
+    trades = []
+    try:
+        # newest history first, trades only (filtered here: no composite index needed)
+        q = db.collection("practiceAccounts").document(student).collection("history").order_by("at", direction=firestore.Query.DESCENDING).limit(80)
+        trades = [dict(d.to_dict() or {}, id=d.id) for d in q.stream() if (d.to_dict() or {}).get("kind") == "trade"][:10]
+    except Exception as e:
+        print("[coach] trades read failed:", type(e).__name__)
+    ud = (u.to_dict() or {}) if u.exists else {}
+    out = CO.summary(ud, (p.to_dict() or {}) if p.exists else {}, trades, ud.get("missions"), _ny_day(now_ms))
+    out["updatedAt"] = now_ms
+    return out
+
+
+def coach_start(db, coach, coach_name, student, student_name, now_ms):
+    """Accepting a coach invite (invite_accept). Returns the coaching id."""
+    cu = db.collection("users").document(coach).get()
+    active = sum(1 for _ in db.collection("coachings").where("coach", "==", coach).where("status", "==", "active").limit(CO.MAX_STUDENTS + 1).stream())
+    mine = [d for d in db.collection("coachings").where("student", "==", student).where("status", "==", "active").limit(2).stream()]
+    cid = CO.pair_id(coach, student)
+    if any(d.id == cid for d in mine):
+        return cid
+    CO.check_start(coach, student, (cu.to_dict() or {}).get("xp") if cu.exists else 0, active, bool(mine))
+    db.collection("coachings").document(cid).set({
+        "coach": coach, "student": student, "coachName": coach_name or "Coach", "studentName": student_name or "Trader",
+        "status": "active", "startedAt": now_ms, "endedAt": None, "endedBy": None, "tasksDone": 0,
+        "summary": coach_summary(db, student, now_ms)})
+    db.collection("coaches").document(coach).set({"students": firestore.Increment(1)}, merge=True)
+    notify_users(db, [coach], "friends", "%s accepted your coaching" % (student_name or "Your student"),
+                 "Set their first task and look at their trades.", "app/coach/" + cid, "coach-" + cid[:20])
+    return cid
+
+
+def coach_progress(db, student, ev, n, now_ms):
+    """A mission event for a coached student: move their open tasks of that kind along."""
+    try:
+        for c in db.collection("coachings").where("student", "==", student).where("status", "==", "active").limit(1).stream():
+            cdoc = c.to_dict() or {}
+            for tsnap in c.reference.collection("tasks").where("status", "==", "open").where("kind", "==", ev).stream():
+                task, done = CO.advance(tsnap.to_dict() or {}, ev, n, now_ms)
+                tsnap.reference.set(task)
+                if done:
+                    _coach_task_done(db, c.reference, cdoc, tsnap.id, task, now_ms)
+    except Exception as e:
+        print("[coach] progress failed:", type(e).__name__)
+
+
+def _coach_task_done(db, cref, cdoc, tid, task, now_ms):
+    # a custom task can pay its 5 XP once a day at most: its refId is the day, not the task
+    ref_id = "custom:%s" % _ny_day(now_ms).replace("-", "") if task["kind"] == "custom" else "%s:%s" % (task["kind"], tid)
+    got = xp_grant(db, cdoc["student"], "coach-task", ref_id, now_ms)
+    if task["kind"] != "custom":
+        xp_grant(db, cdoc["coach"], "coach-bonus", ref_id, now_ms)
+        cref.update({"tasksDone": firestore.Increment(1)})
+        stats = db.collection("coaches").document(cdoc["coach"])
+        stats.set({"tasksDone": firestore.Increment(1)}, merge=True)
+        s2 = stats.get().to_dict() or {}
+        if int(s2.get("tasksDone") or 0) >= CO.BADGE_TASKS and not s2.get("badge"):
+            stats.set({"badge": True, "badgeAt": now_ms}, merge=True)
+            notify_users(db, [cdoc["coach"]], "friends", "You earned the Coach badge", "Your students finished %d tasks." % CO.BADGE_TASKS, "app/coach", "coach-badge")
+    xp = (got.get("xp", 0) - got.get("before", 0)) if got.get("awarded") else 0
+    notify_users(db, [cdoc["student"]], "friends", "Task done: %s" % task.get("label", ""), ("+%d XP." % xp) if xp else "Nice work.", "app/coach/" + cref.id, "task-" + tid)
+    notify_users(db, [cdoc["coach"]], "friends", "%s finished a task" % cdoc.get("studentName", "Your student"), task.get("label", ""), "app/coach/" + cref.id, "task-" + tid)
+
+
+def _co_call(fn):
+    def wrapper(req):
+        try:
+            uid = _tw_user(req)
+            return fn(req, firestore.client(), uid, (req.auth.token or {}), int(_time.time() * 1000))
+        except (CO.CoachError, TWError) as e:
+            raise _co_http(e)
+        except https_fn.HttpsError:
+            raise
+        except Exception as e:
+            print("[coach] %s failed: %s\n%s" % (fn.__name__, type(e).__name__, _traceback.format_exc()[-1500:]))
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+@https_fn.on_call()
+@_co_call
+def coach_refresh(req, db, uid, tok, now_ms):
+    ref, doc, _ = _co_get(db, (req.data or {}).get("coachingId"), uid)
+    # rebuilt at most every 15 seconds per coaching (opening the page twice doesn't re-read)
+    if now_ms - int(doc.get("refreshedAt") or 0) < 15000:
+        return {"summary": doc.get("summary")}
+    s2 = coach_summary(db, doc["student"], now_ms)
+    ref.update({"summary": s2, "refreshedAt": now_ms})
+    # tasks past their due date close now
+    for t in ref.collection("tasks").where("status", "==", "open").stream():
+        if now_ms > int((t.to_dict() or {}).get("dueAt") or 0):
+            t.reference.update({"status": "expired"})
+    return {"summary": s2}
+
+
+@https_fn.on_call()
+@_co_call
+def coach_task(req, db, uid, tok, now_ms):
+    data = req.data or {}
+    ref, doc, role = _co_get(db, data.get("coachingId"), uid)
+    if role != "coach":
+        raise CO.CoachError("PERMISSION_DENIED", "Only the coach sets tasks.")
+    task = CO.validate_task(data, now_ms)
+    open_n = sum(1 for _ in ref.collection("tasks").where("status", "in", ["open", "review"]).limit(CO.MAX_OPEN_TASKS + 1).stream())
+    if open_n >= CO.MAX_OPEN_TASKS:
+        raise CO.CoachError("RESOURCE_EXHAUSTED", "Your student already has %d open tasks." % CO.MAX_OPEN_TASKS)
+    tref = ref.collection("tasks").document()
+    tref.set(task)
+    notify_users(db, [doc["student"]], "friends", "New task from %s" % doc.get("coachName", "your coach"), task["label"], "app/coach/" + ref.id, "task-" + tref.id)
+    return {"taskId": tref.id}
+
+
+@https_fn.on_call()
+@_co_call
+def coach_task_update(req, db, uid, tok, now_ms):
+    data = req.data or {}
+    ref, doc, role = _co_get(db, data.get("coachingId"), uid)
+    tid, action = str(data.get("taskId") or ""), data.get("action")
+    if not _re.match(r"^[A-Za-z0-9]{6,40}$", tid):
+        raise CO.CoachError("INVALID_ARGUMENT", "That task isn't valid.")
+    tref = ref.collection("tasks").document(tid)
+    snap = tref.get()
+    task = snap.to_dict() if snap.exists else None
+    if not task:
+        raise CO.CoachError("NOT_FOUND", "That task doesn't exist.")
+    if action == "tick" and role == "student" and task.get("kind") == "custom" and task.get("status") == "open":
+        tref.update({"status": "review"})
+        notify_users(db, [doc["coach"]], "friends", "%s says a task is done" % doc.get("studentName", "Your student"), task.get("label", "") + " Confirm it on their page.", "app/coach/" + ref.id, "task-" + tid)
+    elif action in ("confirm", "reject") and role == "coach" and task.get("status") == "review":
+        if action == "reject":
+            tref.update({"status": "open"})
+        else:
+            task.update({"status": "done", "doneAt": now_ms, "progress": 1})
+            tref.set(task)
+            _coach_task_done(db, ref, doc, tid, task, now_ms)
+    elif action == "cancel" and role == "coach" and task.get("status") in ("open", "review"):
+        tref.update({"status": "cancelled"})
+    else:
+        raise CO.CoachError("FAILED_PRECONDITION", "That can't be done to this task.")
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_co_call
+def coach_note(req, db, uid, tok, now_ms):
+    data = req.data or {}
+    ref, doc, role = _co_get(db, data.get("coachingId"), uid)
+    since = now_ms - 86400000
+    today_n = sum(1 for d in ref.collection("notes").where("at", ">", since).limit(2 * CO.NOTES_PER_DAY + 1).stream() if (d.to_dict() or {}).get("from") == uid)
+    text, reaction, trade_id = CO.validate_note(data, today_n)
+    trade = None
+    if trade_id:
+        trade = next((t for t in ((doc.get("summary") or {}).get("trades") or []) if t.get("id") == trade_id), None)
+        if not trade:
+            raise CO.CoachError("NOT_FOUND", "That trade isn't in the student's recent trades.")
+        trade = {k: trade.get(k) for k in ("id", "sym", "side", "pnl", "pct")}
+    name = doc.get("coachName") if role == "coach" else doc.get("studentName")
+    ref.collection("notes").add({"from": uid, "fromName": name, "role": role, "text": text, "reaction": reaction, "trade": trade, "at": now_ms})
+    other = doc["student"] if role == "coach" else doc["coach"]
+    words = {"good": "Good move", "bad": "Bad move", "tip": "Try this"}
+    title = ("%s on your %s trade: %s" % (name, trade["sym"], words.get(reaction, "a note"))) if trade else "%s sent you a note" % name
+    notify_users(db, [other], "friends", title, text or words.get(reaction, ""), "app/coach/" + ref.id, "note-" + ref.id[:20])
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_co_call
+def coach_end(req, db, uid, tok, now_ms):
+    ref, doc, role = _co_get(db, (req.data or {}).get("coachingId"), uid)
+    ref.update({"status": "ended", "endedAt": now_ms, "endedBy": role})
+    db.collection("coaches").document(doc["coach"]).set({"students": firestore.Increment(-1)}, merge=True)
+    for t in ref.collection("tasks").where("status", "in", ["open", "review"]).stream():
+        t.reference.update({"status": "cancelled"})
+    other = doc["student"] if role == "coach" else doc["coach"]
+    notify_users(db, [other], "friends", "%s ended your coaching" % (doc.get("coachName") if role == "coach" else doc.get("studentName")),
+                 "You can start a new one any time from Invite friends.", "app/coach", "coach-end-" + ref.id[:20])
+    return {"ok": True}

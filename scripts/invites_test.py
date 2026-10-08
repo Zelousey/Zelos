@@ -36,7 +36,7 @@ I.check_battle({"players": ["u1"], "status": "lobby"}, "u1"); ok(True, "your lob
 ok(raises(lambda: I.check_squad({"members": ["u2"]}, "u1"), "PERMISSION_DENIED"), "not your squad")
 
 # limits
-ok(I.day_state({"day": "2026-10-07", "created": 9, "sent": 9, "join": "abc"}, "2026-10-08") == {"day": "2026-10-08", "created": 0, "sent": 0, "join": "abc"}, "new day resets counters, keeps the join link")
+ok(I.day_state({"day": "2026-10-07", "created": 9, "sent": 9, "join": "abc"}, "2026-10-08") == {"day": "2026-10-08", "created": 0, "sent": 0, "join": "abc", "coach": None}, "new day resets counters, keeps the join and coach links")
 ok(I.day_state({"day": "2026-10-08", "created": 3, "sent": 1}, "2026-10-08")["created"] == 3, "same day keeps counters")
 
 # accepting

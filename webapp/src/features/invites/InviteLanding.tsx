@@ -74,7 +74,7 @@ function Landing({ inv }: { inv: Invite }) {
 
   if (done) return <Done inv={inv} res={done} />;
 
-  const what = inv.kind === 'battle' ? t('land.battle') : inv.kind === 'squad' ? t('land.squad') : t('land.join');
+  const what = inv.kind === 'battle' ? t('land.battle') : inv.kind === 'squad' ? t('land.squad') : inv.kind === 'coach' ? t('land.coach') : t('land.join');
   return (
     <div className={s.landing}>
       <Card pad className={s.landCard}>
@@ -96,6 +96,7 @@ function Landing({ inv }: { inv: Invite }) {
             <Icon name="social" size={18} /> {inv.squadName}
           </p>
         )}
+        {inv.kind === 'coach' && <p className={s.detail}>{t('land.coachSees')}</p>}
         <ul className={s.perks}>
           {(['land.perk1', 'land.perk2', 'land.perk3'] as const).map((k) => (
             <li key={k}>
@@ -145,9 +146,13 @@ function Landing({ inv }: { inv: Invite }) {
 }
 
 function Done({ inv, res }: { inv: Invite; res: Accepted }) {
-  const title = res.kind === 'battle' ? t('land.done.battle') : res.kind === 'squad' ? t('land.done.squad', { squad: inv.squadName ?? 'the squad' }) : t('land.done.join');
+  const title = res.kind === 'battle' ? t('land.done.battle') : res.kind === 'squad' ? t('land.done.squad', { squad: inv.squadName ?? 'the squad' }) : res.kind === 'coach' ? t('land.done.coach') : t('land.done.join');
   const next =
-    res.kind === 'battle' && res.warId ? (
+    res.kind === 'coach' && res.coachingId ? (
+      <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to={`/coach/${encodeURIComponent(res.coachingId)}`}>
+        {t('land.goCoach')}
+      </Link>
+    ) : res.kind === 'battle' && res.warId ? (
       <a className={buttonClass({ variant: 'primary', size: 'lg', block: true })} href={classicUrl(`practice/war.html?w=${encodeURIComponent(res.warId)}`)}>
         {t('land.goBattle')}
       </a>

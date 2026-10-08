@@ -36,6 +36,7 @@ SOURCES = {
     "real-trade": ("real", "Real Trading Activity"), "trading-tools": ("real", "Used trading tools"),
     "share": ("social", "Shared Trade War"), "mission": ("missions", "Mission"),
     "achievement": ("achievements", "Achievement"), "onboard": ("platform", "Getting set up"),
+    "coach-task": ("coaching", "Coach task done"), "coach-bonus": ("coaching", "Your student finished a task"),
 }
 
 DAILY_MISSIONS = {"trade": 10, "analyze": 10, "grade": 10, "news": 5, "xp": 20}
@@ -57,7 +58,14 @@ SEASON_XP = {"in": 25, "green": 100}
 DAILY_LIMIT = {
     "alert-open": 50, "practice-trade": 10, "practice-win": 10, "grade-setup": 5,
     "real-trade": 3, "referral": 10, "mission": 12, "achievement": 30, "onboard": 4,
+    "coach-task": 3, "coach-bonus": 6,
 }
+# Coaching (functions/coaching.py), paid only by the server: refId "<task kind>:<task id>".
+# A student earns from at most 3 coach tasks a day; a coach from at most 6 student tasks a day.
+COACH_TASK_XP = {"trade": 10, "win": 15, "analyze": 10, "grade": 10, "news": 5, "custom": 5}
+COACH_BONUS_XP = {"trade": 5, "win": 8, "analyze": 5, "grade": 5, "news": 3}
+_COACH_REF = re.compile(r"^([a-z]+):[A-Za-z0-9]{6,40}$")
+SERVER_ONLY = ("mission", "coach-task", "coach-bonus")
 DAILY_XP_CEILING = 2500
 
 _DAY = r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
@@ -141,6 +149,12 @@ def decide(kind, ref_id, today, counts=None, xp_today=0):
         if ref_id not in ONBOARD:
             return 0, ref_id, "bad-ref"
         amount = ONBOARD[ref_id]
+    elif kind in ("coach-task", "coach-bonus"):
+        m = _COACH_REF.match(ref_id)
+        table = COACH_TASK_XP if kind == "coach-task" else COACH_BONUS_XP
+        if not m or m.group(1) not in table:
+            return 0, ref_id, "bad-ref"
+        amount = table[m.group(1)]
     else:
         return 0, ref_id, "bad-type"
 

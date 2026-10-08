@@ -1,0 +1,51 @@
+.stack { display: grid; gap: var(--space-4); max-width: 760px; }
+.muted { color: var(--muted); font-size: var(--text-sm); }
+.pad { padding: var(--space-4); color: var(--muted); font-size: var(--text-sm); }
+.lock { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background: var(--bg-soft); color: var(--ink-2); font-size: var(--text-sm); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; color: var(--ink); }
+.row:hover b { color: var(--accent); }
+.rowText { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--violet-soft); color: var(--violet); font-weight: 700; flex: none; }
+.badgeCard { display: flex; align-items: center; gap: var(--space-3); }
+.badgeIcon { width: 52px; height: 58px; display: grid; place-items: center; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--surface-2); color: var(--muted); flex: none; }
+.badgeOn { background: linear-gradient(160deg, var(--gold), var(--gold-soft)); color: #3a2a0c; }
+
+.backLink { display: inline-block; margin-bottom: var(--space-3); color: var(--accent); font-size: var(--text-sm); }
+.grid { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1000px) {
+  .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .progress { grid-column: 1 / -1; }
+}
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.tradeList { list-style: none; margin: 0; padding: 0; }
+.trade { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-soft); display: grid; gap: var(--space-2); }
+.tradeList > li:first-child { border-top: 0; }
+.tradeTop { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--space-2); align-items: baseline; font-size: var(--text-sm); }
+.tradeTop small { color: var(--muted); }
+.reacts { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.react { min-height: 36px; padding: 0 var(--space-3); border-radius: var(--radius-pill); border: 1px solid var(--border); background: transparent; color: var(--ink-2); font-size: var(--text-xs); cursor: pointer; }
+.react:hover { border-color: var(--accent-line); }
+.reactOn { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.reactForm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: end; }
+
+.taskList { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-3); }
+.task { display: grid; gap: 6px; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-soft); }
+.taskTop { display: flex; justify-content: space-between; gap: var(--space-2); align-items: center; font-size: var(--text-sm); }
+.taskFoot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); align-items: center; }
+.row2 { display: flex; gap: var(--space-2); }
+.bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.newTask { display: grid; gap: var(--space-3); padding: var(--space-3); border: 1px dashed var(--border); border-radius: var(--radius); }
+.fieldLabel { display: grid; gap: 6px; font-size: var(--text-sm); color: var(--ink-2); font-weight: 600; }
+.select { min-height: var(--tap); padding: 0 var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-soft); color: var(--ink); font: inherit; font-weight: 400; }
+
+.noteForm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: end; margin-bottom: var(--space-3); }
+.noteList { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); max-height: 420px; overflow-y: auto; }
+.note { display: grid; gap: 4px; padding: var(--space-2) var(--space-3); border-radius: var(--radius); background: var(--bg-soft); font-size: var(--text-sm); }
+.mine { background: var(--accent-soft); }
+.noteHead { display: flex; gap: var(--space-2); align-items: baseline; }
+.noteTrade { font-size: var(--text-xs); color: var(--ink-2); }
+.endRow { margin-top: var(--space-5); display: flex; justify-content: center; }
