@@ -149,7 +149,7 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 ## Screens in the app (status)
 | Screen | Route | Status |
 |---|---|---|
-| Dashboard | `/app/dashboard` | In the app: index ETF tiles with sparklines, top movers, sectors, watchlist, practice entry. Redesign planned (step 3). |
+| Dashboard | `/app/dashboard` | In the app: the Trade War command center. Trader card (level/XP from `users/{uid}.xp`, name from `traders/{uid}`, rank = a count query on `practiceProfiles`), Trade War account (`practiceAccounts/{uid}`), live globe (classic `zelos-globe.js` + `data/exchanges.ts`), daily missions and achievements (read from `users/{uid}.progress` merged with the website's localStorage copy; not written by the app yet), leaderboard (top 5 `practiceProfiles`), your Trade Wars (`tradeWars` where you're a player), top movers, US indexes + sectors, watchlist. Code: `features/dashboard/`. Levels, mission/achievement tables and exchange hours are copies of the website's; unit tests fail if they drift from `zelos-levels.js`, `zelos-globe.js`, `functions/xp.py` and `functions/practice.py`. |
 | Market | `/app/markets` | In the app: stock list with live prices, search, group filter. Discovery + globe planned (step 2). |
 | Chart | `/app/markets/:sym` (`/app/charts` → last symbol) | In the app: 15m/1H/D/W, ranges, line/candles, today's stats, data table, Practice trade action. Larger chart + asset switcher planned (step 2). |
 | Trade War | `/app/trade-war` | In the app: hub with your practice account summary; battles, squads, leaderboards and missions hand off to the website for now |

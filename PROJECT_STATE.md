@@ -55,7 +55,7 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 ## 4. Partially completed / unverified
 - **Deploy of 2026-10-07:** the owner deployed functions, Firestore rules and RTDB rules from the PR #32 branch, then merged it, and reported it done. The first deploy attempt partly failed (some scheduled functions, an IAM error); a re-run was needed. Claude verified the Marketstack docs in `markets/*` directly; it cannot reach Cloud Functions, so the function list was confirmed by the owner, not by Claude. Still to watch: the first market session after the deploy (`markets/quotes.source` should change from `fmp` to Marketstack).
 - Live market prices: never confirmed during a market session.
-- Missions are still **client-side** (localStorage + `users/{uid}`) and read the classic page's counters; the $10,000 practice account is now server-side (§3). XP is server-awarded; see §7.
+- Missions are still **client-side** (localStorage + `users/{uid}`) and read the classic page's counters. The app's dashboard (#41) only *shows* them; trades placed in the app's Practice screens do not advance missions yet (the dashboard says "Missions count on the website for now"). Proposed fix for the owner to decide: track missions on the server (the practice engine already sees every fill), so they count everywhere; the $10,000 practice account is now server-side (§3). XP is server-awarded; see §7.
 - Rules/emulator tests exist only as past session results, not as committed tests.
 - Legal pages are drafted; lawyer review still recommended (`docs/LEGAL_APP_STORE.md`).
 
@@ -80,6 +80,7 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 | 2026-10-08 | **Crypto stays out** of the app until a licensed crypto data source is found. |
 | 2026-10-08 | **Coach / Learn invite (spec for step 4):** the inviter becomes the new user's coach; the coach sees the student's progress, can send notes and create tasks; both earn XP as the student works through them. Details to be designed with the owner. |
 | 2026-10-08 | **Prices every minute** (owner, on the upgraded Marketstack plan): `QUOTE_EVERY_MIN=1`, `MS_INTERVAL=1min`. Each run asks only for bars since the newest stored one (about 5 requests a minute, ~2,000 a market day, ~41,000 a month); a daily cap (`MS_DAILY_CALLS=3000`) falls back to every 15 minutes; if the plan lacks 1-minute bars the server falls back to 15-minute bars on its own. The practice fill engine now uses the real bar length (no look-ahead rule unchanged). Plan to verify with `scripts/marketstack_check.sh` before deploying. |
+| 2026-10-08 | **Dashboard redesign brought forward (owner):** built before the Market/charts step, from the classic `dashboard.html`: trader card (level, XP, streak, rank, badges), Trade War account, live globe with open exchanges, daily missions, leaderboard (top 5 + your rank), your Trade Wars, achievements, top movers, US market (indexes + sectors), watchlist. Only real data; screenshots in the PR stand in for the mockup, and the owner approves before merging. The globe is the classic `zelos-globe.js` loaded from the same site (one globe in the codebase). |
 | Standing | Hybrid web-first / native-ready direction; Capacitor to be evaluated later. The web app must keep working on its own. |
 | Standing | Firebase stays the backend unless inspection shows a concrete reason to change. |
 
@@ -113,9 +114,9 @@ Recommended direction: **hybrid web-first / native-ready**. Keep improving the e
 
 ## 10. Current priorities (app build phase)
 Following the owner's UX checklist (2026-10-07), one PR per step, each tried by the owner before the next:
-1. ~~**Structure**~~ done (#37). **News v2 + Practice fix** (branch `claude/news-v2`): News sections, official market news, Post News screen, Practice opening hardened.
+1. ~~**Structure**~~ done (#37). ~~**News v2 + Practice fix**~~ (#39) and ~~**prices every minute**~~ (#40) merged 2026-10-08.
 2. **Market and charts:** one large chart experience with an asset switcher and mini-chart previews; the website's 3D globe (`market-3d.html`) brought into Market. The globe's country/world moves are mock + Yahoo data today: in the app it shows only real data (exchange open/closed, day/night line, US indexes and sectors from Marketstack) unless the owner approves a world-markets data source.
-3. **Dashboard redesign** from the owner's reference (the website's `dashboard.html`, screenshot received 2026-10-08): keep its information (Trade War account, globe/chart, leaderboard, daily missions, achievements, trader card, active Trade Wars, movers) with clearer hierarchy and fewer boxes on phones; mockup to the owner before building.
+3. **Dashboard redesign** — built early at the owner's request (branch `claude/dashboard-v2`, see §6 2026-10-08).
 4. **Invites:** Battle / Team up / Invite / Coach (see the Coach / Learn decision), clear recipient screens, accept animations. Prank invite: recommended against (clarity first).
 5. **Onboarding + first steps,** short branded launch animation.
 Then: Capacitor (iOS first) → TestFlight. Before App Store submission: Sign in with Apple (required with Google sign-in), the token-purchase decision (Apple IAP rule 3.1.1), and every classic hand-off moved into the app (several classic pages still link to the website's Real Trading page).
@@ -123,10 +124,9 @@ Then: Capacitor (iOS first) → TestFlight. Before App Store submission: Sign in
 **Waiting on the owner:** the "Start with $10,000" diagnosis output (§5); deploying News v2 (runbook) and confirming `admins/{their uid}` exists; repo ruleset fixes (§5).
 
 ## 11. Open pull requests / work in flight
-- `claude/news-v2`: News v2 + Practice opening fix. Deploy functions + rules first (runbook "News v2 + Practice fix").
-- `claude/live-1min` (on top of news-v2): prices every minute. Check the plan, deploy two functions, then merge (runbook "Prices every minute").
+- `claude/dashboard-v2`: the new Dashboard (app only; no functions or rules to deploy). Owner reviews the screenshots, then merges.
 
-Recently done: #37 app structure (five tabs, Trade War hub, News), #38 live-price fix (both merged 2026-10-08); #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
+Recently done: #39 News v2 + Practice fix, #40 prices every minute (merged 2026-10-08; #40's two functions to be deployed per the runbook); #37 app structure (five tabs, Trade War hub, News), #38 live-price fix (both merged 2026-10-08); #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
 
 ## 12. Non-negotiable principles
 - Never trust client-submitted prices, balances, permissions, quotas, payment states or user IDs.
