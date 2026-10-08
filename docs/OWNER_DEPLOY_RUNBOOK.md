@@ -297,3 +297,34 @@ accepts, and lands on the coaching page. You see their trades and can tap 👍 /
 they see it right away.
 
 **Undo:** `git checkout main` (before merging) and run block 2 again.
+
+# Welcome + launch animation (the onboarding PR)
+
+What changes: the app's launch animation, the welcome screens for a first sign-in and the
+First steps checklist. New callable `profile_setup` (saves the name and @username); `invite_create`
+(ticks "Invite a friend") and `refresh_quotes` (pays the first-trade step's +25 XP) changed.
+No rules change.
+
+**1. Get the branch.** Paste on its own. It must print a number bigger than 0 and `STEP 1 OK`.
+```
+cd ~/Zelos && git stash -u -q; git fetch -q origin && git checkout -q -B claude/onboarding origin/claude/onboarding && grep -c "def profile_setup" functions/main.py && echo "STEP 1 OK"
+```
+
+**2. Deploy (about 3 minutes), before merging.** Paste on its own; it ends with "Deploy complete!".
+```
+source functions/venv/bin/activate && pip install -q -r functions/requirements.txt && npx -y firebase-tools@latest deploy --only "functions:profile_setup,functions:invite_create,functions:refresh_quotes" --project leaderboard-agentictrading
+```
+
+**3. Open the new function to the app.** Paste on its own; it prints `profile-setup OK`.
+```
+gcloud run services add-iam-policy-binding profile-setup --region=us-central1 --member=allUsers --role=roles/run.invoker --project=leaderboard-agentictrading --quiet >/dev/null && echo "profile-setup OK"
+```
+
+**4. Merge the PR**, then go back to main: `git checkout main && git pull origin main`.
+
+**5. Check:** open the app: the Zelos logo plays for about a second. Sign in with an account
+that has no @username (or a new Google account): the welcome screens open. Pick a name and
+@username → "+25 XP", open the $10,000 account, then "I'll do it later": the Dashboard shows
+First steps, 2 of 4 done.
+
+**Undo:** `git checkout main` (before merging) and run block 2 again.

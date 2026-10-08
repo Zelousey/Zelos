@@ -8,7 +8,8 @@
  * account, missions, wars, leaderboard, then the market.
  */
 import { useMemo, useState } from 'react';
-import { useUserDoc } from '../../data/userDoc';
+import { Navigate } from 'react-router';
+import { parseUserDoc, useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
@@ -18,6 +19,9 @@ import { useQuotes } from '../../data/markets';
 import { AccountCard, AchievementsCard, GlobePanel, LeaderboardCard, MarketCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
 import { achievementsView, mergeProgress, missionsView, readLocal } from './progress';
 import { useIdentity, useMyProfile, useMyRank } from './social';
+import { usePracticeAccount } from '../practice/account';
+import { FirstSteps } from '../welcome/FirstSteps';
+import { lsGet, SKIP_KEY } from '../welcome/welcome';
 import s from './DashboardPage.module.css';
 
 export default function DashboardPage() {
@@ -42,12 +46,25 @@ export default function DashboardPage() {
 
   const name = (identity.status === 'ready' && identity.data.name) || user?.displayName?.split(' ')[0] || '';
   const signIn = () => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+  const acct = usePracticeAccount(uid);
+
+  // first sign-in: no @username and the welcome not done or skipped -> the welcome screens
+  const hasUsername = identity.status === 'ready' && !!identity.data.username;
+  const meDoc = useMemo(() => (userDoc.status === 'ready' ? userDoc.data : userDoc.status === 'missing' ? parseUserDoc({}) : null), [userDoc]); // a brand-new player has no users doc yet
+  const fresh = !!uid && !!meDoc && identity.status !== 'loading' && !hasUsername && !meDoc.onboard.profile;
+  const [skipped] = useState(() => lsGet(SKIP_KEY) === '1');
+  const isNew = !!meDoc && !meDoc.onboard.trade && meDoc.xp < 100; // "Welcome" until the first trade
+
   const watch = useMemo(() => (userDoc.status === 'ready' ? { status: 'ready' as const, data: userDoc.data.watchlist } : userDoc), [userDoc]);
 
+  if (fresh && !skipped) return <Navigate to="/welcome" replace />;
   return (
     <>
-      <PageHeader title={t('nav.dashboard')} subtitle={uid && name ? t('dash.hello', { name }) : t('dash.helloGuest')} />
+      <PageHeader title={t('nav.dashboard')} subtitle={uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')} />
       <StatusLine quotes={quotes} />
+      {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
+        <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
+      )}
       <div className={[s.grid, uid ? s.signedIn : s.signedOut].join(' ')}>
         {uid ? (
           <>

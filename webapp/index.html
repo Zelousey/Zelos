@@ -18,8 +18,49 @@
     <script>
       try { var t = localStorage.getItem('zelosTheme'); if (t === 'blue' || t === 'white' || t === 'black') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
     </script>
+    <!-- Launch animation (owner decision 2026-10-08): about a second on every app open, tap to
+         skip, still for reduced motion. Inline so it paints before the app's code loads;
+         src/lib/splash.ts removes it once the app has rendered. -->
+    <style>
+      #zsplash { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #0c0d10; color: #f4f5f7; cursor: pointer; transition: opacity 260ms ease, visibility 260ms; font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      :root[data-theme='blue'] #zsplash { background: #081226; color: #eef3ff; }
+      :root[data-theme='white'] #zsplash { background: #f4f5f8; color: #12151b; }
+      #zsplash.out { opacity: 0; visibility: hidden; }
+      #zsplash .zs { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+      #zsplash .zs-logo { position: relative; width: 96px; height: 96px; animation: zs-in 520ms cubic-bezier(.2,.8,.2,1) both; }
+      #zsplash .zs-logo::before { content: ''; position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(closest-side, rgba(74,134,255,.45), rgba(143,123,246,.18) 55%, transparent); animation: zs-glow 1.1s ease-out both; }
+      #zsplash .zs-logo img { position: relative; width: 96px; height: 96px; border-radius: 24px; }
+      #zsplash .zs-name { font-size: 30px; font-weight: 700; letter-spacing: .34em; margin-right: -.34em; animation: zs-up 480ms 160ms cubic-bezier(.2,.8,.2,1) both; }
+      #zsplash .zs-sub { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: .42em; margin-right: -.42em; color: #4a86ff; animation: zs-up 480ms 260ms cubic-bezier(.2,.8,.2,1) both; }
+      #zsplash .zs-line { width: 132px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, #4a86ff, #8f7bf6, transparent) no-repeat; background-size: 60% 100%; background-color: rgba(127,127,127,.18); animation: zs-sweep 900ms 200ms ease-in-out both; }
+      @keyframes zs-in { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
+      @keyframes zs-glow { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; } 100% { opacity: .7; transform: scale(1); } }
+      @keyframes zs-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      @keyframes zs-sweep { from { background-position: -120% 0; } to { background-position: 220% 0; } }
+      @media (prefers-reduced-motion: reduce) { #zsplash *, #zsplash *::before { animation: none !important; } }
+    </style>
   </head>
   <body>
+    <div id="zsplash" aria-hidden="true">
+      <div class="zs">
+        <div class="zs-logo"><img src="/app/icons/icon-192.png" alt="" width="96" height="96" /></div>
+        <div class="zs-name">ZELOS</div>
+        <div class="zs-sub">TRADE WAR</div>
+        <div class="zs-line"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var s = document.getElementById('zsplash');
+        var off = false;
+        try { off = localStorage.getItem('zelosSplashOff') === '1'; } catch (e) {}
+        if (off) { s.remove(); return; }
+        var done = function () { if (!s.isConnected || s.classList.contains('out')) return; s.classList.add('out'); setTimeout(function () { s.remove(); }, 300); };
+        window.__zsplash = { t: performance.now(), done: done };
+        s.addEventListener('click', done);
+        setTimeout(done, 4000); // never stays up, even if the app fails to load
+      })();
+    </script>
     <div id="root"></div>
     <noscript>Zelos Trade War needs JavaScript. The classic site is at <a href="/">agentictrading.info</a>.</noscript>
     <script type="module" src="/src/main.tsx"></script>

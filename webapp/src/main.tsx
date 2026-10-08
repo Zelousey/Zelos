@@ -1,5 +1,6 @@
 /**
- * App entry. Order matters: theme first (no flash), then the 404 redirect fix-up, then render.
+ * App entry. Order matters: theme first (no flash), then the 404 redirect fix-up, then render,
+ * then the launch animation (index.html) fades out.
  */
 import '@fontsource/ibm-plex-sans/400.css';
 import '@fontsource/ibm-plex-sans/500.css';
@@ -15,6 +16,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { createAppRouter, restoreRedirect } from './app/router';
 import { AuthProvider } from './lib/auth';
+import { hideSplash } from './lib/splash';
 import { applyTheme, getTheme } from './lib/theme';
 import { ToastProvider } from './ui';
 
@@ -32,3 +34,4 @@ createRoot(document.getElementById('root')!).render(
     </AuthProvider>
   </StrictMode>,
 );
+hideSplash();

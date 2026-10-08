@@ -4780,6 +4780,8 @@ def _pr_after(db, uid, events, now_ms, tok=None):
     if any(e["kind"] == "fill" for e in events):
         try:  # onboarding checklist: "Make your first trade" (zelos-profile.js reads onboard.trade)
             db.collection("users").document(uid).set({"onboard": {"trade": True}}, merge=True)
+            # its +25 XP, once ever (same activity id as the website's claim, so never twice)
+            xp_grant(db, uid, "onboard", "trade", now_ms)
         except Exception as ex:
             print("[practice] onboard flag failed:", type(ex).__name__)
     for e in events:
@@ -5227,6 +5229,8 @@ def _inv_befriend(db, a, b):
 @_inv_call
 def invite_create(req, db, uid, tok, now_ms):
     kind, target = INV.validate_create(req.data)
+    # First steps checklist: "Invite a friend" (the app and zelos-profile.js read onboard.invited)
+    db.collection("users").document(uid).set({"onboard": {"invited": True}}, merge=True)
     st_ref = db.collection("inviteState").document(uid)
     st = INV.day_state((st_ref.get().to_dict() or {}) if st_ref.get().exists else {}, _ny_day(now_ms))
     # one reusable "join Zelos" link per person while it's valid
@@ -5608,3 +5612,56 @@ def coach_end(req, db, uid, tok, now_ms):
     notify_users(db, [other], "friends", "%s ended your coaching" % (doc.get("coachName") if role == "coach" else doc.get("studentName")),
                  "You can start a new one any time from Invite friends.", "app/coach", "coach-end-" + ref.id[:20])
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- first sign-in (onboarding)
+# Owner decision 2026-10-08: the server saves the name and @username from the app's welcome
+# screens (functions/onboarding.py). The website's profile editor keeps writing the same docs
+# directly (firestore.rules checks those writes); both end in the same shape.
+import onboarding as OB  # noqa: E402
+
+
+@https_fn.on_call()
+def profile_setup(req):
+    try:
+        uid = _tw_user(req)
+        name, uname, exp = OB.validate(req.data)
+        db = firestore.client()
+        now_ms = int(_time.time() * 1000)
+        tref = db.collection("traders").document(uid)
+        nref = db.collection("usernames").document(uname)
+
+        @firestore.transactional
+        def txn(t):
+            tr, taken = tref.get(transaction=t), nref.get(transaction=t)
+            old = ((tr.to_dict() or {}) if tr.exists else {}).get("username")
+            if taken.exists and (taken.to_dict() or {}).get("uid") != uid:
+                raise OB.ProfileError("ALREADY_EXISTS", "@%s is taken. Try another one." % uname)
+            if old and old != uname:
+                oref = db.collection("usernames").document(old)
+                o = oref.get(transaction=t)
+                if o.exists and (o.to_dict() or {}).get("uid") == uid:
+                    t.delete(oref)
+            t.set(nref, {"uid": uid})
+            t.set(tref, {"name": name, "username": uname, "updatedAt": now_ms}, merge=True)
+            upd = {"onboard": {"profile": True}}
+            if exp:
+                upd["experience"] = exp
+            t.set(db.collection("users").document(uid), upd, merge=True)
+
+        txn(db.transaction())
+        try:  # keep the leaderboard name in step (only if a Trade War profile is published)
+            p = db.collection("practiceProfiles").document(uid)
+            if p.get().exists:
+                p.update({"name": name, "username": uname})
+        except Exception as e:
+            print("[profile_setup] leaderboard name not updated:", type(e).__name__)
+        xp = xp_grant(db, uid, "onboard", "profile", now_ms)
+        return {"name": name, "username": uname, "experience": exp, "xp": xp.get("xp"), "awarded": bool(xp.get("awarded"))}
+    except (OB.ProfileError, TWError) as e:
+        raise _co_http(e)
+    except https_fn.HttpsError:
+        raise
+    except Exception as e:
+        print("[profile_setup] failed: %s\n%s" % (type(e).__name__, _traceback.format_exc()[-1500:]))
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
