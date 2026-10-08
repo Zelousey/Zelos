@@ -81,7 +81,7 @@ export const BUNDLED: NewsPost[] = [
     section: 'zelos',
     title: 'Market and charts, rebuilt',
     body: [
-      'Market shows the Zelos stock list with prices that refresh every 15 minutes during market hours, plus the day’s movers and sectors.',
+      'Market shows the Zelos stock list with prices that update every minute during market hours, plus the day’s movers and sectors.',
       'Tap any stock for its chart: 15-minute, hourly, daily and weekly views, candles or line, and a Trade button that opens your practice order ticket.',
     ],
     link: { to: '/markets', label: 'Explore Market' },

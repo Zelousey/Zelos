@@ -107,5 +107,21 @@ try:
 finally:
     MD.ms_get = real_get
 
+
+# 1-minute prices: time filter format, strict "not in plan", daily request cap
+from datetime import timezone as _tz
+ok(MD.ms_time(datetime(2026, 10, 7, 9, 57, tzinfo=MD.NY)) == "2026-10-07T13:57:00+0000", "date_from with a time is UTC +0000")
+MD.ms_get = lambda *a, **k: None
+try:
+    MD.ms_rows("intraday", {"interval": "1min"}, "k", strict=True)
+    ok(False, "strict: not in plan raises")
+except MD.MsNotInPlan:
+    ok(True, "strict: an endpoint/interval missing from the plan raises MsNotInPlan")
+ok(MD.ms_rows("intraday", {}, "k") == [], "non-strict: missing endpoint is just empty")
+MD.ms_get = real_get
+os.environ["MS_DAILY_CALLS"] = "5000"; ok(MD.daily_call_limit() == 5000, "daily cap from settings")
+os.environ["MS_DAILY_CALLS"] = "junk"; ok(MD.daily_call_limit() == 3000, "bad cap -> 3000")
+os.environ["MS_DAILY_CALLS"] = "1"; ok(MD.daily_call_limit() == 100, "cap never below 100")
+
 print("ALL CHECKS PASSED" if not fails else "%d FAILED" % fails)
 sys.exit(1 if fails else 0)

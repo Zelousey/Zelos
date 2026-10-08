@@ -2,8 +2,8 @@
  * Turning stored bars into what a chart shows, per timeframe. Pure functions (unit-tested),
  * ported from the classic practice page so both draw the same bars.
  *
- *   15m / 1H  from markets/intraday_SYM (15-minute bars, last 5 sessions; 1H groups them
- *             into hourly buckets anchored at 9:30 ET)
+ *   15m / 1H  from markets/intraday_SYM (1-minute or 15-minute bars, last 5 sessions), grouped
+ *             into 15-minute or hourly buckets anchored at 9:30 ET
  *   D         from ~2 years of daily history; the live quote updates (or adds) today's bar
  *   W         daily bars grouped by week (Monday)
  */

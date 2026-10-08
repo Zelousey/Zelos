@@ -662,24 +662,39 @@ def _fetch_all_quotes(api_key):
     memory=256,
 )
 def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
-    """Stock prices from Marketstack (see functions/mdata.py). Wakes every minute but only
-    calls Marketstack every QUOTE_EVERY_MIN minutes (15 on the Basic plan), one minute after
-    each bar closes, plus once at 4:06 pm for the closing prices."""
+    """Stock prices from Marketstack (see functions/mdata.py). Wakes every minute and calls
+    Marketstack every QUOTE_EVERY_MIN minutes (1 on the Professional plan, 15 on Basic), one
+    minute after each bar closes, plus once at 4:06 pm for the closing prices. If a day's
+    requests reach MS_DAILY_CALLS, updates slow to every 15 minutes for the rest of the day."""
     now = datetime.now(NY)
     minutes = now.hour * 60 + now.minute
     every = MD.quote_every_min()
-    due = SESSION_OPEN < minutes <= SESSION_CLOSE + 1 and (minutes - SESSION_OPEN - 1) % every == 0
-    if not (due or minutes == SESSION_CLOSE + 6):
+    in_session = SESSION_OPEN < minutes <= SESSION_CLOSE + 1
+    on = lambda n: in_session and (minutes - SESSION_OPEN - 1) % n == 0  # noqa: E731
+    closing = minutes == SESSION_CLOSE + 6
+    if not (on(every) or closing):
         return
     db = firestore.client()
+    if every < 15 and ms_calls_today(db, now) >= MD.daily_call_limit():
+        if not (on(15) or closing):
+            return
+        print("[refresh_quotes] daily request cap reached: every 15 minutes for the rest of today")
+        every = 15
     key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
     if not key:
         db.collection("markets").document("quotes").set({"error": "missing-key", "checkedAt": now.isoformat()}, merge=True)
         return
     fetched = None
+    calls0 = MD.CALLS[0]
     try:
-        n, q, bars = ms_run_quotes(db, key, now)
-        fetched = (q, bars)
+        try:
+            n, q, bars, step = ms_run_quotes(db, key, now, every=every)
+        except MD.MsNotInPlan:
+            # e.g. 1-minute bars on the Basic plan: say so and keep prices coming with 15-minute bars
+            print("[refresh_quotes] %s bars aren't in the Marketstack plan; using 15min" % MD.ms_interval())
+            n, q, bars, step = ms_run_quotes(db, key, now, every=every, iv="15min")
+            db.collection("markets").document("quotes").set({"note": "interval-not-in-plan"}, merge=True)
+        fetched = (q, bars, step)
         print("[refresh_quotes] %d prices" % n)
     except MD.MsKeyRejected:
         db.collection("markets").document("quotes").set({"error": "auth", "checkedAt": now.isoformat()}, merge=True)
@@ -690,11 +705,15 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     except Exception as e:
         db.collection("markets").document("quotes").set({"error": type(e).__name__, "checkedAt": now.isoformat()}, merge=True)
         print("[refresh_quotes] failed:", type(e).__name__, e)
+    try:
+        ms_count_calls(db, now, MD.CALLS[0] - calls0)
+    except Exception as e:
+        print("[refresh_quotes] usage count failed:", type(e).__name__)
     # practice accounts: fill / expire open orders on the prices just fetched (separately, so a
     # problem here never stops prices updating)
     try:
         if fetched is not None:
-            print("[practice] orders pass:", practice_pass(db, fetched[0], fetched[1], int(now.timestamp() * 1000)))
+            print("[practice] orders pass:", practice_pass(db, fetched[0], fetched[1], int(now.timestamp() * 1000), fetched[2]))
     except Exception as e:
         print("[practice] orders pass failed:", type(e).__name__, e)
 
@@ -1237,7 +1256,7 @@ def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
     """Marketstack + SEC jobs, each only when due (state in serverMeta/marketData):
       - once: remove data from the old personal-use sources (news, earnings, FMP research, crypto)
       - after the close: daily bars, 2-year history, the ticker-tape snapshot, the globe,
-        and full-day 15-minute bars for the stock list
+        and the day's complete intraday bars for the stock list
       - outside market hours: SEC research for 2 stock-list symbols a run, oldest first"""
     key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
     now = datetime.now(NY)
@@ -1245,6 +1264,7 @@ def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
     sref = db.collection("serverMeta").document("marketData")
     snap = sref.get()
     state = (snap.to_dict() or {}) if snap.exists else {}
+    calls0 = MD.CALLS[0]
     try:
         if state.get("cleanup") != "licensed-v1":
             ms_cleanup_old_sources(db)
@@ -1274,6 +1294,10 @@ def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
         print("[market] run failed:", type(e).__name__, e)
     state["ranAt"] = now.isoformat()
     sref.set(state)
+    try:
+        ms_count_calls(db, now, MD.CALLS[0] - calls0)
+    except Exception as e:
+        print("[market] usage count failed:", type(e).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -1304,52 +1328,104 @@ def _history_symbols():
     return sorted(set(PRACTICE_SYMBOLS) | set(MD.SNAP_SYMBOLS))
 
 
-def ms_run_quotes(db, key, now):
-    """Today's intraday bars for the stock list -> quotes, intraday docs and movers."""
+def _ms_newest(bars):
+    """The newest bar start among {SYM: [bar, ...]} as an ISO time (New York), or None."""
+    labels = [b[-1][:16] for b in bars.values() if b]
+    if not labels:
+        return None
+    return datetime.strptime(max(labels), "%Y-%m-%d %H:%M").replace(tzinfo=NY).isoformat()
+
+
+def ms_run_quotes(db, key, now, every=None, iv=None):
+    """Intraday bars for the stock list -> quotes, intraday docs and movers.
+
+    The first run of the day asks for the whole day; every later run asks only for bars since
+    the newest one already stored (date_from with a time), so a run every minute costs about
+    one Marketstack request per 10 stocks. Returns (count, quotes, today's bars per symbol for
+    the practice order pass, bar length in minutes)."""
     today = now.strftime("%Y-%m-%d")
-    iv = MD.ms_interval()
-    rows, failed = MD.ms_rows_chunked("intraday", {"interval": iv, "date_from": today, "sort": "ASC"}, PRACTICE_SYMBOLS, key, size=10, max_pages=4, timeout=40, budget=200)
+    every = every or MD.quote_every_min()
+    iv = iv or MD.ms_interval()
+    label = iv.replace("min", "m").replace("1hour", "60m")
+    step = MD.interval_minutes(iv)
+    sref = db.collection("serverMeta").document("msQuotes")
+    ssnap = sref.get()
+    st = (ssnap.to_dict() or {}) if ssnap.exists else {}
+    since = st.get("since") if (st.get("day") == today and st.get("interval") == label and st.get("timeFilter", True)) else None
+    budget = max(30, min(200, every * 60 - 15))
+    base = {"interval": iv, "sort": "ASC"}
+
+    def full_day():
+        return MD.ms_rows_chunked("intraday", dict(base, date_from=today), PRACTICE_SYMBOLS, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
+
+    if since:
+        frm = datetime.fromisoformat(since) - MD.timedelta(minutes=2 * step)
+        try:
+            rows, failed = MD.ms_rows_chunked("intraday", dict(base, date_from=MD.ms_time(frm)), PRACTICE_SYMBOLS, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
+        except RuntimeError as e:  # Marketstack refused a date_from with a time: ask for whole days from now on
+            print("[refresh_quotes] time filter refused (%s); using whole-day requests" % str(e)[:80])
+            st["timeFilter"] = False
+            rows, failed = full_day()
+    else:
+        rows, failed = full_day()
     if failed:
-        print("[refresh_quotes] no prices this run for %d symbols (Marketstack timed out or failed)" % len(failed))
-    bars = MD.ms_intraday_bars(rows)
+        print("[refresh_quotes] no new prices this run for %d symbols (Marketstack timed out or failed)" % len(failed))
+    fresh = MD.ms_intraday_bars(rows)
     dsnap = db.collection("markets").document("dailyBars").get()
     daily = ((dsnap.to_dict() or {}).get("bars") or {}) if dsnap.exists else {}
-    quotes = {}
-    for sym in PRACTICE_SYMBOLS:
-        q = MD.ms_quote([b for b in bars.get(sym, []) if b[:10] == today], MD.prev_close(daily.get(sym), today), MD.interval_minutes(iv))
+    quotes, today_bars = {}, {}
+    batch, writes = db.batch(), 0
+    refs = [db.collection("markets").document("intraday_" + sym) for sym in PRACTICE_SYMBOLS]
+    for snap in db.get_all(refs):
+        sym = snap.id[len("intraday_"):]
+        d = (snap.to_dict() or {}) if snap.exists else {}
+        old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label else []
+        new = fresh.get(sym) or []
+        merged = MD.merge_intraday(old, new) if new else old
+        if new:
+            batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": merged})
+            writes += 1
+        tb = [b for b in merged if b[:10] == today]
+        today_bars[sym] = tb
+        q = MD.ms_quote(tb, MD.prev_close(daily.get(sym), today), step)
         if q:
             quotes[sym] = q
+    if writes:
+        batch.commit()
+    # if any group of stocks failed, keep the old "since" so the next run fetches their missed bars too
+    st.update({"day": today, "interval": label, "since": since if failed else (_ms_newest(fresh) or since), "at": now.isoformat()})
+    sref.set(st)
     qref = db.collection("markets").document("quotes")
     if not quotes:
         qref.set({"checkedAt": now.isoformat(), "error": None}, merge=True)  # holiday or before the first bar
-        return 0, {}, bars
-    try:
-        prev = qref.get()
-        pd = (prev.to_dict() or {}) if prev.exists else {}
-        if pd.get("date") == today:
-            for sym, q in (pd.get("quotes") or {}).items():
-                if sym in PRACTICE_SYMBOLS and sym not in quotes:
-                    quotes[sym] = q
-    except Exception as e:
-        print("[refresh_quotes] couldn't read previous quotes:", type(e).__name__)
+        return 0, {}, today_bars, step
     mins = now.hour * 60 + now.minute
-    label = iv.replace("min", "m").replace("1hour", "60m")
     qref.set({"source": "marketstack", "updatedAt": now.isoformat(), "date": today, "marketOpen": SESSION_OPEN <= mins < SESSION_CLOSE,
-              "every": MD.quote_every_min(), "interval": label, "error": None, "quotes": quotes})
-    batch = db.batch()
-    for sym, b in bars.items():
-        if sym not in PRACTICE_SYMBOLS:
-            continue
-        ref = db.collection("markets").document("intraday_" + sym)
-        snap = ref.get()
-        d = (snap.to_dict() or {}) if snap.exists else {}
-        old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label else []
-        batch.set(ref, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday(old, b)})
-    batch.commit()
+              "every": every, "interval": label, "error": None, "quotes": quotes})
     mv = MD.ms_movers(quotes, UNIVERSE_NAMES, UNIVERSE_GROUPS)
     mv.update({"updatedAt": now.isoformat(), "date": today, "source": "Marketstack"})
     db.collection("markets").document("movers").set(mv)
-    return len(quotes), quotes, bars
+    return len(quotes), quotes, today_bars, step
+
+
+def ms_count_calls(db, now, n):
+    """Add n Marketstack requests to today's count (serverMeta/msUsage)."""
+    if n <= 0:
+        return
+    today = now.strftime("%Y-%m-%d")
+    ref = db.collection("serverMeta").document("msUsage")
+    snap = ref.get()
+    d = (snap.to_dict() or {}) if snap.exists else {}
+    if d.get("day") == today:
+        ref.update({"calls": firestore.Increment(n), "at": now.isoformat()})
+    else:
+        ref.set({"day": today, "calls": n, "at": now.isoformat(), "yesterday": d.get("calls") if d.get("day") else None})
+
+
+def ms_calls_today(db, now):
+    snap = db.collection("serverMeta").document("msUsage").get()
+    d = (snap.to_dict() or {}) if snap.exists else {}
+    return int(d.get("calls") or 0) if d.get("day") == now.strftime("%Y-%m-%d") else 0
 
 
 def ms_due(now, state):
@@ -1431,10 +1507,11 @@ def ms_after_close(db, key, now, state):
         g = MD.build_globe(countries, MD.moves_from_daily({s: recent[s] for s in globe_syms if s in recent}))
         if g["asOf"]:
             db.collection("markets").document("globe").set({"json": json.dumps(g, ensure_ascii=False, separators=(",", ":")), "asOf": g["asOf"], "updatedAt": now.isoformat()})
-    # the day's complete 15-minute bars (and the last few sessions) for the stock list
+    # the day's complete intraday bars for the stock list, added to the stored sessions.
+    # 15-minute bars: the last 8 days in one go. 1-minute bars (390 a day): today only.
     iv = MD.ms_interval()
     label = iv.replace("min", "m").replace("1hour", "60m")
-    ifrm = (now - MD.timedelta(days=8)).strftime("%Y-%m-%d")
+    ifrm = (now - MD.timedelta(days=8)).strftime("%Y-%m-%d") if MD.interval_minutes(iv) >= 15 else today
     # (a failure here must not undo the day's work above, or the job re-runs all evening)
     ib = {}
     try:
@@ -1443,9 +1520,11 @@ def ms_after_close(db, key, now, state):
             print("[after-close] intraday bars missing for %d symbols" % len(failed))
         ib = MD.ms_intraday_bars(rows)
         batch = db.batch()
-        for sym, b in ib.items():
-            if sym in PRACTICE_SYMBOLS:
-                batch.set(db.collection("markets").document("intraday_" + sym), {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday([], b)})
+        refs = [db.collection("markets").document("intraday_" + sym) for sym in ib if sym in PRACTICE_SYMBOLS]
+        for snap in (db.get_all(refs) if refs else []):
+            d = (snap.to_dict() or {}) if snap.exists else {}
+            old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label else []
+            batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday(old, ib[snap.id[len("intraday_"):]])})
         batch.commit()
     except (MD.MsKeyRejected, MD.MsQuota):
         raise
@@ -4800,8 +4879,9 @@ def practice_settings(req, db, uid, tok, now_ms):
     return {"publicProfile": data["publicProfile"]}
 
 
-def practice_pass(db, quotes, raw_bars, now_ms):
-    """After a price refresh: fill or expire open orders in every account that has some."""
+def practice_pass(db, quotes, raw_bars, now_ms, bar_min=PR.BAR_MIN):
+    """After a price refresh: fill or expire open orders in every account that has some.
+    bar_min: length of raw_bars in minutes (the Marketstack interval in use)."""
     q = {s: {"c": v.get("c"), "t": v.get("t")} for s, v in (quotes or {}).items() if v and v.get("c")}
     bars = _pr_bars(raw_bars)
     fills = accounts = 0
@@ -4815,7 +4895,7 @@ def practice_pass(db, quotes, raw_bars, now_ms):
             acct = s2.to_dict() if s2.exists else None
             if not acct or not acct.get("orders"):
                 return []
-            events = PR.process_orders(acct, q, bars, now_ms)
+            events = PR.process_orders(acct, q, bars, now_ms, bar_min)
             if events:
                 acct["updatedAt"] = now_ms
                 t.set(ref, acct)

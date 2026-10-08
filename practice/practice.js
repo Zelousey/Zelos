@@ -3,7 +3,7 @@
  *
  * A persistent simulated brokerage account: real prices, virtual money.
  *
- * Prices: the refresh_quotes Cloud Function pulls them from Marketstack (every 15 minutes on the Basic plan)
+ * Prices: the refresh_quotes Cloud Function pulls them from Marketstack (every minute; every 15 on the Basic plan)
  * into Firestore markets/quotes every minute in market hours, on top of daily
  * history (data/game-charts.json + data/practice-extra.json + markets/dailyBars).
  * With no live feed it falls back to the latest close and says so.

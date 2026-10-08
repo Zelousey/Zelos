@@ -3,10 +3,10 @@
  * the scheduled Cloud Functions write from Marketstack (functions/main.py, functions/mdata.py).
  * This is the ONLY market-data source the app uses; there is no provider key here.
  *
- *   markets/quotes        live-ish quotes for the Zelos stock list (every 15 min in market hours)
+ *   markets/quotes        live quotes for the Zelos stock list (every minute in market hours)
  *   markets/movers        gainers / losers / most active / sector averages (stock list only)
  *   markets/snapshot      end-of-day index ETFs + sectors + 1-month sparklines (JSON string)
- *   markets/intraday_SYM  15-minute bars, last 5 sessions
+ *   markets/intraday_SYM  intraday bars (1-minute, or 15-minute on the Basic plan), last 5 sessions
  *   markets/historyIndex  + history_<n>: ~2 years of daily bars (JSON strings)
  */
 import { doc, getDoc, type DocumentData } from 'firebase/firestore';

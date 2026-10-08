@@ -242,7 +242,7 @@ const en = {
   'practice.public': 'Show my numbers on leaderboards',
   'practice.publicOn': 'Your practice numbers are public on the leaderboards.',
   'practice.publicOff': 'Your practice numbers are hidden from the leaderboards.',
-  'practice.fillNote': 'Orders fill on the next price update after you place them (prices update every 15 minutes during market hours, 9:30 am to 4:00 pm ET). Orders placed while the market is closed fill at the next open.',
+  'practice.fillNote': 'Orders fill on the next price update after you place them (prices update every minute during market hours, 9:30 am to 4:00 pm ET). Orders placed while the market is closed fill at the next open.',
   'hist.bought': 'Bought {qty} {sym} at {price}',
   'hist.sold': 'Sold {qty} {sym} at {price}',
   'hist.viaTp': ' (take-profit)',

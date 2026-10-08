@@ -1,7 +1,7 @@
 /**
  * One symbol: price header, chart (15m / 1H / D / W with ranges, line or candles),
  * today's stats, a data-table view of the bars, and the hand-off into a practice trade.
- * Prices come from markets/quotes (live, every 15 min in market hours), bars from
+ * Prices come from markets/quotes (live, every minute in market hours), bars from
  * markets/intraday_SYM and the daily history.
  */
 import { useEffect, useState } from 'react';

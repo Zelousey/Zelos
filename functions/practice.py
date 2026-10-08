@@ -400,11 +400,12 @@ def _record_trade(acct, t):
         acct["tradeDays"] = (acct["tradeDays"] + [t["closeDay"]])[-400:]
 
 
-def process_orders(acct, quotes, bars, now_ms):
+def process_orders(acct, quotes, bars, now_ms, bar_min=BAR_MIN):
     """Fill / expire open orders against prices observed after each order was placed.
 
-    quotes: {SYM: {"c": price, "t": epoch seconds of the quote}}
-    bars:   {SYM: [bar, ...]} 15-minute bars (start labels), ascending
+    quotes:  {SYM: {"c": price, "t": epoch seconds of the quote}}
+    bars:    {SYM: [bar, ...]} intraday bars (start labels), ascending
+    bar_min: length of those bars in minutes (1 with 1-minute prices, 15 on the Basic plan)
     Returns a list of events (order closed, fill, trade) for the caller to record.
     """
     events = []
@@ -415,7 +416,7 @@ def process_orders(acct, quotes, bars, now_ms):
         for o in sorted(acct["orders"].values(), key=lambda x: (x["createdAt"], x["id"])):
             if o["id"] not in acct["orders"]:
                 continue
-            hit = _first_trigger(o, bars.get(o["sym"]) or [], quotes.get(o["sym"]), now_ms)
+            hit = _first_trigger(o, bars.get(o["sym"]) or [], quotes.get(o["sym"]), now_ms, bar_min)
             if hit:
                 fill(acct, o, hit[0], hit[1], events)
                 progressed = True
@@ -431,14 +432,14 @@ def process_orders(acct, quotes, bars, now_ms):
     return events
 
 
-def _first_trigger(o, bars, quote, now_ms):
+def _first_trigger(o, bars, quote, now_ms, bar_min=BAR_MIN):
     """(price, when_ms) of the earliest fill after the order was placed, or None."""
     created = o["createdAt"]
     first_ok = session_open_ms(o["session"]) if o["session"] > ny_day(created) else created
     last_ok = session_close_ms(o["session"]) if o["tif"] == "day" else None
     for b in bars:
         start = bar_start_ms(b[0])
-        end = start + BAR_MIN * 60000
+        end = start + bar_min * 60000
         if end > now_ms + 1000:  # a bar still in progress isn't final
             continue
         if last_ok is not None and start >= last_ok:
