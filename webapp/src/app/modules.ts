@@ -1,24 +1,27 @@
 /**
- * The module registry: every area of Zelos, in one table.
+ * The module registry: every area of Zelos Trade War, in one table.
  *
- * Navigation (desktop sidebar, phone tab bar, the "More" sheet) and the router are both
- * generated from this list, so adding a module means adding one entry here.
+ * Navigation (desktop sidebar, phone tab bar, the ☰ menu) and the router are generated from
+ * this list, so adding a module means adding one entry here.
  *
  * status
  *   ready    built in the app (has `load`)
  *   classic  still lives on the classic site; the app shows a hand-off screen to `classicPath`
  *   planned  not built anywhere yet
- * As each module moves into the app, flip it to `ready` and give it a `load`.
  *
- * Product separations (PROJECT_STATE.md §9): Practice (solo virtual account), Real Trading
- * (your own broker's trades, logged) and Trade War (competitive matches) are separate
- * modules and never share balances.
+ * Information architecture (owner, 2026-10-07):
+ *   phone tab bar   Dashboard | Market | Trade War | Alerts | News
+ *   top bar         Profile | Notifications (bell) | ☰ menu (everything else)
+ *   Practice (the solo $10,000 virtual account) lives inside Trade War (`parent`).
+ *   Alerts = Zelos trade-signal alerts; invites, challenges and friend requests go to the bell.
+ *   The app is a simulated trading competition: there is no real-trading module in the app.
+ *   (The classic site keeps its Real Trade Journal page; the app doesn't link to it.)
  */
 import type { ComponentType } from 'react';
 import type { MessageKey } from '../lib/i18n';
 import type { IconName } from '../ui/Icon';
 
-export type ModuleGroup = 'main' | 'trade' | 'signals' | 'compete' | 'account';
+export type ModuleGroup = 'main' | 'play' | 'signals' | 'account';
 export type ModuleStatus = 'ready' | 'classic' | 'planned';
 
 export type AppModule = {
@@ -31,41 +34,45 @@ export type AppModule = {
   status: ModuleStatus;
   /** classic-site page (relative to the site root) while status is 'classic' */
   classicPath?: string;
-  /** position in the phone tab bar (1-4); modules without one go in "More" */
+  /** position in the phone tab bar (1-5); modules without one go in the ☰ menu */
   tab?: number;
+  /** the tab/nav entry this screen belongs under (it highlights that entry) */
+  parent?: string;
+  /** false: a route only (reached from other screens), never listed in navigation */
+  nav?: false;
   /** lazy screen component, required when status is 'ready' */
   load?: () => Promise<{ default: ComponentType }>;
 };
 
 export const MODULES: AppModule[] = [
-  { id: 'dashboard', path: 'dashboard', label: 'nav.dashboard', icon: 'dashboard', group: 'main', status: 'ready', classicPath: 'dashboard.html', tab: 1, load: () => import('../features/dashboard/DashboardPage') },
-  { id: 'markets', path: 'markets', label: 'nav.markets', icon: 'markets', group: 'main', status: 'ready', tab: 2, load: () => import('../features/markets/MarketsModule') },
-  { id: 'charts', path: 'charts', label: 'nav.charts', icon: 'chart', group: 'main', status: 'ready', load: () => import('../features/charts/ChartsRedirect') },
+  { id: 'dashboard', path: 'dashboard', label: 'nav.dashboard', icon: 'dashboard', group: 'main', status: 'ready', tab: 1, load: () => import('../features/dashboard/DashboardPage') },
+  { id: 'markets', path: 'markets', label: 'nav.market', icon: 'markets', group: 'main', status: 'ready', tab: 2, load: () => import('../features/markets/MarketsModule') },
+  { id: 'trade-war', path: 'trade-war', label: 'nav.tradeWar', icon: 'war', group: 'main', status: 'ready', tab: 3, load: () => import('../features/tradewar/TradeWarPage') },
+  { id: 'alerts', path: 'alerts', label: 'nav.alerts', icon: 'signal', group: 'main', status: 'classic', classicPath: 'alert-history.html', tab: 4 },
+  { id: 'news', path: 'news', label: 'nav.news', icon: 'news', group: 'main', status: 'ready', tab: 5, load: () => import('../features/news/NewsPage') },
 
-  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'trade', status: 'ready', tab: 3, load: () => import('../features/practice/PracticeModule') },
-  { id: 'real', path: 'real', label: 'nav.real', icon: 'real', group: 'trade', status: 'classic', classicPath: 'real/index.html' },
-  { id: 'trade-war', path: 'trade-war', label: 'nav.tradeWar', icon: 'war', group: 'trade', status: 'classic', classicPath: 'practice/war.html' },
+  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/practice/PracticeModule') },
+  { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', status: 'classic', classicPath: 'practice/squads.html' },
+  { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', status: 'classic', classicPath: 'practice/index.html?tab=progress' },
+  { id: 'arcade', path: 'arcade', label: 'nav.arcade', icon: 'arcade', group: 'play', status: 'classic', classicPath: 'arcade.html' },
 
-  { id: 'alerts', path: 'alerts', label: 'nav.alerts', icon: 'alerts', group: 'signals', status: 'classic', classicPath: 'alert-history.html', tab: 4 },
   { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'signals', status: 'classic', classicPath: 'options-scanner.html' },
   { id: 'crypto', path: 'crypto', label: 'nav.crypto', icon: 'crypto', group: 'signals', status: 'planned' },
 
-  { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'compete', status: 'classic', classicPath: 'practice/squads.html' },
-  { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'compete', status: 'classic', classicPath: 'practice/index.html?tab=progress' },
-  { id: 'arcade', path: 'arcade', label: 'nav.arcade', icon: 'arcade', group: 'compete', status: 'classic', classicPath: 'arcade.html' },
-
   { id: 'profile', path: 'profile', label: 'nav.profile', icon: 'profile', group: 'account', status: 'classic', classicPath: 'practice/profile.html' },
   { id: 'settings', path: 'settings', label: 'nav.settings', icon: 'settings', group: 'account', status: 'ready', load: () => import('../features/settings/SettingsPage') },
+
+  // Routes without a nav entry: /charts opens the last symbol you looked at in Market.
+  { id: 'charts', path: 'charts', label: 'nav.charts', icon: 'chart', group: 'main', status: 'ready', parent: 'markets', nav: false, load: () => import('../features/charts/ChartsRedirect') },
 ];
 
 export const GROUP_LABEL: Record<Exclude<ModuleGroup, 'main'>, MessageKey> = {
-  trade: 'nav.group.trade',
+  play: 'nav.group.play',
   signals: 'nav.group.signals',
-  compete: 'nav.group.compete',
   account: 'nav.group.account',
 };
 
-export const GROUP_ORDER: ModuleGroup[] = ['main', 'trade', 'signals', 'compete', 'account'];
+export const GROUP_ORDER: ModuleGroup[] = ['main', 'play', 'signals', 'account'];
 
 export const DEFAULT_PATH = 'dashboard';
 
@@ -77,8 +84,19 @@ export function tabModules(): AppModule[] {
   return MODULES.filter((m) => m.tab != null).sort((a, b) => (a.tab ?? 0) - (b.tab ?? 0));
 }
 
-export function moreModules(): AppModule[] {
-  return MODULES.filter((m) => m.tab == null);
+/** Modules listed in navigation (the sidebar, the ☰ menu). */
+export function navModules(): AppModule[] {
+  return MODULES.filter((m) => m.nav !== false);
+}
+
+/** Everything in the ☰ menu: listed modules that aren't tabs. */
+export function menuModules(): AppModule[] {
+  return navModules().filter((m) => m.tab == null);
+}
+
+/** The nav entry to highlight for a module: itself, or the entry it lives under. */
+export function navOwner(m: AppModule | undefined): string | undefined {
+  return m?.parent ?? m?.id;
 }
 
 /** The module a URL path belongs to (first path segment after /app/). */

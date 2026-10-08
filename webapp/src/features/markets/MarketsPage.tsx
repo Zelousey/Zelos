@@ -21,7 +21,7 @@ export default function MarketsPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.markets')} />
+      <PageHeader title={t('nav.market')} />
       <div className={s.tools}>
         <label className={s.search}>
           <Icon name="search" size={18} />
@@ -39,7 +39,7 @@ export default function MarketsPage() {
         ) : rows.length === 0 ? (
           <EmptyState icon="search" title={t('markets.empty', { q })} compact />
         ) : (
-          <MarketList rows={rows} label={t('nav.markets')} />
+          <MarketList rows={rows} label={t('nav.market')} />
         )}
         <p className={s.scope}>{t('markets.scope', { count: UNIVERSE.length })}</p>
       </Card>

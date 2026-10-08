@@ -8,8 +8,10 @@
  *   │ collaps- │ screen            │      │ screen            │
  *   │ ible)    │                   │      │                   │
  *   │          │                   │      │───────────────────│
- *   └──────────┴───────────────────┘      │ tab bar (4 + More)│
+ *   └──────────┴───────────────────┘      │ tab bar (5 tabs)  │
  *                                          └───────────────────┘
+ * Phone top bar: logo + screen name, then Profile · Notifications · ☰ (the menu holds
+ * everything that isn't a tab).
  * The shell stays mounted while screens change, so navigation never reloads the page,
  * re-initialises Firebase or loses scroll/state in the bars. Navigation entries come from
  * app/modules.ts. Each screen renders inside an ErrorBoundary so one crash can't take
@@ -17,13 +19,14 @@
  */
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { GROUP_LABEL, GROUP_ORDER, MODULES, moduleForPath, tabModules } from '../app/modules';
+import { GROUP_LABEL, GROUP_ORDER, moduleForPath, navModules, navOwner, tabModules } from '../app/modules';
+import { useNewsUnseen } from '../features/news/news';
 import { useAuth } from '../lib/auth';
 import { t } from '../lib/i18n';
 import { readString, writeString } from '../lib/storage';
 import { Badge, Button, ErrorBoundary, Icon, LoadingState, useToast } from '../ui';
 import { Avatar } from './Avatar';
-import { MoreSheet } from './MoreSheet';
+import { MenuSheet } from './MenuSheet';
 import { NotificationsSheet } from './NotificationsSheet';
 import { ProfileSheet } from './ProfileSheet';
 import { useInbox } from './useInbox';
@@ -40,13 +43,15 @@ export function AppShell() {
   const inbox = useInbox(isReal && user ? user.uid : null);
   const online = useOnline();
   const [collapsed, setCollapsed] = useState(() => readString(COLLAPSE_KEY) === '1');
-  const [sheet, setSheet] = useState<null | 'notifications' | 'profile' | 'more'>(null);
+  const [sheet, setSheet] = useState<null | 'notifications' | 'profile' | 'menu'>(null);
   const mainRef = useRef<HTMLElement>(null);
   const current = moduleForPath(location.pathname);
+  const owner = navOwner(current);
   const title = current ? t(current.label) : t('app.name');
+  const newsUnseen = useNewsUnseen(location.pathname);
 
   useEffect(() => {
-    document.title = `${title} · Zelos`;
+    document.title = `${title} · ${t('app.name')}`;
   }, [title]);
 
   // New screen: start at the top and move focus to it for keyboard/screen-reader users.
@@ -68,7 +73,7 @@ export function AppShell() {
   }
 
   const signIn = () => signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
-  const moreActive = !!current && current.tab == null;
+  const isOn = (id: string, isActive: boolean) => isActive || owner === id;
 
   return (
     <div className={[s.shell, collapsed && s.collapsed].filter(Boolean).join(' ')}>
@@ -79,9 +84,9 @@ export function AppShell() {
       {/* ---------- desktop sidebar ---------- */}
       <aside className={s.sidebar}>
         <div className={s.brandRow}>
-          <Link to="/dashboard" className={s.brand} aria-label="Zelos">
+          <Link to="/dashboard" className={s.brand} aria-label={t('app.name')}>
             <img src={BRAND_ICON} alt="" width={28} height={28} />
-            <span className={s.brandText}>Zelos</span>
+            <span className={s.brandText}>{t('app.name')}</span>
           </Link>
           <Button variant="ghost" iconOnly size="sm" onClick={toggleCollapsed} aria-label={collapsed ? t('nav.expand') : t('nav.collapse')} aria-pressed={collapsed} className={s.collapseBtn}>
             <Icon name="sidebar" size={18} />
@@ -89,7 +94,7 @@ export function AppShell() {
         </div>
         <nav className={s.sideNav} aria-label={t('nav.main')}>
           {GROUP_ORDER.map((g) => {
-            const list = MODULES.filter((m) => m.group === g);
+            const list = navModules().filter((m) => m.group === g);
             return (
               <div key={g} className={s.navGroup}>
                 {g !== 'main' && <div className={s.groupLabel}>{t(GROUP_LABEL[g])}</div>}
@@ -97,6 +102,7 @@ export function AppShell() {
                   <NavLink key={m.id} to={`/${m.path}`} title={collapsed ? t(m.label) : undefined} className={({ isActive }) => [s.navItem, isActive && s.active].filter(Boolean).join(' ')}>
                     <Icon name={m.icon} />
                     <span className={s.navText}>{t(m.label)}</span>
+                    {m.id === 'news' && newsUnseen && <NewMark className={s.newDot} />}
                   </NavLink>
                 ))}
               </div>
@@ -107,19 +113,11 @@ export function AppShell() {
 
       {/* ---------- top bar ---------- */}
       <header className={s.topbar}>
-        <Link to="/dashboard" className={s.topBrand} aria-label="Zelos">
+        <Link to="/dashboard" className={s.topBrand} aria-label={t('app.name')}>
           <img src={BRAND_ICON} alt="" width={26} height={26} />
         </Link>
         <div className={s.topTitle}>{title}</div>
         <div className={s.topActions}>
-          <Button variant="ghost" iconOnly size="lg" aria-label={inbox.unread ? `${t('notifications.open')} (${t('notifications.unread', { count: inbox.unread })})` : t('notifications.open')} onClick={() => setSheet('notifications')} className={s.bellBtn}>
-            <Icon name="bell" />
-            {inbox.unread > 0 && (
-              <Badge tone="count" className={s.bellCount}>
-                {inbox.unread > 9 ? '9+' : inbox.unread}
-              </Badge>
-            )}
-          </Button>
           {!isReal && (
             <Button variant="primary" size="sm" onClick={signIn} className={s.signInBtn}>
               {t('auth.signIn')}
@@ -128,6 +126,17 @@ export function AppShell() {
           <button type="button" className={s.avatarBtn} aria-label={t('nav.profile')} onClick={() => setSheet('profile')}>
             <Avatar user={user} />
           </button>
+          <Button variant="ghost" iconOnly size="lg" aria-label={inbox.unread ? `${t('notifications.open')} (${t('notifications.unread', { count: inbox.unread })})` : t('notifications.open')} onClick={() => setSheet('notifications')} className={s.bellBtn}>
+            <Icon name="bell" />
+            {inbox.unread > 0 && (
+              <Badge tone="count" className={s.bellCount}>
+                {inbox.unread > 9 ? '9+' : inbox.unread}
+              </Badge>
+            )}
+          </Button>
+          <Button variant="ghost" iconOnly size="lg" aria-label={t('nav.openMenu')} aria-haspopup="dialog" onClick={() => setSheet('menu')} className={s.menuBtn}>
+            <Icon name="menu" />
+          </Button>
         </div>
       </header>
 
@@ -151,20 +160,29 @@ export function AppShell() {
       {/* ---------- phone tab bar ---------- */}
       <nav className={s.tabbar} aria-label={t('nav.main')}>
         {tabModules().map((m) => (
-          <NavLink key={m.id} to={`/${m.path}`} className={({ isActive }) => [s.tab, isActive && s.active].filter(Boolean).join(' ')}>
-            <Icon name={m.icon} size={22} />
-            <span>{t(m.label)}</span>
+          <NavLink key={m.id} to={`/${m.path}`} className={({ isActive }) => [s.tab, isOn(m.id, isActive) && s.active].filter(Boolean).join(' ')}>
+            <span className={s.tabIcon}>
+              <Icon name={m.icon} size={22} />
+            </span>
+            <span className={s.tabLabel}>{t(m.label)}</span>
+            {m.id === 'news' && newsUnseen && <NewMark className={s.tabDot} />}
           </NavLink>
         ))}
-        <button type="button" className={[s.tab, moreActive && s.active].filter(Boolean).join(' ')} onClick={() => setSheet('more')} aria-haspopup="dialog">
-          <Icon name="more" size={22} />
-          <span>{t('nav.more')}</span>
-        </button>
       </nav>
 
       <NotificationsSheet open={sheet === 'notifications'} onClose={() => setSheet(null)} signedIn={isReal} items={inbox.items} error={inbox.error} onSignIn={signIn} />
       <ProfileSheet open={sheet === 'profile'} onClose={() => setSheet(null)} />
-      <MoreSheet open={sheet === 'more'} onClose={() => setSheet(null)} />
+      <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} />
     </div>
+  );
+}
+
+/** The "new posts" dot: a visual dot, read out as ", new posts" after the link's name. */
+function NewMark({ className }: { className?: string }) {
+  return (
+    <>
+      <span className={className} aria-hidden="true" data-new-dot="" />
+      <span className="visually-hidden">, {t('news.unseen')}</span>
+    </>
   );
 }

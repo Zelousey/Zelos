@@ -41,27 +41,38 @@ styles/                tokens.css (design tokens, matches zelos-theme.css), base
 ```
 
 ## The module registry
-`app/modules.ts` lists every area: Dashboard, Markets, Charts, Practice, Real Trading,
-Trade War, Alerts, Options, Crypto, Social, Missions & XP, Arcade, Profile, Settings.
+`app/modules.ts` lists every area: Dashboard, Market, Trade War, Alerts, News (the five tabs),
+then Practice, Squads & friends, Missions & XP, Arcade, Options, Crypto, Profile and Settings.
+Charts is a route only (`/charts` opens the last symbol viewed in Market).
 Each has a `status`:
 - `ready`: built in the app (`load` points at its screen).
 - `classic`: still on the classic site. The app shows a hand-off screen linking to
   `classicPath` (same account, same data).
 - `planned`: not built anywhere yet (Crypto: paused until a licensed data source).
 
+Other fields: `tab` (position 1–5 in the phone tab bar), `parent` (the nav entry a screen
+belongs under, e.g. Practice → Trade War, so that tab stays highlighted) and `nav: false`
+(a route with no nav entry).
+
 Moving a module into the app = build `features/<id>/…Page.tsx`, set `status: 'ready'` and
 `load`. Navigation updates itself.
 
-Product separations are encoded here: **Practice** (solo virtual account), **Real Trading**
-(journal of your own broker's trades) and **Trade War** (competitive matches) are separate
-modules and must never share balances.
+**Information architecture (owner, 2026-10-07).** The app is *Zelos Trade War*, a simulated
+trading competition; it never presents itself as a brokerage and has no real-trading module
+(the website keeps its Real Trade Journal page; the app doesn't link to it). **Practice** (the
+solo virtual $10,000 account) lives inside **Trade War**, beside battles, squads and
+leaderboards. **Alerts** = Zelos trade-signal alerts. Invites, challenges and friend requests
+go to the bell. **News** = announcements about Zelos (`features/news/news.ts`), not
+financial news. A test fails if a module named like real trading or a brokerage appears.
 
 ## Shell behaviour
 - **Desktop/tablet (> 760px):** collapsible grouped sidebar (state remembered), sticky top
-  bar with bell, sign-in and profile. Screens get the full width (max 1600px).
-- **Phone (≤ 760px):** top bar (logo, screen name, bell, profile) and bottom tab bar:
-  Dashboard · Markets · Practice · Alerts · More. "More" opens a grouped list of the other
-  modules. Touch targets ≥ 44px. Safe-area insets respected (notch, home indicator).
+  bar with sign-in, profile and bell. Screens get the full width (max 1600px).
+- **Phone (≤ 760px):** top bar (logo, screen name, then Profile · Notifications · ☰) and a
+  bottom tab bar: Dashboard · Market · Trade War · Alerts · News. The selected tab's icon sits
+  in a filled pill. ☰ opens a grouped list of everything else. News shows a dot (read out as
+  "new posts") until you open it. Touch targets ≥ 44px. Safe-area insets respected (notch,
+  home indicator).
 - Each screen renders inside an ErrorBoundary + Suspense: one crash or slow load never
   takes down the bars. Standard loading (skeleton), empty and error states live in `ui/States`.
 - Offline banner when the device loses its connection.
@@ -137,12 +148,14 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 ## Screens in the app (status)
 | Screen | Route | Status |
 |---|---|---|
-| Dashboard | `/app/dashboard` | In the app: index ETF tiles with sparklines, top movers, sectors, watchlist, practice entry |
-| Markets | `/app/markets` | In the app: stock list with live prices, search, group filter |
-| Chart | `/app/markets/:sym` (`/app/charts` → last symbol) | In the app: 15m/1H/D/W, ranges, line/candles, today's stats, data table, Practice trade action |
-| Practice | `/app/practice` | In the app: server account (value, P&L, positions with Close, open orders with Cancel, activity, archive, privacy, reset) |
+| Dashboard | `/app/dashboard` | In the app: index ETF tiles with sparklines, top movers, sectors, watchlist, practice entry. Redesign planned (step 3). |
+| Market | `/app/markets` | In the app: stock list with live prices, search, group filter. Discovery + globe planned (step 2). |
+| Chart | `/app/markets/:sym` (`/app/charts` → last symbol) | In the app: 15m/1H/D/W, ranges, line/candles, today's stats, data table, Practice trade action. Larger chart + asset switcher planned (step 2). |
+| Trade War | `/app/trade-war` | In the app: hub with your practice account summary; battles, squads, leaderboards and missions hand off to the website for now |
+| Practice | `/app/practice` (under Trade War) | In the app: server account (value, P&L, positions with Close, open orders with Cancel, activity, archive, privacy, reset) |
 | Practice trade | `/app/practice/trade/:sym` | In the app: order ticket (market/limit/stop, day/GTC, stop-loss + take-profit dragged on the chart), confirm step. See `docs/PRACTICE_SERVER.md` |
-| Everything else | — | Hand-off to the classic page |
+| News | `/app/news` | In the app: featured post, category filters, "New" badges. Posts are in `features/news/news.ts` until a server-backed "Post news" screen is approved |
+| Alerts, Squads, Missions, Arcade, Options, Profile | — | Hand-off to the classic page |
 
 ## Performance baseline (first build, 2026-10-07)
 Gzipped JS: app ~10 KB, React + router ~98 KB, Firebase Auth ~30 KB, Firestore ~129 KB

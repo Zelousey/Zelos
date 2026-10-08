@@ -4,12 +4,11 @@
  * (aria-hidden); pass `label` when an icon is the only content of a control.
  */
 const PATHS = {
-  dashboard: '<rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/>',
-  markets: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
+  dashboard: '<path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v11h5v-6h3v6h5V9"/>',
+  markets: '<path d="M3.5 3.5v17h17"/><path d="M7.5 15l4-4.5 3 3 6-7"/><path d="M16.5 6.5h4v4"/>',
   chart: '<path d="M3 17l5-5 4 3 7-8"/><path d="M15 7h4v4"/>',
   practice: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M14.8 9.4c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.9-2.8 2s1 1.7 2.8 2.1 2.9 1 2.9 2.2-1.3 2.1-2.9 2.1c-1.3 0-2.4-.6-2.9-1.5"/>',
-  real: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
-  war: '<path d="M4 19 19 4M15 4h4v4M5 4l5 5M14 14l5 5M19 15v4h-4"/>',
+  war: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="M5 14l4 4M7 17l-3 3M3 19l2 2"/>',
   options: '<path d="M4 18c4 0 5-12 8-12s4 12 8 12"/><path d="M3 18h18"/>',
   crypto: '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 8h4a2 2 0 0 1 0 4h-4m0 0h4.5a2 2 0 0 1 0 4h-4.5M9.5 8v8M11 6.5V8M11 16v1.5"/>',
   alerts: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
@@ -18,6 +17,9 @@ const PATHS = {
   missions: '<path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"/>',
   arcade: '<rect x="2.5" y="7" width="19" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="18" cy="13.5" r="1"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  signal: '<path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12z"/>',
+  news: '<path d="M4 5.5h12.5V19H6a2 2 0 0 1-2-2z"/><path d="M16.5 9H20v8a2 2 0 0 1-2 2h-1.5"/><path d="M7.5 9h5.5M7.5 12.5h5.5M7.5 16h3"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',

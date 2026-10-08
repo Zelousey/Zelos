@@ -1,7 +1,7 @@
 {
-  "name": "Zelos",
+  "name": "Zelos Trade War",
   "short_name": "Zelos",
-  "description": "Market dashboard, charts, practice trading and rule-based alerts.",
+  "description": "A simulated trading competition: practice with virtual money, battle friends and follow the market.",
   "id": "/app/",
   "start_url": "/app/dashboard",
   "scope": "/app/",

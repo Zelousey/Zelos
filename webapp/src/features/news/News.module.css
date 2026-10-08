@@ -1,0 +1,70 @@
+/* ---------- category filters: one swipeable row */
+.filters { display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: none; margin: 0 0 var(--space-4); padding-bottom: 2px; }
+.filters::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.chip:hover { border-color: var(--accent-line); color: var(--ink); }
+.chip[aria-pressed='true'] { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+
+/* ---------- featured post */
+.featured {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(135deg, #2563eb 0%, #1d4ed8 45%, #172554 100%);
+}
+.featuredArt img { display: block; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.featuredBody { display: grid; gap: var(--space-2); justify-items: start; max-width: 70ch; }
+.featuredText { display: grid; gap: var(--space-2); }
+.featuredText p { margin: 0; line-height: 1.55; }
+.featuredActions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-2); }
+.featuredMore { min-height: var(--tap); padding: 0 var(--space-2); border: 0; background: none; color: #fff; font: inherit; font-size: var(--text-sm); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.featuredTag { font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+.featuredTitle { margin: 0 0 var(--space-1); font-size: var(--text-2xl); line-height: 1.2; letter-spacing: -0.01em; }
+.featuredBody a { background: #fff; color: #1e3a8a; border-color: #fff; }
+.featuredBody a:hover { background: #eff4ff; color: #172554; }
+
+/* ---------- feed */
+.feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--space-4); }
+.post { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5); background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); }
+.postTitle { margin: 0; font-size: var(--text-lg); line-height: 1.3; color: var(--ink); }
+.body { color: var(--ink-2); font-size: var(--text-sm); line-height: 1.55; }
+.body p { margin: 0 0 var(--space-2); }
+.body p:last-child { margin-bottom: 0; }
+.clamped p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.postActions { display: flex; align-items: center; gap: var(--space-4); margin-top: auto; padding-top: var(--space-1); }
+.more, .link { display: inline-flex; align-items: center; gap: 2px; min-height: var(--tap); padding: 0; border: 0; background: none; color: var(--link); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.link { margin-left: auto; }
+
+/* ---------- meta row */
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--muted); font-size: var(--text-xs); }
+.cat { font-weight: 600; color: var(--link); text-transform: uppercase; letter-spacing: 0.06em; }
+.onDark, .onDark .cat { color: #fff; }
+.onDark span[class*='badge'] { background: #fff; color: #1e3a8a; }
+
+@media (max-width: 760px) {
+  .featured { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding: var(--space-5); }
+  .featuredArt { display: none; }
+  .featuredTitle { font-size: var(--text-xl); }
+  .post { padding: var(--space-4); }
+}
