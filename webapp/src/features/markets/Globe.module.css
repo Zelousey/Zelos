@@ -1,0 +1,23 @@
+.wrap { position: relative; width: 100%; border-radius: var(--radius); overflow: hidden; background: radial-gradient(ellipse at 50% 45%, rgba(74, 134, 255, 0.10), transparent 62%); }
+.host { position: absolute; inset: 0; }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: var(--text-sm); }
+/* classes the classic globe script creates inside the host (same look as zelos-theme.css) */
+.host :global(.globe-canvas-host) { width: 100%; height: 100%; cursor: grab; }
+.host :global(.globe-loading) { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); pointer-events: none; }
+.host :global(.globe-card) {
+  position: absolute; z-index: 6; width: 290px; max-width: calc(100% - 16px); pointer-events: none;
+  background: rgba(12, 14, 18, 0.94); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); padding: 12px 14px; font-size: 0.8rem; color: #f4f5f7; text-align: left;
+}
+.host :global(.globe-card.is-pinned) { pointer-events: auto; max-height: calc(100% - 16px); overflow: auto; border-color: var(--accent-line); }
+.host :global(.globe-card.is-docked) { width: auto; max-height: 55%; overflow: auto; }
+.host :global(.gc-head) { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding-right: 18px; }
+.host :global(.gc-big), .host :global(.gc-row) { font-family: var(--mono); }
+.host :global(.gc-sub), .host :global(.gc-why), .host :global(.gc-foot), .host :global(.gc-row em), .host :global(.gc-na) { color: #9599a3; font-size: 0.72rem; font-style: normal; }
+.host :global(.gc-sec) { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin: 10px 0 4px; }
+.host :global(.gc-row) { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-size: 0.76rem; }
+.host :global(.gc-news) { font-size: 0.74rem; line-height: 1.45; margin: 2px 0; }
+.host :global(.gc-up) { color: var(--bull); }
+.host :global(.gc-dn) { color: var(--danger); }
+.host :global(.gc-foot) { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.host :global(.gc-close) { position: absolute; top: 6px; right: 8px; background: none; border: 0; color: #9599a3; font-size: 1.1rem; cursor: pointer; }

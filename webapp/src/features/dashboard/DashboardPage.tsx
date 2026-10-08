@@ -1,141 +1,69 @@
 /**
- * Dashboard: the home screen. Index ETFs (stat tiles), top movers, sector moves, your
- * watchlist and a way into Practice. Every row and tile opens the chart.
- * Desktop: a 12-column grid. Phone: one column, index tiles swipe sideways.
+ * Dashboard: the Trade War command center (redesign of the classic dashboard.html, owner
+ * reference 2026-10-08). Your trader card and Trade War account on top, then the live
+ * globe, daily missions, the leaderboard, your Trade Wars, achievements, movers and the
+ * US market. Every panel reads real server data or your own progress; nothing is mocked.
+ *
+ * Layout: a grid with named areas. Phones get one column in the order a player needs:
+ * account, missions, wars, leaderboard, then the market.
  */
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
-import { useMovers, useQuotes, useSnapshot } from '../../data/markets';
-import { instrument, INDEX_ETFS } from '../../data/universe';
+import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
-import { formatPercent, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { useMediaQuery, PHONE_QUERY } from '../../lib/useMediaQuery';
-import { buttonClass, Card, Change, EmptyState, ErrorState, LoadingState, PageHeader, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
-import { MarketList } from '../markets/MarketRow';
+import { useNow } from '../../lib/useNow';
+import { PageHeader, useToast } from '../../ui';
 import { StatusLine } from '../markets/StatusLine';
-import { useWatchlist } from './useWatchlist';
+import { useQuotes } from '../../data/markets';
+import { AccountCard, AchievementsCard, GlobePanel, LeaderboardCard, MarketCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
+import { achievementsView, mergeProgress, missionsView, readLocal } from './progress';
+import { useIdentity, useMyProfile, useMyRank } from './social';
 import s from './DashboardPage.module.css';
-
-type MoverTab = 'gainers' | 'losers' | 'actives';
 
 export default function DashboardPage() {
   const quotes = useQuotes();
-  const snapshot = useSnapshot();
-  const movers = useMovers();
   const { user, isReal, signInWithGoogle } = useAuth();
-  const watch = useWatchlist(isReal && user ? user.uid : null);
-  const [tab, setTab] = useState<MoverTab>('gainers');
-  // phones get a shorter, focused home screen; the full lists are one tap away
-  const phone = useMediaQuery(PHONE_QUERY);
-  const moverCount = phone ? 5 : 6;
-  const qs = useMemo(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
+  const toast = useToast();
+  const uid = isReal && user ? user.uid : null;
+  const userDoc = useUserDoc(uid);
+  const identity = useIdentity(uid);
+  const profile = useMyProfile(uid);
+  const me = profile.status === 'ready' ? profile.data : null;
+  const rank = useMyRank(me?.equity ?? null);
 
-  const indexTiles = INDEX_ETFS.map(({ sym, label }) => {
-    const snap = snapshot.status === 'ready' ? snapshot.data.items[sym] : undefined;
-    const spark = snapshot.status === 'ready' ? snapshot.data.spark[sym]?.points.map((p) => p.c) ?? [] : [];
-    const q = qs[sym];
-    return { sym, label, price: q?.c ?? snap?.price ?? null, pct: q?.chPct ?? snap?.pct ?? null, spark };
-  });
-  const loadingTiles = quotes.status === 'loading' && snapshot.status === 'loading';
+  // progress: this browser's copy (shared with the website) merged with the account's copy
+  const [local] = useState(readLocal);
+  const remote = userDoc.status === 'ready' ? userDoc.data.progress : null;
+  const progress = useMemo(() => mergeProgress(local.progress, remote), [local.progress, remote]);
+  const now = useNow();
+  const streak = missionsView(progress, local.xpLog, now).streak;
+  const ach = achievementsView(progress, me?.achievements);
 
-  const watchRows = useMemo(() => {
-    if (watch.status !== 'ready') return [];
-    return watch.data.map((sym) => ({ sym, name: instrument(sym)?.name ?? '', price: qs[sym]?.c, chPct: qs[sym]?.chPct }));
-  }, [watch, qs]);
-
-  const allSectors = movers.status === 'ready' ? movers.data.sectors : [];
-  // phones: the five biggest moves either way, still in order from best to worst
-  const sectors = phone ? [...allSectors].sort((a, b) => Math.abs(b.chPct) - Math.abs(a.chPct)).slice(0, 5).sort((a, b) => b.chPct - a.chPct) : allSectors;
-  const maxAbs = Math.max(1, ...allSectors.map((x) => Math.abs(x.chPct)));
+  const name = (identity.status === 'ready' && identity.data.name) || user?.displayName?.split(' ')[0] || '';
+  const signIn = () => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+  const watch = useMemo(() => (userDoc.status === 'ready' ? { status: 'ready' as const, data: userDoc.data.watchlist } : userDoc), [userDoc]);
 
   return (
     <>
-      <PageHeader title={t('nav.dashboard')} />
+      <PageHeader title={t('nav.dashboard')} subtitle={uid && name ? t('dash.hello', { name }) : t('dash.helloGuest')} />
       <StatusLine quotes={quotes} />
-      <div className={s.grid}>
-        <section className={s.indexes} aria-label={t('dash.indexes')}>
-          <div className={s.tiles}>
-            {indexTiles.map((x) => (
-              <Card key={x.sym} as="article" interactive>
-                <Link to={`/markets/${x.sym}`} className={s.tile} aria-label={`${x.label} (${x.sym}) ${formatPrice(x.price)} ${formatPercent(x.pct)} today`}>
-                  {loadingTiles ? (
-                    <Skeleton height={48} />
-                  ) : (
-                    <Stat label={`${x.label} · ${x.sym}`} value={formatPrice(x.price)} delta={<>{formatPercent(x.pct)} today</>} direction={x.pct == null ? 'flat' : x.pct > 0 ? 'up' : x.pct < 0 ? 'down' : 'flat'} />
-                  )}
-                  <Sparkline values={x.spark} label={`${x.label}, last month`} />
-                </Link>
-              </Card>
-            ))}
-          </div>
-          <p className={s.tileNote}>{t('dash.indexesNote')}</p>
-        </section>
-
-        <Card className={s.movers} title={t('dash.movers')} subtitle={t('dash.movers.scope')} flush>
-          <div style={{ padding: 'var(--space-3) var(--space-4) var(--space-2)' }}>
-            <Tabs label={t('dash.movers')} value={tab} onChange={setTab} stretch items={[{ value: 'gainers', label: t('dash.movers.gainers') }, { value: 'losers', label: t('dash.movers.losers') }, { value: 'actives', label: t('dash.movers.actives') }]} />
-          </div>
-          {movers.status === 'loading' ? (
-            <LoadingState rows={5} />
-          ) : movers.status === 'error' ? (
-            <ErrorState compact />
-          ) : movers.status === 'missing' || movers.data[tab].length === 0 ? (
-            <EmptyState icon="markets" body={t('dash.movers.empty')} compact />
-          ) : (
-            <MarketList rows={movers.data[tab].slice(0, moverCount)} label={t(`dash.movers.${tab}`)} />
-          )}
-          <div className={s.foot}>
-            <span />
-            <Link to="/markets">{t('dash.allMarkets')} →</Link>
-          </div>
-        </Card>
-
-        <Card className={s.sectors} title={t('dash.sectors')} flush>
-          {movers.status === 'loading' ? (
-            <LoadingState rows={5} />
-          ) : sectors.length === 0 ? (
-            <EmptyState icon="markets" body={t('dash.sectors.empty')} compact />
-          ) : (
-            <ul className={s.sectorList}>
-              {sectors.map((x) => (
-                <li key={x.sector} className={s.sectorRow}>
-                  <span className={s.sectorName} title={x.sector}>{x.sector}</span>
-                  <span className={s.track} aria-hidden>
-                    <span className={[s.bar, x.chPct >= 0 ? s.barUp : s.barDown].join(' ')} style={{ width: `${(Math.abs(x.chPct) / maxAbs) * 50}%` }} />
-                  </span>
-                  <Change pct={x.chPct} className={s.pct} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card className={s.watch} title={t('dash.watchlist')} flush>
-          {!isReal ? (
-            <div className={s.signin}>
-              <span>{t('dash.watchlist.signedOut')}</span>
-              <button type="button" className={buttonClass({ variant: 'primary', size: 'sm' })} onClick={() => void signInWithGoogle().catch(() => {})}>
-                {t('auth.signIn')}
-              </button>
-            </div>
-          ) : watch.status === 'loading' ? (
-            <LoadingState rows={4} />
-          ) : watchRows.length === 0 ? (
-            <EmptyState icon="markets" body={t('dash.watchlist.empty')} compact />
-          ) : (
-            <MarketList rows={watchRows} label={t('dash.watchlist')} />
-          )}
-        </Card>
-
-        <Card className={s.practice} title={t('dash.practice')}>
-          <div className={s.practiceBody}>
-            <p>{t('dash.practice.body')}</p>
-            <Link className={buttonClass({ variant: 'secondary' })} to="/practice">
-              {t('dash.practice.open')}
-            </Link>
-          </div>
-        </Card>
+      <div className={[s.grid, uid ? s.signedIn : s.signedOut].join(' ')}>
+        {uid ? (
+          <>
+            <TraderCard uid={uid} identity={identity.status === 'ready' ? identity.data : null} xp={userDoc.status === 'ready' ? userDoc.data.xp : userDoc.status === 'loading' ? null : 0} streak={streak} rank={rank} badges={ach.unlocked.length} totalBadges={ach.total} />
+            <AccountCard uid={uid} />
+          </>
+        ) : (
+          <WelcomeCard onSignIn={signIn} />
+        )}
+        <MissionsCard progress={progress} xpLog={local.xpLog} />
+        <WarsCard uid={uid} />
+        <LeaderboardCard uid={uid} rank={rank} me={me} />
+        <GlobePanel />
+        <MoversCard />
+        <AchievementsCard progress={progress} publicIds={me?.achievements ?? []} />
+        <MarketCard />
+        {uid && <WatchlistCard watch={watch} />}
       </div>
     </>
   );

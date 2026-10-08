@@ -1,7 +1,9 @@
 /** The signed-in person's watchlist (users/{uid}.watchlist, readable only by them). */
-import { useLiveDoc } from '../../data/liveDoc';
-import { SYMBOL_RE } from '../../data/markets';
+import { useMemo } from 'react';
+import type { Loadable } from '../../data/liveDoc';
+import { useUserDoc } from '../../data/userDoc';
 
-export function useWatchlist(uid: string | null) {
-  return useLiveDoc(uid ? `users/${uid}` : null, (d) => (Array.isArray(d.watchlist) ? (d.watchlist as unknown[]).map((x) => String(x).toUpperCase()).filter((x) => SYMBOL_RE.test(x)).slice(0, 50) : []));
+export function useWatchlist(uid: string | null): Loadable<string[]> {
+  const doc = useUserDoc(uid);
+  return useMemo(() => (doc.status === 'ready' ? { status: 'ready', data: doc.data.watchlist } : doc), [doc]);
 }
