@@ -61,7 +61,7 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 
 ## 5. Known issues
 - **Live prices stuck 2026-10-07 → fixed by #38 (merged 2026-10-08):** the 15-minute Marketstack intraday request (all 50 stocks at once) timed out every run, freezing `markets/quotes` at the 2026-10-06 close; Marketstack also sent $0 daily bars (spikes to zero on charts). #38 chunks intraday requests, rejects non-positive prices and cleans stored history. **Verify at the 2026-10-08 open:** `markets/quotes.source == "marketstack"` with a fresh `updatedAt`.
-- **"Start with $10,000" fails with "internal" (reported 2026-10-08):** no public profile has `source: "server"`, so no server account has opened yet. Causes not yet told apart (Claude can't reach Cloud Functions or their logs): a function crash on real users' old browser data (one such crash is now fixed: odd `users.practice.trades` shapes) or the callable not being publicly invokable after the IAM errors during deploy. Diagnose with the curl + `functions:log` commands in the runbook ("News v2 + Practice fix").
+- **"Start with $10,000" fails with "internal" (reported 2026-10-08; owner applied the fix the same day — the callable returned 403, so it was made publicly invokable; confirm a server account now opens):** no public profile has `source: "server"`, so no server account has opened yet. Causes not yet told apart (Claude can't reach Cloud Functions or their logs): a function crash on real users' old browser data (one such crash is now fixed: odd `users.practice.trades` shapes) or the callable not being publicly invokable after the IAM errors during deploy. Diagnose with the curl + `functions:log` commands in the runbook ("News v2 + Practice fix").
 - **Branch protection:** ruleset "Zelos Protection Main" exists but is **disabled**, and it lets the Admin/Maintain/Write roles bypass it, so it would not protect `main` even if enabled. It also has no "require a pull request" or "require status checks" rule. Recommended settings are in `docs/DEVELOPMENT_WORKFLOW.md`.
 - README mentions `.github/workflows/scan-pages.yml`; it does not exist, so `scan/` pages are only rebuilt by hand.
 - Firebase web API key is public by design; it should be restricted to the site's domains in Google Cloud Console → Credentials.
@@ -115,18 +115,18 @@ Recommended direction: **hybrid web-first / native-ready**. Keep improving the e
 ## 10. Current priorities (app build phase)
 Following the owner's UX checklist (2026-10-07), one PR per step, each tried by the owner before the next:
 1. ~~**Structure**~~ done (#37). ~~**News v2 + Practice fix**~~ (#39) and ~~**prices every minute**~~ (#40) merged 2026-10-08.
-2. **Market and charts:** one large chart experience with an asset switcher and mini-chart previews; the website's 3D globe (`market-3d.html`) brought into Market. The globe's country/world moves are mock + Yahoo data today: in the app it shows only real data (exchange open/closed, day/night line, US indexes and sectors from Marketstack) unless the owner approves a world-markets data source.
-3. **Dashboard redesign** — built early at the owner's request (branch `claude/dashboard-v2`, see §6 2026-10-08).
+2. **Market and charts** — built (branch `claude/market-charts`): Market = the overview (live globe + 17 exchanges, sectors, mini charts of indexes/watchlist/movers, every stock with search); the chart screen = one big chart sized to the screen, a symbol switcher (search sheet + recent symbols) and mini-chart previews to jump between symbols. Mini charts use the daily history already loaded for charts plus the live quote (no extra reads). Original plan: one large chart experience with an asset switcher and mini-chart previews; the website's 3D globe (`market-3d.html`) brought into Market. The globe's country/world moves are mock + Yahoo data today: in the app it shows only real data (exchange open/closed, day/night line, US indexes and sectors from Marketstack) unless the owner approves a world-markets data source.
+3. ~~**Dashboard redesign**~~ — merged (#41, 2026-10-08).
 4. **Invites:** Battle / Team up / Invite / Coach (see the Coach / Learn decision), clear recipient screens, accept animations. Prank invite: recommended against (clarity first).
 5. **Onboarding + first steps,** short branded launch animation.
 Then: Capacitor (iOS first) → TestFlight. Before App Store submission: Sign in with Apple (required with Google sign-in), the token-purchase decision (Apple IAP rule 3.1.1), and every classic hand-off moved into the app (several classic pages still link to the website's Real Trading page).
 
-**Waiting on the owner:** the "Start with $10,000" diagnosis output (§5); deploying News v2 (runbook) and confirming `admins/{their uid}` exists; repo ruleset fixes (§5).
+**Waiting on the owner:** whether missions should move to the server (§4); repo ruleset fixes (§5). The owner reported on 2026-10-08 that the `practice_account` 403 fix (public invoker) and the #40 price-function deploy are done; Claude has not been able to verify either from here.
 
 ## 11. Open pull requests / work in flight
-- `claude/dashboard-v2`: the new Dashboard (app only; no functions or rules to deploy). Owner reviews the screenshots, then merges.
+- `claude/market-charts`: Market overview + big chart (app only; nothing to deploy). Owner reviews the screenshots, then merges.
 
-Recently done: #39 News v2 + Practice fix, #40 prices every minute (merged 2026-10-08; #40's two functions to be deployed per the runbook); #37 app structure (five tabs, Trade War hub, News), #38 live-price fix (both merged 2026-10-08); #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
+Recently done: #41 Dashboard v2, #39 News v2 + Practice fix, #40 prices every minute (merged 2026-10-08; #40's two functions to be deployed per the runbook); #37 app structure (five tabs, Trade War hub, News), #38 live-price fix (both merged 2026-10-08); #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
 
 ## 12. Non-negotiable principles
 - Never trust client-submitted prices, balances, permissions, quotas, payment states or user IDs.

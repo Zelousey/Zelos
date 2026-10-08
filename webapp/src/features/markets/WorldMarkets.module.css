@@ -1,0 +1,6 @@
+.exchanges { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.exchanges li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border-soft); border-radius: var(--radius-pill); font-size: var(--text-xs); background: var(--bg-soft); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); }
+.open { background: var(--bull); box-shadow: 0 0 6px var(--bull); }
+.muted { color: var(--muted); }
+.note { color: var(--muted); font-size: 0.7rem; margin-top: var(--space-2); }

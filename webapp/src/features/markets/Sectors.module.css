@@ -1,0 +1,10 @@
+.list { list-style: none; margin: 0; padding: 0; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(40px, 80px) 64px; align-items: center; gap: var(--space-3); padding: 5px 0; font-size: var(--text-sm); }
+.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track { position: relative; height: 6px; background: var(--surface-2); border-radius: 3px; }
+.track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border); }
+.bar { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+.up { left: 50%; background: var(--bull); }
+.down { right: 50%; background: var(--danger); }
+.pct { text-align: right; }
+.muted { color: var(--muted); font-size: var(--text-sm); }

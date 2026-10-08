@@ -1,22 +1,28 @@
 /**
- * One symbol: price header, chart (15m / 1H / D / W with ranges, line or candles),
+ * The big chart: one symbol at a time, as large as the screen allows (15m / 1H / D / W with
+ * ranges, line or candles), a symbol switcher, mini-chart previews to jump between symbols,
  * today's stats, a data-table view of the bars, and the hand-off into a practice trade.
  * Prices come from markets/quotes (live, every minute in market hours), bars from
  * markets/intraday_SYM and the daily history.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { SYMBOL_RE } from '../../data/markets';
-import { instrument, INDEX_ETFS } from '../../data/universe';
+import { SYMBOL_RE, useQuotes } from '../../data/markets';
+import { instrument, INDEX_ETFS, searchUniverse, UNIVERSE } from '../../data/universe';
+import { useUserDoc } from '../../data/userDoc';
+import { useAuth } from '../../lib/auth';
 import { formatCompact, formatMarketTime, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Stat, Tabs } from '../../ui';
+import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { StatusLine } from './StatusLine';
-import { rememberSymbol } from './useLastSymbol';
+import { MarketList } from './MarketRow';
+import { MiniChart } from './MiniChart';
+import { useMinis } from './miniSeries';
+import { recentSymbols, rememberSymbol } from './useLastSymbol';
 import s from './SymbolPage.module.css';
 
 const TF_KEY = 'zelosAppChartTf';
@@ -56,6 +62,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   const [range, setRange] = useState<number | 'all'>(tfDef.def);
   const [style, setStyleState] = useState<'line' | 'candles'>(() => (readString(STYLE_KEY) === 'candles' ? 'candles' : 'line'));
   const [showTable, setShowTable] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
 
   useEffect(() => rememberSymbol(sym), [sym]);
@@ -84,7 +91,12 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
     <>
       <div className={s.head}>
         <div className={s.ident}>
-          <h1 className={s.sym}>{sym}</h1>
+          <div className={s.symRow}>
+            <h1 className={s.sym}>{sym}</h1>
+            <Button variant="secondary" size="sm" onClick={() => setSwitching(true)} aria-haspopup="dialog">
+              <Icon name="search" size={16} /> {t('chart.switch')}
+            </Button>
+          </div>
           <span className={s.name}>{name}</span>
         </div>
         <div className={s.price}>
@@ -176,11 +188,73 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
         </div>
       </div>
 
+      <Previews current={sym} />
+      <SymbolSwitcher open={switching} onClose={() => setSwitching(false)} current={sym} />
+
       <div className={s.actionBar}>
         <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to={tradeHref}>
           {t('trade.practice')} · {sym}
         </Link>
       </div>
     </>
+  );
+}
+
+/** Mini charts to jump between symbols: recent ones, your watchlist, then the indexes. */
+function Previews({ current }: { current: string }) {
+  const { user, isReal } = useAuth();
+  const userDoc = useUserDoc(isReal && user ? user.uid : null);
+  const minis = useMinis();
+  const [recent] = useState(recentSymbols);
+  const syms = useMemo(() => {
+    const watch = userDoc.status === 'ready' ? userDoc.data.watchlist : [];
+    return [...new Set([current, ...recent, ...watch, ...INDEX_ETFS.map((x) => x.sym)])].filter((x) => instrument(x)).slice(0, 10);
+  }, [current, recent, userDoc]);
+  return (
+    <section className={s.previews} aria-label={t('chart.previews')}>
+      <h2 className={s.previewsTitle}>{t('chart.previews')}</h2>
+      <ul className={s.previewList}>
+        {syms.map((x) => (
+          <li key={x}>
+            <MiniChart sym={x} name={instrument(x)?.name ?? ''} mini={minis.get(x)} loading={minis.status === 'loading'} active={x === current} replace />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Search the Zelos list and jump to another chart (keeps your timeframe and style). */
+function SymbolSwitcher({ open, onClose, current }: { open: boolean; onClose: () => void; current: string }) {
+  const [q, setQ] = useState('');
+  const quotes = useQuotes();
+  const [recent] = useState(recentSymbols);
+  const qs = quotes.status === 'ready' ? quotes.data.quotes : {};
+  // picking a symbol changes the page, which remounts this screen and closes the sheet
+  const rows = searchUniverse(q)
+    .filter((i) => i.sym !== current)
+    .map((i) => ({ sym: i.sym, name: i.name, price: qs[i.sym]?.c, chPct: qs[i.sym]?.chPct }));
+  return (
+    <Sheet open={open} onClose={onClose} title={t('chart.switch.title')} labelledBy="chart-switch-title">
+      <label className={s.switchSearch}>
+        <Icon name="search" size={18} />
+        <span className="visually-hidden">{t('markets.search')}</span>
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('markets.searchPlaceholder')} autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="search" autoFocus />
+      </label>
+      {!q && recent.filter((x) => x !== current).length > 0 && (
+        <div className={s.recent}>
+          <span>{t('chart.recent')}</span>
+          {recent
+            .filter((x) => x !== current)
+            .map((x) => (
+              <Link key={x} to={`/markets/${x}`} replace className={buttonClass({ variant: 'secondary', size: 'sm' })}>
+                {x}
+              </Link>
+            ))}
+        </div>
+      )}
+      <MarketList rows={rows} label={t('chart.switch.title')} replace />
+      <p className={s.switchScope}>{t('markets.scope', { count: UNIVERSE.length })}</p>
+    </Sheet>
   );
 }

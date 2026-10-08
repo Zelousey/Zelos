@@ -1,0 +1,13 @@
+.card {
+  display: grid; gap: 2px; padding: var(--space-3); min-width: 0;
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); color: var(--ink);
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.card:hover { border-color: var(--border); background: var(--surface-2); }
+.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); }
+.sym { font-family: var(--mono); font-weight: 700; font-size: var(--text-sm); }
+.chg { font-size: var(--text-xs); }
+.name { color: var(--muted); font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.price { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: var(--text-md); font-weight: 600; }
+.chart { display: block; margin-top: var(--space-1); height: 48px; }

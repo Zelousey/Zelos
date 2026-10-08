@@ -5,7 +5,6 @@
  */
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { exchangesNow } from '../../data/exchanges';
 import { levelFor } from '../../data/levels';
 import type { Loadable } from '../../data/liveDoc';
 import { useMovers, useQuotes, useSnapshot, type Quote } from '../../data/markets';
@@ -14,11 +13,11 @@ import { formatMoney, formatPercent, formatPrice, formatSignedMoney } from '../.
 import { t } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
-import { useMediaQuery, PHONE_QUERY } from '../../lib/useMediaQuery';
 import { Badge, buttonClass, Card, Change, EmptyState, ErrorState, Icon, LoadingState, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
 import { nyDay } from '../charts/series';
-import { Globe } from '../markets/Globe';
+import { useOpenExchanges, WorldMarkets } from '../markets/WorldMarkets';
 import { MarketList } from '../markets/MarketRow';
+import { SectorBars } from '../markets/Sectors';
 import { usePracticeAccount, valueAccount } from '../practice/account';
 import { LevelBadge } from './LevelBadge';
 import { achievementsView, missionsView, STREAK_NEED, type Progress, type XpLog } from './progress';
@@ -170,23 +169,10 @@ export function AccountCard({ uid }: { uid: string }) {
 
 // ------------------------------------------------------------------ globe
 export function GlobePanel() {
-  const phone = useMediaQuery(PHONE_QUERY);
-  const now = useNow();
-  const ex = useMemo(() => exchangesNow(new Date(now)), [now]);
-  const open = ex.filter((x) => x.open);
-  const shown = open.length ? open : ex.filter((x) => ['NYSE', 'LSE', 'TSE', 'HKEX', 'XETRA', 'NSE'].includes(x.id));
+  const { summary } = useOpenExchanges();
   return (
-    <Card className={s.globe} title={t('dash.globe')} subtitle={open.length ? t('dash.globe.open', { n: open.length, total: ex.length }) : t('dash.globe.none')} actions={<MoreLink to="/markets">{t('nav.market')}</MoreLink>}>
-      <Globe label={t('dash.globe.label')} height={phone ? 300 : 420} />
-      <ul className={s.exchanges} aria-label={t('dash.globe')}>
-        {shown.map((x) => (
-          <li key={x.id} title={`${x.name}, ${x.city}: ${x.label}`}>
-            <span className={[s.exDot, x.open && s.exOpen].filter(Boolean).join(' ')} aria-hidden />
-            <b>{x.id}</b> <span className={s.muted}>{x.city}</span> <span className={x.open ? 'up' : s.muted}>{x.open ? 'Open' : 'Closed'}</span>
-          </li>
-        ))}
-      </ul>
-      <p className={s.note}>{t('dash.globe.note')}</p>
+    <Card className={s.globe} title={t('dash.globe')} subtitle={summary} actions={<MoreLink to="/markets">{t('nav.market')}</MoreLink>}>
+      <WorldMarkets height={420} />
     </Card>
   );
 }
@@ -385,7 +371,6 @@ export function MoversCard() {
 export function MarketCard() {
   const quotes = useQuotes();
   const snapshot = useSnapshot();
-  const movers = useMovers();
   const qs = quotes.status === 'ready' ? quotes.data.quotes : {};
   const tiles = INDEX_ETFS.map(({ sym, label }) => {
     const snap = snapshot.status === 'ready' ? snapshot.data.items[sym] : undefined;
@@ -393,8 +378,6 @@ export function MarketCard() {
     const q = qs[sym];
     return { sym, label, price: q?.c ?? snap?.price ?? null, pct: q?.chPct ?? snap?.pct ?? null, spark };
   });
-  const sectors = movers.status === 'ready' ? movers.data.sectors : [];
-  const maxAbs = Math.max(1, ...sectors.map((x) => Math.abs(x.chPct)));
   return (
     <Card className={s.market} title={t('dash.market')} subtitle={t('dash.indexesNote')}>
       <div className={s.marketGrid}>
@@ -410,27 +393,9 @@ export function MarketCard() {
             </Link>
           ))}
         </section>
-        <section aria-label={t('dash.sectors')}>
+        <section>
           <div className={s.sub}>{t('dash.sectors')}</div>
-          {movers.status === 'loading' ? (
-            <LoadingState rows={4} />
-          ) : !sectors.length ? (
-            <p className={s.muted}>{t('dash.sectors.empty')}</p>
-          ) : (
-            <ul className={s.sectorList}>
-              {sectors.map((x) => (
-                <li key={x.sector} className={s.sectorRow}>
-                  <span className={s.sectorName} title={x.sector}>
-                    {x.sector}
-                  </span>
-                  <span className={s.track} aria-hidden>
-                    <span className={[s.bar, x.chPct >= 0 ? s.barUp : s.barDown].join(' ')} style={{ width: `${(Math.abs(x.chPct) / maxAbs) * 50}%` }} />
-                  </span>
-                  <Change pct={x.chPct} className={s.pct} />
-                </li>
-              ))}
-            </ul>
-          )}
+          <SectorBars />
         </section>
       </div>
     </Card>
