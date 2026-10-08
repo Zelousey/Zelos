@@ -131,6 +131,18 @@ test('arcade: leaderboard is public', async () => {
   await assertSucceeds(get(ref(env.unauthenticatedContext().database(), 'scores/bull-run')));
 });
 
+// ---------------------------------------------------------------- Zelos News: public read, server write
+test('news: anyone can read posts; nobody can write them from the browser', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'news/p1'), { section: 'zelos', title: 'Hello', body: ['x'], date: '2026-10-08' });
+  });
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'news/p1')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'news/p2'), { section: 'zelos', title: 'fake' }));
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'news/p1'), { title: 'edited' }));
+  await assertFails(deleteDoc(doc(real('alice').firestore(), 'news/p1')));
+  await assertFails(getDoc(doc(real('alice').firestore(), 'admins/alice')));
+});
+
 (async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-zelos',

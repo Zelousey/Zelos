@@ -11,6 +11,7 @@ const inbox = { items: [] as unknown[], unread: 0, error: false, markAllRead: vi
 vi.mock('./useInbox', () => ({ useInbox: () => inbox }));
 // screens' market data: stay "loading" (no network in unit tests)
 vi.mock('../data/liveDoc', () => ({ useLiveDoc: () => ({ status: 'loading' }) }));
+vi.mock('../data/liveQuery', () => ({ useLiveQuery: () => ({ status: 'loading' }) }));
 
 // jsdom lacks <dialog>.showModal; the Sheet falls back to the open attribute.
 function renderAt(path: string) {

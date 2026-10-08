@@ -1626,6 +1626,7 @@ def market_research(req: https_fn.CallableRequest):
 # ---------------------------------------------------------------------------
 import re as _re
 import secrets as _secrets
+import traceback as _traceback
 import time as _time
 
 TW_BUYIN_MIN, TW_BUYIN_MAX = 100, 10000
@@ -4668,7 +4669,7 @@ def _pr_call(fn):
         except https_fn.HttpsError:
             raise
         except Exception as e:
-            print("[practice] %s failed: %s" % (fn.__name__, type(e).__name__))
+            print("[practice] %s failed: %s: %s\n%s" % (fn.__name__, type(e).__name__, str(e)[:300], _traceback.format_exc()[-2000:]))
             raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Nothing was changed. Try again.")
     wrapper.__name__ = fn.__name__
     return wrapper
@@ -4702,7 +4703,12 @@ def practice_account(req, db, uid, tok, now_ms):
 
     created = txn(db.transaction())
     if created:
-        _pr_publish(db, uid, now_ms, tok)
+        # the account exists now; a problem refreshing the public leaderboard profile must not
+        # report failure (the nightly revalue publishes it again)
+        try:
+            _pr_publish(db, uid, now_ms, tok)
+        except Exception as e:
+            print("[practice] publish after open failed: %s: %s\n%s" % (type(e).__name__, str(e)[:300], _traceback.format_exc()[-2000:]))
     return {"created": created}
 
 
@@ -4848,3 +4854,127 @@ def practice_revalue_all(db, now_ms):
         except Exception as e:
             print("[practice] revalue failed for one account:", type(e).__name__)
     return n
+
+
+# ---------------------------------------------------------------------------
+# Zelos News (functions/news.py)
+#
+# news/{id}: posts by the site owner (sections zelos / tradewar / market / voices). Public
+# read, server write; only accounts listed in admins/{uid} can post, through news_save.
+# markets/officialNews: free official market news, refreshed every 30 minutes: Federal
+# Reserve press releases and SEC 8-K filings for the Zelos stock list. Paid headline feeds
+# are not used yet (owner, 2026-10-08).
+# ---------------------------------------------------------------------------
+import news as NW
+
+FED_RSS = "https://www.federalreserve.gov/feeds/press_all.xml"
+SEC_CURRENT_8K = "/cgi-bin/browse-edgar?action=getcurrent&type=8-K&company=&dateb=&owner=include&start=0&count=100&output=atom"
+
+
+def _news_admin(req):
+    """(uid, db) for a signed-in owner account (admins/{uid}), else an error."""
+    a = req.auth
+    if not a or not a.uid or ((a.token or {}).get("firebase") or {}).get("sign_in_provider") == "anonymous":
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in first.")
+    db = firestore.client()
+    if not db.collection("admins").document(a.uid).get().exists:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.PERMISSION_DENIED, "Only the Zelos team can post news.")
+    return a.uid, db
+
+
+@https_fn.on_call()
+def news_can_post(req: https_fn.CallableRequest):
+    """{admin: bool}: whether to show the Post News screen (the server still checks every post)."""
+    try:
+        _news_admin(req)
+        return {"admin": True}
+    except https_fn.HttpsError:
+        return {"admin": False}
+
+
+@https_fn.on_call()
+def news_save(req: https_fn.CallableRequest):
+    """{id?, section, title, body, date?, featured?, link?: {to, label}, voice?: {...}} -> {id}"""
+    uid, db = _news_admin(req)
+    data = req.data if isinstance(req.data, dict) else {}
+    now = datetime.now(NY)
+    try:
+        post = NW.validate_post(data, now.strftime("%Y-%m-%d"))
+    except NW.NewsError as e:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, str(e))
+    pid = data.get("id")
+    col = db.collection("news")
+    now_ms = int(now.timestamp() * 1000)
+    if pid is not None:
+        if not (isinstance(pid, str) and _re.fullmatch(r"[A-Za-z0-9_-]{6,40}", pid)) or not col.document(pid).get().exists:
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.NOT_FOUND, "That post doesn't exist any more.")
+        ref = col.document(pid)
+        upd = dict(post, updatedAt=now_ms, updatedBy=uid)
+        for k in ("link", "voice"):
+            upd.setdefault(k, firestore.DELETE_FIELD)  # a field removed in the editor is removed here too
+        ref.update(upd)
+    else:
+        recent = col.where("createdAt", ">=", now_ms - 86400000).count().get()
+        if recent and recent[0][0].value >= NW.MAX_POSTS_PER_DAY:
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.RESOURCE_EXHAUSTED, "That's a lot of posts today. Try again tomorrow.")
+        ref = col.document()
+        ref.set(dict(post, createdAt=now_ms, updatedAt=now_ms, by=uid))
+    if post["featured"]:
+        # one featured post at a time
+        for d in col.where("featured", "==", True).stream():
+            if d.id != ref.id:
+                d.reference.update({"featured": False})
+    return {"id": ref.id}
+
+
+@https_fn.on_call()
+def news_delete(req: https_fn.CallableRequest):
+    """{id} -> {deleted: true}"""
+    _uid, db = _news_admin(req)
+    pid = (req.data or {}).get("id") if isinstance(req.data, dict) else None
+    if not (isinstance(pid, str) and _re.fullmatch(r"[A-Za-z0-9_-]{6,40}", pid)):
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Which post?")
+    db.collection("news").document(pid).delete()
+    return {"deleted": True}
+
+
+def _sec_cik_to_sym(db, now):
+    """{cik: SYM} for the Zelos stock list (the SEC ticker map is cached in serverMeta/secCik)."""
+    _sec_cik(db, PRACTICE_SYMBOLS[0], now)  # refreshes the cached map when it's old
+    snap = db.collection("serverMeta").document("secCik").get()
+    try:
+        m = json.loads(((snap.to_dict() or {}).get("json") or "{}")) if snap.exists else {}
+    except Exception:
+        m = {}
+    return {int(m[s.replace(".", "-")]): s for s in PRACTICE_SYMBOLS if m.get(s.replace(".", "-"))}
+
+
+def official_news_run(db, now):
+    """Fetch the official sources and merge into markets/officialNews. Each source fails alone."""
+    fresh, errors = [], []
+    try:
+        fresh += NW.parse_fed_rss(_http_text(FED_RSS))
+    except Exception as e:
+        errors.append("fed:" + type(e).__name__)
+    try:
+        fresh += NW.parse_sec_current(MD.sec_get(MD.SEC_WWW + SEC_CURRENT_8K, raw=True), _sec_cik_to_sym(db, now))
+    except Exception as e:
+        errors.append("sec:" + type(e).__name__)
+    ref = db.collection("markets").document("officialNews")
+    snap = ref.get()
+    old = ((snap.to_dict() or {}).get("items") or []) if snap.exists else []
+    now_ms = int(now.timestamp() * 1000)
+    items = NW.merge_official(old, fresh, now_ms)
+    ref.set({"items": items, "updatedAt": now.isoformat(), "sources": ["Federal Reserve", "SEC EDGAR"], "errors": errors})
+    return {"fresh": len(fresh), "kept": len(items), "errors": errors}
+
+
+def _http_text(url, timeout=20):
+    req = urllib.request.Request(url, headers={"User-Agent": "AgenticTrading.info news (+https://agentictrading.info)"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read(3_000_001).decode("utf-8", "replace")
+
+
+@scheduler_fn.on_schedule(schedule="*/30 6-22 * * *", timezone=scheduler_fn.Timezone("America/New_York"), secrets=["SEC_CONTACT"], timeout_sec=120, memory=256)
+def refresh_official_news(event: scheduler_fn.ScheduledEvent) -> None:
+    print("[news] official:", official_news_run(firestore.client(), datetime.now(NY)))

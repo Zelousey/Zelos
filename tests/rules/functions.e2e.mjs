@@ -114,5 +114,42 @@ await signOut(auth);
 await signInAnonymously(auth);
 let e3 = null; try { await call('practice_account', {}); } catch (x) { e3 = x; } ok(e3 && /account/.test(e3.message), 'guests must create an account first');
 
+
+// --- practice: an old browser account with odd data still opens cleanly
+await signOut(auth);
+const odd = (await createUserWithEmailAndPassword(auth, 'odd@example.com', 'secret123')).user;
+await setDoc(doc(db, 'users', odd.uid), { xp: 0, practice: { cash: 'lots', trades: 7, summary: 'x' } });
+r = await call('practice_account', {});
+ok(r.created === true, 'odd classic practice data does not stop opening the account');
+
+// --- Zelos News: only admins post; anyone reads
+await signOut(auth);
+const nw = (await createUserWithEmailAndPassword(auth, 'news@example.com', 'secret123')).user;
+r = await call('news_can_post', {});
+ok(r.admin === false, 'regular account cannot post news');
+let ne = null; try { await call('news_save', { section: 'zelos', title: 'x', body: 'y' }); } catch (x) { ne = x; }
+ok(ne && /Zelos team/.test(ne.message), 'news_save refused for non-admins');
+await admin('admins/' + nw.uid, { since: { integerValue: 1 } });
+ok((await call('news_can_post', {})).admin === true, 'admin can post');
+const post = await call('news_save', { section: 'zelos', title: 'Big update', body: 'Para one.\n\nPara two.', featured: true, link: { to: '/trade-war', label: 'Go' } });
+let nd = (await getDoc(doc(db, 'news', post.id))).data();
+ok(nd.title === 'Big update' && nd.body.length === 2 && nd.featured && nd.link.to === '/trade-war' && nd.by === nw.uid, 'post saved with paragraphs and link');
+await call('news_save', { id: post.id, section: 'zelos', title: 'Big update', body: 'Para one.' });
+nd = (await getDoc(doc(db, 'news', post.id))).data();
+ok(!nd.link && !nd.featured && nd.body.length === 1, 'edit removes the link and featured flag');
+ne = null; try { await call('news_save', { section: 'voices', title: 'Fed', voice: { platform: 'x', url: 'https://evil.com/1', author: 'A', quote: 'q' } }); } catch (x) { ne = x; }
+ok(ne && /x\.com/.test(ne.message), 'voice post needs a real x.com link');
+const v = await call('news_save', { section: 'voices', title: 'Rates', voice: { platform: 'x', url: 'https://x.com/federalreserve/status/1', author: 'Federal Reserve', quote: 'Rates unchanged.' } });
+const f2 = await call('news_save', { section: 'market', title: 'Second featured', body: 'b', featured: true });
+const f1 = await call('news_save', { section: 'market', title: 'Third featured', body: 'b', featured: true });
+ok(!(await getDoc(doc(db, 'news', f2.id))).data().featured && (await getDoc(doc(db, 'news', f1.id))).data().featured, 'only one post is featured at a time');
+await signOut(auth);
+ok((await getDoc(doc(db, 'news', v.id))).data().voice.author === 'Federal Reserve', 'signed-out visitors can read news');
+let nwrite = 0; try { await setDoc(doc(db, 'news', 'fake1'), { title: 'x' }); } catch (x) { nwrite = 1; }
+ok(nwrite, 'browsers cannot write news directly');
+await signInAnonymously(auth);
+ne = null; try { await call('news_delete', { id: v.id }); } catch (x) { ne = x; }
+ok(ne, 'guests cannot delete news');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);
