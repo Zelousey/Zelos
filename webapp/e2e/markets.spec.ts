@@ -38,6 +38,47 @@ test('full flow: dashboard → markets → search → chart → practice trade',
   await expect(page.getByRole('link', { name: 'Open Practice' })).toBeVisible(); // signed out: asks to open the account
 });
 
+test('Market: world markets, sectors, mini charts and the stock list', async ({ page }) => {
+  await page.goto('markets');
+  await expect(page.getByRole('heading', { name: 'World markets' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Stock exchanges' }).getByRole('listitem')).toHaveCount(17);
+  await expect(page.getByRole('list', { name: 'Sectors today' })).toBeVisible();
+  // mini charts of the index ETFs, from daily history + the live quote
+  const minis = page.getByRole('list', { name: 'Indexes & ETFs' });
+  const spy = minis.getByRole('link', { name: /^SPY,/ });
+  await expect(spy).toContainText(price('SPY'));
+  await expect(spy).toHaveAccessibleName(/over the last month/);
+  // movers outside the Zelos list have no chart, so they aren't shown
+  await page.getByRole('tab', { name: 'Gainers' }).click();
+  await expect(page.getByText('Movers show up after the first prices of the session.')).toBeVisible();
+  await page.getByRole('tab', { name: 'Indexes & ETFs' }).click();
+  await page.getByRole('list', { name: 'Indexes & ETFs' }).getByRole('link', { name: /^QQQ,/ }).click();
+  await expect(page).toHaveURL(/\/app\/markets\/QQQ$/);
+  await page.goto('markets');
+  await page.getByRole('link', { name: 'Open charts' }).click();
+  await expect(page).toHaveURL(/\/app\/markets\/QQQ$/); // the last chart you looked at
+});
+
+test('big chart: switch symbols from the search sheet and the mini-chart previews', async ({ page }) => {
+  await page.goto('markets/AAPL');
+  await page.getByRole('button', { name: 'Change symbol' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Chart another symbol' });
+  await sheet.getByRole('searchbox').fill('micro');
+  await sheet.getByRole('link', { name: /MSFT/ }).click();
+  await expect(page).toHaveURL(/\/app\/markets\/MSFT$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'MSFT' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  // previews: the current chart is marked, a recent one is one tap away
+  const previews = page.getByRole('region', { name: 'Switch chart' });
+  await expect(previews.getByRole('link', { name: /^MSFT,/ })).toHaveAttribute('aria-current', 'page');
+  await previews.getByRole('link', { name: /^AAPL,/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'AAPL' })).toBeVisible();
+  // the chart is big: most of the screen height
+  const box = await page.getByRole('img', { name: /AAPL .* price chart/ }).boundingBox();
+  const vh = page.viewportSize()!.height;
+  expect(box!.height).toBeGreaterThanOrEqual(Math.min(420, vh * 0.35));
+});
+
 test('chart: timeframes, ranges, styles and the data table', async ({ page }) => {
   await page.goto('markets/AAPL');
   const chart = page.getByRole('img', { name: /AAPL D price chart/ });
@@ -90,6 +131,10 @@ test('phone: chart controls fit one row and the trade bar is above the tab bar',
   const tabbar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
   const [b, tb] = await Promise.all([bar.boundingBox(), tabbar.boundingBox()]);
   expect(b!.y + b!.height).toBeLessThanOrEqual(tb!.y + 1);
+  // the timeframe tabs start the row and are never squeezed
+  const tf = await page.getByRole('tab', { name: '15m' }).boundingBox();
+  expect(tf!.x).toBeGreaterThanOrEqual(0);
+  expect(tf!.width).toBeGreaterThan(24);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
