@@ -62,8 +62,9 @@ trading competition; it never presents itself as a brokerage and has no real-tra
 (the website keeps its Real Trade Journal page; the app doesn't link to it). **Practice** (the
 solo virtual $10,000 account) lives inside **Trade War**, beside battles, squads and
 leaderboards. **Alerts** = Zelos trade-signal alerts. Invites, challenges and friend requests
-go to the bell. **News** = announcements about Zelos (`features/news/news.ts`), not
-financial news. A test fails if a module named like real trading or a brokerage appears.
+go to the bell. **News** = Zelos and Trade War announcements, official market news (Fed, SEC
+filings) and team-curated posts by people who move markets; not a paid headline feed
+(`features/news/`, `functions/news.py`). A test fails if a module named like real trading or a brokerage appears.
 
 ## Shell behaviour
 - **Desktop/tablet (> 760px):** collapsible grouped sidebar (state remembered), sticky top
@@ -154,7 +155,8 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 | Trade War | `/app/trade-war` | In the app: hub with your practice account summary; battles, squads, leaderboards and missions hand off to the website for now |
 | Practice | `/app/practice` (under Trade War) | In the app: server account (value, P&L, positions with Close, open orders with Cancel, activity, archive, privacy, reset) |
 | Practice trade | `/app/practice/trade/:sym` | In the app: order ticket (market/limit/stop, day/GTC, stop-loss + take-profit dragged on the chart), confirm step. See `docs/PRACTICE_SERVER.md` |
-| News | `/app/news` | In the app: featured post, category filters, "New" badges. Posts are in `features/news/news.ts` until a server-backed "Post news" screen is approved |
+| News | `/app/news` | In the app: sections Zelos Updates · Trade War · Market News (Fed releases + SEC 8-K filings, `markets/officialNews`, with a your-watchlist filter) · Market Movers (owner-curated X / Truth Social quotes); featured post, "New" badges |
+| Post News | `/app/news/post` | Team only (`admins/{uid}`, checked by `news_save` / `news_delete`): write, edit, delete posts |
 | Alerts, Squads, Missions, Arcade, Options, Profile | — | Hand-off to the classic page |
 
 ## Performance baseline (first build, 2026-10-07)

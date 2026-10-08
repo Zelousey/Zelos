@@ -5,7 +5,7 @@
 > (that is `MASTER_PLAN.md` plus `AGENTICTRADING_MASTER_SPEC.md`).
 > A new Claude session should be able to continue from this file alone.
 >
-> **Last verified against the repository:** 2026-10-07 (after PR #36; app restructure in progress on `claude/app-structure`).
+> **Last verified against the repository:** 2026-10-08 (after PRs #37 and #38; News v2 on `claude/news-v2`).
 
 ## 1. Product
 AgenticTrading.info ("Zelos") is a trading education, scanning and simulated-competition site for retail traders.
@@ -60,7 +60,8 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 - Legal pages are drafted; lawyer review still recommended (`docs/LEGAL_APP_STORE.md`).
 
 ## 5. Known issues
-- **Live prices stuck since 2026-10-07 (fix ready, branch `claude/marketstack-fix`):** every 15-minute Marketstack intraday request (all 50 stocks at once) timed out, so `markets/quotes` stayed at the 2026-10-06 close (`error: TimeoutError`), `intraday_*` docs were never rewritten, practice orders could not fill, and the after-close job re-ran all evening. Daily (EOD) data was fine. Also: Marketstack sent daily bars with a $0 low/close (2026-04-07/08, 2026-06-04; 22 symbols incl. SPY), which drew spikes to zero on charts. The fix chunks intraday requests (10 symbols, 40 s, one retry, time budget), isolates failures, rejects non-positive prices and cleans stored history. Owner deploys `refresh_quotes` + `refresh_market_data` (runbook: "Fix: live prices stuck"), then merges. Verify at the next market open.
+- **Live prices stuck 2026-10-07 → fixed by #38 (merged 2026-10-08):** the 15-minute Marketstack intraday request (all 50 stocks at once) timed out every run, freezing `markets/quotes` at the 2026-10-06 close; Marketstack also sent $0 daily bars (spikes to zero on charts). #38 chunks intraday requests, rejects non-positive prices and cleans stored history. **Verify at the 2026-10-08 open:** `markets/quotes.source == "marketstack"` with a fresh `updatedAt`.
+- **"Start with $10,000" fails with "internal" (reported 2026-10-08):** no public profile has `source: "server"`, so no server account has opened yet. Causes not yet told apart (Claude can't reach Cloud Functions or their logs): a function crash on real users' old browser data (one such crash is now fixed: odd `users.practice.trades` shapes) or the callable not being publicly invokable after the IAM errors during deploy. Diagnose with the curl + `functions:log` commands in the runbook ("News v2 + Practice fix").
 - **Branch protection:** ruleset "Zelos Protection Main" exists but is **disabled**, and it lets the Admin/Maintain/Write roles bypass it, so it would not protect `main` even if enabled. It also has no "require a pull request" or "require status checks" rule. Recommended settings are in `docs/DEVELOPMENT_WORKFLOW.md`.
 - README mentions `.github/workflows/scan-pages.yml`; it does not exist, so `scan/` pages are only rebuilt by hand.
 - Firebase web API key is public by design; it should be restricted to the site's domains in Google Cloud Console → Credentials.
@@ -75,6 +76,9 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 | 2026-10-07 | App modules: **Practice** (solo virtual account) and **Trade War** (competitive matches) are separate. Owner confirmed the naming. |
 | 2026-10-07 | **Practice account moves to the server** (owner): fresh $10,000 for everyone, old browser accounts archived read-only (unverified); stocks/ETFs first, options next; the classic practice page hands off to the app. Market/limit/stop orders fill only on prices observed after the order (no look-ahead). Details: `docs/PRACTICE_SERVER.md`. |
 | 2026-10-07 | **App restructure (owner's UX checklist):** the app is named **Zelos Trade War** and positioned as a *simulated trading competition*, never a brokerage. Phone tab bar: **Dashboard · Market · Trade War · Alerts · News**; top bar: Profile · Notifications · ☰ menu (everything else). **Practice lives inside Trade War.** **Alerts tab = Zelos trade-signal alerts;** invites, challenges and friend requests go to the bell. **Real Trading is removed from the app only** (the website's Real Trade Journal page stays; its data is untouched). Zelos News = in-app announcements about Zelos, not financial news. Build order: (1) structure, (2) Market + one large chart experience + the globe, (3) Dashboard redesign, (4) invites + animations, (5) onboarding + launch animation. |
+| 2026-10-08 | **Zelos News v2 (owner):** sections **Zelos Updates · Trade War · Market News · Market Movers**. Market News = free official sources now (Federal Reserve press releases, SEC 8-K filings for the stock list, with a "your watchlist" filter); a paid headline feed only later, after its commercial license and price are checked (Finnhub's plans are labelled personal use; Mediastack and Marketaux to be checked). Market Movers = posts by people who move markets (X, Truth Social), **curated by the owner** (pasted link + quote), shown as quote cards linking to the original; no X API for now (pay-per-use, about $0.005 per post read). **Post News screen approved:** team-only, backed by `news/{id}` (public read, server write) and the `news_save`/`news_delete` callables that check `admins/{uid}`. |
+| 2026-10-08 | **Crypto stays out** of the app until a licensed crypto data source is found. |
+| 2026-10-08 | **Coach / Learn invite (spec for step 4):** the inviter becomes the new user's coach; the coach sees the student's progress, can send notes and create tasks; both earn XP as the student works through them. Details to be designed with the owner. |
 | Standing | Hybrid web-first / native-ready direction; Capacitor to be evaluated later. The web app must keep working on its own. |
 | Standing | Firebase stays the backend unless inspection shows a concrete reason to change. |
 
@@ -108,19 +112,19 @@ Recommended direction: **hybrid web-first / native-ready**. Keep improving the e
 
 ## 10. Current priorities (app build phase)
 Following the owner's UX checklist (2026-10-07), one PR per step, each tried by the owner before the next:
-1. **Structure** (branch `claude/app-structure`): five-tab bar, ☰ menu, Trade War hub (Practice inside it), Zelos News, Real Trading out of the app, app renamed Zelos Trade War, tab bar redesign.
+1. ~~**Structure**~~ done (#37). **News v2 + Practice fix** (branch `claude/news-v2`): News sections, official market news, Post News screen, Practice opening hardened.
 2. **Market and charts:** one large chart experience with an asset switcher and mini-chart previews; the website's 3D globe (`market-3d.html`) brought into Market. The globe's country/world moves are mock + Yahoo data today: in the app it shows only real data (exchange open/closed, day/night line, US indexes and sectors from Marketstack) unless the owner approves a world-markets data source.
-3. **Dashboard redesign** from the owner's reference image (image still to be sent).
-4. **Invites:** Battle / Team up / Invite / Coach, clear recipient screens, accept animations. Prank invite: recommended against (clarity first).
+3. **Dashboard redesign** from the owner's reference (the website's `dashboard.html`, screenshot received 2026-10-08): keep its information (Trade War account, globe/chart, leaderboard, daily missions, achievements, trader card, active Trade Wars, movers) with clearer hierarchy and fewer boxes on phones; mockup to the owner before building.
+4. **Invites:** Battle / Team up / Invite / Coach (see the Coach / Learn decision), clear recipient screens, accept animations. Prank invite: recommended against (clarity first).
 5. **Onboarding + first steps,** short branded launch animation.
 Then: Capacitor (iOS first) → TestFlight. Before App Store submission: Sign in with Apple (required with Google sign-in), the token-purchase decision (Apple IAP rule 3.1.1), and every classic hand-off moved into the app (several classic pages still link to the website's Real Trading page).
 
-**Waiting on the owner:** the dashboard reference image; approval for a server-backed "Post news" screen (new Firestore collection + rules; until then posts ship in `webapp/src/features/news/news.ts`); whether BTC/crypto charts are wanted (needs a licensed crypto data source); repo ruleset fixes (§5).
+**Waiting on the owner:** the "Start with $10,000" diagnosis output (§5); deploying News v2 (runbook) and confirming `admins/{their uid}` exists; repo ruleset fixes (§5).
 
 ## 11. Open pull requests / work in flight
-- `claude/app-structure`: step 1 above.
+- `claude/news-v2`: News v2 + Practice opening fix. Deploy functions + rules first (runbook "News v2 + Practice fix").
 
-Recently done: #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
+Recently done: #37 app structure (five tabs, Trade War hub, News), #38 live-price fix (both merged 2026-10-08); #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
 
 ## 12. Non-negotiable principles
 - Never trust client-submitted prices, balances, permissions, quotas, payment states or user IDs.

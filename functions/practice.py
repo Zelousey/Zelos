@@ -573,10 +573,13 @@ def archive_classic(practice):
     if not isinstance(practice, dict):
         return None
     summ = practice.get("summary") if isinstance(practice.get("summary"), dict) else {}
-    trades = [t for t in (practice.get("trades") or []) if isinstance(t, dict)][-200:]
+    raw = practice.get("trades")
+    trades = [t for t in (raw if isinstance(raw, list) else []) if isinstance(t, dict)][-200:]
     clean = []
     for t in trades:
         try:
+            if any(x != x or x in (float("inf"), float("-inf")) for x in (float(t.get(k) or 0) for k in ("qty", "entry", "exit", "pnl", "pct"))):
+                continue
             clean.append({"sym": str(t.get("sym") or "")[:12], "kind": str(t.get("kind") or "stock")[:10], "qty": float(t.get("qty") or 0),
                           "entry": float(t.get("entry") or 0), "exit": float(t.get("exit") or 0), "pnl": float(t.get("pnl") or 0),
                           "pct": float(t.get("pct") or 0), "openDay": t.get("openDay") if isinstance(t.get("openDay"), str) else None,

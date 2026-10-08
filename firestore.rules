@@ -72,6 +72,12 @@ service cloud.firestore {
     match /squareEvents/{eventId} {
       allow read, write: if false;
     }
+    // Zelos News posts (app News tab). Anyone can read; only the news_save / news_delete
+    // functions write them, after checking admins/{uid}.
+    match /news/{postId} {
+      allow read: if true;
+      allow write: if false;
+    }
     // Site owner accounts (sales.html). Added by hand in the Firebase console; server only.
     match /admins/{uid} {
       allow read, write: if false;

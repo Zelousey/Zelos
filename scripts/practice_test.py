@@ -198,6 +198,10 @@ class AccountLifecycle(unittest.TestCase):
         self.assertFalse(arc["verified"])
         self.assertEqual([t["sym"] for t in arc["trades"]], ["MSFT"])
         self.assertIsNone(P.archive_classic("nope"))
+        # odd shapes from old browser-written accounts never crash opening the new account
+        self.assertEqual(P.archive_classic({"trades": 5})["trades"], [])
+        self.assertEqual(P.archive_classic({"trades": {"a": 1}})["trades"], [])
+        self.assertEqual([t["sym"] for t in P.archive_classic({"trades": [{"sym": "A", "qty": "nan"}, {"sym": "B", "qty": 1}]})["trades"]], ["B"])
 
 
 class MatchesTheBrowser(unittest.TestCase):

@@ -140,3 +140,37 @@ line should say the market is open with a recent "updated" time, and prices shou
 the output (it never prints the key).
 
 **Undo:** `git checkout main` and run the same deploy line.
+
+# News v2 + Practice fix (the news-v2 PR)
+
+**1. Find out why "Start with $10,000" says "internal" (read-only, 1 minute).** In Cloud Shell:
+```
+curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"data":{}}' https://us-central1-leaderboard-agentictrading.cloudfunctions.net/practice_account
+npx -y firebase-tools@latest functions:log --only practice_account --project leaderboard-agentictrading | tail -20
+```
+- `401`: the function runs; the log shows the crash. Send it to Claude. (This PR already fixes one
+  crash: old browser practice data in an unexpected shape.)
+- `403`: the function isn't open to the app. Fix:
+  `gcloud functions add-invoker-policy-binding practice_account --region=us-central1 --member=allUsers --project leaderboard-agentictrading`
+  (and the same for `practice_order`, `practice_cancel`, `practice_reset`, `practice_settings`).
+- `404`: it isn't deployed; step 3 deploys it.
+
+**2. Make sure you're a Zelos admin** (needed for the Post News screen). Firebase console →
+Authentication → copy your account's User UID. Firestore → `admins` collection → a document
+whose ID is that UID must exist (any field, e.g. `since: 1`). If it's already there for the
+sales page, nothing to do.
+
+**3. Deploy (about 5 minutes), then merge:**
+```
+cd ~/Zelos && git fetch origin && git checkout claude/news-v2 && git pull
+source functions/venv/bin/activate && pip install -r functions/requirements.txt
+npx -y firebase-tools@latest deploy --only functions:practice_account,functions:news_can_post,functions:news_save,functions:news_delete,functions:refresh_official_news,firestore:rules --project leaderboard-agentictrading
+```
+If some fail with a permission/IAM message, run the same line again. Then merge the PR.
+
+**4. Check:** open the app → News. "Market News" fills within 30 minutes (Fed releases and SEC
+filings). As an admin you see **Post news** at the top of News; try a Market Movers post with an
+x.com link. Then Trade War → Start Practice → "Start with $10,000".
+
+**Undo:** `git checkout main` and run the same deploy line (the news functions stay but nothing
+in the app calls them).
