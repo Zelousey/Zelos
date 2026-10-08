@@ -39,6 +39,13 @@ describe('market status line', () => {
     expect(st.text).toBe('Market open · updated 9 minutes ago · updates every 15 min · Marketstack');
     expect(st.stale).toBe(false);
   });
+  it('1-minute prices: says every minute and goes stale after a few missed updates', () => {
+    const now = Date.parse('2026-10-07T14:10:00Z');
+    const fresh = marketStatus({ ...base, every: 1, interval: '1m', marketOpen: true, updatedAt: '2026-10-07T14:09:00Z' }, now);
+    expect(fresh.text).toBe('Market open · updated 1 minute ago · updates every minute · Marketstack');
+    expect(fresh.stale).toBe(false);
+    expect(marketStatus({ ...base, every: 1, interval: '1m', marketOpen: true, updatedAt: '2026-10-07T14:01:00Z' }, now).stale).toBe(true);
+  });
   it('closed shows the time prices are from, in ET', () => {
     expect(marketStatus({ ...base, marketOpen: false, updatedAt: '2026-10-06T20:10:00Z' }).text).toMatch(/^Market closed · prices as of 4:10 PM EDT · Marketstack$/);
   });

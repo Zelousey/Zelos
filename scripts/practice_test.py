@@ -90,6 +90,22 @@ class Fills(unittest.TestCase):
         self.assertAlmostEqual(self.a["cash"], 10000 - 1005)
         self.assertEqual([e["kind"] for e in ev], ["order", "fill"])
 
+    def test_one_minute_bars_fill_a_minute_later_and_still_never_early(self):
+        order(self.a, ms(D, "10:05"), sym="AAPL", side="buy", qty=10, _id="mkt1m1")
+        bars = {"AAPL": [bar(D, "10:04", 99, 99, 98, 98.5), bar(D, "10:05", 100, 100.4, 99.8, 100.2), bar(D, "10:06", 100.2, 101, 100, 100.8)]}
+        # at 10:05:30 the 10:05 one-minute bar is still in progress: nothing yet
+        self.assertEqual(P.process_orders(self.a, {}, bars, ms(D, "10:05") + 30000, bar_min=1), [])
+        # at 10:06:30: the order arrived at the start of the 10:05 bar -> fills at its open, never 10:04's price
+        P.process_orders(self.a, {}, bars, ms(D, "10:06") + 30000, bar_min=1)
+        self.assertAlmostEqual(self.a["positions"]["AAPL"]["avg"], 100.0)
+
+    def test_one_minute_bars_read_as_fifteen_would_wait_too_long(self):
+        order(self.a, ms(D, "10:05"), sym="AAPL", side="buy", qty=1, _id="mkt1m2")
+        bars = {"AAPL": [bar(D, "10:05", 100, 100.4, 99.8, 100.2)]}
+        # the same 1-minute bar treated as a 15-minute bar isn't finished at 10:07, so the bar length matters
+        self.assertEqual(P.process_orders(self.a, {}, bars, ms(D, "10:07")), [])
+        self.assertTrue(P.process_orders(self.a, {}, bars, ms(D, "10:07"), bar_min=1))
+
     def test_limit_needs_a_later_bar_to_touch(self):
         order(self.a, ms(D, "10:05"), sym="AAPL", side="buy", qty=1, type="limit", limit=95, _id="lim001")
         # the 10:00 bar's low (94) may have happened before 10:05: it must not fill from it

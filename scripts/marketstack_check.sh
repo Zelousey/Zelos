@@ -30,7 +30,11 @@ PY
 echo "Marketstack plan check - $(date)"
 check "Daily prices (stocks + ETFs)"     "eod?symbols=AAPL,SPY,XLK&date_from=${FROM}&limit=20"
 check "Intraday, 15-minute bars"         "intraday?symbols=AAPL,SPY&interval=15min&date_from=${FROM}&limit=20"
-check "Intraday, 5-minute bars"          "intraday?symbols=AAPL&interval=5min&date_from=${FROM}&limit=5"
+check "Intraday, 1-minute bars"          "intraday?symbols=AAPL,SPY&interval=1min&date_from=${FROM}&limit=20"
+SINCE="$(date -u -d "-3 days" +%Y-%m-%dT13:30:00 2>/dev/null || date -u +%Y-%m-%dT13:30:00)%2B0000"  # "+" must be sent as %2B
+check "1-minute bars since a time"       "intraday?symbols=AAPL&interval=1min&date_from=${SINCE}&limit=5"
 check "Country ETF (globe)"              "eod?symbols=EWJ,EWC&date_from=${FROM}&limit=10"
 unset KEY
-echo "Needed: the first, second and fourth lines say 'works'. 5-minute bars need the Professional plan (not required)."
+echo "Needed: 'Daily prices', 'Intraday, 15-minute bars' and 'Country ETF' say 'works'."
+echo "For prices every minute (functions/.env QUOTE_EVERY_MIN=1, MS_INTERVAL=1min): both 1-minute lines must say 'works'."
+echo "If they say 'not in your plan', set QUOTE_EVERY_MIN=15 and MS_INTERVAL=15min in functions/.env before deploying."

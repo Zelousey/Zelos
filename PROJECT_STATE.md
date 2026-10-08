@@ -79,6 +79,7 @@ Details: `docs/ARCHITECTURE.md`. Data model: `docs/data-model.md`.
 | 2026-10-08 | **Zelos News v2 (owner):** sections **Zelos Updates · Trade War · Market News · Market Movers**. Market News = free official sources now (Federal Reserve press releases, SEC 8-K filings for the stock list, with a "your watchlist" filter); a paid headline feed only later, after its commercial license and price are checked (Finnhub's plans are labelled personal use; Mediastack and Marketaux to be checked). Market Movers = posts by people who move markets (X, Truth Social), **curated by the owner** (pasted link + quote), shown as quote cards linking to the original; no X API for now (pay-per-use, about $0.005 per post read). **Post News screen approved:** team-only, backed by `news/{id}` (public read, server write) and the `news_save`/`news_delete` callables that check `admins/{uid}`. |
 | 2026-10-08 | **Crypto stays out** of the app until a licensed crypto data source is found. |
 | 2026-10-08 | **Coach / Learn invite (spec for step 4):** the inviter becomes the new user's coach; the coach sees the student's progress, can send notes and create tasks; both earn XP as the student works through them. Details to be designed with the owner. |
+| 2026-10-08 | **Prices every minute** (owner, on the upgraded Marketstack plan): `QUOTE_EVERY_MIN=1`, `MS_INTERVAL=1min`. Each run asks only for bars since the newest stored one (about 5 requests a minute, ~2,000 a market day, ~41,000 a month); a daily cap (`MS_DAILY_CALLS=3000`) falls back to every 15 minutes; if the plan lacks 1-minute bars the server falls back to 15-minute bars on its own. The practice fill engine now uses the real bar length (no look-ahead rule unchanged). Plan to verify with `scripts/marketstack_check.sh` before deploying. |
 | Standing | Hybrid web-first / native-ready direction; Capacitor to be evaluated later. The web app must keep working on its own. |
 | Standing | Firebase stays the backend unless inspection shows a concrete reason to change. |
 
@@ -123,6 +124,7 @@ Then: Capacitor (iOS first) → TestFlight. Before App Store submission: Sign in
 
 ## 11. Open pull requests / work in flight
 - `claude/news-v2`: News v2 + Practice opening fix. Deploy functions + rules first (runbook "News v2 + Practice fix").
+- `claude/live-1min` (on top of news-v2): prices every minute. Check the plan, deploy two functions, then merge (runbook "Prices every minute").
 
 Recently done: #37 app structure (five tabs, Trade War hub, News), #38 live-price fix (both merged 2026-10-08); #34 app foundation, #35 Dashboard/Markets/Chart, #36 server practice account (all merged and deployed 2026-10-07); #31 docs + CI, #32 Marketstack + server XP + account deletion, #33 deploy notes.
 

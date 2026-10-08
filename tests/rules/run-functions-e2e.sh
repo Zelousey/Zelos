@@ -24,4 +24,4 @@ fi
 cd "$root"
 GOOGLE_APPLICATION_CREDENTIALS="$tmp/sa.json" "$here/node_modules/.bin/firebase" emulators:exec \
   --project demo-zelos --config firebase.rules-test.json --only auth,firestore,functions \
-  "node tests/rules/functions.e2e.mjs && FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 functions/venv/bin/python -I tests/rules/practice_pass.e2e.py && FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 functions/venv/bin/python -I tests/rules/official_news.e2e.py"
+  "node tests/rules/functions.e2e.mjs && FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 functions/venv/bin/python -I tests/rules/practice_pass.e2e.py && FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 functions/venv/bin/python -I tests/rules/official_news.e2e.py && FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 functions/venv/bin/python -I tests/rules/quotes_run.e2e.py"

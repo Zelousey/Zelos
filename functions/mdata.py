@@ -8,15 +8,18 @@ Everything here runs on the server. Browsers only read the saved Firestore docs,
 number of Marketstack requests doesn't grow with the number of visitors.
 
 Settings (functions/.env, not secrets):
-  QUOTE_EVERY_MIN=15   minutes between price updates (Basic plan: 15; Professional: 1)
-  MS_INTERVAL=15min    intraday bar size (Basic plan allows 15min and longer)
+  QUOTE_EVERY_MIN=1    minutes between price updates (Basic plan: 15; Professional and up: 1)
+  MS_INTERVAL=1min     intraday bar size (Basic plan: 15min and longer; Professional: 1min)
+  MS_DAILY_CALLS=3000  Marketstack requests per day before price updates slow to every 15 min
+Every price update after the first of the day asks only for bars since the last one it saw
+(date_from with a time), so a 1-minute update costs about one request per 10 stocks.
 Secrets (firebase functions:secrets:set NAME):
   MARKETSTACK_API_KEY  the Marketstack access key
   SEC_CONTACT          an email the SEC can reach you at (their required User-Agent); a secret so it stays out of the public repo
 
 Docs written (all public, read-only to browsers):
   markets/quotes            {source, updatedAt, date, marketOpen, every, quotes:{SYM:{c,o,h,l,pc,t,v,chPct}}}
-  markets/intraday_<SYM>    {interval:"15m", bars:["YYYY-MM-DD HH:MM,o,h,l,c,v", ...]} last 5 sessions
+  markets/intraday_<SYM>    {interval:"1m" (or "15m"), bars:["YYYY-MM-DD HH:MM,o,h,l,c,v", ...]} last 5 sessions
   markets/dailyBars         {bars:{SYM:["YYYY-MM-DD,o,h,l,c,v", ...]}} last 90 sessions
   markets/history_<n>       {json: '{"SYM":[["YYYY-MM-DD",o,h,l,c,v],...]}'} ~2 years, 15 symbols per doc
   markets/historyIndex      {parts:n, symbols:[...], updatedAt}
@@ -115,6 +118,25 @@ class MsQuota(Exception):
     """The plan's monthly request allowance is used up."""
 
 
+class MsNotInPlan(Exception):
+    """The plan doesn't include this endpoint or interval (e.g. 1-minute bars on Basic)."""
+
+
+CALLS = [0]  # Marketstack HTTP requests made by this process (usage counting)
+
+
+def daily_call_limit():
+    try:
+        return max(100, int(os.environ.get("MS_DAILY_CALLS", "3000")))
+    except ValueError:
+        return 3000
+
+
+def ms_time(dt):
+    """A datetime -> Marketstack's date_from/date_to with a time (UTC, +0000)."""
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+0000")
+
+
 def ms_get(path, params, api_key, timeout=20):
     """One GET. Returns parsed JSON, or None when the plan doesn't include that endpoint.
     The URL holds the key, so it is never printed."""
@@ -122,6 +144,7 @@ def ms_get(path, params, api_key, timeout=20):
     q["access_key"] = api_key
     req = urllib.request.Request(MS_BASE + "/" + path.lstrip("/") + "?" + urllib.parse.urlencode(q),
                                  headers={"User-Agent": "agentictrading-data/1.0"})
+    CALLS[0] += 1
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))
@@ -153,8 +176,9 @@ def _timed_out(e):
     return isinstance(e, TimeoutError) or (isinstance(e, urllib.error.URLError) and isinstance(getattr(e, "reason", None), TimeoutError))
 
 
-def ms_rows(path, params, api_key, max_pages=12, timeout=20):
-    """All rows of a paginated endpoint (1,000 per page). A page that times out is tried once more."""
+def ms_rows(path, params, api_key, max_pages=12, timeout=20, strict=False):
+    """All rows of a paginated endpoint (1,000 per page). A page that times out is tried once more.
+    strict: raise MsNotInPlan instead of returning nothing when the plan lacks the endpoint."""
     out, offset = [], 0
     for _ in range(max_pages):
         q = dict(params, limit=1000, offset=offset)
@@ -165,6 +189,8 @@ def ms_rows(path, params, api_key, max_pages=12, timeout=20):
                 raise
             d = ms_get(path, q, api_key, timeout=timeout)
         if not isinstance(d, dict):
+            if strict and d is None:
+                raise MsNotInPlan(path)
             break
         rows = _rows(d.get("data"))
         out.extend(rows)
@@ -175,7 +201,7 @@ def ms_rows(path, params, api_key, max_pages=12, timeout=20):
     return out
 
 
-def ms_rows_chunked(path, params, symbols, api_key, size=10, max_pages=4, timeout=40, budget=None, clock=None):
+def ms_rows_chunked(path, params, symbols, api_key, size=10, max_pages=4, timeout=40, budget=None, clock=None, strict=False):
     """Rows for many symbols, `size` symbols per request. Marketstack's intraday endpoint times
     out on large multi-symbol requests, so ask for a few at a time; a group that fails is
     skipped (the others still update). Key and quota errors stop everything; if every group
@@ -190,8 +216,8 @@ def ms_rows_chunked(path, params, symbols, api_key, size=10, max_pages=4, timeou
             last = last or TimeoutError("time budget used up")
             continue
         try:
-            rows += ms_rows(path, dict(params, symbols=",".join(ch)), api_key, max_pages=max_pages, timeout=timeout)
-        except (MsKeyRejected, MsQuota):
+            rows += ms_rows(path, dict(params, symbols=",".join(ch)), api_key, max_pages=max_pages, timeout=timeout, strict=strict)
+        except (MsKeyRejected, MsQuota, MsNotInPlan):
             raise
         except Exception as e:
             failed += ch

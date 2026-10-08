@@ -174,3 +174,30 @@ x.com link. Then Trade War → Start Practice → "Start with $10,000".
 
 **Undo:** `git checkout main` and run the same deploy line (the news functions stay but nothing
 in the app calls them).
+
+# Prices every minute (the live-1min PR)
+
+Deploy **after** the News v2 PR (it's built on top of it).
+
+**1. Check your Marketstack plan includes 1-minute bars** (read-only):
+```
+cd ~/Zelos && git fetch origin && git checkout claude/live-1min && git pull
+bash scripts/marketstack_check.sh
+```
+Both "Intraday, 1-minute bars" and "1-minute bars since a time" must say **works**. If either says
+"not in your plan", stop and tell Claude (prices would stay at 15 minutes).
+
+**2. Deploy (about 3 minutes), then merge:**
+```
+source functions/venv/bin/activate && pip install -r functions/requirements.txt
+npx -y firebase-tools@latest deploy --only functions:refresh_quotes,functions:refresh_market_data --project leaderboard-agentictrading
+```
+If it shows a permission/IAM error, run the last line again. Then merge the PR.
+
+**3. Check (next market day, after 9:32 am New York time):** the app's Market status line says
+"updates every minute" and prices change each minute. In the Marketstack dashboard, a full day
+should use about 2,000 requests (about 41,000 a month on a 100,000 plan). If usage looks much
+higher (for example if Marketstack counts each stock as a request), tell Claude; until then the
+daily cap (`MS_DAILY_CALLS=3000` in `functions/.env`) slows updates to every 15 minutes once hit.
+
+**Undo:** set `QUOTE_EVERY_MIN=15` and `MS_INTERVAL=15min` in `functions/.env` and run the deploy line.
