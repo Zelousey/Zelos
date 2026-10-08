@@ -31,6 +31,16 @@ export default function TradeWarPage() {
       <PageHeader title={t('nav.tradeWar')} subtitle={t('tw.subtitle')} />
       <div className={s.stack}>
         <PracticeCard />
+        <Link to="/invite" className={s.inviteBanner}>
+          <span className={s.tileIcon}>
+            <Icon name="invite" size={22} />
+          </span>
+          <span className={s.tileText}>
+            <b>{t('nav.invite')}</b>
+            <span>{t('tw.invite.body')}</span>
+          </span>
+          <Icon name="chevronRight" size={18} />
+        </Link>
         <section aria-labelledby="tw-compete">
           <h2 id="tw-compete" className={s.sectionTitle}>
             {t('tw.compete')}

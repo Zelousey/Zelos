@@ -101,7 +101,10 @@
 
 /* ===================================================== sheets content */
 .notifList { list-style: none; margin: 0; padding: var(--space-2) 0; }
-.notifItem { display: grid; gap: 2px; padding: var(--space-3) var(--space-4); color: var(--ink); border-bottom: 1px solid var(--border-soft); }
+.notifList > li { border-bottom: 1px solid var(--border-soft); }
+.notifItem { display: grid; gap: 2px; padding: var(--space-3) var(--space-4); color: var(--ink); }
+.notifActions { display: flex; gap: var(--space-2); padding: 0 var(--space-4) var(--space-3); }
+.notifDone { padding: 0 var(--space-4) var(--space-3); color: var(--muted); font-size: var(--text-sm); }
 a.notifItem:hover { background: var(--surface-hover); }
 .notifTitle { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; font-size: var(--text-sm); }
 .notifBody { color: var(--ink-2); font-size: var(--text-sm); }

@@ -252,20 +252,24 @@
   }
 
   // ------------------------------------------------------------ referrals
-  // The invited player's own browser records the referral the first time
-  // they open a practice account signed in (rules allow exactly one, ever).
+  // The referral is recorded by the server (referral_claim, functions/main.py): it checks
+  // the account is new, pays both sides the referral XP, makes you friends and tells the
+  // inviter. Browsers can't write referrals/* any more (owner decision 2026-10-08).
+  var fnsPromise = null;
+  function callFn(name, data) {
+    if (!fnsPromise) fnsPromise = new Promise(function (resolve, reject) {
+      if (firebase.functions) return resolve(firebase.functions());
+      var s = document.createElement('script'); s.src = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js';
+      s.onload = function () { try { resolve(firebase.functions()); } catch (e) { reject(e); } };
+      s.onerror = function () { fnsPromise = null; reject(new Error('offline')); };
+      document.head.appendChild(s);
+    });
+    return fnsPromise.then(function (f) { return f.httpsCallable(name)(data); }).then(function (r) { return r.data; });
+  }
   function claimReferral(user) {
     var r = global.ZelosProgress && ZelosProgress.ref();
     if (!user || user.isAnonymous || !r || r === user.uid) return Promise.resolve(false);
-    var ref = db.collection('referrals').doc(user.uid);
-    return ref.get().then(function (d) {
-      if (d.exists) return false;
-      return ref.set({ referrer: r, createdAt: now() }).then(function () {
-        if (global.ZelosXP) ZelosXP.award('referral-welcome', 'welcome');
-        addFriend(r);
-        return true;
-      });
-    }).catch(function () { return false; });
+    return callFn('referral_claim', { ref: r }).then(function (out) { return !!(out && out.recorded); }).catch(function () { return false; });
   }
   // the referrer's browser counts successes and pays XP per friend (deduped by friend uid)
   function myReferrals(uid) {

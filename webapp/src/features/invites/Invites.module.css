@@ -1,0 +1,75 @@
+.page { max-width: 680px; }
+.muted { color: var(--muted); font-size: var(--text-sm); }
+.error { color: var(--danger); font-size: var(--text-sm); }
+.note { color: var(--ink-2); font-size: var(--text-sm); }
+.row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* ---- pick a kind */
+.kinds { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.kind {
+  width: 100%; display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4); text-align: left;
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); color: var(--ink); cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.kind:hover:not(:disabled) { border-color: var(--accent-line); background: var(--surface-2); }
+.kind:active:not(:disabled) { transform: scale(0.99); }
+.kind:disabled { cursor: default; opacity: 0.6; }
+.kindIcon { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 14px; }
+.k_battle { background: var(--danger-soft); color: #ff8a80; }
+.k_squad { background: var(--accent-soft); color: var(--accent); }
+.k_join { background: var(--gold-soft); color: var(--gold); }
+.k_coach { background: var(--violet-soft); color: var(--violet); }
+.kindText { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.kindText b { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); }
+.kindText span { color: var(--muted); font-size: var(--text-sm); }
+.chev { color: var(--muted); flex: none; }
+
+/* ---- forms */
+.form { display: grid; gap: var(--space-4); }
+.backRow { display: flex; align-items: center; gap: var(--space-2); color: var(--ink); }
+.backRow h2 { font-size: var(--text-lg); font-weight: 700; }
+.choices { border: 0; margin: 0; padding: 0; min-width: 0; }
+.choices legend { font-size: var(--text-sm); color: var(--ink-2); margin-bottom: var(--space-2); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip { position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-pill); font-family: var(--mono); font-size: var(--text-sm); cursor: pointer; color: var(--ink-2); }
+.chip input, .squadRow input { position: absolute; opacity: 0; pointer-events: none; }
+.chip:focus-within, .squadRow:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chipOn { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.squadList { display: grid; gap: var(--space-2); }
+.squadRow { position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
+
+/* ---- share */
+.ready { display: grid; gap: var(--space-4); }
+.readyHead { display: flex; gap: var(--space-3); align-items: center; }
+.readyHead h2 { font-size: var(--text-lg); font-weight: 700; }
+.readyIcon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); flex: none; }
+.linkRow, .sendRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: end; }
+
+/* ---- landing */
+.landing { max-width: 520px; margin: var(--space-5) auto 0; }
+.landCard { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-3); padding: var(--space-6) var(--space-5); background: radial-gradient(120% 80% at 50% 0%, var(--accent-soft), transparent 60%), var(--surface); border-color: var(--accent-line); }
+.inviter { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); border: 2px solid var(--accent); overflow: hidden; font-size: 1.8rem; font-weight: 700; animation: pop 420ms var(--ease-out) both; }
+.inviter img { width: 100%; height: 100%; object-fit: cover; }
+.landTitle { font-size: var(--text-xl); font-weight: 700; line-height: 1.25; }
+.landTitle span { display: block; color: var(--accent); }
+.detail { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius); background: var(--bg-soft); border: 1px solid var(--border-soft); font-size: var(--text-sm); }
+.perks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; text-align: left; color: var(--ink-2); font-size: var(--text-sm); }
+.perks li { display: flex; gap: var(--space-2); align-items: center; }
+.perks svg { color: var(--gold); flex: none; }
+.actions { display: grid; gap: var(--space-2); width: 100%; margin-top: var(--space-2); }
+.closed { display: grid; gap: var(--space-1); justify-items: center; padding: var(--space-3); border-radius: var(--radius); background: var(--bg-soft); width: 100%; }
+.xpChip { display: inline-block; padding: 6px 14px; border-radius: var(--radius-pill); background: var(--gold-soft); color: var(--gold); font-family: var(--mono); font-weight: 700; animation: pop 500ms 300ms var(--ease-out) both; }
+:global(:root[data-theme='white']) .xpChip { color: #8a5f00; }
+
+/* ---- celebration */
+.celebrate { position: relative; width: 120px; height: 120px; display: grid; place-items: center; }
+.check { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--bull); color: #06210f; animation: pop 480ms var(--ease-out) both; }
+.ring { position: absolute; inset: 24px; border-radius: 50%; border: 2px solid var(--bull); animation: ring 900ms var(--ease-out) both; }
+.celebrate i { position: absolute; left: 50%; top: 50%; width: 8px; height: 12px; margin: -6px 0 0 -4px; border-radius: 2px; background: var(--c); opacity: 0; transform: rotate(var(--a)) translateY(0); animation: burst 900ms 120ms var(--ease-out) forwards; }
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes ring { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes burst { 0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(0.6); } }
+@media (prefers-reduced-motion: reduce) {
+  .check, .ring, .inviter, .xpChip, .celebrate i { animation: none; }
+  .ring, .celebrate i { display: none; }
+}
