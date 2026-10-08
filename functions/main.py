@@ -2592,6 +2592,7 @@ def tw_trade(req, db, uid, now_ms):
         return fill, acct, alive
 
     fill, acct, alive = txn(db.transaction())
+    mission_record(db, uid, "trade", now_ms)
     if alive is not None and len(alive) <= 1:
         tw_mark_war(db, war_ref, now_ms, prices)  # the last trader standing wins now
     return {"fill": fill, "cash": acct["cash"], "equity": acct["equity"], "out": acct.get("outReason")}
@@ -4466,6 +4467,8 @@ def xp_award(req: https_fn.CallableRequest):
     db, now_ms = firestore.client(), int(_time.time() * 1000)
     today = _ny_day(now_ms)
     try:
+        if kind == "mission":  # paid only by the server's own mission counter now
+            return {"awarded": False, "reason": "server-counted"}
         amount, ref_id, why = XP.decide(kind, data.get("refId"), today)
         if why:
             return {"awarded": False, "reason": why}
@@ -4480,7 +4483,10 @@ def xp_award(req: https_fn.CallableRequest):
         if kind == "referral-welcome" and not db.collection("referrals").document(uid).get().exists:
             return {"awarded": False, "reason": "bad-ref"}
 
-        return xp_grant(db, uid, kind, ref_id, now_ms)
+        out = xp_grant(db, uid, kind, ref_id, now_ms)
+        if kind == "grade-setup" and out.get("awarded"):
+            mission_record(db, uid, "grade", now_ms)
+        return out
     except https_fn.HttpsError:
         raise
     except Exception as e:
@@ -4526,7 +4532,55 @@ def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
         return {"awarded": awarded, "before": before, "xp": upd.get("xp", before),
                 "streakDays": upd.get("streakDays", int(u.get("streakDays") or 0))}
 
-    return txn(db.transaction())
+    out = txn(db.transaction())
+    if out.get("awarded") and out["xp"] > out["before"]:
+        mission_record(db, uid, "xp", now_ms, n=out["xp"] - out["before"])
+    return out
+
+
+# ---------------------------------------------------------------- missions (functions/missions.py)
+#   mission_event {ev: analyze|news, ref}  -> {counted}
+# Missions are counted here (owner decision 2026-10-08) so they count in the app and on the
+# website alike and can't be faked: trades, wins, graded setups and XP are seen by the server
+# itself; opening a chart (analyze) or a news item is reported by the page and checked.
+# Mission XP is paid by mission_record; xp_award refuses "mission" from browsers.
+import missions as MS
+
+
+def mission_record(db, uid, ev, now_ms, n=1, ref=None):
+    """Count one event toward today's and this week's missions; pay any that just completed.
+    Never raises: missions must never break the action that caused them."""
+    try:
+        today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
+        wk = XP.iso_week_key(today)
+        uref = db.collection("users").document(uid)
+
+        @firestore.transactional
+        def txn(t):
+            snap = uref.get(transaction=t)
+            doc = (snap.to_dict() or {}) if snap.exists else {}
+            state = MS.seed_streak(doc.get("missions"), doc.get("progress"))
+            new, done = MS.apply(state, ev, today, yesterday, wk, n=n, ref=ref)
+            t.set(uref, {"missions": new}, merge=True)
+            return done
+
+        for ref_id in txn(db.transaction()):
+            xp_grant(db, uid, "mission", ref_id, now_ms)
+    except Exception as e:
+        print("[missions] %s for one user failed: %s" % (ev, type(e).__name__))
+
+
+@https_fn.on_call()
+def mission_event(req: https_fn.CallableRequest):
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to track missions.")
+    data = req.data or {}
+    got = MS.check_client_event(data.get("ev"), data.get("ref"), PRACTICE_SYMBOLS)
+    if not got:
+        return {"counted": False}
+    mission_record(firestore.client(), a.uid, got[0], int(_time.time() * 1000), ref=got[1])
+    return {"counted": True}
 
 
 # ---------------------------------------------------------------- account deletion
@@ -4724,8 +4778,10 @@ def _pr_after(db, uid, events, now_ms, tok=None):
         try:
             if e["kind"] == "fill":
                 xp_grant(db, uid, "practice-trade", None, now_ms, counted=True)
+                mission_record(db, uid, "trade", now_ms)
             if e["kind"] == "trade" and e["trade"]["pnl"] > 0:
                 xp_grant(db, uid, "practice-win", None, now_ms, counted=True)
+                mission_record(db, uid, "win", now_ms)
         except Exception as ex:
             print("[practice] xp grant failed:", type(ex).__name__)
     _pr_publish(db, uid, now_ms, tok)

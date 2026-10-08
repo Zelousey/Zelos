@@ -118,13 +118,15 @@ service cloud.firestore {
     // A user's own profile: owned skills, watchlist, xp, streaks, settings.
     // Only that person can read or write their own doc — never anyone else's.
     match /users/{userId} {
-      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate']; }
+      // missions: counted by the server (functions/missions.py), so mission XP can't be faked
+      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions']; }
       allow read, delete: if request.auth != null && request.auth.uid == userId;
       // a new doc may only start XP and the streak at zero
       allow create: if request.auth != null && request.auth.uid == userId
         && request.resource.data.get('xp', 0) == 0
         && request.resource.data.get('streakDays', 0) == 0
-        && !('lastAlertOpenDate' in request.resource.data);
+        && !('lastAlertOpenDate' in request.resource.data)
+        && !('missions' in request.resource.data);
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields());
 

@@ -237,3 +237,30 @@ from your invite". Battle: pick a buy-in, share the link; the friend lands in th
 
 **Undo:** `git checkout main` and run the step 1 line (the old rules let browsers write
 referrals again; invite links stop working).
+
+# Missions on the server (the server-missions PR)
+
+What changes: missions are counted by the server (`functions/missions.py`). New callable
+`mission_event`; `xp_award`, `tw_trade`, `refresh_quotes`, `invite_accept` and
+`referral_claim` changed; rules make `users/{uid}.missions` server-only.
+
+**1. Deploy (about 5 minutes), before merging.** In Cloud Shell, paste each block on its own:
+```
+cd ~/Zelos && git fetch origin && git checkout claude/server-missions && git pull origin claude/server-missions && echo "STEP 1 OK"
+```
+```
+source functions/venv/bin/activate && pip install -q -r functions/requirements.txt && npx -y firebase-tools@latest deploy --only "functions:mission_event,functions:xp_award,functions:tw_trade,functions:refresh_quotes,functions:invite_accept,functions:referral_claim,firestore:rules" --project leaderboard-agentictrading
+```
+It should end with "Deploy complete!". If some functions fail, paste the second block again.
+
+**2. Open the new function to the app and the website:**
+```
+gcloud run services add-iam-policy-binding mission-event --region=us-central1 --member=allUsers --role=roles/run.invoker --project=leaderboard-agentictrading --quiet >/dev/null && echo "mission-event OK"
+```
+
+**3. Merge the PR**, then go back to main: `git checkout main && git pull origin main`.
+
+**4. Check:** in the app, open three different stock charts, then the Dashboard: "Analyze 3 stocks"
+shows 3/3 with a check and you got +10 XP. A practice trade that fills ticks "Make 1 Trade War trade".
+
+**Undo:** `git checkout main` (before merging) and run the deploy line again.

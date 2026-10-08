@@ -33,7 +33,21 @@ ok(r.awarded && r.xp === 8 && r.streakDays === 1, 'opening a real alert: +5 and 
 r = await call('xp_award', { type: 'alert-open', refId: 'no-such-alert' });
 ok(!r.awarded, 'opening a made-up alert pays nothing');
 r = await call('xp_award', { type: 'mission', refId: `d:${nyDay()}:xp`, amount: 300 });
-ok(r.awarded && r.xp === 28, 'mission amount comes from the server table (20), not the browser (300)');
+ok(!r.awarded && r.reason === 'server-counted', 'browsers can no longer claim mission XP (the server counts missions)');
+// opening charts counts toward "Analyze 3 stocks", each stock once a day; the server pays the mission
+for (const sym of ['AAPL', 'AAPL', 'MSFT']) await call('mission_event', { ev: 'analyze', ref: sym });
+ok(!(await call('mission_event', { ev: 'analyze', ref: 'NOTREAL' })).counted, 'a symbol outside the Zelos list does not count');
+ok(!(await call('mission_event', { ev: 'trade' })).counted, 'browsers cannot report trades');
+let me = (await getDoc(doc(db, 'users', g.uid))).data();
+ok(me.missions.day.counts.analyze === 2 && !me.missions.day.done?.analyze && me.xp === 8, 'two different stocks so far, nothing paid yet');
+await call('mission_event', { ev: 'analyze', ref: 'NVDA' });
+me = (await getDoc(doc(db, 'users', g.uid))).data();
+ok(me.missions.day.done.analyze === true && me.xp === 18, 'third stock: "Analyze 3 stocks" done, +10 XP from the server');
+await call('mission_event', { ev: 'news', ref: 'fed:fomc' });
+me = (await getDoc(doc(db, 'users', g.uid))).data();
+ok(me.missions.day.done.news === true && me.xp === 23 && me.missions.streak.days === 1, 'news read: +5 XP and two missions keep the streak');
+let mfail = 0; try { await updateDoc(doc(db, 'users', g.uid), { 'missions.day.done.grade': true }); } catch (e) { mfail = 1; }
+ok(mfail, 'browsers cannot write mission progress');
 r = await call('xp_award', { type: 'achievement', refId: 'free-money' });
 ok(!r.awarded && r.reason === 'bad-ref', 'unknown achievement refused');
 let fails = 0; try { await updateDoc(doc(db, 'users', g.uid), { xp: 99999 }); } catch (e) { fails = 1; }
