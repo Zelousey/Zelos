@@ -15,6 +15,9 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173/app/',
+    // Most tests skip the launch animation and the first sign-in welcome; e2e/welcome.spec.ts
+    // turns both back on.
+    storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [{ name: 'zelosSplashOff', value: '1' }, { name: 'zelosWelcomeSkip', value: '1' }] }] },
     trace: 'retain-on-failure',
     launchOptions: executablePath ? { executablePath } : {},
   },
