@@ -52,6 +52,9 @@ export const MODULES: AppModule[] = [
   { id: 'news', path: 'news', label: 'nav.news', icon: 'news', group: 'main', status: 'ready', tab: 5, load: () => import('../features/news/NewsModule') },
 
   { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/practice/PracticeModule') },
+  { id: 'invite', path: 'invite', label: 'nav.invite', icon: 'invite', group: 'play', status: 'ready', load: () => import('../features/invites/InviteModule').then((m) => ({ default: m.InviteMakeModule })) },
+  // an invite link someone shared: /i/<code>
+  { id: 'invite-link', path: 'i', label: 'nav.invite', icon: 'invite', group: 'play', status: 'ready', parent: 'invite', nav: false, load: () => import('../features/invites/InviteModule') },
   { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', status: 'classic', classicPath: 'practice/squads.html' },
   { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', status: 'classic', classicPath: 'practice/index.html?tab=progress' },
   { id: 'arcade', path: 'arcade', label: 'nav.arcade', icon: 'arcade', group: 'play', status: 'classic', classicPath: 'arcade.html' },

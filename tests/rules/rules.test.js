@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, updateDoc, deleteDoc } = require('firebase/firestore');
+const { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where } = require('firebase/firestore');
 const { ref, set, update, get, push } = require('firebase/database');
 
 const tests = [];
@@ -141,6 +141,30 @@ test('news: anyone can read posts; nobody can write them from the browser', asyn
   await assertFails(updateDoc(doc(real('alice').firestore(), 'news/p1'), { title: 'edited' }));
   await assertFails(deleteDoc(doc(real('alice').firestore(), 'news/p1')));
   await assertFails(getDoc(doc(real('alice').firestore(), 'admins/alice')));
+});
+
+// ---------------------------------------------------------------- invites + referrals: server-written
+test('invites: anyone can open one by its code; only the server writes them', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'invites/Abcdefgh23'), { kind: 'join', from: 'alice', fromName: 'Alice', status: 'open' });
+    await setDoc(doc(c.firestore(), 'invites/Abcdefgh23/accepts/bob'), { at: 1 });
+  });
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'invites/Abcdefgh23')));
+  await assertSucceeds(getDocs(query(collection(real('alice').firestore(), 'invites'), where('from', '==', 'alice'))));
+  await assertFails(getDocs(query(collection(real('bob').firestore(), 'invites'), where('from', '==', 'alice'))));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'invites/Fake123456'), { kind: 'join', from: 'alice', status: 'open' }));
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'invites/Abcdefgh23'), { uses: 0 }));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'invites/Abcdefgh23/accepts/bob')));
+  await assertFails(getDoc(doc(real('alice').firestore(), 'inviteState/alice')));
+});
+test('referrals: browsers can no longer create them; the two people involved can read', async () => {
+  await assertFails(setDoc(doc(real('bob').firestore(), 'referrals/bob'), { referrer: 'alice', createdAt: 1 }));
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'referrals/bob'), { referrer: 'alice', createdAt: 1 });
+  });
+  await assertSucceeds(getDoc(doc(real('bob').firestore(), 'referrals/bob')));
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'referrals/bob')));
+  await assertFails(getDoc(doc(real('carol').firestore(), 'referrals/bob')));
 });
 
 (async () => {

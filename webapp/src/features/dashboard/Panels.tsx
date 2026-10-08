@@ -256,9 +256,12 @@ export function WarsCard({ uid }: { uid: string | null }) {
   const list = wars.status === 'ready' ? sortWars(wars.data).slice(0, 4) : [];
   const actions = (
     <div className={s.row}>
-      <a className={buttonClass({ variant: 'primary', size: 'sm' })} href={classicUrl('practice/#start')}>
+      <Link className={buttonClass({ variant: 'primary', size: 'sm' })} to="/invite?kind=battle">
         + {t('dash.wars.start')}
-      </a>
+      </Link>
+      <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/invite">
+        {t('nav.invite')}
+      </Link>
       <a className={buttonClass({ variant: 'ghost', size: 'sm' })} href={classicUrl('practice/squads.html')}>
         {t('dash.squads')}
       </a>

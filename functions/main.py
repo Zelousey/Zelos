@@ -2357,8 +2357,13 @@ def tw_create(req, db, uid, now_ms):
 @_tw_call
 def tw_join(req, db, uid, now_ms):
     wid = _tw_war_id(req.data)
+    _tw_join(db, wid, uid, _tw_name(db, uid, req.auth.token), now_ms)
+    return {"ok": True}
+
+
+def _tw_join(db, wid, uid, pname, now_ms):
+    """Join a Trade War lobby (also used by invite_accept). No-op if you're already in."""
     war_ref = db.collection("tradeWars").document(wid)
-    pname = _tw_name(db, uid, req.auth.token)
 
     @firestore.transactional
     def txn(t):
@@ -2377,7 +2382,6 @@ def tw_join(req, db, uid, now_ms):
         t.set(war_ref.collection("books").document(uid), tw_new_book())
 
     txn(db.transaction())
-    return {"ok": True}
 
 
 @https_fn.on_call()
@@ -3101,16 +3105,20 @@ def tw_challenge(req, db, uid, now_ms):
                         "rules": dict({"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}, **extra_rules)})
     batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
     batch.set(war_ref.collection("books").document(uid), tw_new_book())
+    inv_ids = {}
     for to in targets:
-        batch.set(db.collection("twInvites").document(), {
+        iref = db.collection("twInvites").document()
+        inv_ids[to] = iref.id
+        batch.set(iref, {
             "to": to, "toName": _tw_name(db, to, None), "from": uid, "fromName": pname, "fromUsername": t.get("username"), "fromPhoto": photo,
             "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode, "lms": lms, "modes": modes,
             "symbols": extra_rules.get("symbols"),
             "status": "pending", "createdAt": now_ms, "respondedAt": None})
     batch.commit()
-    notify_users(db, targets, "challenges", "%s challenged you to a Trade War" % pname,
-                 "%s · %s virtual buy-in · %d day%s. Tap to accept or decline." % (name, _tw_money(buy_in).split(".")[0], days, "" if days == 1 else "s")
-                 + (" Last Man Standing." if lms else ""), "practice/index.html", "inv-" + wid)
+    for to in targets:
+        notify_users(db, [to], "challenges", "%s challenged you to a Trade War" % pname,
+                     "%s · %s virtual buy-in · %d day%s. Tap to accept or decline." % (name, _tw_money(buy_in).split(".")[0], days, "" if days == 1 else "s")
+                     + (" Last Man Standing." if lms else ""), "practice/index.html", "inv-" + wid, action={"type": "tw", "id": inv_ids[to]})
     return {"warId": wid, "invited": len(targets), "mode": mode}
 
 
@@ -4023,14 +4031,19 @@ def notify_wants(prefs, kind):
     return ((prefs or {}).get("types") or {}).get(kind) is not False
 
 
-def notify_users(db, uids, kind, title, body, path, tag):
-    """Inbox + push for each uid. Never raises: a notification must never break the action that caused it."""
+def notify_users(db, uids, kind, title, body, path, tag, action=None):
+    """Inbox + push for each uid. Never raises: a notification must never break the action that caused it.
+    action (optional): what the bell can do inline, e.g. {"type": "invite", "code": ...} (Accept in
+    the app) or {"type": "tw", "id": twInviteId} (Accept / Decline a Trade War challenge)."""
     sent, now_ms = 0, int(_time.time() * 1000)
     for uid in dict.fromkeys(u for u in (uids or []) if u):
         try:
             uref = db.collection("users").document(uid)
             u = uref.get()
-            uref.collection("inbox").add({"kind": kind, "title": str(title)[:120], "body": str(body)[:240], "link": path, "at": now_ms, "read": False})
+            item = {"kind": kind, "title": str(title)[:120], "body": str(body)[:240], "link": path, "at": now_ms, "read": False}
+            if isinstance(action, dict):
+                item["action"] = action
+            uref.collection("inbox").add(item)
             if not notify_wants((u.to_dict() or {}).get("notificationPrefs") if u.exists else None, kind):
                 continue
             toks = [(x.id, (x.to_dict() or {}).get("token")) for x in db.collection("pushTokens").where("uid", "==", uid).stream()]
@@ -4525,7 +4538,7 @@ def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
 # the match (other players' standings depend on them) but the account behind them is gone.
 
 ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "practiceAccounts", "practiceArchive", "traders", "strategyVotes", "referrals",
-                "cosmetics", "twRecords", "xpState")
+                "cosmetics", "twRecords", "xpState", "inviteState")
 ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",), "practiceAccounts": ("history",)}
 
 
@@ -4589,6 +4602,9 @@ def account_delete(req: https_fn.CallableRequest):
                     upd["owner"] = others[0]
                 sq.reference.update(upd)
 
+        # invite links you made stop working (they carry your public name)
+        for snap in db.collection("invites").where("from", "==", uid).stream():
+            snap.reference.update({"status": "cancelled", "fromName": "Trader", "fromUsername": None, "fromPhoto": None})
         for snap in db.collection("usernames").where("uid", "==", uid).stream():
             snap.reference.delete()
         for snap in db.collection("pushTokens").where("uid", "==", uid).stream():
@@ -5058,3 +5074,250 @@ def _http_text(url, timeout=20):
 @scheduler_fn.on_schedule(schedule="*/30 6-22 * * *", timezone=scheduler_fn.Timezone("America/New_York"), secrets=["SEC_CONTACT"], timeout_sec=120, memory=256)
 def refresh_official_news(event: scheduler_fn.ScheduledEvent) -> None:
     print("[news] official:", official_news_run(firestore.client(), datetime.now(NY)))
+
+
+# ---------------------------------------------------------------------------
+# Invites (functions/invites.py): Battle, Team up (squad), Invite a friend (join).
+#
+#   invite_create {kind, warId?, squadId?}  -> {code, url, reused}
+#   invite_send   {code, to: username}      -> {sent}         puts it in their bell (Accept)
+#   invite_accept {code}                    -> {kind, warId, squadId, referral, xp}
+#   invite_cancel {code}                    -> {ok}
+#   referral_claim {ref}                    -> {recorded}     the website's ?ref= links
+#
+# Owner decisions 2026-10-08: the server creates and answers invites and records referrals
+# (with their XP), so nobody can fake who invited whom; squad invites join right away and the
+# squad owner is told. Coach / Learn is designed separately.
+# ---------------------------------------------------------------------------
+import invites as INV
+
+
+def _inv_call(fn):
+    """Runs fn(req, db, uid, tok, now_ms) for a signed-in, non-guest account."""
+    def wrapper(req):
+        try:
+            uid = _tw_user(req)
+            return fn(req, firestore.client(), uid, (req.auth.token or {}), int(_time.time() * 1000))
+        except (INV.InviteError, TWError) as e:
+            raise https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), e.message)
+        except https_fn.HttpsError:
+            raise
+        except Exception as e:
+            print("[invites] %s failed: %s\n%s" % (fn.__name__, type(e).__name__, _traceback.format_exc()[-1500:]))
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+def _inv_url(code):
+    return SITE_URL + "/app/i/" + code
+
+
+def _inv_identity(db, uid, tok):
+    t = db.collection("traders").document(uid).get()
+    t = (t.to_dict() or {}) if t.exists else {}
+    uname = t.get("username") if isinstance(t.get("username"), str) and INV.USERNAME_RE.match(t.get("username")) else None
+    return _tw_name(db, uid, tok), uname, t.get("avatar") or t.get("photo") or None
+
+
+def _inv_signup_ms(uid):
+    """When this account was created (ms), from Firebase Auth; None if unknown."""
+    try:
+        from firebase_admin import auth as _fb_auth
+        return int(_fb_auth.get_user(uid).user_metadata.creation_timestamp)
+    except Exception:
+        return None
+
+
+def _inv_record_referral(db, inviter, uid, via, tok, now_ms):
+    """Record referrals/{uid} once (new accounts only), pay both sides, make them friends,
+    tell the inviter. Returns True if a referral was recorded now."""
+    rref = db.collection("referrals").document(uid)
+    if not INV.referral_due(rref.get().exists, inviter, uid, _inv_signup_ms(uid), now_ms):
+        return False
+    if not db.collection("users").document(inviter).get().exists and not db.collection("traders").document(inviter).get().exists:
+        return False
+    try:
+        rref.create({"referrer": inviter, "createdAt": now_ms, "via": via})
+    except Exception:
+        return False  # recorded a moment ago by another request
+    xp_grant(db, uid, "referral-welcome", "welcome", now_ms)
+    xp_grant(db, inviter, "referral", uid, now_ms)
+    who = _tw_name(db, uid, tok)
+    notify_users(db, [inviter], "friends", "%s joined Zelos from your invite" % who,
+                 "You both earned +%d XP. Challenge them to a Trade War." % XP.FIXED["referral"],
+                 "practice/profile.html?u=" + urllib.parse.quote(uid), "ref-" + uid[:12])
+    return True
+
+
+def _inv_befriend(db, a, b):
+    """Make two people friends both ways (they invited / accepted each other)."""
+    for x, y in ((a, b), (b, a)):
+        try:
+            db.collection("users").document(x).set({"friends": firestore.ArrayUnion([y])}, merge=True)
+        except Exception as e:
+            print("[invites] befriend failed:", type(e).__name__)
+
+
+@https_fn.on_call()
+@_inv_call
+def invite_create(req, db, uid, tok, now_ms):
+    kind, target = INV.validate_create(req.data)
+    st_ref = db.collection("inviteState").document(uid)
+    st = INV.day_state((st_ref.get().to_dict() or {}) if st_ref.get().exists else {}, _ny_day(now_ms))
+    # one reusable "join Zelos" link per person while it's valid
+    if kind == "join" and st.get("join"):
+        old = db.collection("invites").document(st["join"]).get()
+        if old.exists and not INV.usable(old.to_dict(), now_ms + 86400000):
+            return {"code": old.id, "url": _inv_url(old.id), "reused": True}
+    if st["created"] >= INV.MAX_CREATED_PER_DAY:
+        raise INV.InviteError("RESOURCE_EXHAUSTED", "You've made a lot of invites today. Share one you already have, or try again tomorrow.")
+    name, uname, photo = _inv_identity(db, uid, tok)
+    inv = {"kind": kind, "from": uid, "fromName": name, "fromUsername": uname, "fromPhoto": photo,
+           "warId": None, "warName": None, "buyIn": None, "days": None, "squadId": None, "squadName": None,
+           "status": "open", "uses": 0, "createdAt": now_ms, "expiresAt": now_ms + INV.TTL_MS}
+    if kind == "battle":
+        w = db.collection("tradeWars").document(target).get()
+        war = w.to_dict() if w.exists else None
+        INV.check_battle(war, uid)
+        inv.update({"warId": target, "warName": str(war.get("name") or "Trade War")[:40], "buyIn": war.get("buyIn"), "days": war.get("days")})
+    elif kind == "squad":
+        q = db.collection("squads").document(target).get()
+        squad = q.to_dict() if q.exists else None
+        INV.check_squad(squad, uid)
+        inv.update({"squadId": target, "squadName": str(squad.get("name") or "Squad")[:32]})
+    code = "".join(_secrets.choice(INV.CODE_ALPHABET) for _ in range(INV.CODE_LEN))
+    db.collection("invites").document(code).set(inv)
+    st["created"] += 1
+    if kind == "join":
+        st["join"] = code
+    st_ref.set(st)
+    return {"code": code, "url": _inv_url(code), "reused": False}
+
+
+@https_fn.on_call()
+@_inv_call
+def invite_send(req, db, uid, tok, now_ms):
+    data = req.data or {}
+    code = str(data.get("code") or "")
+    to_name = str(data.get("to") or "").strip().lstrip("@").lower()
+    if not INV.CODE_RE.match(code):
+        raise INV.InviteError("INVALID_ARGUMENT", "That invite isn't valid.")
+    if not INV.USERNAME_RE.match(to_name):
+        raise INV.InviteError("INVALID_ARGUMENT", "Type their Zelos username, like @trader_jo.")
+    snap = db.collection("invites").document(code).get()
+    inv = snap.to_dict() if snap.exists else None
+    if not inv or inv.get("from") != uid:
+        raise INV.InviteError("NOT_FOUND", "That invite isn't yours.")
+    why = INV.usable(inv, now_ms)
+    if why:
+        raise INV.InviteError("FAILED_PRECONDITION", why)
+    u = db.collection("usernames").document(to_name).get()
+    to = (u.to_dict() or {}).get("uid") if u.exists else None
+    if not to:
+        raise INV.InviteError("NOT_FOUND", "Nobody on Zelos has the username @%s." % to_name)
+    if to == uid:
+        raise INV.InviteError("INVALID_ARGUMENT", "That's you. Send it to a friend.")
+    st_ref = db.collection("inviteState").document(uid)
+    st = INV.day_state((st_ref.get().to_dict() or {}) if st_ref.get().exists else {}, _ny_day(now_ms))
+    if st["sent"] >= INV.MAX_SENT_PER_DAY:
+        raise INV.InviteError("RESOURCE_EXHAUSTED", "You've sent a lot of invites today. Try again tomorrow, or share the link.")
+    guard = snap.reference.collection("sent").document(to)
+    try:
+        guard.create({"at": now_ms})
+    except Exception:
+        return {"sent": False, "already": True}
+    st["sent"] += 1
+    st_ref.set(st)
+    who = inv.get("fromName") or "A friend"
+    title, body = {
+        "battle": ("%s invited you to a Trade War" % who, "%s · %s virtual buy-in. Tap to join." % (inv.get("warName") or "Trade War", _tw_money(inv.get("buyIn") or 0).split(".")[0])),
+        "squad": ("%s invited you to their squad" % who, "Team up in %s and climb the squad leaderboard together." % (inv.get("squadName") or "their squad")),
+        "join": ("%s invited you to Zelos Trade War" % who, "Trade real stocks with a virtual $10,000 and compete with friends."),
+    }[inv["kind"]]
+    notify_users(db, [to], "challenges" if inv["kind"] == "battle" else "friends", title, body, "app/i/" + code, "invite-" + code,
+                 action={"type": "invite", "code": code, "kind": inv["kind"]})
+    return {"sent": True}
+
+
+@https_fn.on_call()
+@_inv_call
+def invite_accept(req, db, uid, tok, now_ms):
+    code = str((req.data or {}).get("code") or "")
+    if not INV.CODE_RE.match(code):
+        raise INV.InviteError("INVALID_ARGUMENT", "That invite link isn't valid.")
+    ref = db.collection("invites").document(code)
+    snap = ref.get()
+    inv = snap.to_dict() if snap.exists else None
+    acc_ref = ref.collection("accepts").document(uid)
+    again = acc_ref.get().exists
+    if not again:
+        INV.check_accept(inv, uid, now_ms)
+    elif inv and inv.get("from") == uid:
+        raise INV.InviteError("FAILED_PRECONDITION", "That's your own invite. Share it with a friend.")
+    pname = _tw_name(db, uid, tok)
+    out = {"kind": inv["kind"], "warId": inv.get("warId"), "squadId": inv.get("squadId"), "referral": False, "xp": 0, "again": again}
+    if inv["kind"] == "battle":
+        _tw_join(db, inv["warId"], uid, pname, now_ms)
+    elif inv["kind"] == "squad":
+        sref = db.collection("squads").document(inv["squadId"])
+
+        @firestore.transactional
+        def join_squad(t):
+            ss = sref.get(transaction=t)
+            if not ss.exists:
+                raise INV.InviteError("NOT_FOUND", "That squad doesn't exist any more.")
+            sq = ss.to_dict()
+            members = sq.get("members") or []
+            if uid in members:
+                return sq, False
+            if len(members) >= INV.SQUAD_MAX:
+                raise INV.InviteError("FAILED_PRECONDITION", "This squad is full (%d members)." % INV.SQUAD_MAX)
+            t.update(sref, {"members": members + [uid], "names.%s" % uid: pname})
+            return sq, True
+
+        sq, joined = join_squad(db.transaction())
+        if joined:
+            notify_users(db, list(dict.fromkeys([sq.get("owner"), inv["from"]])), "community", "%s joined %s" % (pname, sq.get("name") or "your squad"),
+                         "They joined from %s's invite. Say hi in the squad chat." % (inv.get("fromName") or "a"),
+                         "practice/squads.html?s=" + urllib.parse.quote(inv["squadId"]), "squad-" + inv["squadId"][:12])
+    if not again:
+        try:
+            acc_ref.create({"at": now_ms})
+            ref.update({"uses": firestore.Increment(1)})
+        except Exception:
+            pass
+        _inv_befriend(db, inv["from"], uid)
+        if _inv_record_referral(db, inv["from"], uid, code, tok, now_ms):
+            out.update({"referral": True, "xp": XP.FIXED["referral-welcome"]})
+        elif inv["kind"] == "battle":
+            notify_users(db, [inv["from"]], "challenges", "%s joined %s" % (pname, inv.get("warName") or "your Trade War"),
+                         "Start it when everyone's in.", "practice/war.html?w=" + urllib.parse.quote(inv["warId"]), "inv-" + inv["warId"])
+    return out
+
+
+@https_fn.on_call()
+@_inv_call
+def invite_cancel(req, db, uid, tok, now_ms):
+    code = str((req.data or {}).get("code") or "")
+    if not INV.CODE_RE.match(code):
+        raise INV.InviteError("INVALID_ARGUMENT", "That invite isn't valid.")
+    ref = db.collection("invites").document(code)
+    snap = ref.get()
+    if not snap.exists or (snap.to_dict() or {}).get("from") != uid:
+        raise INV.InviteError("NOT_FOUND", "That invite isn't yours.")
+    ref.update({"status": "cancelled"})
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_inv_call
+def referral_claim(req, db, uid, tok, now_ms):
+    """The website's ?ref=<uid> links (practice/invite.html): record the referral server-side."""
+    ref = str((req.data or {}).get("ref") or "")
+    if not _TW_UID_RE.match(ref) or ref == uid:
+        return {"recorded": False}
+    recorded = _inv_record_referral(db, ref, uid, "link", tok, now_ms)
+    if recorded:
+        _inv_befriend(db, ref, uid)
+    return {"recorded": recorded}

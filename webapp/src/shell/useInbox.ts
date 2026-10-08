@@ -9,7 +9,16 @@ import { db } from '../lib/firebase';
 
 const EMPTY: InboxItem[] = [];
 
-export type InboxItem = { id: string; kind: string; title: string; body: string; link?: string; at: number; read: boolean };
+export type InboxAction = { type: 'invite'; code: string } | { type: 'tw'; id: string };
+export type InboxItem = { id: string; kind: string; title: string; body: string; link?: string; at: number; read: boolean; action?: InboxAction };
+
+/** What the bell can do inline (server-written; anything unexpected is ignored). */
+export function parseAction(v: unknown): InboxAction | undefined {
+  const a = v as { type?: unknown; code?: unknown; id?: unknown } | null;
+  if (a?.type === 'invite' && typeof a.code === 'string' && /^[A-Za-z0-9]{10}$/.test(a.code)) return { type: 'invite', code: a.code };
+  if (a?.type === 'tw' && typeof a.id === 'string' && /^[A-Za-z0-9]{10,40}$/.test(a.id)) return { type: 'tw', id: a.id };
+  return undefined;
+}
 
 export function useInbox(uid: string | null) {
   // State is tagged with the uid it belongs to, so switching accounts never shows the
@@ -27,7 +36,7 @@ export function useInbox(uid: string | null) {
           error: false,
           items: snap.docs.map((d) => {
             const x = d.data();
-            return { id: d.id, kind: String(x.kind ?? ''), title: String(x.title ?? ''), body: String(x.body ?? ''), link: typeof x.link === 'string' ? x.link : undefined, at: Number(x.at) || 0, read: !!x.read };
+            return { id: d.id, kind: String(x.kind ?? ''), title: String(x.title ?? ''), body: String(x.body ?? ''), link: typeof x.link === 'string' ? x.link : undefined, at: Number(x.at) || 0, read: !!x.read, action: parseAction(x.action) };
           }),
         }),
       () => setState({ uid, items: [], error: true }),

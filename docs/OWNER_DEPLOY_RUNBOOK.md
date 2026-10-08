@@ -151,8 +151,10 @@ npx -y firebase-tools@latest functions:log --only practice_account --project lea
 - `401`: the function runs; the log shows the crash. Send it to Claude. (This PR already fixes one
   crash: old browser practice data in an unexpected shape.)
 - `403`: the function isn't open to the app. Fix:
-  `gcloud functions add-invoker-policy-binding practice_account --region=us-central1 --member=allUsers --project leaderboard-agentictrading`
-  (and the same for `practice_order`, `practice_cancel`, `practice_reset`, `practice_settings`).
+  `gcloud run services add-iam-policy-binding practice-account --region=us-central1 --member=allUsers --role=roles/run.invoker --project=leaderboard-agentictrading`
+  (Cloud Run names use dashes; do the same for `practice-order`, `practice-cancel`, `practice-reset`,
+  `practice-settings`). Or in the console: Cloud Run → the service → Security → "Allow unauthenticated".
+  The owner applied this fix on 2026-10-08.
 - `404`: it isn't deployed; step 3 deploys it.
 
 **2. Make sure you're a Zelos admin** (needed for the Post News screen). Firebase console →
@@ -201,3 +203,37 @@ higher (for example if Marketstack counts each stock as a request), tell Claude;
 daily cap (`MS_DAILY_CALLS=3000` in `functions/.env`) slows updates to every 15 minutes once hit.
 
 **Undo:** set `QUOTE_EVERY_MIN=15` and `MS_INTERVAL=15min` in `functions/.env` and run the deploy line.
+
+# Invites: Battle, Team up, Invite a friend (the invites PR)
+
+What's new on the server: `invite_create`, `invite_send`, `invite_accept`, `invite_cancel` and
+`referral_claim`; `tw_challenge`, `tw_join` and `account_delete` changed; new rules for
+`invites/*`, and browsers can no longer write `referrals/*` (the server records them now).
+
+**1. Deploy (about 5 minutes), before merging:**
+```
+cd ~/Zelos && git fetch origin && git checkout claude/invites && git pull
+source functions/venv/bin/activate && pip install -r functions/requirements.txt
+npx -y firebase-tools@latest deploy --only functions:invite_create,functions:invite_send,functions:invite_accept,functions:invite_cancel,functions:referral_claim,functions:tw_challenge,functions:tw_join,functions:account_delete,firestore:rules --project leaderboard-agentictrading
+```
+If some fail with a permission/IAM message, run the same line again.
+
+**2. Make sure the new functions are open to the app** (this is what caused the "Start with
+$10,000" 403). Paste this whole block into Cloud Shell; each line should print a policy, not an error:
+```
+for f in invite-create invite-send invite-accept invite-cancel referral-claim; do
+  gcloud run services add-iam-policy-binding $f --region=us-central1 --member=allUsers --role=roles/run.invoker --project=leaderboard-agentictrading --quiet >/dev/null && echo "$f ok"
+done
+```
+(Each function still checks who is signed in; this only lets the request reach it.)
+
+**3. Merge the PR.** The website's invite links (`practice/invite.html?ref=`) switch to
+`referral_claim` at the same moment.
+
+**4. Check:** in the app, Trade War → **Invite friends** → **Invite a friend** → you get a link.
+Open it in a private window: it shows "<your name> invited you". Sign in there with another
+Google account → **Accept** → a check with confetti and "+50 XP". Your bell shows "… joined Zelos
+from your invite". Battle: pick a buy-in, share the link; the friend lands in the battle lobby.
+
+**Undo:** `git checkout main` and run the step 1 line (the old rules let browsers write
+referrals again; invite links stop working).

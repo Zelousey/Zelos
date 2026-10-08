@@ -1,14 +1,22 @@
+import { useState } from 'react';
+import { Link } from 'react-router';
+import { acceptInvite, errorText, respondChallenge } from '../features/invites/invites';
 import { t } from '../lib/i18n';
 import { formatRelative } from '../lib/format';
 import { classicUrl } from '../lib/platform';
-import { Button, EmptyState, ErrorState, Sheet } from '../ui';
+import { Button, EmptyState, ErrorState, Sheet, useToast } from '../ui';
 import type { InboxItem } from './useInbox';
 import s from './Shell.module.css';
 
-/** Server links are site paths like "/practice/war.html?id=…"; only same-site paths are followed. */
-function safeLink(link?: string): string | undefined {
-  if (!link || !/^\/[A-Za-z0-9_\-./?=&%#]*$/.test(link) || link.startsWith('//')) return undefined;
-  return classicUrl(link);
+/**
+ * Server links are site paths like "practice/war.html?w=…" (with or without a leading
+ * slash); only same-site paths are followed. App paths ("app/i/CODE") stay in the app.
+ */
+export function safeLink(link?: string): { app?: string; href?: string } {
+  if (!link || link.startsWith('//') || !/^\/?[A-Za-z0-9_\-./?=&%#]*$/.test(link)) return {};
+  const path = link.replace(/^\//, '');
+  if (path.startsWith('app/')) return { app: '/' + path.slice(4) };
+  return { href: classicUrl(path) };
 }
 
 export function NotificationsSheet({ open, onClose, signedIn, items, error, onSignIn }: { open: boolean; onClose: () => void; signedIn: boolean; items: InboxItem[]; error: boolean; onSignIn: () => void }) {
@@ -23,7 +31,7 @@ export function NotificationsSheet({ open, onClose, signedIn, items, error, onSi
       ) : (
         <ul className={s.notifList}>
           {items.map((n) => {
-            const href = safeLink(n.link);
+            const to = safeLink(n.link);
             const content = (
               <>
                 <span className={s.notifTitle}>
@@ -34,10 +42,74 @@ export function NotificationsSheet({ open, onClose, signedIn, items, error, onSi
                 <span className={s.notifTime}>{formatRelative(n.at)}</span>
               </>
             );
-            return <li key={n.id}>{href ? <a className={s.notifItem} href={href}>{content}</a> : <div className={s.notifItem}>{content}</div>}</li>;
+            return (
+              <li key={n.id}>
+                {to.app ? (
+                  <Link className={s.notifItem} to={to.app} onClick={onClose}>
+                    {content}
+                  </Link>
+                ) : to.href ? (
+                  <a className={s.notifItem} href={to.href}>
+                    {content}
+                  </a>
+                ) : (
+                  <div className={s.notifItem}>{content}</div>
+                )}
+                {n.action && <Actions item={n} onClose={onClose} />}
+              </li>
+            );
           })}
         </ul>
       )}
     </Sheet>
+  );
+}
+
+/** Accept (and for Trade War challenges, Decline) right from the bell. */
+function Actions({ item, onClose }: { item: InboxItem; onClose: () => void }) {
+  const toast = useToast();
+  const [state, setState] = useState<'idle' | 'busy' | 'accepted' | 'declined'>('idle');
+  const a = item.action!;
+  async function run(accept: boolean) {
+    setState('busy');
+    try {
+      if (a.type === 'invite') {
+        await acceptInvite(a.code);
+        setState('accepted');
+      } else {
+        const r = await respondChallenge(a.id, accept);
+        setState(r.status === 'accepted' ? 'accepted' : 'declined');
+        if (r.status === 'expired') toast.show(t('land.expired'));
+      }
+    } catch (e) {
+      setState('idle');
+      toast.show(errorText(e, t('land.failed')), 'error');
+    }
+  }
+  if (state === 'accepted' || state === 'declined')
+    return (
+      <p className={s.notifDone} role="status">
+        {state === 'accepted' ? t('bell.accepted') : t('bell.declined')}
+        {state === 'accepted' && a.type === 'invite' && (
+          <>
+            {' · '}
+            <Link to={`/i/${a.code}`} onClick={onClose}>
+              {t('bell.open')} →
+            </Link>
+          </>
+        )}
+      </p>
+    );
+  return (
+    <div className={s.notifActions}>
+      <Button size="sm" variant="primary" disabled={state === 'busy'} onClick={() => void run(true)}>
+        {t('bell.accept')}
+      </Button>
+      {a.type === 'tw' && (
+        <Button size="sm" variant="ghost" disabled={state === 'busy'} onClick={() => void run(false)}>
+          {t('bell.decline')}
+        </Button>
+      )}
+    </div>
   );
 }

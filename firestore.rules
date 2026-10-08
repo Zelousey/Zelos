@@ -408,11 +408,25 @@ service cloud.firestore {
     // Referrals: one doc per invited player, keyed by THEIR uid and written
     // once by them (never edited), naming who invited them. Readable only by
     // that player and by the referrer (who counts their successes).
+    // Invites (functions/main.py invite_*): Battle, Team up, Invite a friend. Server-written.
+    // Anyone may read one by its code (the link preview shows who invited you before you sign
+    // in; it holds public names only); you can list the invites you made.
+    match /invites/{code} {
+      allow get: if true;
+      allow list: if request.auth != null && resource.data.from == request.auth.uid;
+      allow write: if false;
+      match /{sub=**} {
+        allow read, write: if false;
+      }
+    }
+    match /inviteState/{userId} {
+      allow read, write: if false;
+    }
+
+    // Written only by the server (invite_accept / referral_claim, owner decision 2026-10-08):
+    // it checks the account is new and pays the referral XP, so referrals can't be faked.
     match /referrals/{userId} {
-      allow create: if isRealAccount() && request.auth.uid == userId
-        && request.resource.data.referrer is string
-        && request.resource.data.referrer != userId
-        && request.resource.data.keys().hasOnly(['referrer', 'createdAt']);
+      allow create: if false;
       allow read: if request.auth != null
         && (request.auth.uid == userId || resource.data.referrer == request.auth.uid);
       allow update, delete: if false;

@@ -40,3 +40,10 @@
   .actions { width: 100%; }
   .actions > * { flex: 1; }
 }
+
+/* ---------- invite banner */
+.inviteBanner { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); color: var(--ink);
+  border: 1px solid var(--gold-soft); background: linear-gradient(100deg, var(--gold-soft), transparent 70%), var(--surface); }
+.inviteBanner:hover { border-color: var(--gold); }
+.inviteBanner .tileIcon { background: var(--gold-soft); color: var(--gold); }
+.inviteBanner > svg { margin-left: auto; color: var(--muted); }
