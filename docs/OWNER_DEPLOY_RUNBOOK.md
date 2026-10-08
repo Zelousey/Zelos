@@ -264,3 +264,36 @@ gcloud run services add-iam-policy-binding mission-event --region=us-central1 --
 shows 3/3 with a check and you got +10 XP. A practice trade that fills ticks "Make 1 Trade War trade".
 
 **Undo:** `git checkout main` (before merging) and run the deploy line again.
+
+# Coaching (the Coach PR)
+
+What changes: Coach / Learn. New callables `coach_refresh`, `coach_task`, `coach_task_update`,
+`coach_note`, `coach_end`; `invite_create`, `invite_send`, `invite_accept`, `mission_event`,
+`xp_award`, `tw_trade`, `refresh_quotes`, `referral_claim` and `account_delete` changed; rules add
+`coachings/*` (only the coach and the student can read) and `coaches/*` (public badge).
+
+**1. Get the branch.** In Cloud Shell, paste this block on its own. It must print `STEP 1 OK` and
+a number bigger than 0; if it doesn't, stop and send a screenshot.
+```
+cd ~/Zelos && git stash -u -q; git fetch -q origin && git checkout -q -B claude/coach origin/claude/coach && grep -c "def coach_task" functions/main.py && echo "STEP 1 OK"
+```
+
+**2. Deploy (about 5 minutes), before merging.** Paste on its own:
+```
+source functions/venv/bin/activate && pip install -q -r functions/requirements.txt && npx -y firebase-tools@latest deploy --only "functions:coach_refresh,functions:coach_task,functions:coach_task_update,functions:coach_note,functions:coach_end,functions:invite_create,functions:invite_send,functions:invite_accept,functions:mission_event,functions:xp_award,functions:tw_trade,functions:refresh_quotes,functions:referral_claim,functions:account_delete,firestore:rules" --project leaderboard-agentictrading
+```
+It should end with "Deploy complete!". If some functions fail, paste block 2 again.
+
+**3. Open the five new functions to the app.** Paste on its own; it prints five OK lines:
+```
+for f in coach-refresh coach-task coach-task-update coach-note coach-end; do gcloud run services add-iam-policy-binding $f --region=us-central1 --member=allUsers --role=roles/run.invoker --project=leaderboard-agentictrading --quiet >/dev/null && echo "$f OK"; done
+```
+
+**4. Merge the PR**, then go back to main: `git checkout main && git pull origin main`.
+
+**5. Check** (needs a second account, for example a friend): with an account at Level 3 (150 XP)
+or more, open the app → ☰ → Coaching → "Invite a student" and send the link. Your friend opens it,
+accepts, and lands on the coaching page. You see their trades and can tap 👍 / 👎 / 💡; add a task;
+they see it right away.
+
+**Undo:** `git checkout main` (before merging) and run block 2 again.

@@ -19,7 +19,7 @@ referral yet) records referrals/{you} = {referrer: inviter} and pays both sides 
 """
 import re
 
-KINDS = ("battle", "squad", "join")
+KINDS = ("battle", "squad", "join", "coach")
 CODE_ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LEN = 10
 CODE_RE = re.compile(r"^[A-Za-z0-9]{10}$")
@@ -47,7 +47,7 @@ def validate_create(data):
     data = data if isinstance(data, dict) else {}
     kind = data.get("kind")
     if kind not in KINDS:
-        raise InviteError("INVALID_ARGUMENT", "Pick Battle, Team up or Invite a friend.")
+        raise InviteError("INVALID_ARGUMENT", "Pick Battle, Team up, Invite a friend or Coach.")
     if kind == "battle":
         wid = str(data.get("warId") or "")
         if not TW_ID_RE.match(wid):
@@ -79,11 +79,12 @@ def check_squad(squad, uid):
 
 
 def day_state(state, today):
-    """Today's counters (a new day starts at zero; the join link is kept)."""
+    """Today's counters (a new day starts at zero; the reusable join and coach links are kept)."""
     state = state if isinstance(state, dict) else {}
+    keep = {"join": state.get("join"), "coach": state.get("coach")}
     if state.get("day") != today:
-        return {"day": today, "created": 0, "sent": 0, "join": state.get("join")}
-    return {"day": today, "created": int(state.get("created") or 0), "sent": int(state.get("sent") or 0), "join": state.get("join")}
+        return dict({"day": today, "created": 0, "sent": 0}, **keep)
+    return dict({"day": today, "created": int(state.get("created") or 0), "sent": int(state.get("sent") or 0)}, **keep)
 
 
 def usable(inv, now_ms):

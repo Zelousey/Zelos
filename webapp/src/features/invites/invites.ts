@@ -8,7 +8,7 @@ import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
 
-export type InviteKind = 'battle' | 'squad' | 'join';
+export type InviteKind = 'battle' | 'squad' | 'join' | 'coach';
 export type Invite = {
   code: string;
   kind: InviteKind;
@@ -32,7 +32,7 @@ const safeImg = (v: unknown) => (typeof v === 'string' && (/^https:\/\//.test(v)
 
 export function parseInvite(code: string) {
   return (d: DocumentData): Invite => {
-    const kind = (['battle', 'squad', 'join'] as const).find((k) => k === d.kind);
+    const kind = (['battle', 'squad', 'join', 'coach'] as const).find((k) => k === d.kind);
     if (!kind || typeof d.from !== 'string') throw new Error('bad invite');
     return {
       code,
@@ -62,7 +62,7 @@ export const useMySquads = (uid: string | null) =>
 export type Created = { code: string; url: string; reused: boolean };
 export const createInvite = (data: { kind: InviteKind; warId?: string; squadId?: string }) => callFunction<typeof data, Created>('invite_create', data);
 export const sendInvite = (code: string, to: string) => callFunction<{ code: string; to: string }, { sent: boolean; already?: boolean }>('invite_send', { code, to });
-export type Accepted = { kind: InviteKind; warId: string | null; squadId: string | null; referral: boolean; xp: number; again: boolean };
+export type Accepted = { kind: InviteKind; warId: string | null; squadId: string | null; coachingId?: string; referral: boolean; xp: number; again: boolean };
 export const acceptInvite = (code: string) => callFunction<{ code: string }, Accepted>('invite_accept', { code });
 export const createBattle = (data: { name: string; buyIn: number; days: number; maxPlayers: number }) => callFunction<typeof data, { warId: string }>('tw_create', data);
 export const respondChallenge = (inviteId: string, accept: boolean) =>

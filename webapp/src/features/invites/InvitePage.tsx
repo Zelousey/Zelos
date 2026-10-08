@@ -3,9 +3,11 @@
  * send it to a Zelos user by @username. Coach is shown as coming soon (owner, 2026-10-08:
  * designed separately). The server makes the invite; nothing here decides who gets what.
  */
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
+import { COACH_MIN_XP } from '../coach/coach';
 import { formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
@@ -15,11 +17,11 @@ import s from './Invites.module.css';
 
 type Step = { at: 'pick' } | { at: 'battle' } | { at: 'squad' } | { at: 'ready'; kind: InviteKind; created: Created; warId?: string };
 
-const KINDS: { kind: InviteKind | 'coach'; icon: IconName; title: MessageKey; body: MessageKey }[] = [
+const KINDS: { kind: InviteKind; icon: IconName; title: MessageKey; body: MessageKey }[] = [
   { kind: 'battle', icon: 'war', title: 'inv.battle', body: 'inv.battle.body' },
   { kind: 'squad', icon: 'social', title: 'inv.squad', body: 'inv.squad.body' },
   { kind: 'join', icon: 'invite', title: 'inv.join', body: 'inv.join.body' },
-  { kind: 'coach', icon: 'missions', title: 'inv.coach', body: 'inv.coach.body' },
+  { kind: 'coach', icon: 'missions', title: 'inv.coach', body: 'inv.coach.body2' },
 ];
 
 export default function InvitePage() {
@@ -29,11 +31,21 @@ export default function InvitePage() {
   const start = params.get('kind');
   const [step, setStep] = useState<Step>(() => (start === 'battle' || start === 'squad' ? { at: start } : { at: 'pick' }));
   const [busy, setBusy] = useState(false);
+  const me = useUserDoc(isReal && user ? user.uid : null);
+  const canCoach = me.status === 'ready' && me.data.xp >= COACH_MIN_XP;
+  // /invite?kind=coach (from Coaching) goes straight to the coach link, once
+  const autoCoach = useRef(start === 'coach');
+  useEffect(() => {
+    if (autoCoach.current && canCoach) {
+      autoCoach.current = false;
+      void makeLink('coach');
+    }
+  });
 
-  async function makeJoin() {
+  async function makeLink(kind: 'join' | 'coach') {
     setBusy(true);
     try {
-      setStep({ at: 'ready', kind: 'join', created: await createInvite({ kind: 'join' }) });
+      setStep({ at: 'ready', kind, created: await createInvite({ kind }) });
     } catch (e) {
       toast.show(errorText(e, t('inv.failed')), 'error');
     } finally {
@@ -61,16 +73,16 @@ export default function InvitePage() {
     body = (
       <ul className={s.kinds}>
         {KINDS.map((k) => {
-          const soon = k.kind === 'coach';
+          const soon = k.kind === 'coach' && !canCoach;
           return (
             <li key={k.kind}>
-              <button type="button" className={s.kind} disabled={soon || busy} onClick={() => (k.kind === 'join' ? void makeJoin() : k.kind !== 'coach' && setStep({ at: k.kind } as Step))}>
+              <button type="button" className={s.kind} disabled={soon || busy} onClick={() => (k.kind === 'join' || k.kind === 'coach' ? void makeLink(k.kind) : setStep({ at: k.kind } as Step))}>
                 <span className={[s.kindIcon, s[`k_${k.kind}`]].join(' ')}>
                   <Icon name={k.icon} size={24} />
                 </span>
                 <span className={s.kindText}>
                   <b>
-                    {t(k.title)} {soon && <Badge>{t('inv.soon')}</Badge>}
+                    {t(k.title)} {soon && <Badge>{t('inv.coach.locked')}</Badge>}
                   </b>
                   <span>{t(k.body)}</span>
                 </span>

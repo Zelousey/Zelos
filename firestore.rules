@@ -421,6 +421,21 @@ service cloud.firestore {
         allow read, write: if false;
       }
     }
+    // Coach / Learn (functions/main.py coach_*): only the coach and the student can read their
+    // coaching, its tasks and notes; the server writes everything. coaches/{uid} = public badge.
+    match /coachings/{cid} {
+      // written as two checks so a query on either field ("my coaching", "my students") is allowed
+      allow read: if request.auth != null && (request.auth.uid == resource.data.coach || request.auth.uid == resource.data.student);
+      allow write: if false;
+      match /{sub}/{id} {
+        allow read: if request.auth != null && request.auth.uid in [get(/databases/$(database)/documents/coachings/$(cid)).data.coach, get(/databases/$(database)/documents/coachings/$(cid)).data.student];
+        allow write: if false;
+      }
+    }
+    match /coaches/{userId} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /inviteState/{userId} {
       allow read, write: if false;
     }
