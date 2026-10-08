@@ -3,6 +3,7 @@
  * market posts, optionally just your watchlist) and posts by people who move markets.
  * A featured post on top of "All"; posts newer than your last visit get a "New" badge.
  */
+import { reportMission } from '../../data/missionEvent';
 import { useId, useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../../lib/auth';
@@ -224,7 +225,7 @@ function VoiceCard({ post, isNew }: { post: NewsPost; isNew: boolean }) {
       </blockquote>
       {post.title && <p className={s.why}>{post.title}</p>}
       <div className={s.postActions}>
-        <a className={s.link} href={v.url} target="_blank" rel="noopener noreferrer">
+        <a className={s.link} href={v.url} target="_blank" rel="noopener noreferrer" onClick={() => reportMission('news', post.id)}>
           {t(v.platform === 'x' ? 'news.voices.viewX' : v.platform === 'truth' ? 'news.voices.viewTruth' : 'news.voices.view')}
           <Icon name="external" size={14} />
         </a>
@@ -249,7 +250,7 @@ function Official({ item }: { item: OfficialItem }) {
       <h2 className={s.postTitle}>{item.title}</h2>
       {item.detail && <p className={s.detail}>{item.detail}</p>}
       <div className={s.postActions}>
-        <a className={s.link} href={item.url} target="_blank" rel="noopener noreferrer">
+        <a className={s.link} href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => reportMission('news', item.id)}>
           {item.kind === 'fed' ? t('news.src.readFed') : t('news.src.readSec')}
           <Icon name="external" size={14} />
         </a>

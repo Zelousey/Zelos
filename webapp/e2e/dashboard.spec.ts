@@ -90,3 +90,20 @@ test('signed in: trader card, account, missions, rank, Trade Wars and badges', a
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('missions are counted by the server: three charts in the app complete "Analyze 3 stocks"', async ({ page }, info) => {
+  test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
+  await page.goto('dashboard');
+  await signIn(page, `missions-${info.project.name}-${Date.now()}`);
+  for (const sym of ['AAPL', 'MSFT', 'NVDA']) {
+    // each chart reports "analyze" to the server; wait for it before the next full page load
+    const reported = page.waitForResponse((r) => r.url().includes('/mission_event') && r.request().method() === 'POST', { timeout: 30_000 });
+    await page.goto(`markets/${sym}`);
+    await expect(page.getByRole('heading', { level: 1, name: sym })).toBeVisible();
+    await reported;
+  }
+  await page.goto('dashboard');
+  const missions = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Daily missions' }) });
+  await expect(missions.getByLabel('3 of 3, done')).toBeVisible({ timeout: 15_000 });
+  await expect(missions.getByText('Missions count on the website for now.')).toHaveCount(0);
+});

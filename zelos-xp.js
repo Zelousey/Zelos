@@ -241,7 +241,19 @@
     });
   }
 
+  // Missions are counted by the server (functions/missions.py). Opening a chart (analyze,
+  // ref = symbol) or a news item is reported here; trades, wins, graded setups and XP the
+  // server sees itself.
+  function missionEvent(ev, ref) {
+    if (!ensureInit()) return;
+    ensureAnonAuth().then(function (user) {
+      if (!(auth.currentUser || user)) return;
+      return functions().then(function (f) { return f.httpsCallable('mission_event')({ ev: ev, ref: ref || '' }); });
+    }).catch(function (e) { console.warn('[ZelosXP] mission event failed:', ev, e); });
+  }
+
   window.ZelosXP = {
+    missionEvent: missionEvent,
     isConfigured: function () { return ensureInit(); },
     isSignedIn: function () { return ensureInit() && !!auth.currentUser; },
     isRealAccount: function () { return ensureInit() && !!auth.currentUser && !auth.currentUser.isAnonymous; },

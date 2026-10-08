@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { EXCHANGES, exchangeStatus } from '../../data/exchanges';
 import { LEVELS, levelFor } from '../../data/levels';
 import { parseUserDoc } from '../../data/userDoc';
-import { ACHIEVEMENTS, achievementsView, DAILY, mergeProgress, missionsView, nyDate, parseProgress, weekKey, WEEKLY } from './progress';
+import { ACHIEVEMENTS, achievementsView, DAILY, mergeProgress, missionsView, nyDate, parseProgress, parseServerMissions, weekKey, WEEKLY } from './progress';
 import { parseRanked, parseWar, sortWars } from './social';
 
 const root = resolve(__dirname, '../../../..');
@@ -100,6 +100,16 @@ describe('progress', () => {
     expect(m.streak).toEqual({ days: 4, best: 5, lastDate: today });
     expect(m.achievements).toEqual({ 'first-trade': 50, 'first-win': 60 });
     expect(mergeProgress(null, b)).toBe(b);
+  });
+  it("the server's mission count is read and merged (it wins where it counted more)", () => {
+    expect(parseServerMissions(null)).toBeNull();
+    const srv = parseServerMissions({ day: { date: today, counts: { trade: 2, xp: 130 }, done: { trade: true, xp: true } }, week: { key: weekKey(today), counts: { trade: 2 }, done: {} }, streak: { days: 4, best: 5, lastDate: today } })!;
+    const local = parseProgress({ ...raw, day: { date: today, counts: { analyze: 1 }, done: {} } })!;
+    const m = missionsView(mergeProgress(local, srv), {}, now);
+    expect(m.daily.find((x) => x.id === 'trade')).toMatchObject({ done: true, count: 1 });
+    expect(m.daily.find((x) => x.id === 'xp')).toMatchObject({ done: true, count: 100 });
+    expect(m.daily.find((x) => x.id === 'analyze')).toMatchObject({ count: 1 });
+    expect(m.streak).toBe(4); // the server carried yesterday's streak on and kept it today
   });
   it('achievements: newest first, public copy counts, next three locked', () => {
     const v = achievementsView(parseProgress(raw), ['centurion']);

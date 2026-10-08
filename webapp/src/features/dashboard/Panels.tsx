@@ -189,7 +189,7 @@ export function MissionsCard({ progress, xpLog }: { progress: Progress | null; x
             <span className={s.check} aria-hidden>
               {x.done ? '✓' : ''}
             </span>
-            {x.href ? <a href={classicUrl(x.href)}>{x.label}</a> : <span>{x.label}</span>}
+            {x.href?.startsWith('/') ? <Link to={x.href}>{x.label}</Link> : x.href ? <a href={classicUrl(x.href)}>{x.label}</a> : <span>{x.label}</span>}
             <span className={s.count} aria-label={`${x.count} of ${x.goal}${x.done ? ', done' : ''}`}>
               {x.count}/{x.goal}
             </span>
@@ -201,7 +201,6 @@ export function MissionsCard({ progress, xpLog }: { progress: Progress | null; x
         <span>{t('dash.missions.foot', { done: m.doneToday, need: STREAK_NEED, weekly: m.weekly.filter((w) => w.done).length, total: m.weekly.length })}</span>
         <MoreLink href={classicUrl('practice/index.html?tab=progress')}>{t('dash.missions.weekly')}</MoreLink>
       </div>
-      <p className={s.footNote}>{t('dash.missions.site')}</p>
     </Card>
   );
 }

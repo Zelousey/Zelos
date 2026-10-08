@@ -247,7 +247,6 @@ const en = {
   'dash.globe.note': 'Regular trading hours; public holidays not included.',
   'dash.missions': 'Daily missions',
   'dash.missions.foot': '{done} done · {need} keep your streak · weekly {weekly}/{total}',
-  'dash.missions.site': 'Missions count on the website for now.',
   'dash.missions.weekly': 'Weekly',
   'dash.board': 'Leaderboard',
   'dash.board.empty': 'No Trade War accounts yet.',

@@ -23,6 +23,7 @@ import { MarketList } from './MarketRow';
 import { MiniChart } from './MiniChart';
 import { useMinis } from './miniSeries';
 import { recentSymbols, rememberSymbol } from './useLastSymbol';
+import { reportMission } from '../../data/missionEvent';
 import s from './SymbolPage.module.css';
 
 const TF_KEY = 'zelosAppChartTf';
@@ -65,7 +66,10 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
 
-  useEffect(() => rememberSymbol(sym), [sym]);
+  useEffect(() => {
+    rememberSymbol(sym);
+    reportMission('analyze', sym); // "Analyze 3 stocks", counted by the server
+  }, [sym]);
 
   const lastBar = built.bars[built.bars.length - 1];
   const prevBar = built.bars[built.bars.length - 2];

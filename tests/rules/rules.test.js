@@ -143,6 +143,13 @@ test('news: anyone can read posts; nobody can write them from the browser', asyn
   await assertFails(getDoc(doc(real('alice').firestore(), 'admins/alice')));
 });
 
+test('missions are counted by the server: browsers cannot write them', async () => {
+  await assertFails(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, missions: { day: { done: { trade: true } } } }));
+  await assertSucceeds(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, watchlist: [] }));
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'users/alice'), { 'missions.day.done.trade': true }));
+  await assertSucceeds(updateDoc(doc(real('alice').firestore(), 'users/alice'), { watchlist: ['AAPL'] }));
+});
+
 // ---------------------------------------------------------------- invites + referrals: server-written
 test('invites: anyone can open one by its code; only the server writes them', async () => {
   await env.withSecurityRulesDisabled(async (c) => {

@@ -3,9 +3,9 @@
  *
  * The classic site keeps this progress in the browser (localStorage zelosProgress-v1) and
  * copies it to users/{uid}.progress (zelos-progress.js). The app is on the same origin, so
- * it reads both and keeps the best of each, the same way the classic merge() does. It does
- * not write progress or award XP yet: missions still advance from the website, and the
- * dashboard says so. Mission and achievement ids/XP match the server's functions/xp.py
+ * it reads both and keeps the best of each, the same way the classic merge() does. Since
+ * 2026-10-08 the server counts missions itself (users/{uid}.missions, functions/missions.py)
+ * and pays their XP; that count is merged in too (parseServerMissions). Mission and achievement ids/XP match the server's functions/xp.py
  * (progress.test.ts checks).
  */
 export type MissionDef = { id: string; label: string; goal: number; xp: number; ev: string; href?: string };
@@ -20,10 +20,10 @@ export type Progress = {
 export type MissionView = { id: string; label: string; goal: number; count: number; done: boolean; xp: number; href?: string };
 
 export const DAILY: MissionDef[] = [
-  { id: 'trade', label: 'Make 1 Trade War trade', goal: 1, xp: 10, ev: 'trade', href: 'practice/' },
-  { id: 'analyze', label: 'Analyze 3 stocks', goal: 3, xp: 10, ev: 'analyze', href: 'practice/' },
+  { id: 'trade', label: 'Make 1 Trade War trade', goal: 1, xp: 10, ev: 'trade', href: '/markets' },
+  { id: 'analyze', label: 'Analyze 3 stocks', goal: 3, xp: 10, ev: 'analyze', href: '/markets' },
   { id: 'grade', label: 'Complete a Grade the Setup round', goal: 1, xp: 10, ev: 'grade', href: 'games/grade-the-setup.html' },
-  { id: 'news', label: 'Check the market news', goal: 1, xp: 5, ev: 'news', href: 'dashboard.html' },
+  { id: 'news', label: 'Check the market news', goal: 1, xp: 5, ev: 'news', href: '/news' },
   { id: 'xp', label: 'Earn 100 XP', goal: 100, xp: 20, ev: 'xp' },
 ];
 export const WEEKLY: MissionDef[] = [
@@ -108,6 +108,13 @@ export function parseProgress(raw: unknown): Progress | null {
   };
 }
 
+/** The server's own mission count (users/{uid}.missions): same day/week/streak shape, no version. */
+export function parseServerMissions(raw: unknown): Progress | null {
+  const m = obj(raw);
+  if (!m.day && !m.week && !m.streak) return null;
+  return parseProgress({ ...m, v: 1, achievements: {}, updatedAt: 0 });
+}
+
 /** Keep the best of two copies (this browser + the account), like the classic merge(). */
 export function mergeProgress(a: Progress | null, b: Progress | null): Progress | null {
   if (!a || !b) return a ?? b;
@@ -154,7 +161,8 @@ export function missionsView(p: Progress | null, xpLog: XpLog, now: number) {
   const day = p && p.day.date === today ? p.day : { counts: {}, done: {} as Record<string, boolean> };
   const week = p && p.week.key === wk ? p.week : { counts: {}, done: {} as Record<string, boolean> };
   const count = (m: MissionDef, scope: 'day' | 'week') => {
-    if (m.ev === 'xp') return scope === 'day' ? (xpLog.day?.date === today ? xpLog.day.xp : 0) : xpLog.week && `w${xpLog.week.key}` === wk ? xpLog.week.xp : 0;
+    const counted = ((scope === 'day' ? day.counts : week.counts) as Record<string, number>)[m.ev] ?? 0;
+    if (m.ev === 'xp') return Math.max(counted, scope === 'day' ? (xpLog.day?.date === today ? xpLog.day.xp : 0) : xpLog.week && `w${xpLog.week.key}` === wk ? xpLog.week.xp : 0);
     return ((scope === 'day' ? day.counts : week.counts) as Record<string, number>)[m.ev] ?? 0;
   };
   const view = (list: MissionDef[], scope: 'day' | 'week', done: Record<string, boolean>): MissionView[] =>

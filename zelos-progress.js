@@ -90,11 +90,29 @@
     Object.keys(b.achievements || {}).forEach(function (k) { out.achievements[k] = out.achievements[k] ? Math.min(out.achievements[k], b.achievements[k]) : b.achievements[k]; });
     return out;
   }
+  // users/{uid}.missions is the server's own count (functions/missions.py): show the higher
+  // of the two, so trades and charts from the app count here too
+  function mergeServer(a, m) {
+    if (!m || typeof m !== 'object') return a;
+    var out = JSON.parse(JSON.stringify(a));
+    [['day', 'date'], ['week', 'key']].forEach(function (p) {
+      var srv = m[p[0]];
+      if (!srv || srv[p[1]] !== out[p[0]][p[1]]) return;
+      Object.keys(srv.counts || {}).forEach(function (k) { out[p[0]].counts[k] = Math.max(out[p[0]].counts[k] || 0, +srv.counts[k] || 0); });
+      Object.keys(srv.done || {}).forEach(function (k) { if (srv.done[k] === true) out[p[0]].done[k] = true; });
+    });
+    var ss = m.streak;
+    if (ss && ss.lastDate && (ss.lastDate > out.streak.lastDate || (ss.lastDate === out.streak.lastDate && (ss.days || 0) > out.streak.days))) {
+      out.streak = { days: ss.days || 0, best: Math.max(out.streak.best || 0, ss.best || 0), lastDate: ss.lastDate, start: ss.start || '' };
+    }
+    return out;
+  }
   function attach(db, uid) {
     if (!db || !uid) return;
     var ref = db.collection('users').doc(uid);
     ref.get().then(function (d) {
       st = merge(load(), d.exists ? (d.data() || {}).progress : null);
+      st = mergeServer(st, d.exists ? (d.data() || {}).missions : null);
       remote = ref; roll(); save(); evaluateMissions();
     }).catch(function () {});
   }
@@ -165,6 +183,8 @@
     if (changed) { save(); checkAchievements({}); }
   }
   function track(ev, ref) {
+    // the server counts missions now; these two it can't see, so they're reported
+    if ((ev === 'analyze' || ev === 'news') && global.ZelosXP && ZelosXP.missionEvent) ZelosXP.missionEvent(ev, ref);
     roll();
     if (ev === 'analyze') {
       if (!ref || st.day.analyzed.indexOf(ref) !== -1) return;

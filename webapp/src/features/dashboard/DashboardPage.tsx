@@ -34,7 +34,8 @@ export default function DashboardPage() {
   // progress: this browser's copy (shared with the website) merged with the account's copy
   const [local] = useState(readLocal);
   const remote = userDoc.status === 'ready' ? userDoc.data.progress : null;
-  const progress = useMemo(() => mergeProgress(local.progress, remote), [local.progress, remote]);
+  const counted = userDoc.status === 'ready' ? userDoc.data.missions : null; // the server's count
+  const progress = useMemo(() => mergeProgress(mergeProgress(local.progress, remote), counted), [local.progress, remote, counted]);
   const now = useNow();
   const streak = missionsView(progress, local.xpLog, now).streak;
   const ach = achievementsView(progress, me?.achievements);
