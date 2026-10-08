@@ -61,5 +61,51 @@ ok(doc["source"] == "SEC EDGAR" and doc["financials"]["revenue"] == 7 and doc["i
 # settings
 os.environ["QUOTE_EVERY_MIN"] = "1"; os.environ["MS_INTERVAL"] = "bogus"
 ok(MD.quote_every_min() == 1 and MD.ms_interval() == "15min" and MD.interval_minutes("15min") == 15, "settings")
+
+# bad provider bars: a $0 low/close is never stored, and merging cleans ones already stored
+bad = {"symbol": "PLTR", "date": "2026-06-04T00:00:00+0000", "open": 145.63, "high": 146.37, "low": 0, "close": 0, "volume": 40483209}
+good = {"symbol": "PLTR", "date": "2026-06-05T00:00:00+0000", "open": 146, "high": 147, "low": 145, "close": 146.5, "volume": 1}
+ok(MD.ms_daily_bars([bad, good])["PLTR"] == ["2026-06-05,146.0,147.0,145.0,146.5,1"], "daily: $0 bar dropped")
+ok(MD.ms_daily_bars([dict(good, adj_open=0, adj_high=0, adj_low=0, adj_close=0)])["PLTR"] == ["2026-06-05,146.0,147.0,145.0,146.5,1"], "daily: bad adjusted values fall back to raw")
+ok(MD.ms_intraday_bars([{"symbol": "A", "date": "2026-10-02T13:30:00+0000", "open": 1, "high": 1, "low": 0, "close": 1, "volume": 1}]) == {}, "intraday: $0 bar dropped")
+ok(MD.merge_series(["2026-06-04,145.63,146.37,0.0,0.0,40483209", "2026-06-03,1,2,1,1.5,9"], ["2026-06-05,1,2,1,1.5,9"], 10) == ["2026-06-03,1,2,1,1.5,9", "2026-06-05,1,2,1,1.5,9"], "merge cleans stored $0 bars")
+ok(MD.valid_bar("2026-06-03,1,2,1,1.5,9") and not MD.valid_bar("x,1,2") and not MD.valid_bar("d,1,2,-1,1,1"), "valid_bar")
+
+# chunked requests: small groups, one retry on a timeout, a failing group doesn't stop the rest
+calls = []
+real_get = MD.ms_get
+def fake_get(path, params, key, timeout=20):
+    syms = params["symbols"].split(",")
+    calls.append((syms, timeout))
+    if "SLOW" in syms and sum(1 for c in calls if "SLOW" in c[0]) == 1:
+        raise TimeoutError("read timed out")       # first try times out, retry works
+    if "DEAD" in syms:
+        raise TimeoutError("read timed out")
+    return {"data": [{"symbol": s} for s in syms], "pagination": {"total": len(syms)}}
+MD.ms_get = fake_get
+try:
+    rows, failed = MD.ms_rows_chunked("intraday", {"interval": "15min"}, ["A", "B", "SLOW", "C", "DEAD", "E"], "k", size=2, timeout=33)
+    ok(sorted(r["symbol"] for r in rows) == ["A", "B", "C", "SLOW"] and failed == ["DEAD", "E"], "chunked: retry once, skip a dead group: %s %s" % (rows, failed))
+    ok(all(len(c[0]) <= 2 and c[1] == 33 for c in calls), "chunked: group size and timeout passed through")
+    try:
+        MD.ms_rows_chunked("intraday", {}, ["DEAD"], "k", size=2)
+        ok(False, "all groups failing raises")
+    except TimeoutError:
+        ok(True, "all groups failing raises the error")
+    def quota(*a, **k):
+        raise MD.MsQuota()
+    MD.ms_get = quota
+    try:
+        MD.ms_rows_chunked("intraday", {}, ["A", "B", "C"], "k", size=1)
+        ok(False, "quota stops everything")
+    except MD.MsQuota:
+        ok(True, "quota error stops everything")
+    t = iter([0, 0, 500, 500, 500])
+    MD.ms_get = fake_get
+    rows, failed = MD.ms_rows_chunked("intraday", {}, ["A", "B", "C"], "k", size=1, budget=200, clock=lambda: next(t))
+    ok([r["symbol"] for r in rows] == ["A"] and failed == ["B", "C"], "time budget stops new groups: %s" % failed)
+finally:
+    MD.ms_get = real_get
+
 print("ALL CHECKS PASSED" if not fails else "%d FAILED" % fails)
 sys.exit(1 if fails else 0)

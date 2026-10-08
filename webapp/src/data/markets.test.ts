@@ -25,6 +25,8 @@ describe('market data parsing', () => {
   it('bar strings: parses and skips malformed rows', () => {
     expect(parseBarStrings(['2026-10-07 09:30,1,2,0.5,1.5,100', 'garbage', '2026-10-07,1,2,x,1,1'])).toEqual([['2026-10-07 09:30', 1, 2, 0.5, 1.5, 100]]);
     expect(parseBarStrings(undefined)).toEqual([]);
+    // a provider bar with a $0 low/close is dropped instead of drawing a spike to zero
+    expect(parseBarStrings(['2026-06-04,145.63,146.37,0.0,0.0,40483209', '2026-06-05,146,147,145,146.5,1'])).toEqual([['2026-06-05', 146, 147, 145, 146.5, 1]]);
   });
 });
 

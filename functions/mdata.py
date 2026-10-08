@@ -28,6 +28,7 @@ Docs written (all public, read-only to browsers):
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -147,11 +148,22 @@ def ms_get(path, params, api_key, timeout=20):
     return data
 
 
-def ms_rows(path, params, api_key, max_pages=12):
-    """All rows of a paginated endpoint (1,000 per page)."""
+def _timed_out(e):
+    """True for a network timeout (urllib raises TimeoutError, or URLError wrapping one)."""
+    return isinstance(e, TimeoutError) or (isinstance(e, urllib.error.URLError) and isinstance(getattr(e, "reason", None), TimeoutError))
+
+
+def ms_rows(path, params, api_key, max_pages=12, timeout=20):
+    """All rows of a paginated endpoint (1,000 per page). A page that times out is tried once more."""
     out, offset = [], 0
     for _ in range(max_pages):
-        d = ms_get(path, dict(params, limit=1000, offset=offset), api_key)
+        q = dict(params, limit=1000, offset=offset)
+        try:
+            d = ms_get(path, q, api_key, timeout=timeout)
+        except Exception as e:
+            if not _timed_out(e):
+                raise
+            d = ms_get(path, q, api_key, timeout=timeout)
         if not isinstance(d, dict):
             break
         rows = _rows(d.get("data"))
@@ -163,7 +175,45 @@ def ms_rows(path, params, api_key, max_pages=12):
     return out
 
 
+def ms_rows_chunked(path, params, symbols, api_key, size=10, max_pages=4, timeout=40, budget=None, clock=None):
+    """Rows for many symbols, `size` symbols per request. Marketstack's intraday endpoint times
+    out on large multi-symbol requests, so ask for a few at a time; a group that fails is
+    skipped (the others still update). Key and quota errors stop everything; if every group
+    fails, the last error is raised. `budget` (seconds) stops starting new groups once used up,
+    so the function finishes inside its time limit. Returns (rows, failed symbols)."""
+    clock = clock or time.monotonic
+    start = clock()
+    rows, failed, last = [], [], None
+    for ch in chunks(symbols, size):
+        if budget is not None and clock() - start > budget:
+            failed += ch
+            last = last or TimeoutError("time budget used up")
+            continue
+        try:
+            rows += ms_rows(path, dict(params, symbols=",".join(ch)), api_key, max_pages=max_pages, timeout=timeout)
+        except (MsKeyRejected, MsQuota):
+            raise
+        except Exception as e:
+            failed += ch
+            last = e
+    if last is not None and not rows:
+        raise last
+    return rows, failed
+
+
 # ---------------------------------------------------------------- pure shaping (scripts/marketstack_test.py)
+def _positive(*xs):
+    return all(x is not None and x > 0 for x in xs)
+
+
+def valid_bar(row):
+    """A stored "label,o,h,l,c,v" bar with real prices (the provider has sent $0 lows/closes)."""
+    p = str(row).split(",")
+    if len(p) < 5:
+        return False
+    return _positive(*(_num(x) for x in p[1:5]))
+
+
 def ms_intraday_bars(rows, session_only=True):
     """Intraday rows -> {SYM: ["YYYY-MM-DD HH:MM,o,h,l,c,v", ...]} ascending, New York time, bar start."""
     out = {}
@@ -172,7 +222,7 @@ def ms_intraday_bars(rows, session_only=True):
         d = parse_ts(r.get("date"))
         o, h, l = _num(r.get("open"), 4), _num(r.get("high"), 4), _num(r.get("low"), 4)
         c = _num(r.get("last"), 4) or _num(r.get("close"), 4)
-        if not sym or not d or None in (o, h, l, c):
+        if not sym or not d or not _positive(o, h, l, c):
             continue
         nd = d.astimezone(NY)
         mins = nd.hour * 60 + nd.minute
@@ -192,8 +242,8 @@ def ms_daily_bars(rows):
         d = _txt(r.get("date"), 10)
         adj = [_num(r.get(k), 4) for k in ("adj_open", "adj_high", "adj_low", "adj_close")]
         raw = [_num(r.get(k), 4) for k in ("open", "high", "low", "close")]
-        o, h, l, c = adj if None not in adj else raw
-        if not sym or len(d) != 10 or None in (o, h, l, c):
+        o, h, l, c = adj if _positive(*adj) else raw
+        if not sym or len(d) != 10 or not _positive(o, h, l, c):
             continue
         v = int(_num(r.get("adj_volume") if r.get("adj_volume") is not None else r.get("volume")) or 0)
         out.setdefault(sym, {})[d] = "%s,%s,%s,%s,%s,%s" % (d, o, max(h, o, c), min(l, o, c), c, v)
@@ -201,10 +251,12 @@ def ms_daily_bars(rows):
 
 
 def merge_series(existing, fresh, keep, key_len=10):
-    """Merge bar strings by their date/time label (fresh wins), keep the newest `keep`."""
-    by = {str(r)[:key_len]: str(r) for r in existing or []}
+    """Merge bar strings by their date/time label (fresh wins), keep the newest `keep`.
+    Bars without real prices are dropped, which also cleans bad bars already stored."""
+    by = {str(r)[:key_len]: str(r) for r in existing or [] if valid_bar(r)}
     for r in fresh or []:
-        by[str(r)[:key_len]] = str(r)
+        if valid_bar(r):
+            by[str(r)[:key_len]] = str(r)
     return [by[k] for k in sorted(by)][-keep:]
 
 
