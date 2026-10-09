@@ -15,7 +15,7 @@ import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
 import { Badge, buttonClass, Card, Change, EmptyState, ErrorState, Icon, LoadingState, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
 import { nyDay } from '../charts/series';
-import { useOpenExchanges, WorldMarkets } from '../markets/WorldMarkets';
+import { MarketView } from '../markets/MarketView';
 import { MarketList } from '../markets/MarketRow';
 import { SectorBars } from '../markets/Sectors';
 import { usePracticeAccount, valueAccount } from '../practice/account';
@@ -169,12 +169,7 @@ export function AccountCard({ uid }: { uid: string }) {
 
 // ------------------------------------------------------------------ globe
 export function GlobePanel() {
-  const { summary } = useOpenExchanges();
-  return (
-    <Card className={s.globe} title={t('dash.globe')} subtitle={summary} actions={<MoreLink to="/markets">{t('nav.market')}</MoreLink>}>
-      <WorldMarkets height={420} />
-    </Card>
-  );
+  return <MarketView className={s.globe} globeHeight={420} />;
 }
 
 // ------------------------------------------------------------------ missions

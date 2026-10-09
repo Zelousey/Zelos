@@ -1,5 +1,6 @@
 /**
- * Market: the overview. The world (live globe + open exchanges), the US market (sectors),
+ * Market: the overview. A chart of the US indexes (or, one tap away, the live globe + open
+ * exchanges; owner decision 2026-10-09), the US market (sectors),
  * "charts at a glance" (mini charts of the indexes, your watchlist and today's movers) and
  * every stock on the Zelos list with search. Every chart opens the big chart screen
  * (SymbolPage), which is where charting happens: Market is for looking around.
@@ -17,7 +18,7 @@ import { MiniChart } from './MiniChart';
 import { useMinis } from './miniSeries';
 import { SectorBars } from './Sectors';
 import { StatusLine } from './StatusLine';
-import { useOpenExchanges, WorldMarkets } from './WorldMarkets';
+import { MarketView } from './MarketView';
 import s from './MarketsPage.module.css';
 
 type Glance = 'indexes' | 'watchlist' | 'gainers' | 'losers' | 'actives';
@@ -25,7 +26,6 @@ const INDEXES = UNIVERSE.filter((i) => i.group === 'ETF').map((i) => i.sym);
 
 export default function MarketsPage() {
   const quotes = useQuotes();
-  const { summary } = useOpenExchanges();
   return (
     <>
       <PageHeader
@@ -39,9 +39,7 @@ export default function MarketsPage() {
       />
       <StatusLine quotes={quotes} />
       <div className={s.grid}>
-        <Card className={s.world} title={t('market.world')} subtitle={summary}>
-          <WorldMarkets height={380} phoneHeight={280} all />
-        </Card>
+        <MarketView className={s.world} globeHeight={380} phoneGlobeHeight={280} all />
         <Card className={s.sectors} title={t('dash.sectors')} subtitle={t('dash.movers.scope')}>
           <SectorBars />
         </Card>
