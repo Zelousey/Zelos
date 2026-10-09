@@ -1,0 +1,60 @@
+/* Badge frames: same tiers as the website's zelos-levels.js (frameStyle). */
+.frame { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%; vertical-align: middle; --rw: 3px; }
+.frame::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--rim); }
+.inner { position: absolute; inset: var(--rw); border-radius: 50%; background: radial-gradient(circle at 50% 35%, #1b2130, #0b0e15); display: flex; align-items: center; justify-content: center; }
+.emblem { position: relative; display: block; }
+
+.t0 { --rw: 2px; --rim: #3a3f4a; }
+.t1 { --rim: linear-gradient(135deg, var(--c2), var(--c0) 35%, var(--c1) 70%, var(--c0)); }
+.t2 { --rim: conic-gradient(var(--c0), var(--c2), var(--c0) 30%, var(--c1) 50%, var(--c0) 70%, var(--c2) 85%, var(--c0)); box-shadow: 0 0 14px var(--glow); }
+.t2::before { animation: spin 9s linear infinite; }
+.t3 { --rim: linear-gradient(135deg, var(--c2), var(--c0) 50%, var(--c1)); animation: breathe 4s ease-in-out infinite; }
+.t3::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 1.5px solid var(--c0); opacity: 0.55; }
+.t4 { --rim: conic-gradient(var(--c2), var(--c0), var(--c2), var(--c0), var(--c2)); box-shadow: 0 0 18px var(--glow); animation: breathe 3s ease-in-out infinite; }
+.t4::after { content: ''; position: absolute; inset: -7px; border-radius: 50%; border: 1.5px dashed var(--c0); opacity: 0.7; animation: spin 14s linear infinite reverse; }
+.t5 { --rim: conic-gradient(#ff6fb5, #ffd45c, #4fe0c1, #7fb0ff, #b9a8ff, #ff6fb5); box-shadow: 0 0 22px rgba(159, 211, 255, 0.55); }
+.t5::before { animation: spin 5s linear infinite; }
+.t5::after { content: ''; position: absolute; inset: -9px; z-index: -1; border-radius: 50%; background: conic-gradient(rgba(255, 111, 181, 0.35), rgba(255, 212, 92, 0.35), rgba(79, 224, 193, 0.35), rgba(127, 176, 255, 0.35), rgba(185, 168, 255, 0.35), rgba(255, 111, 181, 0.35)); filter: blur(6px); animation: spin 8s linear infinite reverse; }
+
+.orbit { position: absolute; inset: -7px; border-radius: 50%; animation: spin 6s linear infinite; pointer-events: none; }
+.orbit i { position: absolute; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px var(--c0), 0 0 3px #fff; }
+.orbit i:nth-child(1) { left: 50%; top: 0; }
+.orbit i:nth-child(2) { left: 93%; top: 75%; }
+.orbit i:nth-child(3) { left: 7%; top: 75%; width: 4px; height: 4px; }
+
+/* small badges (lists): rim only; high tiers keep a soft glow so they still stand out */
+.sm { --rw: 2px; box-shadow: none; animation: none; }
+.sm::before { animation: none; }
+.sm::after { display: none; }
+.sm.t3, .sm.t4, .sm.t5 { box-shadow: 0 0 6px var(--glow); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 10px var(--glow); } 50% { box-shadow: 0 0 26px var(--glow), 0 0 4px var(--c2); } }
+@media (prefers-reduced-motion: reduce) {
+  .frame, .frame::before, .frame::after, .orbit { animation: none !important; }
+}
+
+/* ---------- level-up celebration (zelos-levels.js celebrate) ---------- */
+.overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: var(--space-4); background: rgba(4, 6, 12, 0.72); backdrop-filter: blur(6px); animation: fade 0.25s ease-out; }
+.card { position: relative; width: min(380px, 100%); text-align: center; padding: 34px 24px 24px; border-radius: var(--radius-lg); overflow: hidden; background: linear-gradient(180deg, #141a28, #0b0e15); border: 1px solid var(--c0); color: #f4f6fb; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 60px var(--glow), 0 30px 80px rgba(0, 0, 0, 0.6); animation: pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.rays { position: absolute; left: 50%; top: 100px; width: 520px; height: 520px; margin: -260px 0 0 -260px; pointer-events: none; opacity: 0.35; background: repeating-conic-gradient(from 0deg, var(--c0) 0deg 6deg, transparent 6deg 22deg); -webkit-mask: radial-gradient(circle, #000 0, #000 30%, transparent 62%); mask: radial-gradient(circle, #000 0, #000 30%, transparent 62%); animation: spin 14s linear infinite; }
+.badgeWrap { position: relative; display: inline-block; animation: badgeIn 1s cubic-bezier(0.2, 1.5, 0.35, 1) 0.1s both; filter: drop-shadow(0 0 18px var(--glow)); }
+.kicker { position: relative; margin-top: 14px; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--c2); }
+.title { position: relative; margin: 6px 0 2px; font-size: 1.7rem; font-weight: 800; line-height: 1.1; background: linear-gradient(90deg, var(--c2), var(--c0), var(--c2)); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 2.4s linear infinite; }
+.sub { position: relative; color: #c9cfdb; }
+.xp { position: relative; margin-top: 10px; font-family: var(--mono); font-size: 0.8rem; color: #8f97a8; }
+.chips { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 12px; }
+.chip { font: 700 0.7rem/1 var(--mono); letter-spacing: 0.06em; padding: 6px 9px; border: 1px solid var(--c2); color: var(--c2); border-radius: 2px; background: rgba(0, 0, 0, 0.25); }
+.btns { position: relative; display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+.btn { font: 700 0.92rem/1 var(--sans); padding: 12px 22px; border-radius: var(--radius); border: none; cursor: pointer; color: #0b0e15; background: var(--c2); min-height: var(--tap); }
+.btn2 { display: inline-flex; align-items: center; font: 700 0.92rem/1 var(--sans); padding: 12px 18px; border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, 0.25); color: #e8ebf2; min-height: var(--tap); }
+.btn:focus-visible, .btn2:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { 0% { opacity: 0; transform: scale(0.6) translateY(20px); } 100% { opacity: 1; transform: none; } }
+@keyframes badgeIn { 0% { opacity: 0; transform: scale(0.2) rotate(-25deg); } 60% { opacity: 1; transform: scale(1.18) rotate(6deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes shine { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .card, .badgeWrap, .title { animation: none; }
+  .rays { animation: none; opacity: 0.2; }
+}

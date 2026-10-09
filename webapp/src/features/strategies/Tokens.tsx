@@ -9,6 +9,7 @@ import { t } from '../../lib/i18n';
 import { Button, Sheet, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
 import { checkout, openWallet, safeCheckout, useWalletDoc, type WalletInfo } from './strategies';
+import { Coin } from '../tokens/Coin';
 import s from './Strategies.module.css';
 
 /** The live wallet plus prices/packs (tokens_wallet also makes the wallet and gives welcome tokens once). */
@@ -33,14 +34,6 @@ export function useTokens() {
   return { uid, wallet, info: mine, balance: wallet?.balance ?? mine?.balance ?? null, failed: failed === uid };
 }
 
-export function WalletChip({ balance, onClick }: { balance: number | null; onClick: () => void }) {
-  return (
-    <button type="button" className={s.chip} onClick={onClick} aria-label={t('st.wallet.open', { n: balance ?? 0 })}>
-      <span aria-hidden="true">🪙</span> {balance == null ? '…' : balance.toLocaleString('en-US')} <span className={s.chipUnit}>{t('st.tokens')}</span>
-    </button>
-  );
-}
-
 export function TokensSheet({ open, onClose, info, balance }: { open: boolean; onClose: () => void; info: WalletInfo | null; balance: number | null }) {
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
@@ -59,7 +52,7 @@ export function TokensSheet({ open, onClose, info, balance }: { open: boolean; o
     <Sheet open={open} onClose={onClose} title={t('st.getTokens')} labelledBy="tokens-sheet-title">
       <div className={s.sheet}>
         <p className={s.balance}>
-          <span aria-hidden="true">🪙</span> <b>{balance ?? 0}</b> {t('st.tokens')}
+          <Coin size={20} /> <b>{balance ?? 0}</b> {t('st.tokens')}
         </p>
         <p className={s.muted}>{t('st.tokens.what', { pass: info?.prices.pass ?? 40, days: info?.prices.passDays ?? 7, unlock: info?.prices.unlock ?? 10 })}</p>
         {!info ? (

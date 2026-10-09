@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MODULES } from '../app/modules';
 import { buildRoutes } from '../app/router';
 import { ToastProvider } from '../ui';
 
@@ -42,7 +43,7 @@ describe('AppShell', () => {
     renderAt('/dashboard');
     const navs = await screen.findAllByRole('navigation', { name: 'Main' });
     const side = navs[0]!;
-    for (const name of ['Dashboard', 'Market', 'Trade War', 'Alerts', 'News', 'Practice', 'Options', 'Crypto', 'Squads & friends', 'Missions & XP', 'Training Ground', 'Profile', 'Settings']) {
+    for (const name of ['Dashboard', 'Market', 'Trade War', 'Alerts', 'News', 'Practice', 'Options', 'Squads & friends', 'Missions & XP', 'Training Ground', 'Profile', 'Settings']) {
       expect(within(side).getByRole('link', { name: new RegExp(`^${name.replace(/[&]/g, '\\$&')}`) })).toBeInTheDocument();
     }
     expect(within(side).queryByRole('link', { name: /Real Trading|Charts/ })).not.toBeInTheDocument();
@@ -76,9 +77,10 @@ describe('AppShell', () => {
     expect(await screen.findByText('Page not found')).toBeInTheDocument();
   });
 
-  it('a planned module says it is coming', async () => {
+  it('nothing unfinished is in the app: no Crypto, no "coming soon" screens (owner 2026-10-09)', async () => {
     renderAt('/crypto');
-    expect(await screen.findByText('Crypto is coming soon')).toBeInTheDocument();
+    expect(await screen.findByText('Page not found')).toBeInTheDocument();
+    expect(MODULES.filter((m) => m.status === 'planned')).toEqual([]);
   });
 
   it('navigates without reloading: clicking a sidebar link swaps the screen', async () => {
