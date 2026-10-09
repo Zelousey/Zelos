@@ -23,6 +23,8 @@ export type ProfileDetail = {
   topStocks: { sym: string; pnl: number }[];
   streak: number;
   since: number | null;
+  /** End-of-day snapshots `d20261009 → {n: net P&L, x: XP, e: equity}` (practice.py hist), for squad competitions and goals. */
+  hist: Record<string, { n: number; x: number; e: number }>;
 };
 
 const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -56,5 +58,20 @@ export function parseDetail(d: DocumentData): ProfileDetail {
     topStocks: rows(d.topStocks, 5).flatMap((t) => (sym(t.sym) ? [{ sym: sym(t.sym), pnl: num(t.pnl) }] : [])),
     streak: Math.max(0, Math.floor(num(d.streak))),
     since: numOrNull(d.since),
+    hist: parseHist(d.h),
   };
+}
+
+function parseHist(v: unknown): Record<string, { n: number; x: number; e: number }> {
+  const out: Record<string, { n: number; x: number; e: number }> = {};
+  if (!v || typeof v !== 'object') return out;
+  const keys = Object.keys(v as object).filter((k) => /^d\d{8}$/.test(k)).sort().slice(-400);
+  for (const k of keys) {
+    const r = (v as Record<string, unknown>)[k];
+    if (r && typeof r === 'object') {
+      const x = r as Record<string, unknown>;
+      if (typeof x.n === 'number' && Number.isFinite(x.n)) out[k] = { n: x.n, x: num(x.x), e: num(x.e, 10000) };
+    }
+  }
+  return out;
 }

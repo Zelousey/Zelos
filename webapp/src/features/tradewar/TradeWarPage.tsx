@@ -21,7 +21,7 @@ const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'd
 
 const COMPETE: { icon: IconName; title: MessageKey; body: MessageKey; href?: string; to?: string }[] = [
   { icon: 'war', title: 'tw.battles', body: 'tw.battles.body', href: 'practice/war.html' },
-  { icon: 'social', title: 'tw.squads', body: 'tw.squads.body', href: 'practice/squads.html' },
+  { icon: 'social', title: 'tw.squads', body: 'tw.squads.body', to: '/social' },
   { icon: 'markets', title: 'tw.leaderboard', body: 'tw.leaderboard.body', to: '/leaderboard' },
   { icon: 'missions', title: 'tw.missions', body: 'tw.missions.body', href: 'practice/index.html?tab=progress' },
 ];

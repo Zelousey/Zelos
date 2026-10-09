@@ -256,9 +256,9 @@ export function WarsCard({ uid }: { uid: string | null }) {
       <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/invite">
         {t('nav.invite')}
       </Link>
-      <a className={buttonClass({ variant: 'ghost', size: 'sm' })} href={classicUrl('practice/squads.html')}>
+      <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/social">
         {t('dash.squads')}
-      </a>
+      </Link>
     </div>
   );
   return (

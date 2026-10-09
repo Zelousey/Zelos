@@ -186,9 +186,9 @@ function SquadPicker({ uid, onBack, onReady }: { uid: string; onBack: () => void
             body={t('inv.squad.none')}
             compact
             actions={
-              <a className={buttonClass({ variant: 'primary' })} href={classicUrl('practice/squads.html')}>
+              <Link className={buttonClass({ variant: 'primary' })} to="/social">
                 {t('inv.squad.create')}
-              </a>
+              </Link>
             }
           />
         ) : (
