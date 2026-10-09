@@ -1,0 +1,24 @@
+.tabs { margin-bottom: var(--space-4); overflow-x: auto; }
+.season { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: linear-gradient(170deg, var(--gold-soft), transparent 60%), var(--surface); border: 1px solid var(--border-soft); }
+.season > div { overflow-x: auto; }
+.muted { color: var(--muted); font-size: var(--text-sm); }
+.fine { color: var(--muted); font-size: var(--text-xs); margin-top: var(--space-4); max-width: 70ch; }
+.more { color: var(--accent); font-size: var(--text-sm); }
+.list { list-style: none; margin: 0; padding: 0; }
+.row { display: grid; grid-template-columns: 32px 36px minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); color: var(--ink); }
+.row:hover { background: var(--surface-hover); }
+.me .row { background: var(--accent-soft); }
+.gap { border-top: 1px dashed var(--border); margin-top: var(--space-2); }
+.place { font-family: var(--mono); font-weight: 700; color: var(--muted); text-align: center; }
+.gold { color: var(--gold); }
+.silver { color: #c9d1dc; }
+.bronze { color: #d08a52; }
+:global(:root[data-theme='white']) .gold { color: #8a5f00; }
+:global(:root[data-theme='white']) .silver { color: #5b6573; }
+:global(:root[data-theme='white']) .bronze { color: #8f4f1f; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); font-weight: 700; }
+.who { display: flex; flex-direction: column; min-width: 0; }
+.who b { display: flex; align-items: center; gap: var(--space-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who small { color: var(--muted); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.youTag { font-family: var(--mono); font-size: 0.65rem; padding: 1px 6px; border-radius: var(--radius-pill); background: var(--accent-fill); color: var(--on-fill); }
+.value { font-family: var(--mono); font-weight: 700; font-size: var(--text-md); white-space: nowrap; }

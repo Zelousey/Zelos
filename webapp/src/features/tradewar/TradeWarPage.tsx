@@ -19,10 +19,10 @@ import s from './TradeWar.module.css';
 
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
 
-const COMPETE: { icon: IconName; title: MessageKey; body: MessageKey; href: string }[] = [
+const COMPETE: { icon: IconName; title: MessageKey; body: MessageKey; href?: string; to?: string }[] = [
   { icon: 'war', title: 'tw.battles', body: 'tw.battles.body', href: 'practice/war.html' },
   { icon: 'social', title: 'tw.squads', body: 'tw.squads.body', href: 'practice/squads.html' },
-  { icon: 'markets', title: 'tw.leaderboard', body: 'tw.leaderboard.body', href: 'leaderboard.html' },
+  { icon: 'markets', title: 'tw.leaderboard', body: 'tw.leaderboard.body', to: '/leaderboard' },
   { icon: 'missions', title: 'tw.missions', body: 'tw.missions.body', href: 'practice/index.html?tab=progress' },
 ];
 
@@ -48,20 +48,33 @@ export default function TradeWarPage() {
             {t('tw.compete')}
           </h2>
           <div className={s.grid}>
-            {COMPETE.map((c) => (
-              <a key={c.title} className={s.tile} href={classicUrl(c.href)}>
-                <span className={s.tileIcon}>
-                  <Icon name={c.icon} size={22} />
-                </span>
-                <span className={s.tileText}>
-                  <b>{t(c.title)}</b>
-                  <span>{t(c.body)}</span>
-                  <small>
-                    {t('tw.onSite')} <Icon name="external" size={12} />
-                  </small>
-                </span>
-              </a>
-            ))}
+            {COMPETE.map((c) => {
+              const inner = (
+                <>
+                  <span className={s.tileIcon}>
+                    <Icon name={c.icon} size={22} />
+                  </span>
+                  <span className={s.tileText}>
+                    <b>{t(c.title)}</b>
+                    <span>{t(c.body)}</span>
+                    {c.href && (
+                      <small>
+                        {t('tw.onSite')} <Icon name="external" size={12} />
+                      </small>
+                    )}
+                  </span>
+                </>
+              );
+              return c.to ? (
+                <Link key={c.title} className={s.tile} to={c.to}>
+                  {inner}
+                </Link>
+              ) : (
+                <a key={c.title} className={s.tile} href={classicUrl(c.href!)}>
+                  {inner}
+                </a>
+              );
+            })}
           </div>
         </section>
       </div>

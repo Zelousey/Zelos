@@ -15,7 +15,21 @@ const str = (v: unknown, max = 60) => (typeof v === 'string' ? v.slice(0, max) :
 // only https images (Google photos, our storage) or an uploaded data: image
 const safeImg = (v: unknown) => (typeof v === 'string' && (/^https:\/\//.test(v) || /^data:image\/(png|jpe?g|webp|gif);base64,/.test(v)) ? v : null);
 
-export type Ranked = { uid: string; name: string; photo: string | null; equity: number; growthPct: number; level: number; achievements: string[] };
+/** One period's numbers in practiceProfiles.p (functions/practice.py build_profile): pnl and pct, plus xp/bestWin/winStreak in a season. */
+export type PeriodStats = Record<string, number>;
+export type Ranked = { uid: string; name: string; username: string | null; photo: string | null; equity: number; growthPct: number; netPnl: number; level: number; xp: number; trades: number; winRate: number; tradeStreak: number; achievements: string[]; p: Record<string, PeriodStats> };
+
+function parsePeriods(v: unknown): Record<string, PeriodStats> {
+  const out: Record<string, PeriodStats> = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const [k, row] of Object.entries(v as Record<string, unknown>).slice(0, 40)) {
+    if (!/^[wms][0-9_]{1,10}$/.test(k) || !row || typeof row !== 'object') continue;
+    const r: PeriodStats = {};
+    for (const [f, x] of Object.entries(row as Record<string, unknown>)) if (typeof x === 'number' && Number.isFinite(x)) r[f] = x;
+    out[k] = r;
+  }
+  return out;
+}
 
 export function parseRanked(uid: string, d: DocumentData): Ranked | null {
   if (typeof d.equity !== 'number' || !Number.isFinite(d.equity)) return null;
@@ -25,7 +39,14 @@ export function parseRanked(uid: string, d: DocumentData): Ranked | null {
     photo: safeImg(d.photo),
     equity: d.equity,
     growthPct: num(d.growthPct),
+    netPnl: num(d.netPnl, d.equity - 10000),
+    username: /^[a-z0-9_]{3,20}$/.test(String(d.username ?? '')) ? String(d.username) : null,
     level: Math.max(0, Math.min(10, Math.floor(num(d.level)))),
+    xp: Math.max(0, Math.floor(num(d.xp))),
+    trades: Math.max(0, Math.floor(num(d.trades))),
+    winRate: num(d.winRate),
+    tradeStreak: Math.max(0, Math.floor(num(d.tradeStreak))),
+    p: parsePeriods(d.p),
     achievements: Array.isArray(d.achievements) ? (d.achievements as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 80) : [],
   };
 }
