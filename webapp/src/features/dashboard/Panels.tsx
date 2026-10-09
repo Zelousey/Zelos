@@ -194,7 +194,7 @@ export function MissionsCard({ progress, xpLog }: { progress: Progress | null; x
       </ul>
       <div className={s.foot}>
         <span>{t('dash.missions.foot', { done: m.doneToday, need: STREAK_NEED, weekly: m.weekly.filter((w) => w.done).length, total: m.weekly.length })}</span>
-        <MoreLink href={classicUrl('practice/index.html?tab=progress')}>{t('dash.missions.weekly')}</MoreLink>
+        <MoreLink to="/missions">{t('dash.missions.weekly')}</MoreLink>
       </div>
     </Card>
   );
@@ -301,7 +301,7 @@ export function WarsCard({ uid }: { uid: string | null }) {
 export function AchievementsCard({ progress, publicIds }: { progress: Progress | null; publicIds: string[] }) {
   const a = achievementsView(progress, publicIds);
   return (
-    <Card className={s.ach} title={t('dash.ach')} subtitle={t('dash.ach.count', { n: a.unlocked.length, total: a.total })} actions={<MoreLink href={classicUrl('practice/index.html?tab=progress')}>{t('dash.board.all')}</MoreLink>}>
+    <Card className={s.ach} title={t('dash.ach')} subtitle={t('dash.ach.count', { n: a.unlocked.length, total: a.total })} actions={<MoreLink to="/missions">{t('dash.board.all')}</MoreLink>}>
       {a.unlocked.length > 0 && (
         <ul className={s.badges}>
           {a.unlocked.slice(0, 12).map((x) => (

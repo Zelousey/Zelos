@@ -13,6 +13,7 @@ import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Button, Card, EmptyState, Field, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
+import { unlockQuietly } from '../missions/missions';
 import { addFriend, removeFriend } from '../profile/profile';
 import { createSquad, findRoomCode, uidForUsername, useMySquadList, useProfiles } from './squads';
 import s from './Social.module.css';
@@ -55,6 +56,7 @@ export default function SocialPage() {
 
 function Squads({ uid, displayName }: { uid: string; displayName: string | null }) {
   const navigate = useNavigate();
+  const toast = useToast();
   const list = useMySquadList(uid);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -84,7 +86,7 @@ function Squads({ uid, displayName }: { uid: string; displayName: string | null 
             className={s.inline}
             onSubmit={(e) => {
               e.preventDefault();
-              void run('create', () => createSquad(uid, displayName, name));
+              void run('create', () => createSquad(uid, displayName, name).then((id) => (void unlockQuietly(uid, 'squad-up', 'Squad Up', toast.show), id)));
             }}
           >
             <Field label={t('sq.create.name')} value={name} maxLength={32} placeholder={t('sq.create.placeholder')} onChange={(e) => setName(e.target.value)} error={err?.at === 'create' ? err.msg : undefined} />

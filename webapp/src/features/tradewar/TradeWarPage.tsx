@@ -23,7 +23,7 @@ const COMPETE: { icon: IconName; title: MessageKey; body: MessageKey; href?: str
   { icon: 'war', title: 'tw.battles', body: 'tw.battles.body', href: 'practice/war.html' },
   { icon: 'social', title: 'tw.squads', body: 'tw.squads.body', to: '/social' },
   { icon: 'markets', title: 'tw.leaderboard', body: 'tw.leaderboard.body', to: '/leaderboard' },
-  { icon: 'missions', title: 'tw.missions', body: 'tw.missions.body', href: 'practice/index.html?tab=progress' },
+  { icon: 'missions', title: 'tw.missions', body: 'tw.missions.body', to: '/missions' },
 ];
 
 export default function TradeWarPage() {
