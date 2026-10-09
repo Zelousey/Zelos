@@ -131,6 +131,11 @@ test.describe('desktop', () => {
     await expect(side.getByText('Market', { exact: true })).toBeHidden();
     await page.reload();
     await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
+    // a short window: the collapse button stays above Dashboard (the sidebar scrolls, it doesn't squeeze)
+    await page.setViewportSize({ width: 1280, height: 420 });
+    const toggle = await page.getByRole('button', { name: 'Expand sidebar' }).boundingBox();
+    const home = await side.getByRole('link', { name: 'Dashboard', exact: true }).boundingBox();
+    expect(toggle!.y + toggle!.height).toBeLessThanOrEqual(home!.y);
   });
 
   test('a classic module hands off to the classic page', async ({ page }) => {

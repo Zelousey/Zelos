@@ -72,6 +72,8 @@ db.collection("serverMeta").document("msQuotes").delete()
 for s in SYMS:
     db.collection("markets").document("intraday_" + s).delete()
 
+# bars saved by the old parser (wrong Marketstack fields) are dropped, not merged
+db.collection("markets").document("intraday_AAPL").set({"interval": "1m", "source": "marketstack", "bars": ["2026-10-06 10:00,1,1,1,1,1", "2026-10-07 09:31,1,1,1,1,1"]})
 # 10:00 -> bars 9:30..9:59 have started (30 bars a symbol)
 NOW_MIN[0] = 30
 n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=0))
@@ -81,6 +83,7 @@ ok(len(first) == (len(SYMS) + 9) // 10 and all(c["date_from"] == "2026-10-07" fo
 ok(abs(quotes["AAPL"]["c"] - (price("AAPL", 29) + 0.01)) < 1e-9, "quote = the newest 1-minute close")
 doc = db.collection("markets").document("intraday_AAPL").get().to_dict()
 ok(doc["interval"] == "1m" and len(doc["bars"]) == 30, "intraday doc holds 30 one-minute bars")
+ok(doc["parser"] == MD.MS_PARSER and not any(b.startswith("2026-10-06") or ",1,1,1,1," in b for b in doc["bars"]), "old-parser bars dropped, new ones tagged with the parser version")
 st = db.collection("serverMeta").document("msQuotes").get().to_dict()
 ok(st["since"].startswith("2026-10-07T09:59"), "newest bar stored as 'since' (%s)" % st["since"])
 

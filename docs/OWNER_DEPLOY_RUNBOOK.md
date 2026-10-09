@@ -348,3 +348,21 @@ source functions/venv/bin/activate && pip install -q -r functions/requirements.t
 
 **4. Check** during market hours: the Market page shows real changes (not +0.00% everywhere) and
 Top movers has gainers and losers.
+
+# Chart fixes (the chart-fixes PR)
+
+What changes: `refresh_quotes` and `refresh_market_data` (after-close job) drop 1-minute bars saved by the old price
+code (they made the 15m/1H charts look like steps); the next run re-fetches today. The app part
+(sidebar, charts open as a line) needs no deploy.
+
+**1. Get the branch.** It must print a number bigger than 0 and `STEP 1 OK`.
+```
+cd ~/Zelos && git stash -u -q; git fetch -q origin && git checkout -q -B claude/chart-fixes origin/claude/chart-fixes && grep -c "MS_PARSER = 3" functions/mdata.py && echo "STEP 1 OK"
+```
+
+**2. Deploy (about 2 minutes).** It ends with "Deploy complete!".
+```
+source functions/venv/bin/activate && pip install -q -r functions/requirements.txt && npx -y firebase-tools@latest deploy --only "functions:refresh_quotes,functions:refresh_market_data" --project leaderboard-agentictrading
+```
+
+**3. Merge the PR** (or ask Claude to), then `git checkout main && git pull origin main`.

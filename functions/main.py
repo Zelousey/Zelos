@@ -1380,11 +1380,12 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     for snap in db.get_all(refs):
         sym = snap.id[len("intraday_"):]
         d = (snap.to_dict() or {}) if snap.exists else {}
-        old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label else []
+        # bars saved by an older parser are dropped (they were built from the wrong Marketstack fields)
+        old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label and d.get("parser") == MD.MS_PARSER else []
         new = fresh.get(sym) or []
         merged = MD.merge_intraday(old, new) if new else old
         if new:
-            batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": merged})
+            batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "parser": MD.MS_PARSER, "bars": merged})
             writes += 1
         tb = [b for b in merged if b[:10] == today]
         today_bars[sym] = tb
@@ -1524,8 +1525,9 @@ def ms_after_close(db, key, now, state):
         refs = [db.collection("markets").document("intraday_" + sym) for sym in ib if sym in PRACTICE_SYMBOLS]
         for snap in (db.get_all(refs) if refs else []):
             d = (snap.to_dict() or {}) if snap.exists else {}
-            old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label else []
-            batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "bars": MD.merge_intraday(old, ib[snap.id[len("intraday_"):]])})
+            # bars saved by an older parser are dropped (they were built from the wrong Marketstack fields)
+            old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label and d.get("parser") == MD.MS_PARSER else []
+            batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "parser": MD.MS_PARSER, "bars": MD.merge_intraday(old, ib[snap.id[len("intraday_"):]])})
         batch.commit()
     except (MD.MsKeyRejected, MD.MsQuota):
         raise
