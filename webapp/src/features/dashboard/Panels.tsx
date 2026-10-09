@@ -89,9 +89,9 @@ export function TraderCard({ uid, identity, xp, streak, rank, badges, totalBadge
         <a className={buttonClass({ variant: 'secondary', size: 'sm' })} href={classicUrl(`practice/profile.html?u=${encodeURIComponent(uid)}`)}>
           {t('dash.trader.profile')}
         </a>
-        <a className={buttonClass({ variant: 'ghost', size: 'sm' })} href={classicUrl('leaderboard.html#practice')}>
+        <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/leaderboard">
           {t('tw.leaderboard')}
-        </a>
+        </Link>
       </div>
     </Card>
   );
@@ -206,7 +206,7 @@ export function LeaderboardCard({ uid, rank, me }: { uid: string | null; rank: n
   const rows = top.status === 'ready' ? top.data : [];
   const inTop = !!uid && rows.some((r) => r.uid === uid);
   return (
-    <Card className={s.board} title={t('dash.board')} actions={<MoreLink href={classicUrl('leaderboard.html#practice')}>{t('dash.board.all')}</MoreLink>} flush>
+    <Card className={s.board} title={t('dash.board')} actions={<MoreLink to="/leaderboard">{t('dash.board.all')}</MoreLink>} flush>
       {top.status === 'loading' ? (
         <LoadingState rows={5} />
       ) : top.status === 'error' ? (
