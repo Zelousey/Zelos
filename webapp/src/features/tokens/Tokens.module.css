@@ -1,0 +1,5 @@
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px 0 8px; border-radius: var(--radius-pill); border: 1px solid rgba(232, 178, 61, 0.45); background: linear-gradient(180deg, rgba(232, 178, 61, 0.14), rgba(232, 178, 61, 0.04)); color: #f2d38a; font: 700 var(--text-sm) var(--mono); cursor: pointer; transform-origin: center; }
+.chip:hover { border-color: var(--gold); }
+.chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+:global(:root[data-theme='white']) .chip { color: #7a5208; background: #fff7e0; }
+.num { font-variant-numeric: tabular-nums; }

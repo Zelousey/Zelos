@@ -24,6 +24,7 @@ import { TokensSheet, useTokens } from '../strategies/Tokens';
 import { ChallengeSheet } from './ChallengeSheet';
 import { EditProfileSheet } from './EditProfileSheet';
 import { addFriend, groupEarned, isWarGroup, removeFriend, useLooks, useWarRecord, type Looks, type WarRecord } from './profile';
+import { Coin } from '../tokens/Coin';
 import s from './Profile.module.css';
 
 const money = (v: number) => formatMoney(v, { digits: 2 });
@@ -264,7 +265,7 @@ function TokensCard() {
             {t('pf.tokens')} <span className={s.private}>{t('pf.tokens.private')}</span>
           </span>
           <b className={s.balance}>
-            <span aria-hidden="true">🪙</span> {tk.balance == null ? '…' : tk.balance.toLocaleString('en-US')}
+            <Coin size={22} /> {tk.balance == null ? '…' : tk.balance.toLocaleString('en-US')}
           </b>
         </div>
         <div className={s.row}>

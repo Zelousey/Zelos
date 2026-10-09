@@ -15,7 +15,7 @@ import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } fr
 import { errorText } from '../invites/invites';
 import { buyPass, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
 import { StrategyArt } from './StrategyArt';
-import { TokensSheet, useTokens, WalletChip } from './Tokens';
+import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
 
 export default function StrategiesPage() {
@@ -25,7 +25,7 @@ export default function StrategiesPage() {
   const list = alerts.status === 'ready' ? alerts.data : [];
   return (
     <>
-      <PageHeader title={t('nav.strategies')} subtitle={t('st.subtitle')} actions={tk.uid ? <WalletChip balance={tk.balance} onClick={() => setSheet(true)} /> : undefined} />
+      <PageHeader title={t('nav.strategies')} subtitle={t('st.subtitle')} />
       <div className={s.list}>
         {STRATEGIES.map((x) => (
           <StrategyCard key={x.id} st={x} latest={list.find((a) => a.strategy === x.id) ?? null} loading={alerts.status === 'loading'} wallet={tk.wallet} info={tk.info} balance={tk.balance} onTokens={() => setSheet(true)} />
