@@ -11,7 +11,6 @@ import { levelFor } from '../../data/levels';
 import { useAuth } from '../../lib/auth';
 import { formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
-import { classicUrl } from '../../lib/platform';
 import { Card, EmptyState, ErrorState, LoadingState, PageHeader, Tabs } from '../../ui';
 import { useMyProfile, type Ranked } from '../dashboard/social';
 import { boardField, SEASON_CATS, useBoard, useFriendsBoard, useRank, type BoardId, type SeasonCat } from './board';
@@ -107,9 +106,9 @@ function FriendsBoard() {
         icon="social"
         body={t('lb.friends.empty')}
         actions={
-          <a className={s.more} href={classicUrl('practice/squads.html')}>
+          <Link className={s.more} to="/social">
             {t('dash.squads')} →
-          </a>
+          </Link>
         }
       />
     );

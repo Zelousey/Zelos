@@ -68,7 +68,7 @@ describe('AppShell', () => {
     expect(await screen.findByRole('heading', { name: /Your practice account/ })).toBeInTheDocument();
     const main = screen.getByRole('main');
     expect(within(main).getByRole('link', { name: /Battles/ })).toHaveAttribute('href', '/practice/war.html');
-    expect(within(main).getByRole('link', { name: /^Squads/ })).toHaveAttribute('href', '/practice/squads.html');
+    expect(within(main).getByRole('link', { name: /^Squads/ })).toHaveAttribute('href', '/social');
   });
 
   it('/real is not part of the app', async () => {

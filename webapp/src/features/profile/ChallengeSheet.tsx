@@ -1,6 +1,6 @@
 /**
  * Challenge a trader to a Trade War from their profile (the website's "Challenge to a Trade
- * War"). They get a card to accept or decline; the battle opens on the website's war page.
+ * War") or from a squad (everyone else in it). They get a card to accept or decline; the battle opens on the website's war page.
  * The server checks the buy-in your level allows and how many challenges you have waiting.
  */
 import { useState } from 'react';
@@ -13,7 +13,7 @@ import { Choices } from '../invites/Choices';
 import { challenge } from './profile';
 import s from './Profile.module.css';
 
-export function ChallengeSheet({ open, onClose, to, toName }: { open: boolean; onClose: () => void; to: string; toName: string }) {
+export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: boolean; onClose: () => void; to?: string; squadId?: string; toName: string }) {
   const toast = useToast();
   const [name, setName] = useState('');
   const [buyIn, setBuyIn] = useState(1000);
@@ -27,7 +27,7 @@ export function ChallengeSheet({ open, onClose, to, toName }: { open: boolean; o
     setBusy(true);
     setErr(null);
     try {
-      const r = await challenge({ to, name: title, buyIn, days });
+      const r = await challenge({ ...(squadId ? { squadId } : { to: to ?? '' }), name: title, buyIn, days });
       toast.show(t('pf.ch.sent', { name: toName }));
       onClose();
       window.location.assign(classicUrl(`practice/war.html?w=${encodeURIComponent(r.warId)}`));

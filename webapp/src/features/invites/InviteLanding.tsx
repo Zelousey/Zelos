@@ -157,9 +157,9 @@ function Done({ inv, res }: { inv: Invite; res: Accepted }) {
         {t('land.goBattle')}
       </a>
     ) : res.kind === 'squad' && res.squadId ? (
-      <a className={buttonClass({ variant: 'primary', size: 'lg', block: true })} href={classicUrl(`practice/squads.html?s=${encodeURIComponent(res.squadId)}`)}>
+      <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to={`/social/${encodeURIComponent(res.squadId)}`}>
         {t('land.goSquad')}
-      </a>
+      </Link>
     ) : (
       <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to="/practice">
         {t('land.goPractice')}

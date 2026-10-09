@@ -1,0 +1,59 @@
+.wrap { position: relative; display: grid; gap: var(--space-2); }
+.head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.icon { font-size: 1.35rem; line-height: 1; display: inline-block; }
+.num { font-family: var(--mono); font-size: var(--text-lg); }
+.num small { font-size: var(--text-xs); color: var(--muted); font-weight: 400; }
+.up { color: var(--up-ink); }
+.down { color: var(--down-ink); }
+.cheer { margin-left: auto; font-size: var(--text-xs); color: var(--ink-2); }
+
+.bar { position: relative; height: 14px; border-radius: var(--radius-pill); background: var(--surface-2); overflow: visible; }
+.fill {
+  position: relative; display: block; height: 100%; border-radius: inherit; min-width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--bull));
+  transition: width 1.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow var(--dur-slow);
+  overflow: hidden;
+}
+.mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--border); transition: background var(--dur-slow), box-shadow var(--dur-slow); }
+.markOn { background: var(--ink); box-shadow: 0 0 6px var(--accent-glow); }
+
+/* tier 1+: a light sweeping across the fill */
+.t1 .fill::after, .t2 .fill::after, .t3 .fill::after, .t4 .fill::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.35) 45%, transparent 60%);
+  background-size: 220% 100%;
+  animation: shimmer 2.6s linear infinite;
+}
+.t2 .fill::after { animation-duration: 1.6s; }
+.t3 .fill::after { animation-duration: 1.05s; }
+.t2 .fill { box-shadow: 0 0 10px rgba(62, 203, 124, 0.45); }
+.t3 .fill { box-shadow: 0 0 16px rgba(62, 203, 124, 0.7); animation: pulse 1.3s ease-in-out infinite; }
+.t2 .icon { animation: bob 1.8s ease-in-out infinite; }
+.t3 .icon { animation: bob 0.9s ease-in-out infinite; }
+
+/* tier 3: sparks flying off the tip (outside the clipped fill) */
+.t3 .fill { overflow: visible; }
+.t3 .fill::after { border-radius: inherit; }
+.sparks { position: absolute; right: -2px; top: 50%; width: 0; height: 0; }
+.sparks em { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #fff4c7; box-shadow: 0 0 6px #f2c14e; animation: spark 0.9s ease-out infinite; }
+.sparks em:nth-child(2) { animation-delay: 0.3s; }
+.sparks em:nth-child(3) { animation-delay: 0.6s; }
+
+/* tier 4: gold, celebrating */
+.t4 .fill { background: linear-gradient(90deg, #b07a12, #f2c14e 40%, #fff4c7 55%, #f2c14e 70%, #b07a12); box-shadow: 0 0 18px rgba(242, 193, 78, 0.75); }
+.t4 .icon { animation: pop 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both, bob 1.6s 0.7s ease-in-out infinite; }
+.confetti { position: absolute; inset: -40px 0 0; pointer-events: none; overflow: hidden; }
+.confetti i { position: absolute; top: 0; width: 7px; height: 11px; border-radius: 2px; opacity: 0; animation: fall 1.8s ease-in forwards; }
+
+@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes pulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px) rotate(-6deg); } }
+@keyframes spark { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(14px, -12px) scale(0.2); opacity: 0; } }
+@keyframes pop { 0% { transform: scale(0.3); } 100% { transform: scale(1); } }
+@keyframes fall { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(120px) rotate(540deg); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fill { transition: none; }
+  .fill::after, .t3 .fill, .icon, .t4 .icon, .sparks, .confetti { animation: none !important; }
+  .sparks, .confetti { display: none; }
+}
