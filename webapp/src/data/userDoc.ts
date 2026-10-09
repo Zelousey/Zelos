@@ -6,13 +6,14 @@
  */
 import type { DocumentData } from 'firebase/firestore';
 import { parseProgress, parseServerMissions, type Progress } from '../features/dashboard/progress';
+import { parsePrefs, type Prefs } from '../features/alerts/alerts';
 import { useLiveDoc } from './liveDoc';
 import { SYMBOL_RE } from './markets';
 
 export type Experience = 'new' | 'some' | 'pro';
 /** First steps checklist flags (users/{uid}.onboard), shared with the website (zelos-profile.js). */
 export type Onboard = { profile: boolean; trade: boolean; invited: boolean };
-export type UserDoc = { watchlist: string[]; xp: number; progress: Progress | null; missions: Progress | null; onboard: Onboard; experience: Experience | null; friends: string[] };
+export type UserDoc = { watchlist: string[]; xp: number; progress: Progress | null; missions: Progress | null; onboard: Onboard; experience: Experience | null; prefs: Prefs; friends: string[] };
 
 export function parseUserDoc(d: DocumentData): UserDoc {
   const watchlist = Array.isArray(d.watchlist) ? (d.watchlist as unknown[]).map((x) => String(x).toUpperCase()).filter((x) => SYMBOL_RE.test(x)).slice(0, 50) : [];
@@ -20,7 +21,10 @@ export function parseUserDoc(d: DocumentData): UserDoc {
   const ob = (d.onboard && typeof d.onboard === 'object' ? d.onboard : {}) as Record<string, unknown>;
   const onboard = { profile: ob.profile === true, trade: ob.trade === true, invited: ob.invited === true };
   const experience = d.experience === 'new' || d.experience === 'some' || d.experience === 'pro' ? (d.experience as Experience) : null;
-  return { watchlist, xp, progress: parseProgress(d.progress), missions: parseServerMissions(d.missions), onboard, experience, friends: Array.isArray(d.friends) ? (d.friends as unknown[]).filter((x): x is string => typeof x === 'string' && /^[A-Za-z0-9]{10,40}$/.test(x)).slice(0, 200) : [] };
+  return {
+    watchlist, xp, progress: parseProgress(d.progress), missions: parseServerMissions(d.missions), onboard, experience, prefs: parsePrefs(d),
+    friends: Array.isArray(d.friends) ? (d.friends as unknown[]).filter((x): x is string => typeof x === 'string' && /^[A-Za-z0-9]{10,40}$/.test(x)).slice(0, 200) : [],
+  };
 }
 
 export const useUserDoc = (uid: string | null) => useLiveDoc(uid ? `users/${uid}` : null, parseUserDoc);

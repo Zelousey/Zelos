@@ -48,7 +48,7 @@ export const MODULES: AppModule[] = [
   { id: 'dashboard', path: 'dashboard', label: 'nav.dashboard', icon: 'dashboard', group: 'main', status: 'ready', tab: 1, load: () => import('../features/dashboard/DashboardPage') },
   { id: 'markets', path: 'markets', label: 'nav.market', icon: 'markets', group: 'main', status: 'ready', tab: 2, load: () => import('../features/markets/MarketsModule') },
   { id: 'trade-war', path: 'trade-war', label: 'nav.tradeWar', icon: 'war', group: 'main', status: 'ready', tab: 3, load: () => import('../features/tradewar/TradeWarPage') },
-  { id: 'alerts', path: 'alerts', label: 'nav.alerts', icon: 'signal', group: 'main', status: 'classic', classicPath: 'alert-history.html', tab: 4 },
+  { id: 'alerts', path: 'alerts', label: 'nav.alerts', icon: 'signal', group: 'main', status: 'ready', tab: 4, load: () => import('../features/alerts/AlertsModule') },
   { id: 'news', path: 'news', label: 'nav.news', icon: 'news', group: 'main', status: 'ready', tab: 5, load: () => import('../features/news/NewsModule') },
 
   { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/practice/PracticeModule') },

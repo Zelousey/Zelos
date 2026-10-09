@@ -139,7 +139,7 @@ test.describe('desktop', () => {
   });
 
   test('a classic module hands off to the classic page', async ({ page }) => {
-    await page.goto('alerts');
-    await expect(page.getByRole('link', { name: /Open Alerts/ })).toHaveAttribute('href', '/alert-history.html');
+    await page.goto('arcade');
+    await expect(page.getByRole('link', { name: /Open Arcade/ })).toHaveAttribute('href', '/arcade.html');
   });
 });

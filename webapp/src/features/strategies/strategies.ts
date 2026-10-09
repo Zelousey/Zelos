@@ -45,6 +45,12 @@ export const STRATEGIES: Strategy[] = [
 export const strategy = (id: string) => STRATEGIES.find((x) => x.id === id);
 
 // ------------------------------------------------------------------ alerts
+/** outcome = {result, exitPrice, closedAt, notes} on the server (functions/main.py _apply_one_outcome). */
+export const OUTCOMES: Record<string, string> = { 'hit-target': 'Hit target', 'stopped-out': 'Stopped out', open: 'Still open', expired: 'Expired', 'no-trade': 'No trade taken' };
+export const outcomeLabel = (o: unknown): string | null => {
+  const r = o && typeof o === 'object' ? (o as { result?: unknown }).result : o;
+  return typeof r === 'string' && OUTCOMES[r] ? OUTCOMES[r] : null;
+};
 export type Alert = { id: string; strategy: StrategyId; at: number; status: string; label: string | null; direction: string | null; score: number | null; scoreMax: number | null; outcome: string | null; locked: boolean; ticker: string | null };
 
 const ms = (v: unknown): number => {
@@ -70,7 +76,7 @@ export function parseAlert(id: string, d: DocumentData): Alert | null {
     direction: str(d.direction, 12),
     score: num(d.score),
     scoreMax: num(d.scoreMax),
-    outcome: str(d.outcome, 24),
+    outcome: outcomeLabel(d.outcome),
     locked: d.locked === true,
     ticker: d.locked === true ? null : str(d.ticker, 10),
   };

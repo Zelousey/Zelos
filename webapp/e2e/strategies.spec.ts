@@ -39,7 +39,7 @@ test('find strategies from Trade War and the Dashboard; see what each looks for'
   await expect(page.getByRole('heading', { name: 'Breakout Rider', level: 1 })).toBeVisible();
   await expect(page.getByText('A clean move through resistance')).toBeVisible();
   await expect(page.getByText('One-candle spikes that fade')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Flat-base breakout/ })).toHaveAttribute('href', /alert\.html\?id=breakout-rider-2026-10-08$/);
+  await expect(page.getByRole('link', { name: /Flat-base breakout/ })).toHaveAttribute('href', /\/alerts\/breakout-rider-2026-10-08$/);
 });
 
 test.describe('signed in', () => {
