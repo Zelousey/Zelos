@@ -27,7 +27,6 @@ import { reportMission } from '../../data/missionEvent';
 import s from './SymbolPage.module.css';
 
 const TF_KEY = 'zelosAppChartTf';
-const STYLE_KEY = 'zelosChartStyle'; // shared with the classic chart engine
 
 function initialTf(): Timeframe {
   const v = readString(TF_KEY);
@@ -61,7 +60,8 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   const [tf, setTfState] = useState<Timeframe>(initialTf);
   const tfDef = TIMEFRAMES.find((x) => x.id === tf)!;
   const [range, setRange] = useState<number | 'all'>(tfDef.def);
-  const [style, setStyleState] = useState<'line' | 'candles'>(() => (readString(STYLE_KEY) === 'candles' ? 'candles' : 'line'));
+  // owner 2026-10-09: every chart opens as a line; candles apply only to the chart you switch
+  const [style, setStyle] = useState<'line' | 'candles'>('line');
   const [showTable, setShowTable] = useState(false);
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
@@ -82,10 +82,6 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
     setTfState(v);
     writeString(TF_KEY, v);
     setRange(TIMEFRAMES.find((x) => x.id === v)!.def);
-  }
-  function setStyle(v: 'line' | 'candles') {
-    setStyleState(v);
-    writeString(STYLE_KEY, v);
   }
 
   const tableRows = built.bars.slice(-12).reverse();

@@ -240,7 +240,7 @@ def valid_bar(row):
     return _positive(*(_num(x) for x in p[1:5]))
 
 
-MS_PARSER = 2  # bump when ms_intraday_bars changes: the next run re-fetches today's bars
+MS_PARSER = 3  # bump when ms_intraday_bars changes: the next run re-fetches today's bars and drops older ones
 
 
 def ms_intraday_bars(rows, session_only=True):

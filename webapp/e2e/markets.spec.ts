@@ -102,6 +102,8 @@ test('chart: timeframes, ranges, styles and the data table', async ({ page }) =>
   // the choice of timeframe is remembered
   await page.reload();
   await expect(page.getByRole('tab', { name: '15m' })).toHaveAttribute('aria-selected', 'true');
+  // ...but candles are not: every chart opens as a line (owner 2026-10-09)
+  await expect(page.getByRole('tab', { name: 'Line' })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('intraday without bars explains itself; unknown symbols are handled', async ({ page }) => {
