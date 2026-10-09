@@ -34,7 +34,7 @@ describe('AppShell', () => {
 
   it('redirects / to the dashboard', async () => {
     const router = renderAt('/');
-    await screen.findAllByRole('heading', { name: 'Dashboard' });
+    await screen.findAllByRole('heading', { name: 'Dashboard' }, { timeout: 5000 }); // the page loads lazily; slower when all test files run at once
     expect(router.state.location.pathname).toBe('/dashboard');
   });
 

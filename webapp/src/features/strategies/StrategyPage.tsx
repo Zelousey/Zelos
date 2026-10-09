@@ -6,6 +6,7 @@ import { t } from '../../lib/i18n';
 import { Card, EmptyState, Icon, LoadingState, PageHeader } from '../../ui';
 import { AlertLine, PassButton } from './StrategiesPage';
 import { alertUrl, strategy, useAlerts } from './strategies';
+import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens, WalletChip } from './Tokens';
 import s from './Strategies.module.css';
 
@@ -35,6 +36,7 @@ export default function StrategyPage() {
       <PageHeader title={st.name} subtitle={st.tagline} keepOnPhone actions={tk.uid ? <WalletChip balance={tk.balance} onClick={() => setSheet(true)} /> : undefined} />
       <div className={s.detail}>
         <Card className={[s.card, s[st.tone]].join(' ')} title={t('st.howItWorks')}>
+          <StrategyArt id={st.id} name={st.name} size="lg" />
           <h3 className={s.kicker}>{t('st.looksFor')}</h3>
           <ul className={s.checks}>
             {st.looksFor.map((x) => (

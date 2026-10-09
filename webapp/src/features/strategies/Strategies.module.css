@@ -50,3 +50,11 @@
 .promoItem b { font-size: var(--text-md); }
 .promoItem.gold { border-left-color: var(--gold); }
 .promoItem.violet { border-left-color: var(--violet); }
+/* strategy pictures (homepage art) */
+.art { border-radius: var(--radius); background: var(--chart-bg); border: 1px solid var(--border-soft); padding: var(--space-2); line-height: 0; }
+.art svg { width: 100%; height: auto; display: block; }
+.art-sm { padding: 4px; }
+.art-lg { padding: var(--space-3); }
+.art-md svg { max-height: 190px; width: auto; max-width: 100%; margin: 0 auto; }
+.art-sm svg { max-height: 90px; width: auto; max-width: 100%; margin: 0 auto; }
+.art-lg svg { max-height: 260px; width: auto; max-width: 100%; margin: 0 auto; }

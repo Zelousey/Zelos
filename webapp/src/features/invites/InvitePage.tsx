@@ -1,7 +1,7 @@
 /**
  * Invite friends (/invite): pick Battle, Team up or Invite a friend, then share the link or
- * send it to a Zelos user by @username. Coach is shown as coming soon (owner, 2026-10-08:
- * designed separately). The server makes the invite; nothing here decides who gets what.
+ * send it to a Zelos user by @username. Each choice is a picture card with a mascot scene
+ * (owner 2026-10-09). The server makes the invite; nothing here decides who gets what.
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -13,6 +13,7 @@ import { t, type MessageKey } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { Badge, Button, buttonClass, Card, EmptyState, Field, Icon, LoadingState, PageHeader, useToast, type IconName } from '../../ui';
 import { BUY_INS, copyText, createBattle, createInvite, DAYS, errorText, sendInvite, shareLink, useMySquads, type Created, type InviteKind } from './invites';
+import { InviteScene } from './InviteScene';
 import s from './Invites.module.css';
 
 type Step = { at: 'pick' } | { at: 'battle' } | { at: 'squad' } | { at: 'ready'; kind: InviteKind; created: Created; warId?: string };
@@ -77,16 +78,19 @@ export default function InvitePage() {
           return (
             <li key={k.kind}>
               <button type="button" className={s.kind} disabled={soon || busy} onClick={() => (k.kind === 'join' || k.kind === 'coach' ? void makeLink(k.kind) : setStep({ at: k.kind } as Step))}>
-                <span className={[s.kindIcon, s[`k_${k.kind}`]].join(' ')}>
-                  <Icon name={k.icon} size={24} />
+                <InviteScene kind={k.kind} />
+                <span className={s.kindBody}>
+                  <span className={[s.kindIcon, s[`k_${k.kind}`]].join(' ')}>
+                    <Icon name={k.icon} size={20} />
+                  </span>
+                  <span className={s.kindText}>
+                    <b>
+                      {t(k.title)} {soon && <Badge>{t('inv.coach.locked')}</Badge>}
+                    </b>
+                    <span>{t(k.body)}</span>
+                  </span>
+                  {!soon && <Icon name="chevronRight" size={18} className={s.chev} />}
                 </span>
-                <span className={s.kindText}>
-                  <b>
-                    {t(k.title)} {soon && <Badge>{t('inv.coach.locked')}</Badge>}
-                  </b>
-                  <span>{t(k.body)}</span>
-                </span>
-                {!soon && <Icon name="chevronRight" size={18} className={s.chev} />}
               </button>
             </li>
           );

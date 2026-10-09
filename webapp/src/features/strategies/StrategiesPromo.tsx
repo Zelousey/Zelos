@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { t } from '../../lib/i18n';
 import { Card } from '../../ui';
 import { STRATEGIES, useAlerts } from './strategies';
+import { StrategyArt } from './StrategyArt';
 import s from './Strategies.module.css';
 
 export function StrategiesPromo({ className }: { className?: string }) {
@@ -24,6 +25,7 @@ export function StrategiesPromo({ className }: { className?: string }) {
           const latest = list.find((a) => a.strategy === x.id);
           return (
             <Link key={x.id} to={`/strategies/${x.id}`} className={[s.promoItem, s[x.tone]].join(' ')}>
+              <StrategyArt id={x.id} name={x.name} size="sm" />
               <b>{x.name}</b>
               <span className={s.muted}>{x.tagline.split(/[,.(]/)[0]}</span>
               <span className={s.mono}>{latest?.at ? t('st.promo.last', { when: new Date(latest.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }) : t('st.noAlerts')}</span>

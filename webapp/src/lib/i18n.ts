@@ -528,6 +528,7 @@ const en = {
   'st.promo.title': 'Strategies',
   'st.promo.sub': 'Scanners that alert you when a setup shows up',
   'st.promo.all': 'All strategies',
+  'st.art': '{name}: an example chart with the entry and the exit marked',
   'st.promo.last': 'Last alert {when}',
   'co.title': 'Coaching',
   'co.subtitle': 'Coach a newer trader, or learn from one. Tasks pay XP to both of you.',
