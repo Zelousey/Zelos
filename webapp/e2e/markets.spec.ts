@@ -40,8 +40,16 @@ test('full flow: dashboard → markets → search → chart → practice trade',
 
 test('Market: world markets, sectors, mini charts and the stock list', async ({ page }) => {
   await page.goto('markets');
+  // opens on the index chart; the globe is one tap away and the choice is remembered
+  await expect(page.getByRole('heading', { name: 'US indexes' })).toBeVisible();
+  await expect(page.getByRole('img', { name: /SPY/ }).first()).toBeVisible();
+  await page.getByRole('tab', { name: 'Globe' }).click();
   await expect(page.getByRole('heading', { name: 'World markets' })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Stock exchanges' }).getByRole('listitem')).toHaveCount(17);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'World markets' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Chart' }).click();
+  await expect(page.getByRole('heading', { name: 'US indexes' })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Sectors today' })).toBeVisible();
   // mini charts of the index ETFs, from daily history + the live quote
   const minis = page.getByRole('list', { name: 'Indexes & ETFs' });

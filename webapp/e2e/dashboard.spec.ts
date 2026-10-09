@@ -43,7 +43,9 @@ test('signed out: welcome, missions, public leaderboard and the market', async (
   await expect(board.getByRole('listitem').first()).toContainText('Ada');
   await expect(board.getByRole('listitem').first()).toContainText('$91,000');
   await expect(page.getByText(/Challenge friends to a Trade War/)).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Markets around the world' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'US indexes' })).toBeVisible(); // chart first
+  await page.getByRole('tab', { name: 'Globe' }).click();
+  await expect(page.getByRole('heading', { name: 'World markets' })).toBeVisible();
   await expect(page.getByText(/exchanges open|All major exchanges are closed/).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /S&P 500 \(SPY\)/ })).toBeVisible();
 });
