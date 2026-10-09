@@ -14,6 +14,7 @@ import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
 import { buyPass, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
+import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens, WalletChip } from './Tokens';
 import s from './Strategies.module.css';
 
@@ -54,6 +55,9 @@ export function StrategyCard({ st, latest, loading, wallet, info, balance, onTok
         </Link>
         <PassBadge st={st} wallet={wallet} />
       </div>
+      <Link to={`/strategies/${st.id}`} tabIndex={-1} aria-hidden="true">
+        <StrategyArt id={st.id} name={st.name} />
+      </Link>
       <p className={s.tagline}>{st.tagline}</p>
       <div className={s.latest}>
         <span className={s.kicker}>{t('st.latest')}</span>
