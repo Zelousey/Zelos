@@ -2,7 +2,7 @@
  * Leaderboard (/leaderboard; owner 2026-10-09): the Trade War boards from the website in the app.
  * All-time by account value, Weekly and Monthly by % return, the Season (by % return, P&L,
  * biggest win, XP or winning streak) and Friends. The top 50, your row highlighted, and your
- * place even when you're further down. Arcade game boards come with the Arcade page.
+ * place even when you're further down. The drill boards are on the Training Ground (/training?tab=boards).
  */
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -58,7 +58,9 @@ export default function LeaderboardPage() {
         </div>
       )}
       {board === 'friends' ? <FriendsBoard /> : <Board board={board} cat={cat} />}
-      <p className={s.fine}>{t('lb.fine')}</p>
+      <p className={s.fine}>
+        {t('lb.fine')} <Link to="/training?tab=boards">{t('lb.drills')}</Link>
+      </p>
     </>
   );
 }

@@ -380,7 +380,7 @@
       card('Max drawdown', (maxDD * 100).toFixed(1) + '%') + card('Discipline', disc + '%', disc >= 80) + '</div>' +
       '<p class="zg-fine">Discipline loses 15 for each time a stop was moved further away, 10 for each trade planned under 1.5:1, 25 for each Full Port trade, ' + FULL_WAIT_COST + ' for each Wait used in Full Port, and 20 for more than 8 trades.</p>' +
       '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="zrAgain" type="button">New chart</button><button class="zg-btn" id="zrShare" type="button">Share result</button>' +
-      '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Arcade</a><a class="zg-btn zg-back" href="../leaderboard.html#chart-replay">Leaderboard</a></div>';
+      '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Training Ground</a><a class="zg-btn zg-back" href="../leaderboard.html#chart-replay">Leaderboard</a></div>';
     $('zrAgain').addEventListener('click', function () { newGame(); });
     $('zrShare').addEventListener('click', function () {
       var b = this;

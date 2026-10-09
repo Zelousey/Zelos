@@ -122,7 +122,7 @@ test.describe('desktop', () => {
     await page.goto('dashboard');
     const side = page.locator('aside').getByRole('navigation', { name: 'Main' });
     await expect(side).toBeVisible();
-    for (const name of ['Market', 'Trade War', 'Alerts', 'Practice', 'Options', 'Arcade', 'Settings']) await expect(side.getByRole('link', { name, exact: true })).toBeVisible();
+    for (const name of ['Market', 'Trade War', 'Alerts', 'Practice', 'Options', 'Training Ground', 'Settings']) await expect(side.getByRole('link', { name, exact: true })).toBeVisible();
     await expect(side.getByRole('link', { name: /^News/ })).toBeVisible();
     await expect(side.getByRole('link', { name: /Real Trading|Charts/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open menu' })).toBeHidden();
@@ -139,7 +139,7 @@ test.describe('desktop', () => {
   });
 
   test('a classic module hands off to the classic page', async ({ page }) => {
-    await page.goto('arcade');
-    await expect(page.getByRole('link', { name: /Open Arcade/ })).toHaveAttribute('href', '/arcade.html');
+    await page.goto('options');
+    await expect(page.getByRole('link', { name: /Open Options/ })).toHaveAttribute('href', '/options-scanner.html');
   });
 });

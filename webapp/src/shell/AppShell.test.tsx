@@ -42,7 +42,7 @@ describe('AppShell', () => {
     renderAt('/dashboard');
     const navs = await screen.findAllByRole('navigation', { name: 'Main' });
     const side = navs[0]!;
-    for (const name of ['Dashboard', 'Market', 'Trade War', 'Alerts', 'News', 'Practice', 'Options', 'Crypto', 'Squads & friends', 'Missions & XP', 'Arcade', 'Profile', 'Settings']) {
+    for (const name of ['Dashboard', 'Market', 'Trade War', 'Alerts', 'News', 'Practice', 'Options', 'Crypto', 'Squads & friends', 'Missions & XP', 'Training Ground', 'Profile', 'Settings']) {
       expect(within(side).getByRole('link', { name: new RegExp(`^${name.replace(/[&]/g, '\\$&')}`) })).toBeInTheDocument();
     }
     expect(within(side).queryByRole('link', { name: /Real Trading|Charts/ })).not.toBeInTheDocument();
@@ -58,9 +58,9 @@ describe('AppShell', () => {
   });
 
   it('a module still on the classic site shows a hand-off to that page', async () => {
-    renderAt('/arcade');
-    const link = await screen.findByRole('link', { name: /Open Arcade/ });
-    expect(link).toHaveAttribute('href', '/arcade.html');
+    renderAt('/options');
+    const link = await screen.findByRole('link', { name: /Open Options/ });
+    expect(link).toHaveAttribute('href', '/options-scanner.html');
   });
 
   it('Trade War is a hub: practice account plus the competitive parts', async () => {

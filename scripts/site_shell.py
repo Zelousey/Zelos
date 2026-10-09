@@ -61,12 +61,12 @@ def add_learn_nav(nav, prefix='../'):
 
 # path prefix -> which nav item is highlighted (see the nav in games/setup-spotter.html)
 _NAV_SECTIONS = [('practice/', 'Trade War'), ('real/', 'Trading Tools'), ('scan/', 'Trading Tools'),
-                 ('games/', 'Arcade'), ('learn/', 'Learn')]
+                 ('games/', 'Training Ground'), ('learn/', 'Learn')]
 
 
 def set_active_nav(nav, path):
     """Highlights the nav item for this page's section (the template's own
-    highlight is for the Arcade, since it's a game page)."""
+    highlight is for the Training Ground, since it's a game page)."""
     nav = nav.replace(' is-active', '').replace(' aria-current="page"', '')
     label = next((l for pre, l in _NAV_SECTIONS if path.startswith(pre)), None)
     if label == 'Learn':

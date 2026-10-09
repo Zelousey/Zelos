@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Free Trading Games on Real Charts: Simulator &amp; Daily Challenge | Zelos Arcade</title>
+<title>Free Trading Drills on Real Charts: Setups, Stops &amp; Targets | Zelos Training Ground</title>
 <link rel="icon" href="favicon-arcade.ico" sizes="any">
 <link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -26,14 +26,14 @@
 <link rel="canonical" href="https://agentictrading.info/arcade.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos Arcade">
+<meta property="og:title" content="Zelos Training Ground">
 <meta property="og:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
 <meta property="og:url" content="https://agentictrading.info/arcade.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos Arcade">
+<meta name="twitter:title" content="Zelos Training Ground">
 <meta name="twitter:description" content="Free trading practice games on real historical stock charts: a bar-by-bar trading simulator, stop-loss and setup-grading drills, and a shareable Daily Challenge.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
 <link rel="stylesheet" href="zelos-theme.css?v=1911ab88">
@@ -117,9 +117,9 @@
         </div>
       </div>
       <div class="nav-drop">
-        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Arcade <span class="nav-drop-caret">&#9662;</span></button>
+        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Training Ground <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="arcade.html">Arcade Hub<small>Every training game</small></a>
+          <a href="arcade.html">Training Ground<small>Every training game</small></a>
           <a href="games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
           <a href="games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
           <a href="games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
@@ -158,8 +158,8 @@
       <a href="market-3d.html">Market 3D</a>
       <a href="real/index.html">Real Trade Journal</a>
       <a href="arsenal.html">Full Arsenal</a>
-      <div class="nav-mobile-label">Arcade</div>
-      <a href="arcade.html">Arcade Hub</a>
+      <div class="nav-mobile-label">Training Ground</div>
+      <a href="arcade.html">Training Ground</a>
       <a href="leaderboard.html">Leaderboard</a>
       <div class="nav-mobile-label">More</div>
       <a href="learn/index.html">Learn</a>
@@ -172,9 +172,9 @@
 <section class="section-tight">
   <div class="shell-app">
     <div>
-      <p class="eyebrow">Free training games · real charts</p>
-      <h1 style="font-size:1.6rem; margin-top:6px;">Zelos Arcade</h1>
-      <p class="status-line" style="margin-top:6px;">Practice the skills that actually matter in trading (reading a setup, placing a stop, managing risk) on real historical stock charts with the ticker hidden. No account, no money, no cost.</p>
+      <p class="eyebrow">Free drills · real charts</p>
+      <h1 style="font-size:1.6rem; margin-top:6px;">Training Ground</h1>
+      <p class="status-line" style="margin-top:6px;">Drills that train the trading skills that matter: spotting a real setup, placing your stop where the chart says it belongs, and setting a target worth the risk. Every drill uses real historical stock charts with the ticker hidden. No money, no cost.</p>
     </div>
 
     <a class="daily-card" href="games/daily-challenge.html">
@@ -224,7 +224,7 @@
       <span>See the live leaderboard</span>
       <span class="board-link-arrow">&rarr;</span>
     </a>
-    <p class="fine" style="margin-top:14px;">Classic arcade: <a href="games/bull-run.html">Bull Run</a> · <a href="games/buy-the-dip.html">Buy the Dip</a></p>
+    <p class="fine" style="margin-top:14px;">Just for fun: <a href="games/bull-run.html">Bull Run</a> · <a href="games/buy-the-dip.html">Buy the Dip</a></p>
     <div class="note">
       Charts are real historical daily bars for widely traded US stocks and ETFs; the games themselves are practice only, with no real money and no account. Zelos itself is a rule-based scan, not personalized investment advice. New to the terms? Start with <a href="learn/index.html">Learn</a>.
     </div>
@@ -299,7 +299,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=d17d99d7"></script>
 <script src="zelos-mood.js?v=15cc718b"></script>
-<script src="zelos-xp.js?v=57e81af0"></script>
+<script src="zelos-xp.js?v=c9169f7d"></script>
 <script src="zelos-challenge.js?v=00bf8e79"></script>
 <script src="zelos-tokens.js?v=c13a7908"></script>
 <script>
@@ -421,7 +421,7 @@
         '<span class="nav-drop-caret">&#9662;</span></button>' +
         '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
           '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
-          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Training Ground</a>' +
           '<hr><a href="#" id="signOutLink">Sign out</a>' +
         '</div></div>';
     wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));

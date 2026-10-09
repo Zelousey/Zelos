@@ -35,7 +35,7 @@ if (withFunctions) {
 }
 
 const inner = `cd ${quote(webapp)} && npx playwright test ${process.argv.slice(2).map(quote).join(' ')}`;
-const only = withFunctions ? 'auth,firestore,functions' : 'auth,firestore';
+const only = withFunctions ? 'auth,firestore,database,functions' : 'auth,firestore,database';
 const r = spawnSync(resolve(webapp, 'node_modules/.bin/firebase'), ['emulators:exec', '--project', 'demo-zelos', '--config', 'firebase.rules-test.json', '--only', only, inner], { cwd: root, stdio: 'inherit', env });
 cleanup.forEach((f) => f());
 process.exit(r.status ?? 1);

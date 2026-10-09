@@ -15,26 +15,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Live Leaderboard — Zelos Arcade</title>
+<title>Live Leaderboard — Zelos Training Ground</title>
 <link rel="icon" href="favicon-arcade.ico" sizes="any">
 <link rel="icon" href="favicon-arcade.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Live top scores for every Zelos Arcade game — Chart Replay, Grade the Setup, Where's the Stop?, the Daily Challenge and more — updating in real time.">
+<meta name="description" content="Live top scores for every Zelos Training Ground game — Chart Replay, Grade the Setup, Where's the Stop?, the Daily Challenge and more — updating in real time.">
 <link rel="canonical" href="https://agentictrading.info/leaderboard.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Live Leaderboard — Zelos Arcade">
-<meta property="og:description" content="Live top scores for every Zelos Arcade game, updating in real time as people play.">
+<meta property="og:title" content="Live Leaderboard — Zelos Training Ground">
+<meta property="og:description" content="Live top scores for every Zelos Training Ground game, updating in real time as people play.">
 <meta property="og:url" content="https://agentictrading.info/leaderboard.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Live Leaderboard — Zelos Arcade">
-<meta name="twitter:description" content="Live top scores for every Zelos Arcade game, updating in real time as people play.">
+<meta name="twitter:title" content="Live Leaderboard — Zelos Training Ground">
+<meta name="twitter:description" content="Live top scores for every Zelos Training Ground game, updating in real time as people play.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
 <link rel="stylesheet" href="zelos-theme.css?v=1911ab88">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -139,9 +139,9 @@
         </div>
       </div>
       <div class="nav-drop">
-        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Arcade <span class="nav-drop-caret">&#9662;</span></button>
+        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Training Ground <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="arcade.html">Arcade Hub<small>Every training game</small></a>
+          <a href="arcade.html">Training Ground<small>Every training game</small></a>
           <a href="games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
           <a href="games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
           <a href="games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
@@ -180,8 +180,8 @@
       <a href="market-3d.html">Market 3D</a>
       <a href="real/index.html">Real Trade Journal</a>
       <a href="arsenal.html">Full Arsenal</a>
-      <div class="nav-mobile-label">Arcade</div>
-      <a href="arcade.html">Arcade Hub</a>
+      <div class="nav-mobile-label">Training Ground</div>
+      <a href="arcade.html">Training Ground</a>
       <a href="leaderboard.html">Leaderboard</a>
       <div class="nav-mobile-label">More</div>
       <a href="learn/index.html">Learn</a>
@@ -196,7 +196,7 @@
     <div>
       <p class="eyebrow live"><span class="live-dot" id="liveDot"></span>Live</p>
       <h1 style="font-size:1.5rem; margin-top:6px;">Leaderboard</h1>
-      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Arcade game and Trade War (virtual Main accounts), updating in real time &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
+      <p class="status-line" style="margin-top:6px;">Top scores for every Zelos Training Ground game and Trade War (virtual Main accounts), updating in real time &mdash; no refresh needed. Tap any entry to jump into that game (Chart Replay entries open the exact same chart).</p>
     </div>
 
     <div class="lb-sections" id="tabs">
@@ -216,8 +216,8 @@
         </div>
       </div>
       <div class="lb-section">
-        <div class="lb-section-label">Arcade games</div>
-        <div class="tabs" role="tablist" aria-label="Arcade game boards">
+        <div class="lb-section-label">Training Ground</div>
+        <div class="tabs" role="tablist" aria-label="Training Ground boards">
           <button class="tab" type="button" role="tab" data-game="bull-run" aria-selected="false">🐃 Bull Run</button>
           <button class="tab" type="button" role="tab" data-game="buy-the-dip" aria-selected="false">💵 Buy the Dip</button>
           <button class="tab" type="button" role="tab" data-game="setup-spotter" aria-selected="false">🐂 Setup Spotter</button>
@@ -234,7 +234,7 @@
     </div>
 
     <div class="setup-note" id="setupNote" hidden>
-      The live leaderboard isn't switched on for this site yet &mdash; scores aren't being collected. Play the games from the <a href="arcade.html">Arcade</a> anyway, your best run is still remembered on your own device.
+      The live leaderboard isn't switched on for this site yet &mdash; scores aren't being collected. Play the games from the <a href="arcade.html">Training Ground</a> anyway, your best run is still remembered on your own device.
     </div>
 
     <div class="setup-note">
@@ -300,7 +300,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=d17d99d7"></script>
 <script src="zelos-mood.js?v=15cc718b"></script>
-<script src="zelos-xp.js?v=57e81af0"></script>
+<script src="zelos-xp.js?v=c9169f7d"></script>
 <script src="zelos-challenge.js?v=00bf8e79"></script>
 <script src="zelos-tokens.js?v=c13a7908"></script>
 <script>
@@ -422,7 +422,7 @@
         '<span class="nav-drop-caret">&#9662;</span></button>' +
         '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
           '<a href="dashboard.html">Dashboard</a><a href="my-zelos.html">My Zelos</a><a href="arsenal.html">Arsenal</a>' +
-          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Arcade</a>' +
+          '<a href="alert-history.html">Alert History</a><a href="leaderboard.html">Leaderboard</a><a href="arcade.html">Training Ground</a>' +
           '<hr><a href="#" id="signOutLink">Sign out</a>' +
         '</div></div>';
     wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));
