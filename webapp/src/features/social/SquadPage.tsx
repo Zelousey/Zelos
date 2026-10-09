@@ -16,6 +16,7 @@ import { LevelBadge } from '../dashboard/LevelBadge';
 import type { Ranked } from '../dashboard/social';
 import { nyToday, seasonFor } from '../leaderboard/periods';
 import { createInvite, errorText, shareLink } from '../invites/invites';
+import { unlockQuietly } from '../missions/missions';
 import { ChallengeSheet } from '../profile/ChallengeSheet';
 import { GoalBar } from './GoalBar';
 import { OwnerPanel } from './OwnerPanel';
@@ -88,6 +89,7 @@ function SquadView({ sq, uid, displayName, onSignIn }: { sq: Squad; uid: string 
 }
 
 function JoinCard({ sq, uid, displayName, onSignIn }: { sq: Squad; uid: string | null; displayName: string | null; onSignIn: () => void }) {
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   async function join() {
@@ -96,6 +98,7 @@ function JoinCard({ sq, uid, displayName, onSignIn }: { sq: Squad; uid: string |
     setErr(null);
     try {
       await joinSquad(sq, uid, displayName);
+      void unlockQuietly(uid, 'squad-up', 'Squad Up', toast.show);
     } catch (e) {
       setErr(errorText(e, t('sq.failed')));
       setBusy(false);

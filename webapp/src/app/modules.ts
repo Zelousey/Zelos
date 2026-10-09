@@ -60,7 +60,7 @@ export const MODULES: AppModule[] = [
   { id: 'leaderboard', path: 'leaderboard', label: 'nav.leaderboard', icon: 'markets', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/leaderboard/LeaderboardPage') },
   { id: 'coach', path: 'coach', label: 'nav.coach', icon: 'missions', group: 'play', status: 'ready', load: () => import('../features/coach/CoachModule') },
   { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', status: 'ready', load: () => import('../features/social/SocialModule') },
-  { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', status: 'classic', classicPath: 'practice/index.html?tab=progress' },
+  { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', status: 'ready', load: () => import('../features/missions/MissionsPage') },
   { id: 'arcade', path: 'arcade', label: 'nav.arcade', icon: 'arcade', group: 'play', status: 'classic', classicPath: 'arcade.html' },
 
   { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'signals', status: 'classic', classicPath: 'options-scanner.html' },

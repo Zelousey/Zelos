@@ -1,0 +1,52 @@
+.page { display: grid; gap: var(--space-4); max-width: 1100px; }
+.cols { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.muted { color: var(--muted); font-size: var(--text-sm); margin: 0; }
+.kicker { font-family: var(--mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.cardTitle { margin: 0; font-size: var(--text-md); }
+.sub { display: flex; align-items: baseline; gap: var(--space-2); margin: var(--space-4) 0 var(--space-2); font-size: var(--text-sm); font-weight: 700; color: var(--ink-2); }
+.sub small { font-weight: 400; color: var(--muted); font-family: var(--mono); }
+.achGroup:first-child .sub { margin-top: 0; }
+.row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.xp { font-family: var(--mono); font-weight: 700; color: var(--gold); white-space: nowrap; }
+:global(:root[data-theme='white']) .xp { color: #8a5f00; }
+
+/* level */
+.level { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); background: linear-gradient(170deg, var(--violet-soft), transparent 70%), var(--surface); }
+.levelMain { flex: 1 1 260px; min-width: 0; display: grid; gap: var(--space-1); }
+.levelName { font-size: var(--text-xl); }
+.xpBar { height: 10px; border-radius: var(--radius-pill); background: var(--surface-2); overflow: hidden; }
+.xpBar i { display: block; height: 100%; border-radius: inherit; transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.streak { display: grid; justify-items: center; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--surface-2); min-width: 110px; }
+.streak b { font-family: var(--mono); font-size: var(--text-xl); }
+.streak small { color: var(--ink-2); font-size: var(--text-xs); }
+.streak span { color: var(--muted); font-size: var(--text-xs); }
+
+/* missions */
+.missions { list-style: none; margin: 0; padding: 0; }
+.missions li { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+.check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: var(--on-fill); }
+.done .check { background: var(--buy-fill); border-color: var(--buy-fill); }
+.done .label { color: var(--muted); text-decoration: line-through; }
+.label a { color: var(--link); text-decoration: underline; }
+.count { font-family: var(--mono); color: var(--ink-2); }
+.mini { position: absolute; left: var(--space-4); right: var(--space-4); bottom: 0; height: 2px; }
+.mini i { display: block; height: 100%; background: var(--accent); opacity: 0.7; }
+.done .mini i { background: var(--bull); }
+.note { color: var(--muted); font-size: var(--text-xs); padding: var(--space-3) var(--space-4); margin: 0; }
+
+/* achievements */
+.achs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--space-2); }
+.achs li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius); background: var(--surface-2); }
+.achIcon { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 1.2rem; background: var(--surface); border: 1px solid var(--gold); }
+.achOff .achIcon { border-color: var(--border); filter: grayscale(1); opacity: 0.7; }
+.achOff b { color: var(--ink-2); }
+.achText { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.achText small { color: var(--muted); font-size: var(--text-xs); }
+
+/* history + invite */
+.hist { list-style: none; margin: 0; padding: 0; }
+.hist li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-3); align-items: baseline; padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border-soft); font-size: var(--text-sm); }
+.hist small { color: var(--muted); font-size: var(--text-xs); }
+.invite { display: grid; gap: var(--space-2); }
+.invite p { margin: 0; font-size: var(--text-sm); }

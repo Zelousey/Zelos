@@ -10,6 +10,8 @@ import { classicUrl } from '../../lib/platform';
 import { Button, Field, Sheet, useToast } from '../../ui';
 import { BUY_INS, DAYS, errorText } from '../invites/invites';
 import { Choices } from '../invites/Choices';
+import { auth } from '../../lib/firebase';
+import { unlockQuietly } from '../missions/missions';
 import { challenge } from './profile';
 import s from './Profile.module.css';
 
@@ -29,6 +31,8 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
     try {
       const r = await challenge({ ...(squadId ? { squadId } : { to: to ?? '' }), name: title, buyIn, days });
       toast.show(t('pf.ch.sent', { name: toName }));
+      const me = auth().currentUser;
+      if (me) await Promise.race([unlockQuietly(me.uid, 'challenger', 'Challenger', toast.show), new Promise((ok) => setTimeout(ok, 2500))]); // the page changes next
       onClose();
       window.location.assign(classicUrl(`practice/war.html?w=${encodeURIComponent(r.warId)}`));
     } catch (e2) {
