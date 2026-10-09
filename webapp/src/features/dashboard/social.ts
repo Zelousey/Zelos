@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { db } from '../../lib/firebase';
+import { parseDetail, type ProfileDetail } from '../profile/detail';
 
 const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const str = (v: unknown, max = 60) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -17,7 +18,7 @@ const safeImg = (v: unknown) => (typeof v === 'string' && (/^https:\/\//.test(v)
 
 /** One period's numbers in practiceProfiles.p (functions/practice.py build_profile): pnl and pct, plus xp/bestWin/winStreak in a season. */
 export type PeriodStats = Record<string, number>;
-export type Ranked = { uid: string; name: string; username: string | null; photo: string | null; equity: number; growthPct: number; netPnl: number; level: number; xp: number; trades: number; winRate: number; tradeStreak: number; achievements: string[]; p: Record<string, PeriodStats> };
+export type Ranked = { uid: string; name: string; username: string | null; photo: string | null; equity: number; growthPct: number; netPnl: number; level: number; xp: number; trades: number; winRate: number; tradeStreak: number; achievements: string[]; p: Record<string, PeriodStats>; detail?: ProfileDetail };
 
 function parsePeriods(v: unknown): Record<string, PeriodStats> {
   const out: Record<string, PeriodStats> = {};
@@ -48,6 +49,7 @@ export function parseRanked(uid: string, d: DocumentData): Ranked | null {
     tradeStreak: Math.max(0, Math.floor(num(d.tradeStreak))),
     p: parsePeriods(d.p),
     achievements: Array.isArray(d.achievements) ? (d.achievements as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 80) : [],
+    detail: parseDetail(d),
   };
 }
 
@@ -73,9 +75,9 @@ export function useMyRank(equity: number | null): number | null {
   return rank && rank.equity === equity ? rank.rank : null;
 }
 
-export type Identity = { name: string; username: string | null; avatar: string | null };
+export type Identity = { name: string; username: string | null; avatar: string | null; bio: string | null };
 export const useIdentity = (uid: string | null) =>
-  useLiveDoc(uid ? `traders/${uid}` : null, (d): Identity => ({ name: str(d.name, 24), username: /^[a-z0-9_]{3,20}$/.test(String(d.username ?? '')) ? String(d.username) : null, avatar: safeImg(d.avatar) ?? safeImg(d.photo) }));
+  useLiveDoc(uid ? `traders/${uid}` : null, (d): Identity => ({ name: str(d.name, 24), username: /^[a-z0-9_]{3,20}$/.test(String(d.username ?? '')) ? String(d.username) : null, avatar: safeImg(d.avatar) ?? safeImg(d.photo), bio: str(d.bio, 160).trim() || null }));
 
 export type War = { id: string; name: string; status: 'lobby' | 'draft' | 'active' | 'ended'; players: number; maxPlayers: number; endAt: number; createdAt: number; myRank: number | null; of: number };
 

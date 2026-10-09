@@ -56,7 +56,7 @@ export function WelcomeCard({ onSignIn }: { onSignIn: () => void }) {
 }
 
 // ------------------------------------------------------------------ trader card
-export function TraderCard({ uid, identity, xp, streak, rank, badges, totalBadges }: { uid: string; identity: Identity | null; xp: number | null; streak: number; rank: number | null; badges: number; totalBadges: number }) {
+export function TraderCard({ identity, xp, streak, rank, badges, totalBadges }: { identity: Identity | null; xp: number | null; streak: number; rank: number | null; badges: number; totalBadges: number }) {
   const lv = xp == null ? null : levelFor(xp);
   return (
     <Card pad className={s.trader} aria-label={t('dash.trader')}>
@@ -86,9 +86,9 @@ export function TraderCard({ uid, identity, xp, streak, rank, badges, totalBadge
         <Stat size="sm" label={t('dash.trader.badges')} value={`${badges}/${totalBadges}`} />
       </div>
       <div className={s.row}>
-        <a className={buttonClass({ variant: 'secondary', size: 'sm' })} href={classicUrl(`practice/profile.html?u=${encodeURIComponent(uid)}`)}>
+        <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to="/profile">
           {t('dash.trader.profile')}
-        </a>
+        </Link>
         <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/leaderboard">
           {t('tw.leaderboard')}
         </Link>
@@ -232,13 +232,13 @@ function BoardRow({ r, place, me, gap }: { r: Ranked; place: number; me?: boolea
   const medal = place === 1 ? s.gold : place === 2 ? s.silver : place === 3 ? s.bronze : '';
   return (
     <li className={[me && s.me, gap && s.gap].filter(Boolean).join(' ')} value={place}>
-      <a href={classicUrl(`practice/profile.html?u=${encodeURIComponent(r.uid)}`)} className={s.boardRow}>
+      <Link to={`/profile/${encodeURIComponent(r.uid)}`} className={s.boardRow}>
         <span className={[s.place, medal].filter(Boolean).join(' ')}>{place}</span>
         {r.photo ? <img className={s.boardAvatar} src={r.photo} alt="" width={24} height={24} referrerPolicy="no-referrer" loading="lazy" /> : <span className={s.boardAvatar} aria-hidden>{r.name.slice(0, 1).toUpperCase()}</span>}
         <span className={s.boardName}>{r.name}</span>
         <span className={s.boardEq}>{formatMoney(r.equity, { digits: 0 })}</span>
         <Change pct={r.growthPct} className={s.boardPct} />
-      </a>
+      </Link>
     </li>
   );
 }

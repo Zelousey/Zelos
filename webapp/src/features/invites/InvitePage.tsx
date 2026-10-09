@@ -13,6 +13,7 @@ import { t, type MessageKey } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { Badge, Button, buttonClass, Card, EmptyState, Field, Icon, LoadingState, PageHeader, useToast, type IconName } from '../../ui';
 import { BUY_INS, copyText, createBattle, createInvite, DAYS, errorText, sendInvite, shareLink, useMySquads, type Created, type InviteKind } from './invites';
+import { Choices } from './Choices';
 import { InviteScene } from './InviteScene';
 import s from './Invites.module.css';
 
@@ -106,23 +107,6 @@ export default function InvitePage() {
       <PageHeader title={t('inv.title')} subtitle={t('inv.subtitle')} />
       <div className={s.page}>{body}</div>
     </>
-  );
-}
-
-function Choices<T extends number>({ label, value, options, onChange, format }: { label: string; value: T; options: T[]; onChange: (v: T) => void; format: (v: T) => string }) {
-  const name = useId();
-  return (
-    <fieldset className={s.choices}>
-      <legend>{label}</legend>
-      <div className={s.chips}>
-        {options.map((o) => (
-          <label key={o} className={[s.chip, o === value && s.chipOn].filter(Boolean).join(' ')}>
-            <input type="radio" name={name} value={o} checked={o === value} onChange={() => onChange(o)} />
-            {format(o)}
-          </label>
-        ))}
-      </div>
-    </fieldset>
   );
 }
 

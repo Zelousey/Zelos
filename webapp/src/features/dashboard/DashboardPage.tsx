@@ -69,7 +69,7 @@ export default function DashboardPage() {
       <div className={[s.grid, uid ? s.signedIn : s.signedOut].join(' ')}>
         {uid ? (
           <>
-            <TraderCard uid={uid} identity={identity.status === 'ready' ? identity.data : null} xp={userDoc.status === 'ready' ? userDoc.data.xp : userDoc.status === 'loading' ? null : 0} streak={streak} rank={rank} badges={ach.unlocked.length} totalBadges={ach.total} />
+            <TraderCard identity={identity.status === 'ready' ? identity.data : null} xp={userDoc.status === 'ready' ? userDoc.data.xp : userDoc.status === 'loading' ? null : 0} streak={streak} rank={rank} badges={ach.unlocked.length} totalBadges={ach.total} />
             <AccountCard uid={uid} />
           </>
         ) : (
