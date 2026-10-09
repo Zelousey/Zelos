@@ -1351,7 +1351,8 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     sref = db.collection("serverMeta").document("msQuotes")
     ssnap = sref.get()
     st = (ssnap.to_dict() or {}) if ssnap.exists else {}
-    since = st.get("since") if (st.get("day") == today and st.get("interval") == label and st.get("timeFilter", True)) else None
+    # a new bar parser (MD.MS_PARSER) re-fetches the whole day once, so bars already stored are rebuilt
+    since = st.get("since") if (st.get("day") == today and st.get("interval") == label and st.get("timeFilter", True) and st.get("parser") == MD.MS_PARSER) else None
     budget = max(30, min(200, every * 60 - 15))
     base = {"interval": iv, "sort": "ASC"}
 
@@ -1393,7 +1394,7 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     if writes:
         batch.commit()
     # if any group of stocks failed, keep the old "since" so the next run fetches their missed bars too
-    st.update({"day": today, "interval": label, "since": since if failed else (_ms_newest(fresh) or since), "at": now.isoformat()})
+    st.update({"day": today, "interval": label, "parser": MD.MS_PARSER, "since": since if failed else (_ms_newest(fresh) or since), "at": now.isoformat()})
     sref.set(st)
     qref = db.collection("markets").document("quotes")
     if not quotes:

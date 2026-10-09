@@ -240,23 +240,55 @@ def valid_bar(row):
     return _positive(*(_num(x) for x in p[1:5]))
 
 
+MS_PARSER = 2  # bump when ms_intraday_bars changes: the next run re-fetches today's bars
+
+
 def ms_intraday_bars(rows, session_only=True):
-    """Intraday rows -> {SYM: ["YYYY-MM-DD HH:MM,o,h,l,c,v", ...]} ascending, New York time, bar start."""
+    """Intraday rows -> {SYM: ["YYYY-MM-DD HH:MM,o,h,l,c,v", ...]} ascending, New York time, bar start.
+
+    Marketstack sends two shapes (seen live 2026-10-08):
+      * real bars: open/high/low/close/last for that interval;
+      * running snapshots: `last` empty, the live price in `marketstack_last`, `close` = YESTERDAY's
+        close, and open/high/low/volume running totals for the whole day so far.
+    A snapshot is turned into a real bar from the price before it: open = the previous snapshot's
+    price, close = this one's, high/low = the two (never the day's range, which would trigger
+    stops and limits that the price didn't touch in that minute), volume = the running total's
+    increase. A snapshot with no earlier one in this batch only seeds the next (the fetch
+    overlaps the bars already stored), except the 9:30 bar, which IS the day so far."""
+    snaps = {}
     out = {}
-    for r in _rows(rows):
+    for r in sorted(_rows(rows), key=lambda r: str(r.get("date") or "")):
         sym = _txt(r.get("symbol"), 12).upper()
         d = parse_ts(r.get("date"))
-        o, h, l = _num(r.get("open"), 4), _num(r.get("high"), 4), _num(r.get("low"), 4)
-        c = _num(r.get("last"), 4) or _num(r.get("close"), 4)
-        if not sym or not d or not _positive(o, h, l, c):
+        if not sym or not d:
             continue
         nd = d.astimezone(NY)
         mins = nd.hour * 60 + nd.minute
         if session_only and (mins < SESSION_OPEN or mins >= SESSION_CLOSE):
             continue
         label = nd.strftime("%Y-%m-%d %H:%M")
+        o, h, l = _num(r.get("open"), 4), _num(r.get("high"), 4), _num(r.get("low"), 4)
+        last, mlast = _num(r.get("last"), 4), _num(r.get("marketstack_last"), 4)
         v = int(_num(r.get("volume")) or 0)
-        out.setdefault(sym, {})[label] = "%s,%s,%s,%s,%s,%s" % (label, o, max(h, o, c), min(l, o, c), c, v)
+        if not last and mlast:  # running snapshot
+            c = mlast
+            prev = snaps.get(sym)
+            snaps[sym] = (label[:10], c, v)
+            if prev and prev[0] == label[:10]:
+                o, v = prev[1], max(0, v - prev[2])
+                h, l = max(o, c), min(o, c)
+            elif mins == SESSION_OPEN and _positive(o, h, l):
+                h, l = max(h, o, c), min(l, o, c)
+            else:
+                continue
+        else:
+            c = last or _num(r.get("close"), 4)
+            if not _positive(o, h, l, c):
+                continue
+            h, l = max(h, o, c), min(l, o, c)
+        if not _positive(o, h, l, c):
+            continue
+        out.setdefault(sym, {})[label] = "%s,%s,%s,%s,%s,%s" % (label, o, h, l, c, v)
     return {s: [b[k] for k in sorted(b)] for s, b in out.items()}
 
 

@@ -19,6 +19,16 @@ rows = [{"symbol": "AAPL", "date": "2026-10-02T13:30:00+0000", "open": 10, "high
         {"symbol": "AAPL", "date": "2026-10-02T13:45:00+0000", "open": 10.6, "high": 10.7, "low": 10.2, "close": 10.4, "last": None, "volume": 7}]
 b = MD.ms_intraday_bars(rows)["AAPL"]
 ok(b == ["2026-10-02 09:30,10.0,11.0,9.0,10.6,5", "2026-10-02 09:45,10.6,10.7,10.2,10.4,7"], "intraday bars: " + str(b))
+# running snapshots (Marketstack's live shape, 2026-10-08): last empty, price in marketstack_last,
+# close = yesterday's close, open/high/low/volume = the day so far
+snap = lambda t, price, vol: {"symbol": "AAPL", "date": "2026-10-08T%s:00+0000" % t, "open": 337.49, "high": 341.65, "low": 335.91,
+                               "close": 336.67, "last": None, "mid": None, "marketstack_last": price, "volume": vol}
+sb = MD.ms_intraday_bars([snap("19:59", 340.525, 858821), snap("19:58", 340.515, 855263), snap("20:00", 340.45, 861113)])["AAPL"]
+ok(sb == ["2026-10-08 15:59,340.515,340.525,340.515,340.525,3558"], "snapshots: price from marketstack_last, range of the minute only, volume increase (first one seeds; 16:00 is after the close): " + str(sb))
+ob = MD.ms_intraday_bars([snap("13:30", 337.8, 5000), snap("13:31", 338.2, 9000)])["AAPL"]
+ok(ob[0] == "2026-10-08 09:30,337.49,341.65,335.91,337.8,5000" and ob[1] == "2026-10-08 09:31,337.8,338.2,337.8,338.2,4000", "9:30 snapshot is the day so far; 9:31 built from it: " + str(ob))
+sq = MD.ms_quote(ob, 336.67, 1)
+ok(sq["c"] == 338.2 and sq["chPct"] == round((338.2 / 336.67 - 1) * 100, 2) and sq["chPct"] != 0, "quote moves off yesterday's close: " + str(sq["chPct"]))
 q = MD.ms_quote(b, 10.0, 15)
 ok(q["o"] == 10.0 and q["h"] == 11.0 and q["l"] == 9.0 and q["c"] == 10.4 and q["v"] == 12 and q["chPct"] == 4.0, "quote from today's bars")
 ok(datetime.fromtimestamp(q["t"], MD.NY).strftime("%H:%M") == "10:00", "quote time = end of the last bar")

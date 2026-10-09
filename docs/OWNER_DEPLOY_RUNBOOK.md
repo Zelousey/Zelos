@@ -328,3 +328,23 @@ that has no @username (or a new Google account): the welcome screens open. Pick 
 First steps, 2 of 4 done.
 
 **Undo:** `git checkout main` (before merging) and run block 2 again.
+
+# Live price fix (the price-fix PR)
+
+What changes: `refresh_quotes` reads Marketstack's live price correctly (`marketstack_last`) and
+builds real 1-minute bars. Its first run after the deploy re-fetches today's bars once.
+
+**1. Get the branch.** It must print a number bigger than 0 and `STEP 1 OK`.
+```
+cd ~/Zelos && git stash -u -q; git fetch -q origin && git checkout -q -B claude/price-fix origin/claude/price-fix && grep -c "marketstack_last" functions/mdata.py && echo "STEP 1 OK"
+```
+
+**2. Deploy (about 2 minutes).** It ends with "Deploy complete!".
+```
+source functions/venv/bin/activate && pip install -q -r functions/requirements.txt && npx -y firebase-tools@latest deploy --only "functions:refresh_quotes" --project leaderboard-agentictrading
+```
+
+**3. Merge the PR**, then `git checkout main && git pull origin main`.
+
+**4. Check** during market hours: the Market page shows real changes (not +0.00% everywhere) and
+Top movers has gainers and losers.
