@@ -58,9 +58,9 @@ describe('AppShell', () => {
   });
 
   it('a module still on the classic site shows a hand-off to that page', async () => {
-    renderAt('/alerts');
-    const link = await screen.findByRole('link', { name: /Open Alerts/ });
-    expect(link).toHaveAttribute('href', '/alert-history.html');
+    renderAt('/arcade');
+    const link = await screen.findByRole('link', { name: /Open Arcade/ });
+    expect(link).toHaveAttribute('href', '/arcade.html');
   });
 
   it('Trade War is a hub: practice account plus the competitive parts', async () => {

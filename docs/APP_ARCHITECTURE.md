@@ -161,7 +161,8 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 | Practice trade | `/app/practice/trade/:sym` | In the app: order ticket (market/limit/stop, day/GTC, stop-loss + take-profit dragged on the chart), confirm step. See `docs/PRACTICE_SERVER.md` |
 | News | `/app/news` | In the app: sections Zelos Updates · Trade War · Market News (Fed releases + SEC 8-K filings, `markets/officialNews`, with a your-watchlist filter) · Market Movers (owner-curated X / Truth Social quotes); featured post, "New" badges |
 | Post News | `/app/news/post` | Team only (`admins/{uid}`, checked by `news_save` / `news_delete`): write, edit, delete posts |
-| Alerts, Squads, Missions, Arcade, Options, Profile | — | Hand-off to the classic page |
+| Alerts | `/app/alerts`, `/app/alerts/:id` | Every strategy alert (newest 100) with a strategy filter and the track record (win rate over closed trades, like the website); one alert: trade plan (entry, stop, targets, risk/reward, a price ladder), result, why (reasoning, technicals, risks, market mood), Practice this trade / Chart / Share; live alerts locked until the close (unlock with tokens or a pass, `tokens_spend`; full alert read from `alertsLocked`); opening one awards the alert-open XP. Notifications tab: the same switches as the website (`users.notificationPrefs`). Still on the website: device push sign-up and the SEC research panel. |
+| Squads, Missions, Arcade, Options, Profile | — | Hand-off to the classic page |
 
 ## Performance baseline (first build, 2026-10-07)
 Gzipped JS: app ~10 KB, React + router ~98 KB, Firebase Auth ~30 KB, Firestore ~129 KB

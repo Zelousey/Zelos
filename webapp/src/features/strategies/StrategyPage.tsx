@@ -5,7 +5,7 @@ import { classicUrl } from '../../lib/platform';
 import { t } from '../../lib/i18n';
 import { Card, EmptyState, Icon, LoadingState, PageHeader } from '../../ui';
 import { AlertLine, PassButton } from './StrategiesPage';
-import { alertUrl, strategy, useAlerts } from './strategies';
+import { strategy, useAlerts } from './strategies';
 import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens, WalletChip } from './Tokens';
 import s from './Strategies.module.css';
@@ -69,10 +69,10 @@ export default function StrategyPage() {
             <ul className={s.alerts}>
               {mine.map((a) => (
                 <li key={a.id}>
-                  <a href={classicUrl(alertUrl(a.id))} className={s.alertRow}>
+                  <Link to={`/alerts/${a.id}`} className={s.alertRow}>
                     <AlertLine a={a} />
                     <Icon name="chevronRight" size={16} />
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
