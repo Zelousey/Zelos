@@ -56,6 +56,7 @@ export const MODULES: AppModule[] = [
   // an invite link someone shared: /i/<code>
   { id: 'invite-link', path: 'i', label: 'nav.invite', icon: 'invite', group: 'play', status: 'ready', parent: 'invite', nav: false, load: () => import('../features/invites/InviteModule') },
   { id: 'welcome', path: 'welcome', label: 'nav.welcome', icon: 'profile', group: 'account', status: 'ready', nav: false, load: () => import('../features/welcome/WelcomePage') },
+  { id: 'strategies', path: 'strategies', label: 'nav.strategies', icon: 'signal', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/strategies/StrategiesModule') },
   { id: 'coach', path: 'coach', label: 'nav.coach', icon: 'missions', group: 'play', status: 'ready', load: () => import('../features/coach/CoachModule') },
   { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', status: 'classic', classicPath: 'practice/squads.html' },
   { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', status: 'classic', classicPath: 'practice/index.html?tab=progress' },
