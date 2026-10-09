@@ -2,7 +2,6 @@
  * Strategies (/strategies, in the Trade War hub; owner decision 2026-10-09): the Zelos
  * strategies, easy to find and buy. Each card says what the strategy looks for, shows its
  * latest alert and sells a 7-day pass for tokens; one tap opens the strategy (/strategies/:id).
- * Player-made strategies come later (design doc first).
  */
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -30,15 +29,6 @@ export default function StrategiesPage() {
         {STRATEGIES.map((x) => (
           <StrategyCard key={x.id} st={x} latest={list.find((a) => a.strategy === x.id) ?? null} loading={alerts.status === 'loading'} wallet={tk.wallet} info={tk.info} balance={tk.balance} onTokens={() => setSheet(true)} />
         ))}
-        <Card className={s.soon} pad>
-          <span className={s.soonIcon} aria-hidden="true">
-            ✦
-          </span>
-          <div>
-            <h2 className={s.soonTitle}>{t('st.soon.title')}</h2>
-            <p className={s.muted}>{t('st.soon.body')}</p>
-          </div>
-        </Card>
       </div>
       <p className={s.fine}>{t('st.disclaimer')}</p>
       <TokensSheet open={sheet} onClose={() => setSheet(false)} info={tk.info} balance={tk.balance} />

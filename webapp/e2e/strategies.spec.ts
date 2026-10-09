@@ -61,6 +61,6 @@ test.describe('signed in', () => {
     await expect(page.getByRole('button', { name: /Your tokens: 60/ })).toBeVisible();
     // the tokens sheet
     await page.getByRole('button', { name: /Your tokens: 60/ }).click();
-    await expect(page.getByRole('dialog', { name: 'Get tokens' }).getByText(/coming soon|\$3/)).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Get tokens' }).getByText(/Earn free tokens every day|\$3/)).toBeVisible();
   });
 });
