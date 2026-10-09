@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseRanked, type Ranked } from '../dashboard/social';
+import { tierFor } from './GoalBar';
 import { CHAT_PHOTO_MAX, cleanCode, CODE_RE, goalProgress, metric, netOn, parseMessage, parseSquad, REACTIONS, scoreSince } from './squads';
 
 const root = resolve(__dirname, '../../../..');
@@ -56,5 +57,8 @@ describe('squads', () => {
     const m = parseMessage('m1', { author: A, name: 'Al', text: 'hi', photo: 'javascript:alert(1)', r: { [B]: 'fire', x: 'nope' } });
     expect(m).toMatchObject({ text: 'hi', photo: null, r: { [B]: 'fire' } });
     expect(parseMessage('m2', { text: 'no author' })).toBeNull();
+  });
+  it('the goal bar gets livelier as it fills', () => {
+    expect([0, 24.9, 25, 49, 50, 74, 75, 99.9, 100, 140].map(tierFor)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]);
   });
 });

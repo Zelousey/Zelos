@@ -41,10 +41,6 @@
 .goal { display: grid; gap: var(--space-2); }
 .goalDone { border-color: var(--bull); }
 .goalTop { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
-.goalTop b { font-family: var(--mono); font-size: var(--text-lg); }
-.goalTop small { font-size: var(--text-xs); color: var(--muted); font-weight: 400; }
-.bar { height: 10px; border-radius: var(--radius-pill); background: var(--surface-2); overflow: hidden; }
-.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--bull)); }
 .boardTabs { padding: var(--space-3) var(--space-4) 0; overflow-x: auto; }
 .boardRow { display: grid; grid-template-columns: 24px 24px minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); color: var(--ink); }
 .boardRow:hover { background: var(--surface-hover); }

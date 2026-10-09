@@ -17,6 +17,7 @@ import type { Ranked } from '../dashboard/social';
 import { nyToday, seasonFor } from '../leaderboard/periods';
 import { createInvite, errorText, shareLink } from '../invites/invites';
 import { ChallengeSheet } from '../profile/ChallengeSheet';
+import { GoalBar } from './GoalBar';
 import { OwnerPanel } from './OwnerPanel';
 import { SquadChat } from './SquadChat';
 import { goalProgress, joinSquad, leaveSquad, metric, useProfiles, useSquad, type BoardId, type Squad } from './squads';
@@ -130,14 +131,9 @@ function GoalCard({ sq, profs, now }: { sq: Squad; profs: Record<string, Ranked>
     <Card pad className={[s.goal, gp.done && s.goalDone].filter(Boolean).join(' ')}>
       <div className={s.goalTop}>
         <span className={s.kicker}>{gp.over ? t('sq.goal.finished') : t('sq.goal.left', { n: days(g.end, now) })}</span>
-        <b className={gp.avg >= 0 ? s.up : s.down}>
-          {pct(gp.avg)} <small>{t('sq.goal.of', { n: g.target })}</small>
-        </b>
       </div>
       <h2 className={s.cardTitle}>{g.text || t('sq.goal.default', { n: g.target })}</h2>
-      <div className={s.bar} role="progressbar" aria-label={t('sq.goal.progress')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(gp.pct)}>
-        <i style={{ width: `${gp.pct.toFixed(1)}%` }} />
-      </div>
+      <GoalBar pct={gp.pct} avg={gp.avg} target={g.target} />
       <p className={s.muted}>
         {gp.done ? `🎉 ${t('sq.goal.reached')} ` : ''}
         {t('sq.goal.body', { n: gp.counted, date: formatDate(g.start) })}
