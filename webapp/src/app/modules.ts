@@ -66,7 +66,7 @@ export const MODULES: AppModule[] = [
   { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'signals', status: 'classic', classicPath: 'options-scanner.html' },
   { id: 'crypto', path: 'crypto', label: 'nav.crypto', icon: 'crypto', group: 'signals', status: 'planned' },
 
-  { id: 'profile', path: 'profile', label: 'nav.profile', icon: 'profile', group: 'account', status: 'classic', classicPath: 'practice/profile.html' },
+  { id: 'profile', path: 'profile', label: 'nav.profile', icon: 'profile', group: 'account', status: 'ready', load: () => import('../features/profile/ProfileModule') },
   { id: 'settings', path: 'settings', label: 'nav.settings', icon: 'settings', group: 'account', status: 'ready', load: () => import('../features/settings/SettingsPage') },
 
   // Routes without a nav entry: /charts opens the last symbol you looked at in Market.

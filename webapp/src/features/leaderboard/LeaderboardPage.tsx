@@ -5,7 +5,7 @@
  * place even when you're further down. Arcade game boards come with the Arcade page.
  */
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useUserDoc } from '../../data/userDoc';
 import { levelFor } from '../../data/levels';
 import { useAuth } from '../../lib/auth';
@@ -129,7 +129,7 @@ function Row({ r, place, value, me, gap }: { r: Ranked; place: number; value: st
   const lv = levelFor(r.xp).level;
   return (
     <li className={[me && s.me, gap && s.gap].filter(Boolean).join(' ')} value={place}>
-      <a href={classicUrl(`practice/profile.html?u=${encodeURIComponent(r.uid)}`)} className={s.row}>
+      <Link to={`/profile/${encodeURIComponent(r.uid)}`} className={s.row}>
         <span className={[s.place, medal].filter(Boolean).join(' ')}>{place}</span>
         {r.photo ? <img className={s.avatar} src={r.photo} alt="" width={36} height={36} referrerPolicy="no-referrer" loading="lazy" /> : <span className={s.avatar} aria-hidden>{r.name.slice(0, 1).toUpperCase()}</span>}
         <span className={s.who}>
@@ -143,7 +143,7 @@ function Row({ r, place, value, me, gap }: { r: Ranked; place: number; value: st
           </small>
         </span>
         <span className={s.value}>{value}</span>
-      </a>
+      </Link>
     </li>
   );
 }

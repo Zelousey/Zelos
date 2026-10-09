@@ -10,12 +10,14 @@ import s from './Shell.module.css';
 
 /**
  * Server links are site paths like "practice/war.html?w=…" (with or without a leading
- * slash); only same-site paths are followed. App paths ("app/i/CODE") stay in the app.
+ * slash); only same-site paths are followed. App paths ("app/i/CODE") and profile links stay in the app.
  */
 export function safeLink(link?: string): { app?: string; href?: string } {
   if (!link || link.startsWith('//') || !/^\/?[A-Za-z0-9_\-./?=&%#]*$/.test(link)) return {};
   const path = link.replace(/^\//, '');
   if (path.startsWith('app/')) return { app: '/' + path.slice(4) };
+  const prof = /^practice\/profile\.html\?u=([A-Za-z0-9]{10,40})$/.exec(path); // friend notifications open the in-app profile
+  if (prof) return { app: `/profile/${prof[1]}` };
   return { href: classicUrl(path) };
 }
 
