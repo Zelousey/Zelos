@@ -137,9 +137,4 @@ test.describe('desktop', () => {
     const home = await side.getByRole('link', { name: 'Dashboard', exact: true }).boundingBox();
     expect(toggle!.y + toggle!.height).toBeLessThanOrEqual(home!.y);
   });
-
-  test('a classic module hands off to the classic page', async ({ page }) => {
-    await page.goto('options');
-    await expect(page.getByRole('link', { name: /Open Options/ })).toHaveAttribute('href', '/options-scanner.html');
-  });
 });

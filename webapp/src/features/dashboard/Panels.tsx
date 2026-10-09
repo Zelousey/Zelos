@@ -15,6 +15,7 @@ import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
 import { Badge, buttonClass, Card, Change, EmptyState, ErrorState, Icon, LoadingState, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
 import { nyDay } from '../charts/series';
+import { useVolMap } from '../options/model';
 import { MarketView } from '../markets/MarketView';
 import { MarketList } from '../markets/MarketRow';
 import { SectorBars } from '../markets/Sectors';
@@ -104,7 +105,8 @@ export function AccountCard({ uid }: { uid: string }) {
   const qs = useMemo<Record<string, Quote>>(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
   const [today] = useState(() => nyDay(Date.now()));
   const data = acct.status === 'ready' ? acct.data : null;
-  const v = useMemo(() => (data ? valueAccount(data, qs, today) : null), [data, qs, today]);
+  const vols = useVolMap();
+  const v = useMemo(() => (data ? valueAccount(data, qs, today, vols) : null), [data, qs, today, vols]);
   const top = v ? [...v.rows].sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl)).slice(0, 3) : [];
 
   let body;

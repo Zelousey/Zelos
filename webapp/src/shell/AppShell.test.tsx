@@ -58,10 +58,11 @@ describe('AppShell', () => {
     expect(within(tabbar).getByRole('link', { name: 'Trade War' }).className).toMatch(/active/);
   });
 
-  it('a module still on the classic site shows a hand-off to that page', async () => {
+  it('every section is built in the app (Options was the last hand-off to the website)', async () => {
+    expect(MODULES.filter((m) => m.status !== 'ready').map((m) => m.id)).toEqual([]);
     renderAt('/options');
-    const link = await screen.findByRole('link', { name: /Open Options/ });
-    expect(link).toHaveAttribute('href', '/options-scanner.html');
+    const tabbar = (await screen.findAllByRole('navigation', { name: 'Main' }))[1]!;
+    expect(within(tabbar).getByRole('link', { name: 'Trade War' }).className).toMatch(/active/);
   });
 
   it('Trade War is a hub: practice account plus the competitive parts', async () => {

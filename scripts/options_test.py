@@ -9,6 +9,7 @@ from datetime import datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "functions"))
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import options as O  # noqa: E402
 import practice as P  # noqa: E402
 
@@ -51,6 +52,12 @@ class Model(unittest.TestCase):
         self.assertEqual(O.expirations(D), out["e"])
         self.assertEqual(O.strikes(252.3, 15), out["s"])
         self.assertAlmostEqual(O.hist_vol([100, 101, 99, 102, 103, 101, 104, 106, 105, 107, 108, 106, 109]), out["v"], places=6)
+
+    def test_app_fixture_matches_the_server(self):
+        """webapp/src/features/options/parity.json (the app's model test) must be this model's numbers."""
+        import options_parity
+        with open(options_parity.PATH) as f:
+            self.assertEqual(json.load(f), json.loads(json.dumps(options_parity.build())), "rerun: python3 scripts/options_parity.py --write")
 
     def test_contract_ids(self):
         cid = O.contract_id("AAPL", "put", 22.5, "2026-11-20")

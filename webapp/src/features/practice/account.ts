@@ -10,14 +10,17 @@ import { useEffect, useState } from 'react';
 import { useLiveDoc } from '../../data/liveDoc';
 import type { Quote } from '../../data/markets';
 import { db } from '../../lib/firebase';
+import { contractId, label as optLabel, markValue, parseContract, volFor, type Contract, type Vols } from '../options/model';
 
 export const START_CASH = 10000;
 export const RESET_BELOW = 2500;
 
 export type Position = { sym: string; qty: number; avg: number; openedDay: string | null };
-export type Order = { id: string; sym: string; side: 'buy' | 'sell'; type: 'market' | 'limit' | 'stop'; qty: number; limit: number | null; stop: number | null; tif: 'day' | 'gtc'; session: string; createdAt: number; bracket: { sl: number | null; tp: number | null } | null; role: 'sl' | 'tp' | null; oco: string | null };
-export type Account = { cash: number; positions: Position[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number };
-export type HistoryItem = { id: string; kind: 'order' | 'fill' | 'trade'; at: number; sym: string; side?: string; qty?: number; price?: number; pnl?: number; pct?: number; status?: string; note?: string; type?: string; role?: string | null; fillPrice?: number; entry?: number; exit?: number };
+export type OptionPosition = Contract & { id: string; qty: number; avg: number; label: string };
+/** `opt` is set on option orders: the contract id; `sym` is then the underlying stock. */
+export type Order = { id: string; sym: string; opt: string | null; label: string | null; est: number; side: 'buy' | 'sell'; type: 'market' | 'limit' | 'stop'; qty: number; limit: number | null; stop: number | null; tif: 'day' | 'gtc'; session: string; createdAt: number; bracket: { sl: number | null; tp: number | null } | null; role: 'sl' | 'tp' | null; oco: string | null };
+export type Account = { cash: number; positions: Position[]; options: OptionPosition[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number };
+export type HistoryItem = { id: string; kind: 'order' | 'fill' | 'trade'; at: number; sym: string; opt?: string; label?: string; side?: string; qty?: number; price?: number; pnl?: number; pct?: number; status?: string; note?: string; type?: string; role?: string | null; fillPrice?: number; entry?: number; exit?: number };
 
 const n = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 
@@ -26,10 +29,20 @@ export function parseAccount(d: DocumentData): Account {
     .map(([sym, p]) => ({ sym, qty: n(p.qty), avg: n(p.avg), openedDay: typeof p.openedDay === 'string' ? p.openedDay : null }))
     .filter((p) => p.qty > 0)
     .sort((a, b) => a.sym.localeCompare(b.sym));
+  const options = Object.entries((d.options as Record<string, Record<string, unknown>>) ?? {})
+    .flatMap(([id, p]) => {
+      const c = parseContract(id);
+      const qty = n(p.qty);
+      return c && qty > 0 ? [{ ...c, id: contractId(c), qty, avg: n(p.avg), label: typeof p.label === 'string' ? p.label : optLabel(c) }] : [];
+    })
+    .sort((a, b) => a.u.localeCompare(b.u) || a.exp.localeCompare(b.exp) || a.strike - b.strike);
   const orders = Object.values((d.orders as Record<string, Record<string, unknown>>) ?? {})
     .map((o) => ({
       id: String(o.id),
       sym: String(o.sym),
+      opt: typeof o.opt === 'string' ? o.opt : null,
+      label: typeof o.label === 'string' ? o.label : null,
+      est: n(o.est),
       side: o.side === 'sell' ? 'sell' : 'buy',
       type: o.type === 'limit' || o.type === 'stop' ? o.type : 'market',
       qty: n(o.qty),
@@ -47,6 +60,7 @@ export function parseAccount(d: DocumentData): Account {
   return {
     cash: n(d.cash),
     positions,
+    options,
     orders,
     realized: n(d.realized),
     resets: n(d.resets),
@@ -67,10 +81,13 @@ export type Valued = {
   dayPnl: number;
   netPnl: number;
   rows: (Position & { last: number; value: number; pnl: number; pnlPct: number; dayChange: number | null })[];
+  optionValue: number;
+  optionRows: (OptionPosition & { mark: number; value: number; pnl: number; pnlPct: number; expired: boolean })[];
 };
 
-/** Value the account with the latest quotes (same rule as the server: missing price → cost). */
-export function valueAccount(a: Account, quotes: Record<string, Quote>, today: string): Valued {
+/** Value the account with the latest quotes (same rule as the server: missing price → cost;
+ * option contracts at the model mid, x100 shares each, intrinsic once expired). */
+export function valueAccount(a: Account, quotes: Record<string, Quote>, today: string, vols?: Vols | null): Valued {
   let stockValue = 0;
   let openPnl = 0;
   let dayPnl = 0;
@@ -87,16 +104,30 @@ export function valueAccount(a: Account, quotes: Record<string, Quote>, today: s
     if (dayChange != null) dayPnl += dayChange;
     return { ...p, last, value, pnl, pnlPct: p.avg ? (last / p.avg - 1) * 100 : 0, dayChange };
   });
-  const reserved = a.orders.filter((o) => o.side === 'buy').reduce((t, o) => t + o.qty * (o.limit ?? o.stop ?? quotes[o.sym]?.c ?? 0), 0);
-  const equity = a.cash + stockValue;
+  let optionValue = 0;
+  const optionRows = a.options.map((p) => {
+    const mark = markValue(p, quotes[p.u]?.c, volFor(vols, p.u), today);
+    const value = mark * 100 * p.qty;
+    optionValue += value;
+    return { ...p, mark, value, pnl: (mark - p.avg) * 100 * p.qty, pnlPct: p.avg ? (mark / p.avg - 1) * 100 : 0, expired: p.exp < today };
+  });
+  const reserved = a.orders.filter((o) => o.side === 'buy').reduce((t, o) => t + (o.opt ? o.est : o.qty * (o.limit ?? o.stop ?? quotes[o.sym]?.c ?? 0)), 0);
+  const equity = a.cash + stockValue + optionValue;
   const netPnl = equity - START_CASH + a.resetHistory.reduce((t, r) => t + (r.equityBefore - START_CASH), 0);
-  return { equity, stockValue, buyingPower: Math.max(0, a.cash - reserved), openPnl, dayPnl, netPnl, rows };
+  return { equity, stockValue, buyingPower: Math.max(0, a.cash - reserved), openPnl, dayPnl, netPnl, rows, optionValue, optionRows };
 }
 
 /** Shares you can still sell (bracket exits don't hold shares back, like on the server). */
 export function sellableShares(a: Account, sym: string): number {
   const held = a.positions.find((p) => p.sym === sym)?.qty ?? 0;
-  const reserved = a.orders.filter((o) => o.side === 'sell' && o.sym === sym && !o.oco).reduce((t, o) => t + o.qty, 0);
+  const reserved = a.orders.filter((o) => o.side === 'sell' && o.sym === sym && !o.oco && !o.opt).reduce((t, o) => t + o.qty, 0);
+  return Math.max(0, held - reserved);
+}
+
+/** Contracts you can still sell (not already in an open sell order). */
+export function sellableContracts(a: Account, id: string): number {
+  const held = a.options.find((p) => p.id === id)?.qty ?? 0;
+  const reserved = a.orders.filter((o) => o.side === 'sell' && o.opt === id).reduce((t, o) => t + o.qty, 0);
   return Math.max(0, held - reserved);
 }
 

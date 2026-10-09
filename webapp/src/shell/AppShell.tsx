@@ -97,6 +97,7 @@ export function AppShell() {
         <nav className={s.sideNav} aria-label={t('nav.main')}>
           {GROUP_ORDER.map((g) => {
             const list = navModules().filter((m) => m.group === g);
+            if (!list.length) return null;
             return (
               <div key={g} className={s.navGroup}>
                 {g !== 'main' && <div className={s.groupLabel}>{t(GROUP_LABEL[g])}</div>}

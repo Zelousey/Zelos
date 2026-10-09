@@ -366,3 +366,27 @@ source functions/venv/bin/activate && pip install -q -r functions/requirements.t
 ```
 
 **3. Merge the PR** (or ask Claude to), then `git checkout main && git pull origin main`.
+
+# Options trading (the options PR)
+
+What changes: the practice account can buy and sell calls and puts. The server prices and fills
+them (modeled prices, same as the website), settles expired ones after the close, and publishes
+each stock's volatility to `markets/optionVols`. **Deploy before merging:** the app's new Options
+screen calls the new `practice_order`. No new secrets, no rules changes.
+
+**1. Get the branch.** It must print a number bigger than 0 and `STEP 1 OK`.
+```
+cd ~/Zelos && git stash -u -q; git fetch -q origin && git checkout -q -B claude/options origin/claude/options && grep -c "def validate_option_order" functions/practice.py && echo "STEP 1 OK"
+```
+
+**2. Deploy (about 3 minutes).** It ends with "Deploy complete!".
+```
+source functions/venv/bin/activate && pip install -q -r functions/requirements.txt && npx -y firebase-tools@latest deploy --only "functions:practice_account,functions:practice_order,functions:practice_cancel,functions:practice_reset,functions:practice_settings,functions:refresh_quotes,functions:refresh_market_data" --project leaderboard-agentictrading
+```
+
+**3. Merge the PR** (or ask Claude to), then `git checkout main && git pull origin main`.
+
+**4. Check:** open the app → ☰ → Options. Pick a stock: the prices load. Buy 1 contract during
+market hours: it shows under Open orders, then under Your options within about a minute.
+
+**Undo:** `git checkout main` and run block 2 again (before merging), or ask Claude.

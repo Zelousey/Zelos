@@ -52,6 +52,7 @@ export const MODULES: AppModule[] = [
   { id: 'news', path: 'news', label: 'nav.news', icon: 'news', group: 'main', status: 'ready', tab: 5, load: () => import('../features/news/NewsModule') },
 
   { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/practice/PracticeModule') },
+  { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/options/OptionsModule') },
   { id: 'invite', path: 'invite', label: 'nav.invite', icon: 'invite', group: 'play', status: 'ready', load: () => import('../features/invites/InviteModule').then((m) => ({ default: m.InviteMakeModule })) },
   // an invite link someone shared: /i/<code>
   { id: 'invite-link', path: 'i', label: 'nav.invite', icon: 'invite', group: 'play', status: 'ready', parent: 'invite', nav: false, load: () => import('../features/invites/InviteModule') },
@@ -64,8 +65,6 @@ export const MODULES: AppModule[] = [
   { id: 'training', path: 'training', label: 'nav.training', icon: 'arcade', group: 'play', status: 'ready', load: () => import('../features/training/TrainingModule') },
   // the old name: /arcade/... -> /training/...
   { id: 'arcade', path: 'arcade', label: 'nav.training', icon: 'arcade', group: 'play', status: 'ready', parent: 'training', nav: false, load: () => import('../features/training/ArcadeRedirect') },
-
-  { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'signals', status: 'classic', classicPath: 'options-scanner.html' },
 
   { id: 'profile', path: 'profile', label: 'nav.profile', icon: 'profile', group: 'account', status: 'ready', load: () => import('../features/profile/ProfileModule') },
   { id: 'settings', path: 'settings', label: 'nav.settings', icon: 'settings', group: 'account', status: 'ready', load: () => import('../features/settings/SettingsPage') },
