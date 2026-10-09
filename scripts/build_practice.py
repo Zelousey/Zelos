@@ -86,7 +86,7 @@ BODY = '''<main class="pt-shell">
               <label>Up <input type="color" id="ptColorUp"></label>
               <label>Down <input type="color" id="ptColorDown"></label>
             </div>
-            <small>Also used on the Arcade charts. Saved in this browser.</small>
+            <small>Also used on the Training Ground charts. Saved in this browser.</small>
           </div>
         </span>
         <button class="pt-chip" type="button" id="ptZoomIn" aria-label="Zoom in">+</button>

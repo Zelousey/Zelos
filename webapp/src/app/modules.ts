@@ -61,7 +61,9 @@ export const MODULES: AppModule[] = [
   { id: 'coach', path: 'coach', label: 'nav.coach', icon: 'missions', group: 'play', status: 'ready', load: () => import('../features/coach/CoachModule') },
   { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', status: 'ready', load: () => import('../features/social/SocialModule') },
   { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', status: 'ready', load: () => import('../features/missions/MissionsPage') },
-  { id: 'arcade', path: 'arcade', label: 'nav.arcade', icon: 'arcade', group: 'play', status: 'classic', classicPath: 'arcade.html' },
+  { id: 'training', path: 'training', label: 'nav.training', icon: 'arcade', group: 'play', status: 'ready', load: () => import('../features/training/TrainingModule') },
+  // the old name: /arcade/... -> /training/...
+  { id: 'arcade', path: 'arcade', label: 'nav.training', icon: 'arcade', group: 'play', status: 'ready', parent: 'training', nav: false, load: () => import('../features/training/ArcadeRedirect') },
 
   { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'signals', status: 'classic', classicPath: 'options-scanner.html' },
   { id: 'crypto', path: 'crypto', label: 'nav.crypto', icon: 'crypto', group: 'signals', status: 'planned' },

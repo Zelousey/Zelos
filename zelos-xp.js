@@ -81,7 +81,7 @@
   // profile never mixes up Trade War (virtual), Real Trading and training.
   // [source, label]; the activity ledger stores both, and pages show "+10 XP — Trade War Win".
   var SOURCES = {
-    'alert-open': ['real', 'Opened an alert'], 'daily-checkin': ['platform', 'Daily check-in'], 'arcade-play': ['training', 'Arcade game'],
+    'alert-open': ['real', 'Opened an alert'], 'daily-checkin': ['platform', 'Daily check-in'], 'arcade-play': ['training', 'Training Ground drill'],
     'practice-trade': ['trade-war', 'Trade War trade'], 'practice-win': ['trade-war', 'Trade War win'], 'grade-setup': ['training', 'Completed Grade Setup'],
     'challenge-join': ['trade-war', 'Trade War challenge'], 'challenge-win': ['trade-war', 'Won a Trade War challenge'],
     'referral': ['social', 'Friend joined'], 'referral-welcome': ['social', 'Joined from an invite'],

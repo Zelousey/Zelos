@@ -22,3 +22,4 @@
 .who small { color: var(--muted); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .youTag { font-family: var(--mono); font-size: 0.65rem; padding: 1px 6px; border-radius: var(--radius-pill); background: var(--accent-fill); color: var(--on-fill); }
 .value { font-family: var(--mono); font-weight: 700; font-size: var(--text-md); white-space: nowrap; }
+.fine a { color: var(--link); text-decoration: underline; }

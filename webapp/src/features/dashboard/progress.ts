@@ -22,7 +22,7 @@ export type MissionView = { id: string; label: string; goal: number; count: numb
 export const DAILY: MissionDef[] = [
   { id: 'trade', label: 'Make 1 Trade War trade', goal: 1, xp: 10, ev: 'trade', href: '/markets' },
   { id: 'analyze', label: 'Analyze 3 stocks', goal: 3, xp: 10, ev: 'analyze', href: '/markets' },
-  { id: 'grade', label: 'Complete a Grade the Setup round', goal: 1, xp: 10, ev: 'grade', href: 'games/grade-the-setup.html' },
+  { id: 'grade', label: 'Complete a Grade the Setup round', goal: 1, xp: 10, ev: 'grade', href: '/training/grade-the-setup' },
   { id: 'news', label: 'Check the market news', goal: 1, xp: 5, ev: 'news', href: '/news' },
   { id: 'xp', label: 'Earn 100 XP', goal: 100, xp: 20, ev: 'xp' },
 ];

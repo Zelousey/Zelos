@@ -22,5 +22,5 @@ const BASE = {
  * fake "demo-zelos" project on the local Firebase emulators. Normal builds never contain
  * this: Vite replaces the env check with `false` and drops the branch.
  */
-export const firebaseConfig = import.meta.env.VITE_FIREBASE_EMULATORS === '1' ? { ...BASE, projectId: 'demo-zelos', authDomain: 'demo-zelos.firebaseapp.com' } : BASE;
+export const firebaseConfig = import.meta.env.VITE_FIREBASE_EMULATORS === '1' ? { ...BASE, projectId: 'demo-zelos', authDomain: 'demo-zelos.firebaseapp.com', databaseURL: 'https://demo-zelos-default-rtdb.firebaseio.com' } : BASE;
 export const useEmulators = import.meta.env.VITE_FIREBASE_EMULATORS === '1';

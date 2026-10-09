@@ -106,7 +106,7 @@ def hub():
   <header class="lr-hub-head">
     <span class="lr-kicker">Free trading education</span>
     <h1>Learn swing trading, breakouts and risk, one clear rule at a time</h1>
-    <p>Plain-English guides to the setups and risk rules that Zelos's scanners are built on. Each one ends with a way to practice it on real charts in the <a href="../arcade.html">Zelos Arcade</a>.</p>
+    <p>Plain-English guides to the setups and risk rules that Zelos's scanners are built on. Each one ends with a way to practice it on real charts in the <a href="../arcade.html">Zelos Training Ground</a>.</p>
   </header>
   {secs}
   <section class="lr-group"><h2>Reference</h2><div class="lr-grid">

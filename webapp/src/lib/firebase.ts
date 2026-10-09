@@ -45,6 +45,18 @@ export function functions(): Promise<Functions> {
   return fnsPromise;
 }
 
+let rtdbPromise: Promise<import('firebase/database').Database> | null = null;
+/** The Realtime Database (game scores: scores/<gameId>), loaded on demand like Functions. */
+export function rtdb() {
+  if (!rtdbPromise)
+    rtdbPromise = import('firebase/database').then((m) => {
+      const d = m.getDatabase(firebaseApp());
+      if (useEmulators) m.connectDatabaseEmulator(d, '127.0.0.1', 9000);
+      return d;
+    });
+  return rtdbPromise;
+}
+
 /** Call a Cloud Function callable. Every money-like or permission-like decision happens there. */
 export async function callFunction<Req, Res>(name: string, data: Req): Promise<Res> {
   const [{ httpsCallable }, fns] = await Promise.all([import('firebase/functions'), functions()]);

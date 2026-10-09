@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Setup Spotter — Zelos Arcade</title>
+<title>Setup Spotter — Zelos Training Ground</title>
 <link rel="icon" href="../favicon-arcade.ico" sizes="any">
 <link rel="icon" href="../favicon-arcade.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../icons/icon-180.png">
@@ -27,14 +27,14 @@
 <link rel="canonical" href="https://agentictrading.info/games/setup-spotter.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Setup Spotter — Zelos Arcade">
+<meta property="og:title" content="Setup Spotter — Zelos Training Ground">
 <meta property="og:description" content="Spot real trade setups vs. noise, and name real candlestick patterns, before the clock runs out.">
 <meta property="og:url" content="https://agentictrading.info/games/setup-spotter.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Setup Spotter — Zelos Arcade">
+<meta name="twitter:title" content="Setup Spotter — Zelos Training Ground">
 <meta name="twitter:description" content="Spot real trade setups vs. noise, and name real candlestick patterns, before the clock runs out.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
 <link rel="stylesheet" href="../zelos-theme.css?v=1911ab88">
@@ -168,6 +168,7 @@
 
   .note{ margin-top:22px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--muted); }
 </style>
+<script src="zelos-embed.js?v=73ab2627"></script>
 </head>
 <body class="zt zt-body">
 
@@ -206,9 +207,9 @@
         </div>
       </div>
       <div class="nav-drop">
-        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Arcade <span class="nav-drop-caret">&#9662;</span></button>
+        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Training Ground <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
-          <a href="../arcade.html">Arcade Hub<small>Every training game</small></a>
+          <a href="../arcade.html">Training Ground<small>Every training game</small></a>
           <a href="../games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
           <a href="../games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
           <a href="../games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
@@ -247,8 +248,8 @@
       <a href="../market-3d.html">Market 3D</a>
       <a href="../real/index.html">Real Trade Journal</a>
       <a href="../arsenal.html">Full Arsenal</a>
-      <div class="nav-mobile-label">Arcade</div>
-      <a href="../arcade.html">Arcade Hub</a>
+      <div class="nav-mobile-label">Training Ground</div>
+      <a href="../arcade.html">Training Ground</a>
       <a href="../leaderboard.html">Leaderboard</a>
       <div class="nav-mobile-label">More</div>
       <a href="../learn/index.html">Learn</a>
@@ -309,7 +310,7 @@
       </div>
 
       <button type="button" class="start" id="restartBtn">Play again</button>
-      <div class="over-nav"><a class="arcade-back" href="../arcade.html">&larr; Back to Arcade</a><a class="arcade-back" href="../leaderboard.html#setup-spotter">Leaderboard</a></div>
+      <div class="over-nav"><a class="arcade-back" href="../arcade.html">&larr; Back to Training Ground</a><a class="arcade-back" href="../leaderboard.html#setup-spotter">Leaderboard</a></div>
       <a class="cta" href="../index.html#how">Zelos does this for real, every session &rarr;</a>
     </div>
   </div>
@@ -345,7 +346,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="../firebase-config.js?v=d17d99d7"></script>
 <script src="../zelos-mood.js?v=15cc718b"></script>
-<script src="../zelos-xp.js?v=57e81af0"></script>
+<script src="../zelos-xp.js?v=c9169f7d"></script>
 <script src="../zelos-challenge.js?v=00bf8e79"></script>
 <script src="../zelos-tokens.js?v=c13a7908"></script>
 <script src="../leaderboard.js?v=bfce3159"></script>
@@ -877,7 +878,7 @@
         '<span class="nav-drop-caret">&#9662;</span></button>' +
         '<div class="nav-drop-panel" id="accountPanel" hidden style="right:0; left:auto;">' +
           '<a href="../dashboard.html">Dashboard</a><a href="../my-zelos.html">My Zelos</a><a href="../arsenal.html">Arsenal</a>' +
-          '<a href="../alert-history.html">Alert History</a><a href="../leaderboard.html">Leaderboard</a><a href="../arcade.html">Arcade</a>' +
+          '<a href="../alert-history.html">Alert History</a><a href="../leaderboard.html">Leaderboard</a><a href="../arcade.html">Training Ground</a>' +
           '<hr><a href="#" id="signOutLink">Sign out</a>' +
         '</div></div>';
     wireDropdownRef(document.getElementById('accountBtn'), document.getElementById('accountPanel'));

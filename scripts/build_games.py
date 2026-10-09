@@ -1,4 +1,4 @@
-"""Builds the chart-based Zelos Arcade games into /games/.
+"""Builds the chart-based Zelos Training Ground drills into /games/.
 
     python3 scripts/build_games.py
 
@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from site_shell import render, breadcrumbs, SITE  # noqa: E402
 
 SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'page-src', 'games')
-HEAD = ('<link rel="stylesheet" href="../zelos-theme.css">\n<link rel="stylesheet" href="zelos-games.css">\n')
+HEAD = ('<script src="zelos-embed.js"></script>\n<link rel="stylesheet" href="../zelos-theme.css">\n<link rel="stylesheet" href="zelos-games.css">\n')
 
 
 def src(name):
@@ -69,7 +69,7 @@ def drill_page(path, game_id, title, h1, kicker, lede, rounds, howto, seo_title,
           '<p class="zg-fine">Charts this session: ' + res.results.map(function(r){{ return r.sym + ' (' + ZC.monthYear(r.date) + ')'; }}).join(', ') + '</p>' +
           '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="zgAgain" type="button">Play again</button>' +
           '<button class="zg-btn" id="zgShare" type="button">Share</button><a class="zg-btn zg-back" href="daily-challenge.html">Today\\'s Daily Challenge</a>' +
-          '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Arcade</a></div></div>';
+          '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Training Ground</a></div></div>';
         document.getElementById('zgAgain').addEventListener('click', start);
         document.getElementById('zgShare').addEventListener('click', function(){{ var b2=this;
           ZC.share({jstitle} + ': ' + res.total + '/' + res.max + '\\n' + res.grid, 'https://agentictrading.info/{path}').then(function(){{ b2.textContent='Copied ✓'; }}); }});
@@ -81,7 +81,7 @@ def drill_page(path, game_id, title, h1, kicker, lede, rounds, howto, seo_title,
 }})();'''
     scripts = '<script src="../zelos-progress.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n'
     render(path, seo_title, desc, body, HEAD, scripts,
-           jsonld=[game_ld(title, path, desc), breadcrumbs([('Zelos', ''), ('Arcade', 'arcade.html'), (title, None)])])
+           jsonld=[game_ld(title, path, desc), breadcrumbs([('Zelos', ''), ("Training Ground", "arcade.html"), (title, None)])])
 
 
 def main():
@@ -147,7 +147,7 @@ def main():
       '<p class="zg-fine">Streak: ' + streak.n + ' day' + (streak.n === 1 ? '' : 's') + '. Next challenge at midnight ET.</p>' +
       (res.results ? '<p class="zg-fine">Today\\'s charts: ' + res.results.map(function(r){ return r.sym + ' (' + ZC.monthYear(r.date) + ')'; }).join(', ') + '</p>' : '') +
       '<div class="zg-actions"><button class="zg-btn zg-btn-primary" id="dcShare" type="button">Share my grid</button><a class="zg-btn zg-back" href="chart-replay.html">Play Chart Replay</a>' +
-      '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Arcade</a></div></div>';
+      '<a class="zg-btn zg-back" href="../arcade.html">&larr; Back to Training Ground</a></div></div>';
     document.getElementById('dcShare').addEventListener('click', function(){ var b=this;
       ZC.share('Zelos Daily Challenge ' + day + '\\n' + res.grid + '  ' + res.total + '/500' + (streak.n > 1 ? '  🔥' + streak.n : ''), 'https://agentictrading.info/games/daily-challenge.html')
         .then(function(){ b.textContent = 'Copied ✓'; }); });
@@ -175,7 +175,7 @@ def main():
     render('games/daily-challenge.html', 'Zelos Daily Challenge: A Daily Trading Chart Puzzle', desc, body, HEAD,
            '<script src="../zelos-progress.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n',
            jsonld=[game_ld('Zelos Daily Challenge', 'games/daily-challenge.html', desc),
-                   breadcrumbs([('Zelos', ''), ('Arcade', 'arcade.html'), ('Daily Challenge', None)])])
+                   breadcrumbs([('Zelos', ''), ("Training Ground", "arcade.html"), ('Daily Challenge', None)])])
 
     # ---------------- Chart Replay (flagship)
     body = f'''<main class="zg-shell" id="zgTop">
@@ -247,7 +247,7 @@ def main():
     render('games/chart-replay.html', 'Chart Replay: Free Stock Trading Simulator on Real Charts | Zelos', desc, body, HEAD,
            '<script src="../zelos-progress.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + src('drill-common.js') + '\n' + src('chart-replay.js') + '\n</script>\n',
            jsonld=[game_ld('Zelos Chart Replay', 'games/chart-replay.html', desc),
-                   breadcrumbs([('Zelos', ''), ('Arcade', 'arcade.html'), ('Chart Replay', None)])])
+                   breadcrumbs([('Zelos', ''), ("Training Ground", "arcade.html"), ('Chart Replay', None)])])
     print('built games')
 
 
