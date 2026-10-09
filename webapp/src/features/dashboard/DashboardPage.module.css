@@ -11,18 +11,19 @@
 .ach { grid-area: ach; }
 .market { grid-area: market; }
 .watch { grid-area: watch; }
+.strat { grid-area: strat; }
 @media (max-width: 760px) {
   .grid > * { grid-area: auto; }
 }
 @media (min-width: 761px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .signedIn { grid-template-areas: 'trader acct' 'missions board' 'globe globe' 'wars ach' 'movers watch' 'market market'; }
-  .signedOut { grid-template-areas: 'welcome welcome' 'missions board' 'globe globe' 'wars ach' 'movers movers' 'market market'; }
+  .signedIn { grid-template-areas: 'trader acct' 'strat strat' 'missions board' 'globe globe' 'wars ach' 'movers watch' 'market market'; }
+  .signedOut { grid-template-areas: 'welcome welcome' 'strat strat' 'missions board' 'globe globe' 'wars ach' 'movers movers' 'market market'; }
 }
 @media (min-width: 1100px) {
   .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .signedIn { grid-template-areas: 'trader acct acct' 'globe globe missions' 'globe globe board' 'wars ach movers' 'market market watch'; }
-  .signedOut { grid-template-areas: 'welcome welcome missions' 'globe globe board' 'globe globe board' 'movers ach wars' 'market market market'; }
+  .signedIn { grid-template-areas: 'trader acct acct' 'strat strat strat' 'globe globe missions' 'globe globe board' 'wars ach movers' 'market market watch'; }
+  .signedOut { grid-template-areas: 'welcome welcome missions' 'strat strat strat' 'globe globe board' 'globe globe board' 'movers ach wars' 'market market market'; }
   .globe { align-self: stretch; }
 }
 

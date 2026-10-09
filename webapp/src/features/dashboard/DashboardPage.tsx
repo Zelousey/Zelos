@@ -21,6 +21,7 @@ import { achievementsView, mergeProgress, missionsView, readLocal } from './prog
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
 import { FirstSteps } from '../welcome/FirstSteps';
+import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import { lsGet, SKIP_KEY } from '../welcome/welcome';
 import s from './DashboardPage.module.css';
 
@@ -74,6 +75,7 @@ export default function DashboardPage() {
         ) : (
           <WelcomeCard onSignIn={signIn} />
         )}
+        <StrategiesPromo className={s.strat} />
         <MissionsCard progress={progress} xpLog={local.xpLog} />
         <WarsCard uid={uid} />
         <LeaderboardCard uid={uid} rank={rank} me={me} />

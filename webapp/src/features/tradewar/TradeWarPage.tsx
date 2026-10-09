@@ -14,6 +14,7 @@ import { classicUrl } from '../../lib/platform';
 import { Badge, Button, buttonClass, Card, Icon, PageHeader, Skeleton, Stat, useToast, type IconName } from '../../ui';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount } from '../practice/account';
+import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import s from './TradeWar.module.css';
 
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
@@ -41,6 +42,7 @@ export default function TradeWarPage() {
           </span>
           <Icon name="chevronRight" size={18} />
         </Link>
+        <StrategiesPromo />
         <section aria-labelledby="tw-compete">
           <h2 id="tw-compete" className={s.sectionTitle}>
             {t('tw.compete')}
