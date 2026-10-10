@@ -2,7 +2,6 @@
  * Strategies (/strategies, in the Trade War hub; owner decision 2026-10-09): the Zelos
  * strategies, easy to find and buy. Each card says what the strategy looks for, shows its
  * latest alert and sells a 7-day pass for tokens; one tap opens the strategy (/strategies/:id).
- * Player-made strategies come later (design doc first).
  */
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -15,7 +14,7 @@ import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } fr
 import { errorText } from '../invites/invites';
 import { buyPass, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
 import { StrategyArt } from './StrategyArt';
-import { TokensSheet, useTokens, WalletChip } from './Tokens';
+import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
 
 export default function StrategiesPage() {
@@ -25,20 +24,11 @@ export default function StrategiesPage() {
   const list = alerts.status === 'ready' ? alerts.data : [];
   return (
     <>
-      <PageHeader title={t('nav.strategies')} subtitle={t('st.subtitle')} actions={tk.uid ? <WalletChip balance={tk.balance} onClick={() => setSheet(true)} /> : undefined} />
+      <PageHeader title={t('nav.strategies')} subtitle={t('st.subtitle')} />
       <div className={s.list}>
         {STRATEGIES.map((x) => (
           <StrategyCard key={x.id} st={x} latest={list.find((a) => a.strategy === x.id) ?? null} loading={alerts.status === 'loading'} wallet={tk.wallet} info={tk.info} balance={tk.balance} onTokens={() => setSheet(true)} />
         ))}
-        <Card className={s.soon} pad>
-          <span className={s.soonIcon} aria-hidden="true">
-            ✦
-          </span>
-          <div>
-            <h2 className={s.soonTitle}>{t('st.soon.title')}</h2>
-            <p className={s.muted}>{t('st.soon.body')}</p>
-          </div>
-        </Card>
       </div>
       <p className={s.fine}>{t('st.disclaimer')}</p>
       <TokensSheet open={sheet} onClose={() => setSheet(false)} info={tk.info} balance={tk.balance} />

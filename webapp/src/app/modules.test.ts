@@ -8,7 +8,7 @@ describe('module registry', () => {
     expect(new Set(MODULES.map((m) => m.path)).size).toBe(MODULES.length);
   });
   it('covers every area in the app plan', () => {
-    for (const id of ['dashboard', 'markets', 'charts', 'practice', 'trade-war', 'news', 'options', 'crypto', 'alerts', 'social', 'profile', 'missions', 'training', 'arcade', 'settings']) expect(MODULES.some((m) => m.id === id)).toBe(true);
+    for (const id of ['dashboard', 'markets', 'charts', 'practice', 'trade-war', 'news', 'options', 'alerts', 'social', 'profile', 'missions', 'training', 'arcade', 'settings']) expect(MODULES.some((m) => m.id === id)).toBe(true);
   });
   it('every module is consistent with its status', () => {
     for (const m of MODULES) {

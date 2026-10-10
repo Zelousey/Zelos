@@ -7,7 +7,7 @@ import { Card, EmptyState, Icon, LoadingState, PageHeader } from '../../ui';
 import { AlertLine, PassButton } from './StrategiesPage';
 import { strategy, useAlerts } from './strategies';
 import { StrategyArt } from './StrategyArt';
-import { TokensSheet, useTokens, WalletChip } from './Tokens';
+import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
 
 export default function StrategyPage() {
@@ -33,7 +33,7 @@ export default function StrategyPage() {
       <Link to="/strategies" className={s.back}>
         ← {t('nav.strategies')}
       </Link>
-      <PageHeader title={st.name} subtitle={st.tagline} keepOnPhone actions={tk.uid ? <WalletChip balance={tk.balance} onClick={() => setSheet(true)} /> : undefined} />
+      <PageHeader title={st.name} subtitle={st.tagline} keepOnPhone />
       <div className={s.detail}>
         <Card className={[s.card, s[st.tone]].join(' ')} title={t('st.howItWorks')}>
           <StrategyArt id={st.id} name={st.name} size="lg" />

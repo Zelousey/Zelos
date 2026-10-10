@@ -7,7 +7,7 @@
  * status
  *   ready    built in the app (has `load`)
  *   classic  still lives on the classic site; the app shows a hand-off screen to `classicPath`
- *   planned  not built anywhere yet
+ *   planned  not built anywhere yet (none: the app shows nothing unfinished, owner 2026-10-09)
  *
  * Information architecture (owner, 2026-10-07):
  *   phone tab bar   Dashboard | Market | Trade War | Alerts | News
@@ -66,7 +66,6 @@ export const MODULES: AppModule[] = [
   { id: 'arcade', path: 'arcade', label: 'nav.training', icon: 'arcade', group: 'play', status: 'ready', parent: 'training', nav: false, load: () => import('../features/training/ArcadeRedirect') },
 
   { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'signals', status: 'classic', classicPath: 'options-scanner.html' },
-  { id: 'crypto', path: 'crypto', label: 'nav.crypto', icon: 'crypto', group: 'signals', status: 'planned' },
 
   { id: 'profile', path: 'profile', label: 'nav.profile', icon: 'profile', group: 'account', status: 'ready', load: () => import('../features/profile/ProfileModule') },
   { id: 'settings', path: 'settings', label: 'nav.settings', icon: 'settings', group: 'account', status: 'ready', load: () => import('../features/settings/SettingsPage') },

@@ -45,7 +45,7 @@ test('theme choice applies immediately and survives a reload', async ({ page }) 
 for (const theme of ['black', 'blue', 'white']) {
   test(`no accessibility violations (${theme} theme)`, async ({ page }) => {
     await page.addInitScript((t) => localStorage.setItem('zelosTheme', t), theme);
-    for (const path of ['dashboard', 'settings', 'crypto', 'news', 'trade-war']) {
+    for (const path of ['dashboard', 'settings', 'missions', 'news', 'trade-war']) {
       await page.goto(path);
       await expect(page.locator('h1')).toBeAttached();
       const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();

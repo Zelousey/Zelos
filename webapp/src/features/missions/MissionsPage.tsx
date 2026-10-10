@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { levelFor } from '../../data/levels';
+import { LEVELS, levelFor } from '../../data/levels';
 import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { formatRelative } from '../../lib/format';
@@ -61,6 +61,7 @@ function Missions({ uid }: { uid: string }) {
       <PageHeader title={t('nav.missions')} subtitle={t('ms.subtitle')} />
       <div className={s.page}>
         <LevelCard xp={xp} streak={m.streak} best={m.best} />
+        <LevelPath xp={xp} />
         <div className={s.cols}>
           <Card flush title={t('ms.daily')} subtitle={t('ms.daily.sub', { done: m.doneToday, need: STREAK_NEED })}>
             <MissionList list={m.daily} />
@@ -113,6 +114,24 @@ function LevelCard({ xp, streak, best }: { xp: number; streak: number; best: num
         <small>{t('ms.streak')}</small>
         <span>{t('ms.best', { n: best })}</span>
       </div>
+    </Card>
+  );
+}
+
+function LevelPath({ xp }: { xp: number }) {
+  const cur = levelFor(xp).level.level;
+  return (
+    <Card title={t('ms.path')} subtitle={t('ms.path.sub')}>
+      <ol className={s.path} tabIndex={0} aria-label={t('ms.path')}>
+        {LEVELS.map((l) => (
+          <li key={l.level} className={l.level < cur ? s.pathDone : l.level === cur ? s.pathNow : s.pathNext} aria-current={l.level === cur ? 'step' : undefined}>
+            <LevelBadge level={l} size={l.level === cur ? 64 : 48} />
+            <b>{t('pf.level', { n: l.level })}</b>
+            <small>{l.name}</small>
+            <small className={s.pathXp}>{l.xp.toLocaleString('en-US')} XP</small>
+          </li>
+        ))}
+      </ol>
     </Card>
   );
 }

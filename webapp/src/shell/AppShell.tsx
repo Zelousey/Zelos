@@ -29,6 +29,8 @@ import { Avatar } from './Avatar';
 import { MenuSheet } from './MenuSheet';
 import { NotificationsSheet } from './NotificationsSheet';
 import { ProfileSheet } from './ProfileSheet';
+import { TokenChip } from '../features/tokens/TokenChip';
+import { LevelUpWatcher } from '../features/levels/LevelUp';
 import { useInbox } from './useInbox';
 import { useOnline } from './useOnline';
 import s from './Shell.module.css';
@@ -123,6 +125,7 @@ export function AppShell() {
               {t('auth.signIn')}
             </Button>
           )}
+          <TokenChip />
           <button type="button" className={s.avatarBtn} aria-label={t('nav.profile')} onClick={() => setSheet('profile')}>
             <Avatar user={user} />
           </button>
@@ -172,6 +175,7 @@ export function AppShell() {
 
       <NotificationsSheet open={sheet === 'notifications'} onClose={() => setSheet(null)} signedIn={isReal} items={inbox.items} error={inbox.error} onSignIn={signIn} />
       <ProfileSheet open={sheet === 'profile'} onClose={() => setSheet(null)} />
+      <LevelUpWatcher />
       <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} />
     </div>
   );
