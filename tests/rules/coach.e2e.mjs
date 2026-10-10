@@ -89,6 +89,23 @@ const bell = (await getDocs(collection(db, 'users', S.uid, 'inbox'))).docs.map((
 ok(bell.some((t) => /Jordan on your NVDA trade: Good move/.test(t)), 'and gets it in the bell');
 await call('coach_note', { coachingId: cid, text: 'Thanks coach!' });
 
+// chart plays (owner 2026-10-10): the coach draws on a chart, the student is told and can comment
+const play = { coachingId: cid, sym: 'AAPL', tf: 'D', title: 'Buy the retest', note: 'Wait for a close above the line.', shapes: [{ k: 'hline', c: 'green', pts: [{ d: '2026-10-01', p: 230 }], text: 'entry' }, { k: 'arrow', c: 'gold', pts: [{ d: '2026-09-20', p: 220 }, { d: '2026-10-01', p: 231 }] }] };
+ok(await fails(() => call('coach_play', play), /Only the coach/), 'students cannot draw up plays');
+await as(`coach${t0}@example.com`);
+ok(await fails(() => call('coach_play', { ...play, sym: 'NOPE' }), /Zelos list/), 'plays are on Zelos stocks only');
+const { playId } = await call('coach_play', play);
+await as(`student${t0}@example.com`);
+const pd = (await getDoc(doc(db, 'coachings', cid, 'plays', playId))).data();
+ok(pd.title === 'Buy the retest' && pd.shapes.length === 2 && pd.shapes[0].pts[0].p === 230 && pd.fromName === 'Jordan', 'the student can open the play with its drawings');
+const inbox = (await getDocs(collection(db, 'users', S.uid, 'inbox'))).docs.map((d) => d.data());
+ok(inbox.some((n) => n.title === 'Your coach drew up a play: Buy the retest' && n.link === `app/coach/${cid}/play/${playId}`), '"Your coach drew up a play" lands in the bell and opens the play');
+ok(await fails(() => setDoc(doc(db, 'coachings', cid, 'plays', 'fake1234567'), { title: 'x' })), 'browsers cannot write plays');
+await call('coach_play_comment', { coachingId: cid, playId, text: 'Got it, waiting for the close.' });
+ok((await getDoc(doc(db, 'coachings', cid, 'plays', playId))).data().comments[0].role === 'student', 'the student comments on the play');
+const coachBell = (await adminGet('users/' + C.uid + '/inbox'))?.documents?.map((d) => d.fields.title.stringValue) ?? [];
+ok(coachBell.some((t) => /Maya commented on Buy the retest/.test(t)), 'and the coach is told');
+
 // a second coach can't take a student who already has one; the student ends coaching
 const mine = await getDocs(query(collection(db, 'coachings'), where('student', '==', S.uid)));
 ok(mine.size === 1, 'the student can list their coaching');

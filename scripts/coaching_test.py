@@ -70,5 +70,48 @@ s = C.summary({"xp": 420, "email": "x@y.z"}, {"level": 4, "levelName": "Platinum
 ok(s["xp"] == 420 and s["level"] == 4 and s["missionsToday"] == 2 and s["streak"] == 3 and "email" not in s, "summary: level, XP, missions, streak, nothing private")
 ok(len(s["trades"]) == 1 and s["trades"][0]["sym"] == "NVDA" and s["trades"][0]["pnl"] == 120.5, "individual trades shown, junk rows skipped")
 
+# chart plays (owner 2026-10-10)
+UNI = {"AAPL", "NVDA"}
+good = {"sym": "aapl", "tf": "D", "title": "  Buy the  retest ", "note": "Wait for the close above 230.",
+        "shapes": [{"k": "line", "c": "green", "pts": [{"d": "2026-09-01", "p": 220}, {"d": "2026-10-01", "p": 231.5}]},
+                   {"k": "hline", "c": "nope", "pts": [{"d": "2026-10-01", "p": 225}], "text": "stop"},
+                   {"k": "text", "pts": [{"d": "2026-10-02 10:30", "p": 229}], "text": "entry here"}]}
+pl = C.validate_play(good, UNI, 0)
+ok(pl["sym"] == "AAPL" and pl["title"] == "Buy the retest" and len(pl["shapes"]) == 3, "a play: stock, title (cleaned), drawings")
+ok(pl["shapes"][1]["c"] == "blue" and pl["shapes"][1]["text"] == "stop" and pl["shapes"][2]["pts"][0]["d"] == "2026-10-02 10:30", "unknown colours fall back to blue; text and intraday points kept")
+
+
+def bad_play(msg, **over):
+    try:
+        C.validate_play(dict(good, **over), UNI, 0)
+        ok(False, "rejects: " + msg)
+    except C.CoachError as e:
+        ok(msg in e.message, "rejects: %s (%s)" % (msg, e.message))
+
+
+bad_play("Zelos list", sym="TSLA")
+bad_play("timeframe", tf="1y")
+bad_play("title", title="   ")
+bad_play("Draw something", shapes=[])
+bad_play("isn't supported", shapes=[{"k": "circle", "pts": []}])
+bad_play("missing a point", shapes=[{"k": "line", "pts": [{"d": "2026-09-01", "p": 1}]}])
+bad_play("off the chart", shapes=[{"k": "hline", "pts": [{"d": "Sept 1", "p": 1}]}])
+bad_play("off the chart", shapes=[{"k": "hline", "pts": [{"d": "2026-09-01", "p": -5}]}])
+bad_play("off the chart", shapes=[{"k": "hline", "pts": [{"d": "2026-09-01", "p": True}]}])
+bad_play("text label is empty", shapes=[{"k": "text", "pts": [{"d": "2026-09-01", "p": 1}], "text": " "}])
+bad_play("more than 40", shapes=[good["shapes"][0]] * 41)
+try:
+    C.validate_play(good, UNI, C.PLAYS_PER_DAY)
+    ok(False, "10 plays a day")
+except C.CoachError as e:
+    ok(e.code == "RESOURCE_EXHAUSTED", "at most %d plays a day" % C.PLAYS_PER_DAY)
+ok(C.validate_comment({"text": " nice  entry "}, 0) == "nice entry", "comments are cleaned")
+for d, n, m in (({"text": ""}, 0, "Write a comment"), ({"text": "x"}, C.MAX_COMMENTS, "comments")):
+    try:
+        C.validate_comment(d, n)
+        ok(False, m)
+    except C.CoachError as e:
+        ok(m in e.message, "comment rejected: " + m)
+
 print("\n%s (%d failed)" % ("ALL COACHING CHECKS PASSED" if not fails else "SOME CHECKS FAILED", fails))
 sys.exit(1 if fails else 0)

@@ -13,6 +13,10 @@ badge after 5 completed tasks.
       tasks/{id}                 {kind, n, text, progress, status: open|review|done|expired|cancelled,
                                   createdAt, dueAt, doneAt}
       notes/{id}                 {from, fromName, text, at, reaction, trade: {id, sym, side, pnl, pct}}
+      plays/{id}                 {from, fromName, sym, tf, title, note, shapes[], comments[], at}
+                                 a chart the coach drew on (owner 2026-10-10: "draw on them and
+                                 add comments ... your coach drew up a play"); shapes are pinned
+                                 to bar dates and prices so the student sees them on the live chart
     coaches/{uid}                {students, tasksDone, badge}   public (the badge), server-written
 
 Tasks count the same events the server's mission counter sees (functions/missions.py): a
@@ -39,6 +43,18 @@ KINDS = {  # kind: (label template, min n, max n)
     "custom": ("{text}", 1, 1),
 }
 REACTIONS = ("good", "bad", "tip")
+# chart plays
+PLAY_TFS = ("15m", "1h", "D", "W")
+SHAPE_KINDS = {"line": 2, "arrow": 2, "box": 2, "hline": 1, "text": 1}   # kind: points
+SHAPE_COLORS = ("blue", "green", "red", "gold")
+MAX_SHAPES = 40
+MAX_TITLE = 80
+MAX_SHAPE_TEXT = 80
+MAX_COMMENT = 300
+MAX_COMMENTS = 60
+PLAYS_PER_DAY = 10
+_BAR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$")
+_SYM_RE = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
 _ID_RE = re.compile(r"^[A-Za-z0-9_-]{6,80}$")
 
 
@@ -124,6 +140,69 @@ def validate_note(data, today_count):
     if today_count >= NOTES_PER_DAY:
         raise CoachError("RESOURCE_EXHAUSTED", "That's a lot of notes for one day. Try again tomorrow.")
     return text, reaction, trade or None
+
+
+def _num(v):
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    v = float(v)
+    return v if 0 < v < 1e7 else None
+
+
+def validate_play(data, universe, today_count):
+    """A coach's chart play -> {sym, tf, title, note, shapes}. Shapes: {k, c, pts: [{d, p}], text?}."""
+    data = data if isinstance(data, dict) else {}
+    sym = str(data.get("sym") or "").upper()
+    if not _SYM_RE.match(sym) or sym not in universe:
+        raise CoachError("INVALID_ARGUMENT", "Pick a stock from the Zelos list.")
+    tf = data.get("tf") if data.get("tf") in PLAY_TFS else None
+    if not tf:
+        raise CoachError("INVALID_ARGUMENT", "Pick a chart timeframe.")
+    title = _clean(data.get("title"), MAX_TITLE)
+    if not title:
+        raise CoachError("INVALID_ARGUMENT", "Give the play a title.")
+    note = _clean(data.get("note"), MAX_NOTE)
+    raw = data.get("shapes")
+    if not isinstance(raw, list) or not raw:
+        raise CoachError("INVALID_ARGUMENT", "Draw something on the chart first.")
+    if len(raw) > MAX_SHAPES:
+        raise CoachError("INVALID_ARGUMENT", "That's more than %d drawings. Remove a few." % MAX_SHAPES)
+    shapes = []
+    for sh in raw:
+        sh = sh if isinstance(sh, dict) else {}
+        k = sh.get("k")
+        if k not in SHAPE_KINDS:
+            raise CoachError("INVALID_ARGUMENT", "That drawing isn't supported.")
+        pts = sh.get("pts") if isinstance(sh.get("pts"), list) else []
+        if len(pts) != SHAPE_KINDS[k]:
+            raise CoachError("INVALID_ARGUMENT", "A drawing is missing a point.")
+        clean_pts = []
+        for p in pts:
+            p = p if isinstance(p, dict) else {}
+            d, price = str(p.get("d") or ""), _num(p.get("p"))
+            if not _BAR_RE.match(d) or price is None:
+                raise CoachError("INVALID_ARGUMENT", "A drawing has a point off the chart.")
+            clean_pts.append({"d": d, "p": round(price, 4)})
+        item = {"k": k, "c": sh.get("c") if sh.get("c") in SHAPE_COLORS else "blue", "pts": clean_pts}
+        text = _clean(sh.get("text"), MAX_SHAPE_TEXT)
+        if k == "text" and not text:
+            raise CoachError("INVALID_ARGUMENT", "A text label is empty.")
+        if text:
+            item["text"] = text
+        shapes.append(item)
+    if today_count >= PLAYS_PER_DAY:
+        raise CoachError("RESOURCE_EXHAUSTED", "That's %d plays today. Try again tomorrow." % PLAYS_PER_DAY)
+    return {"sym": sym, "tf": tf, "title": title, "note": note, "shapes": shapes}
+
+
+def validate_comment(data, count):
+    data = data if isinstance(data, dict) else {}
+    text = _clean(data.get("text"), MAX_COMMENT)
+    if not text:
+        raise CoachError("INVALID_ARGUMENT", "Write a comment.")
+    if count >= MAX_COMMENTS:
+        raise CoachError("RESOURCE_EXHAUSTED", "This play has %d comments. Start a new one." % MAX_COMMENTS)
+    return text
 
 
 def summary(user, profile, trades, missions, today):

@@ -78,6 +78,46 @@ test('coach a new player: link, accept, react to a trade, a custom task, end', a
   await expect(student.getByText('Done', { exact: true })).toBeVisible();
   expect(await axe(student)).toEqual([]);
 
+  // a chart play (owner 2026-10-10): the coach draws on a chart, the student is notified, both comment
+  await coach.getByRole('link', { name: 'Draw up a play' }).click();
+  await expect(coach.getByRole('heading', { name: 'Draw up a play for Bo' })).toBeVisible();
+  const layer = coach.getByTestId('draw-layer');
+  await expect(coach.getByRole('img', { name: 'AAPL chart with 0 drawings from the coach' })).toBeVisible();
+  await coach.waitForTimeout(500); // the chart lays out its bars
+  const box = (await layer.boundingBox())!;
+  await coach.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4); // inside the price panel (the RSI panel sits below)
+  await coach.mouse.down();
+  await coach.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.15, { steps: 5 });
+  await coach.mouse.up();
+  await coach.getByRole('button', { name: 'Price level' }).click();
+  await coach.getByRole('radio', { name: 'Red' }).click();
+  await layer.click({ position: { x: box.width * 0.5, y: box.height * 0.3 } });
+  await coach.getByRole('button', { name: 'Label' }).click();
+  await layer.click({ position: { x: box.width * 0.4, y: box.height * 0.2 } });
+  await coach.getByRole('dialog', { name: 'Add a label' }).getByLabel('Label').fill('entry here');
+  await coach.getByRole('button', { name: 'Add label' }).click();
+  await expect(coach.getByText(/3 of 40 drawings/)).toBeVisible();
+  await coach.getByRole('button', { name: 'Undo' }).click();
+  await expect(coach.getByText(/2 of 40 drawings/)).toBeVisible();
+  await coach.getByLabel('Title').fill('Buy the retest');
+  await coach.getByLabel('Note').fill('Wait for a close above the line.');
+  expect(await axe(coach)).toEqual([]);
+  await coach.getByRole('button', { name: 'Send to Bo' }).click();
+  await expect(coach.getByRole('heading', { name: 'Buy the retest' })).toBeVisible();
+
+  await student.getByRole('button', { name: /^Open notifications/ }).click();
+  await student.getByRole('link', { name: /Your coach drew up a play: Buy the retest/ }).click();
+  await expect(student.getByRole('heading', { name: 'Buy the retest' })).toBeVisible();
+  await expect(student.getByRole('img', { name: 'AAPL chart with 2 drawings from the coach' })).toBeVisible();
+  await expect(student.getByText('Wait for a close above the line.')).toBeVisible();
+  await student.getByLabel('Add a comment').fill('Got it, waiting for the close.');
+  await student.getByRole('button', { name: 'Send' }).click();
+  await expect(coach.getByText('Got it, waiting for the close.')).toBeVisible();
+  expect(await axe(student)).toEqual([]);
+  await student.getByRole('link', { name: 'Back to coaching' }).click();
+  await expect(student.getByRole('link', { name: /Buy the retest/ })).toBeVisible();
+  await coach.getByRole('link', { name: 'Back to coaching' }).click();
+
   // the student can't react to their own trades; they end the coaching
   await expect(student.getByRole('button', { name: /Bad move/ })).toHaveCount(0);
   await student.getByRole('button', { name: 'End coaching' }).click();
