@@ -38,15 +38,15 @@ test('all-time, weekly and season boards', async ({ page }) => {
   const rows = page.getByRole('listitem');
   const names = async () => (await rows.allInnerTexts()).map((t) => t.match(/Lb \w+/)?.[0]).filter(Boolean);
   await expect(page.getByText('$25,000')).toBeVisible();
-  expect((await names()).slice(0, 3)).toEqual(['Lb Alpha', 'Lb Bravo', 'Lb Charlie']);
+  await expect.poll(async () => (await names()).slice(0, 3)).toEqual(['Lb Alpha', 'Lb Bravo', 'Lb Charlie']);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   await page.getByRole('tab', { name: 'Weekly' }).click();
   await expect(page.getByText('+9.5%').first()).toBeVisible();
-  expect((await names()).slice(0, 3)).toEqual(['Lb Bravo', 'Lb Alpha', 'Lb Charlie']);
+  await expect.poll(async () => (await names()).slice(0, 3)).toEqual(['Lb Bravo', 'Lb Alpha', 'Lb Charlie']);
   await page.getByRole('tab', { name: /Season/ }).click();
   await page.getByRole('tab', { name: 'Biggest single win' }).click();
   await expect(page).toHaveURL(/b=season&c=bestWin/);
-  expect((await names()).slice(0, 3)).toEqual(['Lb Charlie', 'Lb Bravo', 'Lb Alpha']); // 810 > 750 > 650
+  await expect.poll(async () => (await names()).slice(0, 3)).toEqual(['Lb Charlie', 'Lb Bravo', 'Lb Alpha']); // 810 > 750 > 650 (wait for the re-sorted list)
   // the Trade War hub links here
   await page.goto('trade-war');
   await page.getByRole('link', { name: /Leaderboards/ }).click();
