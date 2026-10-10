@@ -8,7 +8,6 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, EmptyState, Icon, Skeleton, useToast } from '../../ui';
 import { Celebrate } from './Celebrate';
@@ -153,9 +152,9 @@ function Done({ inv, res }: { inv: Invite; res: Accepted }) {
         {t('land.goCoach')}
       </Link>
     ) : res.kind === 'battle' && res.warId ? (
-      <a className={buttonClass({ variant: 'primary', size: 'lg', block: true })} href={classicUrl(`practice/war.html?w=${encodeURIComponent(res.warId)}`)}>
+      <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to={`/battles/${encodeURIComponent(res.warId)}`}>
         {t('land.goBattle')}
-      </a>
+      </Link>
     ) : res.kind === 'squad' && res.squadId ? (
       <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to={`/social/${encodeURIComponent(res.squadId)}`}>
         {t('land.goSquad')}

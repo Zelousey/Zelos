@@ -10,7 +10,6 @@ import { useAuth } from '../../lib/auth';
 import { COACH_MIN_XP } from '../coach/coach';
 import { formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
-import { classicUrl } from '../../lib/platform';
 import { Badge, Button, buttonClass, Card, EmptyState, Field, Icon, LoadingState, PageHeader, useToast, type IconName } from '../../ui';
 import { BUY_INS, copyText, createBattle, createInvite, DAYS, errorText, sendInvite, shareLink, useMySquads, type Created, type InviteKind } from './invites';
 import { Choices } from './Choices';
@@ -293,9 +292,9 @@ function ShareStep({ kind, created, warId, onAnother }: { kind: InviteKind; crea
       )}
       <div className={s.row}>
         {kind === 'battle' && warId && (
-          <a className={buttonClass({ variant: 'ghost' })} href={classicUrl(`practice/war.html?w=${encodeURIComponent(warId)}`)}>
+          <Link className={buttonClass({ variant: 'ghost' })} to={`/battles/${encodeURIComponent(warId)}`}>
             {t('inv.openBattle')}
-          </a>
+          </Link>
         )}
         <Button variant="ghost" onClick={onAnother}>
           {t('inv.another')}

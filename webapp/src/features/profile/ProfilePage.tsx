@@ -334,10 +334,10 @@ function RecordCard({ r }: { r: WarRecord }) {
         <ul className={s.recent}>
           {r.recent.map((x) => (
             <li key={x.w}>
-              <a href={classicUrl(`practice/war.html?w=${encodeURIComponent(x.w)}`)}>
+              <Link to={`/battles/${encodeURIComponent(x.w)}`}>
                 {x.rank === 1 && !x.surrendered ? '🏆 ' : x.surrendered ? '🏳️ ' : ''}
                 {x.name}
-              </a>
+              </Link>
               <small>{x.surrendered ? t('pf.record.surrendered') : `${x.rank === 1 ? t('pf.record.won') : t('pf.record.lost')} · #${x.rank} ${t('pf.of')} ${x.of}${x.pnlPct != null ? ` · ${pct(x.pnlPct)}` : ''}`}</small>
             </li>
           ))}

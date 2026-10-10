@@ -18,6 +18,8 @@ export function safeLink(link?: string): { app?: string; href?: string } {
   if (path.startsWith('app/')) return { app: '/' + path.slice(4) };
   const prof = /^practice\/profile\.html\?u=([A-Za-z0-9]{10,40})$/.exec(path); // friend notifications open the in-app profile
   if (prof) return { app: `/profile/${prof[1]}` };
+  const war = /^practice\/war\.html\?w=([A-Za-z0-9]{12})$/.exec(path); // battle notifications open the in-app battle
+  if (war) return { app: `/battles/${war[1]}` };
   return { href: classicUrl(path) };
 }
 

@@ -1,8 +1,7 @@
 /**
  * Trade War: the home for everything you play. Your Practice account (the solo virtual
  * $10,000) sits on top, then the competitive parts: battles, squads, leaderboards and
- * missions. Battles, squads, leaderboards and missions still run on the website for now;
- * they move into the app in later steps.
+ * missions, all in the app.
  */
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
@@ -21,7 +20,7 @@ import s from './TradeWar.module.css';
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
 
 const COMPETE: { icon: IconName; title: MessageKey; body: MessageKey; href?: string; to?: string }[] = [
-  { icon: 'war', title: 'tw.battles', body: 'tw.battles.body', href: 'practice/war.html' },
+  { icon: 'war', title: 'tw.battles', body: 'tw.battles.body', to: '/battles' },
   { icon: 'social', title: 'tw.squads', body: 'tw.squads.body', to: '/social' },
   { icon: 'markets', title: 'tw.leaderboard', body: 'tw.leaderboard.body', to: '/leaderboard' },
   { icon: 'missions', title: 'tw.missions', body: 'tw.missions.body', to: '/missions' },

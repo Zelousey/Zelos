@@ -69,7 +69,7 @@ describe('AppShell', () => {
     renderAt('/trade-war');
     expect(await screen.findByRole('heading', { name: /Your practice account/ })).toBeInTheDocument();
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('link', { name: /Battles/ })).toHaveAttribute('href', '/practice/war.html');
+    expect(within(main).getByRole('link', { name: /Battles/ })).toHaveAttribute('href', '/battles');
     expect(within(main).getByRole('link', { name: /^Squads/ })).toHaveAttribute('href', '/social');
   });
 
