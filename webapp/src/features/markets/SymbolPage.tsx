@@ -180,9 +180,14 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
             </div>
           </Card>
           <div className={s.desktopTrade}>
-            <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to={tradeHref}>
-              {t('trade.practice')}
-            </Link>
+            <div className={s.tradeBtns}>
+              <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={`${tradeHref}?side=buy`} aria-label={t('trade.buyLabel', { sym })}>
+                {t('trade.buyBtn')}
+              </Link>
+              <Link className={buttonClass({ variant: 'sell', size: 'lg', block: true })} to={`${tradeHref}?side=sell`} aria-label={t('trade.sellLabel', { sym })}>
+                {t('trade.sellBtn')}
+              </Link>
+            </div>
             <p className={s.tradeHint}>{t('trade.practiceHint')}</p>
           </div>
         </div>
@@ -191,9 +196,12 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
       <Previews current={sym} />
       <SymbolSwitcher open={switching} onClose={() => setSwitching(false)} current={sym} />
 
-      <div className={s.actionBar}>
-        <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to={tradeHref}>
-          {t('trade.practice')} · {sym}
+      <div className={[s.actionBar, s.tradeBtns].join(' ')}>
+        <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={`${tradeHref}?side=buy`} aria-label={t('trade.buyLabel', { sym })}>
+          {t('trade.buyBtn')}
+        </Link>
+        <Link className={buttonClass({ variant: 'sell', size: 'lg', block: true })} to={`${tradeHref}?side=sell`} aria-label={t('trade.sellLabel', { sym })}>
+          {t('trade.sellBtn')}
         </Link>
       </div>
     </>

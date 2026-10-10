@@ -30,8 +30,8 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
 
   // from the chart into the ticket
   await page.goto('markets/AAPL');
-  await page.getByRole('link', { name: /Practice trade/ }).filter({ visible: true }).first().click();
-  await expect(page).toHaveURL(/\/app\/practice\/trade\/AAPL$/);
+  await page.getByRole('link', { name: 'Buy AAPL' }).filter({ visible: true }).first().click();
+  await expect(page).toHaveURL(/\/app\/practice\/trade\/AAPL\?side=buy$/);
   await page.getByLabel('Shares', { exact: true }).fill('5');
   await page.getByLabel('Stop-loss + Take-profit').check();
   await expect(page.getByLabel('Stop-loss', { exact: true })).not.toHaveValue('');

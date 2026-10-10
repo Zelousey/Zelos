@@ -58,6 +58,12 @@ test('buy a put, cancel it, and sell a contract you hold', async ({ page }, info
   await expect(sheet.getByText('Enter a whole number from 1 to 100.')).toBeVisible();
   await sheet.getByLabel('Contracts').fill('2');
   await expect(sheet.getByText(/The most you can lose is what you pay/)).toBeVisible();
+  // the estimated P&L: at expiration first, with the price slider and a table view
+  await expect(sheet.getByText(/If AAPL is at \$\d+\.\d\d at expiration/)).toBeVisible();
+  await sheet.getByLabel(/Stock price/).fill('300');
+  await expect(sheet.getByText('If AAPL is at $300.00 at expiration', { exact: false })).toBeVisible();
+  await sheet.getByText('Show as a table').click();
+  await expect(sheet.getByRole('table')).toContainText('today');
   await sheet.getByRole('button', { name: 'Buy 2' }).click();
   await expect(page.getByText('Order placed. It fills at the next price update.')).toBeVisible();
   await expect(page.getByText(`Buy 2 AAPL $335 Put ${short(exp)}`)).toBeVisible();
@@ -70,6 +76,9 @@ test('buy a put, cancel it, and sell a contract you hold', async ({ page }, info
   const r = await fetch(`${BASE}/practiceAccounts/${uid}?updateMask.fieldPaths=options`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { options: { mapValue: { fields: { [cid]: { mapValue: { fields: pos } } } } } } }) });
   expect(r.ok).toBe(true);
   await expect(page.getByRole('link', { name: `AAPL $330 Call ${short(exp)}` })).toBeVisible();
+  await page.getByRole('button', { name: `Estimate: AAPL $330 Call ${short(exp)}` }).click();
+  await expect(page.getByRole('dialog', { name: `AAPL $330 Call ${short(exp)}` })).toContainText('Estimated profit or loss');
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: `Sell: AAPL $330 Call ${short(exp)}` }).click();
   await expect(page.getByRole('dialog')).toContainText(`Sell 3 AAPL $330 Call ${short(exp)} at the model price`);
   await page.getByRole('dialog').getByRole('button', { name: 'Sell' }).click();
@@ -80,4 +89,29 @@ test('buy a put, cancel it, and sell a contract you hold', async ({ page }, info
   await page.goto('practice');
   await expect(page.getByRole('heading', { name: 'Your options' })).toBeVisible();
   await expect(page.getByText(`Sell 3 AAPL $330 Call ${short(exp)} · Market`)).toBeVisible();
+});
+
+test('the trade ticket offers Options next to Shares, and the chart has Buy and Sell', async ({ page }, info) => {
+  test.skip(process.env.E2E_FUNCTIONS !== '1', 'orders go through the server (Functions emulator)');
+  await page.goto('practice');
+  await signIn(page, `tix-${info.project.name}${Date.now()}@example.com`);
+  await page.getByRole('button', { name: 'Start with $10,000' }).click();
+  await expect(page.getByText('$10,000.00').first()).toBeVisible();
+
+  await page.goto('markets/AAPL');
+  await page.getByRole('link', { name: 'Sell AAPL' }).filter({ visible: true }).first().click();
+  await expect(page).toHaveURL(/\/practice\/trade\/AAPL\?side=sell$/);
+  await expect(page.getByRole('tab', { name: 'Sell', selected: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Options' }).click();
+  await expect(page).toHaveURL(/mode=options/);
+  await expect(page.getByText("You don't hold any AAPL options.")).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Buy', exact: true }).click();
+  await page.getByRole('tab', { name: 'Put (bet it goes down)' }).click();
+  await expect(page.getByLabel('Strike')).toHaveValue('335'); // at the money first
+  await expect(page.getByText(/If AAPL is at .* at expiration/)).toBeVisible();
+  await page.getByRole('button', { name: /^Buy 1 · AAPL \$335 Put/ }).click();
+  await expect(page.getByText('Order placed. It fills at the next price update.')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
 });

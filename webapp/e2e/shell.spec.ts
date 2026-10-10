@@ -100,6 +100,31 @@ test.describe('phone', () => {
     await noHorizontalScroll(page);
   });
 
+  test('top-bar sheets open fully on screen and scroll, even on a short screen (owner 2026-10-10)', async ({ page }) => {
+    for (const height of [844, 420]) {
+      await page.setViewportSize({ width: 390, height });
+      await page.goto('dashboard');
+      for (const name of [/^Open notifications/, /^Profile$/, /^Open menu$/]) {
+        await page.getByRole('button', { name }).first().click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await page.waitForTimeout(400); // the slide-up animation
+        const box = (await dialog.boundingBox())!;
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(Math.round(box.y + box.height)).toBeLessThanOrEqual(height); // the bottom isn't off screen
+        await expect(dialog.getByRole('button', { name: 'Close' })).toBeInViewport();
+        // the content area scrolls when it's taller than the sheet
+        const scroll = await dialog.evaluate((d) => {
+          const body = d.querySelector('[class*="body"]') as HTMLElement;
+          return { fits: body.scrollHeight <= body.clientHeight + 1, scrolls: getComputedStyle(body).overflowY };
+        });
+        expect(scroll.fits || scroll.scrolls === 'auto').toBe(true);
+        await page.keyboard.press('Escape');
+        await expect(dialog).toBeHidden();
+      }
+    }
+  });
+
   test('News: unseen dot until visited; featured post and filters', async ({ page }) => {
     await page.goto('dashboard');
     const tabbar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });

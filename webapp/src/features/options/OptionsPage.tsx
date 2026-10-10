@@ -11,12 +11,12 @@ import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney, formatPercent, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { Badge, Button, buttonClass, Card, Change, EmptyState, Field, LoadingState, PageHeader, Sheet, Tabs, useToast } from '../../ui';
+import { Badge, Button, buttonClass, Card, Change, EmptyState, LoadingState, PageHeader, Sheet, Tabs, useToast } from '../../ui';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount, type Account } from '../practice/account';
 import { cancelOrder, errorMessage } from '../practice/actions';
-import { placeOptionOrder } from './actions';
-import { daysTo, expirations, label, MAX_CONTRACTS, quote, strikes, useVolMap, volFor, type Kind, type OptionQuote } from './model';
+import { daysTo, expirations, label, quote, strikes, useVolMap, volFor, type Kind, type OptionQuote } from './model';
+import { OptionBuyForm } from './OptionBuyForm';
 import { OptionPositions } from './OptionPositions';
 import s from './Options.module.css';
 
@@ -181,7 +181,7 @@ export default function OptionsPage() {
           </Card>
         )}
       </div>
-      {pick && S && <BuySheet key={`${sym}${exp}${kind}${pick.strike}`} sym={sym} kind={kind} exp={exp} pick={pick} acct={acct} buyingPower={v?.buyingPower ?? null} onClose={() => setPick(null)} />}
+      {pick && S && <BuySheet key={`${sym}${exp}${kind}${pick.strike}`} sym={sym} kind={kind} exp={exp} pick={pick} S={S} vol={vol} today={today} acct={acct} buyingPower={v?.buyingPower ?? null} onClose={() => setPick(null)} />}
     </>
   );
 }
@@ -211,62 +211,11 @@ function OpenOrder({ id, text }: { id: string; text: string }) {
   );
 }
 
-function BuySheet({ sym, kind, exp, pick, acct, buyingPower, onClose }: { sym: string; kind: Kind; exp: string; pick: Pick; acct: Account | null; buyingPower: number | null; onClose: () => void }) {
-  const toast = useToast();
-  const [qty, setQty] = useState('1');
-  const [busy, setBusy] = useState(false);
+function BuySheet({ sym, kind, exp, pick, S, vol, today, acct, buyingPower, onClose }: { sym: string; kind: Kind; exp: string; pick: Pick; S: number; vol: number; today: string; acct: Account | null; buyingPower: number | null; onClose: () => void }) {
   const titleId = useId();
-  const n = Number(qty);
-  const valid = Number.isInteger(n) && n >= 1 && n <= MAX_CONTRACTS;
-  const cost = valid ? pick.q.ask * 100 * n : 0;
-  const short = valid && buyingPower != null && cost > buyingPower + 0.005;
-  const name = label({ u: sym, kind, strike: pick.strike, exp });
-  const err = qty && !valid ? t('opt.qtyRange', { max: MAX_CONTRACTS }) : short ? t('opt.short', { bp: formatMoney(buyingPower) }) : undefined;
   return (
-    <Sheet open onClose={onClose} title={t('opt.buyTitle', { label: name })} labelledBy={titleId}>
-      <div className={s.sheet}>
-        <dl className={s.facts}>
-          <div>
-            <dt>{t('opt.perShare')}</dt>
-            <dd className="num">{formatPrice(pick.q.ask)}</dd>
-          </div>
-          <div>
-            <dt>{t('opt.col.breakeven')}</dt>
-            <dd className="num">{formatPrice(kind === 'call' ? pick.strike + pick.q.ask : pick.strike - pick.q.ask)}</dd>
-          </div>
-          <div>
-            <dt>{t('opt.daysLeft')}</dt>
-            <dd className="num">{pick.q.dte}</dd>
-          </div>
-        </dl>
-        <Field label={t('opt.contracts')} type="number" inputMode="numeric" min={1} max={MAX_CONTRACTS} step={1} value={qty} onChange={(e) => setQty(e.target.value)} hint={t('opt.each')} error={err} />
-        <p className={s.total}>
-          {t('opt.total')} <b className="num">{formatMoney(cost)}</b>
-          {buyingPower != null && <span className={s.sub}>{t('opt.bp', { bp: formatMoney(buyingPower) })}</span>}
-        </p>
-        <p className={s.sub}>{t('opt.risk', { cost: formatMoney(cost) })}</p>
-        <div className={s.sheetActions}>
-          <Button variant="ghost" onClick={onClose}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="buy"
-            disabled={!acct || !valid || short || busy}
-            onClick={() => {
-              setBusy(true);
-              placeOptionOrder({ u: sym, type: kind, strike: pick.strike, exp, side: 'buy', qty: n })
-                .then(() => {
-                  toast.show(t('opt.placed'), 'success');
-                  onClose();
-                })
-                .catch((e) => toast.show(errorMessage(e), 'error'))
-                .finally(() => setBusy(false));
-            }}
-          >
-            {t('opt.buyN', { n: valid ? n : 0 })}
-          </Button>
-        </div>
-      </div>
+    <Sheet open onClose={onClose} title={t('opt.buyTitle', { label: label({ u: sym, kind, strike: pick.strike, exp }) })} labelledBy={titleId}>
+      <OptionBuyForm sym={sym} kind={kind} exp={exp} strike={pick.strike} q={pick.q} S={S} vol={vol} today={today} canTrade={!!acct} buyingPower={buyingPower} onDone={onClose} onCancel={onClose} />
     </Sheet>
   );
 }

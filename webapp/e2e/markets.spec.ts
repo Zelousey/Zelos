@@ -1,5 +1,5 @@
 /**
- * The first core flow: Dashboard → Markets → Chart → Practice trade, against the
+ * The first core flow: Dashboard → Markets → Chart → Buy, against the
  * Firestore emulator seeded with real market docs (e2e/fixtures/markets.json).
  */
 import AxeBuilder from '@axe-core/playwright';
@@ -33,8 +33,9 @@ test('full flow: dashboard → markets → search → chart → practice trade',
   await expect(page).toHaveURL(/\/app\/markets\/NVDA$/);
   await expect(page.getByRole('heading', { level: 1, name: 'NVDA' })).toBeVisible();
   await expect(page.getByRole('img', { name: /NVDA .* price chart/ })).toBeVisible();
-  await page.getByRole('link', { name: /Practice trade/ }).filter({ visible: true }).first().click();
-  await expect(page).toHaveURL(/\/app\/practice\/trade\/NVDA$/);
+  await expect(page.getByRole('link', { name: 'Sell NVDA' }).filter({ visible: true }).first()).toHaveAttribute('href', '/app/practice/trade/NVDA?side=sell');
+  await page.getByRole('link', { name: 'Buy NVDA' }).filter({ visible: true }).first().click();
+  await expect(page).toHaveURL(/\/app\/practice\/trade\/NVDA\?side=buy$/);
   await expect(page.getByRole('link', { name: 'Open Practice' })).toBeVisible(); // signed out: asks to open the account
 });
 
@@ -136,8 +137,9 @@ test('no accessibility violations on data screens', async ({ page }) => {
 test('phone: chart controls fit one row and the trade bar is above the tab bar', async ({ page, viewport }) => {
   test.skip((viewport?.width ?? 0) > 760, 'phone only');
   await page.goto('markets/AAPL');
-  const bar = page.getByRole('link', { name: 'Practice trade · AAPL' });
+  const bar = page.getByRole('link', { name: 'Buy AAPL' }).filter({ visible: true });
   await expect(bar).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sell AAPL' }).filter({ visible: true })).toBeVisible();
   const tabbar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
   const [b, tb] = await Promise.all([bar.boundingBox(), tabbar.boundingBox()]);
   expect(b!.y + b!.height).toBeLessThanOrEqual(tb!.y + 1);
