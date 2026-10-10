@@ -11,6 +11,8 @@ import { formatDate, formatMoney, formatPrice, formatRelative, formatSignedMoney
 import { t } from '../../lib/i18n';
 import { Badge, Button, buttonClass, Card, Change, Confirm, EmptyState, ErrorState, LoadingState, PageHeader, Stat, useToast } from '../../ui';
 import { nyDay } from '../charts/series';
+import { useVolMap } from '../options/model';
+import { OptionPositions } from '../options/OptionPositions';
 import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeHistory, valueAccount, type HistoryItem, type Order } from './account';
 import { cancelOrder, errorMessage, openAccount, placeOrder, resetAccount, setPublic } from './actions';
 import s from './Practice.module.css';
@@ -83,7 +85,8 @@ function AccountView({ uid }: { uid: string }) {
   const archive = useArchive(uid, !!acct?.archivedClassic);
   const qs = useMemo(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
   const [today] = useState(() => nyDay(Date.now()));
-  const v = useMemo(() => (acct ? valueAccount(acct, qs, today) : null), [acct, qs, today]);
+  const vols = useVolMap();
+  const v = useMemo(() => (acct ? valueAccount(acct, qs, today, vols) : null), [acct, qs, today, vols]);
   const [closing, setClosing] = useState<{ sym: string; qty: number } | null>(null);
   const [resetting, setResetting] = useState(false);
   const [pending, setPending] = useState(false);
@@ -208,6 +211,20 @@ function AccountView({ uid }: { uid: string }) {
             )}
           </Card>
 
+          {v.optionRows.length > 0 && (
+            <Card
+              title={t('opt.positions')}
+              flush
+              actions={
+                <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/options">
+                  {t('nav.options')}
+                </Link>
+              }
+            >
+              <OptionPositions acct={acct} rows={v.optionRows} />
+            </Card>
+          )}
+
           <div className={s.side}>
             <Card title={t('practice.orders')} flush>
               {acct.orders.length === 0 ? <EmptyState icon="inbox" body={t('practice.orders.empty')} compact /> : acct.orders.map((o) => <OrderRow key={o.id} o={o} disabled={pending} onCancel={() => void run(() => cancelOrder(o.id), t('practice.cancelled'))} />)}
@@ -271,6 +288,7 @@ function AccountView({ uid }: { uid: string }) {
 }
 
 function orderText(o: Order): string {
+  if (o.opt) return `${o.side === 'buy' ? t('trade.buy') : t('trade.sell')} ${o.qty} ${o.label ?? o.sym} · ${t('trade.market')}`;
   const what = o.type === 'market' ? t('trade.market') : o.type === 'limit' ? `${t('trade.limit')} ${formatPrice(o.limit)}` : `${t('trade.stop')} ${formatPrice(o.stop)}`;
   const role = o.role === 'sl' ? ` · ${t('trade.stopLoss')}` : o.role === 'tp' ? ` · ${t('trade.takeProfit')}` : '';
   return `${o.side === 'buy' ? t('trade.buy') : t('trade.sell')} ${o.qty} ${o.sym} · ${what}${role}`;
@@ -282,7 +300,7 @@ function OrderRow({ o, onCancel, disabled }: { o: Order; onCancel: () => void; d
       <span>
         <span className={s.orderText}>{orderText(o)}</span>
         <span className={[s.orderMeta, s.sub].join(' ')}>
-          {o.tif === 'gtc' ? t('trade.gtc') : `${t('trade.day')} (${formatDate(o.session + 'T12:00:00Z')})`} · {formatRelative(o.createdAt)}
+          {o.opt ? t('nav.options') : o.tif === 'gtc' ? t('trade.gtc') : `${t('trade.day')} (${formatDate(o.session + 'T12:00:00Z')})`} · {formatRelative(o.createdAt)}
         </span>
       </span>
       <Button variant="ghost" size="sm" onClick={onCancel} disabled={disabled} aria-label={`${t('practice.cancel')}: ${orderText(o)}`}>
@@ -303,18 +321,18 @@ function HistoryList({ items }: { items: HistoryItem[] }) {
             <span>
               {h.kind === 'fill' && (
                 <>
-                  {t(h.side === 'buy' ? 'hist.bought' : 'hist.sold', { qty: h.qty ?? 0, sym: h.sym, price: formatPrice(h.price) })}
+                  {t(h.side === 'buy' ? 'hist.bought' : 'hist.sold', { qty: h.qty ?? 0, sym: h.label ?? h.sym, price: formatPrice(h.price) })}
                   {h.role === 'tp' ? t('hist.viaTp') : h.role === 'sl' ? t('hist.viaSl') : ''}
                 </>
               )}
               {h.kind === 'trade' && (
                 <>
-                  {t('hist.closed', { sym: h.sym })} <Change abs={h.pnl} pct={h.pct} />
+                  {h.role === 'expired' ? t('hist.expired', { label: h.label ?? h.sym, price: formatPrice(h.exit) }) : t('hist.closed', { sym: h.label ?? h.sym })} <Change abs={h.pnl} pct={h.pct} />
                 </>
               )}
               {h.kind === 'order' && (
                 <>
-                  {t('hist.order', { side: h.side === 'buy' ? t('trade.buy') : t('trade.sell'), qty: h.qty ?? 0, sym: h.sym, status: STATUS[h.status ?? ''] ? t(STATUS[h.status ?? '']!) : (h.status ?? '') })}
+                  {t('hist.order', { side: h.side === 'buy' ? t('trade.buy') : t('trade.sell'), qty: h.qty ?? 0, sym: h.label ?? h.sym, status: STATUS[h.status ?? ''] ? t(STATUS[h.status ?? '']!) : (h.status ?? '') })}
                   {h.note ? ` · ${h.note}` : ''}
                 </>
               )}

@@ -13,6 +13,7 @@ import { t, type MessageKey } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { Badge, Button, buttonClass, Card, Icon, PageHeader, Skeleton, Stat, useToast, type IconName } from '../../ui';
 import { nyDay } from '../charts/series';
+import { useVolMap } from '../options/model';
 import { usePracticeAccount, valueAccount } from '../practice/account';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import s from './TradeWar.module.css';
@@ -91,7 +92,8 @@ function PracticeCard() {
   const qs = useMemo(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
   const [today] = useState(() => nyDay(Date.now()));
   const data = acct.status === 'ready' ? acct.data : null;
-  const v = useMemo(() => (data ? valueAccount(data, qs, today) : null), [data, qs, today]);
+  const vols = useVolMap();
+  const v = useMemo(() => (data ? valueAccount(data, qs, today, vols) : null), [data, qs, today, vols]);
 
   const head = (
     <div className={s.practiceHead}>

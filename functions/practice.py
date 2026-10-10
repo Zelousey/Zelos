@@ -9,7 +9,8 @@ balances, fills and the public leaderboard can't be edited from a browser.
     stop orders only see bars that start after they were placed (plus closes after that).
   - Long only, whole shares, the Zelos stock list (no crypto while it's paused), US session
     9:30-16:00 ET (holidays are not modelled, same as the rest of the site).
-  - Stocks/ETFs first; options come next (owner decision).
+  - Stocks/ETFs, plus long calls and puts (owner 2026-10-09) with modeled prices: see options.py.
+    Option orders are market orders that fill on the underlying's next price, like stocks.
 
 Shapes (all money in dollars, times in epoch ms, days "YYYY-MM-DD" New York):
   account   practiceAccounts/{uid}: see new_account()
@@ -18,8 +19,11 @@ Shapes (all money in dollars, times in epoch ms, days "YYYY-MM-DD" New York):
 """
 
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+
+import options as OPT
 
 NY = ZoneInfo("America/New_York")
 START_CASH = 10000.0
@@ -122,7 +126,7 @@ def level_for(xp):
 # ------------------------------------------------------------------ account
 def new_account(now_ms, epoch=0, resets=0, reset_history=None):
     return {
-        "v": 3, "cash": START_CASH, "positions": {}, "orders": {}, "openOrders": 0,
+        "v": 3, "cash": START_CASH, "positions": {}, "options": {}, "orders": {}, "openOrders": 0,
         "realized": 0.0, "startedAt": now_ms, "createdAt": now_ms, "updatedAt": now_ms,
         "epoch": epoch, "resets": resets, "resetHistory": reset_history or [], "peak": START_CASH,
         "stats": new_stats(), "life": {"fills": 0, "tpExits": 0, "symbols": []},
@@ -138,15 +142,25 @@ def stock_value(acct, prices):
     return sum(p["qty"] * (prices.get(s) or p["avg"]) for s, p in (acct.get("positions") or {}).items())
 
 
-def equity(acct, prices):
-    return r2(acct["cash"] + stock_value(acct, prices))
+def option_value(acct, prices, vols=None, now_ms=None):
+    """Option positions at the model mid (intrinsic once expired), x100 shares per contract."""
+    opts = acct.get("options") or {}
+    if not opts:
+        return 0.0
+    today = ny_day(now_ms if now_ms is not None else int(time.time() * 1000))
+    vols = vols or {}
+    return sum(p["qty"] * 100 * OPT.value(p, prices.get(p["u"]), vols.get(p["u"], OPT.DEFAULT_VOL), today) for p in opts.values())
+
+
+def equity(acct, prices, vols=None, now_ms=None):
+    return r2(acct["cash"] + stock_value(acct, prices) + option_value(acct, prices, vols, now_ms))
 
 
 def reserved_cash(acct, prices):
     t = 0.0
     for o in (acct.get("orders") or {}).values():
         if o["side"] == "buy":
-            t += o["qty"] * (o.get("limit") or o.get("stop") or prices.get(o["sym"]) or 0)
+            t += o["est"] if o.get("opt") else o["qty"] * (o.get("limit") or o.get("stop") or prices.get(o["sym"]) or 0)
     return t
 
 
@@ -158,7 +172,11 @@ def reserved_shares(acct, sym):
     """Shares already promised to open sell orders. Bracket exits (stop-loss / take-profit)
     don't count: they protect the position, and a manual sell shrinks or cancels them
     (same as the classic page)."""
-    return sum(o["qty"] for o in (acct.get("orders") or {}).values() if o["side"] == "sell" and o["sym"] == sym and not o.get("oco"))
+    return sum(o["qty"] for o in (acct.get("orders") or {}).values() if o["side"] == "sell" and o["sym"] == sym and not o.get("oco") and not o.get("opt"))
+
+
+def reserved_contracts(acct, cid):
+    return sum(o["qty"] for o in (acct.get("orders") or {}).values() if o["side"] == "sell" and o.get("opt") == cid)
 
 
 def net_pnl(acct, eq):
@@ -256,6 +274,67 @@ def validate_order(acct, req, last_price, universe, now_ms, new_id):
             "session": active_session(now_ms), "createdAt": now_ms, "bracket": bracket, "oco": None, "role": None, "parent": None}
 
 
+def validate_option_order(acct, req, last_price, vol, universe, now_ms, new_id):
+    """{kind: "option", u, type: "call"|"put", strike, exp, side, qty} -> a clean option order.
+    Long calls and puts only: buy to open, sell to close. Market orders, filled on the next
+    price; the cost check uses today's model ask, the fill uses the price at fill time."""
+    if not isinstance(req, dict):
+        raise OrderError("Invalid order.")
+    u = str(req.get("u") or "").upper()
+    if not SYM_RE.match(u) or u not in universe:
+        raise OrderError("That stock isn't in the Zelos stock list.")
+    if not last_price:
+        raise OrderError("There's no price for %s yet. Try again in a few minutes." % u)
+    kind = req.get("type")
+    if kind not in ("call", "put"):
+        raise OrderError("Choose a call or a put.")
+    side = req.get("side")
+    if side not in ("buy", "sell"):
+        raise OrderError("Choose Buy or Sell.")
+    exp = str(req.get("exp") or "")
+    try:
+        strike = round(float(req.get("strike")), 2)
+    except (TypeError, ValueError):
+        raise OrderError("Pick a strike price.")
+    try:
+        qty = int(req.get("qty"))
+    except (TypeError, ValueError):
+        raise OrderError("Enter a whole number of contracts.")
+    if str(qty) != str(req.get("qty")) and qty != req.get("qty"):
+        raise OrderError("Enter a whole number of contracts.")
+    if not 1 <= qty <= OPT.MAX_CONTRACTS:
+        raise OrderError("Enter between 1 and %d contracts." % OPT.MAX_CONTRACTS)
+    if (acct.get("openOrders") or 0) >= MAX_OPEN_ORDERS:
+        raise OrderError("You have %d open orders. Cancel some first." % MAX_OPEN_ORDERS)
+    today = ny_day(now_ms)
+    cid = OPT.contract_id(u, kind, strike, exp) if re.match(r"^\d{4}-\d{2}-\d{2}$", exp) else None
+    held = ((acct.get("options") or {}).get(cid) or {}).get("qty", 0) if cid else 0
+    if side == "buy":
+        if exp not in OPT.expirations(today):
+            raise OrderError("Pick one of the listed expiration dates.")
+        if strike not in OPT.strikes(last_price):
+            raise OrderError("Pick one of the listed strike prices.")
+        if not held and len(acct.get("options") or {}) >= OPT.MAX_OPTION_POSITIONS:
+            raise OrderError("You can hold up to %d different option contracts." % OPT.MAX_OPTION_POSITIONS)
+        q = OPT.quote(kind, last_price, strike, exp, today, vol)
+        est = r2(q["ask"] * 100 * qty)
+        bp = buying_power(acct, {u: last_price})
+        if est > bp + 0.005:
+            raise OrderError("Not enough buying power: that's about $%s and you have $%s." % (format(est, ",.2f"), format(r2(bp), ",.2f")))
+    else:
+        if not held:
+            raise OrderError("You don't hold that contract.")
+        if exp < today:
+            raise OrderError("That contract has expired.")
+        free = held - reserved_contracts(acct, cid)
+        if qty > free:
+            raise OrderError("You can sell up to %d of these contracts (others are in open sell orders)." % max(0, free))
+        est = 0.0
+    c = {"u": u, "kind": kind, "strike": strike, "exp": exp}
+    return {"id": new_id, "sym": u, "opt": cid, "contract": c, "label": OPT.label(c), "side": side, "type": "market", "qty": qty, "limit": None, "stop": None, "tif": "day",
+            "session": active_session(now_ms), "createdAt": now_ms, "bracket": None, "oco": None, "role": None, "parent": None, "est": est}
+
+
 def add_order(acct, order):
     acct["orders"][order["id"]] = order
     acct["openOrders"] = len(acct["orders"])
@@ -293,8 +372,82 @@ def _new_id(base, suffix):
     return (base + suffix)[:32]
 
 
-def fill(acct, o, px, when_ms, events):
+def fill_option(acct, o, S, when_ms, events, vols):
+    """Fill an option order: the model price with the underlying at S (buy at the ask, sell at the bid)."""
+    day = ny_day(when_ms)
+    acct["orders"].pop(o["id"], None)
+    c = o["contract"]
+    acct.setdefault("options", {})
+    q = OPT.quote(c["kind"], S, c["strike"], c["exp"], day, (vols or {}).get(c["u"], OPT.DEFAULT_VOL))
+    if o["side"] == "buy":
+        px, qty = q["ask"], o["qty"]
+        cost = r2(px * 100 * qty)
+        if cost > acct["cash"] + 0.005:
+            events.append({"kind": "order", "order": dict(o, status="rejected", note="Not enough cash when it triggered", closedAt=when_ms)})
+            _recount(acct)
+            return
+        acct["cash"] = r2(acct["cash"] - cost)
+        p = acct["options"].get(o["opt"]) or dict(c, qty=0, avg=0.0, openedDay=day, label=o["label"])
+        p["avg"] = round((p["avg"] * p["qty"] + px * qty) / (p["qty"] + qty), 4)
+        p["qty"] += qty
+        acct["options"][o["opt"]] = p
+        _life(acct, c["u"])
+        acct["life"]["optionFills"] = acct["life"].get("optionFills", 0) + 1
+        events.append({"kind": "order", "order": dict(o, status="filled", fillPrice=px, filledAt=when_ms, closedAt=when_ms)})
+        events.append({"kind": "fill", "sym": c["u"], "opt": o["opt"], "label": o["label"], "side": "buy", "qty": qty, "price": px, "at": when_ms, "day": day, "orderId": o["id"]})
+    else:
+        pos = acct["options"].get(o["opt"])
+        if not pos or pos["qty"] <= 0:
+            events.append({"kind": "order", "order": dict(o, status="cancelled", note="No contracts left to sell", closedAt=when_ms)})
+            _recount(acct)
+            return
+        px, qty = q["bid"], min(o["qty"], pos["qty"])
+        _close_option(acct, o["opt"], pos, qty, px, when_ms, events, role=None)
+        acct["life"]["optionFills"] = acct["life"].get("optionFills", 0) + 1
+        events.insert(len(events) - 2, {"kind": "order", "order": dict(o, qty=qty, status="filled", fillPrice=px, filledAt=when_ms, closedAt=when_ms)})
+    _recount(acct)
+
+
+def _close_option(acct, cid, pos, qty, px, when_ms, events, role):
+    day = ny_day(when_ms)
+    pnl = r2((px - pos["avg"]) * 100 * qty)
+    acct["cash"] = r2(acct["cash"] + px * 100 * qty)
+    acct["realized"] = r2(acct["realized"] + pnl)
+    trade = {"kind": "option", "sym": pos["u"], "label": pos.get("label") or OPT.label(pos), "opt": cid, "qty": qty, "entry": round(pos["avg"], 4), "exit": round(px, 4),
+             "invested": r2(pos["avg"] * 100 * qty), "pnl": pnl, "pct": round((px / pos["avg"] - 1) * 100, 2) if pos["avg"] else 0.0,
+             "openDay": pos.get("openedDay"), "closeDay": day, "at": when_ms, "epoch": acct.get("epoch", 0), "role": role}
+    _record_trade(acct, trade)
+    pos["qty"] -= qty
+    if pos["qty"] <= 0:
+        acct["options"].pop(cid, None)
+    _life(acct, pos["u"])
+    events.append({"kind": "fill", "sym": pos["u"], "opt": cid, "label": trade["label"], "side": "sell", "qty": qty, "price": round(px, 4), "at": when_ms, "day": day, "pnl": pnl, "role": role})
+    events.append({"kind": "trade", "trade": trade})
+
+
+def settle_expired(acct, prices, now_ms):
+    """Contracts past their expiration close settle at intrinsic value (cash), like exercise at expiry."""
+    events = []
+    today = ny_day(now_ms)
+    for cid, pos in list((acct.get("options") or {}).items()):
+        if pos["exp"] > today or (pos["exp"] == today and now_ms < session_close_ms(today)):
+            continue
+        S = prices.get(pos["u"])
+        if S is None:
+            continue
+        px = OPT.intrinsic(pos, S)
+        for o in [x for x in acct["orders"].values() if x.get("opt") == cid]:
+            acct["orders"].pop(o["id"], None)
+            events.append({"kind": "order", "order": dict(o, status="cancelled", note="Contract expired", closedAt=now_ms)})
+        _close_option(acct, cid, pos, pos["qty"], px, max(now_ms, session_close_ms(pos["exp"])), events, role="expired")
+    _recount(acct)
+    return events
+
+
+def fill(acct, o, px, when_ms, events, vols=None):
     """Apply one fill. Mirrors the classic page's fill() so results are the same."""
+    if o.get("opt"):
+        return fill_option(acct, o, px, when_ms, events, vols)
     sym, day = o["sym"], ny_day(when_ms)
     acct["orders"].pop(o["id"], None)
     px = round(float(px), 4)
@@ -347,7 +500,7 @@ def fill(acct, o, px, when_ms, events):
         events.append({"kind": "trade", "trade": trade})
         # the other side of a bracket goes; other sells shrink to what's left
         for x in list(acct["orders"].values()):
-            if x["side"] != "sell" or x["sym"] != sym:
+            if x["side"] != "sell" or x["sym"] != sym or x.get("opt"):
                 continue
             if (o.get("oco") and x.get("oco") == o["oco"]) or sym not in acct["positions"]:
                 acct["orders"].pop(x["id"], None)
@@ -400,7 +553,7 @@ def _record_trade(acct, t):
         acct["tradeDays"] = (acct["tradeDays"] + [t["closeDay"]])[-400:]
 
 
-def process_orders(acct, quotes, bars, now_ms, bar_min=BAR_MIN):
+def process_orders(acct, quotes, bars, now_ms, bar_min=BAR_MIN, vols=None):
     """Fill / expire open orders against prices observed after each order was placed.
 
     quotes:  {SYM: {"c": price, "t": epoch seconds of the quote}}
@@ -418,7 +571,7 @@ def process_orders(acct, quotes, bars, now_ms, bar_min=BAR_MIN):
                 continue
             hit = _first_trigger(o, bars.get(o["sym"]) or [], quotes.get(o["sym"]), now_ms, bar_min)
             if hit:
-                fill(acct, o, hit[0], hit[1], events)
+                fill(acct, o, hit[0], hit[1], events, vols)
                 progressed = True
                 break  # orders changed (brackets added, siblings removed): start over
         if not progressed:

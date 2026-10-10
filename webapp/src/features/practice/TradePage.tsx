@@ -15,9 +15,10 @@ import { readString, writeString } from '../../lib/storage';
 import { Badge, Button, buttonClass, Card, Change, Confirm, EmptyState, ErrorState, Field, LoadingState, Tabs, useToast } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import type { Forecast } from '../charts/engine';
-import { TIMEFRAMES, type Timeframe } from '../charts/series';
+import { nyDay, TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { StatusLine } from '../markets/StatusLine';
+import { useVolMap } from '../options/model';
 import { sellableShares, usePracticeAccount, valueAccount } from './account';
 import { errorMessage, placeOrder } from './actions';
 import { checkTicket, maxShares, type TicketInput } from './ticket';
@@ -63,7 +64,9 @@ function Ticket({ sym, name, uid }: { sym: string; name: string; uid: string }) 
   const { quotes, quote, built, loading } = useSymbolBars(sym, tf);
   const last = quote?.c ?? built.bars[built.bars.length - 1]?.[4] ?? null;
   const qs = useMemo(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
-  const v = useMemo(() => (acct ? valueAccount(acct, qs, '') : null), [acct, qs]);
+  const vols = useVolMap();
+  const [today] = useState(() => nyDay(Date.now()));
+  const v = useMemo(() => (acct ? valueAccount(acct, qs, today, vols) : null), [acct, qs, today, vols]);
   const sellable = acct ? sellableShares(acct, sym) : 0;
   const held = acct?.positions.find((p) => p.sym === sym)?.qty ?? 0;
 
@@ -118,7 +121,10 @@ function Ticket({ sym, name, uid }: { sym: string; name: string; uid: string }) 
           <h1 className={s.sym}>
             {sym} <Badge tone="accent">{t('practice.virtual')}</Badge>
           </h1>
-          <span className={s.name}>{name}</span>
+          <span className={s.name}>
+            {name} ·{' '}
+            <Link to={`/options/${sym}`}>{t('trade.options', { sym })}</Link>
+          </span>
         </div>
         <div className={s.px}>
           <span className={s.last}>{formatPrice(last)}</span>

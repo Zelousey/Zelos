@@ -59,6 +59,7 @@ from firebase_admin import initialize_app, firestore
 import mdata as MD  # Marketstack + SEC market data (the sources the site may show)
 import xp as XP  # XP award rules (server-decided amounts and limits)
 import practice as PR  # practice account engine (server-side fills, see functions/practice.py)
+import options as OPT  # modeled option prices for the practice account (functions/options.py)
 
 initialize_app()
 
@@ -4740,6 +4741,40 @@ def _pr_prices(quotes):
     return {s: q["c"] for s, q in quotes.items()}
 
 
+_VOLS = {"day": None, "vols": {}}
+
+
+def _pr_vols(db, now_ms=None, refresh=False):
+    """{SYM: annual vol} for the option model: 20-day historical volatility from markets/dailyBars
+    (the same daily closes the charts use). Computed once a New York day and published to
+    markets/optionVols so the app shows the same prices the server fills at."""
+    day = PR.ny_day(now_ms or int(_time.time() * 1000))
+    if not refresh and _VOLS["day"] == day and _VOLS["vols"]:
+        return _VOLS["vols"]
+    ref = db.collection("markets").document("optionVols")
+    if not refresh:
+        snap = ref.get()
+        d = (snap.to_dict() or {}) if snap.exists else {}
+        if d.get("day") == day and isinstance(d.get("vols"), dict) and d["vols"]:
+            _VOLS.update(day=day, vols={k: float(v) for k, v in d["vols"].items() if isinstance(v, (int, float))})
+            return _VOLS["vols"]
+    snap = db.collection("markets").document("dailyBars").get()
+    bars = ((snap.to_dict() or {}).get("bars") or {}) if snap.exists else {}
+    vols = {}
+    for sym, rows in bars.items():
+        closes = []
+        for r in rows or []:
+            try:
+                closes.append(float(str(r).split(",")[4]))
+            except (IndexError, ValueError):
+                continue
+        vols[str(sym)] = round(OPT.hist_vol(closes), 4)
+    if vols:
+        ref.set({"day": day, "vols": vols, "model": "black-scholes", "rate": OPT.RATE, "updatedAt": datetime.now(timezone.utc).isoformat()})
+    _VOLS.update(day=day, vols=vols)
+    return vols
+
+
 def _pr_bars(raw_bars):
     """ms_run_quotes bars {SYM: ["YYYY-MM-DD HH:MM,o,h,l,c,v", ...]} -> {SYM: [[label, o, h, l, c, v], ...]}."""
     out = {}
@@ -4787,6 +4822,19 @@ def _pr_after(db, uid, events, now_ms, tok=None):
             xp_grant(db, uid, "onboard", "trade", now_ms)
         except Exception as ex:
             print("[practice] onboard flag failed:", type(ex).__name__)
+    if any(e["kind"] == "fill" and e.get("opt") and e.get("side") == "buy" for e in events):
+        try:  # "Options Rookie: trade your first option" (recorded like the website does)
+            uref = db.collection("users").document(uid)
+            u = uref.get()
+            ach = (((u.to_dict() or {}).get("progress") or {}).get("achievements") or {}) if u.exists else {}
+            if "options-rookie" not in ach:
+                uref.set({"progress": {"v": 1, "achievements": {"options-rookie": now_ms}}}, merge=True)
+            xp_grant(db, uid, "achievement", "options-rookie", now_ms)
+            pref = db.collection("practiceProfiles").document(uid)
+            if pref.get().exists:
+                pref.update({"achievements": firestore.ArrayUnion(["options-rookie"])})
+        except Exception as ex:
+            print("[practice] options achievement failed:", type(ex).__name__)
     for e in events:
         try:
             if e["kind"] == "fill":
@@ -4812,7 +4860,7 @@ def _pr_publish(db, uid, now_ms, tok=None, quotes=None, acct=None):
         pref.delete()
         return
     quotes = quotes if quotes is not None else _pr_quotes(db)
-    eq = PR.equity(acct, _pr_prices(quotes))
+    eq = PR.equity(acct, _pr_prices(quotes), _pr_vols(db, now_ms) if acct.get("options") else None, now_ms)
     old = pref.get()
     keep = (old.to_dict() or {}) if old.exists else {}
     prof = PR.build_profile(acct, eq, now_ms, _pr_identity(db, uid, tok), _user_xp(db, uid), keep)
@@ -4879,11 +4927,13 @@ def practice_account(req, db, uid, tok, now_ms):
 @https_fn.on_call()
 @_pr_call
 def practice_order(req, db, uid, tok, now_ms):
-    """{sym, side, type, qty, limit?, stop?, tif?, bracket?: {sl?, tp?}} -> {order}. The order is
-    checked here and fills later, on prices observed after this moment (see functions/practice.py)."""
+    """{sym, side, type, qty, limit?, stop?, tif?, bracket?: {sl?, tp?}} -> {order}, or for options
+    {kind: "option", u, type: "call"|"put", strike, exp, side, qty}. The order is checked here and
+    fills later, on prices observed after this moment (see functions/practice.py, options.py)."""
     quotes = _pr_quotes(db)
     data = req.data if isinstance(req.data, dict) else {}
     sym = str(data.get("sym") or "").upper()
+    vols = _pr_vols(db, now_ms) if data.get("kind") == "option" else {}
     ref = db.collection("practiceAccounts").document(uid)
     oid = _secrets.token_hex(8)
 
@@ -4893,7 +4943,11 @@ def practice_order(req, db, uid, tok, now_ms):
         if not snap.exists:
             raise PR.OrderError("Open your practice account first.")
         acct = snap.to_dict()
-        o = PR.validate_order(acct, data, (quotes.get(sym) or {}).get("c"), PRACTICE_UNIVERSE, now_ms, oid)
+        if data.get("kind") == "option":
+            u = str(data.get("u") or "").upper()
+            o = PR.validate_option_order(acct, data, (quotes.get(u) or {}).get("c"), vols.get(u, OPT.DEFAULT_VOL), PRACTICE_UNIVERSE, now_ms, oid)
+        else:
+            o = PR.validate_order(acct, data, (quotes.get(sym) or {}).get("c"), PRACTICE_UNIVERSE, now_ms, oid)
         PR.add_order(acct, o)
         acct["updatedAt"] = now_ms
         t.set(ref, acct)
@@ -4931,6 +4985,7 @@ def practice_cancel(req, db, uid, tok, now_ms):
 def practice_reset(req, db, uid, tok, now_ms):
     """Back to $10,000 (only once the account is below $2,500). Counts as a public reset."""
     quotes = _pr_quotes(db)
+    vols = _pr_vols(db, now_ms)
     ref = db.collection("practiceAccounts").document(uid)
 
     @firestore.transactional
@@ -4939,7 +4994,7 @@ def practice_reset(req, db, uid, tok, now_ms):
         if not snap.exists:
             raise PR.OrderError("Open your practice account first.")
         acct = snap.to_dict()
-        fresh, events = PR.reset_account(acct, PR.equity(acct, _pr_prices(quotes)), now_ms)
+        fresh, events = PR.reset_account(acct, PR.equity(acct, _pr_prices(quotes), vols, now_ms), now_ms)
         t.set(ref, fresh)
         _pr_events(db, uid, events, t)
         return fresh["resets"]
@@ -4969,10 +5024,17 @@ def practice_pass(db, quotes, raw_bars, now_ms, bar_min=PR.BAR_MIN):
     bar_min: length of raw_bars in minutes (the Marketstack interval in use)."""
     q = {s: {"c": v.get("c"), "t": v.get("t")} for s, v in (quotes or {}).items() if v and v.get("c")}
     bars = _pr_bars(raw_bars)
+    vols = None
     fills = accounts = 0
     for snap in db.collection("practiceAccounts").where("openOrders", ">", 0).stream():
         uid = snap.id
         ref = snap.reference
+
+        def vols_for(acct):
+            nonlocal vols
+            if vols is None and any(o.get("opt") for o in (acct.get("orders") or {}).values()):
+                vols = _pr_vols(db, now_ms)
+            return vols
 
         @firestore.transactional
         def txn(t):
@@ -4980,7 +5042,7 @@ def practice_pass(db, quotes, raw_bars, now_ms, bar_min=PR.BAR_MIN):
             acct = s2.to_dict() if s2.exists else None
             if not acct or not acct.get("orders"):
                 return []
-            events = PR.process_orders(acct, q, bars, now_ms, bar_min)
+            events = PR.process_orders(acct, q, bars, now_ms, bar_min, vols_for(acct))
             if events:
                 acct["updatedAt"] = now_ms
                 t.set(ref, acct)
@@ -5002,16 +5064,46 @@ def practice_pass(db, quotes, raw_bars, now_ms, bar_min=PR.BAR_MIN):
     return {"accounts": accounts, "fills": fills}
 
 
+def _pr_settle(db, ref, uid, prices, now_ms):
+    """Settle expired option contracts (cash at intrinsic value) in one transaction."""
+    @firestore.transactional
+    def txn(t):
+        s2 = ref.get(transaction=t)
+        acct = s2.to_dict() if s2.exists else None
+        if not acct or not acct.get("options"):
+            return []
+        events = PR.settle_expired(acct, prices, now_ms)
+        if events:
+            acct["updatedAt"] = now_ms
+            t.set(ref, acct)
+            _pr_events(db, uid, events, t)
+        return events
+
+    events = txn(db.transaction())
+    if any(e["kind"] == "trade" and e["trade"]["pnl"] > 0 for e in events):
+        try:
+            for e in events:
+                if e["kind"] == "trade" and e["trade"]["pnl"] > 0:
+                    xp_grant(db, uid, "practice-win", None, now_ms, counted=True)
+        except Exception as ex:
+            print("[practice] expiry xp failed:", type(ex).__name__)
+    return events
+
+
 def practice_revalue_all(db, now_ms):
     """After the close: mark every account at the closing prices (peak, period baselines, daily
     history) and refresh its public profile."""
     quotes = _pr_quotes(db)
     prices = _pr_prices(quotes)
+    vols = _pr_vols(db, now_ms, refresh=True)  # today's closes: the vols the app and fills use tomorrow
     n = 0
     for snap in db.collection("practiceAccounts").stream():
         try:
             acct = snap.to_dict()
-            eq = PR.equity(acct, prices)
+            if acct.get("options"):
+                _pr_settle(db, snap.reference, snap.id, prices, now_ms)
+                acct = snap.reference.get().to_dict()
+            eq = PR.equity(acct, prices, vols, now_ms)
             PR.mark(acct, eq, now_ms, _user_xp(db, snap.id))
             snap.reference.update({"peak": acct["peak"], "periods": acct["periods"], "hist": acct["hist"], "markedAt": now_ms})
             _pr_publish(db, snap.id, now_ms, None, quotes, acct)
