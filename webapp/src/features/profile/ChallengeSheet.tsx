@@ -1,16 +1,19 @@
 /**
  * Challenge a trader to a Trade War from their profile (the website's "Challenge to a Trade
- * War") or from a squad (everyone else in it). They get a card to accept or decline; the battle opens on the website's war page.
- * The server checks the buy-in your level allows and how many challenges you have waiting.
+ * War") or from a squad (everyone else in it). They get a card to accept or decline; the battle opens in the app's battle room.
+ * Every game mode can be set (BattleSettings); the server checks the buy-in your level allows,
+ * the modes and how many challenges you have waiting.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { Button, Field, Sheet, useToast } from '../../ui';
-import { BUY_INS, DAYS, errorText } from '../invites/invites';
+import { DAYS, errorText } from '../invites/invites';
 import { Choices } from '../invites/Choices';
 import { auth } from '../../lib/firebase';
+import { useUserDoc } from '../../data/userDoc';
+import { BattleSettings, BuyInChoices } from '../battles/BattleSettings';
+import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { unlockQuietly } from '../missions/missions';
 import { challenge } from './profile';
 import s from './Profile.module.css';
@@ -21,16 +24,25 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
   const [name, setName] = useState('');
   const [buyIn, setBuyIn] = useState(1000);
   const [days, setDays] = useState(7);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const me = useUserDoc(auth().currentUser?.uid ?? null);
+  const xp = me.status === 'ready' ? me.data.xp : me.status === 'loading' ? null : 0;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  function pickDays(d: number) {
+    setDays(d);
+    setSettings((v) => fitDays(v, d));
+  }
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const title = name.replace(/[<>]/g, '').trim().slice(0, 40);
     if (title.length < 2) return setErr(t('pf.ch.needName'));
+    const bad = settingsError(settings, days);
+    if (bad) return setErr(t(bad));
     setBusy(true);
     setErr(null);
     try {
-      const r = await challenge({ ...(squadId ? { squadId } : { to: to ?? '' }), name: title, buyIn, days });
+      const r = await challenge({ ...(squadId ? { squadId } : { to: to ?? '' }), name: title, buyIn, days, ...toPayload(settings) });
       toast.show(t('pf.ch.sent', { name: toName }));
       const me = auth().currentUser;
       if (me) await Promise.race([unlockQuietly(me.uid, 'challenger', 'Challenger', toast.show), new Promise((ok) => setTimeout(ok, 2500))]); // the page changes next
@@ -46,8 +58,9 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
       <form className={s.form} onSubmit={send}>
         <p className={s.muted}>{t('pf.ch.body')}</p>
         <Field label={t('inv.battle.name')} value={name} maxLength={40} placeholder={t('pf.ch.placeholder')} onChange={(e) => setName(e.target.value)} required />
-        <Choices label={t('inv.battle.buyIn')} value={buyIn} options={BUY_INS} onChange={setBuyIn} format={(v) => formatMoney(v, { digits: 0 })} />
-        <Choices label={t('inv.battle.days')} value={days} options={DAYS} onChange={setDays} format={(v) => (v === 1 ? t('inv.battle.day1') : t('inv.battle.daysN', { n: v }))} />
+        <BuyInChoices value={buyIn} onChange={setBuyIn} xp={xp} />
+        <Choices label={t('inv.battle.days')} value={days} options={DAYS} onChange={pickDays} format={(v) => (v === 1 ? t('inv.battle.day1') : t('inv.battle.daysN', { n: v }))} />
+        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setErr(null); }} days={days} />
         {err && (
           <p className={s.error} role="alert">
             {err}
