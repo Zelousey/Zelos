@@ -52,6 +52,7 @@ export const MODULES: AppModule[] = [
   { id: 'news', path: 'news', label: 'nav.news', icon: 'news', group: 'main', status: 'ready', tab: 5, load: () => import('../features/news/NewsModule') },
 
   { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/practice/PracticeModule') },
+  { id: 'battles', path: 'battles', label: 'nav.battles', icon: 'war', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/battles/BattlesModule') },
   { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'play', status: 'ready', parent: 'trade-war', load: () => import('../features/options/OptionsModule') },
   { id: 'invite', path: 'invite', label: 'nav.invite', icon: 'invite', group: 'play', status: 'ready', load: () => import('../features/invites/InviteModule').then((m) => ({ default: m.InviteMakeModule })) },
   // an invite link someone shared: /i/<code>

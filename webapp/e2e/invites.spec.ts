@@ -50,7 +50,7 @@ test('make a battle invite, open it as a new player, accept with a celebration',
   await guest.getByRole('button', { name: 'Accept' }).click();
   await expect(guest.getByRole('status').filter({ hasText: 'You’re in the battle!' })).toBeVisible();
   await expect(guest.getByText('+50 XP for joining from an invite')).toBeVisible();
-  await expect(guest.getByRole('link', { name: 'Go to the battle room' })).toHaveAttribute('href', /practice\/war\.html\?w=[A-Za-z0-9]{12}$/);
+  await expect(guest.getByRole('link', { name: 'Go to the battle room' })).toHaveAttribute('href', /\/battles\/[A-Za-z0-9]{12}$/);
 
   // the host's bell says so
   await host.goto('dashboard');
