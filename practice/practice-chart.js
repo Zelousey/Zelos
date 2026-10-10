@@ -22,6 +22,9 @@
  *     click (snapped to the nearest candle's high or low); after three points the
  *     likely end of leg C is projected (100%-161.8% of leg A from B); after four,
  *     onAbcDone(abc) fires. Points are stored by date so they survive zooming.
+ *   - shapes: coach "plays" (app, 2026-10-10) [{ k: line|arrow|box|hline|text, c: blue|green|red|gold,
+ *     pts: [{ d, p }], text }] drawn over the chart; shapeDraft is the one being drawn.
+ *     pointAt(x, y) -> { d, p } turns a pointer position into a bar date and a price.
  */
 (function (global) {
   'use strict';
@@ -147,6 +150,7 @@
     this.refPrice = null; this.anim = null; this.pulse = null;
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
     this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
+    this.shapes = []; this.shapeDraft = null;
     this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
     var self = this, drag = null;
     function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
@@ -219,6 +223,12 @@
   };
   TradeChart.prototype.priceAt = function (y) {
     var g = this.geo; return g.hi - (y - g.L.y0) / (g.L.y1 - g.L.y0) * (g.hi - g.lo);
+  };
+  // a pointer position as { d: bar date, p: price } (null off the price panel)
+  TradeChart.prototype.pointAt = function (x, y) {
+    var g = this.geo; if (!g || !this.s || y < g.L.y0 || y > g.L.y1) return null;
+    var p = this.priceAt(y); if (!(p > 0)) return null;
+    return { d: this.s.d[this.barAt(x)], p: Math.round(p * 100) / 100 };
   };
   // draggable things under the pointer: forecast SL / TP edges, then alert lines
   TradeChart.prototype.hitTest = function (p) {
@@ -355,6 +365,7 @@
     this.lines.forEach(function (ln) { if (ln.price > lo * 0.8 && ln.price < hi * 1.25) { lo = Math.min(lo, ln.price); hi = Math.max(hi, ln.price); } });
     if (this.forecast) [this.forecast.sl, this.forecast.tp].forEach(function (v) { if (v) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
     this.alerts.forEach(function (a) { if (a.price > lo * 0.8 && a.price < hi * 1.25) { lo = Math.min(lo, a.price); hi = Math.max(hi, a.price); } });
+    this.shapes.forEach(function (sh) { (sh.pts || []).forEach(function (q) { if (q.p > lo * 0.8 && q.p < hi * 1.25) { lo = Math.min(lo, q.p); hi = Math.max(hi, q.p); } }); });
     if (lineMode && this.refPrice && this.refPrice > lo * 0.97 && this.refPrice < hi * 1.03) { lo = Math.min(lo, this.refPrice); hi = Math.max(hi, this.refPrice); }
     var pad = (hi - lo) * (lineMode ? 0.12 : 0.06) || (lineMode ? hi * 0.004 : 1); lo -= pad; hi += pad;
     if (this.frozen) { lo = this.frozen.lo; hi = this.frozen.hi; } // keep the scale still while dragging
@@ -519,6 +530,38 @@
         }
         c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
       }
+    }
+    // coach plays: lines, arrows, boxes, price levels and labels pinned to bar dates
+    var shapeList = this.shapeDraft ? this.shapes.concat([this.shapeDraft]) : this.shapes;
+    if (shapeList.length) {
+      var SC = { blue: cssVar('--accent', '#4a86ff'), green: green, red: red, gold: cssVar('--gold', '#e8b23d') };
+      var idxOf = function (d) {
+        var k = s.d.indexOf(d); if (k >= 0) return k;
+        for (var j = 0; j < s.n; j++) if (s.d[j] > d) return j; // nearest later bar (e.g. a daily date on 15m bars)
+        return d > s.d[s.n - 1] ? s.n - 1 : -1;
+      };
+      c.save(); c.beginPath(); c.rect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); c.clip();
+      shapeList.forEach(function (sh) {
+        var col = SC[sh.c] || SC.blue, pts = (sh.pts || []).map(function (q) { return { x: X(idxOf(q.d)), y: Y(q.p), i: idxOf(q.d), p: q.p }; });
+        if (!pts.length || pts.some(function (q) { return q.i < 0; })) return;
+        c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 2; c.globalAlpha = sh === self.shapeDraft ? 0.7 : 1;
+        var a = pts[0], b = pts[1];
+        if (sh.k === 'hline') { c.setLineDash([6, 4]); c.beginPath(); c.moveTo(L.x0, a.y); c.lineTo(L.x1, a.y); c.stroke(); c.setLineDash([]); }
+        else if (sh.k === 'box' && b) { c.globalAlpha *= 0.18; c.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y)); c.globalAlpha = sh === self.shapeDraft ? 0.7 : 1; c.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y)); }
+        else if ((sh.k === 'line' || sh.k === 'arrow') && b) {
+          c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+          if (sh.k === 'arrow') { var ang = Math.atan2(b.y - a.y, b.x - a.x), hl = 11; c.beginPath(); c.moveTo(b.x, b.y); c.lineTo(b.x - hl * Math.cos(ang - 0.45), b.y - hl * Math.sin(ang - 0.45)); c.lineTo(b.x - hl * Math.cos(ang + 0.45), b.y - hl * Math.sin(ang + 0.45)); c.closePath(); c.fill(); }
+        } else if (sh.k === 'text') { c.beginPath(); c.arc(a.x, a.y, 3.5, 0, Math.PI * 2); c.fill(); }
+        var label = sh.text || (sh.k === 'hline' ? fmt(a.p) : '');
+        if (label) {
+          c.font = '700 11px "IBM Plex Sans", ui-sans-serif, sans-serif'; c.textBaseline = 'bottom';
+          var tx = sh.k === 'hline' ? L.x0 + 6 : a.x + 6, ty = a.y - 4, tw = c.measureText(label).width;
+          c.globalAlpha = 0.85; c.fillStyle = bg; c.fillRect(tx - 3, ty - 15, tw + 6, 16); c.globalAlpha = 1; c.fillStyle = col; c.fillText(label, tx, ty);
+          c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+        }
+        c.globalAlpha = 1;
+      });
+      c.restore();
     }
     // Trade War price alerts
     this.alerts.forEach(function (a) {

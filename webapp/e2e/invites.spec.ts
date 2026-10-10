@@ -63,7 +63,7 @@ test('make a battle invite, open it as a new player, accept with a celebration',
 test('invite a friend by username: Accept right in their bell', async ({ browser }, info) => {
   const id = `${info.project.name}${Date.now()}`;
   const friend = await player(browser, info);
-  await friend.goto('dashboard');
+  await friend.goto('news'); // not the Dashboard: it sends a new user to /welcome, which can cut the sign-in call short
   const friendUid = await signIn(friend, `friend-${id}@example.com`);
   const uname = `fr_${id.slice(-12)}`.toLowerCase();
   await put(`usernames/${uname}`, { uid: { stringValue: friendUid } });

@@ -5503,6 +5503,8 @@ def referral_claim(req, db, uid, tok, now_ms):
 #   coach_task_update {coachingId, taskId, action: tick|confirm|reject|cancel}
 #   coach_note    {coachingId, text, reaction?, tradeId?}       either side; a reaction to a trade
 #   coach_end     {coachingId}                                  either side
+#   coach_play    {coachingId, sym, tf, title, note, shapes}   coach draws up a chart play -> {playId}
+#   coach_play_comment {coachingId, playId, text}               either side comments on a play
 # Everything is written here; the two people can read their coaching and its tasks and notes.
 # ---------------------------------------------------------------------------
 import coaching as CO
@@ -5692,6 +5694,55 @@ def coach_note(req, db, uid, tok, now_ms):
     words = {"good": "Good move", "bad": "Bad move", "tip": "Try this"}
     title = ("%s on your %s trade: %s" % (name, trade["sym"], words.get(reaction, "a note"))) if trade else "%s sent you a note" % name
     notify_users(db, [other], "friends", title, text or words.get(reaction, ""), "app/coach/" + ref.id, "note-" + ref.id[:20])
+    return {"ok": True}
+
+
+@https_fn.on_call()
+@_co_call
+def coach_play(req, db, uid, tok, now_ms):
+    """The coach draws on a chart and sends it: the student gets "Your coach drew up a play"."""
+    data = req.data or {}
+    ref, doc, role = _co_get(db, data.get("coachingId"), uid)
+    if role != "coach":
+        raise CO.CoachError("PERMISSION_DENIED", "Only the coach can draw up a play.")
+    since = now_ms - 86400000
+    today_n = sum(1 for _ in ref.collection("plays").where("at", ">", since).limit(CO.PLAYS_PER_DAY + 1).stream())
+    play = CO.validate_play(data, PRACTICE_UNIVERSE, today_n)
+    name = doc.get("coachName") or "Your coach"
+    pref = ref.collection("plays").document()
+    pref.set(dict(play, **{"from": uid, "fromName": name, "comments": [], "at": now_ms}))
+    notify_users(db, [doc["student"]], "friends", "Your coach drew up a play: %s" % play["title"],
+                 "%s marked up a %s chart for you." % (name, play["sym"]), "app/coach/%s/play/%s" % (ref.id, pref.id), "play-" + pref.id[:20])
+    return {"playId": pref.id}
+
+
+@https_fn.on_call()
+@_co_call
+def coach_play_comment(req, db, uid, tok, now_ms):
+    data = req.data or {}
+    ref, doc, role = _co_get(db, data.get("coachingId"), uid)
+    pid = data.get("playId")
+    if not isinstance(pid, str) or not _re.match(r"^[A-Za-z0-9]{10,40}$", pid):
+        raise CO.CoachError("INVALID_ARGUMENT", "That play isn't valid.")
+    pref = ref.collection("plays").document(pid)
+    name = doc.get("coachName") if role == "coach" else doc.get("studentName")
+
+    @firestore.transactional
+    def txn(t):
+        snap = pref.get(transaction=t)
+        if not snap.exists:
+            raise CO.CoachError("NOT_FOUND", "That play doesn't exist.")
+        play = snap.to_dict() or {}
+        comments = list(play.get("comments") or [])
+        text = CO.validate_comment(data, len(comments))
+        comments.append({"from": uid, "fromName": name, "role": role, "text": text, "at": now_ms})
+        t.update(pref, {"comments": comments})
+        return play, text
+
+    play, text = txn(db.transaction())
+    other = doc["student"] if role == "coach" else doc["coach"]
+    notify_users(db, [other], "friends", "%s commented on %s" % (name, play.get("title") or "your play"), text,
+                 "app/coach/%s/play/%s" % (ref.id, pid), "play-c-" + pid[:20])
     return {"ok": True}
 
 

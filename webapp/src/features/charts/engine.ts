@@ -13,6 +13,13 @@ export type EngineSeries = { sym: string; key: string; d: string[]; o: number[];
 export type Indicator = { id: string; label: string };
 export type Forecast = { entry: number; sl: number | null; tp: number | null; label?: string; side?: 'buy' | 'sell'; editable?: boolean };
 
+/** A coach-play drawing, pinned to a bar date and a price so it survives zooming (practice-chart.js). */
+export type ShapeKind = 'line' | 'arrow' | 'box' | 'hline' | 'text';
+export type ShapeColor = 'blue' | 'green' | 'red' | 'gold';
+export type ShapePoint = { d: string; p: number };
+export type Shape = { k: ShapeKind; c: ShapeColor; pts: ShapePoint[]; text?: string };
+export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, arrow: 2, box: 2, hline: 1, text: 1 };
+
 export interface TradeChart {
   setSeries(s: EngineSeries, bars?: number | 'all'): void;
   setRange(bars: number | 'all'): void;
@@ -28,6 +35,9 @@ export interface TradeChart {
   forecast: Forecast | null;
   onForecastEdit: ((f: Forecast, which: 'sl' | 'tp') => void) | null;
   empty: string | null;
+  shapes: Shape[];
+  shapeDraft: Shape | null;
+  pointAt(x: number, y: number): ShapePoint | null;
 }
 
 type EngineGlobal = {

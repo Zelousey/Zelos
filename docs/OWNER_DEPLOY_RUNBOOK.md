@@ -390,3 +390,33 @@ source functions/venv/bin/activate && pip install -q -r functions/requirements.t
 market hours: it shows under Open orders, then under Your options within about a minute.
 
 **Undo:** `git checkout main` and run block 2 again (before merging), or ask Claude.
+
+# Coach plays (the coach-plays PR)
+
+What changes: two new functions, `coach_play` (the coach sends a marked-up chart; the student gets
+"Your coach drew up a play") and `coach_play_comment` (either side comments). No rules change
+(plays sit under `coachings/*`, which only the coach and the student can read). **Deploy before
+merging**: the app's "Draw up a play" button calls `coach_play`.
+
+**1. Get the branch.** It must print a number bigger than 0 and `STEP 1 OK`.
+```
+cd ~/Zelos && git stash -u -q; git fetch -q origin && git checkout -q -B claude/coach-plays origin/claude/coach-plays && grep -c "def coach_play" functions/main.py && echo "STEP 1 OK"
+```
+
+**2. Deploy (about 3 minutes).** It ends with "Deploy complete!".
+```
+source functions/venv/bin/activate && pip install -q -r functions/requirements.txt && npx -y firebase-tools@latest deploy --only "functions:coach_play,functions:coach_play_comment" --project leaderboard-agentictrading
+```
+
+**3. Open the two new functions to the app.** It prints two OK lines.
+```
+for f in coach-play coach-play-comment; do gcloud run services add-iam-policy-binding $f --region=us-central1 --member=allUsers --role=roles/run.invoker --project=leaderboard-agentictrading --quiet >/dev/null && echo "$f OK"; done
+```
+
+**4. Merge the PR** (or ask Claude to), then `git checkout main && git pull origin main`.
+
+**5. Check** (with a coaching running): as the coach, open the coaching → "Draw up a play", draw a
+line and a price level, add a title, "Send". The student's bell shows "Your coach drew up a play";
+tapping it opens the chart with the drawings.
+
+**Undo:** `git checkout main` and run block 2 again (before merging), or ask Claude.

@@ -10,9 +10,10 @@ import { levelFor } from '../../data/levels';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney, formatPercent, formatPrice, formatRelative, formatSignedMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
-import { Badge, Button, Card, Confirm, EmptyState, Field, Icon, LoadingState, PageHeader, Stat, useToast } from '../../ui';
+import { Badge, Button, buttonClass, Card, Confirm, EmptyState, Field, Icon, LoadingState, PageHeader, Stat, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
 import { addTask, endCoaching, refreshSummary, sendNote, TASK_KINDS, TASK_XP, updateTask, useCoaching, useNotes, useTasks, type Coaching, type Task, type TaskKind, type Trade } from './coach';
+import { usePlays } from './plays';
 import s from './Coach.module.css';
 
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
@@ -89,6 +90,7 @@ function View({ c, uid }: { c: Coaching; uid: string }) {
           )}
         </Card>
 
+        <Plays c={c} role={role} active={active} />
         <Tasks c={c} role={role} active={active} />
         <Notes c={c} uid={uid} active={active} />
       </div>
@@ -334,6 +336,45 @@ function Notes({ c, uid, active }: { c: Coaching; uid: string; active: boolean }
                 </span>
               )}
               {n.text && <span>{n.text}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function Plays({ c, role, active }: { c: Coaching; role: 'coach' | 'student'; active: boolean }) {
+  const plays = usePlays(c.id);
+  const list = plays.status === 'ready' ? plays.data : [];
+  return (
+    <Card
+      className={s.plays}
+      title={t('play.list')}
+      subtitle={role === 'coach' ? t('play.listSubCoach') : t('play.listSub')}
+      actions={
+        role === 'coach' && active ? (
+          <Link className={buttonClass({ variant: 'primary', size: 'sm' })} to={`/coach/${c.id}/play/new`}>
+            {t('play.newBtn')}
+          </Link>
+        ) : undefined
+      }
+      flush
+    >
+      {plays.status === 'loading' ? (
+        <LoadingState rows={2} />
+      ) : !list.length ? (
+        <p className={s.pad}>{role === 'coach' ? t('play.noneCoach') : t('play.none', { name: c.coachName })}</p>
+      ) : (
+        <ul className={s.playList}>
+          {list.map((p) => (
+            <li key={p.id}>
+              <Link to={`/coach/${c.id}/play/${p.id}`} className={s.playRow}>
+                <b>{p.title}</b>
+                <span className={s.muted}>
+                  {p.sym} · {formatRelative(p.at)} · {t('play.commentsShort', { n: p.comments.length })}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
