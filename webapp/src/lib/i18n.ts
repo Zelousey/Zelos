@@ -568,6 +568,7 @@ const en = {
   'bt.rule.symbols': 'Only {n} stocks are allowed in this squad battle.',
   'bt.rule.viewTrades': "Everyone can see everyone's trades.",
   'bt.rule.rewards': 'Token rewards for the top players (if at least 2 players traded).',
+  'bell.modes': 'Game modes',
   'bs.lockAt': '🔒 {buyIn} unlocks at Level {level} ({name}, {xp} XP).',
   'bs.youHave': 'You have {xp} XP.',
   'bs.mode': 'Mode',

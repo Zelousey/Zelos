@@ -171,3 +171,17 @@ test('create a battle with every game mode; buy-ins unlock with XP', async ({ pa
   const rules = page.getByRole('list').filter({ hasText: 'Everyone starts with' });
   for (const r of ['$5,000 of virtual money', 'falls to -15%', 'Out after 5 losing trades', 'Every 24 hours', 'picks 3 stocks', 'at most 50% in one stock; the others get 2 shield(s)', 'Volatility Storms (often)', 'Bounty Board', 'Stop-loss and take-profit']) await expect(rules).toContainText(r);
 });
+
+test('a challenge in the bell lists its game modes before you accept', async ({ page }, info) => {
+  await page.goto('battles');
+  const uid = await signIn(page, `bbell-${info.project.name}${Date.now()}@example.com`);
+  const inv = rid();
+  await put(`twInvites/${inv}`, { to: uid, from: 'rivalUid0001', fromName: 'Rex', warId: rid(), warName: 'Night fight', buyIn: 1000, days: 3, mode: 'duel', lms: { maxLosses: 3 }, modes: { storms: 'rare', stops: true }, status: 'pending', createdAt: Date.now() });
+  await put(`users/${uid}/inbox/ch1`, { kind: 'challenges', title: 'Rex challenged you to a Trade War', body: 'Night fight · $1,000 virtual buy-in · 3 days.', at: Date.now(), read: false, action: { type: 'tw', id: inv } });
+  await page.getByRole('button', { name: /Open notifications/ }).filter({ visible: true }).first().click();
+  const modes = page.getByRole('dialog', { name: 'Notifications' }).getByRole('list', { name: 'Game modes' });
+  await expect(modes).toContainText('Out after 3 losing trades.');
+  await expect(modes).toContainText('Volatility Storms (rare)');
+  await expect(modes).toContainText('Stop-loss and take-profit are allowed on buys.');
+  expect(await axe(page)).toEqual([]);
+});
