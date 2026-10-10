@@ -19,7 +19,9 @@ async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
 }
-const axe = async (page: Page) => expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+// wait for fade-ins (a toast mid-animation reads as low contrast)
+const settled = (page: Page) => page.waitForFunction(() => document.getAnimations().every((x) => x.playState !== 'running' || x.effect?.getTiming().iterations === Infinity), null, { timeout: 2000 }).catch(() => undefined);
+const axe = async (page: Page) => expect(await settled(page).then(async () => (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id))).toEqual([]);
 
 test('a squad: create, room code, competition, goal, chat; a friend joins with the code; delete', async ({ page }, info) => {
   const tag = `${info.project.name}${Date.now()}`;
