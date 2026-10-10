@@ -83,5 +83,5 @@
 .bioField textarea { font: inherit; color: var(--ink); background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2) var(--space-3); resize: vertical; min-height: 72px; }
 .bioField textarea:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .bioField small { color: var(--muted); font-size: var(--text-xs); }
-.error { color: var(--danger); font-size: var(--text-sm); margin: 0; }
+.error { color: var(--down-ink); font-size: var(--text-sm); margin: 0; }
 .tableWrap:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius); }

@@ -8,11 +8,12 @@ import { Link, useSearchParams } from 'react-router';
 import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { COACH_MIN_XP } from '../coach/coach';
-import { formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Badge, Button, buttonClass, Card, EmptyState, Field, Icon, LoadingState, PageHeader, useToast, type IconName } from '../../ui';
-import { BUY_INS, copyText, createBattle, createInvite, DAYS, errorText, sendInvite, shareLink, useMySquads, type Created, type InviteKind } from './invites';
+import { copyText, createBattle, createInvite, DAYS, errorText, sendInvite, shareLink, useMySquads, type Created, type InviteKind } from './invites';
 import { Choices } from './Choices';
+import { BattleSettings, BuyInChoices } from '../battles/BattleSettings';
+import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { InviteScene } from './InviteScene';
 import s from './Invites.module.css';
 
@@ -97,7 +98,7 @@ export default function InvitePage() {
         })}
       </ul>
     );
-  else if (step.at === 'battle') body = <BattleForm name={user.displayName?.split(' ')[0] ?? ''} onBack={() => setStep({ at: 'pick' })} onReady={(created, warId) => setStep({ at: 'ready', kind: 'battle', created, warId })} />;
+  else if (step.at === 'battle') body = <BattleForm uid={user.uid} name={user.displayName?.split(' ')[0] ?? ''} onBack={() => setStep({ at: 'pick' })} onReady={(created, warId) => setStep({ at: 'ready', kind: 'battle', created, warId })} />;
   else if (step.at === 'squad') body = <SquadPicker uid={user.uid} onBack={() => setStep({ at: 'pick' })} onReady={(created) => setStep({ at: 'ready', kind: 'squad', created })} />;
   else body = <ShareStep kind={step.kind} created={step.created} warId={step.warId} onAnother={() => setStep({ at: 'pick' })} />;
 
@@ -109,21 +110,30 @@ export default function InvitePage() {
   );
 }
 
-function BattleForm({ name, onBack, onReady }: { name: string; onBack: () => void; onReady: (c: Created, warId: string) => void }) {
+function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string; onBack: () => void; onReady: (c: Created, warId: string) => void }) {
   const toast = useToast();
+  const me = useUserDoc(uid);
+  const xp = me.status === 'ready' ? me.data.xp : me.status === 'loading' ? null : 0;
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [title, setTitle] = useState(() => (name ? t('inv.battle.nameDefault', { name }) : 'Trade War'));
   const [buyIn, setBuyIn] = useState(1000);
   const [days, setDays] = useState(3);
   const [players, setPlayers] = useState(4);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  function pickDays(d: number) {
+    setDays(d);
+    setSettings((v) => fitDays(v, d));
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (title.trim().length < 2) return setError(t('inv.battle.name'));
+    const bad = settingsError(settings, days);
+    if (bad) return setError(t(bad));
     setBusy(true);
     setError(null);
     try {
-      const war = await createBattle({ name: title.trim(), buyIn, days, maxPlayers: players });
+      const war = await createBattle({ name: title.trim(), buyIn, days, maxPlayers: players, ...toPayload(settings) });
       onReady(await createInvite({ kind: 'battle', warId: war.warId }), war.warId);
     } catch (err) {
       const m = errorText(err, t('inv.failed'));
@@ -138,9 +148,10 @@ function BattleForm({ name, onBack, onReady }: { name: string; onBack: () => voi
       <form className={s.form} onSubmit={submit}>
         <BackRow onBack={onBack} title={t('inv.battle')} icon="war" />
         <Field label={t('inv.battle.name')} value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} required />
-        <Choices label={t('inv.battle.buyIn')} value={buyIn} options={BUY_INS} onChange={setBuyIn} format={(v) => formatMoney(v, { digits: 0 })} />
-        <Choices label={t('inv.battle.days')} value={days} options={DAYS} onChange={setDays} format={(v) => (v === 1 ? t('inv.battle.day1') : t('inv.battle.daysN', { n: v }))} />
+        <BuyInChoices value={buyIn} onChange={setBuyIn} xp={xp} />
+        <Choices label={t('inv.battle.days')} value={days} options={DAYS} onChange={pickDays} format={(v) => (v === 1 ? t('inv.battle.day1') : t('inv.battle.daysN', { n: v }))} />
         <Choices label={t('inv.battle.players')} value={players} options={[2, 4, 6, 10]} onChange={setPlayers} format={(v) => String(v)} />
+        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setError(null); }} days={days} />
         {error && (
           <p className={s.error} role="alert">
             {error}

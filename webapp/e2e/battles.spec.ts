@@ -133,3 +133,41 @@ test('the live room: storm, Last Man Standing, tags, bounties, stops; and the dr
   await expect(page.getByRole('button', { name: 'Draft AAPL (Apple)' })).toBeEnabled();
   expect(await axe(page)).toEqual([]);
 });
+
+test('create a battle with every game mode; buy-ins unlock with XP', async ({ page }, info) => {
+  await page.goto('invite?kind=battle');
+  const uid = await signIn(page, `bmodes-${info.project.name}${Date.now()}@example.com`);
+  await page.getByLabel('Battle name').fill('Mode madness');
+  const buyIn = page.getByRole('group', { name: 'Virtual buy-in' });
+  await expect(buyIn.getByRole('radio', { name: '$5,000' })).toBeDisabled();
+  await expect(page.getByText(/\$5,000 unlocks at Level 3 \(Gold, 150 XP\)/)).toBeVisible();
+  await put(`users/${uid}`, { xp: 200 }); // the server's XP; the locks follow it live
+  await expect(buyIn.getByRole('radio', { name: '$5,000' })).toBeEnabled();
+  await expect(buyIn.getByRole('radio', { name: '$10,000' })).toBeDisabled();
+  await buyIn.getByText('$5,000').click();
+
+  await page.getByText('Last Man Standing', { exact: true }).click();
+  await page.getByLabel('P&L floor').selectOption({ label: 'Off' });
+  await page.getByRole('button', { name: 'Create battle and get the link' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Pick at least one elimination rule for Last Man Standing.');
+  await page.getByLabel('P&L floor').selectOption({ label: 'Out at -15% total' });
+  await page.getByLabel('Losing trades').selectOption({ label: 'Out after 5 losing trades' });
+  await page.getByLabel('Timed cut').selectOption({ label: 'Last place out every 24 hours' });
+
+  await page.getByText('Game options').click();
+  await page.getByLabel('Stock draft').selectOption({ label: '3 stocks each' });
+  await page.getByLabel('Volatility Storms').selectOption({ label: 'Often' });
+  await page.getByLabel('Whale vs Minnow').selectOption({ label: 'Whales max 50% in one stock' });
+  await page.getByLabel('Minnow shields').selectOption({ label: '2 shield(s) each' });
+  await page.getByLabel(/Bounty Board/).check();
+  await page.getByLabel('Stop-loss and take-profit allowed').check();
+  await expect(page.getByText('5 on')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  expect(await axe(page)).toEqual([]);
+
+  await page.getByRole('button', { name: 'Create battle and get the link' }).click();
+  await page.getByRole('link', { name: 'Open the battle room' }).click({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Mode madness', level: 1 })).toBeVisible();
+  const rules = page.getByRole('list').filter({ hasText: 'Everyone starts with' });
+  for (const r of ['$5,000 of virtual money', 'falls to -15%', 'Out after 5 losing trades', 'Every 24 hours', 'picks 3 stocks', 'at most 50% in one stock; the others get 2 shield(s)', 'Volatility Storms (often)', 'Bounty Board', 'Stop-loss and take-profit']) await expect(rules).toContainText(r);
+});

@@ -65,8 +65,15 @@ test('someone else’s profile: numbers, record, achievements; add friend; chall
   const sheet = page.getByRole('dialog', { name: 'Challenge Rival Rita' });
   await expect(sheet).toBeVisible();
   await sheet.getByLabel('Battle name').fill('Profile duel');
+  await expect(sheet.getByRole('radio', { name: '$5,000' })).toBeDisabled(); // a new player: big buy-ins are locked
+  await sheet.getByText('Last Man Standing', { exact: true }).click();
+  await sheet.getByLabel('Losing trades').selectOption({ label: 'Out after 3 losing trades' });
+  await sheet.getByText('Game options').click();
+  await sheet.getByLabel('Stop-loss and take-profit allowed').check();
   await sheet.getByRole('button', { name: 'Send challenge' }).click();
   await expect(page).toHaveURL(/\/battles\/[A-Za-z0-9]{12}$/, { timeout: 30_000 });
+  await expect(page.getByText('Out after 3 losing trades.')).toBeVisible();
+  await expect(page.getByText('Stop-loss and take-profit are allowed on buys.')).toBeVisible();
 });
 
 test('your own profile: set up name, @username, bio and picture', async ({ page }, info) => {

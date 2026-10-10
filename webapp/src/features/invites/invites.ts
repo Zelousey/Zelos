@@ -7,6 +7,7 @@ import { collection, limit, query, where, type DocumentData } from 'firebase/fir
 import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
+import type { Payload } from '../battles/settings';
 
 export type InviteKind = 'battle' | 'squad' | 'join' | 'coach';
 export type Invite = {
@@ -64,7 +65,7 @@ export const createInvite = (data: { kind: InviteKind; warId?: string; squadId?:
 export const sendInvite = (code: string, to: string) => callFunction<{ code: string; to: string }, { sent: boolean; already?: boolean }>('invite_send', { code, to });
 export type Accepted = { kind: InviteKind; warId: string | null; squadId: string | null; coachingId?: string; referral: boolean; xp: number; again: boolean };
 export const acceptInvite = (code: string) => callFunction<{ code: string }, Accepted>('invite_accept', { code });
-export const createBattle = (data: { name: string; buyIn: number; days: number; maxPlayers: number }) => callFunction<typeof data, { warId: string }>('tw_create', data);
+export const createBattle = (data: { name: string; buyIn: number; days: number; maxPlayers: number } & Payload) => callFunction<typeof data, { warId: string }>('tw_create', data);
 export const respondChallenge = (inviteId: string, accept: boolean) =>
   callFunction<{ inviteId: string; accept: boolean }, { status: string; warId: string; started?: boolean }>('tw_respond', { inviteId, accept });
 
