@@ -66,7 +66,7 @@ test('someone else’s profile: numbers, record, achievements; add friend; chall
   await expect(sheet).toBeVisible();
   await sheet.getByLabel('Battle name').fill('Profile duel');
   await sheet.getByRole('button', { name: 'Send challenge' }).click();
-  await expect(page).toHaveURL(/practice\/war\.html\?w=[A-Za-z0-9]{12}/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/battles\/[A-Za-z0-9]{12}$/, { timeout: 30_000 });
 });
 
 test('your own profile: set up name, @username, bio and picture', async ({ page }, info) => {

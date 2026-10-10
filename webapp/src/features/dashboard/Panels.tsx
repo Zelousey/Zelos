@@ -277,7 +277,7 @@ export function WarsCard({ uid }: { uid: string | null }) {
         <ul className={s.warList}>
           {list.map((w) => (
             <li key={w.id}>
-              <a href={classicUrl(`practice/war.html?w=${encodeURIComponent(w.id)}`)} className={s.warRow}>
+              <Link to={`/battles/${encodeURIComponent(w.id)}`} className={s.warRow}>
                 <Icon name="war" size={16} />
                 <span className={s.boardName}>{w.name}</span>
                 {w.status === 'active' ? (
@@ -289,7 +289,7 @@ export function WarsCard({ uid }: { uid: string | null }) {
                 ) : (
                   <Badge tone={w.myRank === 1 ? 'gold' : 'neutral'}>{w.myRank ? t('dash.wars.place', { rank: w.myRank, n: w.of }) : t('dash.wars.finished')}</Badge>
                 )}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

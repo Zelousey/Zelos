@@ -4,9 +4,9 @@
  * The server checks the buy-in your level allows and how many challenges you have waiting.
  */
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { classicUrl } from '../../lib/platform';
 import { Button, Field, Sheet, useToast } from '../../ui';
 import { BUY_INS, DAYS, errorText } from '../invites/invites';
 import { Choices } from '../invites/Choices';
@@ -17,6 +17,7 @@ import s from './Profile.module.css';
 
 export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: boolean; onClose: () => void; to?: string; squadId?: string; toName: string }) {
   const toast = useToast();
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [buyIn, setBuyIn] = useState(1000);
   const [days, setDays] = useState(7);
@@ -34,7 +35,7 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
       const me = auth().currentUser;
       if (me) await Promise.race([unlockQuietly(me.uid, 'challenger', 'Challenger', toast.show), new Promise((ok) => setTimeout(ok, 2500))]); // the page changes next
       onClose();
-      window.location.assign(classicUrl(`practice/war.html?w=${encodeURIComponent(r.warId)}`));
+      navigate(`/battles/${encodeURIComponent(r.warId)}`);
     } catch (e2) {
       setErr(errorText(e2, t('pf.failed')));
       setBusy(false);
