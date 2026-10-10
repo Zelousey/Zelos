@@ -17,6 +17,7 @@
  * app/modules.ts. Each screen renders inside an ErrorBoundary so one crash can't take
  * down the bars.
  */
+import { PriceAlertWatcher } from '../features/charts/PriceAlertWatcher';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { GROUP_LABEL, GROUP_ORDER, moduleForPath, navModules, navOwner, tabModules } from '../app/modules';
@@ -156,6 +157,7 @@ export function AppShell() {
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense fallback={<LoadingState />}>
               <Outlet />
+              <PriceAlertWatcher />
             </Suspense>
           </ErrorBoundary>
         </div>

@@ -126,7 +126,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
             <EmptyState icon="chart" body={built.intraday ? t('chart.noIntraday') : t('chart.noData', { sym })} compact />
           ) : (
             <div className={s.chartBody}>
-              <ChartView sym={sym} seriesKey={`${sym}:${tf}`} bars={built.bars} live={built.live} intraday={built.intraday} range={range} style={style} refPrice={tf === '15m' || tf === '1h' ? prevClose : null} loading={loading} label={t('chart.label', { sym, tf: tfDef.label })} />
+              <ChartView sym={sym} seriesKey={`${sym}:${tf}`} bars={built.bars} live={built.live} intraday={built.intraday} range={range} style={style} refPrice={tf === '15m' || tf === '1h' ? prevClose : null} loading={loading} label={t('chart.label', { sym, tf: tfDef.label })} tools />
             </div>
           )}
           {built.bars.length > 0 && (

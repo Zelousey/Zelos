@@ -4,3 +4,13 @@
 .dim .canvas { opacity: 0.5; transition: opacity var(--dur-base) var(--ease-out); }
 @media (max-width: 760px) { .wrap { height: var(--chart-h-phone, 300px); } }
 .drawLayer { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+.withTools { display: grid; gap: var(--space-2); min-width: 0; }
+.tools { display: grid; gap: var(--space-2); }
+.toolRow { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.toolHint { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+.alertList { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.alertList li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0 0 0 var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+.indGroup { border: 0; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-1); }
+.indGroup legend { font-weight: 600; color: var(--ink); margin-bottom: var(--space-1); }
+.indRow { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); color: var(--ink-2); }
+.indRow input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }

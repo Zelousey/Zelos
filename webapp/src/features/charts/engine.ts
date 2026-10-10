@@ -10,7 +10,17 @@ import '../../../../practice/practice-chart.js';
 import type { Bar } from '../../data/markets';
 
 export type EngineSeries = { sym: string; key: string; d: string[]; o: number[]; h: number[]; l: number[]; c: number[]; v: number[]; n: number; live?: boolean; intraday?: boolean };
-export type Indicator = { id: string; label: string };
+export type Indicator = { id: string; label: string; group: string };
+/** A price alert line (stored on this device by the engine, shared with the classic site's Trade War alerts). */
+export type PriceAlert = { id: string; sym: string; price: number; dir: 'above' | 'below'; status: 'active' | 'triggered'; hitPrice?: number };
+export interface AlertStore {
+  list: PriceAlert[];
+  add(sym: string, price: number, current?: number | null): PriceAlert;
+  update(id: string, price: number, current?: number | null): void;
+  remove(id: string): void;
+  forSym(sym: string): PriceAlert[];
+  check(prices: Record<string, number>): PriceAlert[];
+}
 export type Forecast = { entry: number; sl: number | null; tp: number | null; label?: string; side?: 'buy' | 'sell'; editable?: boolean };
 
 /** A coach-play drawing, pinned to a bar date and a price so it survives zooming (practice-chart.js). */
@@ -38,12 +48,18 @@ export interface TradeChart {
   shapes: Shape[];
   shapeDraft: Shape | null;
   pointAt(x: number, y: number): ShapePoint | null;
+  fib: boolean;
+  alerts: PriceAlert[];
+  placing: 'alert' | null;
+  onPlaceAlert: ((price: number) => void) | null;
+  onAlertMove: ((a: PriceAlert) => void) | null;
 }
 
 type EngineGlobal = {
   TradeChart: new (canvas: HTMLCanvasElement) => TradeChart;
   computeIndicators: (s: EngineSeries) => EngineSeries;
   INDICATORS: Indicator[];
+  alerts: AlertStore;
 };
 
 export function engine(): EngineGlobal {
