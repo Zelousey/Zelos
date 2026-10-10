@@ -88,7 +88,7 @@ export function parseContract(id: string): Contract | null {
 }
 
 export const label = (c: Contract) => `${c.u} $${+c.strike} ${c.kind === 'call' ? 'Call' : 'Put'} ${c.exp.slice(5).replace('-', '/')}`;
-export const intrinsic = (c: Contract, S: number) => Math.max(0, c.kind === 'call' ? S - c.strike : c.strike - S);
+export const intrinsic = (c: Pick<Contract, 'kind' | 'strike'>, S: number) => Math.max(0, c.kind === 'call' ? S - c.strike : c.strike - S);
 
 /** Mark value per share at the model mid; intrinsic once expired; cost when there's no price. */
 export function markValue(c: Contract & { avg: number }, S: number | undefined, vol: number, today: string): number {

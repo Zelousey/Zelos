@@ -1,6 +1,7 @@
 .stack { display: grid; gap: var(--space-4); }
 .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); padding: var(--space-4); }
-@media (min-width: 900px) { .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpis { border-top: 1px solid var(--border-soft); }
 @media (max-width: 899px) { .hero { grid-column: 1 / -1; } }
 .hero .heroValue { font-family: var(--mono); font-size: var(--text-2xl); font-weight: 600; font-variant-numeric: tabular-nums; }
 .badgeRow { display: flex; align-items: center; gap: var(--space-2); }
