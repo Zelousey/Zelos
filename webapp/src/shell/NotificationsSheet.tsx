@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { acceptInvite, errorText, respondChallenge } from '../features/invites/invites';
+import { parseBattle } from '../features/battles/battle';
+import { modeLines } from '../features/battles/parts';
+import { useLiveDoc } from '../data/liveDoc';
+import type { DocumentData } from 'firebase/firestore';
 import { t } from '../lib/i18n';
 import { formatRelative } from '../lib/format';
 import { classicUrl } from '../lib/platform';
@@ -106,6 +110,7 @@ function Actions({ item, onClose }: { item: InboxItem; onClose: () => void }) {
     );
   return (
     <div className={s.notifActions}>
+      {a.type === 'tw' && <ChallengeModes id={a.id} />}
       <Button size="sm" variant="primary" disabled={state === 'busy'} onClick={() => void run(true)}>
         {t('bell.accept')}
       </Button>
@@ -117,3 +122,21 @@ function Actions({ item, onClose }: { item: InboxItem; onClose: () => void }) {
     </div>
   );
 }
+
+// a challenge stores its modes like a battle (lms, modes) and squad battles' allowed stocks as `symbols`
+const parseChallenge = (d: DocumentData) => parseBattle('', { ...d, rules: { symbols: d.symbols } });
+
+/** What a Trade War challenge's game modes are, before you accept it (nothing for a classic battle). */
+function ChallengeModes({ id }: { id: string }) {
+  const inv = useLiveDoc(`twInvites/${id}`, parseChallenge);
+  const lines = inv.status === 'ready' ? modeLines(inv.data) : [];
+  if (!lines.length) return null;
+  return (
+    <ul className={s.notifModes} aria-label={t('bell.modes')}>
+      {lines.map((l) => (
+        <li key={l}>{l}</li>
+      ))}
+    </ul>
+  );
+}
+

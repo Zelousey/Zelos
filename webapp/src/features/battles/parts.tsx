@@ -33,14 +33,9 @@ export function useOverdueNudge(due: number | null, now: number, fire: () => voi
   }, [due, now]);
 }
 
-/** What this battle's rules are, in plain words. */
-export function RulesBox({ b }: { b: Battle }) {
-  const rows: string[] = [
-    t('bt.rule.cash', { buyIn: formatMoney(b.buyIn, { digits: 0 }), days: b.days }),
-    t('bt.rule.hours'),
-    t('bt.rule.long'),
-    b.lms ? t('bt.rule.winLms') : t('bt.rule.win'),
-  ];
+/** The rules that change from battle to battle: Last Man Standing and the game options. */
+export function modeLines(b: Pick<Battle, 'lms' | 'modes' | 'symbols'>): string[] {
+  const rows: string[] = [];
   if (b.lms?.floorPct) rows.push(t('bt.rule.floor', { n: b.lms.floorPct }));
   if (b.lms?.maxLossPct) rows.push(t('bt.rule.bigLoss', { n: b.lms.maxLossPct }));
   if (b.lms?.maxLosses) rows.push(t('bt.rule.losses', { n: b.lms.maxLosses }));
@@ -51,6 +46,18 @@ export function RulesBox({ b }: { b: Battle }) {
   if (b.modes.bounties) rows.push(t('bt.rule.bounties'));
   if (b.modes.stops) rows.push(t('bt.rule.stops'));
   if (b.symbols) rows.push(t('bt.rule.symbols', { n: b.symbols.length }));
+  return rows;
+}
+
+/** What this battle's rules are, in plain words. */
+export function RulesBox({ b }: { b: Battle }) {
+  const rows: string[] = [
+    t('bt.rule.cash', { buyIn: formatMoney(b.buyIn, { digits: 0 }), days: b.days }),
+    t('bt.rule.hours'),
+    t('bt.rule.long'),
+    b.lms ? t('bt.rule.winLms') : t('bt.rule.win'),
+    ...modeLines(b),
+  ];
   if (b.viewTrades) rows.push(t('bt.rule.viewTrades'));
   rows.push(t('bt.rule.rewards'));
   return (
