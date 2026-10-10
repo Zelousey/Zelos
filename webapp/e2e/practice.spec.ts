@@ -81,7 +81,7 @@ test('the ticket checks input before anything is sent', async ({ page }, info) =
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   expect(r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
   await page.goto('practice');
-  await expect(page.getByText('Account value')).toBeVisible();
+  await expect(page.getByRole('img', { name: /Account value over time/ })).toBeVisible();
   const r2 = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
   expect(r2.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
 });
@@ -91,4 +91,37 @@ test('unknown symbols and signed-out visitors are handled', async ({ page }) => 
   await expect(page.getByText('No data for ZZZZ')).toBeVisible();
   await page.goto('practice/trade/AAPL');
   await expect(page.getByRole('link', { name: 'Open Practice' })).toBeVisible();
+});
+
+test('account value chart: today and longer ranges, with a table (owner 2026-10-10)', async ({ page }, info) => {
+  await page.goto('practice');
+  await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
+  const uid = await page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), `chart-${info.project.name}-${Date.now()}@example.com`);
+  await page.getByRole('button', { name: 'Start with $10,000' }).click();
+  await expect(page.getByText('$10,000.00').first()).toBeVisible();
+  const BASE = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents';
+  const day = (n: number) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - n);
+    return 'd' + d.toISOString().slice(0, 10).replace(/-/g, '');
+  };
+  const e = (v: number) => ({ mapValue: { fields: { e: { doubleValue: v }, n: { integerValue: '0' }, x: { integerValue: '0' } } } });
+  const fields = {
+    cash: { doubleValue: 6663.7 },
+    positions: { mapValue: { fields: { AAPL: { mapValue: { fields: { qty: { integerValue: '10' }, avg: { doubleValue: 330 }, openedDay: { stringValue: '2026-10-01' } } } } } } },
+    hist: { mapValue: { fields: { [day(3)]: e(9800), [day(2)]: e(9950), [day(1)]: e(9980) } } },
+  };
+  const r = await fetch(`${BASE}/practiceAccounts/${uid}?updateMask.fieldPaths=cash&updateMask.fieldPaths=positions&updateMask.fieldPaths=hist`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) });
+  expect(r.ok).toBe(true);
+  const chart = page.getByRole('img', { name: /Account value over time/ });
+  await expect(chart).toBeVisible();
+  await expect(page.getByText('$10,000.00').first()).toBeVisible(); // 6,663.70 cash + 10 AAPL at 333.63
+  // today = the newest day with 1-minute prices (the fixture's); no saved close before it, so vs $10,000
+  await expect(page.getByText(/^\$0\.00 \(\+0\.00%\)$/)).toBeVisible();
+  await page.getByRole('tab', { name: '1W' }).click();
+  await expect(page.getByText('Past week', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^\+\$200\.00 \(\+2\.04%\)$/)).toBeVisible(); // vs 9,800 three days ago
+  await page.getByText('Show as a table').click();
+  await expect(page.getByRole('table', { name: /Account value ·/ })).toContainText('$9,800.00');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
 });
