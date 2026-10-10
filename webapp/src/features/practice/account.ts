@@ -19,7 +19,9 @@ export type Position = { sym: string; qty: number; avg: number; openedDay: strin
 export type OptionPosition = Contract & { id: string; qty: number; avg: number; label: string };
 /** `opt` is set on option orders: the contract id; `sym` is then the underlying stock. */
 export type Order = { id: string; sym: string; opt: string | null; label: string | null; est: number; side: 'buy' | 'sell'; type: 'market' | 'limit' | 'stop'; qty: number; limit: number | null; stop: number | null; tif: 'day' | 'gtc'; session: string; createdAt: number; bracket: { sl: number | null; tp: number | null } | null; role: 'sl' | 'tp' | null; oco: string | null };
-export type Account = { cash: number; positions: Position[]; options: OptionPosition[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number };
+export type Account = { cash: number; positions: Position[]; options: OptionPosition[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number; hist: DayValue[] };
+/** One New York day's closing account value (server: practice.py, kept 90 days). */
+export type DayValue = { day: string; e: number };
 export type HistoryItem = { id: string; kind: 'order' | 'fill' | 'trade'; at: number; sym: string; opt?: string; label?: string; side?: string; qty?: number; price?: number; pnl?: number; pct?: number; status?: string; note?: string; type?: string; role?: string | null; fillPrice?: number; entry?: number; exit?: number };
 
 const n = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -70,6 +72,9 @@ export function parseAccount(d: DocumentData): Account {
     stats: { trades: n(st.trades), wins: n(st.wins), losses: n(st.losses) },
     peak: n(d.peak, START_CASH),
     updatedAt: n(d.updatedAt),
+    hist: Object.entries((d.hist as Record<string, Record<string, unknown>>) ?? {})
+      .flatMap(([k, v]) => (/^d\d{8}$/.test(k) && typeof v?.e === 'number' && v.e > 0 ? [{ day: `${k.slice(1, 5)}-${k.slice(5, 7)}-${k.slice(7, 9)}`, e: v.e }] : []))
+      .sort((a, b) => a.day.localeCompare(b.day)),
   };
 }
 

@@ -12,6 +12,7 @@ import { t } from '../../lib/i18n';
 import { Badge, Button, buttonClass, Card, Change, Confirm, EmptyState, ErrorState, LoadingState, PageHeader, Stat, useToast } from '../../ui';
 import { nyDay } from '../charts/series';
 import { useVolMap } from '../options/model';
+import { AccountChart } from './AccountChart';
 import { OptionPositions } from '../options/OptionPositions';
 import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeHistory, valueAccount, type HistoryItem, type Order } from './account';
 import { cancelOrder, errorMessage, openAccount, placeOrder, resetAccount, setPublic } from './actions';
@@ -121,10 +122,8 @@ function AccountView({ uid }: { uid: string }) {
       />
       <div className={s.stack}>
         <Card>
+          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} />
           <div className={s.kpis}>
-            <div className={s.hero}>
-              <Stat label={t('practice.value')} value={<span className={s.heroValue}>{formatMoney(v.equity)}</span>} />
-            </div>
             <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} direction={dir(v.dayPnl)} delta={null} />
             <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} />
             <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
