@@ -20,6 +20,7 @@ import { TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { StatusLine } from './StatusLine';
 import { WatchButton } from './WatchButton';
+import { ResearchCard } from './Research';
 import { MarketList } from './MarketRow';
 import { MiniChart } from './MiniChart';
 import { useMinis } from './miniSeries';
@@ -66,6 +67,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   const [showTable, setShowTable] = useState(false);
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
+  const isIndexEtf = INDEX_ETFS.some((x) => x.sym === sym); // funds have no SEC company research
 
   useEffect(() => {
     rememberSymbol(sym);
@@ -181,6 +183,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
               <Stat size="sm" label={t('stats.updated')} value={q?.t ? formatMarketTime(q.t * 1000) : '—'} />
             </div>
           </Card>
+          {!isIndexEtf && <ResearchCard sym={sym} />}
           <div className={s.desktopTrade}>
             <div className={s.tradeBtns}>
               <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={`${tradeHref}?side=buy`} aria-label={t('trade.buyLabel', { sym })}>
