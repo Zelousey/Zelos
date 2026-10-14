@@ -177,10 +177,10 @@ function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: st
         {p && <li className={s.warTag}>{t('pf.warTag', { v: money(p.equity) })}</li>}
         {looks?.community && (
           <li>
-            <a href={classicUrl(`communities.html?c=${encodeURIComponent(looks.community.cid)}`)}>
+            <Link to={`/communities/${encodeURIComponent(looks.community.cid)}`}>
               🏘️ {looks.community.name}
               {looks.community.state ? ` · ${looks.community.state}` : ''}
-            </a>
+            </Link>
           </li>
         )}
       </ul>
