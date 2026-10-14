@@ -534,14 +534,14 @@
       pts.map(function(p){ return '<div class="mk '+p[2]+'" style="left:'+x(p[1])+'%"><b>$'+p[1].toFixed(2)+'</b><i></i><span>'+p[0]+'</span></div>'; }).join('');
     el.hidden = false;
   }
-  // Buy / Sell in the virtual Trade War account (practice/index.html loads it into the ticket).
+  // Buy / Sell in the virtual Trade War account: the app's order ticket for this stock.
   function trade(a){
-    var ok = !!a.ticker && a.status !== 'no-qualifying-setup' && !!id, buy = document.getElementById('fBuy'), sell = document.getElementById('fSell');
+    var ok = !!a.ticker && a.status !== 'no-qualifying-setup' && !!id && /^[A-Z.]{1,8}$/.test(a.ticker), buy = document.getElementById('fBuy'), sell = document.getElementById('fSell');
     [buy, sell].forEach(function(b){ b.classList.toggle('is-off', !ok); });
-    if (ok) { buy.href = 'practice/index.html?alert=' + encodeURIComponent(id) + '&side=buy'; sell.href = 'practice/index.html?alert=' + encodeURIComponent(id) + '&side=sell'; }
+    if (ok) { buy.href = 'app/practice/trade/' + a.ticker + '?side=buy'; sell.href = 'app/practice/trade/' + a.ticker + '?side=sell'; }
     buy.innerHTML = (a.ticker ? 'Buy ' + esc(a.ticker) : 'Buy') + '<small>in Trade War</small>';
     sell.textContent = a.ticker ? 'Sell ' + a.ticker + ' in Trade War' : 'Sell in Trade War';
-    document.getElementById('fTwNote').textContent = ok ? 'Virtual money · loads entry, stop and target into your Trade War ticket. You review it before anything is placed.'
+    document.getElementById('fTwNote').textContent = ok ? 'Virtual money · opens your Trade War ticket for this stock. Use the alert\u2019s entry, stop and target above; you review it before anything is placed.'
       : a.status === 'no-qualifying-setup' ? 'No trade today, so there\u2019s nothing to practice. Check back next session.' : 'Unlock the alert to practice it in your Trade War account.';
   }
   // risk vs reward, to Target 1

@@ -13,11 +13,12 @@ import { formatMoney, formatPercent, formatPrice, formatSignedMoney } from '../.
 import { t } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
-import { Badge, buttonClass, Card, Change, EmptyState, ErrorState, Icon, LoadingState, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
+import { Badge, Button, buttonClass, Card, Change, EmptyState, ErrorState, Icon, LoadingState, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
 import { nyDay } from '../charts/series';
 import { useVolMap } from '../options/model';
 import { MarketView } from '../markets/MarketView';
 import { MarketList } from '../markets/MarketRow';
+import { WatchlistEditor } from '../markets/WatchlistEditor';
 import { SectorBars } from '../markets/Sectors';
 import { usePracticeAccount, valueAccount } from '../practice/account';
 import { LevelBadge } from './LevelBadge';
@@ -402,13 +403,26 @@ export function MarketCard() {
 }
 
 // ------------------------------------------------------------------ watchlist
-export function WatchlistCard({ watch }: { watch: Loadable<string[]> }) {
+export function WatchlistCard({ watch, uid }: { watch: Loadable<string[]>; uid: string }) {
+  const [editing, setEditing] = useState(false);
   const quotes = useQuotes();
   const qs = quotes.status === 'ready' ? quotes.data.quotes : {};
   const rows = watch.status === 'ready' ? watch.data.map((sym) => ({ sym, name: instrument(sym)?.name ?? '', price: qs[sym]?.c, chPct: qs[sym]?.chPct })) : [];
   return (
-    <Card className={s.watch} title={t('dash.watchlist')} flush>
+    <Card
+      className={s.watch}
+      title={t('dash.watchlist')}
+      flush
+      actions={
+        watch.status === 'ready' && (
+          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+            {t('wl.editBtn')}
+          </Button>
+        )
+      }
+    >
       {watch.status === 'loading' ? <LoadingState rows={4} /> : rows.length === 0 ? <EmptyState icon="markets" body={t('dash.watchlist.empty')} compact /> : <MarketList rows={rows.slice(0, 8)} label={t('dash.watchlist')} />}
+      {editing && watch.status === 'ready' && <WatchlistEditor uid={uid} list={watch.data} open onClose={() => setEditing(false)} />}
     </Card>
   );
 }
