@@ -62,3 +62,9 @@
 .lock > :not(header) { margin-left: var(--space-4); margin-right: var(--space-4); }
 .lock > :last-child { margin-bottom: var(--space-4); }
 .muted a, .note a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Notifications on this device */
+.device { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.device p { flex: 1 1 220px; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.device small { color: var(--muted); font-size: var(--text-sm); }
+.deviceActions { display: flex; gap: var(--space-2); flex-wrap: wrap; }

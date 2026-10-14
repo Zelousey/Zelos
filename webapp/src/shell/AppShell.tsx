@@ -17,6 +17,7 @@
  * app/modules.ts. Each screen renders inside an ErrorBoundary so one crash can't take
  * down the bars.
  */
+import { PushKeeper } from '../features/alerts/PushDevice';
 import { PriceAlertWatcher } from '../features/charts/PriceAlertWatcher';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
@@ -150,6 +151,8 @@ export function AppShell() {
           <Icon name="wifiOff" size={16} /> {t('state.offline')}
         </div>
       )}
+
+      <PushKeeper uid={isReal && user ? user.uid : null} />
 
       {/* ---------- screen ---------- */}
       <main id="main" ref={mainRef} className={s.main} tabIndex={-1}>

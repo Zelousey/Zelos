@@ -11,9 +11,9 @@ import { useAuth } from '../../lib/auth';
 import { db } from '../../lib/firebase';
 import { formatDate } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { classicUrl } from '../../lib/platform';
 import { Badge, Button, Card, EmptyState, ErrorState, Icon, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
 import { STRATEGIES, strategy } from '../strategies/strategies';
+import { PushDevice } from './PushDevice';
 import { hasTrade, isOn, NOTIFY_GROUPS, toggle, trackRecord, useAlertList, type Alert } from './alerts';
 import { ResultBadge, StatusBadge } from './Badges';
 import s from './Alerts.module.css';
@@ -158,6 +158,8 @@ function NotifySettings() {
   }
   return (
     <div className={s.stack}>
+      <PushDevice uid={uid} />
+      <p className={s.muted}>{t('al.notify.device')}</p>
       {NOTIFY_GROUPS.map((g) => (
         <Card key={g.title} title={g.title} flush>
           <ul className={s.switches}>
@@ -178,12 +180,6 @@ function NotifySettings() {
           </ul>
         </Card>
       ))}
-      <p className={s.muted}>
-        {t('al.notify.device')}{' '}
-        <a href={classicUrl('alert-history.html#notifications')}>
-          {t('al.notify.deviceLink')} <Icon name="external" size={12} />
-        </a>
-      </p>
       <Badge tone="neutral">{t('al.notify.inbox')}</Badge>
     </div>
   );
