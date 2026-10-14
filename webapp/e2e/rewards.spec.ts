@@ -32,8 +32,13 @@ test('the token chip sits in the top bar and counts up when tokens arrive', asyn
   await expect(chip).toHaveAccessibleName(`Your tokens: ${before}. Open wallet`, { timeout: 20_000 });
   await put(`wallets/${uid}`, { balance: { integerValue: String(before + 25) } });
   await expect(chip).toContainText(String(before + 25), { timeout: 15_000 }); // after the coins land
+  await fetch(`${BASE}/wallets/${uid}/ledger/e2eLine`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { type: { stringValue: 'earn' }, note: { stringValue: 'Daily check-in' }, amount: { integerValue: '5' }, at: { integerValue: String(Date.now()) } } }) });
   await chip.click();
-  await expect(page.getByRole('dialog', { name: 'Get tokens' })).toBeVisible();
+  const sheet = page.getByRole('dialog', { name: 'Get tokens' });
+  await expect(sheet).toBeVisible();
+  const history = sheet.getByRole('region', { name: 'Recent activity' });
+  await expect(history).toContainText('Daily check-in');
+  await expect(history).toContainText('+5');
 });
 
 test('reaching a new level celebrates once with the new framed badge', async ({ page }, info) => {
