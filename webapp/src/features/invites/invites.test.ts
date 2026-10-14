@@ -29,6 +29,7 @@ describe('invites', () => {
   it('error text: the server message, or a fallback', () => {
     expect(errorText({ message: 'This invite has expired. Ask for a new one.' }, 'x')).toBe('This invite has expired. Ask for a new one.');
     expect(errorText({ message: 'internal' }, 'Try again')).toBe('Try again');
+    expect(errorText({ message: 'FirebaseError: Verify your email to start a community. [400]' }, 'x')).toBe('Verify your email to start a community.');
     expect(errorText(null, 'Try again')).toBe('Try again');
   });
 });

@@ -24,6 +24,8 @@ export function safeLink(link?: string): { app?: string; href?: string } {
   if (prof) return { app: `/profile/${prof[1]}` };
   const war = /^practice\/war\.html\?w=([A-Za-z0-9]{12})$/.exec(path); // battle notifications open the in-app battle
   if (war) return { app: `/battles/${war[1]}` };
+  const comm = /^practice\/communities\.html(?:\?c=([a-z0-9-]{3,80}))?$/.exec(path); // community notifications open the in-app community
+  if (comm) return { app: comm[1] ? `/communities/${comm[1]}` : '/communities' };
   return { href: classicUrl(path) };
 }
 
