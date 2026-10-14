@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const [skipped] = useState(() => lsGet(SKIP_KEY) === '1');
   const isNew = !!meDoc && !meDoc.onboard.trade && meDoc.xp < 100; // "Welcome" until the first trade
 
-  const watch = useMemo(() => (userDoc.status === 'ready' ? { status: 'ready' as const, data: userDoc.data.watchlist } : userDoc), [userDoc]);
+  const watch = useMemo(() => (userDoc.status === 'ready' ? { status: 'ready' as const, data: userDoc.data.watchlist } : userDoc.status === 'missing' ? { status: 'ready' as const, data: [] as string[] } : userDoc), [userDoc]);
 
   if (fresh && !skipped) return <Navigate to="/welcome" replace />;
   return (
@@ -83,7 +83,7 @@ export default function DashboardPage() {
         <MoversCard />
         <AchievementsCard progress={progress} publicIds={me?.achievements ?? []} />
         <MarketCard />
-        {uid && <WatchlistCard watch={watch} />}
+        {uid && <WatchlistCard watch={watch} uid={uid} />}
       </div>
     </>
   );
