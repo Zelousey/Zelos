@@ -151,7 +151,7 @@ export const NOTIFY_GROUPS: { title: string; items: { key: string; label: string
   { title: 'Strategy alerts', items: STRATEGIES.map((s) => ({ key: `s:${s.id}`, label: s.name, hint: 'A new alert is published' })) },
   { title: 'Battles', items: [{ key: 'challenges', label: 'Challenges', hint: 'Someone challenges you, or answers your challenge' }, { key: 'battles', label: 'Battle updates', hint: 'A Trade War starts, you lose the lead, final results' }] },
   { title: 'Friends & community', items: [{ key: 'friends', label: 'Friends', hint: 'Someone adds you as a friend' }, { key: 'community', label: 'Community', hint: 'New members, Founder milestones' }] },
-  { title: 'Your trades', items: [{ key: 'fills', label: 'Stop loss & take profit', hint: 'An automatic exit fills in one of your Trade Wars' }] },
+  { title: 'Your trades', items: [{ key: 'fills', label: 'Stop loss & take profit', hint: 'An automatic exit fills in one of your Trade Wars' }, { key: 'price', label: 'Price alerts', hint: 'A stock crosses a price alert you drew on a chart' }] },
 ];
 export type Prefs = { strategies: string[] | null; types: Record<string, boolean> };
 export function parsePrefs(d: DocumentData | null | undefined): Prefs {

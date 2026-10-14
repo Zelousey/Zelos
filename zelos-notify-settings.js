@@ -16,7 +16,8 @@
       ['battles', 'Battle updates', 'A Trade War starts, you lose the lead, you\'re knocked out, final results']]],
     ['Friends & community', [['friends', 'Friends', 'Someone adds you as a friend, or adds you back'],
       ['community', 'Community', 'New members in your community, Founder milestones']]],
-    ['Your trades', [['fills', 'Stop loss & take profit', 'An automatic exit fills in one of your Trade Wars']]],
+    ['Your trades', [['fills', 'Stop loss & take profit', 'An automatic exit fills in one of your Trade Wars'],
+      ['price', 'Price alerts', 'A stock crosses a price alert you drew on a chart']]],
     ['Scanner alerts', [['s:swing-trader', 'Swing Trader', 'A new alert is published'],
       ['s:breakout-rider', 'Breakout Rider', 'A new alert is published'], ['s:options-scanner', 'Options Scanner', 'A new alert is published']]]
   ];

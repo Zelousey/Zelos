@@ -717,6 +717,12 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
             print("[practice] orders pass:", practice_pass(db, fetched[0], fetched[1], int(now.timestamp() * 1000), fetched[2]))
     except Exception as e:
         print("[practice] orders pass failed:", type(e).__name__, e)
+    # price alerts people drew on charts: notify the ones these prices crossed (also separate)
+    try:
+        if fetched is not None:
+            print("[price alerts] pass:", price_alerts_pass(db, fetched[0], int(now.timestamp() * 1000)))
+    except Exception as e:
+        print("[price alerts] pass failed:", type(e).__name__, e)
 
 
 # ---------------------------------------------------------------------------
@@ -4025,11 +4031,11 @@ def alert_push(db, alert_id, alert):
 
 # ---- personal notifications ---------------------------------------------------
 # Everything that's about *you* (not a scanner alert): challenges, battle updates,
-# friends, your community, Trade War stop loss / take profit fills. Each one lands
+# friends, your community, Trade War stop loss / take profit fills, your price alerts. Each one lands
 # in users/{uid}/inbox (the bell on every page) and, if that kind is switched on in
 # Alerts -> Notifications (users/{uid}.notificationPrefs.types; missing = on), as a
 # push to every device the person turned notifications on for.
-NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills")
+NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price")
 
 
 def notify_wants(prefs, kind):
@@ -5811,3 +5817,57 @@ def profile_setup(req):
     except Exception as e:
         print("[profile_setup] failed: %s\n%s" % (type(e).__name__, _traceback.format_exc()[-1500:]))
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+
+
+# ---------------------------------------------------------------------------
+# Price alerts with the app closed (functions/price_alerts.py). refresh_quotes calls
+# price_alerts_pass after every price fetch: for each person with waiting alerts
+# (users.twAlertsActive > 0), alerts the new server prices crossed are marked triggered
+# (in a transaction, only if still the same waiting alert) and sent as a bell item + push
+# (kind "price", switchable in Notifications). priceAlertHits/{uid_id_updatedAt} makes
+# sure each placement of an alert notifies once, even if an old copy is saved back.
+# ---------------------------------------------------------------------------
+import price_alerts as PA  # noqa: E402
+
+PRICE_ALERT_USERS_MAX = 5000  # per pass; far above today's numbers, just a ceiling on the work
+
+
+def price_alerts_pass(db, quotes, now_ms):
+    """Check everyone's waiting price alerts against quotes ({SYM: {"c": price}}). Returns counts."""
+    prices = {s: float(q["c"]) for s, q in (quotes or {}).items() if isinstance(q, dict) and isinstance(q.get("c"), (int, float)) and q["c"] > 0}
+    res = {"users": 0, "fired": 0}
+    if not prices:
+        return res
+    symbols = set(PRACTICE_SYMBOLS)
+    for snap in db.collection("users").where("twAlertsActive", ">", 0).limit(PRICE_ALERT_USERS_MAX).stream():
+        res["users"] += 1
+        try:
+            uid = snap.id
+            found = PA.hits(PA.clean((snap.to_dict() or {}).get("twAlerts"), symbols), prices)
+            if not found:
+                continue
+            fired = {a["id"]: (a["updatedAt"], p) for a, p in found}
+            ref = snap.reference
+
+            @firestore.transactional
+            def txn(t):
+                cur = ref.get(transaction=t)
+                new, waiting, marked = PA.mark((cur.to_dict() or {}).get("twAlerts"), fired, now_ms)
+                if marked:
+                    t.update(ref, {"twAlerts": new, "twAlertsActive": waiting})
+                return marked
+
+            marked = set(txn(db.transaction()))
+            for a, p in found:
+                if a["id"] not in marked:
+                    continue
+                try:
+                    db.collection("priceAlertHits").document(PA.guard_id(uid, a)).create({"uid": uid, "sym": a["sym"], "price": a["price"], "hit": p, "at": now_ms})
+                except Exception:
+                    continue  # this placement already notified
+                title, body, path = PA.message(a, p)
+                notify_users(db, [uid], "price", title, body, path, "price-" + a["id"])
+                res["fired"] += 1
+        except Exception as e:
+            print("[price alerts] one account failed: %s" % type(e).__name__)
+    return res

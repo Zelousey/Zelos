@@ -707,6 +707,8 @@ const en = {
   'ct.above': 'Alert when {sym} is at or above {price}',
   'ct.below': 'Alert when {sym} is at or below {price}',
   'ct.remove': 'Remove the {price} alert',
+  'ct.closedHint': 'Signed in, you’ll get a notification when one is crossed, even with Zelos closed (during market hours).',
+  'ct.closedLink': 'Notification settings',
   'ct.hit': 'Price alert: {sym} {dir} {price} (now {now})',
   'bs.lockAt': '🔒 {buyIn} unlocks at Level {level} ({name}, {xp} XP).',
   'bs.youHave': 'You have {xp} XP.',

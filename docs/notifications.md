@@ -61,3 +61,37 @@ firebase deploy --only functions:rewards_checkin
 firebase deploy --only functions:market_research
 firebase deploy --only functions:refresh_market_data
 ```
+
+## Price alerts with the app closed (kind `price`)
+
+Price alerts are drawn on a chart (app stock page and battle ticket, website Trade War pages).
+The chart engine (`practice/practice-chart.js`, `AlertStore`) keeps them in the browser and,
+signed in, on `users/{uid}.twAlerts` (max 50), with `users/{uid}.twAlertsActive` = how many
+still wait. The app syncs that list on start and whenever it comes back into view
+(`PriceAlertWatcher`), so the website and the app share one list.
+
+Every time `refresh_quotes` fetches prices it runs `price_alerts_pass` (`functions/main.py`,
+rules in `functions/price_alerts.py`):
+
+- finds people with `twAlertsActive > 0` and re-checks every saved alert (a stock on the
+  practice list, a real positive price, above/below; only the first 50); nothing from the
+  browser is trusted;
+- uses only the server's own prices;
+- for each alert crossed: marks it triggered in a transaction (only if it's still the same
+  waiting alert), then `notify_users(kind "price")` → bell item + push, opening
+  `/app/markets/<SYM>`;
+- `priceAlertHits/{uid_alertId_updatedAt}` (server only) makes each placement notify once,
+  even if another device saves an old copy of the list back. Moving or re-arming an alert
+  gives it a new `updatedAt`, so it can fire again.
+
+Speed follows prices: every minute on Marketstack Professional, every 15 minutes on Basic,
+market hours only. Switch: **Alerts → Notifications → Price alerts** (on by default).
+
+Tests: `scripts/price_alerts_test.py` (rules), `tests/rules/price_alerts.e2e.py` (the real
+pass on the Firestore emulator), `webapp/e2e/charttools.spec.ts` (saved on the account).
+
+Deploy (after the PR merges):
+
+```
+firebase deploy --only firestore:rules,functions:refresh_quotes --project leaderboard-agentictrading
+```

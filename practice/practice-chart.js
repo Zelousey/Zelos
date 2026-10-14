@@ -675,14 +675,16 @@
   // ------------------------------------------------------------ Trade War price alerts
   // [{ id, sym, price, dir: 'above'|'below', status: 'active'|'triggered', createdAt, triggeredAt, updatedAt }]
   // Kept in this browser (localStorage) and, when signed in, in users/{uid}.twAlerts so
-  // they follow the person between the $10,000 account and matches. They fire while a
-  // Trade War page is open; notifications with the site closed need web push (later phase).
+  // they follow the person between the $10,000 account, matches and the app. They fire while
+  // a page is open; with it closed, the server checks them on every price update
+  // (functions/price_alerts.py, using twAlertsActive to find who has waiting ones).
   var ALERT_KEY = 'zelosTwAlerts', ALERT_MAX = 50;
   function AlertStore() { this.list = []; this.ref = null; try { this.list = JSON.parse(localStorage.getItem(ALERT_KEY) || '[]') || []; } catch (e) {} }
   AlertStore.prototype.save = function () {
     this.list = this.list.slice(-ALERT_MAX);
     try { localStorage.setItem(ALERT_KEY, JSON.stringify(this.list)); } catch (e) {}
-    if (this.ref) this.ref.set({ twAlerts: this.list }, { merge: true }).catch(function () {});
+    var waiting = this.list.filter(function (a) { return a && a.status === 'active'; }).length;
+    if (this.ref) this.ref.set({ twAlerts: this.list, twAlertsActive: waiting }, { merge: true }).catch(function () {});
   };
   AlertStore.prototype.attach = function (db, uid, done) {
     var self = this; this.ref = db && uid ? db.collection('users').doc(uid) : null; if (!this.ref) return;

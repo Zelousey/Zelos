@@ -20,7 +20,13 @@ export interface AlertStore {
   remove(id: string): void;
   forSym(sym: string): PriceAlert[];
   check(prices: Record<string, number>): PriceAlert[];
+  /** Sync with users/{uid}.twAlerts (the newest copy of each alert wins), then call done. */
+  attach(db: CompatDb | null, uid: string | null, done?: () => void): void;
 }
+/** The bit of the old Firestore API the engine's alert store uses (see PriceAlertWatcher). */
+export type CompatDb = {
+  collection(name: string): { doc(id: string): { get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined }>; set(data: Record<string, unknown>, opts: { merge: true }): Promise<void> } };
+};
 export type Forecast = { entry: number; sl: number | null; tp: number | null; label?: string; side?: 'buy' | 'sell'; editable?: boolean };
 
 /** A coach-play drawing, pinned to a bar date and a price so it survives zooming (practice-chart.js). */
