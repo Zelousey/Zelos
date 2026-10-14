@@ -18,6 +18,7 @@ import { strategy } from '../strategies/strategies';
 import { TokensSheet, useTokens } from '../strategies/Tokens';
 import { awardOpen, hasTrade, ID_RE, isClosedForUnlock, isShort, unlockAlert, useAlertDoc, useFullAlert, type Alert } from './alerts';
 import { ResultBadge, StatusBadge } from './Badges';
+import { ResearchCard } from '../markets/Research';
 import s from './Alerts.module.css';
 
 const SITE = 'https://agentictrading.info/app';
@@ -105,6 +106,7 @@ function View({ a, uid, onUnlocked }: { a: Alert; uid: string | null; onUnlocked
             <p>{a.regime}</p>
           </Card>
         )}
+        {!a.locked && a.ticker && <ResearchCard sym={a.ticker} />}
         <Card title={st.name} subtitle={st.tagline}>
           <StrategyArt id={st.id} name={st.name} size="sm" />
           <Link to={`/strategies/${st.id}`} className={s.more}>

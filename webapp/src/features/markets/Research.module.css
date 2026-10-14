@@ -1,0 +1,13 @@
+.muted { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.kv { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: var(--space-3); }
+.kv div { display: grid; gap: 2px; min-width: 0; }
+.kv dt { font-size: var(--text-sm); color: var(--muted); }
+.kv dd { margin: 0; color: var(--ink); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { margin: var(--space-4) 0 var(--space-2); font-size: var(--text-sm); color: var(--ink); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); font-size: var(--text-sm); color: var(--ink-2); }
+.list small { color: var(--muted); }
+.buy { color: var(--up-ink) !important; }
+.sell { color: var(--down-ink) !important; }
+.site { display: inline-block; margin-top: var(--space-3); font-size: var(--text-sm); }
+.fine { margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-sm); }
