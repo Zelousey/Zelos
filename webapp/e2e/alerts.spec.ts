@@ -77,14 +77,21 @@ test.describe('signed in', () => {
     const w = await get(`wallets/${uid}`);
     expect(w.fields.balance.integerValue).toBe('40');
 
+    // a browser that can show notifications and hasn't been asked yet (CI's headless browser starts
+    // with them blocked); asking is answered "Block"
+    if (info.project.name !== 'phone')
+      await page.addInitScript(() => {
+        const w = window as unknown as Record<string, unknown>;
+        w.PushManager ??= function PushManager() {};
+        Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+        Object.defineProperty(Notification, 'requestPermission', { value: () => Promise.resolve('denied') });
+      });
     await page.goto('alerts?tab=notify');
     // this device: an iPhone has to add Zelos to the Home Screen first; elsewhere it offers Turn on
     const device = page.getByRole('region', { name: 'Notifications on this device' });
     if (info.project.name === 'phone') await expect(device.getByText('On iPhone: add Zelos to your Home Screen')).toBeVisible();
     else {
       await expect(device.getByText('Get notified on this device')).toBeVisible();
-      await page.context().clearPermissions();
-      await page.evaluate(() => Object.defineProperty(Notification, 'requestPermission', { value: () => Promise.resolve('denied') }));
       await device.getByRole('button', { name: 'Turn on' }).click();
       await expect(page.getByText('Notifications are blocked for Zelos. Allow them in your settings, then try again.')).toBeVisible();
     }
