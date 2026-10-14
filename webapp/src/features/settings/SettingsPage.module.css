@@ -1,1 +1,4 @@
 .stack { display: grid; gap: var(--space-4); max-width: 640px; }
+.danger { display: grid; gap: var(--space-3); justify-items: start; }
+.danger > div { width: 100%; }
+.note { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
