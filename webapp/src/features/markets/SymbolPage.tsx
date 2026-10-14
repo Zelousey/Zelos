@@ -19,6 +19,7 @@ import { ChartView } from '../charts/ChartView';
 import { TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { StatusLine } from './StatusLine';
+import { WatchButton } from './WatchButton';
 import { MarketList } from './MarketRow';
 import { MiniChart } from './MiniChart';
 import { useMinis } from './miniSeries';
@@ -96,6 +97,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
             <Button variant="secondary" size="sm" onClick={() => setSwitching(true)} aria-haspopup="dialog">
               <Icon name="search" size={16} /> {t('chart.switch')}
             </Button>
+            <WatchButton sym={sym} />
           </div>
           <span className={s.name}>{name}</span>
         </div>

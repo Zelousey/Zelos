@@ -1,0 +1,9 @@
+.add { display: grid; gap: var(--space-2); margin-bottom: var(--space-4); }
+.add label { font-size: var(--text-sm); font-weight: 600; color: var(--ink-2); }
+.row { display: flex; gap: var(--space-2); }
+.row input { flex: 1; min-width: 0; min-height: var(--tap); font: inherit; font-family: var(--mono); text-transform: uppercase; color: var(--ink); background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 var(--space-3); }
+.error { margin: 0; color: var(--down-ink); font-size: var(--text-sm); }
+.muted { color: var(--muted); font-size: var(--text-sm); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.list li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding-left: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius); }
+.list small { color: var(--muted); }
