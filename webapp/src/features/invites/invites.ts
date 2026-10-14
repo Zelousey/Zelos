@@ -72,7 +72,8 @@ export const respondChallenge = (inviteId: string, accept: boolean) =>
 /** The server's message for a failed call ("This invite has expired…"), or a generic one. */
 export function errorText(e: unknown, fallback: string): string {
   const m = (e as { message?: string })?.message;
-  return m && !/^internal$/i.test(m) && m.length < 200 ? m.replace(/^FirebaseError:\s*/, '') : fallback;
+  // the server's message, without the SDK's "FirebaseError:" prefix or a trailing HTTP status like " [400]"
+  return m && !/^internal$/i.test(m) && m.length < 200 ? m.replace(/^FirebaseError:\s*/, '').replace(/\s*\[\d{3}\]$/, '') : fallback;
 }
 
 /** Share a link with the system share sheet, or copy it. */
