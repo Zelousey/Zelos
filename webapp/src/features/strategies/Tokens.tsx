@@ -10,6 +10,7 @@ import { Button, Sheet, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
 import { checkout, openWallet, safeCheckout, useWalletDoc, type WalletInfo } from './strategies';
 import { Coin } from '../tokens/Coin';
+import { TokenHistory } from './TokenHistory';
 import s from './Strategies.module.css';
 
 /** The live wallet plus prices/packs (tokens_wallet also makes the wallet and gives welcome tokens once). */
@@ -74,6 +75,7 @@ export function TokensSheet({ open, onClose, info, balance }: { open: boolean; o
           </ul>
         )}
         <p className={s.fine}>{t('st.tokens.fine')}</p>
+        <TokenHistory />
       </div>
     </Sheet>
   );
