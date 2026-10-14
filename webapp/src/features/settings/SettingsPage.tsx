@@ -1,9 +1,10 @@
-/** Settings that live in the app today: theme. Account management still links to My Zelos on the classic site. */
+/** Settings: theme, and deleting your account. Notification preferences still link to My Zelos on the classic site. */
 import { useState } from 'react';
 import { t } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { getTheme, setTheme, THEMES, type Theme } from '../../lib/theme';
 import { ButtonLink, Card, Icon, PageHeader, Tabs } from '../../ui';
+import { DeleteAccount } from './DeleteAccount';
 import s from './SettingsPage.module.css';
 
 const THEME_LABEL = { black: 'settings.theme.black', blue: 'settings.theme.blue', white: 'settings.theme.white' } as const;
@@ -31,6 +32,7 @@ export default function SettingsPage() {
             <Icon name="external" size={16} />
           </ButtonLink>
         </Card>
+        <DeleteAccount />
       </div>
     </>
   );
