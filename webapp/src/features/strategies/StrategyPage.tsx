@@ -1,7 +1,6 @@
 /** One strategy (/strategies/:id): what it looks for and avoids, its recent alerts, the pass. */
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { classicUrl } from '../../lib/platform';
 import { t } from '../../lib/i18n';
 import { Card, EmptyState, Icon, LoadingState, PageHeader } from '../../ui';
 import { AlertLine, PassButton } from './StrategiesPage';
@@ -55,9 +54,6 @@ export default function StrategyPage() {
           </ul>
           <div className={s.actions}>
             <PassButton st={st} wallet={tk.wallet} info={tk.info} balance={tk.balance} onTokens={() => setSheet(true)} />
-            <a className={s.more} href={classicUrl(st.page)}>
-              {t('st.fullPage')} <Icon name="external" size={12} />
-            </a>
           </div>
         </Card>
         <Card title={t('st.recent')} subtitle={t('st.recent.sub')} flush>

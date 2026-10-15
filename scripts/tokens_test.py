@@ -25,6 +25,14 @@ class Wallet(unittest.TestCase):
         self.assertEqual((w2["balance"], w2["welcomed"], line["amount"], line["type"]), (75, True, 75, "welcome"))
         self.assertIsNone(m.tk_welcome(w2, True, T0 + 1)[1])
 
+    def test_verified_accounts(self):
+        fb = lambda p: {"firebase": {"sign_in_provider": p}}  # noqa: E731
+        self.assertTrue(m._tk_verified(fb("google.com")))
+        self.assertTrue(m._tk_verified(fb("apple.com")))  # Sign in with Apple: Apple verified the email
+        self.assertTrue(m._tk_verified(dict(fb("password"), email_verified=True)))
+        self.assertFalse(m._tk_verified(fb("password")))
+        self.assertFalse(m._tk_verified(fb("anonymous")))
+
     def test_pass_extends_and_charges(self):
         w = dict(m.tk_new_wallet(T0), balance=100)
         w, line = m.tk_spend(w, "pass", T0, "swing-trader")

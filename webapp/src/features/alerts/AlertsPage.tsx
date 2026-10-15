@@ -127,7 +127,7 @@ export function AlertRow({ a }: { a: Alert }) {
 }
 
 function NotifySettings() {
-  const { user, isReal, signInWithGoogle } = useAuth();
+  const { user, isReal, openSignIn } = useAuth();
   const toast = useToast();
   const uid = isReal && user ? user.uid : null;
   const me = useUserDoc(uid);
@@ -138,8 +138,8 @@ function NotifySettings() {
         icon="bell"
         body={t('al.notify.signIn')}
         actions={
-          <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-            {t('auth.signInWithGoogle')}
+          <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+            {t('auth.signIn')}
           </Button>
         }
       />

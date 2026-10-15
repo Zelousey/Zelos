@@ -13,6 +13,7 @@ import { Choices } from '../invites/Choices';
 import { auth } from '../../lib/firebase';
 import { useUserDoc } from '../../data/userDoc';
 import { BattleSettings, BuyInChoices } from '../battles/BattleSettings';
+import { useSkill } from '../learn/useSkill';
 import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { unlockQuietly } from '../missions/missions';
 import { challenge } from './profile';
@@ -26,6 +27,7 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
   const [days, setDays] = useState(7);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const me = useUserDoc(auth().currentUser?.uid ?? null);
+  const { level } = useSkill();
   const xp = me.status === 'ready' ? me.data.xp : me.status === 'loading' ? null : 0;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
         <Field label={t('inv.battle.name')} value={name} maxLength={40} placeholder={t('pf.ch.placeholder')} onChange={(e) => setName(e.target.value)} required />
         <BuyInChoices value={buyIn} onChange={setBuyIn} xp={xp} />
         <Choices label={t('inv.battle.days')} value={days} options={DAYS} onChange={pickDays} format={(v) => (v === 1 ? t('inv.battle.day1') : t('inv.battle.daysN', { n: v }))} />
-        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setErr(null); }} days={days} />
+        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setErr(null); }} days={days} simple={level === 'beginner'} />
         {err && (
           <p className={s.error} role="alert">
             {err}

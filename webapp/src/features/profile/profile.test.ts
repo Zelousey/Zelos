@@ -58,7 +58,7 @@ describe('profile', () => {
   });
   it('friend notifications open the profile in the app', () => {
     expect(safeLink('practice/profile.html?u=AbCdEf123456XYZ')).toEqual({ app: '/profile/AbCdEf123456XYZ' });
-    expect(safeLink('practice/profile.html?u=x')).toEqual({ href: '/practice/profile.html?u=x' });
+    expect(safeLink('practice/profile.html?u=x')).toEqual({});
     expect(UID_RE.test('AbCdEf123456XYZ') && !UID_RE.test('../etc')).toBe(true);
   });
 });

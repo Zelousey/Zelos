@@ -7,6 +7,7 @@
  * Layout: a grid with named areas. Phones get one column in the order a player needs:
  * account, missions, wars, leaderboard, then the market.
  */
+import { LevelCard } from '../learn/LevelCard';
 import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router';
 import { parseUserDoc, useUserDoc } from '../../data/userDoc';
@@ -27,7 +28,7 @@ import s from './DashboardPage.module.css';
 
 export default function DashboardPage() {
   const quotes = useQuotes();
-  const { user, isReal, signInWithGoogle } = useAuth();
+  const { user, isReal, openSignIn } = useAuth();
   const toast = useToast();
   const uid = isReal && user ? user.uid : null;
   const userDoc = useUserDoc(uid);
@@ -46,7 +47,7 @@ export default function DashboardPage() {
   const ach = achievementsView(progress, me?.achievements);
 
   const name = (identity.status === 'ready' && identity.data.name) || user?.displayName?.split(' ')[0] || '';
-  const signIn = () => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+  const signIn = () => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'));
   const acct = usePracticeAccount(uid);
 
   // first sign-in: no @username and the welcome not done or skipped -> the welcome screens
@@ -66,6 +67,7 @@ export default function DashboardPage() {
       {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
         <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
       )}
+      {uid && meDoc && <LevelCard me={meDoc} />}
       <div className={[s.grid, uid ? s.signedIn : s.signedOut].join(' ')}>
         {uid ? (
           <>

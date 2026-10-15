@@ -8,6 +8,7 @@ import { formatMarketTime, formatDate } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Button, Card, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
+import { SafetyMenu, useBlocked } from '../safety/SafetyMenu';
 import { chatPhoto, deleteMessage, react, REACTION_EMOJI, REACTIONS, sendMessage, useMessages, type Message, type Squad } from './squads';
 import s from './Social.module.css';
 
@@ -23,6 +24,7 @@ export function SquadChat({ sq, uid }: { sq: Squad; uid: string }) {
   const box = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const owner = sq.owner === uid;
+  const blocked = useBlocked();
   const count = msgs.status === 'ready' ? msgs.data.length : 0;
 
   // right after joining the chat rules may not see your membership yet: retry a few times
@@ -66,7 +68,15 @@ export function SquadChat({ sq, uid }: { sq: Squad; uid: string }) {
       <div className={s.msgs} ref={box} aria-live="polite" tabIndex={0} role="log" aria-label={t('sq.chat')}>
         {msgs.status === 'ready' ? (
           msgs.data.length ? (
-            msgs.data.map((m) => <Bubble key={m.id} m={m} sq={sq} uid={uid} canDelete={m.author === uid || owner} onError={(x) => toast.show(x, 'error')} />)
+            msgs.data.map((m) =>
+              blocked.includes(m.author) ? (
+                <p key={m.id} className={s.muted}>
+                  {t('sf.hiddenMsg')}
+                </p>
+              ) : (
+                <Bubble key={m.id} m={m} sq={sq} uid={uid} canDelete={m.author === uid || owner} onError={(x) => toast.show(x, 'error')} />
+              ),
+            )
           ) : (
             <p className={s.muted}>{t('sq.chat.empty')}</p>
           )
@@ -115,6 +125,7 @@ function Bubble({ m, sq, uid, canDelete, onError }: { m: Message; sq: Squad; uid
       <div className={s.msgHead}>
         <b>{m.name}</b>
         <small>{when(m.at)}</small>
+        {m.author !== uid && <SafetyMenu what={{ kind: 'chat', target: m.author, where: `${sq.id}/${m.id}` }} name={m.name} />}
         {canDelete && (
           <button type="button" className={s.msgDel} aria-label={t('sq.chat.delete')} onClick={() => window.confirm(t('sq.chat.deleteConfirm')) && void deleteMessage(sq, m).catch((e) => onError(errorText(e, t('sq.chat.failed'))))}>
             ×

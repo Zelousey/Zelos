@@ -23,7 +23,7 @@ import s from './Battles.module.css';
 export default function BattlePage() {
   const raw = useParams().id ?? '';
   const id = BATTLE_ID_RE.test(raw) ? raw : null;
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const b = useBattle(id && ready && user ? id : null);
   const toast = useToast();
   if (!id) return <EmptyState icon="war" title={t('bt.missing')} actions={<Link to="/battles">{t('bt.back')}</Link>} />;
@@ -34,8 +34,8 @@ export default function BattlePage() {
         icon="war"
         body={t('bt.signIn')}
         actions={
-          <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-            {t('auth.signInWithGoogle')}
+          <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+            {t('auth.signIn')}
           </Button>
         }
       />

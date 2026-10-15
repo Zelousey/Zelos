@@ -143,6 +143,18 @@ test('news: anyone can read posts; nobody can write them from the browser', asyn
   await assertFails(getDoc(doc(real('alice').firestore(), 'admins/alice')));
 });
 
+test('block list and terms: your own, capped; reports are server only', async () => {
+  const db = real('alice').firestore();
+  await assertSucceeds(setDoc(doc(db, 'users/alice'), { xp: 0, blocked: ['bob'], termsAt: 1 }));
+  await assertSucceeds(updateDoc(doc(db, 'users/alice'), { blocked: ['bob', 'carol'] }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { blocked: 'bob' }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { blocked: Array.from({ length: 501 }, (_, i) => 'u' + i) }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { termsAt: 'yes' }));
+  await assertFails(setDoc(doc(db, 'reports/r1'), { reporter: 'alice' }));
+  await assertFails(getDoc(doc(db, 'reports/r1')));
+  await assertFails(setDoc(doc(db, 'reportCounts/alice'), { n: 0 }));
+});
+
 test('missions are counted by the server: browsers cannot write them', async () => {
   await assertFails(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, missions: { day: { done: { trade: true } } } }));
   await assertSucceeds(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, watchlist: [] }));

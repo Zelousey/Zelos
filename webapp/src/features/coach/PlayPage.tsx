@@ -3,6 +3,7 @@
  * the live chart of that stock and timeframe, the title and note, Buy / Sell to act on it in
  * Practice, and the comments (either side). Opened from "Your coach drew up a play" in the bell.
  */
+import { SafetyMenu } from '../safety/SafetyMenu';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
@@ -100,6 +101,7 @@ function View({ play, coachingId, uid, active }: { play: Play; coachingId: strin
                   <li key={i} className={cm.from === uid ? s.mine : undefined}>
                     <span className={s.commentHead}>
                       <b>{cm.fromName}</b> <span className={s.muted}>{formatRelative(cm.at)}</span>
+                      {cm.from !== uid && <SafetyMenu what={{ kind: 'coach', target: cm.from, where: `${coachingId}/plays/${play.id}` }} name={cm.fromName} />}
                     </span>
                     <span>{cm.text}</span>
                   </li>

@@ -14,7 +14,7 @@ import s from './Coach.module.css';
 const BADGE_TASKS = 5;
 
 export default function CoachPage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const uid = isReal && user ? user.uid : null;
   const asCoach = useAsCoach(uid);
@@ -32,7 +32,7 @@ export default function CoachPage() {
       <>
         <PageHeader title={t('co.title')} subtitle={t('co.subtitle')} />
         <Card pad>
-          <EmptyState icon="missions" body={t('co.signIn')} actions={<Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signInWithGoogle')}</Button>} />
+          <EmptyState icon="missions" body={t('co.signIn')} actions={<Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signIn')}</Button>} />
         </Card>
       </>
     );
