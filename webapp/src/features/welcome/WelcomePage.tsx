@@ -1,27 +1,30 @@
 /**
- * Welcome (/welcome): the first sign-in, in three short screens (owner decision 2026-10-08).
- *   1. Name, @username (checked live, saved by the server) and, optionally, experience.
- *   2. The $10,000 practice account (virtual money).
- *   3. The first trade: pick a stock to open its chart.
+ * Welcome (/welcome): the first sign-in, in four short screens (owner decisions 2026-10-08, 2026-10-15).
+ *   1. Name and @username (checked live, saved by the server).
+ *   2. The one-minute quiz (skippable): experience, goal and three knowledge checks set your
+ *      level, so beginners get Trading 101, a guided first trade and a Quick battle.
+ *   3. The $10,000 practice account (virtual money).
+ *   4. The first trade: pick a stock to open its chart.
  * "Skip for now" remembers the choice on this device; the First steps checklist on the
  * Dashboard keeps the same steps.
  */
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useUserDoc, type Experience } from '../../data/userDoc';
+import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
-import { t, type MessageKey } from '../../lib/i18n';
+import { t } from '../../lib/i18n';
 import { Button, buttonClass, EmptyState, Field, LoadingState, useToast } from '../../ui';
 import { useIdentity } from '../dashboard/social';
 import { errorText } from '../invites/invites';
 import { openAccount } from '../practice/actions';
 import { usePracticeAccount } from '../practice/account';
 import { checkUsername, lsSet, profileSetup, SKIP_KEY, suggestUsername, USERNAME_RE, type Availability } from './welcome';
+import { Quiz, levelLabel } from '../learn/Quiz';
+import { levelFromExperience } from '../learn/quiz';
 import s from './Welcome.module.css';
 
 const ICON = `${import.meta.env.BASE_URL}icons/icon-192.png`;
 const STARTERS = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN'];
-const EXPERIENCE: Experience[] = ['new', 'some', 'pro'];
 
 export default function WelcomePage() {
   const { user, isReal, ready, openSignIn } = useAuth();
@@ -51,14 +54,15 @@ function Flow({ uid, googleName }: { uid: string; googleName: string }) {
     lsSet(SKIP_KEY, '1');
     navigate('/dashboard');
   };
-  const experience = me.status === 'ready' ? me.data.experience : null;
+  const toast = useToast();
+  const level = me.status === 'ready' ? (me.data.skill?.level ?? levelFromExperience(me.data.experience)) : null;
 
   return (
     <div className={s.wrap}>
       <div className={s.top}>
         <img src={ICON} alt="" width={36} height={36} className={s.logo} />
-        <ol className={s.dots} aria-label={t('wel.step', { n: step + 1, of: 3 })}>
-          {[0, 1, 2].map((i) => (
+        <ol className={s.dots} aria-label={t('wel.step', { n: step + 1, of: 4 })}>
+          {[0, 1, 2, 3].map((i) => (
             <li key={i} className={i === step ? s.dotOn : i < step ? s.dotDone : s.dot} aria-current={i === step ? 'step' : undefined} />
           ))}
         </ol>
@@ -75,22 +79,34 @@ function Flow({ uid, googleName }: { uid: string; googleName: string }) {
               uid={uid}
               initialName={(identity.status === 'ready' && identity.data.name) || googleName.split(' ')[0] || ''}
               initialUsername={identity.status === 'ready' ? identity.data.username : null}
-              initialExperience={experience}
               onDone={() => setStep(1)}
             />
           ))}
-        {step === 1 && <AccountStep uid={uid} onDone={() => setStep(2)} />}
-        {step === 2 && <TradeStep experience={experience} />}
+        {step === 1 && (
+          <div className={s.form}>
+            <h1 className={s.title}>{t('qz.title')}</h1>
+            <p className={s.body}>{t('qz.sub')}</p>
+            <Quiz
+              uid={uid}
+              onDone={(k) => {
+                toast.show(`${t('qz.yourLevel')}: ${levelLabel(k.level)}`);
+                setStep(2);
+              }}
+              onSkip={() => setStep(2)}
+            />
+          </div>
+        )}
+        {step === 2 && <AccountStep uid={uid} onDone={() => setStep(3)} />}
+        {step === 3 && <TradeStep beginner={level === 'beginner'} />}
       </div>
     </div>
   );
 }
 
-function ProfileStep({ uid, initialName, initialUsername, initialExperience, onDone }: { uid: string; initialName: string; initialUsername: string | null; initialExperience: Experience | null; onDone: () => void }) {
+function ProfileStep({ uid, initialName, initialUsername, onDone }: { uid: string; initialName: string; initialUsername: string | null; onDone: () => void }) {
   const toast = useToast();
   const [name, setName] = useState(initialName);
   const [username, setUsername] = useState(() => initialUsername ?? (initialName ? suggestUsername(initialName) : ''));
-  const [exp, setExp] = useState<Experience | null>(initialExperience);
   const [checked, setChecked] = useState<{ u: string; a: Availability } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -121,7 +137,7 @@ function ProfileStep({ uid, initialName, initialUsername, initialExperience, onD
     setBusy(true);
     setErr(null);
     try {
-      const r = await profileSetup({ name: name.trim(), username: u, ...(exp ? { experience: exp } : {}) });
+      const r = await profileSetup({ name: name.trim(), username: u });
       toast.show(r.awarded ? `${t('wel.saved')} · +25 XP` : t('wel.saved'));
       onDone();
     } catch (e2) {
@@ -137,18 +153,6 @@ function ProfileStep({ uid, initialName, initialUsername, initialExperience, onD
       <p className={s.body}>{t('wel.1.body')}</p>
       <Field label={t('wel.name')} value={name} maxLength={24} autoComplete="nickname" onChange={(e) => setName(e.target.value)} />
       <Field label={t('wel.username')} prefix="@" value={username} maxLength={21} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={(e) => setUsername(e.target.value.toLowerCase())} error={userMsg} hint={userMsg ? undefined : userHint} />
-      <fieldset className={s.exp}>
-        <legend>{t('wel.exp')}</legend>
-        <div className={s.chips}>
-          {EXPERIENCE.map((x) => (
-            <label key={x} className={[s.chip, exp === x && s.chipOn].filter(Boolean).join(' ')}>
-              <input type="radio" name="experience" value={x} checked={exp === x} onChange={() => setExp(x)} />
-              {t(`wel.exp.${x}` as MessageKey)}
-            </label>
-          ))}
-        </div>
-        <span className={s.muted}>{t('wel.exp.optional')}</span>
-      </fieldset>
       {err && (
         <p className={s.error} role="alert">
           {err}
@@ -204,11 +208,11 @@ function AccountStep({ uid, onDone }: { uid: string; onDone: () => void }) {
   );
 }
 
-function TradeStep({ experience }: { experience: Experience | null }) {
+function TradeStep({ beginner }: { beginner: boolean }) {
   return (
     <div className={s.form}>
       <h1 className={s.title}>{t('wel.3.title')}</h1>
-      <p className={s.body}>{experience === 'new' ? t('wel.3.body.new') : t('wel.3.body')}</p>
+      <p className={s.body}>{beginner ? t('wel.3.body.new') : t('wel.3.body')}</p>
       <ul className={s.stocks}>
         {STARTERS.map((sym) => (
           <li key={sym}>
@@ -218,9 +222,9 @@ function TradeStep({ experience }: { experience: Experience | null }) {
           </li>
         ))}
       </ul>
-      {experience === 'new' && (
+      {beginner && (
         <p className={s.coach}>
-          {t('wel.3.coach')} <Link to="/coach">{t('wel.3.findCoach')}</Link>
+          {t('wel.3.learn')} <Link to="/learn">{t('nav.learn')}</Link> · <Link to="/coach">{t('wel.3.findCoach')}</Link>
         </p>
       )}
       <Link to="/dashboard" className={buttonClass({ variant: 'ghost', block: true })}>

@@ -176,3 +176,10 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 Gzipped JS: app ~10 KB, React + router ~98 KB, Firebase Auth ~30 KB, Firestore ~129 KB
 (vendor chunks cached separately, so app updates don't re-download them). CSS ~6 KB. Measure
 again as screens are added; Firestore is the largest piece.
+
+## Beginners: quiz and Trading 101 (2026-10-15)
+- `features/learn/quiz.ts`: the five questions and `score()` (knowledge decides: 0-1 right or brand new → Beginner; all right and not new → Experienced; else Learning). Saved on `users.skill` `{level, right, goal, at}` plus `experience`. Skipped → the welcome answer is the fallback (`levelFromExperience`). `useSkill()` reads it.
+- Where the quiz appears: welcome step 2, `/quiz?next=…` (Dashboard `LevelCard`, invite celebration, Trading 101 page).
+- `features/learn/lessons.ts`: Trading 101 content; `/learn`, `/learn/:id`; `users.learnDone`.
+- `features/learn/Glossary.tsx`: `TermHelp` "?" explanations and the order-type sentence on the trade ticket.
+- Beginner-only: the guided first trade (until the first trade or order), the Dashboard next steps (until the lessons are done) and `BattleSettings simple` (Quick battle) in the invite page and the challenge sheet.
