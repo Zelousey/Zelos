@@ -51,7 +51,7 @@
       return d.toLocaleString('en-US', { timeZone: 'America/New_York', month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' ET';
     } catch (e) { return ''; }
   }
-  var STRATEGY_LABEL = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner' };
+  var STRATEGY_LABEL = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner', 'three-leg': '3-Leg Options' };
 
   function close() {
     var overlay = document.querySelector('.zmodal-overlay');

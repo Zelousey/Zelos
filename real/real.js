@@ -18,7 +18,7 @@
   'use strict';
   var M = window.ZelosModes, P = window.ZelosProgress;
   var $ = function (id) { return document.getElementById(id); };
-  var SKILL_NAMES = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner' }, userData = {};
+  var SKILL_NAMES = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner', 'three-leg': '3-Leg Options' }, userData = {};
   var db = null, user = null, trades = [], quotes = {}, trader = {}, traderLoaded = false, logs = [], names = {}, editing = null;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function money(v) { return (v < 0 ? '-$' : '$') + Math.abs(+v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -31,7 +31,7 @@
     var el = document.createElement('div'); el.className = 'pt-toast' + (bad ? ' is-bad' : ''); el.innerHTML = t;
     document.body.appendChild(el); setTimeout(function () { el.classList.add('is-out'); }, 3600); setTimeout(function () { el.remove(); }, 4100);
   }
-  var SOURCES = { manual: 'My own idea', 'swing-trader': 'Swing Trader signal', 'breakout-rider': 'Breakout Rider signal', 'options-scanner': 'Options Scanner signal' };
+  var SOURCES = { manual: 'My own idea', 'swing-trader': 'Swing Trader signal', 'breakout-rider': 'Breakout Rider signal', 'options-scanner': 'Options Scanner signal', 'three-leg': '3-Leg Options signal' };
 
   // ------------------------------------------------------------ math
   function mult(t) { return t.side === 'short' ? -1 : 1; }

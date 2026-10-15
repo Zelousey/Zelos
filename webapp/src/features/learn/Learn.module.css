@@ -1,0 +1,63 @@
+.stack { display: grid; gap: var(--space-4); max-width: 760px; }
+.narrow { display: grid; gap: var(--space-4); max-width: 640px; }
+.kicker { font-family: var(--mono); font-size: var(--text-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.muted { margin: 0; color: var(--ink-2); font-size: var(--text-sm); }
+.fine { margin: 0; color: var(--muted); font-size: var(--text-xs); }
+.pageTitle { margin: 0 0 var(--space-1); font-size: var(--text-xl); }
+.bar { height: 6px; background: var(--surface-2); border-radius: var(--radius-pill); overflow: hidden; margin-top: var(--space-3); }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width var(--dur-slow) var(--ease-out); }
+
+/* quiz */
+.quiz { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+.quizTop { display: flex; align-items: center; justify-content: space-between; }
+.skip { background: none; border: 0; color: var(--ink-2); font: inherit; font-size: var(--text-sm); cursor: pointer; padding: var(--space-2); min-height: var(--tap); text-decoration: underline; text-underline-offset: 2px; }
+.question { border: 0; margin: 0; padding: 0; display: grid; gap: var(--space-2); min-width: 0; }
+.qTitle { font-size: var(--text-lg); font-weight: 700; line-height: 1.3; margin-bottom: var(--space-3); padding: 0; }
+.answer { display: flex; align-items: center; gap: var(--space-3); min-height: 52px; padding: var(--space-2) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+.answer input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.answer span { flex: 1; }
+.answerOn { border-color: var(--accent); background: var(--accent-soft); }
+.answerRight { border-color: var(--up-ink); background: color-mix(in srgb, var(--up-ink) 12%, var(--surface)); }
+.answerWrong { border-color: var(--down-ink); background: color-mix(in srgb, var(--down-ink) 10%, var(--surface)); }
+.mark { color: var(--up-ink); font-size: var(--text-sm); }
+.explain { margin: 0; padding: var(--space-3); border-radius: var(--radius); background: var(--surface-2); font-size: var(--text-sm); color: var(--ink-2); }
+.explain b { color: var(--ink); }
+
+/* result + next steps */
+.result { display: grid; gap: var(--space-3); }
+.resultTitle { margin: 0; font-size: var(--text-2xl); }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.stepLink { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--ink); text-decoration: none; background: var(--surface); }
+.stepLink:hover { border-color: var(--accent); }
+.stepIcon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); flex: none; }
+.stepText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.stepText span { color: var(--ink-2); font-size: var(--text-sm); }
+
+/* lessons */
+.levelRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.levelRow > div { display: flex; flex-direction: column; gap: 2px; }
+.levelName { font-size: var(--text-lg); }
+.lessons { list-style: none; margin: 0; padding: 0; }
+.lessons li + li { border-top: 1px solid var(--border-soft); }
+.lessonLink { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); color: var(--ink); text-decoration: none; min-height: 56px; }
+.lessonLink:hover { background: var(--surface-2); }
+.num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); font-family: var(--mono); font-size: var(--text-sm); flex: none; }
+.numDone { background: var(--up-ink); border-color: var(--up-ink); color: var(--bg); }
+.lesson { display: grid; gap: var(--space-3); line-height: 1.6; }
+.lesson p { margin: 0; }
+.tip { padding: var(--space-3); border-radius: var(--radius); background: var(--accent-soft); font-size: var(--text-sm); }
+.lessonActions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
+.pager { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--text-sm); }
+.pager a { color: var(--link); display: inline-flex; align-items: center; gap: 4px; }
+
+/* help on the trade ticket */
+.explainLine { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+.helpBtn { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); font-size: 12px; font-weight: 700; cursor: pointer; vertical-align: middle; }
+.helpBtn:hover { border-color: var(--accent); color: var(--ink); }
+.glossary { display: grid; gap: var(--space-3); padding: var(--space-4); }
+.glossary dl { margin: 0; display: grid; gap: var(--space-3); }
+.glossary dt { font-weight: 700; }
+.glossary dd { margin: 2px 0 0; color: var(--ink-2); font-size: var(--text-sm); }
+.guide { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid var(--accent-line); border-radius: var(--radius); background: var(--accent-soft); font-size: var(--text-sm); }
+.guide ol { margin: 0; padding-left: var(--space-5); display: grid; gap: 4px; }
+.closed { margin: 0; padding: var(--space-3); border-radius: var(--radius); background: var(--surface-2); font-size: var(--text-sm); color: var(--ink-2); }

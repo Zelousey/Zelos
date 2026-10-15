@@ -32,7 +32,7 @@ test('find strategies from Trade War and the Dashboard; see what each looks for'
   await expect(page.getByRole('link', { name: 'Swing Trader', exact: true })).toBeVisible();
   await expect(page.getByText('Flat-base breakout')).toBeVisible(); // the live alert teaser, ticker hidden
   await expect(page.getByText('TEST123')).toHaveCount(0); // test docs never show
-  await expect(page.getByRole('button', { name: 'Sign in to get a pass' })).toHaveCount(3);
+  await expect(page.getByRole('button', { name: 'Sign in to get a pass' })).toHaveCount(4);
   await expect(page.getByText(/not investment advice/)).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((v) => v.id)).toEqual([]);
   await page.getByRole('link', { name: 'Breakout Rider', exact: true }).click();
@@ -59,6 +59,9 @@ test.describe('signed in', () => {
     await expect(card.getByText(/^Pass until/)).toBeVisible();
     await expect(card.getByRole('link', { name: /Open alerts/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Your tokens: 60/ })).toBeVisible();
+    // 3-Leg Options costs 60 for the week (owner 2026-10-15)
+    const three = page.locator('section').filter({ has: page.getByRole('link', { name: '3-Leg Options', exact: true }) });
+    await expect(three.getByRole('button', { name: '7-day pass · 60 tokens' })).toBeVisible();
     // the tokens sheet
     await page.getByRole('button', { name: /Your tokens: 60/ }).click();
     await expect(page.getByRole('dialog', { name: 'Get tokens' }).getByText(/Earn free tokens every day|\$3/)).toBeVisible();

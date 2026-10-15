@@ -71,7 +71,7 @@ function Mine({ uid }: { uid: string }) {
 }
 
 export default function CommunitiesPage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const uid = isReal && user ? user.uid : null;
   const wk = thisWeek();
@@ -95,7 +95,7 @@ export default function CommunitiesPage() {
           ) : uid ? (
             <Mine uid={uid} />
           ) : (
-            <EmptyState icon="social" body={t('cm.signIn')} compact actions={<Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signInWithGoogle')}</Button>} />
+            <EmptyState icon="social" body={t('cm.signIn')} compact actions={<Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signIn')}</Button>} />
           )}
         </Card>
         <Card title={t('cm.trending')} pad>

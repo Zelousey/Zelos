@@ -10,7 +10,7 @@ import { clock } from './parts';
 import s from './Battles.module.css';
 
 export default function BattlesPage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const uid = isReal && user ? user.uid : null;
   const wars = useMyWars(uid);
@@ -26,7 +26,7 @@ export default function BattlesPage() {
       {!ready ? (
         <LoadingState rows={4} />
       ) : !uid ? (
-        <EmptyState icon="war" body={t('bt.signIn')} actions={<Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signInWithGoogle')}</Button>} />
+        <EmptyState icon="war" body={t('bt.signIn')} actions={<Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signIn')}</Button>} />
       ) : wars.status === 'loading' ? (
         <LoadingState rows={4} />
       ) : wars.status !== 'ready' || !wars.data.length ? (

@@ -6,13 +6,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../../lib/auth';
-import { classicUrl } from '../../lib/platform';
 import { formatDate, formatRelative } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
-import { buyPass, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
+import { buyPass, passPrice, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
 import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
@@ -82,25 +81,25 @@ export function AlertLine({ a }: { a: Alert }) {
 }
 
 export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strategy; wallet: WalletDoc | null; info: WalletInfo | null; balance: number | null; onTokens: () => void }) {
-  const { user, isReal, signInWithGoogle } = useAuth();
+  const { user, isReal, openSignIn } = useAuth();
   const toast = useToast();
   const now = useNow();
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const price = info?.prices.pass ?? 40;
+  const price = passPrice(info, st.id);
   const days = info?.prices.passDays ?? 7;
   if (!isReal || !user)
     return (
-      <Button variant="primary" size="sm" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+      <Button variant="primary" size="sm" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
         {t('st.signIn')}
       </Button>
     );
   const until = passUntil(wallet, st.id, now);
   if (until)
     return (
-      <a className={s.openLink} href={classicUrl(st.page)}>
-        {t('st.openAlerts')} <Icon name="external" size={12} />
-      </a>
+      <Link className={s.openLink} to={`/strategies/${st.id}`}>
+        {t('st.openAlerts')}
+      </Link>
     );
   if (balance != null && balance < price)
     return (

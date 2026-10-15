@@ -21,7 +21,7 @@ import { nextTier, referralTier, STREAK_REWARDS, unlockAchievement, useReferralC
 import s from './Missions.module.css';
 
 export default function MissionsPage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   if (!ready) return <LoadingState rows={6} />;
   if (!isReal || !user)
@@ -32,8 +32,8 @@ export default function MissionsPage() {
           icon="missions"
           body={t('ms.signIn')}
           actions={
-            <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-              {t('auth.signInWithGoogle')}
+            <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+              {t('auth.signIn')}
             </Button>
           }
         />

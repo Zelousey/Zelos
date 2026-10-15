@@ -17,6 +17,7 @@ _ff.https_fn = types.SimpleNamespace(on_request=_deco, on_call=_deco, Request=ob
                                      CallableRequest=object, HttpsError=Exception,
                                      FunctionsErrorCode=types.SimpleNamespace())
 _ff.scheduler_fn = types.SimpleNamespace(on_schedule=_deco, Timezone=lambda z: z, ScheduledEvent=object)
+_ff.firestore_fn = types.SimpleNamespace(on_document_created=_deco, on_document_written=_deco)
 _fa = types.ModuleType("firebase_admin")
 _fa.initialize_app = lambda: None
 _fa.auth = None

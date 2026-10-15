@@ -3,7 +3,7 @@ import { t } from './i18n';
 
 describe('t()', () => {
   it('fills placeholders and leaves unknown ones', () => {
-    expect(t('module.classic.open', { name: 'Arcade' })).toBe('Open Arcade');
+    expect(t('dash.hello', { name: 'Sam' })).toBe('Welcome back, Sam');
     expect(t('notifications.unread', {})).toBe('{count} unread');
   });
 });

@@ -26,6 +26,18 @@ test.beforeAll(async () => {
   await put('alerts/swing-trader-2026-09-30', { strategy: 'swing-trader', status: 'qualified', ticker: 'NVDA', ...plan, reasoning: 'Pulled back to the 20-day average on falling volume.', technicals: { RSI: 48, 'Volume vs avg': '0.7x' }, outcome: { result: 'hit-target', exitPrice: 110.4, notes: 'Target 1 hit on day 3.' } }, day(9));
   await put('alerts/breakout-rider-2026-10-01', { strategy: 'breakout-rider', status: 'qualified', ticker: 'AMD', ...plan, setupLabel: 'Flat base', outcome: { result: 'stopped-out', exitPrice: 95 } }, day(8));
   await put('alerts/options-scanner-2026-10-02', { strategy: 'options-scanner', status: 'no-qualifying-setup', marketRegime: 'Choppy' }, day(7));
+  // a 3-Leg Options alert (open, so the track record above is unchanged); numbers as functions/three_leg.py works them out
+  const legs = [
+    { type: 'call', side: 'buy', strike: 180, qty: 1, price: 6 },
+    { type: 'call', side: 'sell', strike: 190, qty: 2, price: 2.5 },
+    { type: 'call', side: 'buy', strike: 200, qty: 1, price: 0.8 },
+  ];
+  await fetch(`${BASE}/alerts/three-leg-2026-10-09`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: {
+    ...Object.fromEntries(Object.entries({ strategy: 'three-leg', status: 'qualified', ticker: 'AAPL', setupLabel: 'Pin near 190', direction: 'long', kind: 'bull-butterfly', kindLabel: 'Bull call butterfly', expiration: '2026-11-20', entry: 188.5, netCost: 180, maxProfit: 820, maxLoss: 180 }).map(([k, x]) => [k, v(x)])),
+    legs: { arrayValue: { values: legs.map(v) } },
+    breakevens: { arrayValue: { values: [v(181.8), v(198.2)] } },
+    createdAt: { timestampValue: day(1) },
+  } }) });
   // a live alert: teaser in alerts, the full one in alertsLocked
   const until = Date.now() + 3 * 3600000;
   await put('alerts/swing-trader-2026-10-08', { strategy: 'swing-trader', status: 'qualified', setupLabel: 'Bull flag', score: 70, scoreMax: 80, locked: true, lockedUntil: until }, day(0));
@@ -56,6 +68,17 @@ test('the list, the track record and a finished alert', async ({ page }) => {
   await expect(page.getByText('Reward is 2.0× the risk').first()).toBeVisible();
   await expect(page.getByText('Pulled back to the 20-day average on falling volume.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Practice this trade' })).toHaveAttribute('href', /\/practice\/trade\/NVDA$/);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  // a 3-Leg Options alert: the three positions, cost, most it can make and lose
+  await page.goto('alerts/three-leg-2026-10-09');
+  await expect(page.getByRole('heading', { name: 'AAPL', level: 1 })).toBeVisible();
+  const card = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Bull call butterfly' }) });
+  await expect(card.getByRole('row')).toHaveCount(4); // header + 3 legs
+  await expect(card.getByText('Sell 2')).toBeVisible();
+  await expect(card.getByText('$180.00').first()).toBeVisible();
+  await expect(card.getByText('$820.00')).toBeVisible();
+  await expect(card.getByText('$181.80 · $198.20')).toBeVisible();
+  await expect(card.getByRole('img', { name: 'Profit or loss at expiration, by stock price' })).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   // a no-setup day
   await page.goto('alerts/options-scanner-2026-10-02');
@@ -102,7 +125,7 @@ test.describe('signed in', () => {
     // saved on the account (the switch flips at once; the write lands a moment later)
     await expect
       .poll(async () => ((await get(`users/${uid}`)).fields?.notificationPrefs?.mapValue?.fields?.strategies?.arrayValue?.values ?? []).map((x: { stringValue: string }) => x.stringValue))
-      .toEqual(['swing-trader', 'options-scanner']);
+      .toEqual(['swing-trader', 'options-scanner', 'three-leg']);
     expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   });
 });

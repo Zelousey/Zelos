@@ -1,13 +1,15 @@
 /**
  * Delete your account (account_delete in functions/main.py), as the Privacy Policy promises.
  * The server wants a sign-in from the last 10 minutes, so you confirm who you are first
- * (Google again, or your password), then type DELETE. Purchase records are kept by the
+ * (Apple or Google again, or your password), then type DELETE. For Sign in with Apple the
+ * app also revokes Apple's token, as Apple requires when an account is deleted. Purchase records are kept by the
  * server for legal reasons; everything else about you is removed and you're signed out.
  */
-import { EmailAuthProvider, GoogleAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
+import { EmailAuthProvider, OAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, revokeAccessToken } from 'firebase/auth';
 import { useId, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useAuth } from '../../lib/auth';
+import { providerFor, useAuth } from '../../lib/auth';
+import { auth } from '../../lib/firebase';
 import { callFunction } from '../../lib/firebase';
 import { t } from '../../lib/i18n';
 import { Button, Card, Field } from '../../ui';
@@ -24,14 +26,18 @@ export function DeleteAccount() {
   const id = useId();
   if (!isReal || !user) return null;
   const providers = user.providerData.map((p) => p.providerId);
-  const usesPassword = !providers.includes('google.com') && providers.includes('password');
+  const social = providers.includes('apple.com') ? 'apple' : providers.includes('google.com') ? 'google' : null;
+  const usesPassword = !social && providers.includes('password');
 
   async function remove() {
     if (!user || typed.trim() !== 'DELETE') return;
     setBusy(true);
     setMsg(t('del.confirming'));
     try {
-      if (providers.includes('google.com')) await reauthenticateWithPopup(user, new GoogleAuthProvider());
+      if (social === 'apple') {
+        const cred = OAuthProvider.credentialFromResult(await reauthenticateWithPopup(user, providerFor('apple')));
+        if (cred?.accessToken) await revokeAccessToken(auth(), cred.accessToken).catch(() => undefined);
+      } else if (social === 'google') await reauthenticateWithPopup(user, providerFor('google'));
       else if (usesPassword) await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email ?? '', pw));
       await user.getIdToken(true);
       setMsg(t('del.deleting'));

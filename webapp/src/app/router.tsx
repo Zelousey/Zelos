@@ -2,7 +2,7 @@
  * Routes, generated from app/modules.ts.
  *
  *   /app/                 → /app/dashboard
- *   /app/<module>/*       → the module's screen (or its hand-off screen)
+ *   /app/<module>/*       → the module's screen
  *   anything else         → Not found
  *
  * Browser-history URLs (/app/markets/AAPL), so links are shareable and map 1:1 to
@@ -10,20 +10,13 @@
  * sends unknown /app/… paths back here as /app/?r=<path> and restoreRedirect() puts
  * the real path back before the router starts.
  */
-import { lazy, type ComponentType } from 'react';
+import { lazy } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
-import { ModuleScreen } from '../features/module/ModuleScreen';
 import { AppShell } from '../shell/AppShell';
-import { DEFAULT_PATH, MODULES, type AppModule } from './modules';
+import { DEFAULT_PATH, MODULES } from './modules';
 
 const NotFoundPage = lazy(() => import('../features/notfound/NotFoundPage'));
 
-function screenFor(m: AppModule): ComponentType {
-  if (m.status === 'ready' && m.load) return lazy(m.load);
-  return function Handoff() {
-    return <ModuleScreen module={m} />;
-  };
-}
 
 export function buildRoutes(): RouteObject[] {
   return [
@@ -33,7 +26,7 @@ export function buildRoutes(): RouteObject[] {
       children: [
         { index: true, element: <Navigate to={`/${DEFAULT_PATH}`} replace /> },
         ...MODULES.map((m) => {
-          const Screen = screenFor(m);
+          const Screen = lazy(m.load);
           return { path: `${m.path}/*`, element: <Screen /> };
         }),
         { path: '*', element: <NotFoundPage /> },

@@ -32,6 +32,7 @@ scanner pages, the Terms) quote the same numbers; update them together.
 |---|---|---|
 | Welcome bonus | 75 | once per verified account |
 | 1-week scanner pass | 40 | |
+| 1-week 3-Leg Options pass | 60 | `TOKENS["passPrices"]` (owner 2026-10-15: three positions per trade) |
 | One live alert | 10 | before the 4 pm ET close |
 | One alert after the close | 3 | until its trade finishes, then free |
 | Pack p100 | 100 | $3.00 |
