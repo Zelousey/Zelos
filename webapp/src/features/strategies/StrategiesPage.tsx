@@ -6,7 +6,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../../lib/auth';
-import { classicUrl } from '../../lib/platform';
 import { formatDate, formatRelative } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
@@ -98,9 +97,9 @@ export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strate
   const until = passUntil(wallet, st.id, now);
   if (until)
     return (
-      <a className={s.openLink} href={classicUrl(st.page)}>
-        {t('st.openAlerts')} <Icon name="external" size={12} />
-      </a>
+      <Link className={s.openLink} to={`/strategies/${st.id}`}>
+        {t('st.openAlerts')}
+      </Link>
     );
   if (balance != null && balance < price)
     return (

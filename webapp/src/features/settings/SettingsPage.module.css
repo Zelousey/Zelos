@@ -2,3 +2,8 @@
 .danger { display: grid; gap: var(--space-3); justify-items: start; }
 .danger > div { width: 100%; }
 .note { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+.links { list-style: none; margin: 0; padding: 0; }
+.links li + li { border-top: 1px solid var(--border-soft); }
+.links a { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); color: var(--ink); text-decoration: none; min-height: 44px; }
+.links a:hover { background: var(--surface-2); }
+.legalNote { margin: 0; padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--ink-2); border-top: 1px solid var(--border-soft); }

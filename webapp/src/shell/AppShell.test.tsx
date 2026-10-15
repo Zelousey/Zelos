@@ -59,7 +59,7 @@ describe('AppShell', () => {
   });
 
   it('every section is built in the app (Options was the last hand-off to the website)', async () => {
-    expect(MODULES.filter((m) => m.status !== 'ready').map((m) => m.id)).toEqual([]);
+    expect(MODULES.every((m) => typeof m.load === 'function')).toBe(true);
     renderAt('/options');
     const tabbar = (await screen.findAllByRole('navigation', { name: 'Main' }))[1]!;
     expect(within(tabbar).getByRole('link', { name: 'Trade War' }).className).toMatch(/active/);
@@ -81,7 +81,6 @@ describe('AppShell', () => {
   it('nothing unfinished is in the app: no Crypto, no "coming soon" screens (owner 2026-10-09)', async () => {
     renderAt('/crypto');
     expect(await screen.findByText('Page not found')).toBeInTheDocument();
-    expect(MODULES.filter((m) => m.status === 'planned')).toEqual([]);
   });
 
   it('navigates without reloading: clicking a sidebar link swaps the screen', async () => {

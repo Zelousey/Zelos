@@ -3,7 +3,7 @@
 // (needs functions/venv: python3.12 -m venv functions/venv && functions/venv/bin/pip install -r functions/requirements.txt)
 import assert from 'assert';
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, signInAnonymously, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 
@@ -164,6 +164,35 @@ ok(nwrite, 'browsers cannot write news directly');
 await signInAnonymously(auth);
 ne = null; try { await call('news_delete', { id: v.id }); } catch (x) { ne = x; }
 ok(ne, 'guests cannot delete news');
+
+// --- safety (App Store 1.2): chat filter, report, block
+await signOut(auth);
+const troll = (await createUserWithEmailAndPassword(auth, `troll${Date.now()}@example.com`, 'secret123')).user;
+await signOut(auth);
+const rep = (await createUserWithEmailAndPassword(auth, `rep${Date.now()}@example.com`, 'secret123')).user;
+const str = (x) => ({ stringValue: x });
+await admin('squads/sqSafe1', { owner: str(troll.uid), name: str('Safe squad'), members: { arrayValue: { values: [str(troll.uid), str(rep.uid)] } } });
+await admin('squads/sqSafe1/messages/m1', { author: str(troll.uid), name: str('Bad'), text: str('you are a b1tch, sell') });
+let masked = null;
+for (let i = 0; i < 40 && !masked; i++) {
+  const m = await adminGet('squads/sqSafe1/messages/m1');
+  if (m?.fields?.filtered) masked = m.fields.text.stringValue;
+  else await new Promise((res) => setTimeout(res, 250));
+}
+ok(masked === 'you are a ****** sell', `the chat filter masks blocked words (${masked})`);
+ok((await call('report_content', { kind: 'chat', target: troll.uid, where: 'sqSafe1/m1', reason: 'harassment', note: 'rude' })).ok, 'a chat message can be reported');
+const reports = await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/reports`, { headers: { Authorization: 'Bearer owner' } }).then((x) => x.json());
+const saved = (reports.documents || []).map((d) => d.fields).find((f) => f.reporter.stringValue === rep.uid);
+ok(saved && saved.content.mapValue.fields.text.stringValue === 'you are a ****** sell' && saved.status.stringValue === 'open', 'the report keeps a copy of the message');
+let re1 = null; try { await call('report_content', { kind: 'chat', target: rep.uid, where: 'sqSafe1/m1', reason: 'spam' }); } catch (x) { re1 = x; }
+ok(re1, 'reporting someone as the author of a message they did not write is refused');
+re1 = null; try { await call('report_content', { kind: 'profile', target: rep.uid, reason: 'spam' }); } catch (x) { re1 = x; }
+ok(re1 && /yourself/.test(re1.message), 'you cannot report yourself');
+await setDoc(doc(db, 'users', rep.uid), { blocked: [troll.uid] }, { merge: true });
+await signOut(auth);
+await signInWithEmailAndPassword(auth, troll.email, 'secret123');
+re1 = null; try { await call('tw_challenge', { to: rep.uid, buyIn: 1000, days: 1, name: 'Duel' }); } catch (x) { re1 = x; }
+ok(re1 && /can.t challenge/.test(re1.message), 'someone you blocked cannot challenge you');
 
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

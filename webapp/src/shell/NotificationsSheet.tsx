@@ -7,26 +7,32 @@ import { useLiveDoc } from '../data/liveDoc';
 import type { DocumentData } from 'firebase/firestore';
 import { t } from '../lib/i18n';
 import { formatRelative } from '../lib/format';
-import { classicUrl } from '../lib/platform';
 import { Button, EmptyState, ErrorState, Sheet, useToast } from '../ui';
 import type { InboxItem } from './useInbox';
 import s from './Shell.module.css';
 
 /**
  * Server links are site paths like "practice/war.html?w=…" (with or without a leading
- * slash); only same-site paths are followed. App paths ("app/i/CODE") and profile links stay in the app.
+ * slash). Each kind maps to its screen in the app; anything else isn't a link (the app never
+ * hands off to the website).
  */
-export function safeLink(link?: string): { app?: string; href?: string } {
+export function safeLink(link?: string): { app?: string } {
   if (!link || link.startsWith('//') || !/^\/?[A-Za-z0-9_\-./?=&%#]*$/.test(link)) return {};
   const path = link.replace(/^\//, '');
   if (path.startsWith('app/')) return { app: '/' + path.slice(4) };
-  const prof = /^practice\/profile\.html\?u=([A-Za-z0-9]{10,40})$/.exec(path); // friend notifications open the in-app profile
+  const prof = /^practice\/profile\.html\?u=([A-Za-z0-9]{10,40})$/.exec(path); // friend notifications
   if (prof) return { app: `/profile/${prof[1]}` };
-  const war = /^practice\/war\.html\?w=([A-Za-z0-9]{12})$/.exec(path); // battle notifications open the in-app battle
+  const war = /^practice\/war\.html\?w=([A-Za-z0-9]{12})$/.exec(path); // battle notifications
   if (war) return { app: `/battles/${war[1]}` };
-  const comm = /^practice\/communities\.html(?:\?c=([a-z0-9-]{3,80}))?$/.exec(path); // community notifications open the in-app community
+  const comm = /^practice\/communities\.html(?:\?c=([a-z0-9-]{3,80}))?$/.exec(path); // community notifications
   if (comm) return { app: comm[1] ? `/communities/${comm[1]}` : '/communities' };
-  return { href: classicUrl(path) };
+  const squad = /^practice\/squads\.html\?s=([A-Za-z0-9_-]{6,40})$/.exec(path); // someone joined your squad
+  if (squad) return { app: `/social/${squad[1]}` };
+  const alert = /^alert\.html\?id=([a-z-]+-\d{4}-\d{2}-\d{2})$/.exec(path); // a strategy alert
+  if (alert) return { app: `/alerts/${alert[1]}` };
+  if (path === 'practice/index.html') return { app: '/battles' }; // challenges and cancelled battles
+  if (path === 'dashboard.html') return { app: '/dashboard' };
+  return {};
 }
 
 export function NotificationsSheet({ open, onClose, signedIn, items, error, onSignIn }: { open: boolean; onClose: () => void; signedIn: boolean; items: InboxItem[]; error: boolean; onSignIn: () => void }) {
@@ -58,10 +64,6 @@ export function NotificationsSheet({ open, onClose, signedIn, items, error, onSi
                   <Link className={s.notifItem} to={to.app} onClick={onClose}>
                     {content}
                   </Link>
-                ) : to.href ? (
-                  <a className={s.notifItem} href={to.href}>
-                    {content}
-                  </a>
                 ) : (
                   <div className={s.notifItem}>{content}</div>
                 )}

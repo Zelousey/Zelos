@@ -11,7 +11,7 @@ import { t } from '../../lib/i18n';
 import { Button, Card, Confirm, Field, useToast } from '../../ui';
 import type { Ranked } from '../dashboard/social';
 import { errorText } from '../invites/invites';
-import { clearGoal, deleteSquad, endComp, GOAL_TARGETS, newRoomCode, removeMember, removeRoomCode, renameSquad, setConfig, setGoal, setHelpMode, startComp, type Squad } from './squads';
+import { clearGoal, deleteSquad, endComp, GOAL_TARGETS, newRoomCode, removeMember, removeRoomCode, renameSquad, setConfig, setGoal, startComp, type Squad } from './squads';
 import s from './Social.module.css';
 
 type Ask = { title: string; body: ReactNode; action: string; danger?: boolean; run: () => Promise<unknown> };
@@ -146,7 +146,6 @@ export function OwnerPanel({ sq, profs, compOn }: { sq: Squad; profs: Record<str
       <section className={s.ownSec}>
         <h3 className={s.sub}>{t('sq.own.settings')}</h3>
         <div className={s.checks}>
-          {check(t('sq.own.help'), sq.helpMode === true, (v) => setHelpMode(sq, v))}
           {check(t('sq.own.reactions'), sq.config.reactions, (v) => setConfig(sq, { reactions: v }))}
           {check(t('sq.own.photos'), sq.config.photos, (v) => setConfig(sq, { photos: v }))}
           {check(t('sq.own.viewTrades'), sq.config.viewTrades, (v) => setConfig(sq, { viewTrades: v }))}
