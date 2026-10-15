@@ -486,6 +486,10 @@ service cloud.firestore {
     match /alertPushes/{alertId} {
       allow read, write: if false;
     }
+    // One record per price alert that notified (functions/price_alerts.py). Server only.
+    match /priceAlertHits/{id} {
+      allow read, write: if false;
+    }
 
     // Retired with Gumroad: old purchase claims. Nothing reads or writes them now.
     // XP daily limits (xp_award). Server only.

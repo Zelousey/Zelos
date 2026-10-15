@@ -153,6 +153,7 @@ export function AppShell() {
       )}
 
       <PushKeeper uid={isReal && user ? user.uid : null} />
+      <PriceAlertWatcher />
 
       {/* ---------- screen ---------- */}
       <main id="main" ref={mainRef} className={s.main} tabIndex={-1}>
@@ -160,7 +161,6 @@ export function AppShell() {
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense fallback={<LoadingState />}>
               <Outlet />
-              <PriceAlertWatcher />
             </Suspense>
           </ErrorBoundary>
         </div>

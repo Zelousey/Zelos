@@ -2,12 +2,14 @@
  * Chart tools under a chart (owner 2026-10-10): indicators (the engine's registry, remembered
  * on this device and shared with the classic site), Fibonacci retracement over the visible
  * swing, and price alerts: press Alert, then tap a price on the chart; drag a line to move it.
- * Alerts live on this device (the engine's store, the same list as the classic site's Trade
- * War alerts) and fire while the app is open (PriceAlertWatcher). The Three-Legged (A-B-C)
+ * Alerts are the engine's store (the same list as the classic site's Trade War alerts, saved
+ * on your account); they fire while the app is open (PriceAlertWatcher) and, with it closed,
+ * the server checks them on every price update and notifies you (functions/price_alerts.py). The Three-Legged (A-B-C)
  * drawing is left out on purpose: it becomes a token strategy (PROJECT_STATE.md, 2026-10-10).
  * ChartView owns the state; this only shows it.
  */
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { Button, Sheet } from '../../ui';
@@ -57,6 +59,11 @@ export function ChartTools({ sym, state, act }: { sym: string; state: ToolsState
             </li>
           ))}
         </ul>
+      )}
+      {state.alerts.length > 0 && (
+        <p className={s.toolHint}>
+          {t('ct.closedHint')} <Link to="/alerts?tab=notify">{t('ct.closedLink')}</Link>
+        </p>
       )}
       <Sheet open={open} onClose={() => setOpen(false)} title={t('ct.indicatorsTitle')} labelledBy="ct-ind-title">
         {groups.map((g) => (
