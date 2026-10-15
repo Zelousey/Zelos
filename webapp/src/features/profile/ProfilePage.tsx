@@ -38,7 +38,7 @@ const day = (d: string | null) => (d ? formatDate(`${d}T12:00:00Z`, { year: true
 export const profileUrl = (uid: string) => `${isNative() ? 'https://agentictrading.info/app/' : `${location.origin}${import.meta.env.BASE_URL}`}profile/${encodeURIComponent(uid)}`;
 
 export default function ProfilePage({ uid }: { uid: string | null }) {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const me = isReal && user ? user.uid : null;
   const target = uid ?? me;
@@ -51,8 +51,8 @@ export default function ProfilePage({ uid }: { uid: string | null }) {
         body={t('pf.signIn')}
         actions={
           <>
-            <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-              {t('auth.signInWithGoogle')}
+            <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+              {t('auth.signIn')}
             </Button>
             <Link className={buttonClass({ variant: 'ghost' })} to="/leaderboard">
               {t('nav.leaderboard')}
@@ -192,7 +192,7 @@ function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: st
 }
 
 function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: string; mine: boolean; me: string | null; name: string; p: Ranked | null; isFriend: boolean | null; blocked: boolean; onEdit: () => void }) {
-  const { signInWithGoogle } = useAuth();
+  const { openSignIn } = useAuth();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [challenging, setChallenging] = useState(false);
@@ -202,7 +202,7 @@ function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: s
     if (r === 'copied') toast.show(t('pf.share.copied'));
   }
   async function friend() {
-    if (!me) return void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+    if (!me) return void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'));
     setBusy(true);
     try {
       if (isFriend) {
@@ -236,7 +236,7 @@ function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: s
         <SafetyMenu what={{ kind: 'profile', target: uid }} name={name} label={t('sf.unblock', { name })} />
       ) : (
         <>
-          <Button variant="primary" size="sm" onClick={() => (me ? setChallenging(true) : void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error')))}>
+          <Button variant="primary" size="sm" onClick={() => (me ? setChallenging(true) : void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error')))}>
             {t('pf.challenge')}
           </Button>
           <Button variant="secondary" size="sm" disabled={busy || (!!me && isFriend == null)} aria-pressed={!!isFriend} onClick={() => void friend()}>

@@ -66,7 +66,7 @@ export default function TradeWarPage() {
 }
 
 function PracticeCard() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const uid = isReal && user ? user.uid : null;
   const acct = usePracticeAccount(uid);
@@ -93,8 +93,8 @@ function PracticeCard() {
     body = (
       <div className={s.cta}>
         <p>{t('tw.practice.signIn')}</p>
-        <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-          {t('auth.signInWithGoogle')}
+        <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+          {t('auth.signIn')}
         </Button>
       </div>
     );

@@ -27,7 +27,7 @@ const KINDS: { kind: InviteKind; icon: IconName; title: MessageKey; body: Messag
 ];
 
 export default function InvitePage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const [params] = useSearchParams();
   const start = params.get('kind');
@@ -64,8 +64,8 @@ export default function InvitePage() {
           icon="invite"
           body={t('inv.signIn')}
           actions={
-            <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-              {t('auth.signInWithGoogle')}
+            <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+              {t('auth.signIn')}
             </Button>
           }
         />

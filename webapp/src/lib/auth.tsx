@@ -3,11 +3,13 @@
  *
  * The classic site signs every visitor in anonymously (zelos-xp.js) so guests can earn
  * XP. Here an anonymous session counts as a guest for the UI: `isReal` is false and we
- * offer sign-in. Google sign-in uses a popup on the web; inside the native app this will
- * switch to the Capacitor Firebase Authentication plugin (popups don't work there).
+ * offer sign-in. Every "Sign in" button calls openSignIn(), which shows the sign-in sheet
+ * (SignInSheet in the shell): Continue with Apple or Continue with Google (App Store 4.8
+ * requires Apple next to any social login). On the web both use a popup; inside the native
+ * app they switch to the Capacitor Firebase Authentication plugin (popups don't work there).
  */
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, OAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
 import { auth } from './firebase';
 import { useEmulators } from './firebaseConfig';
 
@@ -18,11 +20,31 @@ if (useEmulators) {
     signInWithEmailAndPassword(auth(), email, pw).catch(() => createUserWithEmailAndPassword(auth(), email, pw));
 }
 
+export type SignInProvider = 'apple' | 'google';
+
+/** The Firebase provider for a sign-in choice (Apple asks for name and email, which it may hide). */
+export function providerFor(p: SignInProvider) {
+  if (p === 'apple') {
+    const a = new OAuthProvider('apple.com');
+    a.addScope('email');
+    a.addScope('name');
+    return a;
+  }
+  const g = new GoogleAuthProvider();
+  g.setCustomParameters({ prompt: 'select_account' });
+  return g;
+}
+
 export type AuthState = {
   ready: boolean;
   user: User | null;
   isReal: boolean;
-  signInWithGoogle: () => Promise<void>;
+  /** show the sign-in sheet */
+  openSignIn: () => Promise<void>;
+  signInOpen: boolean;
+  closeSignIn: () => void;
+  /** sign in with that provider (popup, or redirect where popups are blocked) */
+  signInWith: (p: SignInProvider) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -31,6 +53,7 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -49,11 +72,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ready,
       user,
       isReal: !!user && !user.isAnonymous,
-      async signInWithGoogle() {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
+      async openSignIn() {
+        setSignInOpen(true);
+      },
+      signInOpen,
+      closeSignIn: () => setSignInOpen(false),
+      async signInWith(p: SignInProvider) {
+        const provider = providerFor(p);
         try {
           await signInWithPopup(auth(), provider);
+          setSignInOpen(false);
         } catch (e) {
           const code = (e as { code?: string }).code;
           if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
@@ -68,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await signOut(auth());
       },
     }),
-    [ready, user],
+    [ready, user, signInOpen],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

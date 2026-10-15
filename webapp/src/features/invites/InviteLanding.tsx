@@ -49,7 +49,7 @@ export default function InviteLanding() {
 }
 
 function Landing({ inv }: { inv: Invite }) {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const now = useNow();
@@ -121,7 +121,7 @@ function Landing({ inv }: { inv: Invite }) {
         ) : !ready ? (
           <Skeleton height={48} />
         ) : !isReal ? (
-          <Button variant="primary" size="lg" block onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+          <Button variant="primary" size="lg" block onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
             {t('land.signIn')}
           </Button>
         ) : (

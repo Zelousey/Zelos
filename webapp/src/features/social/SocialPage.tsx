@@ -21,7 +21,7 @@ import s from './Social.module.css';
 type Tab = 'squads' | 'friends';
 
 export default function SocialPage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
   const tab: Tab = params.get('tab') === 'friends' ? 'friends' : 'squads';
@@ -39,8 +39,8 @@ export default function SocialPage() {
           icon="social"
           body={t('sq.signIn')}
           actions={
-            <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-              {t('auth.signInWithGoogle')}
+            <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+              {t('auth.signIn')}
             </Button>
           }
         />
