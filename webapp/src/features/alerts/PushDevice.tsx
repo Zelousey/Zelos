@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { errorText } from '../invites/invites';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Button, Card, useToast } from '../../ui';
+import { isNative } from '../../lib/platform';
 import { currentPushState, disablePush, enablePush, onForegroundPush, refreshPush, testPush, type PushState } from './push';
 import s from './Alerts.module.css';
 
@@ -15,7 +16,12 @@ const TEXT: Record<PushState, [MessageKey, MessageKey]> = {
 };
 const FAIL: Record<string, MessageKey> = { blocked: 'pn.err.blocked', notAllowed: 'pn.err.notAllowed', noToken: 'pn.err.noToken' };
 
+/** Web push only: the iPhone app gets its own notification switch with Apple's push service. */
 export function PushDevice({ uid }: { uid: string }) {
+  return isNative() ? null : <WebPushDevice uid={uid} />;
+}
+
+function WebPushDevice({ uid }: { uid: string }) {
   const toast = useToast();
   const [state, setState] = useState<PushState>(currentPushState);
   const [busy, setBusy] = useState(false);
@@ -66,7 +72,7 @@ export function PushDevice({ uid }: { uid: string }) {
 export function PushKeeper({ uid }: { uid: string | null }) {
   const toast = useToast();
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || isNative()) return;
     let stop: (() => void) | undefined;
     let gone = false;
     void refreshPush(uid).then((ok) => {

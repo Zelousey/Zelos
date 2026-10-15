@@ -1,9 +1,10 @@
-/** Settings: theme, and deleting your account. Notification preferences still link to My Zelos on the classic site. */
+/** Settings: theme, your account (profile, notifications, tokens), the Privacy Policy and Terms, and deleting your account. */
 import { useState } from 'react';
 import { t } from '../../lib/i18n';
-import { classicUrl } from '../../lib/platform';
+import { PRIVACY_URL, TERMS_URL } from '../../lib/platform';
+import { Link } from 'react-router';
 import { getTheme, setTheme, THEMES, type Theme } from '../../lib/theme';
-import { ButtonLink, Card, Icon, PageHeader, Tabs } from '../../ui';
+import { Card, Icon, PageHeader, Tabs } from '../../ui';
 import { DeleteAccount } from './DeleteAccount';
 import s from './SettingsPage.module.css';
 
@@ -26,11 +27,39 @@ export default function SettingsPage() {
             }}
           />
         </Card>
-        <Card title={t('settings.account')}>
-          <ButtonLink variant="secondary" href={classicUrl('my-zelos.html')}>
-            {t('settings.manageAccount')}
-            <Icon name="external" size={16} />
-          </ButtonLink>
+        <Card title={t('settings.account')} flush>
+          <ul className={s.links}>
+            <li>
+              <Link to="/profile">
+                {t('settings.profile')} <Icon name="chevronRight" size={16} />
+              </Link>
+            </li>
+            <li>
+              <Link to="/alerts?tab=notify">
+                {t('settings.notifications')} <Icon name="chevronRight" size={16} />
+              </Link>
+            </li>
+            <li>
+              <Link to="/strategies">
+                {t('settings.tokens')} <Icon name="chevronRight" size={16} />
+              </Link>
+            </li>
+          </ul>
+        </Card>
+        <Card title={t('settings.legal')} flush>
+          <ul className={s.links}>
+            <li>
+              <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
+                {t('settings.privacy')} <Icon name="external" size={16} />
+              </a>
+            </li>
+            <li>
+              <a href={TERMS_URL} target="_blank" rel="noopener noreferrer">
+                {t('settings.terms')} <Icon name="external" size={16} />
+              </a>
+            </li>
+          </ul>
+          <p className={s.legalNote}>{t('settings.legalNote')}</p>
         </Card>
         <DeleteAccount />
       </div>

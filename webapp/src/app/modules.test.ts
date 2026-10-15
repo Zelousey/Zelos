@@ -10,10 +10,9 @@ describe('module registry', () => {
   it('covers every area in the app plan', () => {
     for (const id of ['dashboard', 'markets', 'charts', 'practice', 'trade-war', 'news', 'options', 'alerts', 'social', 'profile', 'missions', 'training', 'arcade', 'settings']) expect(MODULES.some((m) => m.id === id)).toBe(true);
   });
-  it('every module is consistent with its status', () => {
+  it('every module is built in the app and labelled', () => {
     for (const m of MODULES) {
-      if (m.status === 'ready') expect(m.load, m.id).toBeTypeOf('function');
-      if (m.status === 'classic') expect(m.classicPath, m.id).toMatch(/^[a-z0-9][\w\-./?=&]*$/);
+      expect(m.load, m.id).toBeTypeOf('function');
       expect(t(m.label)).not.toBe(m.label);
     }
   });
