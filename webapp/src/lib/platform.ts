@@ -25,3 +25,8 @@ export function classicUrl(path: string): string {
   // On the web the classic site is the same origin. Inside the native app it must be the public site.
   return isNative() ? `https://agentictrading.info/${clean}` : `/${clean}`;
 }
+
+/** Public pages the app links to (Privacy Policy, Terms), opened outside the app. */
+export const SITE = 'https://agentictrading.info';
+export const PRIVACY_URL = `${SITE}/privacy.html`;
+export const TERMS_URL = `${SITE}/terms.html`;

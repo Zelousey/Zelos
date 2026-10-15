@@ -19,8 +19,11 @@ describe('invites', () => {
     expect(parseAction(null)).toBeUndefined();
   });
   it('bell links: site paths with or without a slash, app paths stay in the app, nothing else', () => {
-    expect(safeLink('practice/war.html?w=abc')).toEqual({ href: '/practice/war.html?w=abc' });
-    expect(safeLink('/practice/index.html')).toEqual({ href: '/practice/index.html' });
+    expect(safeLink('practice/war.html?w=abc')).toEqual({}); // not a battle id: no link, never the website
+    expect(safeLink('/practice/index.html')).toEqual({ app: '/battles' });
+    expect(safeLink('practice/squads.html?s=Sq1234abcd')).toEqual({ app: '/social/Sq1234abcd' });
+    expect(safeLink('alert.html?id=swing-trader-2026-10-08')).toEqual({ app: '/alerts/swing-trader-2026-10-08' });
+    expect(safeLink('real/journal.html')).toEqual({});
     expect(safeLink('app/i/Abcdefgh23')).toEqual({ app: '/i/Abcdefgh23' });
     expect(safeLink('//evil.com/x')).toEqual({});
     expect(safeLink('https://evil.com')).toEqual({});

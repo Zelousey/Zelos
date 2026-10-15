@@ -12,7 +12,7 @@ import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { classicUrl, isNative } from '../../lib/platform';
+import { isNative } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, EmptyState, ErrorState, LoadingState, Stat, useToast } from '../../ui';
 import { LevelBadge } from '../dashboard/LevelBadge';
@@ -275,9 +275,6 @@ function TokensCard() {
           <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/strategies">
             {t('nav.strategies')}
           </Link>
-          <a className={buttonClass({ variant: 'ghost', size: 'sm' })} href={classicUrl('tokens.html')}>
-            {t('pf.looks')}
-          </a>
         </div>
       </div>
       <p className={s.muted}>{passes.length ? t('pf.passes', { list: passes.map((x) => `${x.name} (${formatDate(x.until)})`).join(' · ') }) : t('pf.noPasses')}</p>

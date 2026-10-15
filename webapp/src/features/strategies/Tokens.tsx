@@ -1,10 +1,12 @@
 /**
- * Tokens in the app: the balance chip and the "Get tokens" sheet. Buying opens Square Checkout
- * (functions/main.py tokens_checkout), the same as on the website; balances only change on the
- * server.
+ * Tokens in the app: the balance chip and the "Get tokens" sheet. On the web, buying opens Square
+ * Checkout (functions/main.py tokens_checkout), the same as on the website. Inside the iPhone app
+ * digital goods may only be sold with Apple in-app purchase (App Store guideline 3.1.1), so there
+ * the sheet only shows how to earn tokens until that is added. Balances only change on the server.
  */
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth';
+import { isNative } from '../../lib/platform';
 import { t } from '../../lib/i18n';
 import { Button, Sheet, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
@@ -58,7 +60,7 @@ export function TokensSheet({ open, onClose, info, balance }: { open: boolean; o
         <p className={s.muted}>{t('st.tokens.what', { pass: info?.prices.pass ?? 40, days: info?.prices.passDays ?? 7, unlock: info?.prices.unlock ?? 10 })}</p>
         {!info ? (
           <p className={s.muted}>{t('st.loading')}</p>
-        ) : !info.canBuy ? (
+        ) : !info.canBuy || isNative() ? (
           <p className={s.note}>{t('st.buy.soon')}</p>
         ) : (
           <ul className={s.packs}>
