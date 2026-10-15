@@ -1,7 +1,7 @@
 /**
  * Alerts in the app: the list with the track record and strategy filter, one finished alert
  * (plan, result, why), a live locked alert unlocked with tokens (real tokens_spend on the
- * emulators), a no-setup day, and the notification switches.
+ * emulators), a no-setup day, the notification switches and turning notifications on for this device.
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -77,7 +77,24 @@ test.describe('signed in', () => {
     const w = await get(`wallets/${uid}`);
     expect(w.fields.balance.integerValue).toBe('40');
 
+    // a browser that can show notifications and hasn't been asked yet (CI's headless browser starts
+    // with them blocked); asking is answered "Block"
+    if (info.project.name !== 'phone')
+      await page.addInitScript(() => {
+        const w = window as unknown as Record<string, unknown>;
+        w.PushManager ??= function PushManager() {};
+        Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+        Object.defineProperty(Notification, 'requestPermission', { value: () => Promise.resolve('denied') });
+      });
     await page.goto('alerts?tab=notify');
+    // this device: an iPhone has to add Zelos to the Home Screen first; elsewhere it offers Turn on
+    const device = page.getByRole('region', { name: 'Notifications on this device' });
+    if (info.project.name === 'phone') await expect(device.getByText('On iPhone: add Zelos to your Home Screen')).toBeVisible();
+    else {
+      await expect(device.getByText('Get notified on this device')).toBeVisible();
+      await device.getByRole('button', { name: 'Turn on' }).click();
+      await expect(page.getByText('Notifications are blocked for Zelos. Allow them in your settings, then try again.')).toBeVisible();
+    }
     const sw = page.getByRole('switch', { name: 'Breakout Rider' });
     await expect(sw).toHaveAttribute('aria-checked', 'true');
     await sw.click();

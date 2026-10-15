@@ -23,4 +23,6 @@ const BASE = {
  * this: Vite replaces the env check with `false` and drops the branch.
  */
 export const firebaseConfig = import.meta.env.VITE_FIREBASE_EMULATORS === '1' ? { ...BASE, projectId: 'demo-zelos', authDomain: 'demo-zelos.firebaseapp.com', databaseURL: 'https://demo-zelos-default-rtdb.firebaseio.com' } : BASE;
+/** Web Push key for Firebase Cloud Messaging (public, like the config). Same as ZELOS_VAPID_KEY in firebase-config.js. */
+export const VAPID_KEY = 'BGbKkyDqBKSc_hGxUH90Oip7HN0ZCzClnxYsQRiZP_iNIa2m7MjFfu_L8sbGrBgM7J61zPHdrYupT3jVPB61WtY';
 export const useEmulators = import.meta.env.VITE_FIREBASE_EMULATORS === '1';
