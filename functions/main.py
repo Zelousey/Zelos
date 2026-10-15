@@ -60,6 +60,7 @@ import mdata as MD  # Marketstack + SEC market data (the sources the site may sh
 import xp as XP  # XP award rules (server-decided amounts and limits)
 import practice as PR  # practice account engine (server-side fills, see functions/practice.py)
 import options as OPT  # modeled option prices for the practice account (functions/options.py)
+import moderation as MOD  # word filter, report checks (functions/moderation.py)
 
 initialize_app()
 
@@ -3097,6 +3098,14 @@ def tw_challenge(req, db, uid, now_ms):
         extra_rules = tw_squad_rules(sq.to_dict().get("config"))
         if not targets:
             raise TWError("FAILED_PRECONDITION", "Your squad has nobody else in it yet.")
+    # blocking (App Store 1.2): nobody gets a challenge from someone they blocked, or sends one to them
+    mine = blocked_of(db, uid)
+    allowed = [x for x in targets if x not in mine and uid not in blocked_of(db, x)]
+    if len(allowed) < len(targets) and not squad_id:
+        raise TWError("FAILED_PRECONDITION", "You can't challenge this trader.")
+    targets = allowed
+    if not targets:
+        raise TWError("FAILED_PRECONDITION", "Your squad has nobody else in it yet.")
     pending = sum(1 for _ in db.collection("twInvites").where("from", "==", uid).where("status", "==", "pending").limit(TW_MAX_PENDING_SENT + 1).stream())
     if pending + len(targets) > TW_MAX_PENDING_SENT:
         raise TWError("RESOURCE_EXHAUSTED", "You have too many challenges waiting for an answer. Wait for replies or cancel some first.")
@@ -3236,10 +3245,13 @@ def _tk_user(req):
     return a.uid, tok
 
 
+VERIFIED_PROVIDERS = ("google.com", "apple.com")  # sign-ins whose email the provider has verified
+
+
 def _tk_verified(tok):
-    """Welcome tokens only for verified accounts (Google sign-in, or a verified email),
+    """Welcome tokens only for verified accounts (Apple or Google sign-in, or a verified email),
     so throwaway sign-ups can't farm them."""
-    return tok.get("email_verified") is True or ((tok.get("firebase") or {}).get("sign_in_provider")) == "google.com"
+    return tok.get("email_verified") is True or ((tok.get("firebase") or {}).get("sign_in_provider")) in VERIFIED_PROVIDERS
 
 
 def tk_new_wallet(now_ms):
@@ -3507,7 +3519,7 @@ def _verified_uids(uids):
             print("[tw_rewards] get_users failed: %s" % type(e).__name__)
             continue
         for u in res.users:
-            if u.email_verified or any(p.provider_id == "google.com" for p in (u.provider_data or [])):
+            if u.email_verified or any(p.provider_id in VERIFIED_PROVIDERS for p in (u.provider_data or [])):
                 ok.add(u.uid)
     return ok
 
@@ -3668,7 +3680,6 @@ FOUNDER_TIERS = [(5, 250, "Founder"), (10, 150, "Rising Founder"), (25, 400, "Co
                  (50, 750, "Community Leader"), (100, 1500, "Legendary Founder")]
 FOUNDER_ACTIVE_DAYS = 2
 _COMMUNITY_NAME_RE = _re.compile(r"^[A-Za-z0-9][A-Za-z0-9 '&.-]{1,28}[A-Za-z0-9.]$")
-_BLOCKED_WORDS = ("fuck", "shit", "bitch", "cunt", "nigg", "fag", "rape", "nazi", "porn", "dick", "pussy", "whore", "slut", "retard")
 
 
 def community_slug(name, state):
@@ -3679,8 +3690,7 @@ def community_slug(name, state):
         raise TWError("INVALID_ARGUMENT", "Pick your state.")
     if not _COMMUNITY_NAME_RE.match(name):
         raise TWError("INVALID_ARGUMENT", "Community names are 3 to 30 letters, numbers and spaces.")
-    flat = _re.sub(r"[^a-z]", "", name.lower())
-    if any(w in flat for w in _BLOCKED_WORDS):
+    if MOD.is_bad(name) or MOD.is_bad(_re.sub(r"[^A-Za-z]", "", name)):
         raise TWError("INVALID_ARGUMENT", "Pick a different name.")
     base = _re.sub(r"-+", "-", _re.sub(r"[^a-z0-9]+", "-", name.lower())).strip("-")
     return name, state, "%s-%s" % (base, state.lower())
@@ -4081,6 +4091,8 @@ def friend_ping(req, db, uid, tok, now_ms):
     me = db.collection("users").document(uid).get()
     if to not in ((me.to_dict() or {}).get("friends") or []):
         raise TWError("FAILED_PRECONDITION", "Add them as a friend first.")
+    if uid in blocked_of(db, to) or to in blocked_of(db, uid):
+        return {"sent": False}
     guard = db.collection("friendPings").document("%s_%s" % (uid, to))
     try:
         guard.create({"at": now_ms})
@@ -5871,3 +5883,124 @@ def price_alerts_pass(db, quotes, now_ms):
         except Exception as e:
             print("[price alerts] one account failed: %s" % type(e).__name__)
     return res
+
+
+# ---------------------------------------------------------------------------
+# Safety (App Store guideline 1.2): a word filter on what people post, Report, and Block.
+#
+#   moderate_chat / moderate_trader / moderate_squad   Firestore triggers: blocked words in a
+#       chat message, a profile name or bio, or a squad name or goal are replaced by asterisks
+#       (functions/moderation.py). Coaching text is masked when it's saved (coaching._clean).
+#   report_content {kind, target, where?, reason, note?}   saves reports/{id} (server only) with
+#       a copy of what was reported, and tells the admins in their bell. 20 reports a day each.
+#   blocked_of(db, uid)   users/{uid}.blocked (the person's own list, written by the app): a
+#       blocked trader can't challenge you or ping you; the app hides their chat and profile.
+# ---------------------------------------------------------------------------
+from firebase_functions import firestore_fn  # noqa: E402
+
+REPORTS_PER_DAY = 20
+
+
+def blocked_of(db, uid):
+    try:
+        d = db.collection("users").document(uid).get()
+        lst = (d.to_dict() or {}).get("blocked") if d.exists else None
+        return set(x for x in (lst or []) if isinstance(x, str))
+    except Exception:
+        return set()
+
+
+def _moderate(ref, doc, fields):
+    upd = MOD.masked_fields(doc or {}, fields)
+    if upd:
+        ref.update(dict(upd, filtered=True))
+        print("[moderation] masked %s on %s" % (",".join(sorted(upd)), ref.path))
+    return upd
+
+
+@firestore_fn.on_document_created(document="squads/{sid}/messages/{mid}")
+def moderate_chat(event) -> None:
+    if event.data is not None:
+        _moderate(event.data.reference, event.data.to_dict(), ("text", "name"))
+
+
+@firestore_fn.on_document_written(document="traders/{uid}")
+def moderate_trader(event) -> None:
+    after = event.data.after if event.data else None
+    if after is not None and after.exists:
+        _moderate(after.reference, after.to_dict(), ("name", "bio"))
+
+
+@firestore_fn.on_document_written(document="squads/{sid}")
+def moderate_squad(event) -> None:
+    after = event.data.after if event.data else None
+    if after is not None and after.exists:
+        _moderate(after.reference, after.to_dict(), ("name", "goal.text"))
+
+
+def report_snapshot(db, rep):
+    """What was reported, copied at the time (it may be deleted later). Raises TWError when the
+    thing doesn't exist or doesn't belong to the reported trader."""
+    kind, target, where = rep["kind"], rep["target"], rep.get("where") or ""
+    if kind == "profile":
+        t = db.collection("traders").document(target).get()
+        d = (t.to_dict() or {}) if t.exists else {}
+        return {"name": d.get("name"), "username": d.get("username"), "bio": d.get("bio")}
+    if kind == "chat":
+        parts = where.split("/")
+        if len(parts) != 2:
+            raise TWError("INVALID_ARGUMENT", "That can't be reported.")
+        m = db.collection("squads").document(parts[0]).collection("messages").document(parts[1]).get()
+        d = (m.to_dict() or {}) if m.exists else None
+        if not d or d.get("author") != target:
+            raise TWError("NOT_FOUND", "That message is gone.")
+        return {"name": d.get("name"), "text": d.get("text"), "photo": bool(d.get("photo"))}
+    if kind == "squad":
+        q = db.collection("squads").document(where or "-").get()
+        d = (q.to_dict() or {}) if q.exists else None
+        if not d or d.get("owner") != target:
+            raise TWError("NOT_FOUND", "That squad is gone.")
+        return {"name": d.get("name"), "goal": (d.get("goal") or {}).get("text") if isinstance(d.get("goal"), dict) else None}
+    # coach: coachings/{cid}/{notes|plays}/{id}; a play's comments are kept in the play doc
+    parts = where.split("/")
+    if len(parts) != 3 or parts[1] not in ("notes", "plays"):
+        raise TWError("INVALID_ARGUMENT", "That can't be reported.")
+    c = db.collection("coachings").document(parts[0]).collection(parts[1]).document(parts[2]).get()
+    d = (c.to_dict() or {}) if c.exists else None
+    if not d:
+        raise TWError("NOT_FOUND", "That's gone.")
+    mine = [x.get("text") for x in (d.get("comments") or []) if isinstance(x, dict) and x.get("from") == target]
+    if d.get("from") != target and not mine:
+        raise TWError("NOT_FOUND", "That's gone.")
+    return {"text": d.get("text") or d.get("note"), "title": d.get("title"), "comments": mine[-10:]}
+
+
+@https_fn.on_call()
+@_tk_call
+def report_content(req, db, uid, tok, now_ms):
+    try:
+        rep = MOD.validate_report(req.data)
+    except ValueError as e:
+        raise TWError("INVALID_ARGUMENT", str(e))
+    if rep["target"] == uid:
+        raise TWError("INVALID_ARGUMENT", "You can't report yourself.")
+    snap = report_snapshot(db, rep)
+    day = datetime.fromtimestamp(now_ms / 1000, NY).strftime("%Y-%m-%d")
+    count_ref = db.collection("reportCounts").document(uid)
+
+    @firestore.transactional
+    def count(t):
+        c = count_ref.get(transaction=t)
+        d = (c.to_dict() or {}) if c.exists else {}
+        n = d.get("n", 0) if d.get("day") == day else 0
+        if n >= REPORTS_PER_DAY:
+            raise TWError("RESOURCE_EXHAUSTED", "You've sent a lot of reports today. Thanks, we'll look at them.")
+        t.set(count_ref, {"day": day, "n": n + 1})
+
+    count(db.transaction())
+    ref = db.collection("reports").document()
+    ref.set(dict(rep, reporter=uid, content=snap, at=now_ms, status="open"))
+    admins = [a.id for a in db.collection("admins").limit(10).stream()]
+    if admins:
+        notify_users(db, admins, "reports", "New report: %s" % rep["kind"], "Reason: %s. Review it in Firestore → reports/%s." % (rep["reason"], ref.id), "", "report-" + ref.id)
+    return {"ok": True}

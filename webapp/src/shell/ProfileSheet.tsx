@@ -7,7 +7,7 @@ import s from './Shell.module.css';
 
 /** Account menu: who you are, quick links, sign in / out. */
 export function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { user, isReal, signInWithGoogle, signOut } = useAuth();
+  const { user, isReal, openSignIn, signOut } = useAuth();
   const toast = useToast();
   return (
     <Sheet open={open} onClose={onClose} title={t('nav.profile')} labelledBy="profile-title">
@@ -37,12 +37,12 @@ export function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => 
             block
             size="lg"
             onClick={() =>
-              signInWithGoogle()
+              openSignIn()
                 .then(onClose)
                 .catch(() => toast.show(t('auth.signInFailed'), 'error'))
             }
           >
-            {t('auth.signInWithGoogle')}
+            {t('auth.signIn')}
           </Button>
         )}
       </div>

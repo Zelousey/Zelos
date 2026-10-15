@@ -27,7 +27,7 @@ import s from './DashboardPage.module.css';
 
 export default function DashboardPage() {
   const quotes = useQuotes();
-  const { user, isReal, signInWithGoogle } = useAuth();
+  const { user, isReal, openSignIn } = useAuth();
   const toast = useToast();
   const uid = isReal && user ? user.uid : null;
   const userDoc = useUserDoc(uid);
@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const ach = achievementsView(progress, me?.achievements);
 
   const name = (identity.status === 'ready' && identity.data.name) || user?.displayName?.split(' ')[0] || '';
-  const signIn = () => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+  const signIn = () => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'));
   const acct = usePracticeAccount(uid);
 
   // first sign-in: no @username and the welcome not done or skipped -> the welcome screens

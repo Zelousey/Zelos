@@ -120,15 +120,20 @@ service cloud.firestore {
     match /users/{userId} {
       // missions: counted by the server (functions/missions.py), so mission XP can't be faked
       function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions']; }
+      // blocked: the traders you blocked (uids); termsAt: when you agreed to the Terms
+      function validBlocked(b) { return b is list && b.size() <= 500; }
       allow read, delete: if request.auth != null && request.auth.uid == userId;
       // a new doc may only start XP and the streak at zero
       allow create: if request.auth != null && request.auth.uid == userId
         && request.resource.data.get('xp', 0) == 0
         && request.resource.data.get('streakDays', 0) == 0
         && !('lastAlertOpenDate' in request.resource.data)
-        && !('missions' in request.resource.data);
+        && !('missions' in request.resource.data)
+        && validBlocked(request.resource.data.get('blocked', []));
       allow update: if request.auth != null && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields());
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields())
+        && validBlocked(request.resource.data.get('blocked', []))
+        && request.resource.data.get('termsAt', 0) is number;
 
       // XP/streak event ledger — also doubles as the dedup record that stops the
       // same alert (or the same day's check-in/arcade play) from paying out twice.
@@ -488,6 +493,14 @@ service cloud.firestore {
     }
     // One record per price alert that notified (functions/price_alerts.py). Server only.
     match /priceAlertHits/{id} {
+      allow read, write: if false;
+    }
+    // Reports of chat, profiles, squads and coaching text (report_content) and the per-person
+    // daily count. Server only; the owner reviews them in the Firebase console.
+    match /reports/{id} {
+      allow read, write: if false;
+    }
+    match /reportCounts/{uid} {
       allow read, write: if false;
     }
 

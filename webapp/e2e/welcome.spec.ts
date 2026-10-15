@@ -16,6 +16,10 @@ async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
 }
+// a brand-new account agrees to the community rules first (App Store 1.2), then the welcome starts
+async function agree(page: Page) {
+  await page.getByRole('dialog', { name: 'Before you start' }).getByRole('button', { name: 'I agree' }).click();
+}
 // each step fades in; checking contrast mid-fade measures half-transparent text, so wait for finite animations to end
 const settled = (page: Page) => page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity));
 const axe = async (page: Page) => {
@@ -49,6 +53,7 @@ test.describe('first sign-in', () => {
 
     await page.goto('dashboard');
     await signIn(page, `welcome-${id}@example.com`);
+    await agree(page);
     await expect(page).toHaveURL(/\/welcome$/);
     await expect(page.getByRole('heading', { name: 'Welcome to Zelos Trade War' })).toBeVisible();
     await page.getByLabel('Your name').fill('Ada');
@@ -85,6 +90,7 @@ test.describe('first sign-in', () => {
   test('skip for now: back to the Dashboard, and the welcome stays away', async ({ page }, info) => {
     await page.goto('dashboard');
     await signIn(page, `skip-${info.project.name}${Date.now()}@example.com`);
+    await agree(page);
     await expect(page).toHaveURL(/\/welcome$/);
     await page.getByRole('button', { name: 'Skip for now' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
