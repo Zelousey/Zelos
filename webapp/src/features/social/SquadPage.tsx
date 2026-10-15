@@ -11,6 +11,7 @@ import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
+import { SafetyMenu } from '../safety/SafetyMenu';
 import { Button, buttonClass, Card, Confirm, EmptyState, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
 import { LevelBadge } from '../dashboard/LevelBadge';
 import type { Ranked } from '../dashboard/social';
@@ -70,6 +71,7 @@ function SquadView({ sq, uid, displayName, onSignIn }: { sq: Squad; uid: string 
             {sq.comp ? ` · ${compOn ? t('sq.comp.left', { n: days(sq.comp.end, now) }) : t('sq.comp.done', { date: formatDate(sq.comp.end) })}` : ''}
           </>
         }
+        actions={!isOwner && uid ? <SafetyMenu what={{ kind: 'squad', target: sq.owner, where: sq.id }} name={sq.name} /> : undefined}
       />
       {!isMember && <JoinCard sq={sq} uid={uid} displayName={displayName} onSignIn={onSignIn} />}
       {sq.goal && profs && <GoalCard sq={sq} profs={profs} now={now} />}

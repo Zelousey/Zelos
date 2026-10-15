@@ -17,7 +17,7 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4173/app/',
     // Most tests skip the launch animation, the first sign-in welcome and level-up celebrations;
     // e2e/welcome.spec.ts and e2e/rewards.spec.ts turn them back on.
-    storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [{ name: 'zelosSplashOff', value: '1' }, { name: 'zelosWelcomeSkip', value: '1' }, { name: 'zelosLevelCelebrated', value: '99' }] }] },
+    storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [{ name: 'zelosSplashOff', value: '1' }, { name: 'zelosWelcomeSkip', value: '1' }, { name: 'zelosLevelCelebrated', value: '99' }, { name: 'zelosTerms', value: 'all' }] }] },
     trace: 'retain-on-failure',
     launchOptions: executablePath ? { executablePath } : {},
   },
