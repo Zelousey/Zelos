@@ -26,9 +26,11 @@
   'use strict';
   var d = document, ROOT = /\/(games|learn|scan|practice|real)\//.test(location.pathname) ? '../' : '';
   var FNS_URL = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js';
-  var NAMES = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner' };
+  var NAMES = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner', 'three-leg': '3-Leg Options' };
   var fnsP = null, wallet = null, walletUnsub = null, prices = null, me = null, listeners = [];
 
+  // a strategy's 1-week pass price (3-Leg Options costs more: main.py TOKENS["passPrices"])
+  function passPrice(p, s) { var pp = p && p.prices && p.prices.passPrices; return pp && pp[s] != null ? pp[s] : s === 'three-leg' ? 60 : (p && p.prices ? p.prices.pass : 40); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fb() {
     var cfg = global.ZELOS_FIREBASE_CONFIG;
@@ -261,7 +263,7 @@
       body.innerHTML = '<div class="zt-bal"><span class="zt-coin" aria-hidden="true"></span>' + w.balance + '</div>' +
         (w.welcomed ? '<p class="zt-msg is-ok">Welcome! ' + w.prices.welcome + ' free tokens were added to your wallet.</p>' : '') +
         (w.needsVerify ? '<p class="zt-muted">Verify your email (or sign in with Google) to get your ' + w.prices.welcome + ' free welcome tokens.</p>' : '') +
-        '<p class="zt-muted">A 1-week scanner pass is ' + w.prices.pass + ' tokens. One live alert is ' + w.prices.unlock + '; after the 4:00 pm ET close it\'s ' + (w.prices.unlockClosed || 3) + '. Every alert is free for everyone once its trade finishes.</p>' +
+        '<p class="zt-muted">A 1-week scanner pass is ' + w.prices.pass + ' tokens (' + passPrice(w, 'three-leg') + ' for 3-Leg Options). One live alert is ' + w.prices.unlock + '; after the 4:00 pm ET close it\'s ' + (w.prices.unlockClosed || 3) + '. Every alert is free for everyone once its trade finishes.</p>' +
         '<h3>Active passes</h3>' + (passes.length ? passes.map(function (k) { return '<div class="zt-row"><span>' + esc(NAMES[k] || k) + '</span><span class="zt-muted">until ' + until(w.passes[k]) + '</span></div>'; }).join('') : '<p class="zt-muted">None. Get one on any scanner\'s locked alert, or on the <a href="' + ROOT + 'tokens.html" style="color:#9dbcff">tokens page</a>.</p>') +
         '<h3>Earn free tokens</h3><div class="zt-row"><span>Daily check-in' + (wallet && wallet.checkin && wallet.checkin.streak ? ' <span class="zt-muted">(' + wallet.checkin.streak + '-day streak)</span>' : '') + '</span><span class="zt-muted">+2 a day, +10 every 7th day in a row</span></div>' +
         '<div class="zt-row"><span>Win a Trade War</span><span class="zt-muted">up to +25</span></div>' +
@@ -314,7 +316,7 @@
         (closed ? '<div>The ticker, entry, stop, targets and full reasoning. The market has closed, so it costs less now, and it\'s free for everyone once the trade finishes (target, stop or expiry).</div>'
           : '<div>The ticker, entry, stop, targets and full reasoning. Live until the 4:00 pm ET close (in about <b>' + left(a.lockedUntil) + '</b>), then ' + (p.prices ? p.prices.unlockClosed : 3) + ' tokens, and free once the trade finishes.</div>') +
         (u ? '<div class="zt-acts"><button class="zt-btn zt-gold" type="button" data-k="unlock">Unlock this alert · ' + cost + ' tokens</button>' +
-          '<button class="zt-btn" type="button" data-k="pass">1-week ' + esc(name) + ' pass · ' + (p.prices ? p.prices.pass : 40) + ' tokens</button></div>' +
+          '<button class="zt-btn" type="button" data-k="pass">1-week ' + esc(name) + ' pass · ' + passPrice(p, a.strategy) + ' tokens</button></div>' +
           '<div class="zt-muted">' + (bal != null ? 'You have <b>' + bal + '</b> tokens. ' : '') + '<a href="#" data-k="wallet" style="color:#9dbcff">Wallet &amp; token packs</a></div>'
           : '<div class="zt-acts"><a class="zt-btn zt-gold" href="' + ROOT + 'tokens.html" style="text-decoration:none">Sign in to get free tokens</a></div><div class="zt-muted">New accounts start with free tokens: enough for a week-long pass.</div>') +
         '<p class="zt-msg' + (bad ? ' is-bad' : msg ? ' is-ok' : '') + '" role="status">' + esc(msg || '') + '</p>';

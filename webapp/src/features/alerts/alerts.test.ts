@@ -33,11 +33,23 @@ describe('alerts', () => {
     const none = parsePrefs({});
     expect(isOn(none, 's:swing-trader')).toBe(true);
     expect(isOn(none, 'battles')).toBe(true);
-    expect(toggle(none, 's:breakout-rider', false)).toEqual({ notificationPrefs: { strategies: ['swing-trader', 'options-scanner'] } });
+    expect(toggle(none, 's:breakout-rider', false)).toEqual({ notificationPrefs: { strategies: ['swing-trader', 'options-scanner', 'three-leg'] } });
     expect(toggle(none, 'friends', false)).toEqual({ notificationPrefs: { types: { friends: false } } });
     const p = parsePrefs({ notificationPrefs: { strategies: ['options-scanner', 'evil'], types: { friends: false, x: 'no' } } });
     expect(p).toEqual({ strategies: ['options-scanner'], types: { friends: false } });
     expect(isOn(p, 's:swing-trader')).toBe(false);
     expect(isOn(p, 'friends')).toBe(false);
+  });
+  it('3-Leg alerts: three valid legs or none', () => {
+    const legs = [
+      { type: 'call', side: 'buy', strike: 180, qty: 1, price: 6 },
+      { type: 'call', side: 'sell', strike: 190, qty: 2, price: 2.5 },
+      { type: 'call', side: 'buy', strike: 200, qty: 1, price: 0.8 },
+    ];
+    const a = parseAlert('three-leg-x', { strategy: 'three-leg', status: 'qualified', ticker: 'AAPL', kindLabel: 'Bull call butterfly', expiration: '2026-11-20', legs, netCost: 180, maxProfit: 820, maxLoss: 180, breakevens: [181.8, 198.2] })!;
+    expect(a).toMatchObject({ kindLabel: 'Bull call butterfly', expiration: '2026-11-20', netCost: 180, maxProfit: 820, maxLoss: 180, breakevens: [181.8, 198.2] });
+    expect(a.legs).toHaveLength(3);
+    expect(parseAlert('three-leg-y', { strategy: 'three-leg', ticker: 'AAPL', legs: legs.slice(0, 2), expiration: 'soon' })).toMatchObject({ legs: [], expiration: null });
+    expect(parseAlert('three-leg-z', { strategy: 'three-leg', ticker: 'AAPL', legs: [...legs.slice(0, 2), { type: 'stock', side: 'buy', strike: 1, qty: 1, price: 1 }] })!.legs).toEqual([]);
   });
 });

@@ -11,7 +11,7 @@ import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
-import { buyPass, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
+import { buyPass, passPrice, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
 import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
@@ -86,7 +86,7 @@ export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strate
   const now = useNow();
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
-  const price = info?.prices.pass ?? 40;
+  const price = passPrice(info, st.id);
   const days = info?.prices.passDays ?? 7;
   if (!isReal || !user)
     return (

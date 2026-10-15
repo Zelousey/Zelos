@@ -67,6 +67,39 @@ page didn't exist yet to wire them up to. Once `ZELOS_PUBLISH_URL` and
 `ZELOS_PUBLISH_SECRET` are set and each skill's scan step ends with the curl
 above, they're safe to flip to `enabled:true`.
 
+### 3-Leg Options (`"strategy": "three-leg"`, owner 2026-10-15)
+
+One alert = one options trade made of three legs on one stock and one
+expiration: a bull call butterfly, a bear put butterfly or a jade lizard. The
+scan skill (to be set up as `zelos-three-leg`, scheduled like the others)
+sends the legs; `publish_alert` refuses anything that isn't exactly three
+valid legs and works out the cost, max profit, max loss and breakevens
+itself (`functions/three_leg.py`), so they always match the legs.
+
+```bash
+curl -X POST "$ZELOS_PUBLISH_URL" \
+  -H "X-Zelos-Secret: $ZELOS_PUBLISH_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "strategy": "three-leg", "ticker": "AAPL", "status": "qualified",
+        "kind": "bull-butterfly", "expiration": "2026-11-20", "entry": 188.50,
+        "legs": [
+          {"type": "call", "side": "buy",  "strike": 180, "qty": 1, "price": 6.00},
+          {"type": "call", "side": "sell", "strike": 190, "qty": 2, "price": 2.50},
+          {"type": "call", "side": "buy",  "strike": 200, "qty": 1, "price": 0.80}
+        ],
+        "setupLabel": "Pin near 190", "score": 66, "scoreMax": 80,
+        "reasoning": "...", "riskNotes": "No earnings before expiration."
+      }'
+```
+
+`kind` is `bull-butterfly`, `bear-butterfly` or `jade-lizard`; `entry` is the
+stock price at scan time; `price` is each option's mid price per share;
+`qty` is 1 to 10. A day with nothing is `{"strategy": "three-leg", "status":
+"no-qualifying-setup"}` as for the others. The outcome checker holds these
+to expiration and judges them on the stock's close that day (the daily bars
+it gets need a `close`).
+
 ## 2. The outcome checker → `update_alert_outcomes`
 
 This is a new job, not one of the three existing skills — it doesn't scan
@@ -120,7 +153,9 @@ environment the scan skills themselves run in):
    the session after the alert's `createdAt` date. For an `options-scanner`
    alert, also use `get_equity_historicals` on the underlying — see the
    OPTIONS CAVEAT at the top of `scripts/check_alert_outcomes.py` for why
-   that's a deliberate proxy, not an oversight.
+   that's a deliberate proxy, not an oversight. For a `three-leg` alert, fetch the
+   underlying's daily bars **with `close`** up to and including its
+   `expiration`; it stays `open` until a bar on or after that date exists.
 
 3. **Decide the outcome.** Pipe the alert doc and the bars you just fetched
    into `scripts/check_alert_outcomes.py`:

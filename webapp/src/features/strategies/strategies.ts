@@ -9,10 +9,10 @@ import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
 
-export type StrategyId = 'swing-trader' | 'breakout-rider' | 'options-scanner';
+export type StrategyId = 'swing-trader' | 'breakout-rider' | 'options-scanner' | 'three-leg';
 export type Strategy = { id: StrategyId; name: string; tagline: string; looksFor: string[]; avoids: string[]; page: string; tone: 'accent' | 'gold' | 'violet' };
 
-// Same three as functions/main.py ALLOWED_STRATEGIES; copy from the website's strategy pages.
+// Same as functions/main.py ALLOWED_STRATEGIES; copy from the website's strategy pages.
 export const STRATEGIES: Strategy[] = [
   {
     id: 'swing-trader',
@@ -39,6 +39,15 @@ export const STRATEGIES: Strategy[] = [
     looksFor: ['A strong bullish or bearish setup in an optionable stock', 'One long call or long put, with a rule for strike and expiration'],
     avoids: ['Spreads and multi-leg trades', 'Selling options, 0DTE and weeklies'],
     page: 'options-scanner.html',
+    tone: 'violet',
+  },
+  {
+    id: 'three-leg',
+    name: '3-Leg Options',
+    tagline: 'One options trade built from three positions (a butterfly or a jade lizard), with the cost, the most it can make or lose, and the breakevens worked out for you.',
+    looksFor: ['A stock likely to settle near a price by expiration', 'Three legs on one expiration: buy, sell and buy (or a credit jade lizard)', 'A defined cost, max profit and max loss before you enter', 'Breakevens and the profit zone at expiration'],
+    avoids: ['Earnings inside the trade', 'Thin options with wide bid/ask spreads', '0DTE and weeklies'],
+    page: '',
     tone: 'violet',
   },
 ];
@@ -102,7 +111,9 @@ export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
 };
 
 export type Pack = { id: string; tokens: number; cents: number };
-export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passDays: number; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };
+export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };
+/** Tokens for a 7-day pass to this strategy (the 3-Leg pass costs more; owner 2026-10-15). */
+export const passPrice = (info: WalletInfo | null, id: StrategyId) => info?.prices.passPrices?.[id] ?? (id === 'three-leg' ? 60 : (info?.prices.pass ?? 40));
 /** Makes the wallet on first use (and gives the welcome tokens once), returns prices and packs. */
 export const openWallet = () => callFunction<Record<string, never>, WalletInfo>('tokens_wallet', {});
 export const buyPass = (id: StrategyId) => callFunction<{ kind: 'pass'; strategy: StrategyId }, { balance: number; charged: number }>('tokens_spend', { kind: 'pass', strategy: id });

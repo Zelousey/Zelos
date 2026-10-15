@@ -61,10 +61,11 @@ import xp as XP  # XP award rules (server-decided amounts and limits)
 import practice as PR  # practice account engine (server-side fills, see functions/practice.py)
 import options as OPT  # modeled option prices for the practice account (functions/options.py)
 import moderation as MOD  # word filter, report checks (functions/moderation.py)
+import three_leg as TL  # the 3-Leg Options strategy: legs, cost, max profit/loss (functions/three_leg.py)
 
 initialize_app()
 
-ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner"}
+ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner", "three-leg"}
 
 
 def _secret_ok(provided):
@@ -175,6 +176,12 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
         )
 
     alert = dict(payload)
+    if strategy == "three-leg":
+        # the server works out cost, max profit/loss and breakevens from the legs
+        try:
+            alert.update(TL.normalize(payload))
+        except ValueError as e:
+            return https_fn.Response("Invalid 3-Leg trade: %s" % e, status=400)
 
     try:
         from zoneinfo import ZoneInfo
@@ -3227,6 +3234,7 @@ import hashlib as _hashlib
 TOKENS = {
     "welcome": 75,                 # once per verified account
     "pass": 40, "passDays": 7,     # one scanner, 7 days
+    "passPrices": {"three-leg": 60},  # strategies that cost more than "pass" (owner 2026-10-15)
     "unlock": 10,                  # one live alert (before the 4 pm ET close)
     "unlockClosed": 3,             # one alert after the close, until its trade finishes (then free)
     "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
@@ -3274,6 +3282,11 @@ def tk_has_access(wallet, strategy, alert_id, now_ms):
     return (wallet.get("passes") or {}).get(strategy, 0) > now_ms or alert_id in (wallet.get("unlocked") or [])
 
 
+def pass_price(strategy):
+    """Tokens for a 7-day pass to this strategy."""
+    return TOKENS["passPrices"].get(strategy, TOKENS["pass"])
+
+
 def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
     """Pure: (wallet, ledger line | None) for a pass or a single-alert unlock.
     locked: the alertsLocked doc for an unlock (None if it doesn't exist).
@@ -3281,7 +3294,7 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
     if kind == "pass":
         if strategy not in ALLOWED_STRATEGIES:
             raise TWError("INVALID_ARGUMENT", "Pick a scanner.")
-        cost, ref = TOKENS["pass"], strategy
+        cost, ref = pass_price(strategy), strategy
     elif kind == "unlock":
         if not locked or locked.get("public"):
             raise TWError("FAILED_PRECONDITION", "This alert is already free to read.")
@@ -3299,7 +3312,7 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
         passes = dict(wallet.get("passes") or {})
         passes[strategy] = max(passes.get(strategy, 0), now_ms) + TOKENS["passDays"] * 86400000
         w["passes"] = passes
-        note = "%s pass (%d days)" % (strategy.replace("-", " ").title(), TOKENS["passDays"])
+        note = "%s pass (%d days)" % (PUSH_NAMES.get(strategy) or strategy.replace("-", " ").title(), TOKENS["passDays"])
     else:
         w["unlocked"] = ((wallet.get("unlocked") or []) + [alert_id])[-TK_UNLOCKED_MAX:]
         note = "Unlocked %s" % alert_id
@@ -3358,7 +3371,7 @@ def tokens_wallet(req, db, uid, tok, now_ms):
         if bought:
             wallet = db.collection("wallets").document(uid).get().to_dict() or wallet
     out = _tk_public(wallet)
-    out.update({"welcomed": bool(line), "bought": bought, "prices": {"pass": TOKENS["pass"], "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
+    out.update({"welcomed": bool(line), "bought": bought, "prices": {"pass": TOKENS["pass"], "passPrices": {k: pass_price(k) for k in sorted(ALLOWED_STRATEGIES)}, "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
                 "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
                 "canBuy": _square_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
     return out
@@ -3958,7 +3971,8 @@ def community_activity(db, uid, tok, today, now_ms, iph):
 # The notification shows only the teaser (scanner, setup, score), never the ticker or levels,
 # so it doesn't give away a token-gated alert. Tapping it opens the alert page.
 # ---------------------------------------------------------------------------
-PUSH_NAMES = {"swing-trader": "Swing Trader", "breakout-rider": "Breakout Rider", "options-scanner": "Options Scanner"}
+ALERT_IMAGES = ("swing-trader", "breakout-rider", "options-scanner")  # images/alert-<id>.png that exist
+PUSH_NAMES = {"swing-trader": "Swing Trader", "breakout-rider": "Breakout Rider", "options-scanner": "Options Scanner", "three-leg": "3-Leg Options"}
 PUSH_MAX_TOKENS = 10
 
 
@@ -3982,7 +3996,7 @@ def push_alert_message(alert_id, alert):
         bits.append("%s market" % alert["marketRegime"])
     body = " · ".join(b for b in bits if b) + ". Tap to see it on Zelos."
     return ("New %s alert" % name, body, "%s/alert.html?id=%s" % (SITE_URL, urllib.parse.quote(alert_id)),
-            "%s/images/alert-%s.png" % (SITE_URL, alert.get("strategy") if alert.get("strategy") in PUSH_NAMES else "zelos"))
+            "%s/images/alert-%s.png" % (SITE_URL, alert.get("strategy") if alert.get("strategy") in ALERT_IMAGES else "zelos"))
 
 
 def _push_send(tokens, title, body, link, image, tag):

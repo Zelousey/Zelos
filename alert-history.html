@@ -227,6 +227,7 @@
       <button data-strategy="swing-trader" type="button">Swing Trader</button>
       <button data-strategy="breakout-rider" type="button">Breakout Rider</button>
       <button data-strategy="options-scanner" type="button">Options Scanner</button>
+      <button data-strategy="three-leg" type="button">3-Leg Options</button>
     </div>
 
     <div class="record" id="record" hidden></div>
@@ -459,7 +460,7 @@
 
 <script>
 (function(){
-  var STRATEGY_LABEL = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+  var STRATEGY_LABEL = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner', 'three-leg':'3-Leg Options' };
   var OUTCOME_LABEL = { 'hit-target':'Hit target', 'stopped-out':'Stopped out', 'open':'Still open', 'expired':'Expired', 'no-trade':'No trade' };
 
   var cfg = window.ZELOS_FIREBASE_CONFIG;
@@ -553,7 +554,10 @@
   }
   db.collection('alerts').orderBy('createdAt', 'desc').limit(100).get().then(function(snap){
     snap.forEach(function(doc){ allDocs.push({ id: doc.id, data: doc.data() }); });
-    render('');
+    // ?strategy=three-leg opens with that filter on
+    var want = new URLSearchParams(location.search).get('strategy') || '';
+    var pick = want && document.querySelector('#filters button[data-strategy="' + want.replace(/[^a-z-]/g, '') + '"]');
+    if (pick) pick.click(); else render('');
   }).catch(function(){
     document.getElementById('list').innerHTML = '<div class="empty">Couldn\'t load alert history right now.</div>';
   });

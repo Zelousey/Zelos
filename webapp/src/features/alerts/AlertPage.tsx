@@ -92,6 +92,8 @@ function View({ a, uid, onUnlocked }: { a: Alert; uid: string | null; onUnlocked
       <div className={s.detail}>
         {a.locked ? (
           <LockCard a={a} uid={uid} onUnlocked={onUnlocked} />
+        ) : trade && a.legs.length === 3 ? (
+          <LegsCard a={a} />
         ) : trade ? (
           <PlanCard a={a} />
         ) : (
@@ -175,6 +177,89 @@ function PlanCard({ a }: { a: Alert }) {
   );
 }
 
+const usd = (n: number) => `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** A 3-Leg Options trade: the three positions, what it costs, the most it can make or lose. */
+function LegsCard({ a }: { a: Alert }) {
+  const cost = a.netCost ?? 0;
+  const rows: [string, string][] = [
+    [cost >= 0 ? t('al.tl.cost') : t('al.tl.credit'), usd(cost)],
+    [t('al.tl.maxProfit'), a.maxProfit == null ? t('al.tl.unlimited') : usd(a.maxProfit)],
+    [t('al.tl.maxLoss'), a.maxLoss == null ? t('al.tl.unlimited') : usd(a.maxLoss)],
+    [t('al.tl.breakevens'), a.breakevens.length ? a.breakevens.map(usd).join(' · ') : '—'],
+  ];
+  return (
+    <Card title={a.kindLabel ?? t('al.plan')} subtitle={t('al.tl.sub', { date: a.expiration ? formatDate(Date.parse(`${a.expiration}T12:00:00Z`)) : '—', p: formatPrice(a.entry) })}>
+      <table className={s.legs}>
+        <thead>
+          <tr>
+            <th scope="col">{t('al.tl.action')}</th>
+            <th scope="col">{t('al.tl.option')}</th>
+            <th scope="col">{t('al.tl.strike')}</th>
+            <th scope="col">{t('al.tl.price')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {a.legs.map((l, i) => (
+            <tr key={i}>
+              <td>
+                <Badge tone={l.side === 'buy' ? 'up' : 'down'}>{t(l.side === 'buy' ? 'al.tl.buy' : 'al.tl.sell', { n: l.qty })}</Badge>
+              </td>
+              <td>{t(l.type === 'call' ? 'al.tl.call' : 'al.tl.put')}</td>
+              <td className={s.mono}>{usd(l.strike)}</td>
+              <td className={s.mono}>{usd(l.price)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <dl className={s.plan}>
+        {rows.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <Payoff a={a} />
+      <p className={s.note}>{t('al.tl.how')}</p>
+      {a.ticker && (
+        <div className={s.actions}>
+          <Link to={`/markets/${encodeURIComponent(a.ticker)}`} className={buttonClass({ variant: 'secondary', size: 'sm' })}>
+            <Icon name="chart" size={16} /> {t('al.chart')}
+          </Link>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/** Profit or loss at expiration across stock prices (display only; the numbers above come from the server). */
+function Payoff({ a }: { a: Alert }) {
+  const strikes = a.legs.map((l) => l.strike);
+  const lo = Math.min(...strikes) * 0.85;
+  const hi = Math.max(...strikes) * 1.15;
+  const pnl = (px: number) => a.legs.reduce((sum, l) => sum + (l.side === 'buy' ? 1 : -1) * l.qty * 100 * Math.max(0, l.type === 'call' ? px - l.strike : l.strike - px), 0) - (a.netCost ?? 0);
+  const xs = Array.from({ length: 61 }, (_, i) => lo + ((hi - lo) * i) / 60);
+  const ys = xs.map(pnl);
+  const top = Math.max(...ys, 1);
+  const bot = Math.min(...ys, -1);
+  const W = 300;
+  const H = 90;
+  const x = (v: number) => ((v - lo) / (hi - lo)) * W;
+  const y = (v: number) => ((top - v) / (top - bot)) * H;
+  const line = xs.map((v, i) => `${i ? 'L' : 'M'}${x(v).toFixed(1)},${y(pnl(v)).toFixed(1)}`).join('');
+  return (
+    <figure className={s.payoff}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('al.tl.chart')} preserveAspectRatio="none">
+        <line x1="0" x2={W} y1={y(0)} y2={y(0)} className={s.zero} />
+        {a.entry != null && a.entry > lo && a.entry < hi && <line x1={x(a.entry)} x2={x(a.entry)} y1="0" y2={H} className={s.now} />}
+        <path d={line} className={s.curve} />
+      </svg>
+      <figcaption className={s.muted}>{t('al.tl.chart')}</figcaption>
+    </figure>
+  );
+}
+
 /** Stop, entry and targets on one line, to scale. */
 function Ladder({ a }: { a: Alert }) {
   const pts = ([['stop', a.stop], ['entry', a.entry], ['t1', a.target1], ['t2', a.target2]] as const).filter((p): p is readonly [typeof p[0], number] => p[1] != null);
@@ -253,7 +338,7 @@ function OutcomeCard({ a }: { a: Alert }) {
     <Card title={t('al.outcome')} pad>
       <div className={s.badgeRow}>
         <ResultBadge a={a} />
-        {a.exitPrice != null && <span className={s.mono}>{t('al.exit', { p: formatPrice(a.exitPrice) })}</span>}
+        {a.exitPrice != null && <span className={s.mono}>{t(a.legs.length ? 'al.tl.closeAt' : 'al.exit', { p: formatPrice(a.exitPrice) })}</span>}
         {a.closedAt && <span className={s.muted}>{formatDate(a.closedAt)}</span>}
       </div>
       {a.outcomeNotes && <p className={s.note}>{a.outcomeNotes}</p>}
