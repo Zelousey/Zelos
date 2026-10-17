@@ -11,6 +11,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, OAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
 import { auth } from './firebase';
+import { isNative } from './platform';
 import { useEmulators } from './firebaseConfig';
 
 // Browser tests only (emulator build): sign in with email/password, since Google's popup
@@ -78,6 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInOpen,
       closeSignIn: () => setSignInOpen(false),
       async signInWith(p: SignInProvider) {
+        if (isNative()) {
+          // the iPhone app: the native Apple / Google sheet (lib/nativeAuth.ts)
+          const { nativeSignIn } = await import('./nativeAuth');
+          if (await nativeSignIn(p)) setSignInOpen(false);
+          return;
+        }
         const provider = providerFor(p);
         try {
           await signInWithPopup(auth(), provider);
@@ -93,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
       async signOut() {
+        if (isNative()) await import('./nativeAuth').then((m) => m.nativeSignOut());
         await signOut(auth());
       },
     }),

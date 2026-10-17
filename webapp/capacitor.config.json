@@ -1,0 +1,15 @@
+{
+  "appId": "info.agentictrading.zelos",
+  "appName": "Zelos Trade War",
+  "webDir": "dist-native",
+  "ios": {
+    "contentInset": "never",
+    "scheme": "Zelos"
+  },
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": ["apple.com", "google.com"]
+    }
+  }
+}

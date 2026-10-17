@@ -1,0 +1,57 @@
+# Codemagic: builds the Zelos iPhone app on a cloud Mac and sends it to TestFlight.
+# Setup (one time, in Codemagic, App Store Connect and Firebase): docs/IOS_BUILD.md.
+# Builds start by hand in Codemagic (Start new build → ios-testflight); nothing builds on its own.
+workflows:
+  ios-testflight:
+    name: iPhone app → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # the App Store Connect API key added in Codemagic → Team settings → Integrations
+      app_store_connect: Zelos App Store Connect
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: info.agentictrading.zelos
+      groups:
+        - firebase_ios # GOOGLE_SERVICE_INFO_PLIST: the iOS app's GoogleService-Info.plist (uploaded as a file)
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install the app's packages
+        working_directory: webapp
+        script: npm ci
+      - name: Firebase config for iPhone
+        script: |
+          set -e
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "Missing GOOGLE_SERVICE_INFO_PLIST in the firebase_ios group (docs/IOS_BUILD.md, step 3)"; exit 1
+          fi
+          PLIST=webapp/ios/App/App/GoogleService-Info.plist
+          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > "$PLIST"
+          # Google sign-in returns to the app through this address
+          REVERSED=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$PLIST")
+          INFO=webapp/ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes" "$INFO" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$INFO"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$INFO"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$INFO"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string $REVERSED" "$INFO"
+      - name: Build the app's screens and copy them into the iPhone project
+        working_directory: webapp
+        script: npm run build:native
+      - name: Signing
+        script: xcode-project use-profiles
+      - name: Build number
+        script: |
+          # each Codemagic build gets the next number, so TestFlight always accepts it
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/" webapp/ios/App/App.xcodeproj/project.pbxproj
+      - name: Build the iPhone app
+        script: xcode-project build-ipa --project webapp/ios/App/App.xcodeproj --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

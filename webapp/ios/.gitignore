@@ -1,0 +1,16 @@
+App/build
+App/Pods
+App/output
+App/App/public
+DerivedData
+xcuserdata
+
+# Cordova plugins for Capacitor
+capacitor-cordova-ios-plugins
+
+# Generated Config files
+App/App/capacitor.config.json
+App/App/config.xml
+
+# Firebase iOS config: written by Codemagic from the GOOGLE_SERVICE_INFO_PLIST variable (docs/IOS_BUILD.md)
+App/App/GoogleService-Info.plist

@@ -10,6 +10,7 @@ import { useId, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { providerFor, useAuth } from '../../lib/auth';
 import { auth } from '../../lib/firebase';
+import { isNative } from '../../lib/platform';
 import { callFunction } from '../../lib/firebase';
 import { t } from '../../lib/i18n';
 import { Button, Card, Field } from '../../ui';
@@ -34,7 +35,13 @@ export function DeleteAccount() {
     setBusy(true);
     setMsg(t('del.confirming'));
     try {
-      if (social === 'apple') {
+      if (social && isNative()) {
+        // the iPhone app: the native Apple / Google sheet, then revoke Sign in with Apple with Apple's code
+        const { nativeReauth } = await import('../../lib/nativeAuth');
+        const r = await nativeReauth(user, social);
+        if (!r) throw Object.assign(new Error('cancelled'), { code: 'auth/popup-closed-by-user' });
+        if (r.appleCode) await revokeAccessToken(auth(), r.appleCode).catch(() => undefined);
+      } else if (social === 'apple') {
         const cred = OAuthProvider.credentialFromResult(await reauthenticateWithPopup(user, providerFor('apple')));
         if (cred?.accessToken) await revokeAccessToken(auth(), cred.accessToken).catch(() => undefined);
       } else if (social === 'google') await reauthenticateWithPopup(user, providerFor('google'));
