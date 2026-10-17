@@ -17,7 +17,7 @@ const num = (v: number) => v.toLocaleString('en-US');
 const inviteUrl = (cid: string) => `${window.location.origin}${import.meta.env.BASE_URL}communities/${encodeURIComponent(cid)}`;
 
 function Actions({ c, uid }: { c: Community; uid: string | null }) {
-  const { signInWithGoogle } = useAuth();
+  const { openSignIn } = useAuth();
   const toast = useToast();
   const m = useMembership(uid);
   const [busy, setBusy] = useState(false);
@@ -27,7 +27,7 @@ function Actions({ c, uid }: { c: Community; uid: string | null }) {
   if (!uid)
     return (
       <Card title={t('cm.join', { name: c.name })} pad>
-        <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+        <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
           {t('cm.signInToJoin')}
         </Button>
       </Card>

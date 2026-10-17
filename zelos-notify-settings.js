@@ -19,9 +19,10 @@
     ['Your trades', [['fills', 'Stop loss & take profit', 'An automatic exit fills in one of your Trade Wars'],
       ['price', 'Price alerts', 'A stock crosses a price alert you drew on a chart']]],
     ['Scanner alerts', [['s:swing-trader', 'Swing Trader', 'A new alert is published'],
-      ['s:breakout-rider', 'Breakout Rider', 'A new alert is published'], ['s:options-scanner', 'Options Scanner', 'A new alert is published']]]
+      ['s:breakout-rider', 'Breakout Rider', 'A new alert is published'], ['s:options-scanner', 'Options Scanner', 'A new alert is published'],
+      ['s:three-leg', '3-Leg Options', 'A new alert is published']]]
   ];
-  var STRATS = ['swing-trader', 'breakout-rider', 'options-scanner'];
+  var STRATS = ['swing-trader', 'breakout-rider', 'options-scanner', 'three-leg'];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function style() {
     if (d.getElementById('znsStyle')) return;

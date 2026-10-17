@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { parseAlert, parseWallet, passUntil, safeCheckout, STRATEGIES } from './strategies';
+import { parseAlert, parseWallet, passPrice, passUntil, safeCheckout, STRATEGIES } from './strategies';
 
 describe('strategies', () => {
-  it('the same three strategies as the server', () => {
-    expect(STRATEGIES.map((s) => s.id)).toEqual(['swing-trader', 'breakout-rider', 'options-scanner']);
+  it('the same strategies as the server (main.py ALLOWED_STRATEGIES)', () => {
+    expect(STRATEGIES.map((s) => s.id)).toEqual(['swing-trader', 'breakout-rider', 'options-scanner', 'three-leg']);
+  });
+  it('pass price: 3-Leg Options costs more (owner 2026-10-15), the server price wins', () => {
+    expect(passPrice(null, 'swing-trader')).toBe(40);
+    expect(passPrice(null, 'three-leg')).toBe(60);
+    const info = { prices: { pass: 45, passDays: 7, unlock: 10, unlockClosed: 3, passPrices: { 'three-leg': 70 } } } as unknown as Parameters<typeof passPrice>[0];
+    expect(passPrice(info, 'swing-trader')).toBe(45);
+    expect(passPrice(info, 'three-leg')).toBe(70);
   });
   it('alerts: real ones only, tickers hidden while locked', () => {
     const a = parseAlert('breakout-rider-2026-10-08', { strategy: 'breakout-rider', createdAt: '2026-10-08T14:00:00Z', status: 'qualified', setupLabel: 'Flat base', score: '82', scoreMax: 100, locked: true, ticker: 'NVDA' });

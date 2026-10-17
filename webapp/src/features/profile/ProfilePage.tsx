@@ -12,7 +12,8 @@ import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { classicUrl, isNative } from '../../lib/platform';
+import { isNative } from '../../lib/platform';
+import { SafetyMenu, useBlocked } from '../safety/SafetyMenu';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, EmptyState, ErrorState, LoadingState, Stat, useToast } from '../../ui';
 import { LevelBadge } from '../dashboard/LevelBadge';
@@ -37,7 +38,7 @@ const day = (d: string | null) => (d ? formatDate(`${d}T12:00:00Z`, { year: true
 export const profileUrl = (uid: string) => `${isNative() ? 'https://agentictrading.info/app/' : `${location.origin}${import.meta.env.BASE_URL}`}profile/${encodeURIComponent(uid)}`;
 
 export default function ProfilePage({ uid }: { uid: string | null }) {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const me = isReal && user ? user.uid : null;
   const target = uid ?? me;
@@ -50,8 +51,8 @@ export default function ProfilePage({ uid }: { uid: string | null }) {
         body={t('pf.signIn')}
         actions={
           <>
-            <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-              {t('auth.signInWithGoogle')}
+            <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+              {t('auth.signIn')}
             </Button>
             <Link className={buttonClass({ variant: 'ghost' })} to="/leaderboard">
               {t('nav.leaderboard')}
@@ -146,7 +147,8 @@ function Name({ name, looks }: { name: string; looks: Looks | null }) {
 
 function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: string; mine: boolean; me: string | null; p: Ranked | null; id: Identity | null; looks: Looks | null; xp: number; isFriend: boolean | null; onEdit: () => void }) {
   const name = (id?.username && id.name) || p?.name || id?.name || 'Trader';
-  const photo = id?.avatar ?? p?.photo ?? null;
+  const blocked = useBlocked().includes(uid) && !mine; // their picture and bio stay hidden
+  const photo = blocked ? null : (id?.avatar ?? p?.photo ?? null);
   const lv = levelFor(xp);
   const streak = p?.detail?.streak ?? 0;
   const since = p?.detail?.since;
@@ -166,7 +168,7 @@ function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: st
           {id?.username && <p className={s.handle}>@{id.username}</p>}
         </div>
       </div>
-      {id?.bio ? <p className={s.bio}>{id.bio}</p> : mine && !id?.username ? <p className={s.hint}>{t('pf.hint')}</p> : null}
+      {blocked ? <p className={s.hint}>{t('sf.blockedProfile')}</p> : id?.bio ? <p className={s.bio}>{id.bio}</p> : mine && !id?.username ? <p className={s.hint}>{t('pf.hint')}</p> : null}
       <ul className={s.tags} aria-label={t('pf.about')}>
         <li>
           <b>{t('pf.level', { n: lv.level.level })}</b> {lv.level.name}
@@ -184,13 +186,13 @@ function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: st
           </li>
         )}
       </ul>
-      <Actions uid={uid} mine={mine} me={me} name={name} p={p} isFriend={isFriend} onEdit={onEdit} />
+      <Actions uid={uid} mine={mine} me={me} name={name} p={p} isFriend={isFriend} blocked={blocked} onEdit={onEdit} />
     </Card>
   );
 }
 
-function Actions({ uid, mine, me, name, p, isFriend, onEdit }: { uid: string; mine: boolean; me: string | null; name: string; p: Ranked | null; isFriend: boolean | null; onEdit: () => void }) {
-  const { signInWithGoogle } = useAuth();
+function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: string; mine: boolean; me: string | null; name: string; p: Ranked | null; isFriend: boolean | null; blocked: boolean; onEdit: () => void }) {
+  const { openSignIn } = useAuth();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [challenging, setChallenging] = useState(false);
@@ -200,7 +202,7 @@ function Actions({ uid, mine, me, name, p, isFriend, onEdit }: { uid: string; mi
     if (r === 'copied') toast.show(t('pf.share.copied'));
   }
   async function friend() {
-    if (!me) return void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+    if (!me) return void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'));
     setBusy(true);
     try {
       if (isFriend) {
@@ -229,10 +231,15 @@ function Actions({ uid, mine, me, name, p, isFriend, onEdit }: { uid: string; mi
           <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/settings">
             {t('nav.settings')}
           </Link>
+          <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/learn">
+            {t('nav.learn')}
+          </Link>
         </>
+      ) : blocked ? (
+        <SafetyMenu what={{ kind: 'profile', target: uid }} name={name} label={t('sf.unblock', { name })} />
       ) : (
         <>
-          <Button variant="primary" size="sm" onClick={() => (me ? setChallenging(true) : void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error')))}>
+          <Button variant="primary" size="sm" onClick={() => (me ? setChallenging(true) : void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error')))}>
             {t('pf.challenge')}
           </Button>
           <Button variant="secondary" size="sm" disabled={busy || (!!me && isFriend == null)} aria-pressed={!!isFriend} onClick={() => void friend()}>
@@ -241,6 +248,7 @@ function Actions({ uid, mine, me, name, p, isFriend, onEdit }: { uid: string; mi
           <Button variant="ghost" size="sm" onClick={() => void share()}>
             {t('pf.share')}
           </Button>
+          <SafetyMenu what={{ kind: 'profile', target: uid }} name={name} />
         </>
       )}
       {challenging && <ChallengeSheet open onClose={() => setChallenging(false)} to={uid} toName={name} />}
@@ -275,9 +283,6 @@ function TokensCard() {
           <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/strategies">
             {t('nav.strategies')}
           </Link>
-          <a className={buttonClass({ variant: 'ghost', size: 'sm' })} href={classicUrl('tokens.html')}>
-            {t('pf.looks')}
-          </a>
         </div>
       </div>
       <p className={s.muted}>{passes.length ? t('pf.passes', { list: passes.map((x) => `${x.name} (${formatDate(x.until)})`).join(' · ') }) : t('pf.noPasses')}</p>

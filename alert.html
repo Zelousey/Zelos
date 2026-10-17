@@ -362,7 +362,7 @@
     document.getElementById('fTicker').textContent = a.ticker || '—';
     document.title = 'Zelos Alert — ' + (a.ticker || '');
 
-    var NAMES = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
+    var NAMES = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner', 'three-leg':'3-Leg Options' };
     var dir = String(a.direction || '').toLowerCase(), short = /short|put|bear/.test(dir);
     document.getElementById('fKicker').textContent = (NAMES[a.strategy] || 'Zelos') + (dir ? ' · ' + dir : '');
     document.getElementById('fHero').classList.toggle('is-short', short);
@@ -387,6 +387,23 @@
     ledger.innerHTML = nums.map(function(r){ return '<span><small>'+r[0]+'</small><b class="'+r[2]+'">'+r[1]+'</b></span>'; }).join('');
     ledger.hidden = !nums.length;
     var rows = [];
+    if (Array.isArray(a.legs) && a.legs.length === 3) {
+      // 3-Leg Options: one trade made of three option positions (functions/three_leg.py works out the numbers)
+      var usd = function(n){ return '$' + Math.abs(+n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+      nums = [[a.netCost >= 0 ? 'Cost to open' : 'Credit', usd(a.netCost || 0), ''],
+        ['Most it can make', a.maxProfit == null ? 'No limit' : usd(a.maxProfit), 'accent'],
+        ['Most it can lose', a.maxLoss == null ? 'No limit' : usd(a.maxLoss), 'risk']];
+      ledger.innerHTML = nums.map(function(r){ return '<span><small>'+r[0]+'</small><b class="'+r[2]+'">'+r[1]+'</b></span>'; }).join('');
+      ledger.hidden = false;
+      if (a.kindLabel) rows.push(['Trade', esc(a.kindLabel), '']);
+      if (a.expiration) rows.push(['Expiration', esc(a.expiration), '']);
+      if (typeof a.entry === 'number') rows.push(['Stock when found', fmtMoney(a.entry), '']);
+      a.legs.forEach(function(l, i){
+        rows.push(['Leg ' + (i + 1), esc((l.side === 'buy' ? 'Buy ' : 'Sell ') + l.qty + ' ' + l.type + (l.qty > 1 ? 's' : '') + ' at $' + (+l.strike).toFixed(2) + ' strike · $' + (+l.price).toFixed(2)), l.side === 'buy' ? 'accent' : 'risk']);
+      });
+      if (Array.isArray(a.breakevens) && a.breakevens.length) rows.push(['Break-even', a.breakevens.map(function(x){ return fmtMoney(x); }).join(' · '), '']);
+      rows.push(['How it works', 'Prices are per share; one contract is 100 shares. Held to expiration and judged on the stock\u2019s close that day.', '', 'is-wide']);
+    }
     if (a.target2 !== undefined) rows.push(['Target 2', fmtMoney(a.target2), '']);
     if (a.riskPerShare !== undefined) rows.push(['Risk / share', fmtMoney(a.riskPerShare), 'risk']);
     if (a.rewardPerShare !== undefined) rows.push(['Reward / share (T1)', fmtMoney(a.rewardPerShare, true), 'accent']);
@@ -541,6 +558,7 @@
     if (ok) { buy.href = 'app/practice/trade/' + a.ticker + '?side=buy'; sell.href = 'app/practice/trade/' + a.ticker + '?side=sell'; }
     buy.innerHTML = (a.ticker ? 'Buy ' + esc(a.ticker) : 'Buy') + '<small>in Trade War</small>';
     sell.textContent = a.ticker ? 'Sell ' + a.ticker + ' in Trade War' : 'Sell in Trade War';
+    if (ok && Array.isArray(a.legs) && a.legs.length) { document.getElementById('fTwNote').textContent = 'Virtual money · opens your Trade War ticket for this stock. The three option legs are listed in the trade plan.'; return; }
     document.getElementById('fTwNote').textContent = ok ? 'Virtual money · opens your Trade War ticket for this stock. Use the alert\u2019s entry, stop and target above; you review it before anything is placed.'
       : a.status === 'no-qualifying-setup' ? 'No trade today, so there\u2019s nothing to practice. Check back next session.' : 'Unlock the alert to practice it in your Trade War account.';
   }

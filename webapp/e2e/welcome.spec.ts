@@ -1,6 +1,6 @@
 /**
  * First open and first sign-in: the launch animation, the welcome screens (name, @username
- * saved by the server, experience, the $10,000 account, a first trade) and the First steps
+ * saved by the server, the one-minute quiz, the $10,000 account, a first trade) and the First steps
  * checklist on the Dashboard. The welcome flow needs the Functions emulator.
  */
 import AxeBuilder from '@axe-core/playwright';
@@ -15,6 +15,10 @@ const put = (path: string, fields: Record<string, unknown>) =>
 async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
+}
+// a brand-new account agrees to the community rules first (App Store 1.2), then the welcome starts
+async function agree(page: Page) {
+  await page.getByRole('dialog', { name: 'Before you start' }).getByRole('button', { name: 'I agree' }).click();
 }
 // each step fades in; checking contrast mid-fade measures half-transparent text, so wait for finite animations to end
 const settled = (page: Page) => page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity));
@@ -41,7 +45,7 @@ test('tap skips the launch animation', async ({ page }) => {
 test.describe('first sign-in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
 
-  test('welcome: name and @username, experience, $10,000 account, first trade; then First steps', async ({ page }, info) => {
+  test('welcome: name and @username, the quiz, $10,000 account, first trade; then First steps', async ({ page }, info) => {
     const id = `${info.project.name}${Date.now()}`.toLowerCase();
     const uname = `w_${id.slice(-14)}`;
     // someone already has this one
@@ -49,6 +53,7 @@ test.describe('first sign-in', () => {
 
     await page.goto('dashboard');
     await signIn(page, `welcome-${id}@example.com`);
+    await agree(page);
     await expect(page).toHaveURL(/\/welcome$/);
     await expect(page.getByRole('heading', { name: 'Welcome to Zelos Trade War' })).toBeVisible();
     await page.getByLabel('Your name').fill('Ada');
@@ -58,16 +63,32 @@ test.describe('first sign-in', () => {
     await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
     await user.fill(uname);
     await expect(page.getByText(`@${uname} is available`)).toBeVisible();
-    await page.getByText('New to trading').click();
     expect(await axe(page)).toEqual([]);
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByText('Profile saved · +25 XP')).toBeVisible();
+
+    // the one-minute quiz: brand new, here to learn, not sure of the answers yet → Beginner
+    await expect(page.getByRole('heading', { name: 'Find your level' })).toBeVisible();
+    await page.getByText('Never: I’m brand new').click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByText('Learn how trading works').click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByText('Not sure yet').click();
+    await expect(page.getByText(/Each share went up \$5/)).toBeVisible(); // the answer is explained
+    expect(await axe(page)).toEqual([]);
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByText('Not sure yet').click();
+    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByText('Not sure yet').click();
+    await page.getByRole('button', { name: 'See my level' }).click();
+    await expect(page.getByText('Your level: Beginner')).toBeVisible();
 
     await expect(page.getByRole('heading', { name: '$10,000 to practice with' })).toBeVisible();
     await page.getByRole('button', { name: 'Open my $10,000 account' }).click();
     await expect(page.getByRole('heading', { name: 'Make your first trade' })).toBeVisible();
     await expect(page.getByText(/Start small/)).toBeVisible(); // simpler words for new traders
     await expect(page.getByRole('link', { name: 'About coaching' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Trading 101' }).last()).toBeVisible();
     expect(await axe(page)).toEqual([]);
     await page.getByRole('link', { name: 'I’ll do it later' }).click();
 
@@ -85,6 +106,7 @@ test.describe('first sign-in', () => {
   test('skip for now: back to the Dashboard, and the welcome stays away', async ({ page }, info) => {
     await page.goto('dashboard');
     await signIn(page, `skip-${info.project.name}${Date.now()}@example.com`);
+    await agree(page);
     await expect(page).toHaveURL(/\/welcome$/);
     await page.getByRole('button', { name: 'Skip for now' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);

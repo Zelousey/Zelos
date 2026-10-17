@@ -12,7 +12,7 @@ no login required, so a shared link always opens straight to the full analysis.
 
 ```
 {
-  strategy: "swing-trader" | "breakout-rider" | "options-scanner",
+  strategy: "swing-trader" | "breakout-rider" | "options-scanner" | "three-leg",
   ticker: "PFE",
   createdAt: <timestamp>,
   status: "qualified" | "no-qualifying-setup" | "watching",
@@ -28,6 +28,17 @@ no login required, so a shared link always opens straight to the full analysis.
 
   // for options-scanner alerts specifically
   optionsRule: "1 OTM · 30–45 DTE",
+
+  // for three-leg alerts (3-Leg Options): the scanner sends kind, expiration, entry
+  // (the stock price) and the three legs; publish_alert checks them and works out the
+  // rest with functions/three_leg.py, so the numbers always match the legs
+  kind: "bull-butterfly" | "bear-butterfly" | "jade-lizard", kindLabel: "Bull call butterfly",
+  expiration: "2026-11-20",
+  legs: [{ type: "call" | "put", side: "buy" | "sell", strike: 180, qty: 1, price: 6.00 }, …3],
+  netCost: 180,          // dollars to open per set (negative = a credit)
+  maxProfit: 820,        // null = unlimited
+  maxLoss: 180,          // null = unlimited
+  breakevens: [181.8, 198.2],
 
   // the "full analysis" content — why this setup, what to watch
   reasoning: "Pulled back to the rising 20-day average on falling volume, RSI...",
@@ -122,6 +133,8 @@ Not written by anything above — see `docs/firestore-alerts-setup.md` for the
 outcome-checking job (`scripts/check_alert_outcomes.py` decides what
 happened, `update_alert_outcomes` in `functions/main.py` writes it) that
 fills this in once a published alert's stop or target is actually reached.
+3-Leg alerts are held to expiration instead: the result is the trade's profit or
+loss at the stock's close on the expiration day (`three_leg.outcome_at_expiry`).
 
 `target2Announced`/`target2AnnouncedAt` are the one exception — those are
 written by `post_to_buffer` itself (not the outcome checker) right after a

@@ -11,6 +11,7 @@ import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
+import { SafetyMenu } from '../safety/SafetyMenu';
 import { Button, buttonClass, Card, Confirm, EmptyState, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
 import { LevelBadge } from '../dashboard/LevelBadge';
 import type { Ranked } from '../dashboard/social';
@@ -29,14 +30,14 @@ const days = (end: number, now: number) => Math.max(0, Math.ceil((end - now) / 8
 
 export default function SquadPage() {
   const { id = '' } = useParams();
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const valid = /^[A-Za-z0-9]{6,40}$/.test(id);
   const sq = useSquad(valid && ready && user ? id : null);
-  const signIn = () => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+  const signIn = () => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'));
   if (!ready || (valid && user && sq.status === 'loading')) return <LoadingState rows={6} />;
   if (!user || sq.status === 'error')
-    return <EmptyState icon="social" title={t('sq.private.title')} body={t('sq.private.body')} actions={<Button variant="primary" onClick={signIn}>{t('auth.signInWithGoogle')}</Button>} />;
+    return <EmptyState icon="social" title={t('sq.private.title')} body={t('sq.private.body')} actions={<Button variant="primary" onClick={signIn}>{t('auth.signIn')}</Button>} />;
   if (!valid || sq.status !== 'ready')
     return (
       <EmptyState
@@ -70,6 +71,7 @@ function SquadView({ sq, uid, displayName, onSignIn }: { sq: Squad; uid: string 
             {sq.comp ? ` · ${compOn ? t('sq.comp.left', { n: days(sq.comp.end, now) }) : t('sq.comp.done', { date: formatDate(sq.comp.end) })}` : ''}
           </>
         }
+        actions={!isOwner && uid ? <SafetyMenu what={{ kind: 'squad', target: sq.owner, where: sq.id }} name={sq.name} /> : undefined}
       />
       {!isMember && <JoinCard sq={sq} uid={uid} displayName={displayName} onSignIn={onSignIn} />}
       {sq.goal && profs && <GoalCard sq={sq} profs={profs} now={now} />}

@@ -42,13 +42,12 @@ styles/                tokens.css (design tokens, matches zelos-theme.css), base
 
 ## The module registry
 `app/modules.ts` lists every area: Dashboard, Market, Trade War, Alerts, News (the five tabs),
-then Practice, Squads & friends, Missions & XP, Arcade, Options, Crypto, Profile and Settings.
+then Practice, Squads & friends, Missions & XP, Training Ground, Options, Profile and Settings.
 Charts is a route only (`/charts` opens the last symbol viewed in Market).
-Each has a `status`:
-- `ready`: built in the app (`load` points at its screen).
-- `classic`: still on the classic site. The app shows a hand-off screen linking to
-  `classicPath` (same account, same data).
-- `planned`: not built anywhere yet (Crypto: paused until a licensed data source).
+Every module is built in the app (`load` points at its screen). There are no hand-off or
+"coming soon" screens: nothing unfinished is listed (owner 2026-10-09, App Store 2.1), and the
+app doesn't send people to the website except for the Privacy Policy and Terms
+(`docs/APP_STORE_READINESS.md`).
 
 Other fields: `tab` (position 1–5 in the phone tab bar), `parent` (the nav entry a screen
 belongs under, e.g. Practice → Trade War, so that tab stays highlighted) and `nav: false`
@@ -177,3 +176,10 @@ Still to do when Capacitor starts (each needs a plugin and a decision):
 Gzipped JS: app ~10 KB, React + router ~98 KB, Firebase Auth ~30 KB, Firestore ~129 KB
 (vendor chunks cached separately, so app updates don't re-download them). CSS ~6 KB. Measure
 again as screens are added; Firestore is the largest piece.
+
+## Beginners: quiz and Trading 101 (2026-10-15)
+- `features/learn/quiz.ts`: the five questions and `score()` (knowledge decides: 0-1 right or brand new → Beginner; all right and not new → Experienced; else Learning). Saved on `users.skill` `{level, right, goal, at}` plus `experience`. Skipped → the welcome answer is the fallback (`levelFromExperience`). `useSkill()` reads it.
+- Where the quiz appears: welcome step 2, `/quiz?next=…` (Dashboard `LevelCard`, invite celebration, Trading 101 page).
+- `features/learn/lessons.ts`: Trading 101 content; `/learn`, `/learn/:id`; `users.learnDone`.
+- `features/learn/Glossary.tsx`: `TermHelp` "?" explanations and the order-type sentence on the trade ticket.
+- Beginner-only: the guided first trade (until the first trade or order), the Dashboard next steps (until the lessons are done) and `BattleSettings simple` (Quick battle) in the invite page and the challenge sheet.

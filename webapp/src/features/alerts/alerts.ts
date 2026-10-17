@@ -46,7 +46,29 @@ export type Alert = {
   optionsRule: string | null;
   sizeNote: string | null;
   technicals: [string, string][];
+  // 3-Leg Options (functions/three_leg.py works these out from the legs; null for other strategies)
+  kindLabel: string | null;
+  expiration: string | null;
+  legs: Leg[];
+  netCost: number | null; // dollars paid to open (negative = a credit received)
+  maxProfit: number | null; // null = unlimited (or not a 3-Leg alert)
+  maxLoss: number | null;
+  breakevens: number[];
 };
+export type Leg = { type: 'call' | 'put'; side: 'buy' | 'sell'; strike: number; qty: number; price: number };
+
+function parseLegs(v: unknown): Leg[] {
+  if (!Array.isArray(v)) return [];
+  const out: Leg[] = [];
+  for (const l of v.slice(0, 3) as Record<string, unknown>[]) {
+    const strike = num(l?.strike);
+    const price = num(l?.price);
+    const qty = num(l?.qty);
+    if ((l?.type !== 'call' && l?.type !== 'put') || (l?.side !== 'buy' && l?.side !== 'sell') || !strike || price == null || !qty) return [];
+    out.push({ type: l.type, side: l.side, strike, qty, price });
+  }
+  return out.length === 3 ? out : [];
+}
 
 const ms = (v: unknown): number | null => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -98,6 +120,13 @@ export function parseAlert(id: string, d: DocumentData): Alert | null {
       .filter(([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
       .slice(0, 20)
       .map(([k, v]) => [k.slice(0, 40), String(v).slice(0, 120)]),
+    kindLabel: str(d.kindLabel, 40),
+    expiration: typeof d.expiration === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.expiration) ? d.expiration : null,
+    legs: parseLegs(d.legs),
+    netCost: num(d.netCost),
+    maxProfit: num(d.maxProfit),
+    maxLoss: num(d.maxLoss),
+    breakevens: Array.isArray(d.breakevens) ? (d.breakevens as unknown[]).map(num).filter((x): x is number => x != null).slice(0, 4) : [],
   };
 }
 

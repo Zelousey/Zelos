@@ -4,6 +4,7 @@
  * "Try this", with an optional note), sets and confirms tasks; the student ticks custom
  * tasks and replies. Either side can end it. The server does the work (coach_* functions).
  */
+import { SafetyMenu } from '../safety/SafetyMenu';
 import { useEffect, useId, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { levelFor } from '../../data/levels';
@@ -329,6 +330,7 @@ function Notes({ c, uid, active }: { c: Coaching; uid: string; active: boolean }
             <li key={n.id} className={[s.note, n.from === uid && s.mine].filter(Boolean).join(' ')}>
               <span className={s.noteHead}>
                 <b>{n.fromName}</b> <span className={s.muted}>{formatRelative(n.at)}</span>
+                {n.from !== uid && <SafetyMenu what={{ kind: 'coach', target: n.from, where: `${c.id}/notes/${n.id}` }} name={n.fromName} />}
               </span>
               {n.trade && (
                 <span className={s.noteTrade}>

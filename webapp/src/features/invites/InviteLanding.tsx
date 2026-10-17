@@ -3,6 +3,7 @@
  * out (the invite preview is public); accepting needs an account. After accepting, a short
  * celebration and the next step: the battle room, the squad, or the $10,000 account.
  */
+import { useSkill } from '../learn/useSkill';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
@@ -49,7 +50,7 @@ export default function InviteLanding() {
 }
 
 function Landing({ inv }: { inv: Invite }) {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const now = useNow();
@@ -121,7 +122,7 @@ function Landing({ inv }: { inv: Invite }) {
         ) : !ready ? (
           <Skeleton height={48} />
         ) : !isReal ? (
-          <Button variant="primary" size="lg" block onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+          <Button variant="primary" size="lg" block onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
             {t('land.signIn')}
           </Button>
         ) : (
@@ -145,6 +146,8 @@ function Landing({ inv }: { inv: Invite }) {
 }
 
 function Done({ inv, res }: { inv: Invite; res: Accepted }) {
+  const { quizTaken, loaded } = useSkill();
+  const target = res.kind === 'battle' && res.warId ? `/battles/${res.warId}` : res.kind === 'squad' && res.squadId ? `/social/${res.squadId}` : '/practice';
   const title = res.kind === 'battle' ? t('land.done.battle') : res.kind === 'squad' ? t('land.done.squad', { squad: inv.squadName ?? 'the squad' }) : res.kind === 'coach' ? t('land.done.coach') : t('land.done.join');
   const next =
     res.kind === 'coach' && res.coachingId ? (
@@ -173,6 +176,11 @@ function Done({ inv, res }: { inv: Invite; res: Accepted }) {
         </h1>
         {res.referral && res.xp > 0 && <p className={s.xpChip}>{t('land.done.xp', { xp: res.xp })}</p>}
         {!res.again && <p className={s.muted}>{t('land.done.friends', { name: inv.fromName })}</p>}
+        {loaded && !quizTaken && res.kind !== 'coach' && (
+          <p className={s.muted}>
+            {t('land.newHere')} <Link to={`/quiz?next=${encodeURIComponent(target)}`}>{t('qz.cardGo')}</Link>
+          </p>
+        )}
         <div className={s.actions}>
           {next}
           <Link className={buttonClass({ variant: 'ghost' })} to="/dashboard">

@@ -25,6 +25,14 @@ class Wallet(unittest.TestCase):
         self.assertEqual((w2["balance"], w2["welcomed"], line["amount"], line["type"]), (75, True, 75, "welcome"))
         self.assertIsNone(m.tk_welcome(w2, True, T0 + 1)[1])
 
+    def test_verified_accounts(self):
+        fb = lambda p: {"firebase": {"sign_in_provider": p}}  # noqa: E731
+        self.assertTrue(m._tk_verified(fb("google.com")))
+        self.assertTrue(m._tk_verified(fb("apple.com")))  # Sign in with Apple: Apple verified the email
+        self.assertTrue(m._tk_verified(dict(fb("password"), email_verified=True)))
+        self.assertFalse(m._tk_verified(fb("password")))
+        self.assertFalse(m._tk_verified(fb("anonymous")))
+
     def test_pass_extends_and_charges(self):
         w = dict(m.tk_new_wallet(T0), balance=100)
         w, line = m.tk_spend(w, "pass", T0, "swing-trader")
@@ -35,6 +43,22 @@ class Wallet(unittest.TestCase):
             m.tk_spend(w, "pass", T0, "swing-trader")  # 20 < 40
         with self.assertRaises(m.TWError):
             m.tk_spend(dict(w, balance=999), "pass", T0, "crypto-bot")
+
+    def test_three_leg_pass_costs_60(self):
+        # owner 2026-10-15: 3-Leg Options gives three positions per trade, so its week is 60
+        self.assertEqual((m.pass_price("three-leg"), m.pass_price("swing-trader")), (60, 40))
+        w = dict(m.tk_new_wallet(T0), balance=100)
+        w, line = m.tk_spend(w, "pass", T0, "three-leg")
+        self.assertEqual((w["balance"], line["amount"], w["passes"]["three-leg"]), (40, -60, T0 + 7 * 86400000))
+        with self.assertRaises(m.TWError):
+            m.tk_spend(w, "pass", T0, "three-leg")  # 40 < 60
+
+    def test_three_leg_teaser_hides_the_legs(self):
+        full = {"strategy": "three-leg", "status": "qualified", "ticker": "AAPL", "setupLabel": "Butterfly at resistance", "direction": "long",
+                "kind": "bull-butterfly", "kindLabel": "Bull call butterfly", "expiration": "2026-11-20", "legs": [{"strike": 180}], "netCost": 180, "maxProfit": 820, "maxLoss": 180, "breakevens": [181.8]}
+        t = m.alert_teaser(full)
+        for k in ("ticker", "legs", "netCost", "maxProfit", "maxLoss", "breakevens", "expiration", "kind"):
+            self.assertNotIn(k, t)
 
     def test_unlock(self):
         locked = {"strategy": "breakout-rider", "released": False, "lockedUntil": T0 + 3600000}

@@ -279,6 +279,23 @@ def determine_outcome(direction, entry, stop, target1, target2, bars,
             "notes": "Still open — neither target nor stop reached yet."}
 
 
+def three_leg_outcome(alert, bars):
+    """3-Leg Options alerts are held to expiration: still open until a daily bar on or after
+    the expiration date exists, then judged on that day's close (functions/three_leg.py)."""
+    import os
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "functions"))
+    import three_leg as TL
+    exp = alert.get("expiration") or ""
+    done = [b for b in bars if str(b.get("date") or b.get("begins_at") or "")[:10] >= exp]
+    if not exp or not done:
+        return {"result": "open", "closedAt": None, "exitPrice": None, "target2Hit": None, "target2ResolvedAt": None,
+                "notes": "Held to expiration (%s)." % (exp or "unknown")}
+    bar = done[0]
+    close = bar.get("close", bar.get("close_price"))
+    return TL.outcome_at_expiry(alert, float(close), str(bar.get("date") or bar.get("begins_at"))[:10])
+
+
 def outcome_for_alert(alert, bars, max_hold_sessions=10):
     """Convenience wrapper that reads the fields straight off an alert doc
     (as returned by Firestore) instead of positional args. `alert` is a dict
@@ -288,6 +305,8 @@ def outcome_for_alert(alert, bars, max_hold_sessions=10):
         return {"result": "no-trade", "closedAt": None, "exitPrice": None,
                 "target2Hit": None, "target2ResolvedAt": None,
                 "notes": "No qualifying setup was published for this alert."}
+    if alert.get("strategy") == "three-leg":
+        return three_leg_outcome(alert, bars)
     return determine_outcome(
         direction=alert.get("direction"),
         entry=alert.get("entry"),
