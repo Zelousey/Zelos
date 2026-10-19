@@ -82,7 +82,9 @@ test('buy a put, cancel it, and sell a contract you hold', async ({ page }, info
   await page.getByRole('button', { name: `Sell: AAPL $330 Call ${short(exp)}` }).click();
   await expect(page.getByRole('dialog')).toContainText(`Sell 3 AAPL $330 Call ${short(exp)} at the model price`);
   await page.getByRole('dialog').getByRole('button', { name: 'Sell' }).click();
-  await expect(page.getByText(`Sell 3 AAPL $330 Call ${short(exp)}`)).toBeVisible();
+  // the sheet says "Sell 3 … at the model price" while it closes (slower on phones): wait for it, then match the order line exactly
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText(`Sell 3 AAPL $330 Call ${short(exp)}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: `Sell: AAPL $330 Call ${short(exp)}` })).toBeDisabled(); // all 3 are in the open order
 
   // Practice shows them too, and counts them in the account value
