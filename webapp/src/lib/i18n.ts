@@ -121,6 +121,11 @@ const en = {
   'auth.signIn': 'Sign in',
   'auth.signOut': 'Sign out',
   'auth.signInWithGoogle': 'Continue with Google',
+  'auth.signInWithApple': 'Continue with Apple',
+  'auth.title': 'Sign in to Zelos',
+  'auth.lead': 'Save your progress, battle friends and join squads. It’s free, with virtual money only.',
+  'auth.agree1': 'By continuing you agree to the',
+  'auth.agree2': 'and the',
   'auth.guest': 'Guest',
   'auth.signInFailed': "Couldn't sign in. Try again.",
 

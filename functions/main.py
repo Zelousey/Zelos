@@ -3245,10 +3245,13 @@ def _tk_user(req):
     return a.uid, tok
 
 
+VERIFIED_PROVIDERS = ("google.com", "apple.com")  # sign-ins whose email the provider has verified
+
+
 def _tk_verified(tok):
-    """Welcome tokens only for verified accounts (Google sign-in, or a verified email),
+    """Welcome tokens only for verified accounts (Apple or Google sign-in, or a verified email),
     so throwaway sign-ups can't farm them."""
-    return tok.get("email_verified") is True or ((tok.get("firebase") or {}).get("sign_in_provider")) == "google.com"
+    return tok.get("email_verified") is True or ((tok.get("firebase") or {}).get("sign_in_provider")) in VERIFIED_PROVIDERS
 
 
 def tk_new_wallet(now_ms):
@@ -3516,7 +3519,7 @@ def _verified_uids(uids):
             print("[tw_rewards] get_users failed: %s" % type(e).__name__)
             continue
         for u in res.users:
-            if u.email_verified or any(p.provider_id == "google.com" for p in (u.provider_data or [])):
+            if u.email_verified or any(p.provider_id in VERIFIED_PROVIDERS for p in (u.provider_data or [])):
                 ok.add(u.uid)
     return ok
 

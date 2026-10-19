@@ -30,14 +30,14 @@ const days = (end: number, now: number) => Math.max(0, Math.ceil((end - now) / 8
 
 export default function SquadPage() {
   const { id = '' } = useParams();
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   const valid = /^[A-Za-z0-9]{6,40}$/.test(id);
   const sq = useSquad(valid && ready && user ? id : null);
-  const signIn = () => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+  const signIn = () => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'));
   if (!ready || (valid && user && sq.status === 'loading')) return <LoadingState rows={6} />;
   if (!user || sq.status === 'error')
-    return <EmptyState icon="social" title={t('sq.private.title')} body={t('sq.private.body')} actions={<Button variant="primary" onClick={signIn}>{t('auth.signInWithGoogle')}</Button>} />;
+    return <EmptyState icon="social" title={t('sq.private.title')} body={t('sq.private.body')} actions={<Button variant="primary" onClick={signIn}>{t('auth.signIn')}</Button>} />;
   if (!valid || sq.status !== 'ready')
     return (
       <EmptyState

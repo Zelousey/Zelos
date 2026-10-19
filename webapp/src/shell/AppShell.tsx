@@ -19,6 +19,7 @@
  */
 import { PushKeeper } from '../features/alerts/PushDevice';
 import { TermsGate } from '../features/safety/TermsGate';
+import { SignInSheet } from './SignInSheet';
 import { PriceAlertWatcher } from '../features/charts/PriceAlertWatcher';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
@@ -43,7 +44,7 @@ const BRAND_ICON = `${import.meta.env.BASE_URL}icons/icon-192.png`;
 
 export function AppShell() {
   const location = useLocation();
-  const { user, isReal, signInWithGoogle } = useAuth();
+  const { user, isReal, openSignIn } = useAuth();
   const toast = useToast();
   const inbox = useInbox(isReal && user ? user.uid : null);
   const online = useOnline();
@@ -77,7 +78,7 @@ export function AppShell() {
     });
   }
 
-  const signIn = () => signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'));
+  const signIn = () => openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'));
   const isOn = (id: string, isActive: boolean) => isActive || owner === id;
 
   return (
@@ -156,6 +157,7 @@ export function AppShell() {
       <PushKeeper uid={isReal && user ? user.uid : null} />
       <PriceAlertWatcher />
       <TermsGate />
+      <SignInSheet />
 
       {/* ---------- screen ---------- */}
       <main id="main" ref={mainRef} className={s.main} tabIndex={-1}>

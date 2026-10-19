@@ -24,7 +24,7 @@ const STARTERS = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN'];
 const EXPERIENCE: Experience[] = ['new', 'some', 'pro'];
 
 export default function WelcomePage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const toast = useToast();
   if (!ready) return <LoadingState rows={4} />;
   if (!isReal || !user)
@@ -33,8 +33,8 @@ export default function WelcomePage() {
         icon="profile"
         body={t('wel.signIn')}
         actions={
-          <Button variant="primary" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-            {t('auth.signInWithGoogle')}
+          <Button variant="primary" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+            {t('auth.signIn')}
           </Button>
         }
       />

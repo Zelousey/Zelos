@@ -81,7 +81,7 @@ export function AlertLine({ a }: { a: Alert }) {
 }
 
 export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strategy; wallet: WalletDoc | null; info: WalletInfo | null; balance: number | null; onTokens: () => void }) {
-  const { user, isReal, signInWithGoogle } = useAuth();
+  const { user, isReal, openSignIn } = useAuth();
   const toast = useToast();
   const now = useNow();
   const [asking, setAsking] = useState(false);
@@ -90,7 +90,7 @@ export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strate
   const days = info?.prices.passDays ?? 7;
   if (!isReal || !user)
     return (
-      <Button variant="primary" size="sm" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+      <Button variant="primary" size="sm" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
         {t('st.signIn')}
       </Button>
     );

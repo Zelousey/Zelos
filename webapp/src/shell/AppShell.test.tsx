@@ -6,7 +6,7 @@ import { MODULES } from '../app/modules';
 import { buildRoutes } from '../app/router';
 import { ToastProvider } from '../ui';
 
-const authState = { ready: true, user: null as null | { uid: string; isAnonymous: boolean; displayName: string; email: string; photoURL: null }, isReal: false, signInWithGoogle: vi.fn(async () => {}), signOut: vi.fn(async () => {}) };
+const authState = { ready: true, user: null as null | { uid: string; isAnonymous: boolean; displayName: string; email: string; photoURL: null }, isReal: false, openSignIn: vi.fn(async () => {}), signOut: vi.fn(async () => {}) };
 vi.mock('../lib/auth', () => ({ useAuth: () => authState }));
 const inbox = { items: [] as unknown[], unread: 0, error: false, markAllRead: vi.fn(async () => {}) };
 vi.mock('./useInbox', () => ({ useInbox: () => inbox }));

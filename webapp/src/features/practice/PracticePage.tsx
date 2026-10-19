@@ -22,7 +22,7 @@ const STATUS: Record<string, 'status.cancelled' | 'status.expired' | 'status.rej
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
 
 export default function PracticePage() {
-  const { user, isReal, ready, signInWithGoogle } = useAuth();
+  const { user, isReal, ready, openSignIn } = useAuth();
   const uid = isReal && user ? user.uid : null;
   const acct = usePracticeAccount(uid);
   const toast = useToast();
@@ -34,7 +34,7 @@ export default function PracticePage() {
       <>
         <PageHeader title={t('practice.title')} />
         <Card>
-          <EmptyState icon="practice" body={t('practice.signIn')} actions={<Button variant="primary" size="lg" onClick={() => void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signInWithGoogle')}</Button>} />
+          <EmptyState icon="practice" body={t('practice.signIn')} actions={<Button variant="primary" size="lg" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signIn')}</Button>} />
         </Card>
       </>
     );
