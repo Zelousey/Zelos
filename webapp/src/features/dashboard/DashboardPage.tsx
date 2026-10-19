@@ -7,6 +7,7 @@
  * Layout: a grid with named areas. Phones get one column in the order a player needs:
  * account, missions, wars, leaderboard, then the market.
  */
+import { LevelCard } from '../learn/LevelCard';
 import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router';
 import { parseUserDoc, useUserDoc } from '../../data/userDoc';
@@ -66,6 +67,7 @@ export default function DashboardPage() {
       {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
         <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
       )}
+      {uid && meDoc && <LevelCard me={meDoc} />}
       <div className={[s.grid, uid ? s.signedIn : s.signedOut].join(' ')}>
         {uid ? (
           <>

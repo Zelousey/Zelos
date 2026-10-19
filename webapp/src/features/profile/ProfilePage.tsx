@@ -231,6 +231,9 @@ function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: s
           <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/settings">
             {t('nav.settings')}
           </Link>
+          <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/learn">
+            {t('nav.learn')}
+          </Link>
         </>
       ) : blocked ? (
         <SafetyMenu what={{ kind: 'profile', target: uid }} name={name} label={t('sf.unblock', { name })} />

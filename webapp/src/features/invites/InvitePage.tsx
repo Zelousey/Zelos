@@ -13,6 +13,7 @@ import { Badge, Button, buttonClass, Card, EmptyState, Field, Icon, LoadingState
 import { copyText, createBattle, createInvite, DAYS, errorText, sendInvite, shareLink, useMySquads, type Created, type InviteKind } from './invites';
 import { Choices } from './Choices';
 import { BattleSettings, BuyInChoices } from '../battles/BattleSettings';
+import { useSkill } from '../learn/useSkill';
 import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { InviteScene } from './InviteScene';
 import s from './Invites.module.css';
@@ -111,6 +112,7 @@ export default function InvitePage() {
 }
 
 function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string; onBack: () => void; onReady: (c: Created, warId: string) => void }) {
+  const { level } = useSkill();
   const toast = useToast();
   const me = useUserDoc(uid);
   const xp = me.status === 'ready' ? me.data.xp : me.status === 'loading' ? null : 0;
@@ -151,7 +153,7 @@ function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string;
         <BuyInChoices value={buyIn} onChange={setBuyIn} xp={xp} />
         <Choices label={t('inv.battle.days')} value={days} options={DAYS} onChange={pickDays} format={(v) => (v === 1 ? t('inv.battle.day1') : t('inv.battle.daysN', { n: v }))} />
         <Choices label={t('inv.battle.players')} value={players} options={[2, 4, 6, 10]} onChange={setPlayers} format={(v) => String(v)} />
-        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setError(null); }} days={days} />
+        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setError(null); }} days={days} simple={level === 'beginner'} />
         {error && (
           <p className={s.error} role="alert">
             {error}

@@ -4,7 +4,7 @@
  * Volatility Storms, Bounty Board, stop-loss / take-profit). Used by the invite page and
  * the challenge sheet; the server checks all of it again.
  */
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { Choices } from '../invites/Choices';
@@ -61,9 +61,25 @@ const LMS_LABEL: Record<LmsKey, (n: number) => string> = {
   cutHours: (n) => t('bs.lms.cutOpt', { n }),
 };
 
-export function BattleSettings({ value, onChange, days }: { value: Settings; onChange: (v: Settings) => void; days: number }) {
+/**
+ * simple (beginners): show "Quick battle" (classic rules, no extras) with a button to open
+ * every game mode, so the first battle has nothing to figure out.
+ */
+export function BattleSettings({ value, onChange, days, simple = false }: { value: Settings; onChange: (v: Settings) => void; days: number; simple?: boolean }) {
+  const [more, setMore] = useState(false);
+  const open = !simple || more;
   const set = (p: Partial<Settings>) => onChange({ ...value, ...p });
   const on = optionsOn(value);
+  if (!open)
+    return (
+      <div className={s.quick}>
+        <b>{t('bs.quickTitle')}</b>
+        <span>{t('bs.quickBody')}</span>
+        <button type="button" className={s.quickMore} onClick={() => setMore(true)}>
+          {t('bs.quickMore')}
+        </button>
+      </div>
+    );
   return (
     <>
       <Choices label={t('bs.mode')} value={value.mode} options={MODES} onChange={(mode) => set({ mode })} format={(m) => t(m === 'lms' ? 'bs.mode.lms' : 'bs.mode.classic')} />

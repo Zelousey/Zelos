@@ -31,6 +31,10 @@ import type { Forecast } from "../charts/engine";
 import { nyDay, TIMEFRAMES, type Timeframe } from "../charts/series";
 import { useSymbolBars } from "../charts/useSymbolBars";
 import { StatusLine } from "../markets/StatusLine";
+import { marketStatus } from "../../data/marketStatus";
+import { ORDER_EXPLAIN, TermHelp } from "../learn/Glossary";
+import { useSkill } from "../learn/useSkill";
+import ls from "../learn/Learn.module.css";
 import { useVolMap } from "../options/model";
 import { OptionTicket } from "../options/OptionTicket";
 import { sellableShares, usePracticeAccount, valueAccount } from "./account";
@@ -126,6 +130,10 @@ function Ticket({
   );
   const sellable = acct ? sellableShares(acct, sym) : 0;
   const held = acct?.positions.find((p) => p.sym === sym)?.qty ?? 0;
+  // beginner help: a guided first trade until the first one, and a note when the market is closed
+  const { level } = useSkill();
+  const firstTrade = level === "beginner" && !!acct && acct.stats.trades === 0 && acct.orders.length === 0;
+  const closed = quotes.status === "ready" && !marketStatus(quotes.data).open;
 
   // /practice/trade/AAPL?side=sell&mode=options: the chart's Buy / Sell buttons pick the side
   const [params, setParams] = useSearchParams();
@@ -312,6 +320,18 @@ function Ticket({
               valued={v}
             />
           ) : (
+            <>
+            {firstTrade && input.side === "buy" && (
+              <div className={ls.guide} role="note">
+                <b>{t("tk.guideTitle")}</b>
+                <ol>
+                  <li>{t("tk.guide1")}</li>
+                  <li>{t("tk.guide2")}</li>
+                  <li>{t("tk.guide3")}</li>
+                </ol>
+              </div>
+            )}
+            {closed && <p className={ls.closed}>{t("tk.closed")}</p>}
             <form
               className={s.ticket}
               onSubmit={(e) => {
@@ -343,6 +363,10 @@ function Ticket({
                   { value: "stop", label: t("trade.stop") },
                 ]}
               />
+              <p className={ls.explainLine}>
+                {ORDER_EXPLAIN[input.type]}
+                <TermHelp term={input.type} />
+              </p>
               <div className={s.qtyRow}>
                 <Field
                   label={t("trade.qty")}
@@ -415,6 +439,7 @@ function Ticket({
                     />
                     {t("trade.stopLoss")} + {t("trade.takeProfit")}
                   </label>
+                  <TermHelp term="stopLoss" />
                   {input.bracketOn && (
                     <>
                       <div className={s.row2}>
@@ -476,6 +501,7 @@ function Ticket({
               </Button>
               <p className={s.note}>{t("practice.fillNote")}</p>
             </form>
+            </>
           )}
         </Card>
       </div>

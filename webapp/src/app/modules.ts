@@ -58,6 +58,8 @@ export const MODULES: AppModule[] = [
   { id: 'communities', path: 'communities', label: 'nav.communities', icon: 'social', group: 'play', parent: 'social', load: () => import('../features/communities/CommunitiesModule') },
   { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', load: () => import('../features/social/SocialModule') },
   { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', load: () => import('../features/missions/MissionsPage') },
+  { id: 'learn', path: 'learn', label: 'nav.learn', icon: 'learn', group: 'play', load: () => import('../features/learn/LearnModule') },
+  { id: 'quiz', path: 'quiz', label: 'nav.quiz', icon: 'learn', group: 'play', parent: 'learn', nav: false, load: () => import('../features/learn/QuizPage') },
   { id: 'training', path: 'training', label: 'nav.training', icon: 'arcade', group: 'play', load: () => import('../features/training/TrainingModule') },
   // the old name: /arcade/... -> /training/...
   { id: 'arcade', path: 'arcade', label: 'nav.training', icon: 'arcade', group: 'play', parent: 'training', nav: false, load: () => import('../features/training/ArcadeRedirect') },
