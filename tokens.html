@@ -171,6 +171,7 @@
         <div class="tk-card" data-s="swing-trader"><h3>Swing Trader</h3><p>Pullbacks, bull flags and breakout retests in strong stocks.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="swing-trader">Get the pass</button></div>
         <div class="tk-card" data-s="breakout-rider"><h3>Breakout Rider</h3><p>Flat bases and ascending triangles clearing resistance.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="breakout-rider">Get the pass</button></div>
         <div class="tk-card" data-s="options-scanner"><h3>Options Scanner</h3><p>Directional long call / long put ideas with a strike and expiration rule.</p><div class="price"><span data-price="pass">40</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="options-scanner">Get the pass</button></div>
+        <div class="tk-card" data-s="three-leg"><h3>3-Leg Options</h3><p>One trade made of three option positions (butterflies, jade lizards) with the most it can make and lose worked out.</p><div class="price"><span data-price-pass="three-leg">60</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="three-leg">Get the pass</button></div>
       </div>
       <p class="status-line" style="margin-top:10px;">Just want one alert? Open it and unlock it for <b><span data-price="unlock">10</span> tokens</b> while it's live, or <b><span data-price="unlockClosed">3</span> tokens</b> after the close.</p>
     </div>
@@ -297,6 +298,7 @@
   function prices(p) {
     if (!p) return;
     document.querySelectorAll('[data-price]').forEach(function (el) { var k = el.getAttribute('data-price'); if (p.prices[k] != null) el.textContent = p.prices[k]; });
+    document.querySelectorAll('[data-price-pass]').forEach(function (el) { var pp = p.prices.passPrices || {}, k = el.getAttribute('data-price-pass'); if (pp[k] != null) el.textContent = pp[k]; });
     document.querySelectorAll('[data-pack]').forEach(function (b) { b.disabled = !p.canBuy; });
     $('tkBuyNote').textContent = p.canBuy ? 'Secure checkout by Square. Tokens are site credit with no cash value.' : 'Buying tokens is coming soon. Your free tokens work now.';
     if (p.welcomed) say('Welcome! ' + p.prices.welcome + ' free tokens were added to your wallet.', true);
