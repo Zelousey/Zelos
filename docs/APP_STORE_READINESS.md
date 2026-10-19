@@ -13,7 +13,7 @@ Status: ✅ done · 🔜 planned PR · ⚠️ needs the owner (Apple / Firebase 
 | 3.1.1 In-app purchase | Token packs sold through Square (`Tokens.tsx`, `tokens_checkout`), dollar prices in the sheet, a link to the website's tokens.html | iPhone app: no Square purchase or website purchase link (the sheet shows how to earn tokens). Next: consumable token packs with StoreKit, server receipt check, tokens never expire | ✅ hidden (PR A1) · 🔜 IAP (PR A4) |
 | 4.8 Login services | Google is the only sign-in | Sign in with Apple | 🔜 PR A3 ⚠️ |
 | 2.1 Completeness | Google's sign-in pop-up doesn't run inside the iPhone app's web view | Native sign-in plugin for Apple and Google | 🔜 PR A3/A4 |
-| 1.2 User content | No Report, no Block, no filter on squad chat, profile names/bios, squad names, coach comments | Report + Block everywhere people post, server word filter, Terms accepted once | 🔜 PR A2 |
+| 1.2 User content | No Report, no Block, no filter on squad chat, profile names/bios, squad names, coach comments | ⋯ menu (Report, Block) on chat messages, profiles, squads, coaching notes and play comments; Settings → Blocked traders; server word filter (`functions/moderation.py`: chat, profile name/bio, squad name/goal, coaching text, community names); community rules + Terms agreed once per account (`users.termsAt`); reports land in `reports/` and the admins' bell | ✅ PR A2 (deploy) |
 
 ## Likely rejected
 

@@ -6,6 +6,7 @@ import { Link } from 'react-router';
 import { getTheme, setTheme, THEMES, type Theme } from '../../lib/theme';
 import { Card, Icon, PageHeader, Tabs } from '../../ui';
 import { DeleteAccount } from './DeleteAccount';
+import { BlockedList } from '../safety/BlockedList';
 import s from './SettingsPage.module.css';
 
 const THEME_LABEL = { black: 'settings.theme.black', blue: 'settings.theme.blue', white: 'settings.theme.white' } as const;
@@ -61,6 +62,7 @@ export default function SettingsPage() {
           </ul>
           <p className={s.legalNote}>{t('settings.legalNote')}</p>
         </Card>
+        <BlockedList />
         <DeleteAccount />
       </div>
     </>

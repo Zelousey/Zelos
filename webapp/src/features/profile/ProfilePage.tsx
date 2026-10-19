@@ -13,6 +13,7 @@ import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { isNative } from '../../lib/platform';
+import { SafetyMenu, useBlocked } from '../safety/SafetyMenu';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, EmptyState, ErrorState, LoadingState, Stat, useToast } from '../../ui';
 import { LevelBadge } from '../dashboard/LevelBadge';
@@ -146,7 +147,8 @@ function Name({ name, looks }: { name: string; looks: Looks | null }) {
 
 function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: string; mine: boolean; me: string | null; p: Ranked | null; id: Identity | null; looks: Looks | null; xp: number; isFriend: boolean | null; onEdit: () => void }) {
   const name = (id?.username && id.name) || p?.name || id?.name || 'Trader';
-  const photo = id?.avatar ?? p?.photo ?? null;
+  const blocked = useBlocked().includes(uid) && !mine; // their picture and bio stay hidden
+  const photo = blocked ? null : (id?.avatar ?? p?.photo ?? null);
   const lv = levelFor(xp);
   const streak = p?.detail?.streak ?? 0;
   const since = p?.detail?.since;
@@ -166,7 +168,7 @@ function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: st
           {id?.username && <p className={s.handle}>@{id.username}</p>}
         </div>
       </div>
-      {id?.bio ? <p className={s.bio}>{id.bio}</p> : mine && !id?.username ? <p className={s.hint}>{t('pf.hint')}</p> : null}
+      {blocked ? <p className={s.hint}>{t('sf.blockedProfile')}</p> : id?.bio ? <p className={s.bio}>{id.bio}</p> : mine && !id?.username ? <p className={s.hint}>{t('pf.hint')}</p> : null}
       <ul className={s.tags} aria-label={t('pf.about')}>
         <li>
           <b>{t('pf.level', { n: lv.level.level })}</b> {lv.level.name}
@@ -184,12 +186,12 @@ function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: st
           </li>
         )}
       </ul>
-      <Actions uid={uid} mine={mine} me={me} name={name} p={p} isFriend={isFriend} onEdit={onEdit} />
+      <Actions uid={uid} mine={mine} me={me} name={name} p={p} isFriend={isFriend} blocked={blocked} onEdit={onEdit} />
     </Card>
   );
 }
 
-function Actions({ uid, mine, me, name, p, isFriend, onEdit }: { uid: string; mine: boolean; me: string | null; name: string; p: Ranked | null; isFriend: boolean | null; onEdit: () => void }) {
+function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: string; mine: boolean; me: string | null; name: string; p: Ranked | null; isFriend: boolean | null; blocked: boolean; onEdit: () => void }) {
   const { signInWithGoogle } = useAuth();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -230,6 +232,8 @@ function Actions({ uid, mine, me, name, p, isFriend, onEdit }: { uid: string; mi
             {t('nav.settings')}
           </Link>
         </>
+      ) : blocked ? (
+        <SafetyMenu what={{ kind: 'profile', target: uid }} name={name} label={t('sf.unblock', { name })} />
       ) : (
         <>
           <Button variant="primary" size="sm" onClick={() => (me ? setChallenging(true) : void signInWithGoogle().catch(() => toast.show(t('auth.signInFailed'), 'error')))}>
@@ -241,6 +245,7 @@ function Actions({ uid, mine, me, name, p, isFriend, onEdit }: { uid: string; mi
           <Button variant="ghost" size="sm" onClick={() => void share()}>
             {t('pf.share')}
           </Button>
+          <SafetyMenu what={{ kind: 'profile', target: uid }} name={name} />
         </>
       )}
       {challenging && <ChallengeSheet open onClose={() => setChallenging(false)} to={uid} toName={name} />}

@@ -27,6 +27,8 @@ by the coach; it pays the student 5 XP at most once a day and the coach nothing.
 """
 import re
 
+import moderation as MOD
+
 COACH_MIN_XP = 150            # Level 3 (Gold)
 MAX_STUDENTS = 5
 MAX_OPEN_TASKS = 3
@@ -85,8 +87,9 @@ def check_start(coach, student, coach_xp, coach_active, student_has_coach):
 
 
 def _clean(text, n):
+    """Control characters removed, spaces collapsed, cut to n, blocked words masked."""
     s = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", str(text or "")).strip()
-    return re.sub(r"\s+", " ", s)[:n]
+    return MOD.mask(re.sub(r"\s+", " ", s)[:n])
 
 
 def validate_task(data, now_ms):

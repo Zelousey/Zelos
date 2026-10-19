@@ -18,6 +18,7 @@
  * down the bars.
  */
 import { PushKeeper } from '../features/alerts/PushDevice';
+import { TermsGate } from '../features/safety/TermsGate';
 import { PriceAlertWatcher } from '../features/charts/PriceAlertWatcher';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
@@ -154,6 +155,7 @@ export function AppShell() {
 
       <PushKeeper uid={isReal && user ? user.uid : null} />
       <PriceAlertWatcher />
+      <TermsGate />
 
       {/* ---------- screen ---------- */}
       <main id="main" ref={mainRef} className={s.main} tabIndex={-1}>

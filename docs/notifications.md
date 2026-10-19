@@ -95,3 +95,12 @@ Deploy (after the PR merges):
 ```
 firebase deploy --only firestore:rules,functions:refresh_quotes --project leaderboard-agentictrading
 ```
+
+## Reports (kind `reports`)
+
+`report_content` (PR A2, App Store 1.2) saves `reports/{id}` = `{kind: chat|profile|squad|coach,
+target, where, reason, note, content (a copy of what was reported), reporter, at, status: "open"}`
+and sends every admin (`admins/{uid}`) a bell item. Review them in the Firebase console →
+Firestore → `reports` (newest `at` first); remove the content or the account, then set `status`
+to `done`. Apple expects a response within 24 hours. Each person can send 20 reports a day
+(`reportCounts/{uid}`).
