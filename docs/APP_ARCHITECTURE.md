@@ -42,13 +42,12 @@ styles/                tokens.css (design tokens, matches zelos-theme.css), base
 
 ## The module registry
 `app/modules.ts` lists every area: Dashboard, Market, Trade War, Alerts, News (the five tabs),
-then Practice, Squads & friends, Missions & XP, Arcade, Options, Crypto, Profile and Settings.
+then Practice, Squads & friends, Missions & XP, Training Ground, Options, Profile and Settings.
 Charts is a route only (`/charts` opens the last symbol viewed in Market).
-Each has a `status`:
-- `ready`: built in the app (`load` points at its screen).
-- `classic`: still on the classic site. The app shows a hand-off screen linking to
-  `classicPath` (same account, same data).
-- `planned`: not built anywhere yet (Crypto: paused until a licensed data source).
+Every module is built in the app (`load` points at its screen). There are no hand-off or
+"coming soon" screens: nothing unfinished is listed (owner 2026-10-09, App Store 2.1), and the
+app doesn't send people to the website except for the Privacy Policy and Terms
+(`docs/APP_STORE_READINESS.md`).
 
 Other fields: `tab` (position 1–5 in the phone tab bar), `parent` (the nav entry a screen
 belongs under, e.g. Practice → Trade War, so that tab stays highlighted) and `nav: false`

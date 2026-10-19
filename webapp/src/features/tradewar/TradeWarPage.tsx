@@ -9,7 +9,6 @@ import { useQuotes } from '../../data/markets';
 import { useAuth } from '../../lib/auth';
 import { formatMoney, formatSignedMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
-import { classicUrl } from '../../lib/platform';
 import { Badge, Button, buttonClass, Card, Icon, PageHeader, Skeleton, Stat, useToast, type IconName } from '../../ui';
 import { nyDay } from '../charts/series';
 import { useVolMap } from '../options/model';
@@ -19,7 +18,7 @@ import s from './TradeWar.module.css';
 
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
 
-const COMPETE: { icon: IconName; title: MessageKey; body: MessageKey; href?: string; to?: string }[] = [
+const COMPETE: { icon: IconName; title: MessageKey; body: MessageKey; to: string }[] = [
   { icon: 'war', title: 'tw.battles', body: 'tw.battles.body', to: '/battles' },
   { icon: 'social', title: 'tw.squads', body: 'tw.squads.body', to: '/social' },
   { icon: 'markets', title: 'tw.leaderboard', body: 'tw.leaderboard.body', to: '/leaderboard' },
@@ -48,33 +47,17 @@ export default function TradeWarPage() {
             {t('tw.compete')}
           </h2>
           <div className={s.grid}>
-            {COMPETE.map((c) => {
-              const inner = (
-                <>
-                  <span className={s.tileIcon}>
-                    <Icon name={c.icon} size={22} />
-                  </span>
-                  <span className={s.tileText}>
-                    <b>{t(c.title)}</b>
-                    <span>{t(c.body)}</span>
-                    {c.href && (
-                      <small>
-                        {t('tw.onSite')} <Icon name="external" size={12} />
-                      </small>
-                    )}
-                  </span>
-                </>
-              );
-              return c.to ? (
-                <Link key={c.title} className={s.tile} to={c.to}>
-                  {inner}
-                </Link>
-              ) : (
-                <a key={c.title} className={s.tile} href={classicUrl(c.href!)}>
-                  {inner}
-                </a>
-              );
-            })}
+            {COMPETE.map((c) => (
+              <Link key={c.title} className={s.tile} to={c.to}>
+                <span className={s.tileIcon}>
+                  <Icon name={c.icon} size={22} />
+                </span>
+                <span className={s.tileText}>
+                  <b>{t(c.title)}</b>
+                  <span>{t(c.body)}</span>
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
       </div>
