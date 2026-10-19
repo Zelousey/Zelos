@@ -7,10 +7,11 @@
  * call one.
  */
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth, type Auth } from 'firebase/auth';
+import { connectAuthEmulator, getAuth, indexedDBLocalPersistence, initializeAuth, type Auth } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
 import type { Functions } from 'firebase/functions';
 import { firebaseConfig, useEmulators } from './firebaseConfig';
+import { isNative } from './platform';
 
 let app: FirebaseApp | null = null;
 
@@ -26,7 +27,11 @@ export function firebaseApp(): FirebaseApp {
   return app;
 }
 
+let nativeAuth: Auth | null = null;
 export function auth(): Auth {
+  // Inside the iPhone app there are no popups or redirects: sign-in goes through the native
+  // Apple / Google sheets (lib/nativeAuth.ts), and getAuth's popup helper would hang WKWebView.
+  if (isNative()) return (nativeAuth ??= initializeAuth(firebaseApp(), { persistence: indexedDBLocalPersistence }));
   return getAuth(firebaseApp());
 }
 

@@ -141,8 +141,14 @@ test('phone: chart controls fit one row and the trade bar is above the tab bar',
   await expect(bar).toBeVisible();
   await expect(page.getByRole('link', { name: 'Sell AAPL' }).filter({ visible: true })).toBeVisible();
   const tabbar = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
-  const [b, tb] = await Promise.all([bar.boundingBox(), tabbar.boundingBox()]);
-  expect(b!.y + b!.height).toBeLessThanOrEqual(tb!.y + 1);
+  // the page's styles load with its code: on a slow machine the bar can be measured a moment
+  // before they apply, so wait for the layout to settle
+  await expect
+    .poll(async () => {
+      const [b, tb] = await Promise.all([bar.boundingBox(), tabbar.boundingBox()]);
+      return b && tb ? b.y + b.height - (tb.y + 1) : 1;
+    })
+    .toBeLessThanOrEqual(0);
   // the timeframe tabs start the row and are never squeezed
   const tf = await page.getByRole('tab', { name: '15m' }).boundingBox();
   expect(tf!.x).toBeGreaterThanOrEqual(0);
