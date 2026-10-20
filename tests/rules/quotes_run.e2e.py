@@ -92,6 +92,7 @@ calls.clear()
 NOW_MIN[0] = 31
 n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=1))
 ok(all("T" in c["date_from"] and c["date_from"].startswith("2026-10-07T13:57") for c in calls), "next run asks only for new bars (%s)" % calls[0]["date_from"])
+ok(len(calls) == 1 and len(calls[0]["symbols"].split(",")) == len(SYMS), "and all %d stocks share ONE request (%d made)" % (len(SYMS), len(calls)))
 ok(abs(quotes["AAPL"]["c"] - (price("AAPL", 30) + 0.01)) < 1e-9 and len(bars["AAPL"]) == 31, "quote moved to the new bar; 31 bars for the order pass")
 ok(len(db.collection("markets").document("intraday_AAPL").get().to_dict()["bars"]) == 31, "intraday doc merged, no duplicates")
 
@@ -145,13 +146,27 @@ NOW_MIN[0] = 47
 main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=17))
 calls.clear()
 
-# Marketstack refuses a time filter -> whole day, and remembered
+# any other Marketstack error on the shared request: ask 10 stocks at a time this run, and never
+# switch the day to whole-day requests (that used to stick and cost up to 20 requests a minute)
+def odd(path, params, key, timeout=20):
+    if len(params["symbols"].split(",")) > 10:
+        raise RuntimeError("marketstack internal_error")
+    return real_fake(path, params, key, timeout)
+MD.ms_get = odd
+calls.clear()
+NOW_MIN[0] = 48
+n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=18))
+st = db.collection("serverMeta").document("msQuotes").get().to_dict()
+ok(n == len(SYMS) and "timeFilterOff" not in st and all("T" in c["date_from"] for c in calls), "an odd error falls back to groups of 10 with the time filter kept (%d requests)" % len(calls))
+MD.ms_get = real_fake
+
+# Marketstack refuses a time filter -> whole day for the rest of that day only
 calls.clear()
 mode["refuse_time"] = True
 NOW_MIN[0] = 34
 n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=4))
 ok(n == len(SYMS) and any(c["date_from"] == "2026-10-07" for c in calls), "refused time filter: falls back to whole-day requests")
-ok(db.collection("serverMeta").document("msQuotes").get().to_dict()["timeFilter"] is False, "and remembers not to use it")
+ok(db.collection("serverMeta").document("msQuotes").get().to_dict()["timeFilterOff"] == "2026-10-07", "and remembers not to use it today")
 mode["refuse_time"] = False
 
 # the plan has no 1-minute bars
@@ -183,4 +198,7 @@ main.ms_count_calls(db, DAY.replace(hour=10, minute=5), 5)
 main.ms_count_calls(db, DAY.replace(hour=10, minute=6), 5)
 ok(main.ms_calls_today(db, DAY.replace(hour=11)) == 10, "requests counted per day")
 ok(main.ms_calls_today(db, DAY.replace(hour=11) + timedelta(days=1)) == 0, "a new day starts at zero")
+main.ms_count_calls(db, DAY.replace(hour=10) + timedelta(days=1), 7)
+ok(main.ms_calls_month(db, DAY.replace(hour=11) + timedelta(days=1)) == 17, "requests counted per month too")
+ok(main.ms_calls_month(db, DAY.replace(day=1, hour=11) + timedelta(days=40)) == 0, "a new month starts at zero")
 print("\n%d one-minute price checks passed" % passed)
