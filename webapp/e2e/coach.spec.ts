@@ -87,13 +87,13 @@ test('coach a new player: link, accept, react to a trade, a custom task, end', a
   const box = (await layer.boundingBox())!;
   await coach.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4); // inside the price panel (the RSI panel sits below)
   await coach.mouse.down();
-  await coach.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.15, { steps: 5 });
+  await coach.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.25, { steps: 5 });
   await coach.mouse.up();
   await coach.getByRole('button', { name: 'Price level' }).click();
   await coach.getByRole('radio', { name: 'Red' }).click();
   await layer.click({ position: { x: box.width * 0.5, y: box.height * 0.3 } });
   await coach.getByRole('button', { name: 'Label' }).click();
-  await layer.click({ position: { x: box.width * 0.4, y: box.height * 0.2 } });
+  await layer.click({ position: { x: box.width * 0.4, y: box.height * 0.35 } }); // below the legend, which takes more lines on a phone
   await coach.getByRole('dialog', { name: 'Add a label' }).getByLabel('Label').fill('entry here');
   await coach.getByRole('button', { name: 'Add label' }).click();
   await expect(coach.getByText(/3 of 40 drawings/)).toBeVisible();
