@@ -535,10 +535,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js?v=d17d99d7"></script>
 <script src="zelos-mood.js?v=15cc718b"></script>
-<script src="zelos-xp.js?v=c9169f7d"></script>
+<script src="zelos-xp.js?v=4f74402e"></script>
 <script src="zelos-challenge.js?v=00bf8e79"></script>
-<script src="zelos-tokens.js?v=c13a7908"></script>
-<script src="zelos-alert-modal.js?v=e0eeb897"></script>
+<script src="zelos-tokens.js?v=b75ba1b3"></script>
+<script src="zelos-alert-modal.js?v=869bebb6"></script>
 
 <!-- 3D globe (hero) — self-contained WebGL, no libraries. Real sun position and
      real exchange open/closed state. Rendering pauses off-screen — see zelos-globe.js -->
@@ -920,13 +920,18 @@
   cards.forEach(function(c){
     var btn = c.querySelector('[data-vote-btn]');
     if (!btn) return;
-    btn.addEventListener('click', function(){ if (currentUid) castVote(c.getAttribute('data-strategy-id')); });
+    btn.addEventListener('click', function(){
+      var id = c.getAttribute('data-strategy-id');
+      if (currentUid) return castVote(id);
+      // a guest account is made only when someone actually votes (owner 2026-10-20: not one
+      // for every visitor); the vote needs a Firebase user to be one-per-person
+      auth.signInAnonymously().then(function(r){ currentUid = r.user.uid; castVote(id); }).catch(function(){});
+    });
   });
 
   auth.onAuthStateChanged(function(user){
-    if (!user) { auth.signInAnonymously().catch(function(){}); return; }
-    currentUid = user.uid;
-    loadTallies();
+    currentUid = user ? user.uid : null;
+    loadTallies(); // the counts are public
   });
 })();
 </script>

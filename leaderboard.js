@@ -88,10 +88,11 @@
     return (gameInfo(gameId) && gameInfo(gameId).isCurrency) ? ('$' + withCommas) : withCommas;
   }
 
-  // Scores need a Firebase user (zelos-xp.js signs every visitor in anonymously), so each
-  // row carries its uid and the rules allow one score per player every 10 seconds
-  // (lastPost/<uid>, written in the same update). See database.rules.json.
+  // Scores need a Firebase user, so each row carries its uid and the rules allow one score per
+  // player every 10 seconds (lastPost/<uid>, written in the same update). See
+  // database.rules.json. Posting a score is when a guest gets one (ZelosXP.ensureUser).
   function currentUser() {
+    if (window.ZelosXP && ZelosXP.ensureUser) return ZelosXP.ensureUser();
     if (!firebase.auth) return Promise.resolve(null);
     var auth = firebase.auth();
     if (auth.currentUser) return Promise.resolve(auth.currentUser);
