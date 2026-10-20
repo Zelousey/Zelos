@@ -11,6 +11,7 @@ Settings (functions/.env, not secrets):
   QUOTE_EVERY_MIN=1    minutes between price updates (Basic plan: 15; Professional and up: 1)
   MS_INTERVAL=1min     intraday bar size (Basic plan: 15min and longer; Professional: 1min)
   MS_DAILY_CALLS=3000  Marketstack requests per day before price updates slow to every 15 min
+  MS_MONTHLY_CALLS=0   Marketstack requests per calendar month before updates slow to every 15 min (0 = no cap)
 Every price update after the first of the day asks only for bars since the last one it saw
 (date_from with a time), so a 1-minute update costs about one request per 10 stocks.
 Secrets (firebase functions:secrets:set NAME):
@@ -130,6 +131,15 @@ def daily_call_limit():
         return max(100, int(os.environ.get("MS_DAILY_CALLS", "3000")))
     except ValueError:
         return 3000
+
+
+def monthly_call_limit():
+    """MS_MONTHLY_CALLS: Marketstack requests per calendar month before price updates slow to
+    every 15 minutes (set it a little under the plan's allowance). 0 or unset: no monthly cap."""
+    try:
+        return max(0, int(os.environ.get("MS_MONTHLY_CALLS", "0")))
+    except ValueError:
+        return 0
 
 
 def ms_time(dt):
@@ -301,6 +311,24 @@ def behind_first(symbols, since_by):
     last 30 of 50 stocks had no price all day)."""
     order = {s: i for i, s in enumerate(symbols)}
     return sorted(symbols, key=lambda s: (since_by.get(s) is not None, since_by.get(s) or "", order[s]))
+
+
+def ms_split_caught_up(order, since_by, lag_min):
+    """(together, apart): stocks whose newest bar is within lag_min minutes of the newest one
+    overall can share one request (each needs only a few new bars, so 50 stocks fit on one
+    page); the rest keep `order` and are asked for in small groups."""
+    marks = [since_by.get(s) for s in order if since_by.get(s)]
+    if not marks:
+        return [], list(order)
+    cut = (datetime.fromisoformat(max(marks)) - timedelta(minutes=lag_min)).isoformat()
+    together = [s for s in order if since_by.get(s) and since_by[s] >= cut]
+    return together, [s for s in order if s not in together]
+
+
+def ms_refused_time(e):
+    """Marketstack rejected the request's parameters (a date_from with a time), as opposed to a
+    timeout or any other error, which must not switch the day to costly whole-day requests."""
+    return isinstance(e, RuntimeError) and "validation" in str(e)
 
 
 FROZEN_RUN = 10
