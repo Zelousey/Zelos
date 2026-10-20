@@ -150,3 +150,13 @@ test('phone: chart controls fit one row and the trade bar is above the tab bar',
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('a stock with no fresh price shows its last good one, marked delayed', async ({ page }) => {
+  await page.goto('markets/DKNG');
+  await expect(page.getByRole('heading', { name: 'DKNG' })).toBeVisible();
+  await expect(page.getByText('Price feed delayed')).toBeVisible();
+  await expect(page.getByLabel(`Price ${price('DKNG')}`)).toBeVisible();
+  await page.goto('markets/AAPL');
+  await expect(page.getByRole('heading', { name: 'AAPL' })).toBeVisible();
+  await expect(page.getByText('Price feed delayed')).toHaveCount(0);
+});

@@ -42,6 +42,25 @@ ok(MD.prev_close(d, "2026-10-01") == 101.0 and MD.prev_close(d, "2026-10-02") ==
 ok(MD.merge_series(["2026-09-30,1,1,1,1,0"], d, 5)[0].endswith(",9") and len(MD.merge_series(d, d, 1)) == 1, "merge: fresh wins, keep newest")
 mi = MD.merge_intraday(["2026-09-2%d 09:30,1,1,1,1,1" % i for i in range(3, 10)], ["2026-10-01 09:30,2,2,2,2,2"], 5)
 ok(len({r[:10] for r in mi}) == 5 and mi[-1].startswith("2026-10-01"), "intraday keeps 5 sessions")
+
+# a stuck feed (2026-10-20): a run of 10+ flat, no-volume bars at one price is dropped; shorter runs,
+# bars with volume, and old bars without a volume field are kept
+flat = lambda m, p=337.94: "2026-10-20 10:%02d,%s,%s,%s,%s,0" % (m, p, p, p, p)
+real = lambda m: "2026-10-20 09:%02d,340.0,340.5,339.5,340.2,900" % m
+df = MD.drop_frozen([real(58), real(59)] + [flat(m) for m in range(12)])
+ok(df == [real(58), real(59)], "12 frozen bars dropped: %d left" % len(df))
+ok(len(MD.drop_frozen([flat(m) for m in range(9)])) == 9, "9 flat bars kept (a quiet stretch, not a stuck feed)")
+ok(len(MD.drop_frozen([flat(m, 337.94 + (m % 2) * 0.01) for m in range(12)])) == 12, "flat bars at different prices kept")
+ok(len(MD.drop_frozen(["2026-10-20 10:%02d,5,5,5,5" % m for m in range(12)])) == 12, "bars without volume kept")
+keep = MD.merge_intraday([real(m) for m in range(40, 52)], ["2026-10-20 09:%02d,337.94,337.94,337.94,337.94,0" % m for m in range(40, 52)])
+ok(keep == [real(m) for m in range(40, 52)], "a frozen fetch never replaces real bars already stored")
+ok(MD.behind_first(["A", "B", "C", "D"], {"A": "2026-10-20T10:05", "B": "2026-10-20T10:01", "D": "2026-10-20T10:05"}) == ["C", "B", "A", "D"],
+   "stocks furthest behind are fetched first (never fetched, then oldest)")
+seen, real_rows = [], MD.ms_rows
+MD.ms_rows = lambda path, params, key, **kw: seen.append(params["date_from"]) or []
+MD.ms_rows_chunked("intraday", lambda g: {"date_from": "x-" + g[0]}, ["A", "B", "C"], "k", size=2)
+MD.ms_rows = real_rows
+ok(seen == ["x-A", "x-C"], "each group asks from its own date_from: " + str(seen))
 # movers
 mv = MD.ms_movers({"A": {"c": 10, "v": 100, "chPct": 3}, "B": {"c": 20, "v": 1000, "chPct": -2}, "SPY": {"c": 500, "v": 9e9, "chPct": 1}, "C": {"c": 5, "v": 1, "chPct": None}},
                   {"A": "Aco", "B": "Bco"}, {"A": "Tech", "B": "Tech", "SPY": "ETF"})

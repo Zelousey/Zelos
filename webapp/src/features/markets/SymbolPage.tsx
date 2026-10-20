@@ -111,6 +111,11 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
             <Change pct={chPct} abs={chAbs} />
             <span>today</span>
           </span>
+          {q?.stale && (
+            <span className={s.delayed} title={t('stats.delayedHint', { sym })}>
+              {t('stats.delayed')}
+            </span>
+          )}
         </div>
       </div>
       <StatusLine quotes={quotes} />

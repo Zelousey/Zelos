@@ -23,7 +23,7 @@ The site may only show data it is licensed to show:
 
 | Job | Writes | When |
 |---|---|---|
-| `refresh_quotes` | `markets/quotes`, `markets/intraday_<SYM>` (1-minute bars, 5 sessions), `markets/movers`; then the practice order pass | every `QUOTE_EVERY_MIN` minutes in market hours (every minute: 9:31, 9:32 … 4:01, plus 4:06). The first run of a day asks for the whole day; later runs only for bars since the newest stored one (`serverMeta/msQuotes.since`) |
+| `refresh_quotes` | `markets/quotes`, `markets/intraday_<SYM>` (1-minute bars, 5 sessions), `markets/movers`; then the practice order pass | every `QUOTE_EVERY_MIN` minutes in market hours (every minute: 9:31, 9:32 … 4:01, plus 4:06). The first run of a day asks for the whole day; later runs only for bars since each stock's newest stored one (`serverMeta/msQuotes.sinceBy`), stocks furthest behind first so a run that runs out of time never skips the same stocks twice. Runs of 10+ bars with one price and no volume (a stuck feed) are dropped (`drop_frozen`); a stock without a fresh price keeps its last quote with `stale: true` (left out of fills, alerts and movers; Trade War won't trade it) |
 | `refresh_market_data` after the close | `markets/dailyBars` (90 sessions), `markets/history_<n>` + `markets/historyIndex` (~2 years), `markets/snapshot` (ticker tape), `markets/globe`, full-day intraday bars | once a weekday, 4:20 pm or later; also on the very first run |
 | `refresh_market_data` outside market hours | `markets/research_<SYM>` (SEC profile, last fiscal year, insider trades, P/E, 60 daily bars) | 2 stock-list symbols a run, each once a day |
 | `market_research({symbol})` | the same research doc for any ticker (alert pages) | on demand, cached 12 hours, at most 60 fresh lookups a day |

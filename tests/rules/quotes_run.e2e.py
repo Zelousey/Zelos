@@ -85,7 +85,7 @@ doc = db.collection("markets").document("intraday_AAPL").get().to_dict()
 ok(doc["interval"] == "1m" and len(doc["bars"]) == 30, "intraday doc holds 30 one-minute bars")
 ok(doc["parser"] == MD.MS_PARSER and not any(b.startswith("2026-10-06") or ",1,1,1,1," in b for b in doc["bars"]), "old-parser bars dropped, new ones tagged with the parser version")
 st = db.collection("serverMeta").document("msQuotes").get().to_dict()
-ok(st["since"].startswith("2026-10-07T09:59"), "newest bar stored as 'since' (%s)" % st["since"])
+ok(all(st["sinceBy"][s].startswith("2026-10-07T09:59") for s in SYMS), "each stock's newest bar stored in 'sinceBy' (%s)" % st["sinceBy"]["AAPL"])
 
 # 10:01 -> one more bar; only bars since 9:57 (2 bars of overlap) are asked for
 calls.clear()
@@ -95,22 +95,54 @@ ok(all("T" in c["date_from"] and c["date_from"].startswith("2026-10-07T13:57") f
 ok(abs(quotes["AAPL"]["c"] - (price("AAPL", 30) + 0.01)) < 1e-9 and len(bars["AAPL"]) == 31, "quote moved to the new bar; 31 bars for the order pass")
 ok(len(db.collection("markets").document("intraday_AAPL").get().to_dict()["bars"]) == 31, "intraday doc merged, no duplicates")
 
-# one group of 10 stocks times out: the others update, and "since" doesn't move (no gaps later)
+# one group of 10 stocks times out: the others update; the failed stocks keep their old mark,
+# keep their last price (marked stale), and go first next run
 real_fake = MD.ms_get
 def flaky(path, params, key, timeout=20):
     if "AAPL" in params["symbols"].split(","):
         raise TimeoutError("read timed out")
     return real_fake(path, params, key, timeout)
 MD.ms_get = flaky
-before = db.collection("serverMeta").document("msQuotes").get().to_dict()["since"]
+before = db.collection("serverMeta").document("msQuotes").get().to_dict()["sinceBy"]
 NOW_MIN[0] = 32
 n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=2))
-after = db.collection("serverMeta").document("msQuotes").get().to_dict()["since"]
-ok(n == len(SYMS) and after == before, "a failed group keeps 'since' so its stocks catch up next run")
+after = db.collection("serverMeta").document("msQuotes").get().to_dict()["sinceBy"]
+grp = [s for s in SYMS if after[s] == before[s]]
+ok("AAPL" in grp and len(grp) == 10 and all(after[s] > before[s] for s in SYMS if s not in grp), "a failed group keeps its own mark; the other stocks move on (%d kept)" % len(grp))
+ok(n == len(SYMS) - 10 and "AAPL" not in quotes, "the failed stocks aren't in this run's live prices (no fills on an old price)")
+qd = db.collection("markets").document("quotes").get().to_dict()["quotes"]
+fine = [s for s in SYMS if s not in grp][0]
+ok(len(qd) == len(SYMS) and all(qd[s].get("stale") is True for s in grp) and not qd[fine].get("stale"),
+   "every stock keeps a price on the quotes doc; the failed ones are marked stale")
 MD.ms_get = real_fake
+calls.clear()
 NOW_MIN[0] = 33
 n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=3))
-ok(len(bars["AAPL"]) == 33, "next run fills the missed bars (33 for AAPL)")
+ok(len(bars["AAPL"]) == 33 and n == len(SYMS), "next run fills the missed bars (33 for AAPL)")
+ok("AAPL" in calls[0]["symbols"].split(","), "the stocks that were behind are asked for first")
+ok(not db.collection("markets").document("quotes").get().to_dict()["quotes"]["AAPL"].get("stale"), "and the stale mark clears")
+calls.clear()
+
+# a stuck feed: 10+ minutes of one price and no volume are dropped, the quote stays on the last
+# real bar and is marked stale (Marketstack, 2026-10-20)
+def stuck(path, params, key, timeout=20):
+    d = real_fake(path, params, key, timeout)
+    for r in d["data"]:
+        if r["symbol"] == "MSFT" and r["date"] >= "2026-10-07T14:04":
+            r.update(open=99.5, high=99.5, low=99.5, close=99.5, volume=0)
+    return d
+MD.ms_get = stuck
+NOW_MIN[0] = 46
+n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=16))
+qd = db.collection("markets").document("quotes").get().to_dict()["quotes"]
+ok(len(bars["MSFT"]) == 34 and abs(qd["MSFT"]["c"] - (price("MSFT", 33) + 0.01)) < 1e-9, "frozen bars dropped; MSFT's quote stays on its last real bar")
+ok(qd["MSFT"].get("stale") is True and "MSFT" not in quotes and "AAPL" in quotes, "MSFT marked stale and left out of live prices; others fine")
+held = set()
+main._tw_prices(db, stale_out=held)
+ok(held == {"MSFT"}, "Trade War sees MSFT's price as delayed, so tw_trade refuses it")
+MD.ms_get = real_fake
+NOW_MIN[0] = 47
+main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=17))
 calls.clear()
 
 # Marketstack refuses a time filter -> whole day, and remembered

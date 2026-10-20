@@ -13,7 +13,8 @@ import { doc, getDoc, type DocumentData } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useLiveDoc } from './liveDoc';
 
-export type Quote = { c: number; o: number; h: number; l: number; pc: number | null; t: number; v: number; chPct: number | null };
+/** stale: the feed has no fresh price for this stock, so this is its last good one (functions/main.py ms_run_quotes). */
+export type Quote = { c: number; o: number; h: number; l: number; pc: number | null; t: number; v: number; chPct: number | null; stale?: boolean };
 export type QuotesDoc = { quotes: Record<string, Quote>; marketOpen: boolean; updatedAt: string | null; source: string; error: string | null; every: number | null; interval: string | null };
 export type Mover = { sym: string; name: string; price: number | null; chPct: number | null };
 export type MoversDoc = { gainers: Mover[]; losers: Mover[]; actives: Mover[]; sectors: { sector: string; chPct: number }[]; updatedAt: string | null; scope: string };
@@ -34,7 +35,7 @@ export function parseQuote(raw: unknown): Quote | null {
   if (c == null || c <= 0) return null;
   const pc = num(r.pc);
   const chPct = num(r.chPct) ?? (pc ? Math.round((c / pc - 1) * 10000) / 100 : null);
-  return { c, o: num(r.o) ?? c, h: num(r.h) ?? c, l: num(r.l) ?? c, pc, t: num(r.t) ?? 0, v: num(r.v) ?? 0, chPct };
+  return { c, o: num(r.o) ?? c, h: num(r.h) ?? c, l: num(r.l) ?? c, pc, t: num(r.t) ?? 0, v: num(r.v) ?? 0, chPct, stale: r.stale === true };
 }
 
 export function parseQuotesDoc(d: DocumentData): QuotesDoc {
