@@ -550,6 +550,7 @@ NY = ZoneInfo("America/New_York")
 DAILY_BARS_KEEP = 90
 INTRADAY_SESSIONS_KEEP = 5
 SESSION_OPEN, SESSION_CLOSE = 9 * 60 + 30, 16 * 60
+MS_TOGETHER_LAG_MIN = 10  # stocks within this many minutes of the newest bar share one request
 
 
 def _update_intraday(db, quotes, now):
@@ -684,10 +685,11 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     if not (on(every) or closing):
         return
     db = firestore.client()
-    if every < 15 and ms_calls_today(db, now) >= MD.daily_call_limit():
+    monthly = MD.monthly_call_limit()
+    if every < 15 and (ms_calls_today(db, now) >= MD.daily_call_limit() or (monthly and ms_calls_month(db, now) >= monthly)):
         if not (on(15) or closing):
             return
-        print("[refresh_quotes] daily request cap reached: every 15 minutes for the rest of today")
+        print("[refresh_quotes] daily or monthly request cap reached: every 15 minutes for now")
         every = 15
     key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
     if not key:
@@ -1372,7 +1374,9 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     # a new bar parser (MD.MS_PARSER) re-fetches the whole day once, so bars already stored are rebuilt
     same_day = st.get("day") == today and st.get("interval") == label and st.get("parser") == MD.MS_PARSER
     since_by = dict(st.get("sinceBy") or {}) if same_day else {}
-    use_time = st.get("timeFilter", True)
+    # a refused time filter switches to whole-day requests for the rest of THAT day only
+    # (it used to stick forever, at up to 20 requests a minute instead of 1)
+    use_time = st.get("timeFilterOff") != today
     budget = max(30, min(200, every * 60 - 15))
     base = {"interval": iv, "sort": "ASC"}
 
@@ -1382,15 +1386,52 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
             return dict(base, date_from=today)
         return dict(base, date_from=MD.ms_time(datetime.fromisoformat(min(marks)) - MD.timedelta(minutes=2 * step)))
 
-    order = MD.behind_first(PRACTICE_SYMBOLS, since_by)
+    def fetch():
+        """Stocks that are up to date share ONE request (a few new bars each); stocks that are
+        behind (first run of the day, a failed run) are asked for 10 at a time, furthest behind
+        first. A normal minute is one Marketstack request for all 50 stocks."""
+        start = _time.monotonic()
+        order = MD.behind_first(PRACTICE_SYMBOLS, since_by)
+        together, apart = MD.ms_split_caught_up(order, since_by, MS_TOGETHER_LAG_MIN) if use_time else ([], order)
+        rows, failed, err = [], [], None
+        if together:
+            try:
+                r, f = MD.ms_rows_chunked("intraday", group_params, together, key, size=len(together), max_pages=4, timeout=40, budget=budget, strict=True)
+                rows += r
+                apart = f + apart  # a stock the shared request missed tries again in a small group
+            except (MD.MsKeyRejected, MD.MsQuota, MD.MsNotInPlan):
+                raise
+            except Exception as e:
+                if MD.ms_refused_time(e):
+                    raise
+                print("[refresh_quotes] shared request failed (%s); asking 10 stocks at a time" % type(e).__name__)
+                apart, err = together + apart, e
+        if apart:
+            try:
+                r, f = MD.ms_rows_chunked("intraday", group_params, apart, key, size=10, max_pages=4, timeout=40,
+                                          budget=max(5, budget - (_time.monotonic() - start)), strict=True)
+                rows += r
+                failed += f
+            except (MD.MsKeyRejected, MD.MsQuota, MD.MsNotInPlan):
+                raise
+            except Exception as e:
+                if MD.ms_refused_time(e) or not rows:
+                    raise
+                failed += apart
+                err = e
+        if err is not None and not rows:
+            raise err
+        return rows, failed
+
     try:
-        rows, failed = MD.ms_rows_chunked("intraday", group_params, order, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
-    except RuntimeError as e:  # Marketstack refused a date_from with a time: ask for whole days from now on
-        if not use_time or all(since_by.get(s) is None for s in order):
+        rows, failed = fetch()
+    except Exception as e:  # Marketstack refused a date_from with a time: whole days for the rest of today
+        if not use_time or not MD.ms_refused_time(e) or all(since_by.get(s) is None for s in PRACTICE_SYMBOLS):
             raise
-        print("[refresh_quotes] time filter refused (%s); using whole-day requests" % str(e)[:80])
-        st["timeFilter"] = use_time = False
-        rows, failed = MD.ms_rows_chunked("intraday", group_params, order, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
+        print("[refresh_quotes] time filter refused (%s); using whole-day requests for today" % str(e)[:80])
+        st["timeFilterOff"] = today
+        use_time = False
+        rows, failed = fetch()
     if failed:
         print("[refresh_quotes] no new prices this run for %d symbols (Marketstack timed out or failed); they go first next run" % len(failed))
     fresh = MD.ms_intraday_bars(rows)
@@ -1425,6 +1466,7 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
         batch.commit()
     st.update({"day": today, "interval": label, "parser": MD.MS_PARSER, "sinceBy": since_by, "at": now.isoformat()})
     st.pop("since", None)
+    st.pop("timeFilter", None)
     sref.set(st)
     qref = db.collection("markets").document("quotes")
     live = {s: q for s, q in quotes.items() if s not in stale}
@@ -1461,16 +1503,27 @@ def ms_count_calls(db, now, n):
     ref = db.collection("serverMeta").document("msUsage")
     snap = ref.get()
     d = (snap.to_dict() or {}) if snap.exists else {}
+    month = now.strftime("%Y-%m")
     if d.get("day") == today:
-        ref.update({"calls": firestore.Increment(n), "at": now.isoformat()})
+        if d.get("month") == month:
+            ref.update({"calls": firestore.Increment(n), "monthCalls": firestore.Increment(n), "at": now.isoformat()})
+        else:  # first count after this field was added: the month starts from today's count
+            ref.update({"calls": firestore.Increment(n), "month": month, "monthCalls": int(d.get("calls") or 0) + n, "at": now.isoformat()})
     else:
-        ref.set({"day": today, "calls": n, "at": now.isoformat(), "yesterday": d.get("calls") if d.get("day") else None})
+        ref.set({"day": today, "calls": n, "at": now.isoformat(), "yesterday": d.get("calls") if d.get("day") else None,
+                 "month": month, "monthCalls": (int(d.get("monthCalls") or 0) if d.get("month") == month else 0) + n})
 
 
 def ms_calls_today(db, now):
     snap = db.collection("serverMeta").document("msUsage").get()
     d = (snap.to_dict() or {}) if snap.exists else {}
     return int(d.get("calls") or 0) if d.get("day") == now.strftime("%Y-%m-%d") else 0
+
+
+def ms_calls_month(db, now):
+    snap = db.collection("serverMeta").document("msUsage").get()
+    d = (snap.to_dict() or {}) if snap.exists else {}
+    return int(d.get("monthCalls") or 0) if d.get("month") == now.strftime("%Y-%m") else 0
 
 
 def ms_due(now, state):

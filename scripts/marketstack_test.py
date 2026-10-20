@@ -56,6 +56,11 @@ keep = MD.merge_intraday([real(m) for m in range(40, 52)], ["2026-10-20 09:%02d,
 ok(keep == [real(m) for m in range(40, 52)], "a frozen fetch never replaces real bars already stored")
 ok(MD.behind_first(["A", "B", "C", "D"], {"A": "2026-10-20T10:05", "B": "2026-10-20T10:01", "D": "2026-10-20T10:05"}) == ["C", "B", "A", "D"],
    "stocks furthest behind are fetched first (never fetched, then oldest)")
+tog, apart = MD.ms_split_caught_up(["A", "B", "C", "D"], {"A": "2026-10-20T10:20:00-04:00", "B": "2026-10-20T10:05:00-04:00", "D": "2026-10-20T10:12:00-04:00"}, 10)
+ok(tog == ["A", "D"] and apart == ["B", "C"], "up-to-date stocks share one request; ones behind or never fetched go apart: %s %s" % (tog, apart))
+ok(MD.ms_split_caught_up(["A"], {}, 10) == ([], ["A"]), "first run of the day: nothing shared")
+ok(MD.ms_refused_time(RuntimeError("marketstack validation_error")) and not MD.ms_refused_time(RuntimeError("marketstack internal_error"))
+   and not MD.ms_refused_time(TimeoutError()), "only a validation error counts as a refused time filter")
 seen, real_rows = [], MD.ms_rows
 MD.ms_rows = lambda path, params, key, **kw: seen.append(params["date_from"]) or []
 MD.ms_rows_chunked("intraday", lambda g: {"date_from": "x-" + g[0]}, ["A", "B", "C"], "k", size=2)
