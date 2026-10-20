@@ -11,7 +11,7 @@
   from `games/setup-spotter.html` through `scripts/site_shell.py`.
 - **Hosting:** GitHub Pages serves `main` at agentictrading.info. Merging to `main` = deploying the frontend.
 - **Firebase project `leaderboard-agentictrading`:**
-  - Auth: Google sign-in, plus anonymous sign-in for every visitor.
+  - Auth: Google / Apple sign-in, plus a guest (anonymous) account made only when a visitor votes, posts a game score or shares (`ZelosXP.ensureUser()`), not on page load (since 2026-10-20).
   - Firestore: app data. Rules: `firestore.rules`.
   - Realtime Database: arcade leaderboards only. Rules: `database.rules.json`.
   - Cloud Functions (Python 3.12): `functions/main.py` (+ helper modules). Secrets in Secret Manager;

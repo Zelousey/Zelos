@@ -58,9 +58,11 @@
  *                            don't need their own onAuthStateChanged just for this)
  *
  * Anonymous auth: earning XP requires *some* Firebase user, but almost nobody signs up
- * just to earn XP — most visitors never create an account. So on first load this module
- * silently signs every visitor in anonymously (auth.signInAnonymously()), giving them a
- * uid to award XP against with zero prompt, zero UI change. That anonymous uid is a real
+ * just to earn XP. A visitor gets a silent guest account (auth.signInAnonymously()) only when
+ * they DO something that needs one: play a game and post a score, share, vote (ensureUser()).
+ * Just visiting no longer makes one (owner 2026-10-20: "a bunch of users joining that are
+ * anonymous"); passive XP (opening an alert, the daily check-in, mission counts) is only
+ * awarded when the visitor already has an account or a guest one. That anonymous uid is a real
  * Firebase user, so it satisfies firestore.rules (request.auth.uid == userId) the same as
  * a real account. If they later actually sign up, call ZelosXP.linkAccount(credential) (or
  * just let firebase.auth().signInWithPopup/createUserWithEmailAndPassword run as normal —
@@ -161,30 +163,32 @@
     return !!(auth && db);
   }
 
-  // Resolves once we know the auth state for sure — either a persisted/real user Firebase
-  // already knew about, or (if nobody was signed in at all) a freshly created anonymous
-  // user. Only tries signInAnonymously() once; safe to call repeatedly, always the same
-  // promise.
-  function ensureAnonAuth() {
-    if (authReadyPromise) return authReadyPromise;
-    authReadyPromise = new Promise(function (resolve) {
-      var unsub = auth.onAuthStateChanged(function (user) {
-        if (user) {
-          if (unsub) unsub();
-          resolve(user);
-          return;
-        }
-        auth.signInAnonymously().catch(function (e) {
-          console.warn('[ZelosXP] anonymous sign-in failed:', e);
-          if (unsub) unsub();
-          resolve(null);
-        });
-        // don't resolve here — the resulting onAuthStateChanged(user) call above
-        // (or the catch, on failure) settles the promise.
-      });
+  // The signed-in user (real or guest) once Firebase has restored the session, or null.
+  // Never creates an account.
+  var knownPromise = null;
+  function knownUser() {
+    if (!knownPromise) knownPromise = new Promise(function (resolve) {
+      var unsub = auth.onAuthStateChanged(function (user) { if (unsub) unsub(); resolve(user || null); });
     });
-    return authReadyPromise;
+    return knownPromise.then(function (user) { return auth.currentUser || user; });
   }
+
+  // The signed-in user, or a new guest (anonymous) account when there is none. Call this only
+  // when the visitor does something that needs an account. Only one sign-in is attempted at a
+  // time; safe to call repeatedly.
+  function ensureAnonAuth() {
+    return knownUser().then(function (user) {
+      if (user) return user;
+      if (!authReadyPromise) authReadyPromise = auth.signInAnonymously().then(function (r) { return r.user; }).catch(function (e) {
+        console.warn('[ZelosXP] anonymous sign-in failed:', e);
+        authReadyPromise = null;
+        return null;
+      });
+      return authReadyPromise;
+    });
+  }
+  // XP for just being here: awarded to an existing account (real or guest), never a reason to make one
+  var PASSIVE = { 'alert-open': 1, 'daily-checkin': 1, 'trading-tools': 1 };
 
   function dateStrET(offsetDays) {
     var d = new Date();
@@ -201,7 +205,7 @@
       amount = Math.min(amount, VARIABLE[type]);
     } else if (POINTS.hasOwnProperty(type)) amount = POINTS[type];
     else return cb(false);
-    ensureAnonAuth().then(function (user) {
+    (PASSIVE[type] ? knownUser() : ensureAnonAuth()).then(function (user) {
       // whoever is signed in right now: after a guest signs in with Google on
       // the same page, XP must land on the real account, not the guest uid
       // this promise first resolved with
@@ -246,7 +250,7 @@
   // server sees itself.
   function missionEvent(ev, ref) {
     if (!ensureInit()) return;
-    ensureAnonAuth().then(function (user) {
+    knownUser().then(function (user) {
       if (!(auth.currentUser || user)) return;
       return functions().then(function (f) { return f.httpsCallable('mission_event')({ ev: ev, ref: ref || '' }); });
     }).catch(function (e) { console.warn('[ZelosXP] mission event failed:', ev, e); });
@@ -256,6 +260,8 @@
     missionEvent: missionEvent,
     isConfigured: function () { return ensureInit(); },
     isSignedIn: function () { return ensureInit() && !!auth.currentUser; },
+    // the signed-in user, or a new guest account (only for something the visitor chose to do)
+    ensureUser: function () { return ensureInit() ? ensureAnonAuth() : Promise.resolve(null); },
     isRealAccount: function () { return ensureInit() && !!auth.currentUser && !auth.currentUser.isAnonymous; },
     award: award,
     points: function (type) { return POINTS[type] || 0; },
@@ -268,18 +274,8 @@
     }
   };
 
-  // Make good on the doc comment above: "on first load this module silently
-  // signs every visitor in anonymously." Without this line, that only
-  // actually happened as a side effect of some page's own onAuthStateChanged
-  // handler calling award() — and every one of those handlers (copy-pasted
-  // across ~25 pages) is gated on `if (user && ...)`, which a genuinely
-  // first-ever visitor with no persisted session never satisfies. For a
-  // visitor whose first-ever pageview is a shared alert link (arguably the
-  // single most common way anyone new arrives at Zelos), that meant no
-  // anonymous uid ever got created, so alert-open XP and the streak silently
-  // never started. Kicking it off once, right here, means every page that
-  // loads this file gets a real Firebase user before its own auth listener
-  // runs, so the existing per-page `if (user) award(...)` calls now do what
-  // they were always meant to.
-  if (ensureInit()) ensureAnonAuth();
+  // Visitors are no longer signed in as guests on page load (owner 2026-10-20); a guest
+  // account is made by ensureUser() when they do something that needs one. Pages still check
+  // `if (user)` in their own onAuthStateChanged before awarding passive XP.
+  ensureInit();
 })();
