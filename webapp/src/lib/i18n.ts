@@ -196,6 +196,8 @@ const en = {
   'stats.prevClose': 'Prev close',
   'stats.volume': 'Volume',
   'stats.updated': 'Updated',
+  'stats.delayed': 'Price feed delayed',
+  'stats.delayedHint': 'Our price provider has no fresh price for {sym} right now, so this is the last good one. Trades wait for a fresh price.',
   'trade.buyBtn': 'Buy',
   'trade.sellBtn': 'Sell',
   'trade.buyLabel': 'Buy {sym}',

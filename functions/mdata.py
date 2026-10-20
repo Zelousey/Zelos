@@ -206,7 +206,8 @@ def ms_rows_chunked(path, params, symbols, api_key, size=10, max_pages=4, timeou
     out on large multi-symbol requests, so ask for a few at a time; a group that fails is
     skipped (the others still update). Key and quota errors stop everything; if every group
     fails, the last error is raised. `budget` (seconds) stops starting new groups once used up,
-    so the function finishes inside its time limit. Returns (rows, failed symbols)."""
+    so the function finishes inside its time limit. `params` may be a function of the group
+    (each group asks from its own date_from). Returns (rows, failed symbols)."""
     clock = clock or time.monotonic
     start = clock()
     rows, failed, last = [], [], None
@@ -216,7 +217,8 @@ def ms_rows_chunked(path, params, symbols, api_key, size=10, max_pages=4, timeou
             last = last or TimeoutError("time budget used up")
             continue
         try:
-            rows += ms_rows(path, dict(params, symbols=",".join(ch)), api_key, max_pages=max_pages, timeout=timeout, strict=strict)
+            base = params(ch) if callable(params) else params
+            rows += ms_rows(path, dict(base, symbols=",".join(ch)), api_key, max_pages=max_pages, timeout=timeout, strict=strict)
         except (MsKeyRejected, MsQuota, MsNotInPlan):
             raise
         except Exception as e:
@@ -292,6 +294,47 @@ def ms_intraday_bars(rows, session_only=True):
     return {s: [b[k] for k in sorted(b)] for s, b in out.items()}
 
 
+def behind_first(symbols, since_by):
+    """The stock list ordered so the stocks furthest behind are fetched first: never fetched
+    today, then the oldest newest-bar. A run that runs out of time skips the stocks at the end,
+    so without this the same stocks would be skipped every minute (seen live 2026-10-20: the
+    last 30 of 50 stocks had no price all day)."""
+    order = {s: i for i, s in enumerate(symbols)}
+    return sorted(symbols, key=lambda s: (since_by.get(s) is not None, since_by.get(s) or "", order[s]))
+
+
+FROZEN_RUN = 10
+
+
+def _flat_zero(p):
+    return len(p) > 5 and p[1] == p[2] == p[3] == p[4] and _num(p[5]) == 0
+
+
+def drop_frozen(bars, run=FROZEN_RUN):
+    """Drop runs of `run` or more bars in a row with one price and no volume (o=h=l=c, v=0).
+
+    Marketstack has sent a whole day of these for big stocks (2026-10-20: AAPL at 337.94 every
+    minute, volume 0, even in the after-close data): a stuck feed, not trading. Kept, they draw a
+    flat line the averages slide toward and would fill practice orders at a price that wasn't
+    real. Bars without a volume field (older 5-minute bars) are never dropped."""
+    out, i, n = [], 0, len(bars or [])
+    while i < n:
+        p = str(bars[i]).split(",")
+        if not _flat_zero(p):
+            out.append(bars[i]); i += 1
+            continue
+        j = i + 1
+        while j < n:
+            q = str(bars[j]).split(",")
+            if not (_flat_zero(q) and q[0][:10] == p[0][:10] and q[4] == p[4]):
+                break
+            j += 1
+        if j - i < run:
+            out.extend(bars[i:j])
+        i = j
+    return out
+
+
 def ms_daily_bars(rows):
     """EOD rows -> {SYM: ["YYYY-MM-DD,o,h,l,c,v", ...]} ascending; split-adjusted when Marketstack gives it."""
     out = {}
@@ -319,7 +362,10 @@ def merge_series(existing, fresh, keep, key_len=10):
 
 
 def merge_intraday(existing, fresh, keep_sessions=INTRADAY_SESSIONS_KEEP):
-    rows = merge_series(existing, fresh, 10 ** 6, key_len=16)
+    # a stuck feed's flat no-volume bar never replaces a real one already stored
+    have = {str(r)[:16]: str(r) for r in existing or []}
+    fresh = [r for r in fresh or [] if not (_flat_zero(str(r).split(",")) and str(r)[:16] in have and not _flat_zero(have[str(r)[:16]].split(",")))]
+    rows = drop_frozen(merge_series(existing, fresh, 10 ** 6, key_len=16))
     days = sorted({r[:10] for r in rows})[-keep_sessions:]
     return [r for r in rows if r[:10] in days]
 

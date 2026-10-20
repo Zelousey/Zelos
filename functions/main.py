@@ -1356,8 +1356,11 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
 
     The first run of the day asks for the whole day; every later run asks only for bars since
     the newest one already stored (date_from with a time), so a run every minute costs about
-    one Marketstack request per 10 stocks. Returns (count, quotes, today's bars per symbol for
-    the practice order pass, bar length in minutes)."""
+    one Marketstack request per 10 stocks. Each stock remembers its own newest bar, and the
+    stocks furthest behind go first, so a group that failed or ran out of time catches up next
+    run without dragging the others back to whole-day requests. Returns (count, quotes,
+    today's bars per symbol for the practice order pass, bar length in minutes); stocks with
+    no fresh price this run are left out of the returned quotes (no fills or alerts on them)."""
     today = now.strftime("%Y-%m-%d")
     every = every or MD.quote_every_min()
     iv = iv or MD.ms_interval()
@@ -1367,29 +1370,34 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     ssnap = sref.get()
     st = (ssnap.to_dict() or {}) if ssnap.exists else {}
     # a new bar parser (MD.MS_PARSER) re-fetches the whole day once, so bars already stored are rebuilt
-    since = st.get("since") if (st.get("day") == today and st.get("interval") == label and st.get("timeFilter", True) and st.get("parser") == MD.MS_PARSER) else None
+    same_day = st.get("day") == today and st.get("interval") == label and st.get("parser") == MD.MS_PARSER
+    since_by = dict(st.get("sinceBy") or {}) if same_day else {}
+    use_time = st.get("timeFilter", True)
     budget = max(30, min(200, every * 60 - 15))
     base = {"interval": iv, "sort": "ASC"}
 
-    def full_day():
-        return MD.ms_rows_chunked("intraday", dict(base, date_from=today), PRACTICE_SYMBOLS, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
+    def group_params(group):
+        marks = [since_by.get(s) for s in group]
+        if not use_time or any(m is None for m in marks):
+            return dict(base, date_from=today)
+        return dict(base, date_from=MD.ms_time(datetime.fromisoformat(min(marks)) - MD.timedelta(minutes=2 * step)))
 
-    if since:
-        frm = datetime.fromisoformat(since) - MD.timedelta(minutes=2 * step)
-        try:
-            rows, failed = MD.ms_rows_chunked("intraday", dict(base, date_from=MD.ms_time(frm)), PRACTICE_SYMBOLS, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
-        except RuntimeError as e:  # Marketstack refused a date_from with a time: ask for whole days from now on
-            print("[refresh_quotes] time filter refused (%s); using whole-day requests" % str(e)[:80])
-            st["timeFilter"] = False
-            rows, failed = full_day()
-    else:
-        rows, failed = full_day()
+    order = MD.behind_first(PRACTICE_SYMBOLS, since_by)
+    try:
+        rows, failed = MD.ms_rows_chunked("intraday", group_params, order, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
+    except RuntimeError as e:  # Marketstack refused a date_from with a time: ask for whole days from now on
+        if not use_time or all(since_by.get(s) is None for s in order):
+            raise
+        print("[refresh_quotes] time filter refused (%s); using whole-day requests" % str(e)[:80])
+        st["timeFilter"] = use_time = False
+        rows, failed = MD.ms_rows_chunked("intraday", group_params, order, key, size=10, max_pages=4, timeout=40, budget=budget, strict=True)
     if failed:
-        print("[refresh_quotes] no new prices this run for %d symbols (Marketstack timed out or failed)" % len(failed))
+        print("[refresh_quotes] no new prices this run for %d symbols (Marketstack timed out or failed); they go first next run" % len(failed))
     fresh = MD.ms_intraday_bars(rows)
     dsnap = db.collection("markets").document("dailyBars").get()
     daily = ((dsnap.to_dict() or {}).get("bars") or {}) if dsnap.exists else {}
-    quotes, today_bars = {}, {}
+    quotes, today_bars, stale = {}, {}, set()
+    failed = set(failed)
     batch, writes = db.batch(), 0
     refs = [db.collection("markets").document("intraday_" + sym) for sym in PRACTICE_SYMBOLS]
     for snap in db.get_all(refs):
@@ -1402,27 +1410,47 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
         if new:
             batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "parser": MD.MS_PARSER, "bars": merged})
             writes += 1
+            if sym not in failed:
+                since_by[sym] = _ms_newest({sym: new})
         tb = [b for b in merged if b[:10] == today]
         today_bars[sym] = tb
+        # the feed sent bars newer than the last real one: they were frozen (MD.drop_frozen)
+        received = max([b[:16] for b in new + old if b[:10] == today] or [""])
+        if sym in failed or (received and (not tb or tb[-1][:16] < received)):
+            stale.add(sym)
         q = MD.ms_quote(tb, MD.prev_close(daily.get(sym), today), step)
         if q:
             quotes[sym] = q
     if writes:
         batch.commit()
-    # if any group of stocks failed, keep the old "since" so the next run fetches their missed bars too
-    st.update({"day": today, "interval": label, "parser": MD.MS_PARSER, "since": since if failed else (_ms_newest(fresh) or since), "at": now.isoformat()})
+    st.update({"day": today, "interval": label, "parser": MD.MS_PARSER, "sinceBy": since_by, "at": now.isoformat()})
+    st.pop("since", None)
     sref.set(st)
     qref = db.collection("markets").document("quotes")
-    if not quotes:
-        qref.set({"checkedAt": now.isoformat(), "error": None}, merge=True)  # holiday or before the first bar
+    live = {s: q for s, q in quotes.items() if s not in stale}
+    if not live:
+        qref.set({"checkedAt": now.isoformat(), "error": None}, merge=True)  # holiday, before the first bar, or the whole feed stuck
         return 0, {}, today_bars, step
+    # a stock with no fresh price keeps its last good one, marked stale (the app says "delayed")
+    qsnap = qref.get()
+    prev_q = ((qsnap.to_dict() or {}).get("quotes") or {}) if qsnap.exists else {}
+    shown = {}
+    for sym in PRACTICE_SYMBOLS:
+        q = quotes.get(sym) or prev_q.get(sym)
+        if not q:
+            continue
+        if sym in stale or sym not in quotes:
+            q = dict(q, stale=True)
+        else:
+            q = {k: v for k, v in q.items() if k != "stale"}
+        shown[sym] = q
     mins = now.hour * 60 + now.minute
     qref.set({"source": "marketstack", "updatedAt": now.isoformat(), "date": today, "marketOpen": SESSION_OPEN <= mins < SESSION_CLOSE,
-              "every": every, "interval": label, "error": None, "quotes": quotes})
-    mv = MD.ms_movers(quotes, UNIVERSE_NAMES, UNIVERSE_GROUPS)
+              "every": every, "interval": label, "error": None, "quotes": shown})
+    mv = MD.ms_movers(live, UNIVERSE_NAMES, UNIVERSE_GROUPS)
     mv.update({"updatedAt": now.isoformat(), "date": today, "source": "Marketstack"})
     db.collection("markets").document("movers").set(mv)
-    return len(quotes), quotes, today_bars, step
+    return len(live), live, today_bars, step
 
 
 def ms_count_calls(db, now, n):
@@ -2247,11 +2275,14 @@ def tw_rank(rows):
     return rows
 
 
-def _tw_prices(db, now_s=None):
-    """(prices {SYM: c}, tradable bool, why) from the markets/quotes doc refresh_quotes writes."""
+def _tw_prices(db, now_s=None, stale_out=None):
+    """(prices {SYM: c}, tradable bool, why) from the markets/quotes doc refresh_quotes writes.
+    Pass a set as stale_out to collect the stocks whose price is a delayed last-good one."""
     snap = db.collection("markets").document("quotes").get()
     doc = (snap.to_dict() or {}) if snap.exists else {}
     prices = {s: q.get("c") for s, q in (doc.get("quotes") or {}).items() if q and q.get("c")}
+    if stale_out is not None:
+        stale_out.update(s for s, q in (doc.get("quotes") or {}).items() if q and q.get("stale"))
     try:
         age = (now_s or _time.time()) - datetime.fromisoformat(doc.get("updatedAt")).timestamp()
     except Exception:
@@ -2542,9 +2573,12 @@ def tw_trade(req, db, uid, now_ms):
     qty = data.get("qty")
     if isinstance(qty, float) and qty.is_integer():
         qty = int(qty)
-    prices, tradable, why = _tw_prices(db)
+    stale = set()
+    prices, tradable, why = _tw_prices(db, stale_out=stale)
     if not tradable:
         raise TWError("FAILED_PRECONDITION", why)
+    if sym in stale:
+        raise TWError("FAILED_PRECONDITION", "%s's live price is delayed right now, so it can't be traded. Try again in a minute." % sym)
     war_ref = db.collection("tradeWars").document(wid)
     acct_ref = war_ref.collection("accounts").document(uid)
     book_ref = war_ref.collection("books").document(uid)

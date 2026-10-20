@@ -8,6 +8,7 @@
 .last { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: 600; line-height: 1.1; }
 .today { font-size: var(--text-sm); }
 .today span:last-child { color: var(--muted); margin-left: 6px; font-family: var(--sans); }
+.delayed { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: var(--text-xs); font-family: var(--sans); color: var(--gold); background: var(--gold-soft); }
 .controls { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); }
 .controls > div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .chartBody { padding: var(--space-3); }

@@ -92,18 +92,18 @@
   // lines: [key, color, width] for simple overlays; compute(s) fills s.ind[id].
   var INDICATORS = [
     { id: 'vol', label: 'Volume', kind: 'volume', group: 'Price' },
-    { id: 'sma20', label: 'SMA 20', kind: 'overlay', group: 'Moving averages', color: 'accent', compute: function (s) { return sma(s.c, 20); } },
-    { id: 'sma50', label: 'SMA 50', kind: 'overlay', group: 'Moving averages', color: 'gold', compute: function (s) { return sma(s.c, 50); } },
-    { id: 'sma200', label: 'SMA 200', kind: 'overlay', group: 'Moving averages', color: '#f472b6', compute: function (s) { return sma(s.c, 200); } },
-    { id: 'ema9', label: 'EMA 9', kind: 'overlay', group: 'Moving averages', color: 'violet', compute: function (s) { return ema(s.c, 9); } },
-    { id: 'ema21', label: 'EMA 21', kind: 'overlay', group: 'Moving averages', color: '#22d3ee', compute: function (s) { return ema(s.c, 21); } },
-    { id: 'bb', label: 'Bollinger Bands (20, 2)', kind: 'overlay', group: 'Bands', color: 'violet', compute: function (s) { return bollinger(s.c, 20, 2); },
+    { id: 'sma20', need: 20, label: 'SMA 20', kind: 'overlay', group: 'Moving averages', color: 'accent', compute: function (s) { return sma(s.c, 20); } },
+    { id: 'sma50', need: 50, label: 'SMA 50', kind: 'overlay', group: 'Moving averages', color: 'gold', compute: function (s) { return sma(s.c, 50); } },
+    { id: 'sma200', need: 200, label: 'SMA 200', kind: 'overlay', group: 'Moving averages', color: '#f472b6', compute: function (s) { return sma(s.c, 200); } },
+    { id: 'ema9', need: 9, label: 'EMA 9', kind: 'overlay', group: 'Moving averages', color: 'violet', compute: function (s) { return ema(s.c, 9); } },
+    { id: 'ema21', need: 21, label: 'EMA 21', kind: 'overlay', group: 'Moving averages', color: '#22d3ee', compute: function (s) { return ema(s.c, 21); } },
+    { id: 'bb', need: 20, label: 'Bollinger Bands (20, 2)', kind: 'overlay', group: 'Bands', color: 'violet', compute: function (s) { return bollinger(s.c, 20, 2); },
       band: ['up', 'lo', 'mid'] },
-    { id: 'dc', label: 'Donchian Channel (20)', kind: 'overlay', group: 'Bands', color: '#f59e0b', compute: function (s) { return donchian(s, 20); }, band: ['up', 'lo'] },
-    { id: 'rsi', label: 'RSI (14)', kind: 'pane', group: 'Oscillators', range: [0, 100], levels: [30, 70], compute: function (s) { return rsi(s.c, 14); }, lines: [[null, 'violet']] },
-    { id: 'stoch', label: 'Stochastic (14, 3)', kind: 'pane', group: 'Oscillators', range: [0, 100], levels: [20, 80], compute: function (s) { return stoch(s, 14, 3); }, lines: [['k', 'accent'], ['d', 'gold']] },
-    { id: 'macd', label: 'MACD (12, 26, 9)', kind: 'pane', group: 'Oscillators', zero: true, compute: function (s) { return macd(s.c); }, lines: [['line', 'accent'], ['signal', 'gold']], hist: 'hist' },
-    { id: 'atr', label: 'ATR (14)', kind: 'pane', group: 'Volatility & volume', compute: function (s) { return atr(s, 14); }, lines: [[null, '#f59e0b']] },
+    { id: 'dc', need: 20, label: 'Donchian Channel (20)', kind: 'overlay', group: 'Bands', color: '#f59e0b', compute: function (s) { return donchian(s, 20); }, band: ['up', 'lo'] },
+    { id: 'rsi', need: 15, label: 'RSI (14)', kind: 'pane', group: 'Oscillators', range: [0, 100], levels: [30, 70], compute: function (s) { return rsi(s.c, 14); }, lines: [[null, 'violet']] },
+    { id: 'stoch', need: 16, label: 'Stochastic (14, 3)', kind: 'pane', group: 'Oscillators', range: [0, 100], levels: [20, 80], compute: function (s) { return stoch(s, 14, 3); }, lines: [['k', 'accent'], ['d', 'gold']] },
+    { id: 'macd', need: 34, label: 'MACD (12, 26, 9)', kind: 'pane', group: 'Oscillators', zero: true, compute: function (s) { return macd(s.c); }, lines: [['line', 'accent'], ['signal', 'gold']], hist: 'hist' },
+    { id: 'atr', need: 15, label: 'ATR (14)', kind: 'pane', group: 'Volatility & volume', compute: function (s) { return atr(s, 14); }, lines: [[null, '#f59e0b']] },
     { id: 'obv', label: 'On-Balance Volume', kind: 'pane', group: 'Volatility & volume', compute: function (s) { return obv(s); }, lines: [[null, '#22d3ee']], needsVolume: true }
   ];
   var BY_ID = {}; INDICATORS.forEach(function (d) { BY_ID[d.id] = d; });
@@ -303,10 +303,15 @@
     return INDICATORS.filter(function (d) { return d.kind === 'pane' && self.show[d.id]; }).slice(0, 3);
   };
   TradeChart.prototype.layout = function () {
-    var padR = 64, top = 40, bottom = 20, gap = 8, H = this.H, panes = this.panes();
+    var padR = 64, top = Math.max(40, 16 + 14 * (this.legendRows || 1)), bottom = 20, gap = 8, H = this.H, panes = this.panes();
     var subH = panes.length ? Math.max(54, Math.round(H * (panes.length > 2 ? 0.13 : 0.16))) : 0;
     var priceB = H - bottom - panes.length * (subH + gap);
-    var L = { x0: 8, x1: this.W - padR, y0: top, y1: priceB, panes: [] };
+    var L = { x0: 8, x1: this.W - padR, y0: top, y1: priceB, panes: [], vol: null };
+    // volume: its own strip under the candles (it used to sit on top of them)
+    if (this.show.vol && this.style !== 'line' && this.s && this.s.v.some(function (v) { return v > 0; })) {
+      var vh = Math.max(28, Math.round((priceB - top) * 0.16));
+      L.vol = { y0: priceB - vh, y1: priceB }; L.y1 = priceB - vh - 6;
+    }
     var y = priceB + gap;
     panes.forEach(function (d) { L.panes.push({ def: d, y0: y, y1: y + subH }); y += subH + gap; });
     L.xAxis = H - 4;
@@ -357,9 +362,14 @@
     for (i = from; i <= to; i++) {
       if (lineMode) { lo = Math.min(lo, s.c[i]); hi = Math.max(hi, s.c[i]); } else { lo = Math.min(lo, s.l[i]); hi = Math.max(hi, s.h[i]); }
       vmax = Math.max(vmax, s.v[i] || 0);
+    }
+    // averages and bands may widen the price range by a quarter at most; past that they run off
+    // the edge (clipped) instead of squashing the candles into a thin strip
+    var slack = Math.max((hi - lo) * 0.25, hi * 0.002), olo = lo - slack, ohi = hi + slack;
+    for (i = from; i <= to; i++) {
       overlays.forEach(function (d) {
         var v = s.ind[d.id];
-        (d.band ? d.band.map(function (k) { return v[k][i]; }) : [v[i]]).forEach(function (x) { if (x != null && x > s.l[i] * 0.6 && x < s.h[i] * 1.6) { lo = Math.min(lo, x); hi = Math.max(hi, x); } });
+        (d.band ? d.band.map(function (k) { return v[k][i]; }) : [v[i]]).forEach(function (x) { if (x != null) { lo = Math.min(lo, Math.max(x, olo)); hi = Math.max(hi, Math.min(x, ohi)); } });
       });
     }
     this.lines.forEach(function (ln) { if (ln.price > lo * 0.8 && ln.price < hi * 1.25) { lo = Math.min(lo, ln.price); hi = Math.max(hi, ln.price); } });
@@ -381,17 +391,28 @@
     // time axis
     c.textBaseline = 'alphabetic';
     var lastM = null, MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], lastX = -1e9;
+    // intraday: every day gets its label first; hour labels fill in where they don't crowd one
+    var dayXs = [];
+    if (s.intraday) {
+      for (i = from; i <= to; i++) {
+        var day = s.d[i].slice(0, 10);
+        if (day === lastM) continue;
+        lastM = day;
+        var ix = X(i); if (ix - lastX < 44) continue; lastX = ix; dayXs.push(ix);
+        c.strokeStyle = grid; c.beginPath(); c.moveTo(ix, L.y0); c.lineTo(ix, L.y1); c.stroke();
+        c.fillStyle = ink; c.fillText(MN[parseInt(day.slice(5, 7), 10) - 1] + ' ' + parseInt(day.slice(8, 10), 10), ix + 3, L.xAxis);
+      }
+      lastX = -1e9;
+    }
     for (i = from; i <= to; i++) {
       if (s.intraday) {
-        var day = s.d[i].slice(0, 10), hr = s.d[i].slice(11, 13);
-        var isDay = day !== lastM, isHour = !isDay && i > from && s.d[i - 1].slice(11, 13) !== hr;
-        if (isDay) lastM = day;
-        if ((isDay || isHour) && X(i) - lastX > (isDay ? 40 : 34)) {
-          var ix = X(i); lastX = ix;
-          c.strokeStyle = grid; c.beginPath(); c.moveTo(ix, L.y0); c.lineTo(ix, L.y1); c.stroke();
-          c.fillStyle = isDay ? ink : muted;
-          c.fillText(isDay ? MN[parseInt(day.slice(5, 7), 10) - 1] + ' ' + parseInt(day.slice(8, 10), 10) : s.d[i].slice(11, 16), ix + 3, L.xAxis);
-        }
+        var hr = s.d[i].slice(11, 13);
+        if (i === from || s.d[i - 1].slice(0, 10) !== s.d[i].slice(0, 10) || s.d[i - 1].slice(11, 13) === hr) continue;
+        var hx0 = X(i);
+        if (hx0 - lastX < 36 || dayXs.some(function (dx) { return Math.abs(hx0 - dx) < 46; })) continue;
+        lastX = hx0;
+        c.strokeStyle = grid; c.beginPath(); c.moveTo(hx0, L.y0); c.lineTo(hx0, L.y1); c.stroke();
+        c.fillStyle = muted; c.fillText(s.d[i].slice(11, 16), hx0 + 3, L.xAxis);
         continue;
       }
       var m = s.d[i].slice(0, 7);
@@ -412,7 +433,8 @@
       for (var k = from; k <= to; k++) { if (arr[k] == null) { pen = false; continue; } var x = X(k), y = Y(arr[k]); if (!pen) { c.moveTo(x, y); pen = true; } else c.lineTo(x, y); }
       c.stroke(); c.globalAlpha = 1; c.setLineDash([]);
     }
-    // band fills under the candles
+    // band fills under the candles (overlays are clipped to the price area)
+    c.save(); c.beginPath(); c.rect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); c.clip();
     overlays.forEach(function (d) {
       if (!d.band) return;
       var v = s.ind[d.id], cc = col(d.color, '#8f7bf6');
@@ -422,17 +444,21 @@
       c.closePath(); c.globalAlpha = 0.07; c.fillStyle = cc; c.fill(); c.globalAlpha = 1;
       pathLine(v.up, cc, 1, 0.6); pathLine(v.lo, cc, 1, 0.6); if (v.mid) pathLine(v.mid, cc, 1, 0.35, [3, 3]);
     });
-    // volume (bottom 18% of the price pane)
-    if (show.vol && vmax && !lineMode) {
-      var vh = (L.y1 - L.y0) * 0.18;
+    c.lineJoin = 'round';
+    overlays.forEach(function (d) { if (!d.band) pathLine(s.ind[d.id], col(d.color, acc), 1.6, 0.95); });
+    c.lineJoin = 'miter'; c.restore();
+    // volume: its own strip under the price area
+    if (L.vol && vmax) {
+      var vh = L.vol.y1 - L.vol.y0 - 2;
+      c.strokeStyle = grid; c.beginPath(); c.moveTo(L.x0, L.vol.y0 - 3); c.lineTo(L.x1, L.vol.y0 - 3); c.stroke();
       for (i = from; i <= to; i++) {
         if (!s.v[i]) continue;
-        var up = s.c[i] >= s.o[i], h = s.v[i] / vmax * vh;
-        c.fillStyle = rgba(up ? bull : bear, 0.28);
-        c.fillRect(X(i) - bw * 0.36, L.y1 - h, Math.max(1, bw * 0.72), h);
+        var up = s.c[i] >= s.o[i], h = Math.max(1, s.v[i] / vmax * vh);
+        c.fillStyle = rgba(up ? bull : bear, 0.45);
+        c.fillRect(X(i) - bw * 0.36, L.vol.y1 - h, Math.max(1, bw * 0.72), h);
       }
+      c.fillStyle = muted; c.textBaseline = 'top'; c.fillText('Volume', L.x0 + 4, L.vol.y0); c.fillText(fmtVol(vmax), L.x1 + 8, L.vol.y0); c.textBaseline = 'middle';
     }
-    overlays.forEach(function (d) { if (!d.band) pathLine(s.ind[d.id], col(d.color, acc), 1.4); });
     // line view: one price line, green or red against the previous close, soft fill, live dot
     var pulseAt = null;
     if (lineMode) {
@@ -587,6 +613,17 @@
       c.fillText(ln.label, L.x1 - 4, y3 - 2); c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
       c.fillStyle = ln.color; c.fillRect(L.x1 + 1, y3 - 8, 62, 16); c.fillStyle = tagInk; c.fillText(fmt(ln.price), L.x1 + 6, y3);
     });
+    // each average's latest value as a small tag on the price axis, in its colour, so you can
+    // tell the lines apart without the legend (the last-price tag below stays on top)
+    c.font = '600 9.5px "IBM Plex Mono", ui-monospace, monospace';
+    overlays.forEach(function (d) {
+      if (d.band) return;
+      var ov = s.ind[d.id][to]; if (ov == null) return;
+      var oy = Y(ov); if (oy < L.y0 + 6 || oy > L.y1 - 6) return;
+      var oc = col(d.color, acc); c.fillStyle = oc; c.fillRect(L.x1 + 1, oy - 7, 62, 14);
+      c.fillStyle = lum(oc) > 0.55 ? '#0b0c0f' : '#ffffff'; c.fillText(fmt(ov), L.x1 + 6, oy);
+    });
+    c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
     // last price tag
     if (this.lastPrice != null) {
       var lp = this.anim ? this.animValue() : this.lastPrice;
@@ -627,7 +664,8 @@
         for (var k3 = from; k3 <= to; k3++) { var v2 = sr.arr[k3]; if (v2 == null) { pn = false; continue; } if (!pn) { c.moveTo(X(k3), PY(v2)); pn = true; } else c.lineTo(X(k3), PY(v2)); }
         c.stroke();
       });
-      if (!d.range && !d.levels) { c.fillStyle = muted; c.fillText(fmtShort(mx2), L.x1 + 8, P.y0 + 8); c.fillText(fmtShort(mn), L.x1 + 8, P.y1 - 8); }
+      if (!d.range && !d.levels && hasVals(series, from, to)) { c.fillStyle = muted; c.fillText(fmtShort(mx2), L.x1 + 8, P.y0 + 8); c.fillText(fmtShort(mn), L.x1 + 8, P.y1 - 8); }
+      if (!hasVals(series, from, to)) { c.fillStyle = muted; c.textAlign = 'center'; c.fillText(needText(d, s), (L.x0 + L.x1) / 2, (P.y0 + P.y1) / 2 + 4); c.textAlign = 'left'; }
       c.fillStyle = muted; c.textBaseline = 'top'; c.fillText(d.label + (d.needsVolume && !s.v[s.n - 1] ? ' (needs volume)' : ''), L.x0 + 4, P.y0 + 3); c.textBaseline = 'middle';
     });
     // crosshair + legend
@@ -653,12 +691,14 @@
       [(chg >= 0 ? '+' : '') + fmt(chg) + '%', chg >= 0 ? bull : bear], ['Vol ' + fmtVol(s.v[li]), muted]
     ];
     overlays.forEach(function (d) {
-      var v = s.ind[d.id];
-      parts.push([d.label.split(' (')[0] + ' ' + (d.band ? fmt(v.up[li]) + '/' + fmt(v.lo[li]) : fmt(v[li])), col(d.color, acc)]);
+      var v = s.ind[d.id], name = d.label.split(' (')[0];
+      if (!hasVals([{ arr: d.band ? v.up : v }], from, to)) { parts.push([name + ': ' + needText(d, s), muted]); return; }
+      parts.push([name + ' ' + (d.band ? fmt(v.up[li]) + '/' + fmt(v.lo[li]) : fmt(v[li])), col(d.color, acc)]);
     });
     L.panes.forEach(function (P) {
       var d = P.def, v = s.ind[d.id];
-      var val = (d.lines || []).map(function (ln) { return fmtShort(ln[0] ? v[ln[0]][li] : v[li]); }).join(' / ');
+      var val = hasVals((d.lines || []).map(function (ln) { return { arr: ln[0] ? v[ln[0]] : v }; }), from, to)
+        ? (d.lines || []).map(function (ln) { return fmtShort(ln[0] ? v[ln[0]][li] : v[li]); }).join(' / ') : ': ' + needText(d, s);
       parts.push([d.label.split(' (')[0] + ' ' + val, col((d.lines[0] || [])[1], acc)]);
     });
     c.font = '500 10.5px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'middle';
@@ -668,7 +708,18 @@
       if (lx + w > L.x1) { lx = L.x0 + 2; ly2 += 14; }
       c.fillStyle = pt[1]; c.fillText(pt[0], lx, ly2); lx += w + 12;
     });
+    // the price area starts below the legend (on a phone it wraps onto more lines); it only grows
+    // while the crosshair moves, so the chart does not jump around under your finger
+    var rows = (ly2 - 10) / 14 + 1;
+    if (rows !== this.legendRows && !(this.hover && rows < this.legendRows)) { this.legendRows = rows; if (!this._relayout) { this._relayout = true; this.draw(); this._relayout = false; } }
   };
+  function hasVals(series, from, to) {
+    for (var k = from; k <= to; k++) for (var j = 0; j < series.length; j++) if (series[j].arr && series[j].arr[k] != null) return true;
+    return false;
+  }
+  // an indicator with nothing to draw: it needs more bars than this timeframe has (e.g. SMA 50
+  // on hourly bars, where 5 days of history is about 35 bars)
+  function needText(d, s) { return d.need && s.n < d.need ? 'needs ' + d.need + ' bars (has ' + s.n + ')' : 'needs more history'; }
   function fmtShort(v) { if (v == null || isNaN(v)) return '–'; var a = Math.abs(v); return a >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : a >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : a >= 1e4 ? (v / 1e3).toFixed(1) + 'K' : a >= 100 ? v.toFixed(1) : v.toFixed(2); }
   function niceStep(raw) { var p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
 

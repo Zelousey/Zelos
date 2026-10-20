@@ -10,6 +10,8 @@ describe('market data parsing', () => {
     expect(d.quotes.AAPL!.chPct).toBe(10);
     expect(d.marketOpen).toBe(true);
     expect(parseQuote({ c: 0 })).toBeNull();
+    expect(parseQuote({ c: 5, stale: true })?.stale).toBe(true);
+    expect(parseQuote({ c: 5 })?.stale).toBe(false);
     expect(parseQuote(null)).toBeNull();
   });
   it('movers: drops rows with bad symbols, keeps sectors with numbers', () => {
