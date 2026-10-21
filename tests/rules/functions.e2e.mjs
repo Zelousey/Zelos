@@ -192,6 +192,10 @@ await setDoc(doc(db, 'users', rep.uid), { blocked: [troll.uid] }, { merge: true 
 await signOut(auth);
 await signInWithEmailAndPassword(auth, troll.email, 'secret123');
 re1 = null; try { await call('tw_challenge', { to: rep.uid, buyIn: 1000, days: 1, name: 'Duel' }); } catch (x) { re1 = x; }
+ok(re1 && /Chapter 1 quiz/.test(re1.message), 'challenges stay locked until Trading 101 Chapter 1 is passed');
+await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/users/${troll.uid}?updateMask.fieldPaths=learnPassed`, {
+  method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { learnPassed: { mapValue: { fields: { basics: { integerValue: '1' } } } } } }) });
+re1 = null; try { await call('tw_challenge', { to: rep.uid, buyIn: 1000, days: 1, name: 'Duel' }); } catch (x) { re1 = x; }
 ok(re1 && /can.t challenge/.test(re1.message), 'someone you blocked cannot challenge you');
 
 console.log(`\n${pass} end-to-end checks passed`);

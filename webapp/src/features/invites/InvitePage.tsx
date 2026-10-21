@@ -14,6 +14,7 @@ import { copyText, createBattle, createInvite, DAYS, errorText, sendInvite, shar
 import { Choices } from './Choices';
 import { BattleSettings, BuyInChoices } from '../battles/BattleSettings';
 import { useSkill } from '../learn/useSkill';
+import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
 import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { InviteScene } from './InviteScene';
 import s from './Invites.module.css';
@@ -35,6 +36,7 @@ export default function InvitePage() {
   const [step, setStep] = useState<Step>(() => (start === 'battle' || start === 'squad' ? { at: start } : { at: 'pick' }));
   const [busy, setBusy] = useState(false);
   const me = useUserDoc(isReal && user ? user.uid : null);
+  const battles = useBattlesOpen();
   const canCoach = me.status === 'ready' && me.data.xp >= COACH_MIN_XP;
   // /invite?kind=coach (from Coaching) goes straight to the coach link, once
   const autoCoach = useRef(start === 'coach');
@@ -99,6 +101,7 @@ export default function InvitePage() {
         })}
       </ul>
     );
+  else if (step.at === 'battle' && battles.loaded && !battles.open) body = <BattleLock next="/invite?kind=battle" />;
   else if (step.at === 'battle') body = <BattleForm uid={user.uid} name={user.displayName?.split(' ')[0] ?? ''} onBack={() => setStep({ at: 'pick' })} onReady={(created, warId) => setStep({ at: 'ready', kind: 'battle', created, warId })} />;
   else if (step.at === 'squad') body = <SquadPicker uid={user.uid} onBack={() => setStep({ at: 'pick' })} onReady={(created) => setStep({ at: 'ready', kind: 'squad', created })} />;
   else body = <ShareStep kind={step.kind} created={step.created} warId={step.warId} onAnother={() => setStep({ at: 'pick' })} />;

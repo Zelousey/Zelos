@@ -17,6 +17,7 @@ import { useSkill } from '../learn/useSkill';
 import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { unlockQuietly } from '../missions/missions';
 import { challenge } from './profile';
+import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
 import s from './Profile.module.css';
 
 export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: boolean; onClose: () => void; to?: string; squadId?: string; toName: string }) {
@@ -31,6 +32,7 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
   const xp = me.status === 'ready' ? me.data.xp : me.status === 'loading' ? null : 0;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const battles = useBattlesOpen();
   function pickDays(d: number) {
     setDays(d);
     setSettings((v) => fitDays(v, d));
@@ -54,6 +56,13 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
       setErr(errorText(e2, t('pf.failed')));
       setBusy(false);
     }
+  }
+  if (battles.loaded && !battles.open) {
+    return (
+      <Sheet open={open} onClose={onClose} title={t('pf.ch.title', { name: toName })} labelledBy="pf-ch-title">
+        <BattleLock flat />
+      </Sheet>
+    );
   }
   return (
     <Sheet open={open} onClose={onClose} title={t('pf.ch.title', { name: toName })} labelledBy="pf-ch-title">

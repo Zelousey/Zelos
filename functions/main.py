@@ -2191,6 +2191,18 @@ def tw_event(kind, text, now_ms, **extra):
     return e
 
 
+BATTLE_CHAPTER = "basics"  # battles open once Trading 101 Chapter 1's quiz is passed (owner 2026-10-21)
+
+
+def _tw_check_learned(db, uid):
+    """Battles (creating, joining, challenging, accepting) need Chapter 1 of Trading 101 passed:
+    users/{uid}.learnPassed.basics, written only by learn_quiz. Battles already running keep going."""
+    u = db.collection("users").document(uid).get()
+    passed = ((u.to_dict() or {}).get("learnPassed") or {}) if u.exists else {}
+    if not passed.get(BATTLE_CHAPTER):
+        raise TWError("FAILED_PRECONDITION", "Battles unlock when you pass the Chapter 1 quiz in Trading 101 (The basics). It takes about 15 minutes, or test out with the quiz.")
+
+
 def _tw_check_buyin(db, uid, buy_in):
     try:
         u = db.collection("users").document(uid).get()
@@ -2436,6 +2448,7 @@ def tw_create(req, db, uid, now_ms):
     name, buy_in, days, max_players = tw_validate_create(req.data)
     lms = tw_validate_lms(req.data, days)
     modes = tw_validate_modes(req.data, days)
+    _tw_check_learned(db, uid)
     _tw_check_buyin(db, uid, buy_in)
     open_count = sum(1 for d in db.collection("tradeWars").where("host", "==", uid).where("status", "==", "lobby").limit(6).stream())
     if open_count >= 5:
@@ -2466,6 +2479,9 @@ def tw_join(req, db, uid, now_ms):
 def _tw_join(db, wid, uid, pname, now_ms):
     """Join a Trade War lobby (also used by invite_accept). No-op if you're already in."""
     war_ref = db.collection("tradeWars").document(wid)
+    w0 = war_ref.get()
+    if not (w0.exists and uid in ((w0.to_dict() or {}).get("players") or [])):
+        _tw_check_learned(db, uid)
 
     @firestore.transactional
     def txn(t):
@@ -3182,6 +3198,7 @@ def _tw_close_invites(db, wid, status, now_ms):
 def tw_challenge(req, db, uid, now_ms):
     targets, buy_in, days, name, squad_id, lms = tw_validate_challenge(req.data, uid)
     modes = tw_validate_modes(req.data, days)
+    _tw_check_learned(db, uid)
     _tw_check_buyin(db, uid, buy_in)
     extra_rules = {}
     if squad_id:
@@ -3244,6 +3261,8 @@ def tw_respond(req, db, uid, now_ms):
     if not _TW_UID_RE.match(iid):
         raise TWError("INVALID_ARGUMENT", "That challenge isn't valid.")
     accept = data.get("accept") is True
+    if accept:
+        _tw_check_learned(db, uid)
     inv_ref = db.collection("twInvites").document(iid)
     pname = _tw_name(db, uid, req.auth.token) if accept else None
     seen = {}
