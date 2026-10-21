@@ -14,6 +14,9 @@ test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (func
 const BASE = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents';
 const put = (path: string, fields: Record<string, unknown>) =>
   fetch(`${BASE}/${path}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) });
+// Trading 101 Chapter 1 passed: battles need it (written by learn_quiz in real life)
+const passBasics = (uid: string) =>
+  fetch(`${BASE}/users/${uid}?updateMask.fieldPaths=learnPassed`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { learnPassed: { mapValue: { fields: { basics: { integerValue: String(Date.now()) } } } } } }) });
 // each player gets their own browser context (own sign-in), at this project's screen size
 const player = async (browser: Browser, info: TestInfo) => (await browser.newContext(info.project.use)).newPage();
 async function signIn(page: Page, email: string): Promise<string> {
@@ -29,6 +32,7 @@ test('make a battle invite, open it as a new player, accept with a celebration',
   await expect(host.getByText('Sign in to invite friends.')).toBeVisible();
   const hostUid = await signIn(host, `host-${id}@example.com`);
   await put(`traders/${hostUid}`, { name: { stringValue: 'Ada' } });
+  await passBasics(hostUid);
   await host.getByRole('button', { name: /^Battle/ }).click();
   await host.getByLabel('Battle name').fill('Friday Showdown');
   await host.getByText('$500', { exact: true }).click();
@@ -46,7 +50,11 @@ test('make a battle invite, open it as a new player, accept with a celebration',
   await expect(guest.getByRole('heading', { name: /Ada invited you\s*to a Trade War/ })).toBeVisible();
   await expect(guest.getByText(/Friday Showdown · \$500 virtual buy-in · 3 days/)).toBeVisible();
   await expect(guest.getByRole('button', { name: 'Sign in to accept' })).toBeVisible();
-  await signIn(guest, `guest-${id}@example.com`);
+  const guestUid = await signIn(guest, `guest-${id}@example.com`);
+  // a brand-new player passes Trading 101 Chapter 1 first, then comes back to the invite
+  await expect(guest.getByText('Battles unlock after Chapter 1')).toBeVisible();
+  await expect(guest.getByRole('link', { name: 'Take the quiz' })).toHaveAttribute('href', `/app/learn/basics/quiz?next=%2Fi%2F${code}`);
+  await passBasics(guestUid);
   await guest.getByRole('button', { name: 'Accept' }).click();
   await expect(guest.getByRole('status').filter({ hasText: 'You’re in the battle!' })).toBeVisible();
   await expect(guest.getByText('+50 XP for joining from an invite')).toBeVisible();

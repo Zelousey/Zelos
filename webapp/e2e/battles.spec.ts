@@ -29,6 +29,9 @@ const v = (x: unknown): F =>
             : { mapValue: { fields: Object.fromEntries(Object.entries(x as object).map(([k, y]) => [k, v(y)])) } };
 const put = (path: string, data: Record<string, unknown>) =>
   fetch(`${BASE}/${path}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, x]) => [k, v(x)])) }) });
+// Trading 101 Chapter 1 passed: battles need it (written by learn_quiz in real life)
+const passBasics = (uid: string) =>
+  fetch(`${BASE}/users/${uid}?updateMask.fieldPaths=learnPassed`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { learnPassed: { mapValue: { fields: { basics: { integerValue: String(Date.now()) } } } } } }) });
 const player = async (browser: Browser, info: TestInfo) => (await browser.newContext(info.project.use)).newPage();
 async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
@@ -43,6 +46,7 @@ test('a real battle in the app: create, join, start, surrender, results', async 
   await host.goto('battles');
   const hostUid = await signIn(host, `bhost-${id}@example.com`);
   await put(`traders/${hostUid}`, { name: 'Hana' });
+  await passBasics(hostUid);
   await expect(host.getByText('No battles yet')).toBeVisible();
   await host.getByRole('link', { name: 'Start a battle' }).first().click();
   await host.getByLabel('Battle name').fill('Friday fight');
@@ -56,7 +60,12 @@ test('a real battle in the app: create, join, start, surrender, results', async 
 
   const rival = await player(browser, info);
   await rival.goto(`battles/${warId}`);
-  await signIn(rival, `brival-${id}@example.com`);
+  const rivalUid = await signIn(rival, `brival-${id}@example.com`);
+  // battles open after Trading 101 Chapter 1: the lobby says so, with a way back after the quiz
+  await expect(rival.getByText('Battles unlock after Chapter 1')).toBeVisible();
+  await expect(rival.getByRole('link', { name: 'Take the quiz' })).toHaveAttribute('href', new RegExp(`/learn/basics/quiz\\?next=%2Fbattles%2F${warId}$`));
+  await expect(rival.getByRole('button', { name: /^Join/ })).toHaveCount(0);
+  await passBasics(rivalUid);
   await rival.getByRole('button', { name: /^Join/ }).click();
   await expect(rival.getByText("You're in.")).toBeVisible();
   await expect(host.getByText('Players (2/4)')).toBeVisible();
@@ -137,11 +146,13 @@ test('the live room: storm, Last Man Standing, tags, bounties, stops; and the dr
 test('create a battle with every game mode; buy-ins unlock with XP', async ({ page }, info) => {
   await page.goto('invite?kind=battle');
   const uid = await signIn(page, `bmodes-${info.project.name}${Date.now()}@example.com`);
+  await expect(page.getByText('Battles unlock after Chapter 1')).toBeVisible();
+  await passBasics(uid);
   await page.getByLabel('Battle name').fill('Mode madness');
   const buyIn = page.getByRole('group', { name: 'Virtual buy-in' });
   await expect(buyIn.getByRole('radio', { name: '$5,000' })).toBeDisabled();
   await expect(page.getByText(/\$5,000 unlocks at Level 3 \(Gold, 150 XP\)/)).toBeVisible();
-  await put(`users/${uid}`, { xp: 200 }); // the server's XP; the locks follow it live
+  await put(`users/${uid}`, { xp: 200, learnPassed: { basics: 1 } }); // the server's XP; the locks follow it live
   await expect(buyIn.getByRole('radio', { name: '$5,000' })).toBeEnabled();
   await expect(buyIn.getByRole('radio', { name: '$10,000' })).toBeDisabled();
   await buyIn.getByText('$5,000').click();

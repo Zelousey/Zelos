@@ -18,6 +18,9 @@ const get = async (path: string) => {
   const r = await fetch(`${BASE}/${path}`, { headers: { Authorization: 'Bearer owner' } });
   return r.ok ? ((await r.json()) as { fields?: Record<string, Record<string, unknown>> }).fields ?? {} : null;
 };
+// Trading 101 Chapter 1 passed: battles need it (written by learn_quiz in real life)
+const passBasics = (uid: string) =>
+  fetch(`${BASE}/users/${uid}?updateMask.fieldPaths=learnPassed`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { learnPassed: { mapValue: { fields: { basics: { integerValue: String(Date.now()) } } } } } }) });
 async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
@@ -56,6 +59,7 @@ test('someone else’s profile: numbers, record, achievements; add friend; chall
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
 
   const me = await signIn(page, `pf-${info.project.name}${Date.now()}@example.com`);
+  await passBasics(me);
   const add = page.getByRole('button', { name: '+ Add friend' });
   await add.click();
   await expect(page.getByRole('button', { name: '✓ Friends' })).toBeVisible();
