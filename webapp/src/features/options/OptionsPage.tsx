@@ -177,7 +177,7 @@ export default function OptionsPage() {
         )}
         {(!uid || acctState.status === 'missing') && (
           <Card>
-            <EmptyState icon="practice" body={uid ? t('opt.needAccount') : t('practice.signIn')} actions={<Link className={buttonClass({ variant: 'primary' })} to="/practice">{t('trade.openAccount')}</Link>} compact />
+            <EmptyState icon="practice" body={uid ? t('opt.needAccount') : t('practice.signIn')} actions={<Link className={buttonClass({ variant: 'primary' })} to="/dashboard">{t('trade.openAccount')}</Link>} compact />
           </Card>
         )}
       </div>

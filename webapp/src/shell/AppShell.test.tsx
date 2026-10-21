@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,26 +43,26 @@ describe('AppShell', () => {
     renderAt('/dashboard');
     const navs = await screen.findAllByRole('navigation', { name: 'Main' });
     const side = navs[0]!;
-    for (const name of ['Dashboard', 'Market', 'Trade War', 'Alerts', 'News', 'Practice', 'Options', 'Squads & friends', 'Missions & XP', 'Training Ground', 'Profile', 'Settings']) {
+    for (const name of ['Dashboard', 'Market', 'Trade War', 'Alerts', 'News', 'Squads & friends', 'Missions & XP', 'Training Ground', 'Profile', 'Settings']) {
       expect(within(side).getByRole('link', { name: new RegExp(`^${name.replace(/[&]/g, '\\$&')}`) })).toBeInTheDocument();
     }
-    expect(within(side).queryByRole('link', { name: /Real Trading|Charts/ })).not.toBeInTheDocument();
+    expect(within(side).queryByRole('link', { name: /Real Trading|Charts|^Practice|^Options/ })).not.toBeInTheDocument();
     const tabbar = navs[1]!;
     expect(within(tabbar).getAllByRole('link').map((a) => a.textContent?.replace(/, new posts$/, ''))).toEqual(['Dashboard', 'Market', 'Trade War', 'Alerts', 'News']);
     expect(within(tabbar).queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('Practice highlights the Trade War tab', async () => {
+  it('/practice opens the Dashboard, where the account now lives', async () => {
     renderAt('/practice');
     const tabbar = (await screen.findAllByRole('navigation', { name: 'Main' }))[1]!;
-    expect(within(tabbar).getByRole('link', { name: 'Trade War' }).className).toMatch(/active/);
+    await waitFor(() => expect(within(tabbar).getByRole('link', { name: 'Dashboard' }).className).toMatch(/active/));
   });
 
   it('every section is built in the app (Options was the last hand-off to the website)', async () => {
     expect(MODULES.every((m) => typeof m.load === 'function')).toBe(true);
     renderAt('/options');
     const tabbar = (await screen.findAllByRole('navigation', { name: 'Main' }))[1]!;
-    expect(within(tabbar).getByRole('link', { name: 'Trade War' }).className).toMatch(/active/);
+    expect(within(tabbar).getByRole('link', { name: 'Market' }).className).toMatch(/active/); // the chain sits under Market
   });
 
   it('Trade War is a hub: practice account plus the competitive parts', async () => {
@@ -115,7 +115,8 @@ describe('AppShell', () => {
     renderAt('/dashboard');
     await userEvent.click(await screen.findByRole('button', { name: 'Open menu' }));
     const sheet = await screen.findByRole('dialog', { name: 'Menu', hidden: true });
-    expect(within(sheet).getByRole('link', { name: 'Practice', hidden: true })).toBeInTheDocument();
+    expect(within(sheet).getByRole('link', { name: 'Battles', hidden: true })).toBeInTheDocument();
+    expect(within(sheet).queryByRole('link', { name: 'Practice', hidden: true })).not.toBeInTheDocument();
     expect(within(sheet).getByRole('link', { name: 'Settings', hidden: true })).toBeInTheDocument();
     expect(within(sheet).queryByRole('link', { name: 'Dashboard', hidden: true })).not.toBeInTheDocument();
   });

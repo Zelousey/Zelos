@@ -20,8 +20,8 @@ async function signIn(page: Page, who: string) {
 }
 
 test('open the account, buy from a chart with a bracket, see and cancel the order', async ({ page }, info) => {
-  await page.goto('practice');
-  await expect(page.getByText(/Sign in to open your practice account/)).toBeVisible();
+  await page.goto('practice'); // the old address opens the Dashboard, where the account lives now
+  await expect(page).toHaveURL(/\/app\/dashboard$/);
   await signIn(page, `trader-${info.project.name}-${Date.now()}`);
 
   await page.getByRole('button', { name: 'Start with $10,000' }).click();
@@ -42,7 +42,7 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
   const dialog = page.getByRole('dialog', { name: 'Confirm order' });
   await expect(dialog).toContainText('Buy 5 AAPL');
   await dialog.getByRole('button', { name: /Place order: Buy 5 AAPL/ }).click();
-  await expect(page).toHaveURL(/\/app\/practice$/);
+  await expect(page).toHaveURL(/\/app\/dashboard$/);
   await expect(page.getByText(/Buy order for 5 AAPL placed/)).toBeVisible();
 
   // the server holds the order; cash is untouched until it fills
@@ -51,6 +51,7 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
   await expect(page.getByText(/Orders fill on the next price update/)).toBeVisible();
   await page.getByRole('button', { name: /Cancel: Buy 5 AAPL/ }).click();
   await expect(page.getByText('No open orders.')).toBeVisible();
+  await page.getByText('Activity & account settings').click(); // history is folded away under the positions
   await expect(page.getByText(/Buy 5 AAPL cancelled · Cancelled by you/)).toBeVisible();
 });
 

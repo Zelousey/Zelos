@@ -93,7 +93,7 @@ function ProfileView({ uid, me, googleName, googlePhoto }: { uid: string; me: st
                 <Button variant="primary" onClick={() => setEditing(true)}>
                   {t('pf.setUp')}
                 </Button>
-                <Link className={buttonClass({ variant: 'secondary' })} to="/practice">
+                <Link className={buttonClass({ variant: 'secondary' })} to="/dashboard">
                   {t('pf.enterWar')}
                 </Link>
               </>
@@ -312,7 +312,7 @@ function WarCard({ p, mine }: { p: Ranked | null; mine: boolean }) {
         </>
       ) : mine ? (
         <p className={s.muted}>
-          {t('pf.war.none.mine')} <Link to="/practice">{t('pf.enterWar')}</Link>
+          {t('pf.war.none.mine')} <Link to="/dashboard">{t('pf.enterWar')}</Link>
         </p>
       ) : (
         <p className={s.muted}>{t('pf.war.none')}</p>
