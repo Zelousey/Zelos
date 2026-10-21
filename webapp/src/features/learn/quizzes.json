@@ -1,0 +1,30 @@
+{
+  "_note": "Chapter quiz questions shown in the app. The right answers live only on the server (functions/learn.py); scripts/learn_test.py checks the two match.",
+  "basics": [
+    {
+      "q": "A share of stock is…",
+      "opts": ["A loan you give to a bank", "A small piece of a company", "A kind of digital coin"],
+      "why": "A share is a small piece of a company. Own a share of Apple and you own a sliver of Apple."
+    },
+    {
+      "q": "You buy 5 shares at $20. The price rises to $24. What is your profit?",
+      "opts": ["$20", "$4", "$24"],
+      "why": "Each share went up $4, and you have 5 of them: 5 × $4 = $20."
+    },
+    {
+      "q": "What does a stop-loss do?",
+      "opts": ["Buys more shares when the price falls", "Promises you will make money", "Sells for you if the price falls to the level you picked"],
+      "why": "A stop-loss is your safety net: it sells when the price falls to your level, so one bad trade can’t hurt too much."
+    },
+    {
+      "q": "A red candle on a chart means…",
+      "opts": ["The company is losing money", "The price closed higher than it opened", "The price closed lower than it opened"],
+      "why": "Red means the price ended that period lower than it started. Green means it ended higher."
+    },
+    {
+      "q": "Who wins a battle with friends?",
+      "opts": ["Whoever grows their account by the biggest %", "Whoever makes the most trades", "Whoever spends the most money"],
+      "why": "Everyone starts with the same virtual cash. The biggest % gain wins, no matter how many trades."
+    }
+  ]
+}

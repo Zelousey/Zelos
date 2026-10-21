@@ -13,7 +13,7 @@ export const STEPS: Record<Level, Step[]> = {
     { to: '/invite', icon: 'war', title: 'ns.quickBattle', body: 'ns.quickBattle.body' },
   ],
   learning: [
-    { to: '/learn/stops', icon: 'learn', title: 'ns.stops', body: 'ns.stops.body' },
+    { to: '/learn/basics/stops', icon: 'learn', title: 'ns.stops', body: 'ns.stops.body' },
     { to: '/invite', icon: 'war', title: 'ns.battle', body: 'ns.battle.body' },
     { to: '/training', icon: 'arcade', title: 'ns.training', body: 'ns.training.body' },
   ],

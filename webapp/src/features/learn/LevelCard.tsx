@@ -9,7 +9,7 @@ import type { UserDoc } from '../../data/userDoc';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
 import { Button, buttonClass, Card } from '../../ui';
-import { LESSONS } from './lessons';
+import { ALL_LESSONS } from './chapters';
 import { NextSteps } from './NextSteps';
 import { levelFromExperience } from './quiz';
 import s from './Learn.module.css';
@@ -19,7 +19,7 @@ const LATER_KEY = 'zelosQuizLater';
 export function LevelCard({ me }: { me: UserDoc }) {
   const [later, setLater] = useState(() => readString(LATER_KEY) === '1');
   const level = me.skill?.level ?? levelFromExperience(me.experience);
-  const lessonsLeft = LESSONS.some((l) => !me.learnDone.includes(l.id));
+  const lessonsLeft = ALL_LESSONS.some((l) => !me.learnDone.includes(l.id));
   if (!me.skill && !later)
     return (
       <Card pad aria-label={t('qz.cardTitle')}>

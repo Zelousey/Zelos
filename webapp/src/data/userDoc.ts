@@ -15,7 +15,7 @@ import { SYMBOL_RE } from './markets';
 export type Experience = 'new' | 'some' | 'pro';
 /** First steps checklist flags (users/{uid}.onboard), shared with the website (zelos-profile.js). */
 export type Onboard = { profile: boolean; trade: boolean; invited: boolean };
-export type UserDoc = { watchlist: string[]; xp: number; progress: Progress | null; missions: Progress | null; onboard: Onboard; experience: Experience | null; prefs: Prefs; friends: string[]; blocked: string[]; termsAt: number | null; skill: Skill | null; learnDone: string[] };
+export type UserDoc = { watchlist: string[]; xp: number; progress: Progress | null; missions: Progress | null; onboard: Onboard; experience: Experience | null; prefs: Prefs; friends: string[]; blocked: string[]; termsAt: number | null; skill: Skill | null; learnDone: string[]; learnPassed: Record<string, number> };
 
 const uids = (v: unknown, max: number) => (Array.isArray(v) ? (v as unknown[]).filter((x): x is string => typeof x === 'string' && /^[A-Za-z0-9]{10,40}$/.test(x)).slice(0, max) : []);
 
@@ -31,7 +31,9 @@ export function parseUserDoc(d: DocumentData): UserDoc {
     blocked: uids(d.blocked, 500),
     termsAt: typeof d.termsAt === 'number' && d.termsAt > 0 ? d.termsAt : null,
     skill: parseSkill(d.skill),
-    learnDone: Array.isArray(d.learnDone) ? (d.learnDone as unknown[]).filter((x): x is string => typeof x === 'string' && /^[a-z-]{2,20}$/.test(x)).slice(0, 50) : [],
+    learnDone: Array.isArray(d.learnDone) ? (d.learnDone as unknown[]).filter((x): x is string => typeof x === 'string' && /^[a-z-]{2,20}$/.test(x)).slice(0, 80) : [],
+    // Trading 101 chapter quizzes passed (written by the server's learn_quiz): chapter id -> when
+    learnPassed: d.learnPassed && typeof d.learnPassed === 'object' ? Object.fromEntries(Object.entries(d.learnPassed as Record<string, unknown>).filter(([k, v]) => /^[a-z-]{2,20}$/.test(k) && typeof v === 'number')) as Record<string, number> : {},
   };
 }
 

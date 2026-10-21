@@ -180,6 +180,6 @@ again as screens are added; Firestore is the largest piece.
 ## Beginners: quiz and Trading 101 (2026-10-15)
 - `features/learn/quiz.ts`: the five questions and `score()` (knowledge decides: 0-1 right or brand new → Beginner; all right and not new → Experienced; else Learning). Saved on `users.skill` `{level, right, goal, at}` plus `experience`. Skipped → the welcome answer is the fallback (`levelFromExperience`). `useSkill()` reads it.
 - Where the quiz appears: welcome step 2, `/quiz?next=…` (Dashboard `LevelCard`, invite celebration, Trading 101 page).
-- `features/learn/lessons.ts`: Trading 101 content; `/learn`, `/learn/:id`; `users.learnDone`.
+- `features/learn/chapters.ts`: Trading 101 chapters (lessons of animated scenes from `Scene.tsx`, a quick check each; chapter quiz questions in `quizzes.json`, answers only in `functions/learn.py`). Routes `/learn`, `/learn/:chapter/:lesson`, `/learn/:chapter/quiz` (old `/learn/:id` redirects). Progress: `users.learnDone` (yours to write), `users.learnPassed` (server only, written by the `learn_quiz` callable). XP: 10 per lesson (`xp_award` type `lesson`), 50 per passed chapter quiz (server only).
 - `features/learn/Glossary.tsx`: `TermHelp` "?" explanations and the order-type sentence on the trade ticket.
 - Beginner-only: the guided first trade (until the first trade or order), the Dashboard next steps (until the lessons are done) and `BattleSettings simple` (Quick battle) in the invite page and the challenge sheet.
