@@ -69,3 +69,4 @@
 @media (prefers-reduced-motion: reduce) {
   .pop, .fade, .draw, .fly, .grow, .growX, .tilt, .spin, .stamp { animation-duration: 0.001ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
 }
+.checkSmall { fill: none; stroke: #fff; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }

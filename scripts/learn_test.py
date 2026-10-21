@@ -21,6 +21,11 @@ for ch, c in L.CHAPTERS.items():
     ok(all("answer" not in q and "right" not in q for q in qs), "%s: the app's file holds no answers" % ch)
     ok(0 < c["pass"] <= len(c["answers"]), "%s: pass mark %d of %d" % (ch, c["pass"], len(c["answers"])))
 ok(set(QZ) - {"_note"} == set(L.CHAPTERS), "every chapter in the app has a quiz on the server")
+# ...and the app's lessons are the ones the server pays XP for
+import re
+with open(os.path.join(ROOT, "webapp", "src", "features", "learn", "chapters.ts"), encoding="utf-8") as f:
+    APP_LESSONS = re.findall(r"^    id: '([a-z0-9-]+)',$", f.read(), re.M)
+ok(sorted(APP_LESSONS) == sorted(L.LESSON_IDS), "the app's lessons match the server's (%d)" % len(APP_LESSONS))
 
 key = L.CHAPTERS["basics"]["answers"]
 r = L.grade("basics", list(key))
@@ -38,6 +43,8 @@ ok(L.grade("nope", list(key)) is None and L.grade(None, list(key)) is None, "unk
 # XP: 10 a lesson (known lessons only), 50 a chapter (server only)
 ok(XP.decide("lesson", "stocks", "2026-10-21") == (10, "stocks", None), "lesson XP")
 ok(XP.decide("lesson", "made-up", "2026-10-21")[2] == "bad-ref", "unknown lesson: no XP")
+ok(XP.decide("lesson", "rsi", "2026-10-21") == (10, "rsi", None), "chapter 2 lesson XP")
+ok(XP.decide("chapter", "charts", "2026-10-21") == (50, "charts", None), "chapter 2 XP")
 ok(XP.decide("chapter", "basics", "2026-10-21") == (50, "basics", None) and "chapter" in XP.SERVER_ONLY, "chapter XP, paid only by the server")
 ok(len(L.LESSON_IDS) == sum(len(c["lessons"]) for c in L.CHAPTERS.values()), "lesson ids are unique across chapters")
 

@@ -192,8 +192,165 @@ const BASICS: Lesson[] = [
   },
 ];
 
+const CHARTS: Lesson[] = [
+  {
+    id: 'timeframes',
+    title: 'Timeframes',
+    sub: 'Zoom in, zoom out',
+    minutes: 2,
+    steps: [
+      { art: { k: 'zoom', tf: '15m' }, title: 'Each candle is a slice of time', text: 'On a 15-minute chart, each candle is 15 minutes of trading. On a daily chart, each candle is a whole day.' },
+      { art: { k: 'zoom', tf: 'D' }, title: 'Same stock, different story', text: 'Zoomed in, a stock can look like it’s crashing. Zoom out to daily and that drop may be a tiny dip in a strong uptrend.' },
+      { art: { k: 'zoom', tf: 'W' }, title: 'Start wide, then zoom in', text: 'Look at the daily or weekly chart first to see the big picture. Then use a shorter timeframe to pick your moment.', tip: 'Switch timeframes with the buttons above any chart.' },
+    ],
+    check: {
+      art: { k: 'zoom', tf: '1H' },
+      q: 'On a 1-hour chart, each candle shows…',
+      opts: ['One hour of trading', 'One day of trading', 'One trade'],
+      right: 0,
+      why: ['Right. The timeframe is how long each candle lasts: here, one hour.', 'Not quite. That’s a daily chart. On a 1-hour chart each candle is one hour.', 'Not quite. One candle sums up every trade in its hour.'],
+    },
+    tryIt: { label: 'Try different timeframes', to: '/markets/SPY' },
+  },
+  {
+    id: 'trends',
+    title: 'Trends',
+    sub: 'Up, down or sideways',
+    minutes: 2,
+    steps: [
+      { art: { k: 'trend', dir: 'up' }, title: 'Uptrend', text: 'Each high is higher than the last, and each low is higher too. Buyers are in control.' },
+      { art: { k: 'trend', dir: 'down' }, title: 'Downtrend', text: 'Lower highs and lower lows. Sellers are in control. Buying here is swimming against the current.' },
+      { art: { k: 'trend', dir: 'side' }, title: 'Sideways', text: 'The price bounces between the same high and low. Nobody is winning yet. Many traders wait for it to break out.', tip: '“The trend is your friend.” Trading with it is usually easier than fighting it.' },
+    ],
+    check: {
+      art: { k: 'trend', dir: 'down', plain: true },
+      q: 'Lower highs and lower lows mean…',
+      opts: ['An uptrend', 'A downtrend', 'Nothing at all'],
+      right: 1,
+      why: ['Not quite. An uptrend makes higher highs and higher lows.', 'Right. Each bounce tops out lower and each dip goes lower: sellers are winning.', 'Not quite. It’s one of the clearest signs on a chart: a downtrend.'],
+    },
+    tryIt: { label: 'Spot the trend', to: '/markets/AAPL' },
+  },
+  {
+    id: 'support-resistance',
+    title: 'Support & resistance',
+    sub: 'Floors and ceilings',
+    minutes: 3,
+    steps: [
+      { art: { k: 'levels', mode: 'bounce' }, title: 'Floors and ceilings', text: 'Support is a price where the stock keeps bouncing up, like a floor. Resistance is where it keeps getting stuck, like a ceiling.' },
+      { art: { k: 'levels', mode: 'break' }, title: 'Breakouts', text: 'When the price pushes through a ceiling, buyers have won that fight. The old ceiling often turns into the new floor.' },
+      { art: { k: 'big', top: 'Stop below support', bottom: 'A SMART PLACE FOR A STOP' }, title: 'Use them for your plan', text: 'Buying near support gives you a clear place for a stop-loss: just below the floor. If the floor breaks, you were wrong, and you’re out with a small loss.' },
+    ],
+    check: {
+      art: { k: 'levels', mode: 'bounce', plain: true },
+      q: 'A price where a stock keeps bouncing back up is called…',
+      opts: ['Resistance', 'Volume', 'Support'],
+      right: 2,
+      why: ['Not quite. Resistance is the ceiling it keeps getting stuck under.', 'Not quite. Volume is how many shares traded.', 'Right. Support is the floor where buyers keep stepping in.'],
+    },
+    tryIt: { label: 'Find support on a chart', to: '/markets/MSFT' },
+  },
+  {
+    id: 'moving-averages',
+    title: 'Moving averages',
+    sub: 'The smooth lines',
+    minutes: 2,
+    steps: [
+      { art: { k: 'averages' }, title: 'The average of recent prices', text: 'A 20-day moving average is the average close of the last 20 days. It smooths out the noise so the trend is easier to see.' },
+      { art: { k: 'cross' }, title: 'Fast line crosses the slow line', text: 'When the faster 20 line crosses above the slower 50 line, the trend may be turning up. Crossing below can mean it’s turning down.' },
+      { art: { k: 'big', top: 'Signs, not promises', bottom: 'AVERAGES LAG BEHIND THE PRICE' }, title: 'They’re always a bit late', text: 'Averages are built from past prices, so they react after the move has started. Use them to confirm a trend, not to predict one.' },
+    ],
+    check: {
+      art: { k: 'cross', plain: true },
+      q: 'The 20-day average crosses above the 50-day. That suggests…',
+      opts: ['The trend may be turning up', 'The stock will surely go up', 'The company is shutting down'],
+      right: 0,
+      why: ['Right. It’s a sign the recent price is gaining strength. A sign, not a promise.', 'Not quite. No signal is sure. It only suggests the trend may be turning up.', 'Not quite. A moving average is only about the price, not the company’s plans.'],
+    },
+    tryIt: { label: 'Turn on the averages', to: '/markets/NVDA' },
+  },
+  {
+    id: 'volume',
+    title: 'Volume',
+    sub: 'How many people agree',
+    minutes: 2,
+    steps: [
+      { art: { k: 'volume' }, title: 'Volume = shares traded', text: 'The bars under the chart show how many shares changed hands in each candle. Tall bar, lots of trading.' },
+      { art: { k: 'volspike' }, title: 'Big move, big volume', text: 'A breakout on a huge volume bar means lots of traders are behind it. That move is more likely to stick.' },
+      { art: { k: 'big', top: 'Big move, tiny volume?', bottom: 'BE CAREFUL', tone: 'down' }, title: 'Quiet moves are weaker', text: 'If the price jumps but volume is low, few people are behind it. It can fade just as fast.' },
+    ],
+    check: {
+      art: { k: 'volspike', plain: true },
+      q: 'A stock breaks above resistance on very high volume. That usually means…',
+      opts: ['Nobody cares about the move', 'Lots of traders are behind the move', 'The chart is broken'],
+      right: 1,
+      why: ['Not quite. High volume means lots of people are trading it.', 'Right. Big volume shows strong agreement, so the breakout is more believable.', 'Not quite. High volume is normal on big news or breakouts.'],
+    },
+    tryIt: { label: 'Look at the volume', to: '/markets/TSLA' },
+  },
+  {
+    id: 'candle-shapes',
+    title: 'Candle shapes',
+    sub: 'What one candle can tell you',
+    minutes: 3,
+    steps: [
+      { art: { k: 'shapes' }, title: 'Shapes tell a story', text: 'The size of a candle’s body and wicks shows who won the fight between buyers and sellers in that period.' },
+      { art: { k: 'shapes', focus: 0 }, title: 'Long lower wick', text: 'Sellers pushed the price way down, but buyers pushed it back up before the close. Near support, that’s a good sign.' },
+      { art: { k: 'shapes', focus: 1 }, title: 'Doji: undecided', text: 'It opened and closed at almost the same price. Nobody won. After a long trend, it can mean the trend is getting tired.' },
+      { art: { k: 'shapes', focus: 2 }, title: 'Big body: a strong move', text: 'A big body with small wicks means one side was in control the whole time. A big red one means sellers took charge.' },
+    ],
+    check: {
+      art: { k: 'shapes', focus: 1 },
+      q: 'A candle that opens and closes at nearly the same price is a…',
+      opts: ['Big body', 'Long lower wick', 'Doji'],
+      right: 2,
+      why: ['Not quite. A big body means the price moved a lot from open to close.', 'Not quite. That one has a long tail below, where buyers pushed back.', 'Right. A doji means buyers and sellers ended up even: undecided.'],
+    },
+    tryIt: { label: 'Find a doji', to: '/markets/AMZN' },
+  },
+  {
+    id: 'rsi',
+    title: 'RSI',
+    sub: 'Has it moved too far, too fast?',
+    minutes: 3,
+    steps: [
+      { art: { k: 'rsi', zone: 'mid' }, title: 'A score from 0 to 100', text: 'RSI measures how fast the price has been moving up or down lately. Most of the time it sits between 30 and 70.' },
+      { art: { k: 'rsi', zone: 'over' }, title: 'Above 70: overbought', text: 'The price has run up fast. It might be due for a rest or a pullback, but strong stocks can stay above 70 for a while.' },
+      { art: { k: 'rsi', zone: 'under' }, title: 'Below 30: oversold', text: 'The price has dropped fast. It might bounce soon, but falling stocks can keep falling.', tip: 'RSI works best together with the trend and support, never on its own.' },
+    ],
+    check: {
+      art: { k: 'rsi', zone: 'over' },
+      q: 'A stock’s RSI is 82. That means…',
+      opts: ['It has run up fast and may be due for a rest', 'It is about to crash for sure', 'It is cheap right now'],
+      right: 0,
+      why: ['Right. Above 70 is overbought: it moved up fast, so a rest is more likely. Not certain.', 'Not quite. RSI never promises anything. Strong stocks can stay high for a while.', 'Not quite. A high RSI means it rose fast, not that it’s cheap.'],
+    },
+    tryIt: { label: 'Turn on RSI', to: '/markets/SPY' },
+  },
+  {
+    id: 'chart-checklist',
+    title: 'Your chart checklist',
+    sub: 'Put it all together',
+    minutes: 2,
+    steps: [
+      { art: { k: 'checklist' }, title: 'Four questions before you buy', text: 'Which way is the trend? Where are support and resistance? Is volume backing the move? Where does my stop go?' },
+      { art: { k: 'big', top: '3 of 4 say yes?', bottom: 'THEN IT’S WORTH A LOOK', tone: 'up' }, title: 'Look for agreement', text: 'One signal alone is weak. When the trend, the levels and the volume all point the same way, the odds are better.' },
+      { art: { k: 'big', top: 'No clear answer?', bottom: 'SKIP IT. THERE’S ALWAYS ANOTHER' }, title: 'It’s fine to wait', text: 'If the chart is messy, don’t trade it. Waiting costs nothing; a bad trade does.' },
+    ],
+    check: {
+      art: { k: 'checklist' },
+      q: 'The trend is down, the price just broke support, and volume is high. Should you buy?',
+      opts: ['Yes, it’s cheaper now', 'Probably not: the chart says sellers are winning', 'Yes, high volume is always good'],
+      right: 1,
+      why: ['Not quite. Cheaper can get cheaper. Every signal here points down.', 'Right. A downtrend, broken support and heavy selling all agree: wait.', 'Not quite. High volume makes the move stronger, and here the move is down.'],
+    },
+    tryIt: { label: 'Check a chart', to: '/markets/AAPL' },
+  },
+];
+
 export const CHAPTERS: Chapter[] = [
   { id: 'basics', n: 1, title: 'The basics', sub: 'Stocks, prices, charts, your first trade and staying safe.', lessons: BASICS, quiz: quizzes.basics, pass: 4 },
+  { id: 'charts', n: 2, title: 'Charts & volume', sub: 'Timeframes, trends, support, averages, volume, candle shapes and RSI.', lessons: CHARTS, quiz: quizzes.charts, pass: 4 },
 ];
 
 export const chapterById = (id: string) => CHAPTERS.find((c) => c.id === id) ?? null;

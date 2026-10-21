@@ -26,10 +26,21 @@ export type Art =
   | { k: 'target' }
   | { k: 'rr'; plain?: boolean }
   | { k: 'race'; plain?: boolean }
-  | { k: 'done'; label: string };
+  | { k: 'done'; label: string }
+  // Chapter 2: charts & volume
+  | { k: 'zoom'; tf: '15m' | '1H' | 'D' | 'W' }
+  | { k: 'trend'; dir: 'up' | 'down' | 'side'; plain?: boolean }
+  | { k: 'levels'; mode: 'bounce' | 'break'; plain?: boolean }
+  | { k: 'cross'; plain?: boolean }
+  | { k: 'volspike'; plain?: boolean }
+  | { k: 'shapes'; focus?: 0 | 1 | 2 }
+  | { k: 'rsi'; zone: 'over' | 'under' | 'mid' }
+  | { k: 'checklist' };
 
 const W = 400;
 const H = 300;
+/** drawn lines are measured as this long, so the draw-in animation (.draw: dasharray 520) always reaches the end */
+const DRAW = 520;
 const d = (sec: number): CSSProperties => ({ animationDelay: `${sec}s` });
 const money = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const path = (pts: [number, number][]) => pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
@@ -144,7 +155,7 @@ function Move({ dir, from, to, label }: { dir: 'up' | 'down'; from: number; to: 
   return (
     <>
       <Grid />
-      <path d={path(pts)} className={[s.line, up ? s.s_up : s.s_dn, s.draw].join(' ')} />
+      <path d={path(pts)} pathLength={DRAW} className={[s.line, up ? s.s_up : s.s_dn, s.draw].join(' ')} />
       <circle cx={last[0]} cy={last[1]} r={7} className={[up ? s.f_up : s.f_dn, s.pop].join(' ')} style={d(1.5)} />
       <Label x={30} y={40} anchor="start">
         {label}
@@ -351,8 +362,8 @@ function Candles({ withAverages, withVolume }: { withAverages?: boolean; withVol
       })}
       {withAverages && (
         <>
-          <path d={path(avg(3))} className={[s.avg, s.s_acc, s.draw].join(' ')} style={d(1)} />
-          <path d={path(avg(6))} className={[s.avg, s.s_gold, s.draw].join(' ')} style={d(1.3)} />
+          <path d={path(avg(3))} pathLength={DRAW} className={[s.avg, s.s_acc, s.draw].join(' ')} style={d(1)} />
+          <path d={path(avg(6))} pathLength={DRAW} className={[s.avg, s.s_gold, s.draw].join(' ')} style={d(1.3)} />
           <Label x={370} y={40} anchor="end" tone="ink">
             <tspan className={s.t_acc}>— 20-candle average </tspan>
             <tspan className={s.t_gold}>— 50-candle</tspan>
@@ -424,7 +435,7 @@ function StopTarget({ kind, plain }: { kind: 'stop' | 'target'; plain?: boolean 
       <Label x={364} y={stop ? lineY + 18 : lineY - 8} anchor="end" tone={stop ? 'dn' : 'up'}>
         {stop ? 'STOP-LOSS · $95' : 'TAKE-PROFIT · $110'}
       </Label>
-      <path d={path(pts)} className={[s.line, stop ? s.s_dn : s.s_up, s.draw].join(' ')} />
+      <path d={path(pts)} pathLength={DRAW} className={[s.line, stop ? s.s_dn : s.s_up, s.draw].join(' ')} />
       {!plain && (
         <>
           <circle cx={320} cy={lineY} r={9} className={[stop ? s.f_dn : s.f_up, s.pop].join(' ')} style={d(1.5)} />
@@ -500,6 +511,217 @@ function Done({ label }: { label: string }) {
   );
 }
 
+
+// ---------------------------------------------------------------- Chapter 2: charts & volume
+const ZOOM: Record<'15m' | '1H' | 'D' | 'W', [number, number][]> = {
+  '15m': [[30, 150], [55, 165], [80, 140], [105, 170], [130, 135], [155, 160], [180, 128], [205, 158], [230, 120], [255, 150], [280, 115], [305, 140], [330, 108], [355, 130], [370, 100]],
+  '1H': [[30, 200], [80, 185], [130, 196], [180, 160], [230, 172], [280, 135], [330, 148], [370, 110]],
+  D: [[30, 230], [100, 200], [170, 210], [240, 150], [300, 160], [370, 90]],
+  W: [[30, 240], [130, 190], [250, 140], [370, 80]],
+};
+function Zoom({ tf }: { tf: '15m' | '1H' | 'D' | 'W' }) {
+  const tfs = ['15m', '1H', 'D', 'W'] as const;
+  return (
+    <>
+      {tfs.map((x, i) => (
+        <g key={x}>
+          <rect x={92 + i * 56} y={22} width={48} height={26} rx={8} className={x === tf ? s.f_acc : s.field} />
+          <text x={116 + i * 56} y={40} textAnchor="middle" className={[s.lbl, x === tf ? s.t_white : s.t_mut].join(' ')}>
+            {x}
+          </text>
+        </g>
+      ))}
+      <Grid />
+      <path d={path(ZOOM[tf])} pathLength={DRAW} className={[s.line, s.s_up, s.draw].join(' ')} />
+      <Label x={200} y={285} tone="ink" delay={1.4}>
+        {tf === '15m' ? 'EACH POINT: 15 MINUTES · LOTS OF WIGGLES' : tf === '1H' ? 'EACH POINT: 1 HOUR' : tf === 'D' ? 'EACH POINT: 1 DAY · THE BIGGER PICTURE' : 'EACH POINT: 1 WEEK · THE BIG TREND'}
+      </Label>
+    </>
+  );
+}
+
+function Trend({ dir, plain }: { dir: 'up' | 'down' | 'side'; plain?: boolean }) {
+  const pts: [number, number][] =
+    dir === 'up'
+      ? [[30, 240], [90, 170], [130, 205], [200, 130], [240, 165], [310, 85], [370, 110]]
+      : dir === 'down'
+        ? [[30, 70], [90, 140], [130, 105], [200, 180], [240, 145], [310, 225], [370, 200]]
+        : [[30, 160], [80, 120], [130, 175], [190, 118], [240, 172], [300, 122], [370, 165]];
+  const tone = dir === 'up' ? s.s_up : dir === 'down' ? s.s_dn : s.s_acc;
+  const marks = dir === 'side' ? [] : pts.slice(1, 6);
+  const names = dir === 'up' ? ['HH', 'HL', 'HH', 'HL', 'HH'] : ['LH', 'LL', 'LH', 'LL', 'LH'];
+  return (
+    <>
+      <Grid />
+      {dir === 'side' && <rect x={30} y={112} width={340} height={70} className={s.f_accs} opacity={0.5} />}
+      <path d={path(pts)} pathLength={DRAW} className={[s.line, tone, s.draw].join(' ')} />
+      {!plain &&
+        marks.map((p, i) => (
+          <g key={i} className={s.pop} style={d(0.9 + i * 0.12)}>
+            <circle cx={p[0]} cy={p[1]} r={5} className={dir === 'up' ? s.f_up : s.f_dn} />
+            <text x={p[0]} y={p[1] + (i % 2 === 0 === (dir === 'up') ? -12 : 22)} textAnchor="middle" className={[s.lbl, s.t_ink].join(' ')}>
+              {names[i]}
+            </text>
+          </g>
+        ))}
+      {!plain && (
+        <Label x={200} y={285} tone={dir === 'up' ? 'up' : dir === 'down' ? 'dn' : 'ink'} delay={1.6}>
+          {dir === 'up' ? 'HIGHER HIGHS + HIGHER LOWS = UPTREND' : dir === 'down' ? 'LOWER HIGHS + LOWER LOWS = DOWNTREND' : 'STUCK IN A RANGE = SIDEWAYS'}
+        </Label>
+      )}
+    </>
+  );
+}
+
+function Levels({ mode, plain }: { mode: 'bounce' | 'break'; plain?: boolean }) {
+  const pts: [number, number][] =
+    mode === 'bounce'
+      ? [[30, 150], [75, 92], [120, 200], [170, 95], [220, 198], [270, 94], [320, 196], [370, 150]]
+      : [[30, 190], [80, 95], [130, 196], [180, 94], [230, 192], [280, 92], [330, 60], [370, 40]];
+  return (
+    <>
+      <Grid />
+      <line x1={30} x2={370} y1={90} y2={90} className={s.stopLine} />
+      <line x1={30} x2={370} y1={200} y2={200} className={s.targetLine} />
+      <Label x={36} y={82} anchor="start" tone="dn">
+        RESISTANCE: A CEILING
+      </Label>
+      <Label x={36} y={220} anchor="start" tone="up">
+        SUPPORT: A FLOOR
+      </Label>
+      <path d={path(pts)} pathLength={DRAW} className={[s.line, s.s_acc, s.draw].join(' ')} />
+      {mode === 'break' && !plain && (
+        <>
+          <circle cx={283} cy={90} r={9} className={[s.f_up, s.pop].join(' ')} style={d(1.4)} />
+          <Label x={330} y={130} tone="up" delay={1.6}>
+            BREAKOUT ↑
+          </Label>
+        </>
+      )}
+    </>
+  );
+}
+
+function Cross({ plain }: { plain?: boolean }) {
+  const slow: [number, number][] = [[30, 140], [110, 150], [190, 156], [270, 150], [370, 128]];
+  const fast: [number, number][] = [[30, 200], [110, 190], [190, 160], [270, 120], [370, 80]];
+  return (
+    <>
+      <Grid />
+      <path d={path(slow)} pathLength={DRAW} className={[s.avg, s.s_gold, s.draw].join(' ')} />
+      <path d={path(fast)} pathLength={DRAW} className={[s.avg, s.s_acc, s.draw].join(' ')} style={d(0.3)} />
+      <Label x={370} y={40} anchor="end" tone="ink">
+        <tspan className={s.t_acc}>— 20-day </tspan>
+        <tspan className={s.t_gold}>— 50-day</tspan>
+      </Label>
+      {!plain && (
+        <>
+          <circle cx={197} cy={156} r={12} className={[s.dashed, s.pop].join(' ')} style={d(1.5)} />
+          <Label x={200} y={250} tone="gold" delay={1.7}>
+            FAST LINE CROSSES ABOVE SLOW: A “GOLDEN CROSS”
+          </Label>
+        </>
+      )}
+    </>
+  );
+}
+
+function VolSpike({ plain }: { plain?: boolean }) {
+  const closes = [190, 186, 192, 184, 188, 182, 186, 130, 120, 112];
+  const vols = [16, 14, 18, 12, 15, 13, 14, 58, 34, 26];
+  const x = (i: number) => 60 + i * 30;
+  return (
+    <>
+      <Grid />
+      <line x1={30} x2={370} y1={176} y2={176} className={s.entry} />
+      {closes.map((c, i) => {
+        const o = i ? closes[i - 1]! : 194;
+        const up = c < o;
+        return (
+          <g key={i} className={s.pop} style={d(i * 0.08)}>
+            <rect x={x(i) - 8} y={Math.min(o, c)} width={16} height={Math.max(3, Math.abs(o - c))} rx={2} className={up ? s.f_up : s.f_dn} />
+            <rect x={x(i) - 8} y={290 - vols[i]!} width={16} height={vols[i]!} className={i === 7 && !plain ? s.f_gold : up ? s.f_upSoft : s.f_dnSoft} />
+          </g>
+        );
+      })}
+      {!plain && (
+        <Label x={200} y={60} tone="gold" delay={1.2}>
+          BREAKOUT ON BIG VOLUME: LOTS OF PEOPLE AGREE
+        </Label>
+      )}
+    </>
+  );
+}
+
+function Shapes({ focus }: { focus?: 0 | 1 | 2 }) {
+  const items = [
+    { name: 'LONG LOWER WICK', note: 'BUYERS PUSHED BACK', body: [150, 170], wick: [140, 250], up: true },
+    { name: 'DOJI', note: 'UNDECIDED', body: [158, 162], wick: [110, 210], up: true },
+    { name: 'BIG BODY', note: 'A STRONG MOVE', body: [90, 220], wick: [82, 228], up: false },
+  ];
+  return (
+    <>
+      {items.map((it, i) => {
+        const x = 80 + i * 120;
+        const dim = focus != null && focus !== i;
+        return (
+          <g key={it.name} opacity={dim ? 0.3 : 1} className={s.pop} style={d(i * 0.2)}>
+            <line x1={x} x2={x} y1={it.wick[0]} y2={it.wick[1]} className={[it.up ? s.s_up : s.s_dn, s.wickThin].join(' ')} />
+            <rect x={x - 16} y={it.body[0]} width={32} height={Math.max(4, it.body[1]! - it.body[0]!)} rx={3} className={it.up ? s.f_up : s.f_dn} />
+            <text x={x} y={268} textAnchor="middle" className={[s.lbl, s.t_ink].join(' ')}>
+              {it.name}
+            </text>
+            <text x={x} y={286} textAnchor="middle" className={[s.lbl, s.t_mut].join(' ')}>
+              {it.note}
+            </text>
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+function Rsi({ zone }: { zone: 'over' | 'under' | 'mid' }) {
+  const y = (v: number) => 250 - v * 2; // 0..100 -> 250..50
+  const vals = zone === 'over' ? [45, 52, 60, 66, 72, 78, 74] : zone === 'under' ? [55, 48, 40, 33, 26, 22, 28] : [48, 56, 50, 44, 52, 47, 50];
+  const pts = vals.map((v, i) => [40 + i * 52, y(v)] as [number, number]);
+  return (
+    <>
+      <rect x={30} y={y(100)} width={340} height={y(70) - y(100)} className={s.f_dnSoft} />
+      <rect x={30} y={y(30)} width={340} height={y(0) - y(30)} className={s.f_upSoft} />
+      <line x1={30} x2={370} y1={y(70)} y2={y(70)} className={s.entry} />
+      <line x1={30} x2={370} y1={y(30)} y2={y(30)} className={s.entry} />
+      <Label x={36} y={y(70) - 6} anchor="start">
+        70 · OVERBOUGHT
+      </Label>
+      <Label x={36} y={y(30) + 16} anchor="start">
+        30 · OVERSOLD
+      </Label>
+      <path d={path(pts)} pathLength={DRAW} className={[s.line, s.s_acc, s.draw].join(' ')} />
+      <Label x={200} y={285} tone={zone === 'over' ? 'dn' : zone === 'under' ? 'up' : 'ink'} delay={1.5}>
+        {zone === 'over' ? 'RSI ABOVE 70: IT RAN UP FAST' : zone === 'under' ? 'RSI BELOW 30: IT FELL FAST' : 'RSI 0–100: HOW FAST IT’S MOVING'}
+      </Label>
+    </>
+  );
+}
+
+function Checklist() {
+  const items = ['Which way is the trend?', 'Where are support and resistance?', 'Is volume backing the move?', 'Where does my stop go?'];
+  return (
+    <>
+      {items.map((it, i) => (
+        <g key={it} className={s.fade} style={d(0.2 + i * 0.35)}>
+          <circle cx={70} cy={70 + i * 50} r={14} className={s.f_up} />
+          <path d={`M63 ${70 + i * 50} l5 5 l9 -10`} className={s.checkSmall} />
+          <text x={98} y={76 + i * 50} className={[s.head, s.t_ink].join(' ')}>
+            {it}
+          </text>
+        </g>
+      ))}
+    </>
+  );
+}
+
 export function Scene({ art }: { art: Art }) {
   let body: ReactNode;
   switch (art.k) {
@@ -566,6 +788,30 @@ export function Scene({ art }: { art: Art }) {
       break;
     case 'done':
       body = <Done label={art.label} />;
+      break;
+    case 'zoom':
+      body = <Zoom tf={art.tf} />;
+      break;
+    case 'trend':
+      body = <Trend dir={art.dir} plain={art.plain} />;
+      break;
+    case 'levels':
+      body = <Levels mode={art.mode} plain={art.plain} />;
+      break;
+    case 'cross':
+      body = <Cross plain={art.plain} />;
+      break;
+    case 'volspike':
+      body = <VolSpike plain={art.plain} />;
+      break;
+    case 'shapes':
+      body = <Shapes focus={art.focus} />;
+      break;
+    case 'rsi':
+      body = <Rsi zone={art.zone} />;
+      break;
+    case 'checklist':
+      body = <Checklist />;
       break;
   }
   return <Svg>{body}</Svg>;

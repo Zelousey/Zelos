@@ -18,6 +18,11 @@ CHAPTERS = {
         "answers": [1, 0, 2, 2, 0],
         "pass": 4,
     },
+    "charts": {
+        "lessons": ["timeframes", "trends", "support-resistance", "moving-averages", "volume", "candle-shapes", "rsi", "chart-checklist"],
+        "answers": [1, 2, 0, 1, 0],
+        "pass": 4,
+    },
 }
 
 LESSON_IDS = {l for c in CHAPTERS.values() for l in c["lessons"]}
