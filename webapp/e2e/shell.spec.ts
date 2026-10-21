@@ -90,9 +90,9 @@ test.describe('phone', () => {
     await expect(sheet).toBeHidden();
     expect(await page.evaluate(() => (window as unknown as { __marker?: number }).__marker)).toBe(1);
 
-    // Practice belongs to Trade War: that tab stays selected
+    // the old Practice address opens the Dashboard, where the account lives now
     await page.goto('practice');
-    await expect(tabbar.getByRole('link', { name: 'Trade War' })).toHaveClass(/active/);
+    await expect(tabbar.getByRole('link', { name: 'Dashboard' })).toHaveClass(/active/);
 
     // touch targets in the tab bar are at least 44px tall
     const h = await tabbar.getByRole('link', { name: 'Market' }).evaluate((el) => el.getBoundingClientRect().height);
@@ -147,7 +147,8 @@ test.describe('desktop', () => {
     await page.goto('dashboard');
     const side = page.locator('aside').getByRole('navigation', { name: 'Main' });
     await expect(side).toBeVisible();
-    for (const name of ['Market', 'Trade War', 'Alerts', 'Practice', 'Options', 'Training Ground', 'Settings']) await expect(side.getByRole('link', { name, exact: true })).toBeVisible();
+    for (const name of ['Market', 'Trade War', 'Alerts', 'Battles', 'Training Ground', 'Settings']) await expect(side.getByRole('link', { name, exact: true })).toBeVisible();
+    for (const name of ['Practice', 'Options']) await expect(side.getByRole('link', { name, exact: true })).toHaveCount(0); // in the Dashboard and the Buy/Sell ticket now
     await expect(side.getByRole('link', { name: /^News/ })).toBeVisible();
     await expect(side.getByRole('link', { name: /Real Trading|Charts/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open menu' })).toBeHidden();

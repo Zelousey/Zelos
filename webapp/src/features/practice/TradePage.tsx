@@ -87,7 +87,7 @@ export default function TradePage() {
           actions={
             <Link
               className={buttonClass({ variant: "primary" })}
-              to="/practice"
+              to="/dashboard"
             >
               {t("trade.openAccount")}
             </Link>
@@ -212,7 +212,7 @@ function Ticket({
         "success",
       );
       setConfirming(false);
-      navigate("/practice");
+      navigate("/dashboard");
     } catch (e) {
       toast.show(errorMessage(e), "error");
     } finally {

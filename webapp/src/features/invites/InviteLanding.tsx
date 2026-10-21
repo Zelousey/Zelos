@@ -147,7 +147,7 @@ function Landing({ inv }: { inv: Invite }) {
 
 function Done({ inv, res }: { inv: Invite; res: Accepted }) {
   const { quizTaken, loaded } = useSkill();
-  const target = res.kind === 'battle' && res.warId ? `/battles/${res.warId}` : res.kind === 'squad' && res.squadId ? `/social/${res.squadId}` : '/practice';
+  const target = res.kind === 'battle' && res.warId ? `/battles/${res.warId}` : res.kind === 'squad' && res.squadId ? `/social/${res.squadId}` : '/dashboard';
   const title = res.kind === 'battle' ? t('land.done.battle') : res.kind === 'squad' ? t('land.done.squad', { squad: inv.squadName ?? 'the squad' }) : res.kind === 'coach' ? t('land.done.coach') : t('land.done.join');
   const next =
     res.kind === 'coach' && res.coachingId ? (
@@ -163,7 +163,7 @@ function Done({ inv, res }: { inv: Invite; res: Accepted }) {
         {t('land.goSquad')}
       </Link>
     ) : (
-      <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to="/practice">
+      <Link className={buttonClass({ variant: 'primary', size: 'lg', block: true })} to="/dashboard">
         {t('land.goPractice')}
       </Link>
     );

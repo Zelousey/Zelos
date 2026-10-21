@@ -336,6 +336,9 @@ const en = {
   'dash.squads': 'Squads',
 
   'practice.title': 'Practice',
+  'acct.title': 'Your practice account',
+  'acct.optionChain': 'Option chain',
+  'acct.more': 'Activity & account settings',
   'practice.virtual': 'Virtual money',
   'practice.signIn': 'Sign in to open your practice account: a virtual $10,000 to trade the Zelos stock list.',
   'practice.start.title': 'Start your practice account',

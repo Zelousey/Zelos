@@ -104,7 +104,7 @@ function PracticeCard() {
     body = (
       <div className={s.cta}>
         <p>{t('tw.practice.none')}</p>
-        <Link className={buttonClass({ variant: 'primary' })} to="/practice">
+        <Link className={buttonClass({ variant: 'primary' })} to="/dashboard">
           {t('tw.practice.start')}
         </Link>
       </div>
@@ -123,7 +123,7 @@ function PracticeCard() {
             <Link className={buttonClass({ variant: 'secondary' })} to="/markets">
               {t('tw.practice.trade')}
             </Link>
-            <Link className={buttonClass({ variant: 'primary' })} to="/practice">
+            <Link className={buttonClass({ variant: 'primary' })} to="/dashboard">
               {t('tw.practice.open')}
             </Link>
           </span>

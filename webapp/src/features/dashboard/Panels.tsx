@@ -3,24 +3,21 @@
  * progress) and has its own loading, empty and signed-out state, so one slow source never
  * blanks the page.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { levelFor } from '../../data/levels';
 import type { Loadable } from '../../data/liveDoc';
-import { useMovers, useQuotes, useSnapshot, type Quote } from '../../data/markets';
+import { useMovers, useQuotes, useSnapshot } from '../../data/markets';
 import { instrument, INDEX_ETFS } from '../../data/universe';
-import { formatMoney, formatPercent, formatPrice, formatSignedMoney } from '../../lib/format';
+import { formatMoney, formatPercent, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, Change, EmptyState, ErrorState, Icon, LoadingState, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
-import { nyDay } from '../charts/series';
-import { useVolMap } from '../options/model';
 import { MarketView } from '../markets/MarketView';
 import { MarketList } from '../markets/MarketRow';
 import { WatchlistEditor } from '../markets/WatchlistEditor';
 import { SectorBars } from '../markets/Sectors';
-import { usePracticeAccount, valueAccount } from '../practice/account';
 import { LevelBadge } from './LevelBadge';
 import { achievementsView, missionsView, STREAK_NEED, type Progress, type XpLog } from './progress';
 import { sortWars, useMyWars, useTopTraders, type Identity, type Ranked } from './social';
@@ -95,77 +92,6 @@ export function TraderCard({ identity, xp, streak, rank, badges, totalBadges }: 
           {t('tw.leaderboard')}
         </Link>
       </div>
-    </Card>
-  );
-}
-
-// ------------------------------------------------------------------ Trade War account
-export function AccountCard({ uid }: { uid: string }) {
-  const acct = usePracticeAccount(uid);
-  const quotes = useQuotes();
-  const qs = useMemo<Record<string, Quote>>(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
-  const [today] = useState(() => nyDay(Date.now()));
-  const data = acct.status === 'ready' ? acct.data : null;
-  const vols = useVolMap();
-  const v = useMemo(() => (data ? valueAccount(data, qs, today, vols) : null), [data, qs, today, vols]);
-  const top = v ? [...v.rows].sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl)).slice(0, 3) : [];
-
-  let body;
-  if (acct.status === 'loading') body = <Skeleton height={120} />;
-  else if (acct.status === 'error') body = <ErrorState compact />;
-  else if (!v || !data)
-    body = (
-      <div className={s.cta}>
-        <p>{t('tw.practice.none')}</p>
-        <Link className={buttonClass({ variant: 'primary' })} to="/practice">
-          {t('tw.practice.start')}
-        </Link>
-      </div>
-    );
-  else
-    body = (
-      <>
-        <div className={s.kpis}>
-          <Stat label={t('tw.value')} value={<span className={s.big}>{formatMoney(v.equity)}</span>} />
-          <Stat label={t('tw.today')} value={formatSignedMoney(v.dayPnl)} direction={dir(v.dayPnl)} delta={null} />
-          <Stat label={t('tw.total')} value={formatSignedMoney(v.netPnl)} direction={dir(v.netPnl)} delta={null} />
-        </div>
-        <div className={s.sub}>{t('dash.account.positions')}</div>
-        {top.length ? (
-          <ul className={s.positions}>
-            {top.map((p) => (
-              <li key={p.sym}>
-                <Link to={`/markets/${p.sym}`} className={s.posRow}>
-                  <b>{p.sym}</b>
-                  <span className={s.muted}>
-                    {p.qty} @ {formatPrice(p.avg)}
-                  </span>
-                  <span className={dir(p.pnl)}>
-                    {formatSignedMoney(p.pnl)} <small>({formatPercent(p.pnlPct)})</small>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={s.muted}>{t('dash.account.noPositions')}</p>
-        )}
-        <div className={s.rowEnd}>
-          <span className={s.muted}>{t('tw.holdings', { positions: data.positions.length, orders: data.orders.length })}</span>
-          <span className={s.row}>
-            <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to="/markets">
-              {t('tw.practice.trade')}
-            </Link>
-            <Link className={buttonClass({ variant: 'primary', size: 'sm' })} to="/practice">
-              {t('tw.practice.open')}
-            </Link>
-          </span>
-        </div>
-      </>
-    );
-  return (
-    <Card className={s.account} title={t('dash.account')} actions={<Badge tone="accent">{t('practice.virtual')}</Badge>}>
-      {body}
     </Card>
   );
 }

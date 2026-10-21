@@ -1,6 +1,7 @@
 /**
  * Dashboard: the Trade War command center (redesign of the classic dashboard.html, owner
- * reference 2026-10-08). Your trader card and Trade War account on top, then the live
+ * reference 2026-10-08). Your practice account first (value, stock and option positions, open
+ * orders: owner 2026-10-20, Practice merged in here), then your trader card, the live
  * globe, daily missions, the leaderboard, your Trade Wars, achievements, movers and the
  * US market. Every panel reads real server data or your own progress; nothing is mocked.
  *
@@ -17,10 +18,11 @@ import { useNow } from '../../lib/useNow';
 import { PageHeader, useToast } from '../../ui';
 import { StatusLine } from '../markets/StatusLine';
 import { useQuotes } from '../../data/markets';
-import { AccountCard, AchievementsCard, GlobePanel, LeaderboardCard, MarketCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
+import { AchievementsCard, GlobePanel, LeaderboardCard, MarketCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
 import { achievementsView, mergeProgress, missionsView, readLocal } from './progress';
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
+import { AccountSection } from '../practice/AccountSection';
 import { FirstSteps } from '../welcome/FirstSteps';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import { lsGet, SKIP_KEY } from '../welcome/welcome';
@@ -64,16 +66,15 @@ export default function DashboardPage() {
     <>
       <PageHeader title={t('nav.dashboard')} subtitle={uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')} />
       <StatusLine quotes={quotes} />
+      {/* owner 2026-10-20: your account, open positions (stocks and options) and orders come first */}
+      {uid && <AccountSection uid={uid} />}
       {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
         <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
       )}
       {uid && meDoc && <LevelCard me={meDoc} />}
       <div className={[s.grid, uid ? s.signedIn : s.signedOut].join(' ')}>
         {uid ? (
-          <>
-            <TraderCard identity={identity.status === 'ready' ? identity.data : null} xp={userDoc.status === 'ready' ? userDoc.data.xp : userDoc.status === 'loading' ? null : 0} streak={streak} rank={rank} badges={ach.unlocked.length} totalBadges={ach.total} />
-            <AccountCard uid={uid} />
-          </>
+          <TraderCard identity={identity.status === 'ready' ? identity.data : null} xp={userDoc.status === 'ready' ? userDoc.data.xp : userDoc.status === 'loading' ? null : 0} streak={streak} rank={rank} badges={ach.unlocked.length} totalBadges={ach.total} />
         ) : (
           <WelcomeCard onSignIn={signIn} />
         )}

@@ -1,15 +1,16 @@
 /**
- * Practice: your server-side $10,000 virtual account. Value and P&L, positions (with Close),
- * open orders (with Cancel), recent activity, the archived classic account, privacy and reset.
- * Every change goes through a Cloud Function; this screen only shows what the server holds.
+ * Your server-side $10,000 virtual account, shown at the top of the Dashboard (owner
+ * 2026-10-20: Practice merged into the Dashboard; /practice now opens the Dashboard). Value
+ * and P&L, stock and option positions (with Close), open orders (with Cancel), then recent
+ * activity, the archived classic account, privacy and reset folded under "Activity & settings".
+ * Every change goes through a Cloud Function; this only shows what the server holds.
  */
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuotes } from '../../data/markets';
-import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney, formatPrice, formatRelative, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { Badge, Button, buttonClass, Card, Change, Confirm, EmptyState, ErrorState, LoadingState, PageHeader, Stat, useToast } from '../../ui';
+import { Badge, Button, buttonClass, Card, Change, Confirm, EmptyState, ErrorState, Skeleton, Stat, useToast } from '../../ui';
 import { nyDay } from '../charts/series';
 import { useVolMap } from '../options/model';
 import { AccountChart } from './AccountChart';
@@ -21,57 +22,43 @@ import s from './Practice.module.css';
 const STATUS: Record<string, 'status.cancelled' | 'status.expired' | 'status.rejected' | 'status.filled'> = { cancelled: 'status.cancelled', expired: 'status.expired', rejected: 'status.rejected', filled: 'status.filled' };
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
 
-export default function PracticePage() {
-  const { user, isReal, ready, openSignIn } = useAuth();
-  const uid = isReal && user ? user.uid : null;
+/** The account for a signed-in player: a start button until they open one, then the account. */
+export function AccountSection({ uid }: { uid: string }) {
   const acct = usePracticeAccount(uid);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
-  if (!ready) return <LoadingState />;
-  if (!uid) {
-    return (
-      <>
-        <PageHeader title={t('practice.title')} />
-        <Card>
-          <EmptyState icon="practice" body={t('practice.signIn')} actions={<Button variant="primary" size="lg" onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>{t('auth.signIn')}</Button>} />
-        </Card>
-      </>
-    );
-  }
-  if (acct.status === 'loading') return <LoadingState rows={6} />;
-  if (acct.status === 'error') return <ErrorState />;
+  if (acct.status === 'loading') return <Skeleton height={220} />;
+  if (acct.status === 'error') return <ErrorState compact />;
   if (acct.status === 'missing') {
     return (
-      <>
-        <PageHeader title={t('practice.title')} />
-        <Card>
-          <EmptyState
-            icon="practice"
-            title={t('practice.start.title')}
-            body={
-              <>
-                {t('practice.start.body')} {t('practice.start.archive')}
-              </>
-            }
-            actions={
-              <Button
-                variant="primary"
-                size="lg"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  openAccount()
-                    .catch((e) => toast.show(errorMessage(e), 'error'))
-                    .finally(() => setBusy(false));
-                }}
-              >
-                {t('practice.start.cta')}
-              </Button>
-            }
-          />
-        </Card>
-      </>
+      <Card title={t('acct.title')}>
+        <EmptyState
+          icon="practice"
+          title={t('practice.start.title')}
+          body={
+            <>
+              {t('practice.start.body')} {t('practice.start.archive')}
+            </>
+          }
+          actions={
+            <Button
+              variant="primary"
+              size="lg"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                openAccount()
+                  .catch((e) => toast.show(errorMessage(e), 'error'))
+                  .finally(() => setBusy(false));
+              }}
+            >
+              {t('practice.start.cta')}
+            </Button>
+          }
+          compact
+        />
+      </Card>
     );
   }
   return <AccountView uid={uid} />;
@@ -91,7 +78,7 @@ function AccountView({ uid }: { uid: string }) {
   const [closing, setClosing] = useState<{ sym: string; qty: number } | null>(null);
   const [resetting, setResetting] = useState(false);
   const [pending, setPending] = useState(false);
-  if (!acct || !v) return <LoadingState />;
+  if (!acct || !v) return <Skeleton height={220} />;
 
   async function run(fn: () => Promise<unknown>, okMsg: string) {
     setPending(true);
@@ -106,20 +93,16 @@ function AccountView({ uid }: { uid: string }) {
   }
 
   return (
-    <>
-      <PageHeader
-        title={t('practice.title')}
-        subtitle={
-          <span className={s.badgeRow}>
-            <Badge tone="accent">{t('practice.virtual')}</Badge>
-          </span>
-        }
-        actions={
-          <Link className={buttonClass({ variant: 'primary' })} to="/markets">
-            {t('practice.findStock')}
-          </Link>
-        }
-      />
+    <section className={s.section} aria-labelledby="acct-title">
+      <div className={s.sectionHead}>
+        <h2 id="acct-title" className={s.sectionTitle}>
+          {t('acct.title')}
+        </h2>
+        <Badge tone="accent">{t('practice.virtual')}</Badge>
+        <Link className={[buttonClass({ variant: 'primary', size: 'sm' }), s.sectionAction].join(' ')} to="/markets">
+          {t('practice.findStock')}
+        </Link>
+      </div>
       <div className={s.stack}>
         <Card>
           <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} />
@@ -216,7 +199,7 @@ function AccountView({ uid }: { uid: string }) {
               flush
               actions={
                 <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/options">
-                  {t('nav.options')}
+                  {t('acct.optionChain')}
                 </Link>
               }
             >
@@ -224,16 +207,18 @@ function AccountView({ uid }: { uid: string }) {
             </Card>
           )}
 
-          <div className={s.side}>
-            <Card title={t('practice.orders')} flush>
-              {acct.orders.length === 0 ? <EmptyState icon="inbox" body={t('practice.orders.empty')} compact /> : acct.orders.map((o) => <OrderRow key={o.id} o={o} disabled={pending} onCancel={() => void run(() => cancelOrder(o.id), t('practice.cancelled'))} />)}
-              <p className={s.note}>{t('practice.fillNote')}</p>
-            </Card>
-            <Card title={t('practice.history')} flush>
-              {!history.ready ? <LoadingState rows={3} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} />}
-            </Card>
-          </div>
+          <Card title={t('practice.orders')} flush>
+            {acct.orders.length === 0 ? <EmptyState icon="inbox" body={t('practice.orders.empty')} compact /> : acct.orders.map((o) => <OrderRow key={o.id} o={o} disabled={pending} onCancel={() => void run(() => cancelOrder(o.id), t('practice.cancelled'))} />)}
+            <p className={s.note}>{t('practice.fillNote')}</p>
+          </Card>
         </div>
+
+        <details className={s.more}>
+          <summary>{t('acct.more')}</summary>
+          <div className={s.stack}>
+        <Card title={t('practice.history')} flush>
+          {!history.ready ? <Skeleton height={120} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} />}
+        </Card>
 
         {acct.archivedClassic && archive.status === 'ready' && (
           <Card title={t('practice.archive')}>
@@ -255,6 +240,8 @@ function AccountView({ uid }: { uid: string }) {
             </span>
           </div>
         </Card>
+          </div>
+        </details>
       </div>
 
       <Confirm
@@ -282,7 +269,7 @@ function AccountView({ uid }: { uid: string }) {
       >
         {t('practice.reset.confirm', { n: acct.resets + 1 })}
       </Confirm>
-    </>
+    </section>
   );
 }
 

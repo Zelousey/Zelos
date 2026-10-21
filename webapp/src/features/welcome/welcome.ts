@@ -42,7 +42,7 @@ export type Step = { id: 'profile' | 'account' | 'trade' | 'invite' | 'coach'; d
 export function firstSteps(v: { onboard: Onboard; hasUsername: boolean; hasAccount: boolean; experience: Experience | null; hasCoach: boolean }): Step[] {
   const steps: Step[] = [
     { id: 'profile', done: v.hasUsername || v.onboard.profile, xp: 25, to: '/welcome' },
-    { id: 'account', done: v.hasAccount, xp: 0, to: '/practice' },
+    { id: 'account', done: v.hasAccount, xp: 0, to: '/dashboard' },
     { id: 'trade', done: v.onboard.trade, xp: 25, to: '/markets' },
     { id: 'invite', done: v.onboard.invited, xp: 50, to: '/invite' },
   ];

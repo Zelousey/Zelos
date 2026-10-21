@@ -27,8 +27,10 @@ describe('module registry', () => {
       expect(t(m.label)).not.toMatch(/real trading|broker/i);
     }
   });
-  it('Practice lives under Trade War; Charts is a route under Market, not a nav entry', () => {
-    expect(navOwner(MODULES.find((m) => m.id === 'practice'))).toBe('trade-war');
+  it('Practice lives in the Dashboard and Options in Market (routes, not nav entries); Charts is a route under Market', () => {
+    expect(navOwner(MODULES.find((m) => m.id === 'practice'))).toBe('dashboard');
+    expect(navOwner(MODULES.find((m) => m.id === 'options'))).toBe('markets');
+    expect(navModules().some((m) => m.id === 'practice' || m.id === 'options')).toBe(false);
     expect(navOwner(MODULES.find((m) => m.id === 'charts'))).toBe('markets');
     expect(navModules().some((m) => m.id === 'charts')).toBe(false);
     for (const m of MODULES) if (m.parent) expect(MODULES.some((p) => p.id === m.parent), m.id).toBe(true);
