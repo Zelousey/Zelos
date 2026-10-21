@@ -105,6 +105,9 @@ test.describe('signed in', () => {
     await expect(ch.getByRole('link', { name: /Lesson 2/ })).toHaveCount(0); // locked until lesson 1 is done
     await expect(ch2.getByText('Finish Chapter 1 (or pass its quiz) to open this chapter.')).toBeVisible();
     await expect(ch2.getByRole('link')).toHaveCount(0);
+    await page.goto('learn/charts/quiz');
+    await expect(page.getByText('Pass Chapter 1 first')).toBeVisible();
+    await page.goto('learn');
     await page.goto('learn/basics/prices');
     await expect(page.getByText('This lesson isn’t open yet')).toBeVisible();
     await page.goto('learn/basics/stocks');

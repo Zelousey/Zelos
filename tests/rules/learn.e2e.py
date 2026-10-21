@@ -42,6 +42,13 @@ r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key)}, no
 u = db.collection("users").document(uid).get().to_dict()
 ok(r["passed"] and r["xp"] == 0 and u["xp"] == 50, "passing again pays nothing more")
 
+fresh = "learn-fresh-%d" % now
+try:
+    main.learn_quiz_run(db, fresh, {"chapter": "charts", "answers": list(main.LEARN.CHAPTERS["charts"]["answers"])}, now)
+    ok(False, "chapter 2 quiz must wait for chapter 1")
+except https_fn.HttpsError as e:
+    ok("Chapter 1" in str(e.message) and not db.collection("users").document(fresh).get().exists, "chapter 2 quiz refused until chapter 1 is passed")
+
 xp_before = db.collection("users").document(uid).get().to_dict()["xp"]
 r = main.learn_quiz_run(db, uid, {"chapter": "charts", "answers": list(main.LEARN.CHAPTERS["charts"]["answers"])}, now + 3000)
 u = db.collection("users").document(uid).get().to_dict()

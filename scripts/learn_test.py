@@ -40,6 +40,11 @@ for bad in (None, [], [0, 1], [0, 0, 0, 0, "1"], [0, 0, 0, 0, True], [0, 0, 0, 0
     ok(L.grade("basics", bad) is None, "bad answers refused: %r" % (bad,))
 ok(L.grade("nope", list(key)) is None and L.grade(None, list(key)) is None, "unknown chapter refused")
 
+# chapters open in order
+ok(L.chapter_open("basics", {}) and not L.chapter_open("charts", {}) and not L.chapter_open("charts", None), "chapter 2 is shut until chapter 1 is passed")
+ok(L.chapter_open("charts", {"basics": 1}) and not L.chapter_open("nope", {"basics": 1}), "passing chapter 1 opens chapter 2")
+ok(L.lesson_chapter("rsi") == "charts" and L.lesson_chapter("stocks") == "basics" and L.lesson_chapter("x") is None, "lessons know their chapter")
+
 # XP: 10 a lesson (known lessons only), 50 a chapter (server only)
 ok(XP.decide("lesson", "stocks", "2026-10-21") == (10, "stocks", None), "lesson XP")
 ok(XP.decide("lesson", "made-up", "2026-10-21")[2] == "bad-ref", "unknown lesson: no XP")

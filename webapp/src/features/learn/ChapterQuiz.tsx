@@ -9,7 +9,8 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { Badge, Button, buttonClass, Card, EmptyState, PageHeader, useToast } from '../../ui';
-import { CHAPTER_XP, CHAPTERS, chapterById, gradeQuiz, type QuizResult } from './chapters';
+import { CHAPTER_XP, CHAPTERS, chapterById, chapterState, gradeQuiz, type QuizResult } from './chapters';
+import { useSkill } from './useSkill';
 import s from './Learn.module.css';
 
 export function ChapterQuiz() {
@@ -19,11 +20,16 @@ export function ChapterQuiz() {
   const nextRaw = useSearchParams()[0].get('next') ?? '';
   const next = nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : null;
   const { isReal, openSignIn } = useAuth();
+  const { learnDone, learnPassed, loaded } = useSkill();
   const toast = useToast();
   const [answers, setAnswers] = useState<(number | null)[]>(() => (c ? c.quiz.map(() => null) : []));
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
   if (!c) return <EmptyState icon="learn" title={t('ln.missing')} actions={<Link to="/learn">{t('ln.back')}</Link>} />;
+  // chapters go in order: no Chapter 2 quiz before Chapter 1 is passed (the server checks too)
+  if (isReal && loaded && !chapterState(c, learnDone, learnPassed).unlocked) {
+    return <EmptyState icon="learn" title={t('ln.quizLocked', { n: c.n - 1 })} body={t('ln.chapterLocked', { n: c.n - 1 })} actions={<Link className={buttonClass({ variant: 'primary' })} to="/learn">{t('ln.back')}</Link>} />;
+  }
   const nextChapter = CHAPTERS[CHAPTERS.indexOf(c) + 1] ?? null;
   const all = answers.every((a) => a != null);
 

@@ -652,6 +652,7 @@ const en = {
   'ln.passed': 'Passed',
   'ln.chapterLocked': 'Finish Chapter {n} (or pass its quiz) to open this chapter.',
   'ln.lockedShort': 'locked',
+  'ln.quizLocked': 'Pass Chapter {n} first',
   'ln.start': 'Start',
   'ln.continue': 'Continue',
   'ln.lessonN': 'Lesson {n}',

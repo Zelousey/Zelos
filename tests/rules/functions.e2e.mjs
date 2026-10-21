@@ -32,6 +32,8 @@ r = await call('xp_award', { type: 'alert-open', refId: 'swing-1' });
 ok(r.awarded && r.xp === 8 && r.streakDays === 1, 'opening a real alert: +5 and streak starts');
 r = await call('xp_award', { type: 'alert-open', refId: 'no-such-alert' });
 ok(!r.awarded, 'opening a made-up alert pays nothing');
+r = await call('xp_award', { type: 'lesson', refId: 'rsi' });
+ok(!r.awarded && r.reason === 'locked', 'a Chapter 2 lesson pays nothing until Chapter 1 is passed');
 r = await call('xp_award', { type: 'mission', refId: `d:${nyDay()}:xp`, amount: 300 });
 ok(!r.awarded && r.reason === 'server-counted', 'browsers can no longer claim mission XP (the server counts missions)');
 // opening charts counts toward "Analyze 3 stocks", each stock once a day; the server pays the mission
