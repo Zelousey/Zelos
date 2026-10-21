@@ -47,3 +47,13 @@
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent-fill); }
 .confirmBody { padding: var(--space-4); display: grid; gap: var(--space-4); }
 .confirmActions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+
+/* the account at the top of the Dashboard */
+.section { display: grid; gap: var(--space-3); }
+.sectionHead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.sectionTitle { margin: 0; font-size: var(--text-lg); font-weight: 650; }
+.sectionAction { margin-left: auto; }
+.more { border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); }
+.more > summary { cursor: pointer; padding: var(--space-3) var(--space-4); font-weight: 600; font-size: var(--text-sm); color: var(--ink-2); min-height: 44px; display: flex; align-items: center; }
+.more[open] > summary { border-bottom: 1px solid var(--border-soft); }
+.more > .stack { padding: var(--space-3); }

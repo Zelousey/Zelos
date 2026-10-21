@@ -45,9 +45,12 @@ export const MODULES: AppModule[] = [
   { id: 'alerts', path: 'alerts', label: 'nav.alerts', icon: 'signal', group: 'main', tab: 4, load: () => import('../features/alerts/AlertsModule') },
   { id: 'news', path: 'news', label: 'nav.news', icon: 'news', group: 'main', tab: 5, load: () => import('../features/news/NewsModule') },
 
-  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', parent: 'trade-war', load: () => import('../features/practice/PracticeModule') },
+  // owner 2026-10-20: Practice is merged into the Dashboard and options trade from the Buy/Sell
+  // ticket, so neither has a menu entry; /practice/trade/:sym (the ticket) and /options/:sym (the
+  // full option chain, one tap from the ticket) stay as routes
+  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', parent: 'dashboard', nav: false, load: () => import('../features/practice/PracticeModule') },
   { id: 'battles', path: 'battles', label: 'nav.battles', icon: 'war', group: 'play', parent: 'trade-war', load: () => import('../features/battles/BattlesModule') },
-  { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'play', parent: 'trade-war', load: () => import('../features/options/OptionsModule') },
+  { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'play', parent: 'markets', nav: false, load: () => import('../features/options/OptionsModule') },
   { id: 'invite', path: 'invite', label: 'nav.invite', icon: 'invite', group: 'play', load: () => import('../features/invites/InviteModule').then((m) => ({ default: m.InviteMakeModule })) },
   // an invite link someone shared: /i/<code>
   { id: 'invite-link', path: 'i', label: 'nav.invite', icon: 'invite', group: 'play', parent: 'invite', nav: false, load: () => import('../features/invites/InviteModule') },

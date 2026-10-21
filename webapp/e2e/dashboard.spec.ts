@@ -74,8 +74,12 @@ test('signed in: trader card, account, missions, rank, Trade Wars and badges', a
   await expect(card).toContainText('2/29'); // first-trade (progress) + centurion (public profile)
   await expect(card.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
 
-  await expect(page.getByText('Trade War account')).toBeVisible();
-  await expect(page.getByRole('link', { name: /AAPL 5 @/ })).toBeVisible();
+  // the account comes first (owner 2026-10-20: Practice merged into the Dashboard)
+  const acct = page.getByRole('region', { name: 'Your practice account' });
+  await expect(acct).toBeVisible();
+  await expect(acct.getByRole('link', { name: 'AAPL', exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(acct.getByText('No open orders.')).toBeVisible();
+  expect((await acct.boundingBox())!.y).toBeLessThan((await card.boundingBox())!.y); // above the trader card
 
   const missions = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Daily missions' }) });
   await expect(missions.getByLabel('1 of 1, done')).toBeVisible();
