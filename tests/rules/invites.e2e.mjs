@@ -22,6 +22,9 @@ let pass = 0; const ok = (c, m) => { assert.ok(c, m); pass++; console.log('  ok 
 const inbox = async (uid) => (await getDocs(query(collection(db, 'users', uid, 'inbox'), orderBy('at', 'desc')))).docs.map((d) => d.data());
 const xpOf = async (uid) => Number((await adminGet('users/' + uid))?.fields?.xp?.integerValue ?? 0);
 const t0 = Date.now();
+// Trading 101 Chapter 1 passed (battles need it; normally written by learn_quiz)
+const passBasics = (uid) => fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/users/${uid}?updateMask.fieldPaths=learnPassed`, {
+  method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { learnPassed: { mapValue: { fields: { basics: { integerValue: String(Date.now()) } } } } } }) });
 
 // guests can't invite
 await signInAnonymously(auth);
@@ -31,6 +34,8 @@ await signOut(auth);
 // host
 const A = (await createUserWithEmailAndPassword(auth, `host${t0}@example.com`, 'secret123')).user;
 await admin('traders/' + A.uid, { name: S('Ada'), username: S('ada_' + (t0 % 1e6)) });
+ok(await fails(() => call('tw_create', { name: 'Too soon', buyIn: 1000, days: 1, maxPlayers: 4 }), /Chapter 1 quiz/), 'battles stay locked until Trading 101 Chapter 1 is passed');
+await passBasics(A.uid);
 const war = await call('tw_create', { name: 'Friday Showdown', buyIn: 1000, days: 1, maxPlayers: 4 });
 const battle = await call('invite_create', { kind: 'battle', warId: war.warId });
 ok(/^[A-Za-z0-9]{10}$/.test(battle.code) && battle.url.endsWith('/app/i/' + battle.code), 'battle invite link: ' + battle.url);
@@ -64,6 +69,8 @@ await signOut(auth);
 await signInWithEmail(`bee${t0}@example.com`);
 const bell = (await inbox(B.uid)).find((n) => n.action?.type === 'invite');
 ok(bell && bell.action.code === battle.code && bell.action.kind === 'battle' && /Ada invited you to a Trade War/.test(bell.title), 'the bell item carries an Accept action');
+ok(await fails(() => call('invite_accept', { code: battle.code }), /Chapter 1 quiz/), "a friend's battle invite waits until the new player passes Chapter 1");
+await passBasics(B.uid);
 let r = await call('invite_accept', { code: battle.code });
 ok(r.kind === 'battle' && r.warId === war.warId && r.referral && r.xp === 50, 'accept: joined the battle, referral recorded, +50 XP');
 const w = await adminGet('tradeWars/' + war.warId);

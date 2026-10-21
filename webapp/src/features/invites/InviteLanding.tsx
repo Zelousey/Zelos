@@ -4,6 +4,7 @@
  * celebration and the next step: the battle room, the squad, or the $10,000 account.
  */
 import { useSkill } from '../learn/useSkill';
+import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
@@ -51,6 +52,7 @@ export default function InviteLanding() {
 
 function Landing({ inv }: { inv: Invite }) {
   const { user, isReal, ready, openSignIn } = useAuth();
+  const battles = useBattlesOpen();
   const toast = useToast();
   const navigate = useNavigate();
   const now = useNow();
@@ -125,6 +127,8 @@ function Landing({ inv }: { inv: Invite }) {
           <Button variant="primary" size="lg" block onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
             {t('land.signIn')}
           </Button>
+        ) : inv.kind === 'battle' && battles.loaded && !battles.open ? (
+          <BattleLock next={`/i/${inv.code}`} flat />
         ) : (
           <div className={s.actions}>
             <Button variant="primary" size="lg" block disabled={busy} onClick={() => void accept()}>

@@ -5,7 +5,7 @@
  * question, with why.
  */
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { Badge, Button, buttonClass, Card, EmptyState, PageHeader, useToast } from '../../ui';
@@ -15,6 +15,9 @@ import s from './Learn.module.css';
 export function ChapterQuiz() {
   const { chapter = '' } = useParams();
   const c = chapterById(chapter);
+  // ?next=/i/CODE: came from a locked battle (BattleLock); go back there once passed
+  const nextRaw = useSearchParams()[0].get('next') ?? '';
+  const next = nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : null;
   const { isReal, openSignIn } = useAuth();
   const toast = useToast();
   const [answers, setAnswers] = useState<(number | null)[]>(() => (c ? c.quiz.map(() => null) : []));
@@ -49,9 +52,15 @@ export function ChapterQuiz() {
               {result.passed && result.xp === 0 && <Badge tone="up">{t('ln.passed')}</Badge>}
               <div className={s.lessonActions}>
                 {result.passed ? (
-                  <Link className={buttonClass({ variant: 'primary' })} to="/learn">
-                    {nextChapter ? t('ln.toNextChapter') : t('ln.back')}
-                  </Link>
+                  next ? (
+                    <Link className={buttonClass({ variant: 'primary' })} to={next}>
+                      {t('ln.backToNext')}
+                    </Link>
+                  ) : (
+                    <Link className={buttonClass({ variant: 'primary' })} to="/learn">
+                      {nextChapter ? t('ln.toNextChapter') : t('ln.back')}
+                    </Link>
+                  )
                 ) : (
                   <>
                     <Button

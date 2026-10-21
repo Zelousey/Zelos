@@ -18,6 +18,7 @@ import { BATTLE_ID_RE, cancelBattle, joinBattle, leaveBattle, OUT_REASON, startB
 import { DraftView } from './DraftView';
 import { LiveView } from './LiveView';
 import { clock, RulesBox } from './parts';
+import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
 import s from './Battles.module.css';
 
 export default function BattlePage() {
@@ -156,6 +157,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
 
 function Lobby({ b, uid, busy, onJoin, onStart }: { b: Battle; uid: string; busy: boolean; onJoin: () => void; onStart: () => void }) {
   const player = b.players.includes(uid);
+  const battles = useBattlesOpen();
   const waiting = b.invited.filter((u) => !b.players.includes(u)).length;
   return (
     <div className={s.cols}>
@@ -171,8 +173,9 @@ function Lobby({ b, uid, busy, onJoin, onStart }: { b: Battle; uid: string; busy
         </ul>
         {waiting > 0 && <p className={s.note}>{t('bt.waitingFor', { n: waiting })}</p>}
         <div className={s.actions}>
-          {!player && (
-            <Button variant="primary" size="lg" disabled={busy || b.players.length >= b.maxPlayers} onClick={onJoin}>
+          {!player && battles.loaded && !battles.open && <BattleLock next={`/battles/${b.id}`} flat />}
+          {!player && (battles.open || !battles.loaded) && (
+            <Button variant="primary" size="lg" disabled={busy || !battles.loaded || b.players.length >= b.maxPlayers} onClick={onJoin}>
               {b.players.length >= b.maxPlayers ? t('bt.full') : t('bt.join', { buyIn: formatMoney(b.buyIn, { digits: 0 }) })}
             </Button>
           )}
