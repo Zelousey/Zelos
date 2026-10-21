@@ -18,9 +18,30 @@ CHAPTERS = {
         "answers": [1, 0, 2, 2, 0],
         "pass": 4,
     },
+    "charts": {
+        "lessons": ["timeframes", "trends", "support-resistance", "moving-averages", "volume", "candle-shapes", "rsi", "chart-checklist"],
+        "answers": [1, 2, 0, 1, 0],
+        "pass": 4,
+    },
 }
 
 LESSON_IDS = {l for c in CHAPTERS.values() for l in c["lessons"]}
+ORDER = list(CHAPTERS)  # chapters open in this order (owner 2026-10-21: no Chapter 2 before Chapter 1)
+
+
+def lesson_chapter(lesson_id):
+    """The chapter a lesson belongs to, or None."""
+    return next((ch for ch, c in CHAPTERS.items() if lesson_id in c["lessons"]), None)
+
+
+def chapter_open(chapter, passed):
+    """A chapter is open once the chapter before it is passed (Chapter 1 always is).
+    passed: users/{uid}.learnPassed ({chapter: ms})."""
+    if chapter not in CHAPTERS:
+        return False
+    i = ORDER.index(chapter)
+    passed = passed if isinstance(passed, dict) else {}
+    return i == 0 or bool(passed.get(ORDER[i - 1])) or bool(passed.get(chapter))
 
 
 def grade(chapter, answers):

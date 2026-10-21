@@ -4624,6 +4624,11 @@ def xp_award(req: https_fn.CallableRequest):
                 return {"awarded": False, "reason": "bad-ref"}
         if kind == "referral-welcome" and not db.collection("referrals").document(uid).get().exists:
             return {"awarded": False, "reason": "bad-ref"}
+        # a lesson pays only once its chapter is open (the chapter before it passed)
+        if kind == "lesson":
+            u = db.collection("users").document(uid).get()
+            if not LEARN.chapter_open(LEARN.lesson_chapter(ref_id), (u.to_dict() or {}).get("learnPassed") if u.exists else None):
+                return {"awarded": False, "reason": "locked"}
 
         out = xp_grant(db, uid, kind, ref_id, now_ms)
         if kind == "grade-setup" and out.get("awarded"):
@@ -4647,6 +4652,10 @@ def learn_quiz_run(db, uid, data, now_ms):
     graded = LEARN.grade(chapter, data.get("answers"))
     if graded is None:
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Answer every question, then try again.")
+    u = db.collection("users").document(uid).get()
+    if not LEARN.chapter_open(chapter, ((u.to_dict() or {}).get("learnPassed") if u.exists else None)):
+        n = LEARN.ORDER.index(chapter)
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, "Pass the Chapter %d quiz first." % n)
     right, total, passed, results = graded
     out = {"right": right, "total": total, "passed": passed, "need": LEARN.CHAPTERS[chapter]["pass"], "results": results, "xp": 0}
     if passed:

@@ -66,6 +66,16 @@ describe('Trading 101 chapters', () => {
     expect(st.next?.id).toBe('practice-money');
     expect(chapterState(basics, basics.lessons.map((l) => l.id), { basics: 1 })).toMatchObject({ passed: true, complete: true, next: null });
   });
+  it('chapter 2 opens once chapter 1 is passed (or by passing its own quiz)', () => {
+    const charts = CHAPTERS[1]!;
+    expect(charts).toMatchObject({ id: 'charts', n: 2, pass: 4 });
+    expect(charts.lessons).toHaveLength(8);
+    expect(charts.quiz).toHaveLength(5);
+    expect(chapterState(charts, [], {}).unlocked).toBe(false);
+    expect(chapterState(charts, [], { basics: 1 })).toMatchObject({ unlocked: true, passed: false, done: 0 });
+    expect(chapterState(charts, [], { charts: 1 }).unlocked).toBe(true);
+    expect(chapterState(charts, [], { basics: 1 }).next?.id).toBe('timeframes');
+  });
   it('old one-page lessons point at their new place', () => {
     for (const to of Object.values(OLD_LESSON)) {
       const [c, l] = to.split('/');

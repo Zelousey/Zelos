@@ -26,5 +26,32 @@
       "opts": ["Whoever grows their account by the biggest %", "Whoever makes the most trades", "Whoever spends the most money"],
       "why": "Everyone starts with the same virtual cash. The biggest % gain wins, no matter how many trades."
     }
+  ],
+  "charts": [
+    {
+      "q": "You see a big drop on a 5-minute chart. What should you check first?",
+      "opts": ["Nothing, sell right away", "The daily chart, to see the bigger picture", "The company’s logo"],
+      "why": "Zoom out first. A scary drop on a short chart can be a small dip in a bigger uptrend."
+    },
+    {
+      "q": "Higher highs and higher lows mean…",
+      "opts": ["A downtrend", "A sideways market", "An uptrend"],
+      "why": "Each high and each low is above the one before it: buyers are in control. That’s an uptrend."
+    },
+    {
+      "q": "A stock keeps getting stuck under $50. $50 is…",
+      "opts": ["Resistance", "Support", "The RSI"],
+      "why": "A price it keeps failing to get above is a ceiling: resistance."
+    },
+    {
+      "q": "A price jumps on very low volume. That move is…",
+      "opts": ["Very strong", "Weaker: few traders are behind it", "Guaranteed to continue"],
+      "why": "Low volume means few people took part, so the move can fade fast. Big moves on big volume are more believable."
+    },
+    {
+      "q": "RSI drops below 30. That means the stock…",
+      "opts": ["Has dropped fast and may be oversold", "Is sure to bounce tomorrow", "Has no buyers left at all"],
+      "why": "Below 30 is oversold: it fell fast, so a bounce is more likely, but never certain."
+    }
   ]
 }
