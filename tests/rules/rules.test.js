@@ -162,6 +162,13 @@ test('missions are counted by the server: browsers cannot write them', async () 
   await assertSucceeds(updateDoc(doc(real('alice').firestore(), 'users/alice'), { watchlist: ['AAPL'] }));
 });
 
+test('Trading 101: chapter passes are written by the server; your lessons list is yours', async () => {
+  await assertFails(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, learnPassed: { basics: 1 } }));
+  await assertSucceeds(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, learnDone: ['stocks'] }));
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'users/alice'), { 'learnPassed.basics': Date.now() }));
+  await assertSucceeds(updateDoc(doc(real('alice').firestore(), 'users/alice'), { learnDone: ['stocks', 'prices'] }));
+});
+
 test('coaching: only the coach and the student can read it; nobody writes from the browser', async () => {
   await env.withSecurityRulesDisabled(async (c) => {
     await setDoc(doc(c.firestore(), 'coachings/alice_bob'), { coach: 'alice', student: 'bob', status: 'active' });

@@ -1,129 +1,142 @@
 /**
- * Trading 101 (/learn): six short lessons for people new to trading, each with a "Try it" link
- * into the app (virtual money). Signed in, finished lessons are ticked on your account.
+ * Trading 101 (/learn): chapters of short animated lessons (chapters.ts), each chapter a path
+ * you walk one lesson at a time, ending in a chapter quiz. Lessons pay 10 XP once, a passed
+ * chapter quiz 50 XP once and unlocks the next chapter; anyone can test out with the quiz.
+ *   /learn                        the chapters
+ *   /learn/:chapter/:lesson       one lesson (LessonPlayer)
+ *   /learn/:chapter/quiz          the chapter quiz (ChapterQuiz)
+ *   /learn/:old                   the old one-page lessons → their new place
  */
-import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, Navigate, useParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
-import { Badge, Button, buttonClass, Card, EmptyState, Icon, PageHeader, useToast } from '../../ui';
+import { Badge, buttonClass, Card, Icon, PageHeader, useToast } from '../../ui';
+import { CHAPTER_XP, CHAPTERS, chapterState, LESSON_XP, lessonOpen, OLD_LESSON, type Chapter } from './chapters';
 import { levelLabel } from './Quiz';
-import { LESSONS, lessonById, markLesson, nextLesson } from './lessons';
 import { useSkill } from './useSkill';
 import s from './Learn.module.css';
 
 export function LearnPage() {
-  const { isReal } = useAuth();
-  const { level, quizTaken, learnDone } = useSkill();
-  const done = learnDone.filter((id) => LESSONS.some((l) => l.id === id)).length;
-  const upNext = nextLesson(learnDone);
+  const { isReal, openSignIn } = useAuth();
+  const toast = useToast();
+  const { level, quizTaken, learnDone, learnPassed } = useSkill();
+  const lessons = CHAPTERS.flatMap((c) => c.lessons);
+  const done = lessons.filter((l) => learnDone.includes(l.id)).length;
+  const xp = done * LESSON_XP + CHAPTERS.filter((c) => learnPassed[c.id]).length * CHAPTER_XP;
   return (
     <>
       <PageHeader title={t('nav.learn')} subtitle={t('ln.sub')} />
       <div className={s.stack}>
-        {isReal && (
+        {isReal ? (
           <Card pad>
             <div className={s.levelRow}>
               <div>
                 <span className={s.kicker}>{t('qz.yourLevel')}</span>
                 <b className={s.levelName}>{level ? levelLabel(level) : t('ln.noLevel')}</b>
-                <span className={s.muted}>{t('ln.progress', { n: done, of: LESSONS.length })}</span>
+                <span className={s.muted}>{t('ln.progressXp', { n: done, of: lessons.length, xp })}</span>
               </div>
               <Link className={buttonClass({ variant: quizTaken ? 'ghost' : 'primary', size: 'sm' })} to="/quiz?next=/learn">
                 {quizTaken ? t('ln.retake') : t('ln.takeQuiz')}
               </Link>
             </div>
-            <div className={s.bar} aria-hidden="true">
-              <i style={{ width: `${(done / LESSONS.length) * 100}%` }} />
+          </Card>
+        ) : (
+          <Card pad>
+            <div className={s.levelRow}>
+              <span className={s.muted}>{t('ln.signInToSave')}</span>
+              <button type="button" className={buttonClass({ variant: 'primary', size: 'sm' })} onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+                {t('auth.signIn')}
+              </button>
             </div>
           </Card>
         )}
-        <Card flush title={t('ln.lessons')}>
-          <ol className={s.lessons}>
-            {LESSONS.map((l, i) => {
-              const isDone = learnDone.includes(l.id);
-              return (
-                <li key={l.id}>
-                  <Link to={`/learn/${l.id}`} className={s.lessonLink}>
-                    <span className={[s.num, isDone && s.numDone].filter(Boolean).join(' ')} aria-hidden="true">
-                      {isDone ? '✓' : i + 1}
-                    </span>
-                    <span className={s.stepText}>
-                      <b>{l.title}</b>
-                      <span>{t('ln.minutes', { n: l.minutes })}</span>
-                    </span>
-                    {isDone ? <Badge tone="up">{t('ln.done')}</Badge> : upNext?.id === l.id ? <Badge tone="accent">{t('ln.next')}</Badge> : null}
-                    <Icon name="chevronRight" size={16} />
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </Card>
+        {CHAPTERS.map((c) => (
+          <ChapterCard key={c.id} c={c} learnDone={learnDone} learnPassed={learnPassed} gated={isReal} />
+        ))}
         <p className={s.fine}>{t('ln.fine')}</p>
       </div>
     </>
   );
 }
 
-export function LessonPage() {
-  const { id = '' } = useParams();
-  const lesson = lessonById(id);
-  const { user, isReal } = useAuth();
-  const { learnDone } = useSkill();
-  const toast = useToast();
-  const [busy, setBusy] = useState(false);
-  if (!lesson) return <EmptyState icon="learn" title={t('ln.missing')} actions={<Link to="/learn">{t('ln.back')}</Link>} />;
-  const idx = LESSONS.indexOf(lesson);
-  const after = LESSONS[idx + 1] ?? null;
-  const isDone = learnDone.includes(lesson.id);
-  async function done() {
-    if (!user) return;
-    setBusy(true);
-    try {
-      await markLesson(user.uid, lesson!.id);
-      toast.show(t('ln.marked'));
-    } catch {
-      toast.show(t('qz.failed'), 'error');
-    } finally {
-      setBusy(false);
-    }
-  }
+/** gated: signed in, lessons open one at a time; signed out there's no progress to go by, so all are open */
+function ChapterCard({ c, learnDone, learnPassed, gated }: { c: Chapter; learnDone: string[]; learnPassed: Record<string, number>; gated: boolean }) {
+  const st = chapterState(c, learnDone, learnPassed);
+  const titleId = `ch-${c.id}`;
   return (
-    <>
-      <PageHeader title={lesson.title} subtitle={t('ln.of', { n: idx + 1, of: LESSONS.length, min: lesson.minutes })} />
-      <div className={s.narrow}>
-        <Card pad>
-          <div className={s.lesson}>
-            {lesson.body.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-            {lesson.tip && (
-              <p className={s.tip}>
-                <b>{t('ln.tip')}</b> {lesson.tip}
-              </p>
-            )}
-            <div className={s.lessonActions}>
-              <Link className={buttonClass({ variant: 'primary' })} to={lesson.tryIt.to}>
-                {lesson.tryIt.label}
-              </Link>
-              {isReal && (
-                <Button variant="secondary" disabled={busy || isDone} onClick={() => void done()}>
-                  {isDone ? t('ln.done') : t('ln.markDone')}
-                </Button>
-              )}
-            </div>
-          </div>
-        </Card>
-        <nav className={s.pager} aria-label={t('ln.lessons')}>
-          <Link to="/learn">{t('ln.back')}</Link>
-          {after && (
-            <Link to={`/learn/${after.id}`}>
-              {t('ln.nextLesson', { title: after.title })} <Icon name="chevronRight" size={14} />
-            </Link>
-          )}
-        </nav>
+    <section className={s.chapter} aria-labelledby={titleId}>
+      <div className={s.chapterHead}>
+        <span className={s.kicker}>{t('ln.chapter', { n: c.n })}</span>
+        <h2 id={titleId} className={s.chapterTitle}>
+          {c.title}
+        </h2>
+        <p className={s.muted}>{c.sub}</p>
+        <div className={s.pathBar} role="progressbar" aria-label={t('ln.chapterProgress', { title: c.title })} aria-valuemin={0} aria-valuemax={st.total} aria-valuenow={st.done}>
+          <i style={{ width: `${(st.done / st.total) * 100}%` }} />
+        </div>
+        <div className={s.pathBarLbl}>
+          <span>{t('ln.progress', { n: st.done, of: st.total })}</span>
+          {st.passed && <Badge tone="up">{t('ln.passed')}</Badge>}
+        </div>
       </div>
-    </>
+      {gated && !st.unlocked ? (
+        <p className={s.locked}>{t('ln.chapterLocked', { n: c.n - 1 })}</p>
+      ) : (
+        <ol className={s.path}>
+          {c.lessons.map((l, i) => {
+            const isDone = learnDone.includes(l.id);
+            const open = !gated || lessonOpen(c, i, learnDone, st.passed);
+            const now = !isDone && open && st.next?.id === l.id;
+            const state = isDone ? s.done : now ? s.now : open ? s.open : s.lockedStep;
+            const inner = (
+              <>
+                <span className={s.dot} aria-hidden="true">
+                  {isDone ? '✓' : i + 1}
+                </span>
+                <span className={s.stepBody}>
+                  <b>{l.title}</b>
+                  <span>
+                    {l.sub} · {t('ln.minutes', { n: l.minutes })}
+                    {!open && ` · ${t('ln.lockedShort')}`}
+                  </span>
+                  {now && <span className={[buttonClass({ variant: 'primary', size: 'sm' }), s.go].join(' ')}>{st.done === 0 ? t('ln.start') : t('ln.continue')}</span>}
+                </span>
+              </>
+            );
+            return (
+              <li key={l.id} className={[s.step, state].join(' ')}>
+                {open ? (
+                  <Link to={`/learn/${c.id}/${l.id}`} className={s.stepLink} aria-label={`${t('ln.lessonN', { n: i + 1 })}: ${l.title}${isDone ? ` (${t('ln.done')})` : ''}`}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <div className={s.stepLink}>{inner}</div>
+                )}
+              </li>
+            );
+          })}
+          <li className={[s.step, st.passed ? s.done : st.complete ? s.now : s.open].join(' ')}>
+            <Link to={`/learn/${c.id}/quiz`} className={s.stepLink}>
+              <span className={[s.dot, s.quizDot].join(' ')} aria-hidden="true">
+                {st.passed ? '✓' : '★'}
+              </span>
+              <span className={s.stepBody}>
+                <b>{t('ln.chapterQuiz')}</b>
+                <span>{st.passed ? t('ln.quizPassed') : st.complete ? t('ln.quizReady', { xp: CHAPTER_XP }) : t('ln.testOut', { xp: CHAPTER_XP })}</span>
+                {!st.passed && st.complete && <span className={[buttonClass({ variant: 'primary', size: 'sm' }), s.go].join(' ')}>{t('ln.takeChapterQuiz')}</span>}
+              </span>
+              <Icon name="chevronRight" size={16} />
+            </Link>
+          </li>
+        </ol>
+      )}
+    </section>
   );
+}
+
+/** /learn/:id from before chapters (e.g. /learn/stops) → /learn/basics/stops */
+export function OldLessonRedirect() {
+  const { id = '' } = useParams();
+  const to = OLD_LESSON[id];
+  return <Navigate to={to ? `/learn/${to}` : '/learn'} replace />;
 }

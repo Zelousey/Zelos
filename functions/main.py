@@ -4617,6 +4617,42 @@ def xp_award(req: https_fn.CallableRequest):
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
 
 
+import learn as LEARN  # Trading 101 chapters: lesson ids, chapter quiz answers (functions/learn.py)
+
+
+def learn_quiz_run(db, uid, data, now_ms):
+    """Grades a Trading 101 chapter quiz. Passing records users/{uid}.learnPassed.<chapter>
+    (server-only: it unlocks the next chapter) and pays the chapter's XP once."""
+    data = data if isinstance(data, dict) else {}
+    chapter = str(data.get("chapter") or "")[:40]
+    graded = LEARN.grade(chapter, data.get("answers"))
+    if graded is None:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Answer every question, then try again.")
+    right, total, passed, results = graded
+    out = {"right": right, "total": total, "passed": passed, "need": LEARN.CHAPTERS[chapter]["pass"], "results": results, "xp": 0}
+    if passed:
+        db.collection("users").document(uid).set({"learnPassed": {chapter: now_ms}}, merge=True)
+        g = xp_grant(db, uid, "chapter", chapter, now_ms)
+        if g.get("awarded"):
+            out["xp"] = LEARN.CHAPTER_XP
+    return out
+
+
+@https_fn.on_call()
+def learn_quiz(req: https_fn.CallableRequest):
+    """{chapter, answers: [choice index, ...]} -> {right, total, passed, need, results, xp}."""
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to take the chapter quiz.")
+    try:
+        return learn_quiz_run(firestore.client(), a.uid, req.data, int(_time.time() * 1000))
+    except https_fn.HttpsError:
+        raise
+    except Exception as e:
+        print("[learn] quiz failed: %s" % type(e).__name__)
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+
+
 def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
     """Award XP once per (kind, refId), with the daily limits in functions/xp.py, in one
     transaction. `counted=True` (server-side grants such as practice fills) numbers the refId

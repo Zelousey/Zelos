@@ -22,6 +22,8 @@ STREAK_REWARDS, achievements) and zelos-profile.js (onboarding steps).
 import re
 from datetime import date, timedelta
 
+import learn as LEARN  # Trading 101 lessons and chapters (functions/learn.py)
+
 FIXED = {
     "alert-open": 5, "daily-checkin": 3, "arcade-play": 5,
     "practice-trade": 5, "practice-win": 10, "grade-setup": 10,
@@ -37,6 +39,7 @@ SOURCES = {
     "share": ("social", "Shared Trade War"), "mission": ("missions", "Mission"),
     "achievement": ("achievements", "Achievement"), "onboard": ("platform", "Getting set up"),
     "coach-task": ("coaching", "Coach task done"), "coach-bonus": ("coaching", "Your student finished a task"),
+    "lesson": ("learn", "Trading 101 lesson"), "chapter": ("learn", "Trading 101 chapter quiz"),
 }
 
 DAILY_MISSIONS = {"trade": 10, "analyze": 10, "grade": 10, "news": 5, "xp": 20}
@@ -58,14 +61,15 @@ SEASON_XP = {"in": 25, "green": 100}
 DAILY_LIMIT = {
     "alert-open": 50, "practice-trade": 10, "practice-win": 10, "grade-setup": 5,
     "real-trade": 3, "referral": 10, "mission": 12, "achievement": 30, "onboard": 4,
-    "coach-task": 3, "coach-bonus": 6,
+    "coach-task": 3, "coach-bonus": 6, "lesson": 40, "chapter": 10,
 }
 # Coaching (functions/coaching.py), paid only by the server: refId "<task kind>:<task id>".
 # A student earns from at most 3 coach tasks a day; a coach from at most 6 student tasks a day.
 COACH_TASK_XP = {"trade": 10, "win": 15, "analyze": 10, "grade": 10, "news": 5, "custom": 5}
 COACH_BONUS_XP = {"trade": 5, "win": 8, "analyze": 5, "grade": 5, "news": 3}
 _COACH_REF = re.compile(r"^([a-z]+):[A-Za-z0-9]{6,40}$")
-SERVER_ONLY = ("mission", "coach-task", "coach-bonus")
+# chapter: paid by learn_quiz only after the server grades the quiz (functions/learn.py)
+SERVER_ONLY = ("mission", "coach-task", "coach-bonus", "chapter")
 DAILY_XP_CEILING = 2500
 
 _DAY = r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
@@ -149,6 +153,14 @@ def decide(kind, ref_id, today, counts=None, xp_today=0):
         if ref_id not in ONBOARD:
             return 0, ref_id, "bad-ref"
         amount = ONBOARD[ref_id]
+    elif kind == "lesson":
+        if ref_id not in LEARN.LESSON_IDS:
+            return 0, ref_id, "bad-ref"
+        amount = LEARN.LESSON_XP
+    elif kind == "chapter":
+        if ref_id not in LEARN.CHAPTERS:
+            return 0, ref_id, "bad-ref"
+        amount = LEARN.CHAPTER_XP
     elif kind in ("coach-task", "coach-bonus"):
         m = _COACH_REF.match(ref_id)
         table = COACH_TASK_XP if kind == "coach-task" else COACH_BONUS_XP
