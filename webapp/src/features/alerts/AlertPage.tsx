@@ -165,7 +165,7 @@ function PlanCard({ a }: { a: Alert }) {
       )}
       {a.ticker && (
         <div className={s.actions}>
-          <Link to={`/practice/trade/${encodeURIComponent(a.ticker)}`} className={buttonClass({ variant: 'primary', size: 'sm' })}>
+          <Link to={tradeLink(a)} className={buttonClass({ variant: 'primary', size: 'sm' })}>
             {t('al.practice')}
           </Link>
           <Link to={`/markets/${encodeURIComponent(a.ticker)}`} className={buttonClass({ variant: 'secondary', size: 'sm' })}>
@@ -175,6 +175,13 @@ function PlanCard({ a }: { a: Alert }) {
       )}
     </Card>
   );
+}
+
+/** The practice ticket for this alert; a long stock idea comes with its stop and first target filled in. */
+function tradeLink(a: Alert): string {
+  const base = `/practice/trade/${encodeURIComponent(a.ticker!)}`;
+  if (a.direction !== 'long' || a.stop == null || a.target1 == null) return base;
+  return `${base}?sl=${a.stop}&tp=${a.target1}`;
 }
 
 const usd = (n: number) => `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

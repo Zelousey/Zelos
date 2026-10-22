@@ -67,7 +67,8 @@ test('the list, the track record and a finished alert', async ({ page }) => {
   await expect(page.getByText('Exit $110.40')).toBeVisible();
   await expect(page.getByText('Reward is 2.0× the risk').first()).toBeVisible();
   await expect(page.getByText('Pulled back to the 20-day average on falling volume.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Practice this trade' })).toHaveAttribute('href', /\/practice\/trade\/NVDA$/);
+  // one tap to the ticket, with the alert's stop and first target already filled in
+  await expect(page.getByRole('link', { name: 'Trade this setup' })).toHaveAttribute('href', /\/practice\/trade\/NVDA\?sl=95&tp=110$/);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   // a 3-Leg Options alert: the three positions, cost, most it can make and lose
   await page.goto('alerts/three-leg-2026-10-09');
