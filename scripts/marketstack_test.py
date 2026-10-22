@@ -154,8 +154,74 @@ except MD.MsNotInPlan:
 ok(MD.ms_rows("intraday", {}, "k") == [], "non-strict: missing endpoint is just empty")
 MD.ms_get = real_get
 os.environ["MS_DAILY_CALLS"] = "5000"; ok(MD.daily_call_limit() == 5000, "daily cap from settings")
-os.environ["MS_DAILY_CALLS"] = "junk"; ok(MD.daily_call_limit() == 3000, "bad cap -> 3000")
+os.environ["MS_DAILY_CALLS"] = "junk"; ok(MD.daily_call_limit() == 4300, "bad cap -> 4300")
 os.environ["MS_DAILY_CALLS"] = "1"; ok(MD.daily_call_limit() == 100, "cap never below 100")
+del os.environ["MS_DAILY_CALLS"]
+
+# Marketstack counts every symbol in a request as one call (owner's bill, 2026-10-22)
+import io as _io
+import urllib.request as _ur
+ok(MD.request_calls({"symbols": "SPY,QQQ,AAPL"}) == 3 and MD.request_calls({"symbols": "SPY"}) == 1 and MD.request_calls({}) == 1,
+   "a request costs one call per symbol (at least one)")
+real_open, opened = _ur.urlopen, []
+
+
+def fake_open(req, timeout=20):
+    opened.append(req.full_url)
+    return _io.BytesIO(b'{"data": [], "pagination": {"total": 0}}')
+
+
+_ur.urlopen = fake_open
+try:
+    MD.CALLS[0], MD.BUDGET[0] = 0, None
+    MD.ms_get("intraday", {"symbols": "A,B,C,D,E,F,G,H"}, "k")
+    ok(MD.CALLS[0] == 8, "8 stocks in one request are counted as 8 calls")
+    MD.BUDGET[0] = 10
+    MD.ms_get("eod", {"symbols": "A,B,C,D,E,F,G,H"}, "k")
+    ok(MD.BUDGET[0] == 2, "the job's allowance goes down by the calls made")
+    n = len(opened)
+    try:
+        MD.ms_get("eod", {"symbols": "A,B,C"}, "k")
+        ok(False, "over the allowance is refused")
+    except MD.MsBudget:
+        ok(len(opened) == n and MD.BUDGET[0] == 2, "a request past the allowance is refused BEFORE it is sent")
+    ok(issubclass(MD.MsBudget, MD.MsQuota), "the cap stops a job like a used-up plan does")
+    try:
+        MD.ms_rows_chunked("intraday", {}, ["A", "B", "C", "D"], "k", size=2)
+        ok(False, "chunked over the allowance is refused")
+    except MD.MsBudget:
+        ok(True, "a multi-request fetch stops at the cap too")
+finally:
+    _ur.urlopen = real_open
+    MD.BUDGET[0] = None
+
+# billing cycle: the 7th to the 7th
+ok(MD.ms_cycle(datetime(2026, 10, 22, 10, tzinfo=MD.NY)) == "2026-10", "Oct 22 is in the cycle that began Oct 7")
+ok(MD.ms_cycle(datetime(2026, 11, 6, 23, tzinfo=MD.NY)) == "2026-10", "Nov 6 is still in it")
+ok(MD.ms_cycle(datetime(2026, 11, 7, 0, 1, tzinfo=MD.NY)) == "2026-11", "Nov 7 starts a new one")
+ok(MD.ms_cycle(datetime(2027, 1, 3, tzinfo=MD.NY)) == "2026-12", "across the new year")
+ok(MD.cycle_reset_date("2026-10") == "2026-11-07" and MD.cycle_reset_date("2026-12") == "2027-01-07", "reset dates")
+ok(MD.cycle_seed("2026-10", "2026-10:112000") == 112000 and MD.cycle_seed("2026-11", "2026-10:112000") == 0
+   and MD.cycle_seed("2026-10", "junk") == 0, "the seed only counts in its own cycle")
+
+# the caps
+os.environ["MS_CYCLE_SEED"] = ""
+now = datetime(2026, 10, 22, 10, tzinfo=MD.NY)
+use = {"cycle": "2026-10", "cycleCalls": 90000, "day": "2026-10-22", "calls": 1000}
+ok(MD.usage_used(use, now) == (90000, 1000), "used this cycle and today")
+ok(MD.allowance(use, now, "live") == 3300, "live: the daily stop (4,300) is nearer than the cycle's (95,000)")
+ok(MD.allowance(dict(use, cycleCalls=94990), now, "live") == 10, "live: 10 calls left before 95,000")
+ok(MD.allowance(dict(use, cycleCalls=95000), now, "live") == 0, "live: none at 95,000")
+ok(MD.allowance(dict(use, cycleCalls=95000), now, "essential") == 3000, "the daily close and scanners keep 3,000 more (to 98,000)")
+ok(MD.allowance(dict(use, cycleCalls=99000), now, "essential") == 0, "nothing past 98,000")
+ok(MD.allowance(dict(use, cycle="2026-09"), now, "live") == 3300, "last cycle's count doesn't carry over")
+ok(MD.allowance(dict(use, day="2026-10-21"), now, "live") == 4300, "a new day starts its daily count at 0")
+os.environ["MS_CYCLE_SEED"] = "2026-10:96000"
+ok(MD.allowance({}, now, "live") == 0 and MD.allowance({}, now, "essential") == 2000, "the seed counts as already used")
+os.environ["MS_LIVE_CAP"], os.environ["MS_HARD_CAP"] = "200000", "100"
+ok(MD.hard_cap() == 200000, "the hard cap is never below the live cap")
+for k in ("MS_CYCLE_SEED", "MS_LIVE_CAP", "MS_HARD_CAP"):
+    del os.environ[k]
 
 print("ALL CHECKS PASSED" if not fails else "%d FAILED" % fails)
 sys.exit(1 if fails else 0)

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseBarStrings, parseMoversDoc, parseQuote, parseQuotesDoc, parseSnapshotDoc } from './markets';
 import { marketStatus } from './marketStatus';
-import { instrument, searchUniverse, UNIVERSE } from './universe';
+import { bySpeed, instrument, retiredInstrument, searchUniverse, UNIVERSE } from './universe';
 
 describe('market data parsing', () => {
   it('quotes: keeps valid ones, derives change, drops junk', () => {
@@ -33,7 +33,7 @@ describe('market data parsing', () => {
 });
 
 describe('market status line', () => {
-  const base = { quotes: {}, source: 'marketstack', error: null, every: 15, interval: '15m' };
+  const base = { quotes: {}, source: 'marketstack', error: null, every: 15, everySlow: null, interval: '15m', paused: null };
   it('open, with freshness and source', () => {
     const now = Date.parse('2026-10-07T14:10:00Z');
     const st = marketStatus({ ...base, marketOpen: true, updatedAt: '2026-10-07T14:01:00Z' }, now);
@@ -51,6 +51,18 @@ describe('market status line', () => {
   it('closed shows the time prices are from, in ET', () => {
     expect(marketStatus({ ...base, marketOpen: false, updatedAt: '2026-10-06T20:10:00Z' }).text).toMatch(/^Market closed · prices as of 4:10 PM EDT · Marketstack$/);
   });
+  it('two speeds: day trading every minute, long-term every 15 min', () => {
+    const now = Date.parse('2026-10-07T14:10:00Z');
+    const st = marketStatus({ ...base, every: 1, everySlow: 15, interval: '1m', marketOpen: true, updatedAt: '2026-10-07T14:09:00Z' }, now);
+    expect(st.text).toBe('Market open · updated 1 minute ago · day trading every minute, long-term every 15 min · Marketstack');
+  });
+  it('our data-plan cap says until when', () => {
+    const d = parseQuotesDoc({ source: 'marketstack', marketOpen: true, updatedAt: '2026-10-07T14:09:00Z', paused: { reason: 'cycle', until: '2026-11-07' }, quotes: {} });
+    expect(d.paused).toEqual({ reason: 'cycle', until: '2026-11-07' });
+    expect(marketStatus(d).text).toBe('Live prices paused until Nov 7 (data plan limit) · showing last prices');
+    expect(marketStatus({ ...d, paused: { reason: 'day', until: null } }).text).toMatch(/paused for today/);
+    expect(parseQuotesDoc({ paused: { reason: 'x' }, quotes: {} }).paused).toBeNull();
+  });
   it('a feed error is said plainly', () => {
     expect(marketStatus({ ...base, marketOpen: true, updatedAt: null, error: 'auth' }).text).toMatch(/paused/);
   });
@@ -58,10 +70,17 @@ describe('market status line', () => {
 
 describe('universe', () => {
   it('is bundled, excludes paused crypto, and searches by symbol or name', () => {
-    expect(UNIVERSE.length).toBeGreaterThan(40);
+    expect(UNIVERSE.length).toBe(28);
     expect(UNIVERSE.some((s) => s.group === 'Crypto')).toBe(false);
     expect(instrument('aapl')?.name).toBe('Apple');
     expect(searchUniverse('nvi').map((s) => s.sym)).toContain('NVDA');
     expect(searchUniverse('MS').map((s) => s.sym)).toEqual(expect.arrayContaining(['MSFT']));
+  });
+  it('day-trading stocks are the 8 fast ones; removed stocks are kept apart', () => {
+    expect(bySpeed(true).map((s) => s.sym).sort()).toEqual(['AAPL', 'AMD', 'AMZN', 'META', 'MSFT', 'NVDA', 'QQQ', 'SPY']);
+    expect(bySpeed(false).length).toBe(20);
+    expect(instrument('AVGO')).toBeUndefined();
+    expect(retiredInstrument('avgo')).toMatchObject({ sym: 'AVGO', retired: true });
+    expect(retiredInstrument('AAPL')).toBeUndefined();
   });
 });

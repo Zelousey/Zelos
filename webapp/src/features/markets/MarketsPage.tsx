@@ -8,11 +8,12 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useMovers, useQuotes } from '../../data/markets';
-import { groups, instrument, searchUniverse, UNIVERSE } from '../../data/universe';
+import { bySpeed, groups, instrument, searchUniverse, UNIVERSE } from '../../data/universe';
+import { readString, writeString } from '../../lib/storage';
 import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
-import { buttonClass, Card, EmptyState, ErrorState, Icon, LoadingState, PageHeader, Tabs } from '../../ui';
+import { Button, buttonClass, Card, EmptyState, ErrorState, Icon, LoadingState, PageHeader, Tabs } from '../../ui';
 import { MarketList } from './MarketRow';
 import { MiniChart } from './MiniChart';
 import { useMinis } from './miniSeries';
@@ -90,32 +91,67 @@ function GlanceCard() {
   );
 }
 
+type Speed = 'fast' | 'slow';
+const SPEED_KEY = 'zelosAppMarketSpeed';
+
+/** Every stock, in two sections (owner, 2026-10-22): day trading (prices every minute) and
+ * long-term (every 15 minutes), so the data plan lasts the month. */
 function AllStocks() {
   const quotes = useQuotes();
   const [q, setQ] = useState('');
   const [group, setGroup] = useState('all');
+  const [speed, setSpeedState] = useState<Speed>(() => (readString(SPEED_KEY) === 'slow' ? 'slow' : 'fast'));
+  const setSpeed = (x: Speed) => {
+    setSpeedState(x);
+    setGroup('all');
+    writeString(SPEED_KEY, x);
+  };
+  const section = useMemo(() => bySpeed(speed === 'fast'), [speed]);
   const rows = useMemo(() => {
     const qs = quotes.status === 'ready' ? quotes.data.quotes : {};
     return searchUniverse(q)
+      .filter((i) => i.fast === (speed === 'fast'))
       .filter((i) => group === 'all' || i.group === group)
       .map((i) => ({ sym: i.sym, name: i.name, price: qs[i.sym]?.c, chPct: qs[i.sym]?.chPct }));
-  }, [quotes, q, group]);
+  }, [quotes, q, group, speed]);
+  const other = speed === 'fast' ? 'slow' : 'fast';
+  const inOther = q.trim() !== '' && rows.length === 0 && searchUniverse(q).some((i) => i.fast === (other === 'fast'));
+  const sectionGroups = groups().filter((g) => section.some((i) => i.group === g));
   return (
     <Card className={s.all} title={t('market.allStocks')} flush>
+      <div className={s.speed}>
+        <Tabs
+          stretch
+          label={t('market.speed')}
+          value={speed}
+          onChange={setSpeed}
+          items={[
+            { value: 'fast', label: t('market.speed.fast') },
+            { value: 'slow', label: t('market.speed.slow') },
+          ]}
+        />
+        <p className={s.speedNote}>{speed === 'fast' ? t('market.speed.fastNote') : t('market.speed.slowNote')}</p>
+      </div>
       <div className={s.tools}>
         <label className={s.search}>
           <Icon name="search" size={18} />
           <span className="visually-hidden">{t('markets.search')}</span>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('markets.searchPlaceholder')} autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="search" />
         </label>
-        <Tabs label={t('markets.search')} value={group} onChange={setGroup} items={[{ value: 'all', label: t('markets.all') }, ...groups().map((g) => ({ value: g, label: g }))]} />
+        <Tabs label={t('markets.search')} value={group} onChange={setGroup} items={[{ value: 'all', label: t('markets.all') }, ...sectionGroups.map((g) => ({ value: g, label: g }))]} />
       </div>
       {quotes.status === 'loading' ? (
         <LoadingState rows={8} />
       ) : quotes.status === 'error' ? (
         <ErrorState compact />
       ) : rows.length === 0 ? (
-        <EmptyState icon="search" title={t('markets.empty', { q })} compact />
+        <EmptyState
+          icon="search"
+          title={t('markets.empty', { q })}
+          body={inOther ? t('market.speed.inOther', { section: t(other === 'fast' ? 'market.speed.fast' : 'market.speed.slow') }) : undefined}
+          actions={inOther ? <Button variant="secondary" size="sm" onClick={() => setSpeed(other)}>{t(other === 'fast' ? 'market.speed.fast' : 'market.speed.slow')}</Button> : undefined}
+          compact
+        />
       ) : (
         <MarketList rows={rows} label={t('nav.market')} />
       )}

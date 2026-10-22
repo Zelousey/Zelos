@@ -23,26 +23,44 @@ The site may only show data it is licensed to show:
 
 | Job | Writes | When |
 |---|---|---|
-| `refresh_quotes` | `markets/quotes`, `markets/intraday_<SYM>` (1-minute bars, 5 sessions), `markets/movers`; then the practice order pass | every `QUOTE_EVERY_MIN` minutes in market hours (every minute: 9:31, 9:32 … 4:01, plus 4:06). The first run of a day asks for the whole day; later runs only for bars since each stock's newest stored one (`serverMeta/msQuotes.sinceBy`). Stocks within 10 minutes of the newest bar share **one request** (a normal minute = 1 Marketstack request for all 50 stocks, ~400 a market day); stocks that are behind are asked for 10 at a time, furthest behind first. Only a Marketstack `validation_error` switches to whole-day requests, and only for that day (`timeFilterOff`). Usage: `serverMeta/msUsage` counts per day and per month; `MS_DAILY_CALLS` (1200) and `MS_MONTHLY_CALLS` (0 = off) slow updates to every 15 minutes when reached. Runs of 10+ bars with one price and no volume (a stuck feed) are dropped (`drop_frozen`); a stock without a fresh price keeps its last quote with `stale: true` (left out of fills, alerts and movers; Trade War won't trade it) |
-| `refresh_market_data` after the close | `markets/dailyBars` (90 sessions), `markets/history_<n>` + `markets/historyIndex` (~2 years), `markets/snapshot` (ticker tape), `markets/globe`, full-day intraday bars | once a weekday, 4:20 pm or later; also on the very first run |
+| `refresh_quotes` | `markets/quotes`, `markets/intraday_<SYM>` (1-minute bars, 5 sessions), `markets/movers`; then the practice order pass | fast stocks every `QUOTE_EVERY_MIN` minutes in market hours (every minute: 9:31, 9:32 … 4:01, plus 4:06), the others every `MS_STEADY_EVERY_MIN` (15). The first run of a day asks for the whole day; later runs only for bars since each stock's newest stored one (`serverMeta/msQuotes.sinceBy`). Stocks within 10 minutes of the newest bar share **one request** (each symbol in it is still one call); stocks that are behind are asked for 10 at a time, furthest behind first. Only a Marketstack `validation_error` switches to whole-day requests, and only for that day (`timeFilterOff`). Usage and hard stops: see the call budget below. Runs of 10+ bars with one price and no volume (a stuck feed) are dropped (`drop_frozen`); a stock without a fresh price keeps its last quote with `stale: true` (left out of fills, alerts and movers; Trade War won't trade it) |
+| `run_scanners` (`ms_daily_close`) | `markets/dailyBars` (90 sessions), `markets/history_<n>` + `markets/historyIndex` (~2 years), `markets/snapshot` (ticker tape), `markets/globeBars` (30 sessions) + `markets/globe`, removed stocks' closing prices in `markets/quotes`; then the scanners | every 30 minutes from 6:05 pm until the day's bars are out (one SPY call a try) |
+| `refresh_market_data` after the close | marks every practice account at the closing prices (no Marketstack calls) | once a weekday, 4:20 pm or later |
 | `refresh_market_data` outside market hours | `markets/research_<SYM>` (SEC profile, last fiscal year, insider trades, P/E, 60 daily bars) | 2 stock-list symbols a run, each once a day |
 | `market_research({symbol})` | the same research doc for any ticker (alert pages) | on demand, cached 12 hours, at most 60 fresh lookups a day |
 
 Movers are computed from the Zelos stock list, not the whole market. Indexes are shown through
 the ETFs that track them (S&P 500 → SPY, Nasdaq 100 → QQQ, Dow → DIA).
 
-## Request budget (Professional plan: 100,000 a month)
+## Call budget (Professional plan: 100,000 calls a billing cycle, the 7th to the 7th)
 
-Each request asks for 10 stocks (bigger requests timed out, see the 2026-10-07 fix). Requests are
-counted per day in `serverMeta/msUsage`; at `MS_DAILY_CALLS` (default 3,000) price updates slow to
-every 15 minutes for the rest of that day.
+**Marketstack counts every symbol in a request as one call** (marketstack.com/faq), and every
+page of a paginated answer is another request. Until 2026-10-22 we counted HTTP requests, so the
+old "1 request a minute for 50 stocks" was really 50 calls a minute, and the cycle went past
+100,000 (overage ~$0.002 a call). Since then (owner, 2026-10-22):
 
-| Use | Requests |
+- **28 stocks** (data/practice-universe.json; COIN and MSTR removed entirely, no prices). The 20 removed ones are in data/retired-symbols.json:
+  no buying; anyone holding one can sell, filled at the next close (`_pr_order_universe`).
+- **Two speeds.** The 8 "fast" (day trading) stocks, SPY QQQ AAPL NVDA MSFT AMD META AMZN, get
+  prices every minute; the other 20 (long-term) every `MS_STEADY_EVERY_MIN` (15) minutes. The app's
+  Market page has a Day trading and a Long-term section.
+- **Counting.** `ms_get` counts calls per symbol (`mdata.CALLS`); each job adds them to
+  `serverMeta/msUsage` (`day`/`calls` and `cycle`/`cycleCalls`). `MS_CYCLE_SEED` ("2026-10:112000")
+  adds what Marketstack had already counted in the cycle the counter started in.
+- **Hard stops.** Each job gets an allowance before it starts (`ms_budget_start`) and `ms_get`
+  refuses (`MsBudget`) any request that would pass it, before sending it. Live prices stop at
+  `MS_LIVE_CAP` (95,000 a cycle) or `MS_DAILY_CALLS` (4,300 a day); the daily close and the
+  scanners stop at `MS_HARD_CAP` (98,000). While stopped, `markets/quotes.paused` says why and
+  until when, and the app shows "Live prices paused until …" with the last prices.
+
+| Use | Calls |
 |---|---|
-| Price updates, every minute | 5 a run × 391 runs a day → about 2,000 a market day, about 41,000 a month |
-| After the close | about 14 a day → about 300 a month |
-| First run | about 60 once, for 2 years of history; then a full refresh once a month |
-| Research | 0 for stock-list symbols; 1 for other tickers, at most 60 a day |
+| Fast stocks, every minute | 8 × ~392 runs ≈ 3,140 a market day |
+| Long-term stocks, every 15 minutes | 20 × ~27 runs ≈ 540 a market day |
+| Daily close (`run_scanners`) | 1 per try until SPY's bar is out (≤ 12), then ~185 (history, ETFs, globe, removed stocks; only the new day) |
+| Total | ≈ 3,850 a market day, ≈ 84,000 a cycle |
+| First run without history | a few thousand calls, once (2 years of history) |
+| Research | 0 for stock-list symbols (it reads the stored daily bars) |
 
 ## Settings
 

@@ -13,7 +13,14 @@ async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
 }
-const axe = async (page: Page) => expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+// lessons fade in: check contrast only once the entry animations are done (a half-faded line
+// reads as low contrast; seen once in CI, 2026-10-22). Endless animations are ignored.
+const settled = (page: Page) =>
+  page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
+const axe = async (page: Page) => {
+  await settled(page);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+};
 
 test('Trading 101: chapter 1 path, an animated lesson with a quick check, old links redirect', async ({ page }) => {
   await page.goto('learn');

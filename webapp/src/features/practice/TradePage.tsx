@@ -7,7 +7,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { SYMBOL_RE } from "../../data/markets";
-import { instrument } from "../../data/universe";
+import { instrument, retiredInstrument } from "../../data/universe";
 import { useAuth } from "../../lib/auth";
 import { formatMoney, formatPrice } from "../../lib/format";
 import { t } from "../../lib/i18n";
@@ -49,7 +49,7 @@ const CHART_TFS: Timeframe[] = ["15m", "1h", "D"];
 
 export default function TradePage() {
   const raw = (useParams().sym ?? "").toUpperCase();
-  const inst = SYMBOL_RE.test(raw) ? instrument(raw) : undefined;
+  const inst = SYMBOL_RE.test(raw) ? (instrument(raw) ?? retiredInstrument(raw)) : undefined;
   const { user, isReal, ready } = useAuth();
   const uid = isReal && user ? user.uid : null;
   const acct = usePracticeAccount(uid);
@@ -97,17 +97,20 @@ export default function TradePage() {
     );
   }
   if (acct.status === "error") return <ErrorState />;
-  return <Ticket key={inst.sym} sym={inst.sym} name={inst.name} uid={uid} />;
+  return <Ticket key={inst.sym} sym={inst.sym} name={inst.name} uid={uid} retired={!!inst.retired} />;
 }
 
 function Ticket({
   sym,
   name,
   uid,
+  retired,
 }: {
   sym: string;
   name: string;
   uid: string;
+  /** removed from the list: sell what you hold, nothing else */
+  retired: boolean;
 }) {
   const acctState = usePracticeAccount(uid);
   const acct = acctState.status === "ready" ? acctState.data : null;
@@ -137,7 +140,7 @@ function Ticket({
 
   // /practice/trade/AAPL?side=sell&mode=options: the chart's Buy / Sell buttons pick the side
   const [params, setParams] = useSearchParams();
-  const mode = params.get("mode") === "options" ? "options" : "stock";
+  const mode = params.get("mode") === "options" && !retired ? "options" : "stock";
   const contractId = params.get("contract");
   const startContract = useMemo(() => contractParam(contractId, sym), [contractId, sym]);
   const setMode = (m: "stock" | "options") =>
@@ -150,7 +153,7 @@ function Ticket({
       { replace: true },
     );
   const [input, setInput] = useState<TicketInput>({
-    side: params.get("side") === "sell" ? "sell" : "buy",
+    side: params.get("side") === "sell" || retired ? "sell" : "buy",
     type: "market",
     qty: "1",
     limit: "",
@@ -291,6 +294,11 @@ function Ticket({
           title={t("trade.ticket")}
           subtitle={`${t("practice.buyingPower")}: ${formatMoney(v?.buyingPower)}${held ? ` · ${held} ${sym}` : ""}`}
         >
+          {retired ? (
+            <p className={ls.closed} role="note">
+              {held ? t("trade.retired", { sym }) : t("trade.retiredNone", { sym })}
+            </p>
+          ) : (
           <div className={s.ticketTop}>
             <Tabs
               stretch
@@ -313,7 +321,8 @@ function Ticket({
               ]}
             />
           </div>
-          {mode === "options" ? (
+          )}
+          {retired && !held ? null : mode === "options" ? (
             <OptionTicket
               sym={sym}
               side={input.side}
@@ -503,7 +512,7 @@ function Ticket({
               >
                 {t("trade.review")}
               </Button>
-              <p className={s.note}>{t("practice.fillNote")}</p>
+              <p className={s.note}>{t(retired ? "practice.fillNoteRetired" : "practice.fillNote")}</p>
             </form>
             </>
           )}
@@ -552,7 +561,7 @@ function Ticket({
             <dt>{t("trade.estimate", { side: sideLabel.toLowerCase() })}</dt>
             <dd>{formatMoney(check.cost)}</dd>
             <dd style={{ fontFamily: "var(--sans)", color: "var(--muted)" }}>
-              {t("practice.fillNote")}
+              {t(retired ? "practice.fillNoteRetired" : "practice.fillNote")}
             </dd>
           </dl>
         )}

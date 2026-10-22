@@ -1,0 +1,105 @@
+{
+ "note": "Stocks removed from the Zelos list (owner 2026-10-22). Anyone still holding one in the practice account can sell it; its price updates once a day (after the close).",
+ "symbols": [
+  {
+   "sym": "AVGO",
+   "name": "Broadcom",
+   "group": "Tech"
+  },
+  {
+   "sym": "SMCI",
+   "name": "Super Micro",
+   "group": "Tech"
+  },
+  {
+   "sym": "CRM",
+   "name": "Salesforce",
+   "group": "Software"
+  },
+  {
+   "sym": "ADBE",
+   "name": "Adobe",
+   "group": "Software"
+  },
+  {
+   "sym": "CRWD",
+   "name": "CrowdStrike",
+   "group": "Software"
+  },
+  {
+   "sym": "SNOW",
+   "name": "Snowflake",
+   "group": "Software"
+  },
+  {
+   "sym": "ANET",
+   "name": "Arista",
+   "group": "Software"
+  },
+  {
+   "sym": "SHOP",
+   "name": "Shopify",
+   "group": "Software"
+  },
+  {
+   "sym": "NFLX",
+   "name": "Netflix",
+   "group": "Consumer"
+  },
+  {
+   "sym": "DIS",
+   "name": "Disney",
+   "group": "Consumer"
+  },
+  {
+   "sym": "RBLX",
+   "name": "Roblox",
+   "group": "Consumer"
+  },
+  {
+   "sym": "DKNG",
+   "name": "DraftKings",
+   "group": "Consumer"
+  },
+  {
+   "sym": "WMT",
+   "name": "Walmart",
+   "group": "Consumer"
+  },
+  {
+   "sym": "COST",
+   "name": "Costco",
+   "group": "Consumer"
+  },
+  {
+   "sym": "KO",
+   "name": "Coca-Cola",
+   "group": "Consumer"
+  },
+  {
+   "sym": "BAC",
+   "name": "Bank of America",
+   "group": "Finance"
+  },
+  {
+   "sym": "V",
+   "name": "Visa",
+   "group": "Finance"
+  },
+  {
+   "sym": "MA",
+   "name": "Mastercard",
+   "group": "Finance"
+  },
+  {
+   "sym": "PYPL",
+   "name": "PayPal",
+   "group": "Finance"
+  },
+  {
+   "sym": "LLY",
+   "name": "Eli Lilly",
+   "group": "Health"
+  }
+ ]
+}
