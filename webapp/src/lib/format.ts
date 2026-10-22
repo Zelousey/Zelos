@@ -78,6 +78,14 @@ export function formatMarketTime(date: Date | number | null | undefined, locale 
   return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: MARKET_TIME_ZONE, timeZoneName: 'short' }).format(d);
 }
 
+/** "3:45 PM" in the viewer's own time zone (for things about you, not the market). */
+export function formatLocalTime(date: Date | number | null | undefined, locale = DEFAULT_LOCALE): string {
+  if (date == null) return DASH;
+  const d = typeof date === 'number' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return DASH;
+  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(d);
+}
+
 /** "Oct 7" / "Oct 7, 2025" */
 export function formatDate(date: Date | number | string | null | undefined, opts: { locale?: string; year?: boolean } = {}): string {
   if (date == null) return DASH;

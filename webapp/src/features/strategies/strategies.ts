@@ -94,7 +94,7 @@ export const useAlerts = () => useLiveQuery('alerts:recent', () => query(collect
 export const alertUrl = (id: string) => `alert.html?id=${encodeURIComponent(id)}`;
 
 // ------------------------------------------------------------------ tokens
-export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>> };
+export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>>; xpBoostUntil: number; twExtra: { day: string; n: number } | null };
 export function parseWallet(d: DocumentData): WalletDoc {
   const passes: WalletDoc['passes'] = {};
   const p = (d.passes && typeof d.passes === 'object' ? d.passes : {}) as Record<string, unknown>;
@@ -102,7 +102,13 @@ export function parseWallet(d: DocumentData): WalletDoc {
     const until = num(p[s.id]);
     if (until) passes[s.id] = until;
   }
-  return { balance: Math.max(0, Math.floor(num(d.balance) ?? 0)), passes };
+  const ex = d.twExtra && typeof d.twExtra === 'object' ? (d.twExtra as Record<string, unknown>) : null;
+  return {
+    balance: Math.max(0, Math.floor(num(d.balance) ?? 0)),
+    passes,
+    xpBoostUntil: num(d.xpBoostUntil) ?? 0,
+    twExtra: ex && typeof ex.day === 'string' ? { day: ex.day, n: Math.max(0, Math.floor(num(ex.n) ?? 0)) } : null,
+  };
 }
 export const useWalletDoc = (uid: string | null) => useLiveDoc(uid ? `wallets/${uid}` : null, parseWallet);
 export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
@@ -111,7 +117,13 @@ export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
 };
 
 export type Pack = { id: string; tokens: number; cents: number };
-export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; dayPass?: number; dayPassPrices?: Partial<Record<StrategyId, number>>; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };
+export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; dayPass?: number; dayPassPrices?: Partial<Record<StrategyId, number>>; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[]; boosts?: Partial<Record<BoostId, number>>; battleEntryMax?: number };
+/** Small things to spend tokens on (functions/main.py BOOSTS; the server's prices win). */
+export type BoostId = 'xp-boost' | 'battle-entry' | 'quiz-retry';
+export const BOOST_PRICES: Record<BoostId, number> = { 'xp-boost': 60, 'battle-entry': 15, 'quiz-retry': 10 };
+export const boostPrice = (info: WalletInfo | null, id: BoostId) => info?.boosts?.[id] ?? BOOST_PRICES[id];
+export const buyBoost = (item: BoostId, chapter?: string) =>
+  callFunction<{ item: BoostId; chapter?: string }, { balance: number; xpBoostUntil: number }>('tokens_boost', chapter ? { item, chapter } : { item });
 export type PassDays = 1 | 7;
 /** Tokens for a pass to this strategy: 7 days, or 1 (owner 2026-10-22). The 3-Leg pass costs more (owner 2026-10-15).
  *  The server's prices win; these defaults only show before the wallet loads. */

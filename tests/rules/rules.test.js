@@ -166,6 +166,9 @@ test('Trading 101: chapter passes are written by the server; your lessons list i
   await assertFails(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, learnPassed: { basics: 1 } }));
   await assertSucceeds(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, learnDone: ['stocks'] }));
   await assertFails(updateDoc(doc(real('alice').firestore(), 'users/alice'), { 'learnPassed.basics': Date.now() }));
+  // the quiz wait after a failed chapter quiz is the server's too (skipping it costs tokens)
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'users/alice'), { 'learnRetryAt.basics': 0 }));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, learnRetryAt: {} }));
   await assertSucceeds(updateDoc(doc(real('alice').firestore(), 'users/alice'), { learnDone: ['stocks', 'prices'] }));
 });
 

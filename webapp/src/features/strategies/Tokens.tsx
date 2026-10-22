@@ -10,7 +10,10 @@ import { isNative } from '../../lib/platform';
 import { t } from '../../lib/i18n';
 import { Button, Sheet, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
-import { checkout, openWallet, passPrice, safeCheckout, useWalletDoc, type WalletInfo } from './strategies';
+import { nyDay } from '../charts/series';
+import { formatLocalTime } from '../../lib/format';
+import { useNow } from '../../lib/useNow';
+import { boostPrice, buyBoost, checkout, openWallet, passPrice, safeCheckout, useWalletDoc, type BoostId, type WalletInfo } from './strategies';
 import { Coin } from '../tokens/Coin';
 import { TokenHistory } from './TokenHistory';
 import s from './Strategies.module.css';
@@ -76,9 +79,58 @@ export function TokensSheet({ open, onClose, info, balance }: { open: boolean; o
             ))}
           </ul>
         )}
+        <Boosts info={info} balance={balance} />
         <p className={s.fine}>{t('st.tokens.fine')}</p>
         <TokenHistory />
       </div>
     </Sheet>
+  );
+}
+
+/** Small things to spend tokens on (owner 2026-10-22): an XP booster and extra battle entries. */
+function Boosts({ info, balance }: { info: WalletInfo | null; balance: number | null }) {
+  const { user, isReal } = useAuth();
+  const doc = useWalletDoc(isReal && user ? user.uid : null);
+  const wallet = doc.status === 'ready' ? doc.data : null;
+  const now = useNow();
+  const toast = useToast();
+  const [busy, setBusy] = useState<BoostId | null>(null);
+  if (!isReal || !user) return null;
+  const today = nyDay(now);
+  const boostOn = (wallet?.xpBoostUntil ?? 0) > now;
+  const extraToday = wallet?.twExtra?.day === today ? wallet.twExtra.n : 0;
+  const maxExtra = info?.battleEntryMax ?? 2;
+  async function buy(id: BoostId) {
+    setBusy(id);
+    try {
+      await buyBoost(id);
+      toast.show(id === 'xp-boost' ? t('bst.xp.bought') : t('bst.battle.bought'));
+    } catch (e) {
+      toast.show(errorText(e, t('st.buy.failed')), 'error');
+    } finally {
+      setBusy(null);
+    }
+  }
+  const row = (id: BoostId, title: string, sub: string, disabled: boolean) => (
+    <li key={id}>
+      <span>
+        <b>{title}</b>
+        <span className={s.muted}>{sub}</span>
+      </span>
+      <Button variant="secondary" size="sm" disabled={disabled || !!busy || (balance ?? 0) < boostPrice(info, id)} onClick={() => void buy(id)}>
+        {t('bst.price', { n: boostPrice(info, id) })}
+      </Button>
+    </li>
+  );
+  return (
+    <section aria-labelledby="boosts-title">
+      <h3 id="boosts-title" className={s.boostsTitle}>
+        {t('bst.title')}
+      </h3>
+      <ul className={[s.packs, s.boosts].join(' ')}>
+        {row('xp-boost', t('bst.xp'), boostOn ? t('bst.xp.on', { time: formatLocalTime(wallet!.xpBoostUntil) }) : t('bst.xp.sub'), false)}
+        {row('battle-entry', t('bst.battle'), t('bst.battle.sub', { n: extraToday, max: maxExtra }), extraToday >= maxExtra)}
+      </ul>
+    </section>
   );
 }

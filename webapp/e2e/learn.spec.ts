@@ -9,6 +9,8 @@ test.describe.configure({ timeout: 120_000 });
 
 const BASE = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents';
 const get = (path: string) => fetch(`${BASE}/${path}`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json());
+const putBalance = (uid: string, n: number) =>
+  fetch(`${BASE}/wallets/${uid}?updateMask.fieldPaths=balance`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { balance: { integerValue: String(n) } } }) });
 async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
@@ -131,7 +133,13 @@ test.describe('signed in', () => {
     await page.getByRole('button', { name: 'Check my answers' }).click();
     await expect(page.getByText('Not quite yet')).toBeVisible();
     await expect(page.getByText('0 of 5 right. You need 4 to pass.')).toBeVisible();
-    await page.getByRole('button', { name: 'Try again' }).click();
+    // a fail means an hour's wait, or 10 tokens to skip it (owner 2026-10-22)
+    await expect(page.getByText(/You can retake this quiz at/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeDisabled();
+    await putBalance(uid, 20);
+    await page.getByRole('button', { name: 'Skip the wait · 10 tokens' }).click();
+    await expect(page.getByText('Wait skipped. Good luck!')).toBeVisible();
+    await expect.poll(async () => (await get(`wallets/${uid}`)).fields?.balance?.integerValue).toBe('10');
     await pick([1, 0, 2, 2, 0]);
     await page.getByRole('button', { name: 'Check my answers' }).click();
     await expect(page.getByText('You passed!')).toBeVisible();

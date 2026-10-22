@@ -24,8 +24,10 @@ describe('strategies', () => {
   });
   it('wallet: balance and passes read defensively', () => {
     const w = parseWallet({ balance: 99.7, passes: { 'swing-trader': 2000, hack: 9e15 } });
-    expect(w).toEqual({ balance: 99, passes: { 'swing-trader': 2000 } });
-    expect(parseWallet({ balance: -5, passes: 'x' })).toEqual({ balance: 0, passes: {} });
+    expect(w).toEqual({ balance: 99, passes: { 'swing-trader': 2000 }, xpBoostUntil: 0, twExtra: null });
+    expect(parseWallet({ balance: -5, passes: 'x', twExtra: 'x' })).toEqual({ balance: 0, passes: {}, xpBoostUntil: 0, twExtra: null });
+    // boosts (owner 2026-10-22)
+    expect(parseWallet({ balance: 1, xpBoostUntil: 5000, twExtra: { day: '2026-10-22', n: 1.7 } })).toMatchObject({ xpBoostUntil: 5000, twExtra: { day: '2026-10-22', n: 1 } });
     expect(passUntil(w, 'swing-trader', 1000)).toBe(2000);
     expect(passUntil(w, 'swing-trader', 3000)).toBeNull();
     expect(passUntil(null, 'breakout-rider', 0)).toBeNull();

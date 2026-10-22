@@ -18,7 +18,7 @@ const admin = (path, fields) => fetch(`http://127.0.0.1:8080/v1/projects/${P}/da
 const adminGet = (path) => fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/${path}`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.status === 200 ? r.json() : null);
 const nyDay = (o = 0) => { const d = new Date(Date.now() + o * 864e5); return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); };
 
-let pass = 0; const ok = (c, m) => { assert.ok(c, m); pass++; console.log('  ok   ' + m); };
+let pass = 0; let err = null; const ok = (c, m) => { assert.ok(c, m); pass++; console.log('  ok   ' + m); };
 
 await admin('alerts/swing-1', { t: { integerValue: 1 } });
 
@@ -73,7 +73,7 @@ await admin('squads/s1', { owner: { stringValue: u.uid }, members: arr(u.uid, 'o
 await admin('squads/s2', { owner: { stringValue: u.uid }, members: arr(u.uid), code: { stringValue: 'ABCDEF' } });
 await admin('squadCodes/ABCDEF', { squad: { stringValue: 's2' } });
 await admin('usernames/deluser', { uid: { stringValue: u.uid } });
-let err = null; try { await call('account_delete', {}); } catch (e) { err = e; }
+err = null; try { await call('account_delete', {}); } catch (e) { err = e; }
 ok(err && /invalid-argument/.test(err.code), 'delete without confirmation refused');
 r = await call('account_delete', { confirm: 'DELETE' });
 ok(r.deleted, 'account_delete succeeds with a fresh sign-in');
@@ -89,6 +89,22 @@ ok(!(await adminGet('usernames/deluser')), 'username released');
 const users = await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${P}/accounts`, { headers: { Authorization: 'Bearer owner' } }).then((x) => x.json()).catch(() => null);
 const lookup = await fetch(`http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/${P}/accounts:lookup`, { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ localId: [u.uid] }) }).then((x) => x.json());
 ok(!lookup.users, 'Firebase Auth user deleted');
+
+// --- boosts (tokens_boost, owner 2026-10-22)
+await signOut(auth);
+const b = (await createUserWithEmailAndPassword(auth, 'boost@example.com', 'secret123')).user;
+await setDoc(doc(db, 'users', b.uid), { xp: 0 });
+await admin('wallets/' + b.uid, { balance: { integerValue: 100 } });
+r = await call('tokens_boost', { item: 'xp-boost' });
+ok(r.balance === 40 && r.xpBoostUntil > Date.now(), 'XP booster: 60 tokens, on for a day');
+r = await call('xp_award', { type: 'daily-checkin', refId: nyDay() });
+ok(r.awarded && r.xp === 6, 'the XP booster doubles XP (a 3 XP check-in pays 6)');
+err = null; try { await call('tokens_boost', { item: 'quiz-retry', chapter: 'basics' }); } catch (e) { err = e; }
+ok(err && /failed-precondition/.test(err.code) && (await adminGet('wallets/' + b.uid)).fields.balance.integerValue === '40', 'no quiz wait to skip: refused, nothing charged');
+err = null; try { await call('tokens_boost', { item: 'free-money' }); } catch (e) { err = e; }
+ok(err && /invalid-argument/.test(err.code), 'an unknown boost is refused');
+r = await call('tokens_boost', { item: 'battle-entry' });
+ok(r.balance === 25 && r.twExtra.n === 1, 'an extra battle entry: 15 tokens');
 
 // --- practice account (server-side)
 await signOut(auth);

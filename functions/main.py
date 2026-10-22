@@ -3498,6 +3498,7 @@ def tokens_wallet(req, db, uid, tok, now_ms):
     out.update({"welcomed": bool(line), "bought": bought, "prices": {"pass": TOKENS["pass"], "passPrices": {k: pass_price(k) for k in sorted(ALLOWED_STRATEGIES)}, "passDays": TOKENS["passDays"],
                                                        "dayPass": TOKENS["dayPass"], "dayPassPrices": {k: pass_price(k, 1) for k in sorted(ALLOWED_STRATEGIES)}, "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
                 "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
+                "boosts": {k: v[0] for k, v in BOOSTS.items()}, "battleEntryMax": BATTLE_ENTRY_MAX,
                 "canBuy": _square_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
     return out
 
@@ -3533,6 +3534,72 @@ def tokens_spend(req, db, uid, tok, now_ms):
     out = _tk_public(wallet)
     out["charged"] = -(line or {}).get("amount", 0)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Boosts: small things to spend tokens on (owner 2026-10-22; prices approved the same day).
+#   xp-boost       double XP for 24 hours (xp_grant; still inside the daily XP ceiling)
+#   battle-entry   one more prize-eligible battle today (twDailyCap + the ones bought)
+#   quiz-retry     retake a failed Trading 101 chapter quiz now instead of after the hour's wait
+# Everything bought lives on the server-only wallet doc (or, for the quiz wait, a server-only
+# users field), so it can't be faked from a browser.
+BOOSTS = {"xp-boost": (60, "XP booster (24 hours)"), "battle-entry": (15, "Extra battle entry (today)"),
+          "quiz-retry": (10, "Chapter quiz retake")}
+BATTLE_ENTRY_MAX = 2          # extra prize-eligible battles you can buy a day
+XP_BOOST_MS = 24 * 3600000
+QUIZ_WAIT_MS = 3600000        # after a failed chapter quiz
+
+
+def boost_buy(wallet, item, now_ms, today, retry_at=None):
+    """Pure: (wallet, ledger line) for one boost. retry_at: the chapter's quiz wait (quiz-retry)."""
+    if item not in BOOSTS:
+        raise TWError("INVALID_ARGUMENT", "That isn't in the shop.")
+    cost, note = BOOSTS[item]
+    w = dict(wallet, updatedAt=now_ms)
+    if item == "xp-boost":
+        w["xpBoostUntil"] = max(int(wallet.get("xpBoostUntil") or 0), now_ms) + XP_BOOST_MS
+    elif item == "battle-entry":
+        ex = wallet.get("twExtra") or {}
+        n = ex.get("n", 0) if ex.get("day") == today else 0
+        if n >= BATTLE_ENTRY_MAX:
+            raise TWError("FAILED_PRECONDITION", "You already have %d extra battle entries today." % BATTLE_ENTRY_MAX)
+        w["twExtra"] = {"day": today, "n": n + 1}
+    elif not retry_at or retry_at <= now_ms:
+        raise TWError("FAILED_PRECONDITION", "You can take this quiz now, no need to skip.")
+    if wallet["balance"] < cost:
+        raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet["balance"]))
+    w["balance"] = wallet["balance"] - cost
+    return w, tk_ledger("boost", -cost, w["balance"], now_ms, note, item)
+
+
+@https_fn.on_call()
+@_tk_call
+def tokens_boost(req, db, uid, tok, now_ms):
+    """{item: 'xp-boost' | 'battle-entry' | 'quiz-retry', chapter?} -> the wallet after paying."""
+    data = req.data or {}
+    item, chapter = str(data.get("item") or ""), str(data.get("chapter") or "")
+    if item == "quiz-retry" and chapter not in LEARN.CHAPTERS:
+        raise TWError("INVALID_ARGUMENT", "Pick a chapter.")
+    ref, uref = db.collection("wallets").document(uid), db.collection("users").document(uid)
+    today = _ny_day(now_ms)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        retry_at = None
+        if item == "quiz-retry":
+            us = uref.get(transaction=t)
+            retry_at = ((us.to_dict() or {}).get("learnRetryAt") or {}).get(chapter) if us.exists else None
+        wallet, line = boost_buy(wallet, item, now_ms, today, retry_at)
+        t.set(ref, wallet)
+        t.set(ref.collection("ledger").document(), line)
+        if item == "quiz-retry":
+            t.set(uref, {"learnRetryAt": {chapter: firestore.DELETE_FIELD}}, merge=True)
+        return wallet
+
+    wallet = txn(db.transaction())
+    return dict(_tk_public(wallet), xpBoostUntil=wallet.get("xpBoostUntil") or 0, twExtra=wallet.get("twExtra") or {})
 
 
 # ---------------------------------------------------------------------------
@@ -3681,7 +3748,8 @@ def tw_credit_reward(db, uid, war_id, amount, note, now_ms):
         wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
         cap = wallet.get("twRewards") or {}
         n = cap.get("n", 0) if cap.get("day") == today else 0
-        if n >= EARN["twDailyCap"]:
+        ex = wallet.get("twExtra") or {}
+        if n >= EARN["twDailyCap"] + (ex.get("n", 0) if ex.get("day") == today else 0):  # + entries bought today
             return False
         w, line = tk_credit(wallet, amount, now_ms, "trade-war", note, war_id)
         w["twRewards"] = {"day": today, "n": n + 1}
@@ -4678,11 +4746,21 @@ def learn_quiz_run(db, uid, data, now_ms):
     if graded is None:
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Answer every question, then try again.")
     u = db.collection("users").document(uid).get()
+    ud = (u.to_dict() or {}) if u.exists else {}
+    retry_at = int((ud.get("learnRetryAt") or {}).get(chapter) or 0)
+    if retry_at > now_ms:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+                                  "You can retake this quiz in %d min." % max(1, -(-(retry_at - now_ms) // 60000)),
+                                  {"retryAt": retry_at})
     if not LEARN.chapter_open(chapter, ((u.to_dict() or {}).get("learnPassed") if u.exists else None)):
         n = LEARN.ORDER.index(chapter)
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, "Pass the Chapter %d quiz first." % n)
     right, total, passed, results = graded
     out = {"right": right, "total": total, "passed": passed, "need": LEARN.CHAPTERS[chapter]["pass"], "results": results, "xp": 0}
+    if not passed and not (ud.get("learnPassed") or {}).get(chapter):
+        # a fail means an hour's wait before the next try (or 10 tokens to skip it: tokens_boost)
+        out["retryAt"] = now_ms + QUIZ_WAIT_MS
+        db.collection("users").document(uid).set({"learnRetryAt": {chapter: out["retryAt"]}}, merge=True)
     if passed:
         db.collection("users").document(uid).set({"learnPassed": {chapter: now_ms}}, merge=True)
         g = xp_grant(db, uid, "chapter", chapter, now_ms)
@@ -4713,11 +4791,14 @@ def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
     today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
     uref = db.collection("users").document(uid)
     sref = db.collection("xpState").document(uid)
+    wref = db.collection("wallets").document(uid)
     src = XP.SOURCES.get(kind, ("platform", kind))
 
     @firestore.transactional
     def txn(t):
         st, us = sref.get(transaction=t), uref.get(transaction=t)
+        ws = wref.get(transaction=t)
+        boosted = ws.exists and int((ws.to_dict() or {}).get("xpBoostUntil") or 0) > now_ms
         u = us.to_dict() if us.exists else {}
         s = st.to_dict() if st.exists else {}
         if s.get("day") != today:
@@ -4729,6 +4810,8 @@ def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
         upd, awarded = {}, False
         if not ev.exists:
             amt, _, why2 = XP.decide(kind, ref, today, s.get("counts") or {}, int(s.get("xp") or 0))
+            if not why2 and boosted:  # an XP booster doubles it, still inside the daily ceiling
+                amt += max(0, min(amt, XP.DAILY_XP_CEILING - int(s.get("xp") or 0) - amt))
             if not why2:
                 upd["xp"] = before + amt
                 t.set(eref, {"type": kind, "refId": ref, "xp": amt, "source": src[0], "label": src[1],

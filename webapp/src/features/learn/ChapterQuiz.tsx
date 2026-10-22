@@ -8,7 +8,12 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
+import { formatLocalTime } from '../../lib/format';
+import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, EmptyState, PageHeader, useToast } from '../../ui';
+import { errorText } from '../invites/invites';
+import { boostPrice, buyBoost } from '../strategies/strategies';
+import { useTokens } from '../strategies/Tokens';
 import { CHAPTER_XP, CHAPTERS, chapterById, chapterState, gradeQuiz, type QuizResult } from './chapters';
 import { useSkill } from './useSkill';
 import s from './Learn.module.css';
@@ -20,7 +25,10 @@ export function ChapterQuiz() {
   const nextRaw = useSearchParams()[0].get('next') ?? '';
   const next = nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : null;
   const { isReal, openSignIn } = useAuth();
-  const { learnDone, learnPassed, loaded } = useSkill();
+  const { learnDone, learnPassed, learnRetryAt, loaded } = useSkill();
+  const now = useNow();
+  const tk = useTokens();
+  const [skipping, setSkipping] = useState(false);
   const toast = useToast();
   const [answers, setAnswers] = useState<(number | null)[]>(() => (c ? c.quiz.map(() => null) : []));
   const [busy, setBusy] = useState(false);
@@ -32,6 +40,33 @@ export function ChapterQuiz() {
   }
   const nextChapter = CHAPTERS[CHAPTERS.indexOf(c) + 1] ?? null;
   const all = answers.every((a) => a != null);
+  // a failed quiz means an hour's wait before the next try, or a few tokens to skip it (owner 2026-10-22)
+  const retryAt = isReal ? (learnRetryAt[c.id] ?? 0) : 0;
+  const waiting = retryAt > now;
+  const skipCost = boostPrice(tk.info, 'quiz-retry');
+  async function skip() {
+    setSkipping(true);
+    try {
+      await buyBoost('quiz-retry', c!.id);
+      toast.show(t('ln.skipped'));
+      setResult(null);
+      setAnswers(c!.quiz.map(() => null));
+    } catch (e) {
+      toast.show(errorText(e, t('st.buy.failed')), 'error');
+    } finally {
+      setSkipping(false);
+    }
+  }
+  const waitCard = waiting && (
+    <Card pad>
+      <div className={s.levelRow}>
+        <span className={s.muted}>{t('ln.wait', { time: formatLocalTime(retryAt) })}</span>
+        <Button variant="secondary" size="sm" disabled={skipping || (tk.balance ?? 0) < skipCost} onClick={() => void skip()}>
+          {t('ln.skipWait', { n: skipCost })}
+        </Button>
+      </div>
+    </Card>
+  );
 
   async function submit() {
     setBusy(true);
@@ -71,6 +106,7 @@ export function ChapterQuiz() {
                   <>
                     <Button
                       variant="primary"
+                      disabled={waiting}
                       onClick={() => {
                         setResult(null);
                         setAnswers(c.quiz.map(() => null));
@@ -87,6 +123,7 @@ export function ChapterQuiz() {
             </div>
           </Card>
         )}
+        {waitCard}
         {!isReal && (
           <Card pad>
             <div className={s.levelRow}>
@@ -128,7 +165,7 @@ export function ChapterQuiz() {
           })}
         </ol>
         {!result && (
-          <Button variant="primary" size="lg" block disabled={!all || busy || !isReal} onClick={() => void submit()}>
+          <Button variant="primary" size="lg" block disabled={!all || busy || !isReal || waiting} onClick={() => void submit()}>
             {all ? t('ln.checkAnswers') : t('ln.answerAll', { n: answers.filter((a) => a == null).length })}
           </Button>
         )}

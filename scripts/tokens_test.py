@@ -222,6 +222,42 @@ class Earning(unittest.TestCase):
         self.assertEqual(m.tw_rewards(out, {"cutHours": 1}, everyone), [("u0", 10, "Trade War: 1st place")])
 
 
+class Boosts(unittest.TestCase):
+    TODAY = "2026-10-22"
+
+    def test_xp_booster_stacks_24_hours(self):
+        w = dict(m.tk_new_wallet(T0), balance=200)
+        w, line = m.boost_buy(w, "xp-boost", T0, self.TODAY)
+        self.assertEqual((w["balance"], line["amount"], line["type"], w["xpBoostUntil"]), (140, -60, "boost", T0 + 24 * 3600000))
+        w, _ = m.boost_buy(w, "xp-boost", T0 + 1000, self.TODAY)  # a second one adds a day
+        self.assertEqual(w["xpBoostUntil"], T0 + 48 * 3600000)
+
+    def test_extra_battle_entries_two_a_day(self):
+        w = dict(m.tk_new_wallet(T0), balance=100)
+        w, _ = m.boost_buy(w, "battle-entry", T0, self.TODAY)
+        w, _ = m.boost_buy(w, "battle-entry", T0, self.TODAY)
+        self.assertEqual((w["balance"], w["twExtra"]), (70, {"day": self.TODAY, "n": 2}))
+        with self.assertRaises(m.TWError):
+            m.boost_buy(w, "battle-entry", T0, self.TODAY)
+        w, _ = m.boost_buy(w, "battle-entry", T0, "2026-10-23")  # a new day starts over
+        self.assertEqual(w["twExtra"], {"day": "2026-10-23", "n": 1})
+
+    def test_quiz_retry_only_while_waiting(self):
+        w = dict(m.tk_new_wallet(T0), balance=20)
+        w2, line = m.boost_buy(w, "quiz-retry", T0, self.TODAY, retry_at=T0 + 60000)
+        self.assertEqual((w2["balance"], line["amount"]), (10, -10))
+        for retry in (None, T0, T0 - 5):
+            with self.assertRaises(m.TWError):
+                m.boost_buy(w, "quiz-retry", T0, self.TODAY, retry_at=retry)
+
+    def test_unknown_or_unaffordable(self):
+        with self.assertRaises(m.TWError):
+            m.boost_buy(dict(m.tk_new_wallet(T0), balance=999), "free-money", T0, self.TODAY)
+        with self.assertRaises(m.TWError):
+            m.boost_buy(dict(m.tk_new_wallet(T0), balance=59), "xp-boost", T0, self.TODAY)
+        self.assertEqual({k: v[0] for k, v in m.BOOSTS.items()}, {"xp-boost": 60, "battle-entry": 15, "quiz-retry": 10})
+
+
 class Cosmetics(unittest.TestCase):
     def test_buy(self):
         w = dict(m.tk_new_wallet(T0), balance=200)
