@@ -64,7 +64,7 @@ test('communities: hub, create (verified only), join and leave', async ({ page, 
   await expect(page).toHaveURL(/\/communities\/clan-[a-z0-9-]+-ct$/, { timeout: 30_000 });
   await expect(page.getByRole('heading', { level: 1, name: `Clan ${tag.slice(-6)}` })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Share invite link' })).toBeVisible();
-  await expect(page.getByText('5 more real members to Founder (+250 tokens).')).toBeVisible();
+  await expect(page.getByText('5 more real members to Founder (+120 tokens).')).toBeVisible();
   expect(await axe(page)).toEqual([]);
 
   // another verified player joins the seeded community, then leaves it

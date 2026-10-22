@@ -22,7 +22,7 @@ class Wallet(unittest.TestCase):
         w = m.tk_new_wallet(T0)
         self.assertEqual(m.tk_welcome(w, False, T0), (w, None))
         w2, line = m.tk_welcome(w, True, T0)
-        self.assertEqual((w2["balance"], w2["welcomed"], line["amount"], line["type"]), (75, True, 75, "welcome"))
+        self.assertEqual((w2["balance"], w2["welcomed"], line["amount"], line["type"]), (50, True, 50, "welcome"))
         self.assertIsNone(m.tk_welcome(w2, True, T0 + 1)[1])
 
     def test_verified_accounts(self):
@@ -34,24 +34,37 @@ class Wallet(unittest.TestCase):
         self.assertFalse(m._tk_verified(fb("anonymous")))
 
     def test_pass_extends_and_charges(self):
-        w = dict(m.tk_new_wallet(T0), balance=100)
+        w = dict(m.tk_new_wallet(T0), balance=300)
         w, line = m.tk_spend(w, "pass", T0, "swing-trader")
-        self.assertEqual((w["balance"], line["amount"], w["passes"]["swing-trader"]), (60, -40, T0 + 7 * 86400000))
+        self.assertEqual((w["balance"], line["amount"], w["passes"]["swing-trader"]), (180, -120, T0 + 7 * 86400000))
         w, _ = m.tk_spend(w, "pass", T0 + 1000, "swing-trader")  # stacks on the remaining time
-        self.assertEqual((w["balance"], w["passes"]["swing-trader"]), (20, T0 + 14 * 86400000))
+        self.assertEqual((w["balance"], w["passes"]["swing-trader"]), (60, T0 + 14 * 86400000))
         with self.assertRaises(m.TWError):
-            m.tk_spend(w, "pass", T0, "swing-trader")  # 20 < 40
+            m.tk_spend(w, "pass", T0, "swing-trader")  # 60 < 120
         with self.assertRaises(m.TWError):
             m.tk_spend(dict(w, balance=999), "pass", T0, "crypto-bot")
 
-    def test_three_leg_pass_costs_60(self):
-        # owner 2026-10-15: 3-Leg Options gives three positions per trade, so its week is 60
-        self.assertEqual((m.pass_price("three-leg"), m.pass_price("swing-trader")), (60, 40))
-        w = dict(m.tk_new_wallet(T0), balance=100)
+    def test_three_leg_pass_costs_more(self):
+        # owner 2026-10-15: 3-Leg Options gives three positions per trade, so it costs more (180 a week, 2026-10-22)
+        self.assertEqual((m.pass_price("three-leg"), m.pass_price("swing-trader")), (180, 120))
+        w = dict(m.tk_new_wallet(T0), balance=300)
         w, line = m.tk_spend(w, "pass", T0, "three-leg")
-        self.assertEqual((w["balance"], line["amount"], w["passes"]["three-leg"]), (40, -60, T0 + 7 * 86400000))
+        self.assertEqual((w["balance"], line["amount"], w["passes"]["three-leg"]), (120, -180, T0 + 7 * 86400000))
         with self.assertRaises(m.TWError):
-            m.tk_spend(w, "pass", T0, "three-leg")  # 40 < 60
+            m.tk_spend(w, "pass", T0, "three-leg")  # 120 < 180
+
+    def test_one_day_pass(self):
+        # owner 2026-10-22: a cheaper 1-day pass to try a scanner
+        self.assertEqual((m.pass_price("swing-trader", 1), m.pass_price("three-leg", 1)), (30, 45))
+        w = dict(m.tk_new_wallet(T0), balance=200)
+        w, line = m.tk_spend(w, "pass", T0, "breakout-rider", days=1)
+        self.assertEqual((w["balance"], line["amount"], w["passes"]["breakout-rider"]), (170, -30, T0 + 86400000))
+        self.assertIn("pass (1 day)", line["note"])
+        w, _ = m.tk_spend(w, "pass", T0 + 5, "breakout-rider", days=7)  # a week on top of the day
+        self.assertEqual(w["passes"]["breakout-rider"], T0 + 8 * 86400000)
+        for bad in (0, 2, 30, -1):
+            with self.assertRaises(m.TWError):
+                m.tk_spend(dict(w, balance=999), "pass", T0, "swing-trader", days=bad)
 
     def test_three_leg_teaser_hides_the_legs(self):
         full = {"strategy": "three-leg", "status": "qualified", "ticker": "AAPL", "setupLabel": "Butterfly at resistance", "direction": "long",
@@ -62,9 +75,9 @@ class Wallet(unittest.TestCase):
 
     def test_unlock(self):
         locked = {"strategy": "breakout-rider", "released": False, "lockedUntil": T0 + 3600000}
-        w = dict(m.tk_new_wallet(T0), balance=15)
+        w = dict(m.tk_new_wallet(T0), balance=30)
         w, line = m.tk_spend(w, "unlock", T0, alert_id="breakout-rider-2026-09-30", locked=locked)
-        self.assertEqual((w["balance"], w["unlocked"], line["amount"]), (5, ["breakout-rider-2026-09-30"], -10))
+        self.assertEqual((w["balance"], w["unlocked"], line["amount"]), (5, ["breakout-rider-2026-09-30"], -25))
         w2, line = m.tk_spend(w, "unlock", T0, alert_id="breakout-rider-2026-09-30", locked=locked)
         self.assertEqual((w2["balance"], line), (5, None))  # already yours: free
         with self.assertRaises(m.TWError):
@@ -73,13 +86,13 @@ class Wallet(unittest.TestCase):
             m.tk_spend(w, "unlock", T0, alert_id="x", locked=None)
 
     def test_after_close_is_cheaper(self):
-        w = dict(m.tk_new_wallet(T0), balance=5)
+        w = dict(m.tk_new_wallet(T0), balance=10)
         closed = {"strategy": "swing-trader", "released": True, "lockedUntil": T0 - 1}
         w2, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-09-29", locked=closed)
-        self.assertEqual((w2["balance"], line["amount"]), (2, -3))
+        self.assertEqual((w2["balance"], line["amount"]), (2, -8))
         # past the close but the release job hasn't run yet: still the after-close price
         w3, line = m.tk_spend(w, "unlock", T0, alert_id="y", locked=dict(closed, released=False))
-        self.assertEqual(line["amount"], -3)
+        self.assertEqual(line["amount"], -8)
         self.assertLess(m.TOKENS["unlockClosed"], m.TOKENS["unlock"])
 
     def test_pass_covers_unlocks_for_free(self):
@@ -183,40 +196,40 @@ class Earning(unittest.TestCase):
     def test_checkin_streak_and_bonus(self):
         w = dict(m.tk_new_wallet(T0), balance=0)
         w, line, c = m.tk_checkin(w, "2026-10-01", "2026-09-30", T0)
-        self.assertEqual((w["balance"], c["streak"], c["days"], line["type"]), (2, 1, 1, "checkin"))
+        self.assertEqual((w["balance"], c["streak"], c["days"], line["type"]), (1, 1, 1, "checkin"))
         self.assertIsNone(m.tk_checkin(w, "2026-10-01", "2026-09-30", T0 + 5)[1])  # same day: nothing
         for i, day in enumerate(["2026-10-02", "2026-10-03", "2026-10-04", "2026-10-05", "2026-10-06"]):
             prev = "2026-10-0%d" % (i + 1)
             w, line, c = m.tk_checkin(w, day, prev, T0)
-        self.assertEqual((c["streak"], w["balance"]), (6, 12))
+        self.assertEqual((c["streak"], w["balance"]), (6, 6))
         w, line, c = m.tk_checkin(w, "2026-10-07", "2026-10-06", T0)  # 7th day in a row: bonus
-        self.assertEqual((c["streak"], line["amount"], w["balance"]), (7, 12, 24))
+        self.assertEqual((c["streak"], line["amount"], w["balance"]), (7, 6, 12))
         w, line, c = m.tk_checkin(w, "2026-10-09", "2026-10-08", T0)  # missed a day: back to 1
-        self.assertEqual((c["streak"], c["days"], line["amount"]), (1, 8, 2))
+        self.assertEqual((c["streak"], c["days"], line["amount"]), (1, 8, 1))
 
     def test_trade_war_rewards(self):
         rows = lambda n, **kw: [dict({"uid": "u%d" % i, "trades": 1, "rank": i + 1}, **kw) for i in range(n)]
         everyone = {"u%d" % i for i in range(9)}
-        self.assertEqual(m.tw_rewards(rows(5), None, everyone), [("u0", 25, "Trade War: 1st place"), ("u1", 15, "Trade War: 2nd place"), ("u2", 10, "Trade War: 3rd place")])
-        self.assertEqual(m.tw_rewards(rows(2), None, everyone), [("u0", 15, "Trade War: 1st place")])
+        self.assertEqual(m.tw_rewards(rows(5), None, everyone), [("u0", 15, "Trade War: 1st place"), ("u1", 10, "Trade War: 2nd place"), ("u2", 5, "Trade War: 3rd place")])
+        self.assertEqual(m.tw_rewards(rows(2), None, everyone), [("u0", 10, "Trade War: 1st place")])
         self.assertEqual(m.tw_rewards(rows(1), None, everyone), [])                     # alone: nothing
         self.assertEqual(m.tw_rewards(rows(2), None, {"u0"}), [])                        # opponent not verified
         r = rows(4); r[1]["trades"] = 0                                                  # no trades: not counted
         self.assertEqual([x[0] for x in m.tw_rewards(r, None, everyone)], ["u0"])
         lms = m.tw_rewards(rows(4), {"cutHours": 1}, everyone)
-        self.assertEqual(lms[0], ("u0", 35, "Last Man Standing: survived and won"))
+        self.assertEqual(lms[0], ("u0", 20, "Last Man Standing: survived and won"))
         out = rows(2); out[0]["out"] = True
-        self.assertEqual(m.tw_rewards(out, {"cutHours": 1}, everyone), [("u0", 15, "Trade War: 1st place")])
+        self.assertEqual(m.tw_rewards(out, {"cutHours": 1}, everyone), [("u0", 10, "Trade War: 1st place")])
 
 
 class Cosmetics(unittest.TestCase):
     def test_buy(self):
-        w = dict(m.tk_new_wallet(T0), balance=100)
+        w = dict(m.tk_new_wallet(T0), balance=200)
         w, line = m.cosmetic_buy(w, "color", "gold", T0)
-        self.assertEqual((w["balance"], w["owned"], line["amount"]), (40, ["color:gold"], -60))
+        self.assertEqual((w["balance"], w["owned"], line["amount"]), (80, ["color:gold"], -120))
         self.assertEqual(m.cosmetic_buy(w, "color", "gold", T0)[1], None)  # owned: free
         with self.assertRaises(m.TWError):
-            m.cosmetic_buy(w, "banner", "gold", T0)  # 150 > 40
+            m.cosmetic_buy(w, "banner", "gold", T0)  # 300 > 80
         with self.assertRaises(m.TWError):
             m.cosmetic_buy(w, "color", "plaid", T0)
 

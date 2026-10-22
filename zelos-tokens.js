@@ -30,7 +30,7 @@
   var fnsP = null, wallet = null, walletUnsub = null, prices = null, me = null, listeners = [];
 
   // a strategy's 1-week pass price (3-Leg Options costs more: main.py TOKENS["passPrices"])
-  function passPrice(p, s) { var pp = p && p.prices && p.prices.passPrices; return pp && pp[s] != null ? pp[s] : s === 'three-leg' ? 60 : (p && p.prices ? p.prices.pass : 40); }
+  function passPrice(p, s) { var pp = p && p.prices && p.prices.passPrices; return pp && pp[s] != null ? pp[s] : s === 'three-leg' ? 180 : (p && p.prices ? p.prices.pass : 120); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fb() {
     var cfg = global.ZELOS_FIREBASE_CONFIG;
@@ -263,11 +263,11 @@
       body.innerHTML = '<div class="zt-bal"><span class="zt-coin" aria-hidden="true"></span>' + w.balance + '</div>' +
         (w.welcomed ? '<p class="zt-msg is-ok">Welcome! ' + w.prices.welcome + ' free tokens were added to your wallet.</p>' : '') +
         (w.needsVerify ? '<p class="zt-muted">Verify your email (or sign in with Google) to get your ' + w.prices.welcome + ' free welcome tokens.</p>' : '') +
-        '<p class="zt-muted">A 1-week scanner pass is ' + w.prices.pass + ' tokens (' + passPrice(w, 'three-leg') + ' for 3-Leg Options). One live alert is ' + w.prices.unlock + '; after the 4:00 pm ET close it\'s ' + (w.prices.unlockClosed || 3) + '. Every alert is free for everyone once its trade finishes.</p>' +
+        '<p class="zt-muted">A 1-week scanner pass is ' + w.prices.pass + ' tokens (' + passPrice(w, 'three-leg') + ' for 3-Leg Options). One live alert is ' + w.prices.unlock + '; after the 4:00 pm ET close it\'s ' + (w.prices.unlockClosed || 8) + '. Every alert is free for everyone once its trade finishes.</p>' +
         '<h3>Active passes</h3>' + (passes.length ? passes.map(function (k) { return '<div class="zt-row"><span>' + esc(NAMES[k] || k) + '</span><span class="zt-muted">until ' + until(w.passes[k]) + '</span></div>'; }).join('') : '<p class="zt-muted">None. Get one on any scanner\'s locked alert, or on the <a href="' + ROOT + 'tokens.html" style="color:#9dbcff">tokens page</a>.</p>') +
         '<h3>Earn free tokens</h3><div class="zt-row"><span>Daily check-in' + (wallet && wallet.checkin && wallet.checkin.streak ? ' <span class="zt-muted">(' + wallet.checkin.streak + '-day streak)</span>' : '') + '</span><span class="zt-muted">+2 a day, +10 every 7th day in a row</span></div>' +
         '<div class="zt-row"><span>Win a Trade War</span><span class="zt-muted">up to +25</span></div>' +
-        '<div class="zt-row"><span><a href="' + ROOT + 'practice/communities.html" style="color:#9dbcff">Founder Program</a></span><span class="zt-muted">up to +3,050</span></div>' +
+        '<div class="zt-row"><span><a href="' + ROOT + 'practice/communities.html" style="color:#9dbcff">Founder Program</a></span><span class="zt-muted">up to +1,550</span></div>' +
         '<h3>Spend tokens</h3><div class="zt-acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="zt-btn" type="button" id="ztLooks">Profile looks</button><a class="zt-btn" style="text-decoration:none" href="' + ROOT + 'tokens.html">Scanner passes</a></div>' +
         '<h3>Get tokens</h3><div class="zt-packs">' + w.packs.map(function (p) { return '<button class="zt-pack" type="button" data-pack="' + p.id + '"' + (w.canBuy ? '' : ' disabled') + '><b>' + p.tokens + '</b><span>$' + (p.cents / 100).toFixed(2) + '</span></button>'; }).join('') + '</div>' +
         (w.canBuy ? '<p class="zt-muted">Secure checkout by Square. Tokens are site credit with no cash value.</p>' : '<p class="zt-muted">Buying tokens is coming soon. Your free tokens work now.</p>') +
@@ -311,10 +311,10 @@
     el.className = 'zt-lock';
     function draw(msg, bad) {
       var u = user(), p = prices || {}, bal = wallet ? wallet.balance : null, closed = isClosed(a);
-      var cost = closed ? (p.prices ? p.prices.unlockClosed : 3) : (p.prices ? p.prices.unlock : 10);
+      var cost = closed ? (p.prices ? p.prices.unlockClosed : 8) : (p.prices ? p.prices.unlock : 25);
       el.innerHTML = '<h3><span class="zt-coin" aria-hidden="true"></span>' + (closed ? 'Unlock this alert with tokens' : 'Live alert: unlock with tokens') + '</h3>' +
         (closed ? '<div>The ticker, entry, stop, targets and full reasoning. The market has closed, so it costs less now, and it\'s free for everyone once the trade finishes (target, stop or expiry).</div>'
-          : '<div>The ticker, entry, stop, targets and full reasoning. Live until the 4:00 pm ET close (in about <b>' + left(a.lockedUntil) + '</b>), then ' + (p.prices ? p.prices.unlockClosed : 3) + ' tokens, and free once the trade finishes.</div>') +
+          : '<div>The ticker, entry, stop, targets and full reasoning. Live until the 4:00 pm ET close (in about <b>' + left(a.lockedUntil) + '</b>), then ' + (p.prices ? p.prices.unlockClosed : 8) + ' tokens, and free once the trade finishes.</div>') +
         (u ? '<div class="zt-acts"><button class="zt-btn zt-gold" type="button" data-k="unlock">Unlock this alert · ' + cost + ' tokens</button>' +
           '<button class="zt-btn" type="button" data-k="pass">1-week ' + esc(name) + ' pass · ' + passPrice(p, a.strategy) + ' tokens</button></div>' +
           '<div class="zt-muted">' + (bal != null ? 'You have <b>' + bal + '</b> tokens. ' : '') + '<a href="#" data-k="wallet" style="color:#9dbcff">Wallet &amp; token packs</a></div>'

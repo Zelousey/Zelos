@@ -57,7 +57,7 @@ export function TokensSheet({ open, onClose, info, balance }: { open: boolean; o
         <p className={s.balance}>
           <Coin size={20} /> <b>{balance ?? 0}</b> {t('st.tokens')}
         </p>
-        <p className={s.muted}>{t('st.tokens.what', { pass: info?.prices.pass ?? 40, threeLeg: passPrice(info, 'three-leg'), days: info?.prices.passDays ?? 7, unlock: info?.prices.unlock ?? 10 })}</p>
+        <p className={s.muted}>{t('st.tokens.what', { pass: passPrice(info, 'swing-trader'), day: passPrice(info, 'swing-trader', 1), threeLeg: passPrice(info, 'three-leg'), days: info?.prices.passDays ?? 7, unlock: info?.prices.unlock ?? 25 })}</p>
         {!info ? (
           <p className={s.muted}>{t('st.loading')}</p>
         ) : !info.canBuy || isNative() ? (
