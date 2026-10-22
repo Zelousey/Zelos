@@ -95,11 +95,11 @@ test.describe('signed in', () => {
     const uid = await signIn(page, `alerts-${info.project.name}${Date.now()}@example.com`);
     await put(`wallets/${uid}`, { balance: 50, welcomed: true, passes: {} });
     await page.reload();
-    await page.getByRole('button', { name: 'Unlock · 10 tokens' }).click();
+    await page.getByRole('button', { name: 'Unlock · 25 tokens' }).click();
     await expect(page.getByRole('heading', { name: 'MSFT', level: 1 })).toBeVisible();
     await expect(page.getByText('$95.00')).toBeVisible();
     const w = await get(`wallets/${uid}`);
-    expect(w.fields.balance.integerValue).toBe('40');
+    expect(w.fields.balance.integerValue).toBe('25');
 
     // a browser that can show notifications and hasn't been asked yet (CI's headless browser starts
     // with them blocked); asking is answered "Block"

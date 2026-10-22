@@ -3346,11 +3346,14 @@ def tw_respond(req, db, uid, now_ms):
 import hashlib as _hashlib
 
 TOKENS = {
-    "welcome": 75,                 # once per verified account
-    "pass": 40, "passDays": 7,     # one scanner, 7 days
-    "passPrices": {"three-leg": 60},  # strategies that cost more than "pass" (owner 2026-10-15)
-    "unlock": 10,                  # one live alert (before the 4 pm ET close)
-    "unlockClosed": 3,             # one alert after the close, until its trade finishes (then free)
+    # prices raised and 1-day passes added (owner 2026-10-22: "make people work for those a little bit")
+    "welcome": 50,                 # once per verified account
+    "pass": 120, "passDays": 7,    # one scanner, 7 days
+    "passPrices": {"three-leg": 180},  # strategies that cost more than "pass" (owner 2026-10-15)
+    "dayPass": 30,                 # one scanner, 1 day (owner 2026-10-22)
+    "dayPassPrices": {"three-leg": 45},
+    "unlock": 25,                  # one live alert (before the 4 pm ET close)
+    "unlockClosed": 8,             # one alert after the close, until its trade finishes (then free)
     "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
 }
 TK_UNLOCKED_MAX = 300
@@ -3396,19 +3399,26 @@ def tk_has_access(wallet, strategy, alert_id, now_ms):
     return (wallet.get("passes") or {}).get(strategy, 0) > now_ms or alert_id in (wallet.get("unlocked") or [])
 
 
-def pass_price(strategy):
-    """Tokens for a 7-day pass to this strategy."""
+PASS_DAYS = (1, 7)  # the passes on sale
+
+
+def pass_price(strategy, days=7):
+    """Tokens for a pass to this strategy (7 days, or 1)."""
+    if days == 1:
+        return TOKENS["dayPassPrices"].get(strategy, TOKENS["dayPass"])
     return TOKENS["passPrices"].get(strategy, TOKENS["pass"])
 
 
-def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
-    """Pure: (wallet, ledger line | None) for a pass or a single-alert unlock.
+def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None, days=7):
+    """Pure: (wallet, ledger line | None) for a pass (7 days or 1) or a single-alert unlock.
     locked: the alertsLocked doc for an unlock (None if it doesn't exist).
     Already covered = no charge (ledger None)."""
     if kind == "pass":
         if strategy not in ALLOWED_STRATEGIES:
             raise TWError("INVALID_ARGUMENT", "Pick a scanner.")
-        cost, ref = pass_price(strategy), strategy
+        if days not in PASS_DAYS:
+            raise TWError("INVALID_ARGUMENT", "Passes are 1 day or 7 days.")
+        cost, ref = pass_price(strategy, days), strategy
     elif kind == "unlock":
         if not locked or locked.get("public"):
             raise TWError("FAILED_PRECONDITION", "This alert is already free to read.")
@@ -3424,9 +3434,9 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None):
     w = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
     if kind == "pass":
         passes = dict(wallet.get("passes") or {})
-        passes[strategy] = max(passes.get(strategy, 0), now_ms) + TOKENS["passDays"] * 86400000
+        passes[strategy] = max(passes.get(strategy, 0), now_ms) + days * 86400000
         w["passes"] = passes
-        note = "%s pass (%d days)" % (PUSH_NAMES.get(strategy) or strategy.replace("-", " ").title(), TOKENS["passDays"])
+        note = "%s pass (%d day%s)" % (PUSH_NAMES.get(strategy) or strategy.replace("-", " ").title(), days, "" if days == 1 else "s")
     else:
         w["unlocked"] = ((wallet.get("unlocked") or []) + [alert_id])[-TK_UNLOCKED_MAX:]
         note = "Unlocked %s" % alert_id
@@ -3485,7 +3495,8 @@ def tokens_wallet(req, db, uid, tok, now_ms):
         if bought:
             wallet = db.collection("wallets").document(uid).get().to_dict() or wallet
     out = _tk_public(wallet)
-    out.update({"welcomed": bool(line), "bought": bought, "prices": {"pass": TOKENS["pass"], "passPrices": {k: pass_price(k) for k in sorted(ALLOWED_STRATEGIES)}, "passDays": TOKENS["passDays"], "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
+    out.update({"welcomed": bool(line), "bought": bought, "prices": {"pass": TOKENS["pass"], "passPrices": {k: pass_price(k) for k in sorted(ALLOWED_STRATEGIES)}, "passDays": TOKENS["passDays"],
+                                                       "dayPass": TOKENS["dayPass"], "dayPassPrices": {k: pass_price(k, 1) for k in sorted(ALLOWED_STRATEGIES)}, "unlock": TOKENS["unlock"], "unlockClosed": TOKENS["unlockClosed"], "welcome": TOKENS["welcome"]},
                 "packs": [{"id": k, "tokens": v[0], "cents": v[1]} for k, v in TOKENS["packs"].items()],
                 "canBuy": _square_ready(), "needsVerify": not wallet.get("welcomed") and not _tk_verified(tok)})
     return out
@@ -3494,9 +3505,12 @@ def tokens_wallet(req, db, uid, tok, now_ms):
 @https_fn.on_call()
 @_tk_call
 def tokens_spend(req, db, uid, tok, now_ms):
-    """{kind: 'pass', strategy} or {kind: 'unlock', alertId}."""
+    """{kind: 'pass', strategy, days?: 1 | 7 (default 7)} or {kind: 'unlock', alertId}."""
     data = req.data or {}
     kind, strategy, alert_id = data.get("kind"), data.get("strategy"), str(data.get("alertId") or "")
+    days = data.get("days", 7)
+    if isinstance(days, bool) or not isinstance(days, int):
+        raise TWError("INVALID_ARGUMENT", "Passes are 1 day or 7 days.")
     if kind == "unlock" and not _re.match(r"^[a-z-]+-\d{4}-\d{2}-\d{2}$", alert_id):
         raise TWError("INVALID_ARGUMENT", "That alert isn't valid.")
     ref = db.collection("wallets").document(uid)
@@ -3509,7 +3523,7 @@ def tokens_spend(req, db, uid, tok, now_ms):
         if kind == "unlock":
             ls = db.collection("alertsLocked").document(alert_id).get(transaction=t)
             locked = ls.to_dict() if ls.exists else None
-        wallet, line = tk_spend(wallet, kind, now_ms, strategy, alert_id, locked)
+        wallet, line = tk_spend(wallet, kind, now_ms, strategy, alert_id, locked, days)
         if line:
             t.set(ref, wallet)
             t.set(ref.collection("ledger").document(), line)
@@ -3536,10 +3550,11 @@ def tokens_spend(req, db, uid, tok, now_ms):
 # Every token amount lives in EARN / COSMETICS / FOUNDER_TIERS; browsers never send one.
 # ---------------------------------------------------------------------------
 EARN = {
-    "daily": 2, "streakBonus": 10, "streakEvery": 7,
-    "twTop": (25, 15, 10),   # 1st/2nd/3rd when 4+ eligible players
-    "twDuel": 15,            # the winner, when 2-3 eligible players
-    "lmsSurvivor": 10,       # extra for the last trader standing in Last Man Standing
+    # lowered 2026-10-22 (owner: tokens came too easily)
+    "daily": 1, "streakBonus": 5, "streakEvery": 7,
+    "twTop": (15, 10, 5),    # 1st/2nd/3rd when 4+ eligible players
+    "twDuel": 10,            # the winner, when 2-3 eligible players
+    "lmsSurvivor": 5,        # extra for the last trader standing in Last Man Standing
     "twDailyCap": 2,         # rewarded matches per player per New York day
 }
 
@@ -3700,12 +3715,13 @@ def tw_pay_rewards(db, ref, now_ms):
 # Bought once with tokens, then yours to switch on and off. The look itself (colors,
 # gradients, emoji) is drawn by zelos-tokens.js from the same ids.
 COSMETICS = {
-    "color": {"gold": ("Gold name", 60), "emerald": ("Emerald name", 60), "electric": ("Electric blue name", 60),
-              "crimson": ("Crimson name", 60), "violet": ("Violet name", 60), "rainbow": ("Prism name", 150)},
-    "badge": {"bull": ("Bull badge", 40), "bear": ("Bear badge", 40), "rocket": ("Rocket badge", 40),
-              "diamond": ("Diamond hands badge", 80), "crown": ("Crown badge", 120)},
-    "banner": {"sunset": ("Sunset banner", 80), "midnight": ("Midnight banner", 80), "neon": ("Neon grid banner", 100),
-               "ocean": ("Ocean banner", 80), "gold": ("Gold rush banner", 150)},
+    # prices doubled 2026-10-22 (owner)
+    "color": {"gold": ("Gold name", 120), "emerald": ("Emerald name", 120), "electric": ("Electric blue name", 120),
+              "crimson": ("Crimson name", 120), "violet": ("Violet name", 120), "rainbow": ("Prism name", 300)},
+    "badge": {"bull": ("Bull badge", 80), "bear": ("Bear badge", 80), "rocket": ("Rocket badge", 80),
+              "diamond": ("Diamond hands badge", 160), "crown": ("Crown badge", 240)},
+    "banner": {"sunset": ("Sunset banner", 160), "midnight": ("Midnight banner", 160), "neon": ("Neon grid banner", 200),
+               "ocean": ("Ocean banner", 160), "gold": ("Gold rush banner", 300)},
 }
 
 
@@ -3803,8 +3819,9 @@ US_STATES = {
     "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont", "VA": "Virginia", "WA": "Washington",
     "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
 }
-FOUNDER_TIERS = [(5, 250, "Founder"), (10, 150, "Rising Founder"), (25, 400, "Community Builder"),
-                 (50, 750, "Community Leader"), (100, 1500, "Legendary Founder")]
+# halved 2026-10-22 (owner: tokens came too easily)
+FOUNDER_TIERS = [(5, 120, "Founder"), (10, 80, "Rising Founder"), (25, 200, "Community Builder"),
+                 (50, 400, "Community Leader"), (100, 750, "Legendary Founder")]
 FOUNDER_ACTIVE_DAYS = 2
 _COMMUNITY_NAME_RE = _re.compile(r"^[A-Za-z0-9][A-Za-z0-9 '&.-]{1,28}[A-Za-z0-9.]$")
 

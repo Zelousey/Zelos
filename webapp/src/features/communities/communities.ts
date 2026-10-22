@@ -23,11 +23,11 @@ export const STATES: Record<string, string> = {
 
 /** [members, tokens, title, icon]; FOUNDER_TIERS in functions/main.py. */
 export const TIERS: [number, number, string, string][] = [
-  [5, 250, 'Founder', '🏛️'],
-  [10, 150, 'Rising Founder', '⭐'],
-  [25, 400, 'Community Builder', '🏗️'],
-  [50, 750, 'Community Leader', '🛡️'],
-  [100, 1500, 'Legendary Founder', '🏆'],
+  [5, 120, 'Founder', '🏛️'],
+  [10, 80, 'Rising Founder', '⭐'],
+  [25, 200, 'Community Builder', '🏗️'],
+  [50, 400, 'Community Leader', '🛡️'],
+  [100, 750, 'Legendary Founder', '🏆'],
 ];
 export const ACTIVE_DAYS = 2; // FOUNDER_ACTIVE_DAYS
 

@@ -111,11 +111,17 @@ export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
 };
 
 export type Pack = { id: string; tokens: number; cents: number };
-export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };
-/** Tokens for a 7-day pass to this strategy (the 3-Leg pass costs more; owner 2026-10-15). */
-export const passPrice = (info: WalletInfo | null, id: StrategyId) => info?.prices.passPrices?.[id] ?? (id === 'three-leg' ? 60 : (info?.prices.pass ?? 40));
+export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; dayPass?: number; dayPassPrices?: Partial<Record<StrategyId, number>>; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };
+export type PassDays = 1 | 7;
+/** Tokens for a pass to this strategy: 7 days, or 1 (owner 2026-10-22). The 3-Leg pass costs more (owner 2026-10-15).
+ *  The server's prices win; these defaults only show before the wallet loads. */
+export const passPrice = (info: WalletInfo | null, id: StrategyId, days: PassDays = 7) =>
+  days === 1
+    ? (info?.prices.dayPassPrices?.[id] ?? (id === 'three-leg' ? 45 : (info?.prices.dayPass ?? 30)))
+    : (info?.prices.passPrices?.[id] ?? (id === 'three-leg' ? 180 : (info?.prices.pass ?? 120)));
 /** Makes the wallet on first use (and gives the welcome tokens once), returns prices and packs. */
 export const openWallet = () => callFunction<Record<string, never>, WalletInfo>('tokens_wallet', {});
-export const buyPass = (id: StrategyId) => callFunction<{ kind: 'pass'; strategy: StrategyId }, { balance: number; charged: number }>('tokens_spend', { kind: 'pass', strategy: id });
+export const buyPass = (id: StrategyId, days: PassDays = 7) =>
+  callFunction<{ kind: 'pass'; strategy: StrategyId; days: PassDays }, { balance: number; charged: number }>('tokens_spend', { kind: 'pass', strategy: id, days });
 export const checkout = (pack: string) => callFunction<{ pack: string }, { url: string }>('tokens_checkout', { pack });
 export const safeCheckout = (url: unknown): url is string => typeof url === "string" && /^https:\/\/[^/]+\//.test(url); // only ever send people to an https page
