@@ -3480,7 +3480,8 @@ def _tk_call(fn):
 
 
 def _tk_public(wallet):
-    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:]}
+    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:],
+            "mindQuotes": wallet.get("mindQuotes") or {}}
 
 
 @https_fn.on_call(secrets=["SQUARE_ACCESS_TOKEN"])
@@ -4205,7 +4206,7 @@ def alert_push(db, alert_id, alert):
 # in users/{uid}/inbox (the bell on every page) and, if that kind is switched on in
 # Alerts -> Notifications (users/{uid}.notificationPrefs.types; missing = on), as a
 # push to every device the person turned notifications on for.
-NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price")
+NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price", "minds")
 
 
 def notify_wants(prefs, kind):
@@ -4682,6 +4683,7 @@ def xp_award(req: https_fn.CallableRequest):
 
 
 import learn as LEARN  # Trading 101 chapters: lesson ids, chapter quiz answers (functions/learn.py)
+import minds as MINDS  # Hall of Minds: lessons, quotes, daily-quote subscriptions (functions/minds.py)
 
 
 def learn_quiz_run(db, uid, data, now_ms):
@@ -6412,3 +6414,65 @@ def run_scanners(event: scheduler_fn.ScheduledEvent) -> None:
         ms_count_calls(db, now, MD.CALLS[0] - calls0)
     except Exception as e:
         print("[scanners] usage count failed:", type(e).__name__)
+
+
+# ---------------------------------------------------------------------------
+# Hall of Minds (functions/minds.py, data/minds.json; owner 2026-10-22). The lessons are free
+# and pay XP through xp_award ("mind"). A figure's daily quote costs MINDS.FOLLOW_COST tokens
+# for 30 days (wallets/{uid}.mindQuotes {figure: until ms}, mindQuotesUntil = the latest).
+# minds_daily_quote sends each follower ONE quote a day, whatever the number of figures they
+# follow, to the bell and (if "minds" notifications are on) as a push.
+#   mindQuoteSent/{day}_{uid}   server-only guard: one quote per person per day
+@https_fn.on_call()
+@_tk_call
+def minds_follow(req, db, uid, tok, now_ms):
+    """{figure} -> 30 more days of that figure's daily quote for FOLLOW_COST tokens."""
+    figure = str((req.data or {}).get("figure") or "")[:40]
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        try:
+            wallet, cost = MINDS.follow(wallet, figure, now_ms)
+        except ValueError as e:
+            raise TWError("FAILED_PRECONDITION", str(e))
+        wallet["mindQuotesUntil"] = max(int(v or 0) for v in wallet["mindQuotes"].values())
+        t.set(ref, wallet)
+        name = MINDS.FIGURES[figure]["name"]
+        t.set(ref.collection("ledger").document(), tk_ledger("mind-quotes", -cost, wallet["balance"], now_ms,
+                                                              "%s daily quotes (%d days)" % (name, MINDS.FOLLOW_DAYS), figure))
+        return wallet
+
+    wallet = txn(db.transaction())
+    out = _tk_public(wallet)
+    out["charged"] = MINDS.FOLLOW_COST
+    return out
+
+
+def minds_quote_pass(db, now):
+    """One quote per follower for today (pure picking in MINDS.pick_quote). Returns how many
+    people got one."""
+    day, now_ms = now.strftime("%Y-%m-%d"), int(now.timestamp() * 1000)
+    sent = 0
+    for snap in db.collection("wallets").where("mindQuotesUntil", ">", now_ms).stream():
+        uid = snap.id
+        pick = MINDS.pick_quote(MINDS.active((snap.to_dict() or {}).get("mindQuotes"), now_ms), uid, day)
+        if not pick:
+            continue
+        try:
+            db.collection("mindQuoteSent").document("%s_%s" % (day, uid)).create({"at": now_ms})
+        except Exception:
+            continue  # already sent today
+        fid, q = pick
+        text = q["text"] if len(q["text"]) <= 200 else q["text"][:197].rsplit(" ", 1)[0] + "…"
+        notify_users(db, [uid], "minds", MINDS.FIGURES[fid]["name"], text,
+                     "/app/minds/%s?q=%s" % (fid, q["id"]), "mind-" + day)
+        sent += 1
+    return sent
+
+
+@scheduler_fn.on_schedule(schedule="5 9 * * *", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=300, memory=256)
+def minds_daily_quote(event: scheduler_fn.ScheduledEvent) -> None:
+    print("[minds] daily quotes sent:", minds_quote_pass(firestore.client(), datetime.now(NY)))

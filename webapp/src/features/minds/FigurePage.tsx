@@ -1,0 +1,181 @@
+/**
+ * One great mind (/minds/:id): the big red card, short lessons each ending in "Use it in
+ * trading", real quotes (each with its source, a plain-words version and what it means for
+ * trading), the head-to-heads they are in, and the daily quote (FOLLOW_COST tokens / 30 days).
+ * ?q=<quote id> (from a daily-quote notification) opens on that quote.
+ */
+import { useEffect, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router';
+import { useAuth } from '../../lib/auth';
+import { useUserDoc } from '../../data/userDoc';
+import { formatDate } from '../../lib/format';
+import { t } from '../../lib/i18n';
+import { useNow } from '../../lib/useNow';
+import { Badge, Button, Card, EmptyState, Icon, useToast } from '../../ui';
+import { errorMessage } from '../practice/actions';
+import { useWalletDoc } from '../strategies/strategies';
+import { FigureCard, MeltFilter, PairCard } from './MindCard';
+import { figureById, figureProgress, FOLLOW_COST, FOLLOW_DAYS, followFigure, lessonRef, pairRef, pairsOf, type Figure } from './minds';
+import { ReadButton } from './ReadButton';
+import s from './Minds.module.css';
+
+export function FigurePage() {
+  const { id = '' } = useParams();
+  const f = figureById(id);
+  if (!f) return <EmptyState icon="learn" title={t('hm.missing')} actions={<Link to="/minds">{t('hm.back')}</Link>} />;
+  return <Figure key={f.id} f={f} />;
+}
+
+function Figure({ f }: { f: Figure }) {
+  const { user, isReal } = useAuth();
+  const me = useUserDoc(isReal && user ? user.uid : null);
+  const done = me.status === 'ready' ? me.data.mindsDone : [];
+  const [params] = useSearchParams();
+  const focus = params.get('q');
+  const quoteRef = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    quoteRef.current?.scrollIntoView({ block: 'center' });
+  }, []);
+  const pairs = pairsOf(f.id);
+  return (
+    <div className={s.page}>
+      <Link className={s.back} to="/minds">
+        ← {t('hm.back')}
+      </Link>
+      <MeltFilter />
+      <FigureCard figure={f} big pill={f.years} />
+      <header className={s.heroText}>
+        <span className={s.kicker}>{f.role}</span>
+        <h1 className={s.title}>{f.name}</h1>
+        <p className={s.lead}>{f.tagline}</p>
+        <p className={s.fine}>{t('hm.progress', { n: figureProgress(f, done), of: f.lessons.length })}</p>
+      </header>
+
+      <FollowBox f={f} />
+
+      <section aria-labelledby="hm-lessons">
+        <h2 id="hm-lessons" className={s.h2}>
+          {t('hm.lessons', { name: f.name.split(' ')[0]! })}
+        </h2>
+        <ol className={s.lessons}>
+          {f.lessons.map((l, i) => {
+            const ref = lessonRef(f.id, l.id);
+            return (
+              <li key={l.id}>
+                <Card as="article" pad>
+                  <span className={s.kicker}>{t('hm.lessonN', { n: i + 1 })}</span>
+                  <h3 className={s.h3}>{l.title}</h3>
+                  {l.text.map((p) => (
+                    <p key={p} className={s.p}>
+                      {p}
+                    </p>
+                  ))}
+                  <div className={s.trading}>
+                    <b>{t('hm.inTrading')}</b>
+                    <p>{l.trading}</p>
+                  </div>
+                  <div className={s.readRow}>
+                    <ReadButton refId={ref} done={done.includes(ref)} />
+                  </div>
+                </Card>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      <section aria-labelledby="hm-quotes">
+        <h2 id="hm-quotes" className={s.h2}>
+          {t('hm.quotes', { name: f.name.split(' ')[0]! })}
+        </h2>
+        <p className={s.fine}>{t('hm.quotesNote')}</p>
+        <ul className={s.quotes}>
+          {f.quotes.map((q) => (
+            <li key={q.id} ref={q.id === focus ? quoteRef : undefined} className={q.id === focus ? s.quoteFocus : undefined}>
+              <Card as="article" pad>
+                <blockquote className={s.quote}>“{q.text}”</blockquote>
+                <p className={s.source}>— {q.source}</p>
+                <dl className={s.explainList}>
+                  <div>
+                    <dt>{t('hm.plain')}</dt>
+                    <dd>{q.plain}</dd>
+                  </div>
+                  <div className={s.tradingRow}>
+                    <dt>{t('hm.inTrading')}</dt>
+                    <dd>{q.trading}</dd>
+                  </div>
+                </dl>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {pairs.length > 0 && (
+        <section aria-labelledby="hm-vs">
+          <h2 id="hm-vs" className={s.h2}>
+            {t('hm.headToHead')}
+          </h2>
+          <ul className={s.grid}>
+            {pairs.map((p) => (
+              <li key={p.id}>
+                <PairCard pair={p} to={`/minds/vs/${p.id}`} pill={done.includes(pairRef(p.id)) ? t('hm.read') : t('hm.vs')} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/** Daily quotes from this figure: FOLLOW_COST tokens for 30 days (renewing adds 30 more). */
+function FollowBox({ f }: { f: Figure }) {
+  const { user, isReal, openSignIn } = useAuth();
+  const wallet = useWalletDoc(isReal && user ? user.uid : null);
+  const w = wallet.status === 'ready' ? wallet.data : null;
+  const now = useNow(60000);
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const until = w?.mindQuotes[f.id] ?? 0;
+  const on = until > now;
+  const first = f.name.split(' ')[0]!;
+  return (
+    <Card pad className={s.follow}>
+      <div className={s.followText}>
+        <span className={s.followIcon} aria-hidden>
+          <Icon name="bell" size={18} />
+        </span>
+        <div>
+          <b>{t('hm.followTitle', { name: first })}</b>
+          <p className={s.fine}>{on ? t('hm.followOn', { date: formatDate(until) }) : t('hm.followBody', { cost: FOLLOW_COST, days: FOLLOW_DAYS })}</p>
+        </div>
+      </div>
+      {!isReal || !user ? (
+        <Button size="sm" variant="secondary" onClick={() => void openSignIn()}>
+          {t('hm.signIn')}
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant={on ? 'secondary' : 'primary'}
+          disabled={busy || wallet.status !== 'ready'}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await followFigure(f.id);
+              toast.show(t('hm.followed', { name: first, days: FOLLOW_DAYS }), 'success');
+            } catch (e) {
+              toast.show(errorMessage(e), 'error');
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {on ? t('hm.renew', { cost: FOLLOW_COST }) : t('hm.follow', { cost: FOLLOW_COST })}
+        </Button>
+      )}
+      {on && <Badge tone="up">{t('hm.following')}</Badge>}
+    </Card>
+  );
+}

@@ -200,5 +200,18 @@ await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/document
 re1 = null; try { await call('tw_challenge', { to: rep.uid, buyIn: 1000, days: 1, name: 'Duel' }); } catch (x) { re1 = x; }
 ok(re1 && /can.t challenge/.test(re1.message), 'someone you blocked cannot challenge you');
 
+// --- Hall of Minds: lessons pay 10 XP once; daily quotes cost 15 tokens for 30 days
+r = await call('xp_award', { type: 'mind', refId: 'napoleon:speed' });
+ok(r.awarded, 'a Hall of Minds lesson pays XP');
+r = await call('xp_award', { type: 'mind', refId: 'napoleon:speed' });
+ok(!r.awarded, 'but only once');
+await admin('wallets/' + troll.uid, { balance: { integerValue: 20 } });
+r = await call('minds_follow', { figure: 'napoleon' });
+ok(r.charged === 15 && r.balance === 5 && r.mindQuotes.napoleon > Date.now() + 29 * 864e5, 'daily quotes from Napoleon: 15 tokens for 30 days');
+re1 = null; try { await call('minds_follow', { figure: 'napoleon' }); } catch (x) { re1 = x; }
+ok(re1 && /need 15 tokens and have 5/.test(re1.message), 'not enough tokens is refused with the numbers');
+re1 = null; try { await call('minds_follow', { figure: 'elon' }); } catch (x) { re1 = x; }
+ok(re1 && /isn.t in the Hall of Minds/.test(re1.message), 'only figures in the Hall can be followed');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

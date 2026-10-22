@@ -512,6 +512,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Hall of Minds daily quotes: one per person per day (minds_daily_quote). Server only.
+    match /mindQuoteSent/{id} {
+      allow read, write: if false;
+    }
+
     match /pendingOwnership/{email} {
       allow read, write: if false;
     }

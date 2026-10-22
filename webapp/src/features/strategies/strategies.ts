@@ -94,7 +94,8 @@ export const useAlerts = () => useLiveQuery('alerts:recent', () => query(collect
 export const alertUrl = (id: string) => `alert.html?id=${encodeURIComponent(id)}`;
 
 // ------------------------------------------------------------------ tokens
-export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>> };
+/** mindQuotes: Hall of Minds daily quotes, {figure id: until ms} (functions/minds.py). */
+export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>>; mindQuotes: Record<string, number> };
 export function parseWallet(d: DocumentData): WalletDoc {
   const passes: WalletDoc['passes'] = {};
   const p = (d.passes && typeof d.passes === 'object' ? d.passes : {}) as Record<string, unknown>;
@@ -102,7 +103,12 @@ export function parseWallet(d: DocumentData): WalletDoc {
     const until = num(p[s.id]);
     if (until) passes[s.id] = until;
   }
-  return { balance: Math.max(0, Math.floor(num(d.balance) ?? 0)), passes };
+  const mindQuotes: Record<string, number> = {};
+  for (const [k, v] of Object.entries((d.mindQuotes && typeof d.mindQuotes === 'object' ? d.mindQuotes : {}) as Record<string, unknown>)) {
+    const until = num(v);
+    if (until && /^[a-z-]{2,30}$/.test(k)) mindQuotes[k] = until;
+  }
+  return { balance: Math.max(0, Math.floor(num(d.balance) ?? 0)), passes, mindQuotes };
 }
 export const useWalletDoc = (uid: string | null) => useLiveDoc(uid ? `wallets/${uid}` : null, parseWallet);
 export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
