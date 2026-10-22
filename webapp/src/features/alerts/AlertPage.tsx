@@ -158,6 +158,18 @@ function PlanCard({ a }: { a: Alert }) {
           <b>{t('al.options')}</b> {a.optionsRule}
         </p>
       )}
+      {a.contract && (
+        <p className={s.note}>
+          <b>{t('al.contract')}</b>{' '}
+          {t('al.contractLine', {
+            label: a.contract.label,
+            days: a.contract.dte ?? '–',
+            delta: a.contract.delta != null ? a.contract.delta.toFixed(2) : '–',
+            price: a.contract.estMid != null ? a.contract.estMid.toFixed(2) : '–',
+            cost: a.contract.estMid != null ? Math.round(a.contract.estMid * 100) : '–',
+          })}
+        </p>
+      )}
       {a.sizeNote && (
         <p className={s.note}>
           <b>{t('al.size')}</b> {a.sizeNote}
@@ -180,6 +192,7 @@ function PlanCard({ a }: { a: Alert }) {
 /** The practice ticket for this alert; a long stock idea comes with its stop and first target filled in. */
 function tradeLink(a: Alert): string {
   const base = `/practice/trade/${encodeURIComponent(a.ticker!)}`;
+  if (a.contract) return `${base}?mode=options&contract=${encodeURIComponent(a.contract.id)}`;
   if (a.direction !== 'long' || a.stop == null || a.target1 == null) return base;
   return `${base}?sl=${a.stop}&tp=${a.target1}`;
 }

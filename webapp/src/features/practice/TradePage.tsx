@@ -138,6 +138,8 @@ function Ticket({
   // /practice/trade/AAPL?side=sell&mode=options: the chart's Buy / Sell buttons pick the side
   const [params, setParams] = useSearchParams();
   const mode = params.get("mode") === "options" ? "options" : "stock";
+  const contractId = params.get("contract");
+  const startContract = useMemo(() => contractParam(contractId, sym), [contractId, sym]);
   const setMode = (m: "stock" | "options") =>
     setParams(
       (p) => {
@@ -319,6 +321,7 @@ function Ticket({
               today={today}
               acct={acct}
               valued={v}
+              initial={startContract}
             />
           ) : (
             <>
@@ -562,4 +565,11 @@ function Ticket({
 function priceParam(v: string | null): string {
   const n = Number(v);
   return v && Number.isFinite(n) && n > 0 && n < 1e7 ? String(n) : "";
+}
+
+/** ?contract=AMD|20261204|C|11500 (an Options Scanner alert) -> the ticket's starting contract. */
+function contractParam(v: string | null, sym: string): { kind: "call" | "put"; exp: string; strike: number } | null {
+  const m = /^([A-Z][A-Z0-9.-]{0,9})\|(\d{4})(\d{2})(\d{2})\|([CP])\|(\d{1,9})$/.exec(v ?? "");
+  if (!m || m[1] !== sym) return null;
+  return { kind: m[5] === "C" ? "call" : "put", exp: `${m[2]}-${m[3]}-${m[4]}`, strike: Number(m[6]) / 100 };
 }

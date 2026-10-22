@@ -1199,6 +1199,8 @@ const en = {
   'al.options': 'Options:',
   'al.size': 'Size:',
   'al.practice': 'Trade this setup',
+  'al.contract': 'Suggested contract:',
+  'al.contractLine': '{label} · about {days} days · delta {delta} · estimated ${price} a share (${cost} a contract). Prices on Zelos are estimates.',
   'al.chart': 'Chart',
   'al.lock.title': 'Unlock this alert',
   'al.lock.live': 'This alert is live. The ticker and levels unlock with a pass or tokens. Live for another {time}.',

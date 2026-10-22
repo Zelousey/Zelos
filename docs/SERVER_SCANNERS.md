@@ -1,4 +1,4 @@
-# Server-run scanners (Swing Trader, Breakout Rider)
+# Server-run scanners (Swing Trader, Breakout Rider, Options Scanner)
 
 **Why (owner, 2026-10-22):** the paid scanners used to be Claude skills that someone had to run on a
 schedule. Nobody was running them, so the last real alert was 2026-09-20 and pass holders got
@@ -53,6 +53,23 @@ numbers so every run is the same and testable (scripts/scanner_test.py, tests/ru
 - First target 2× the risk; second target the measured move.
 - Score out of 80. The bar is 60, 64 in a neutral market and 68 in a bearish one.
 
+**Options Scanner** (functions/options_scan.py; one long call or long put a day).
+- **Candidates, in the skill's order:**
+  1. Today's Swing Trader / Breakout Rider headline, as a long call, with its own levels.
+  2. The Swing Trader pullback, as a call.
+  3. Its mirror, as a put: a stock in a downtrend, lagging SPY, in a falling market, that bounced to its 20-day
+     average today and closed back under it (RSI ≥ 35).
+- **Only big, busy stocks** qualify: $15+ and 1M+ shares a day. We have no option-chain data, so this stands in
+  for the skill's open interest and spread check.
+- **The contract** is a 30–60 day expiration (closest to 45) and the strike whose estimated delta is closest to
+  0.65 (−0.65 for puts).
+- **Prices are estimates.** They use the practice account's model (functions/options.py: Black-Scholes on the
+  stock's last month of price swings), and alerts say so. A real broker's price will differ.
+- **"IV context"** becomes a volatility context: this month's swings against the stock's past year.
+- **Score** out of 80. The bar is 68 for an idea that fights the market's direction, 60 otherwise. Ideas are judged
+  on the stock's move (stop = invalidation), as the skill's track record always was.
+- **One tap:** **Trade this setup** opens the practice options ticket on that exact contract.
+
 **Swing Trader (a pullback in an uptrend).**
 - The stock is in an uptrend: price above the 50-day average, the 50-day above the 200-day, and the
   20-day rising above the 50-day.
@@ -76,9 +93,14 @@ is allowed per stock. Year 1 was used to choose settings; year 2 was not looked 
 | Swing Trader (final rules) | 81 (+0.08) | 184 (+0.10) |
 | Breakout Rider (final rules) | 41 (+0.77) | 36 (−0.01) |
 | Swing Trader, first version (any pullback near support) | 14 (+0.20) | 13 (−0.42) |
+| Options Scanner calls (stock move) | 57 (−0.07) | 134 (+0.07) |
+| Options Scanner puts (stock move) | 6 (+1.50) | 15 (−0.38) |
 
 What these numbers mean:
 
+- **The options rows** are judged on the stock's move, not on what the option itself made or lost. An option
+  also loses value with time, so the option's own result is usually worse unless the stock moves quickly. Puts
+  were rare because the last two years mostly went up.
 - **These are small edges, and the samples are small.** With 30–40 trades a year, a result can
   easily swing by ±0.2R by chance. Neither scanner is proven to make money.
 - **The first Swing Trader version** looked fine in year 1 and lost in year 2, so it was replaced.

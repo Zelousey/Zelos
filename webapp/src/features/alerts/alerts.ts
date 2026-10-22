@@ -44,6 +44,7 @@ export type Alert = {
   reasoning: string | null;
   riskNotes: string | null;
   optionsRule: string | null;
+  contract: OptionContract | null; // Options Scanner: the contract the rule points at (an estimated price)
   sizeNote: string | null;
   technicals: [string, string][];
   // 3-Leg Options (functions/three_leg.py works these out from the legs; null for other strategies)
@@ -55,6 +56,28 @@ export type Alert = {
   maxLoss: number | null;
   breakevens: number[];
 };
+export type OptionContract = { id: string; label: string; kind: 'call' | 'put'; exp: string; strike: number; dte: number | null; delta: number | null; estMid: number | null };
+const CONTRACT_RE = /^([A-Z][A-Z0-9.-]{0,9})\|(\d{8})\|([CP])\|(\d{1,9})$/; // functions/options.py CONTRACT_RE
+
+function parseContract(v: unknown): OptionContract | null {
+  if (!v || typeof v !== 'object') return null;
+  const c = v as Record<string, unknown>;
+  const id = typeof c.id === 'string' ? c.id : '';
+  const m = CONTRACT_RE.exec(id);
+  if (!m) return null;
+  const e = m[2]!;
+  return {
+    id,
+    label: str(c.label, 60) ?? id,
+    kind: m[3] === 'C' ? 'call' : 'put',
+    exp: `${e.slice(0, 4)}-${e.slice(4, 6)}-${e.slice(6)}`,
+    strike: Number(m[4]) / 100,
+    dte: num(c.dte),
+    delta: num(c.delta),
+    estMid: num(c.estMid),
+  };
+}
+
 export type Leg = { type: 'call' | 'put'; side: 'buy' | 'sell'; strike: number; qty: number; price: number };
 
 function parseLegs(v: unknown): Leg[] {
@@ -115,7 +138,8 @@ export function parseAlert(id: string, d: DocumentData): Alert | null {
     reasoning: str(d.reasoning, 3000),
     riskNotes: str(d.riskNotes, 1500),
     optionsRule: str(d.optionsRule, 600),
-    sizeNote: str(d.suggestedSizeNote, 400),
+    contract: parseContract(d.contract),
+    sizeNote: str(d.suggestedSizeNote, 800),
     technicals: Object.entries(tech)
       .filter(([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
       .slice(0, 20)

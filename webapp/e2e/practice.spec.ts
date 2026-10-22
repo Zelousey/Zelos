@@ -60,6 +60,14 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
   await expect(page.getByLabel('Stop-loss + Take-profit')).toBeChecked();
   await expect(page.getByLabel('Stop-loss', { exact: true })).toHaveValue('1.5');
   await expect(page.getByLabel('Take-profit', { exact: true })).toHaveValue('99999');
+
+  // an Options Scanner alert opens the options ticket on its contract (a put, its expiration and strike)
+  await page.goto('practice/trade/AAPL?mode=options');
+  const exp = await page.getByLabel('Expiration').first().locator('option').nth(4).getAttribute('value');
+  await page.goto(`practice/trade/AAPL?mode=options&contract=${encodeURIComponent(`AAPL|${exp!.replaceAll('-', '')}|P|1000`)}`);
+  await expect(page.getByRole('tab', { name: /Put/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('Expiration').first()).toHaveValue(exp!);
+  await expect(page.getByRole('combobox', { name: /^Strike/ }).first()).toHaveValue('10');
 });
 
 test('the ticket checks input before anything is sent', async ({ page }, info) => {

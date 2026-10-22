@@ -6209,9 +6209,11 @@ def report_content(req, db, uid, tok, now_ms):
 #   - A scanner that already has today's alert (e.g. published by hand) is left alone.
 # State: serverMeta/scanners {day, done, outcomes, alerts}.
 import scanner as SC  # noqa: E402
+import options_scan as OSC  # noqa: E402
 import outcomes as OC  # noqa: E402
 
-SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout}
+# the Options Scanner runs last: today's Swing Trader / Breakout Rider headline is its first candidate
+SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout, OSC.STRATEGY: OSC.scan_options}
 SCAN_HOLD_SESSIONS = 10  # a swing idea that hits neither level in ~2 weeks is "expired"
 
 
@@ -6273,7 +6275,15 @@ def scanners_pass(db, hist, today, now_utc):
             continue
         # only stocks the practice account trades (one tap from the alert), none already open
         bars = {s: r for s, r in rows.items() if s in PRACTICE_SYMBOLS and s not in busy[strat]}
-        alert = dict(scan(bars, spy, qqq), source="server")
+        if strat == OSC.STRATEGY:
+            linked = []
+            for k in ("swing-trader", "breakout-rider"):
+                ls = db.collection("alertsLocked").document("%s-%s" % (k, today)).get()
+                if ls.exists and (ls.to_dict() or {}).get("status") == "qualified":
+                    linked.append(dict(ls.to_dict(), strategy=k))
+            alert = dict(scan(bars, spy, qqq, today, linked), source="server")
+        else:
+            alert = dict(scan(bars, spy, qqq), source="server")
         alert_store(db, alert_id, alert, now_utc)
         sent = alert_notify(db, alert_id, alert)
         summary["alerts"][strat] = "%s %s (%s devices)" % (alert["status"], alert.get("ticker") or "", sent)
