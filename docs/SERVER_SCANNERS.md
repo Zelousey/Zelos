@@ -28,7 +28,7 @@ It runs once a day; state lives in `serverMeta/scanners`. If an alert for a scan
 today (for example, one published by hand), the job leaves it alone. A stock that already has an
 open alert isn't alerted again by the same scanner.
 
-**Universe:** the Zelos stock list (data/practice-universe.json, 25 stocks without the ETFs, since 2026-10-22). These
+**Universe:** the Zelos stock list (data/practice-universe.json, 23 stocks without the ETFs, since 2026-10-22). These
 are exactly the stocks the practice account can trade, so every alert is one tap from a trade. A
 bigger list would need the practice account's minute prices for those stocks too.
 

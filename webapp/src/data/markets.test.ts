@@ -70,7 +70,7 @@ describe('market status line', () => {
 
 describe('universe', () => {
   it('is bundled, excludes paused crypto, and searches by symbol or name', () => {
-    expect(UNIVERSE.length).toBe(28); // 30 on the list; COIN and MSTR (group "Crypto") are hidden like crypto
+    expect(UNIVERSE.length).toBe(28);
     expect(UNIVERSE.some((s) => s.group === 'Crypto')).toBe(false);
     expect(instrument('aapl')?.name).toBe('Apple');
     expect(searchUniverse('nvi').map((s) => s.sym)).toContain('NVDA');

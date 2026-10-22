@@ -39,10 +39,10 @@ page of a paginated answer is another request. Until 2026-10-22 we counted HTTP 
 old "1 request a minute for 50 stocks" was really 50 calls a minute, and the cycle went past
 100,000 (overage ~$0.002 a call). Since then (owner, 2026-10-22):
 
-- **30 stocks** (data/practice-universe.json). The 20 removed ones are in data/retired-symbols.json:
+- **28 stocks** (data/practice-universe.json; COIN and MSTR removed entirely, no prices). The 20 removed ones are in data/retired-symbols.json:
   no buying; anyone holding one can sell, filled at the next close (`_pr_order_universe`).
 - **Two speeds.** The 8 "fast" (day trading) stocks, SPY QQQ AAPL NVDA MSFT AMD META AMZN, get
-  prices every minute; the other 22 (long-term) every `MS_STEADY_EVERY_MIN` (15) minutes. The app's
+  prices every minute; the other 20 (long-term) every `MS_STEADY_EVERY_MIN` (15) minutes. The app's
   Market page has a Day trading and a Long-term section.
 - **Counting.** `ms_get` counts calls per symbol (`mdata.CALLS`); each job adds them to
   `serverMeta/msUsage` (`day`/`calls` and `cycle`/`cycleCalls`). `MS_CYCLE_SEED` ("2026-10:112000")
@@ -56,9 +56,9 @@ old "1 request a minute for 50 stocks" was really 50 calls a minute, and the cyc
 | Use | Calls |
 |---|---|
 | Fast stocks, every minute | 8 × ~392 runs ≈ 3,140 a market day |
-| Long-term stocks, every 15 minutes | 22 × ~27 runs ≈ 600 a market day |
+| Long-term stocks, every 15 minutes | 20 × ~27 runs ≈ 540 a market day |
 | Daily close (`run_scanners`) | 1 per try until SPY's bar is out (≤ 12), then ~185 (history, ETFs, globe, removed stocks; only the new day) |
-| Total | ≈ 3,900 a market day, ≈ 85,000 a cycle |
+| Total | ≈ 3,850 a market day, ≈ 84,000 a cycle |
 | First run without history | a few thousand calls, once (2 years of history) |
 | Research | 0 for stock-list symbols (it reads the stored daily bars) |
 

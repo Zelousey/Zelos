@@ -203,7 +203,7 @@ qd = db.collection("markets").document("quotes").get().to_dict()
 slow = main.STEADY_SYMBOLS[0]
 ok(qd["quotes"][slow] == before[slow] and not qd["quotes"][slow].get("stale"), "a long-term stock keeps its last quote, not marked delayed")
 ok(set(quotes) == set(main.FAST_SYMBOLS) and qd["fast"] == main.FAST_SYMBOLS and qd["everySlow"] == 15, "only the fast stocks are live this run; the doc lists them")
-ok(len(main.PRACTICE_SYMBOLS) == 30 and "AVGO" in main.RETIRED_SYMBOLS and "AVGO" not in main.PRACTICE_SYMBOLS, "30 stocks; removed ones are separate")
+ok(len(main.PRACTICE_SYMBOLS) == 28 and "COIN" not in main.PRACTICE_SYMBOLS + main.RETIRED_SYMBOLS and "AVGO" in main.RETIRED_SYMBOLS and "AVGO" not in main.PRACTICE_SYMBOLS, "28 stocks (no COIN/MSTR prices); removed ones are separate")
 
 # usage counting: per symbol, per day and per billing cycle (the 7th to the 7th)
 os.environ["MS_CYCLE_SEED"] = ""
