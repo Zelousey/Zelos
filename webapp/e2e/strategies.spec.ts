@@ -45,25 +45,33 @@ test('find strategies from Trade War and the Dashboard; see what each looks for'
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
 
-  test('buy a 7-day pass with tokens', async ({ page }, info) => {
+  test('buy a 1-day or a 7-day pass with tokens', async ({ page }, info) => {
     await page.goto('strategies');
     const uid = await signIn(page, `strat-${info.project.name}${Date.now()}@example.com`);
-    await put(`wallets/${uid}`, { balance: { integerValue: '100' }, passes: { mapValue: { fields: {} } }, unlocked: { arrayValue: {} }, welcomed: { booleanValue: true } });
-    await expect(page.getByRole('button', { name: /Your tokens: 100/ })).toBeVisible();
+    await put(`wallets/${uid}`, { balance: { integerValue: '200' }, passes: { mapValue: { fields: {} } }, unlocked: { arrayValue: {} }, welcomed: { booleanValue: true } });
+    await expect(page.getByRole('button', { name: /Your tokens: 200/ })).toBeVisible();
     const card = page.locator('section').filter({ has: page.getByRole('link', { name: 'Swing Trader', exact: true }) });
-    await card.getByRole('button', { name: '7-day pass · 40 tokens' }).click();
+    await card.getByRole('button', { name: '7-day pass · 120 tokens' }).click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText(/You’ll have 60 tokens left/)).toBeVisible();
-    await dialog.getByRole('button', { name: 'Pay 40 tokens' }).click();
+    await expect(dialog.getByText(/You’ll have 80 tokens left/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Pay 120 tokens' }).click();
     await expect(page.getByText('Swing Trader pass active for 7 days')).toBeVisible();
     await expect(card.getByText(/^Pass until/)).toBeVisible();
     await expect(card.getByRole('link', { name: /Open alerts/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Your tokens: 60/ })).toBeVisible();
-    // 3-Leg Options costs 60 for the week (owner 2026-10-15)
+    await expect(page.getByRole('button', { name: /Your tokens: 80/ })).toBeVisible();
+    // a 1-day pass to try a scanner (owner 2026-10-22); 80 tokens isn't enough for a week
+    const br = page.locator('section').filter({ has: page.getByRole('link', { name: 'Breakout Rider', exact: true }) });
+    await expect(br.getByRole('button', { name: '7-day pass · 120 tokens' })).toBeDisabled();
+    await br.getByRole('button', { name: '1-day pass · 30 tokens' }).click();
+    await expect(dialog.getByText(/next 24 hours.*You’ll have 50 tokens left/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Pay 30 tokens' }).click();
+    await expect(page.getByText('Breakout Rider pass active for 1 day')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Your tokens: 50/ })).toBeVisible();
+    // 3-Leg Options costs more (owner 2026-10-15)
     const three = page.locator('section').filter({ has: page.getByRole('link', { name: '3-Leg Options', exact: true }) });
-    await expect(three.getByRole('button', { name: '7-day pass · 60 tokens' })).toBeVisible();
+    await expect(three.getByRole('button', { name: '1-day pass · 45 tokens' })).toBeVisible();
     // the tokens sheet
-    await page.getByRole('button', { name: /Your tokens: 60/ }).click();
+    await page.getByRole('button', { name: /Your tokens: 50/ }).click();
     await expect(page.getByRole('dialog', { name: 'Get tokens' }).getByText(/Earn free tokens every day|\$3/)).toBeVisible();
   });
 });

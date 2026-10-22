@@ -66,3 +66,4 @@
 .history li small { color: var(--muted); }
 .plus { color: var(--up-ink); font-family: var(--mono); }
 .minus { color: var(--down-ink); font-family: var(--mono); }
+.passChoices { display: flex; flex-wrap: wrap; gap: var(--space-2); }

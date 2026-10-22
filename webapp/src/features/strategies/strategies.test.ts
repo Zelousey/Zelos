@@ -6,8 +6,10 @@ describe('strategies', () => {
     expect(STRATEGIES.map((s) => s.id)).toEqual(['swing-trader', 'breakout-rider', 'options-scanner', 'three-leg']);
   });
   it('pass price: 3-Leg Options costs more (owner 2026-10-15), the server price wins', () => {
-    expect(passPrice(null, 'swing-trader')).toBe(40);
-    expect(passPrice(null, 'three-leg')).toBe(60);
+    expect(passPrice(null, 'swing-trader')).toBe(120);
+    expect(passPrice(null, 'swing-trader', 1)).toBe(30);
+    expect(passPrice(null, 'three-leg', 1)).toBe(45);
+    expect(passPrice(null, 'three-leg')).toBe(180);
     const info = { prices: { pass: 45, passDays: 7, unlock: 10, unlockClosed: 3, passPrices: { 'three-leg': 70 } } } as unknown as Parameters<typeof passPrice>[0];
     expect(passPrice(info, 'swing-trader')).toBe(45);
     expect(passPrice(info, 'three-leg')).toBe(70);

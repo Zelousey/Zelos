@@ -77,15 +77,15 @@ class Results(unittest.TestCase):
 
 
 class Pass(unittest.TestCase):
-    def test_sixty_tokens_for_seven_days(self):
-        self.assertEqual(m.pass_price("three-leg"), 60)
-        self.assertEqual(m.pass_price("swing-trader"), 40)
-        w = dict(m.tk_new_wallet(0), balance=100)
+    def test_three_leg_week_costs_more(self):
+        self.assertEqual(m.pass_price("three-leg"), 180)
+        self.assertEqual(m.pass_price("swing-trader"), 120)
+        w = dict(m.tk_new_wallet(0), balance=200)
         w, line = m.tk_spend(w, "pass", 0, "three-leg")
-        self.assertEqual((w["balance"], line["amount"], w["passes"]["three-leg"]), (40, -60, 7 * 86400000))
+        self.assertEqual((w["balance"], line["amount"], w["passes"]["three-leg"]), (20, -180, 7 * 86400000))
         self.assertIn("3-Leg Options pass", line["note"])
         with self.assertRaises(m.TWError):
-            m.tk_spend(dict(m.tk_new_wallet(0), balance=59), "pass", 0, "three-leg")
+            m.tk_spend(dict(m.tk_new_wallet(0), balance=179), "pass", 0, "three-leg")
 
 
 if __name__ == "__main__":

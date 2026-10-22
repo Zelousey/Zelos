@@ -11,7 +11,7 @@ import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
-import { buyPass, passPrice, passUntil, STRATEGIES, useAlerts, type Alert, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
+import { buyPass, passPrice, passUntil, STRATEGIES, useAlerts, type Alert, type PassDays, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
 import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
@@ -84,9 +84,10 @@ export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strate
   const { user, isReal, openSignIn } = useAuth();
   const toast = useToast();
   const now = useNow();
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState<PassDays | null>(null);
   const [busy, setBusy] = useState(false);
-  const price = passPrice(info, st.id);
+  const week = passPrice(info, st.id);
+  const day = passPrice(info, st.id, 1);
   const days = info?.prices.passDays ?? 7;
   if (!isReal || !user)
     return (
@@ -101,18 +102,19 @@ export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strate
         {t('st.openAlerts')}
       </Link>
     );
-  if (balance != null && balance < price)
+  if (balance != null && balance < day)
     return (
       <Button variant="primary" size="sm" onClick={onTokens}>
-        {t('st.getTokensFor', { n: price })}
+        {t('st.getTokensFor', { n: day })}
       </Button>
     );
-  async function buy() {
+  const price = asking === 1 ? day : week;
+  async function buy(d: PassDays) {
     setBusy(true);
     try {
-      await buyPass(st.id);
-      toast.show(t('st.pass.bought', { name: st.name, days }));
-      setAsking(false);
+      await buyPass(st.id, d);
+      toast.show(d === 1 ? t('st.pass.boughtDay', { name: st.name }) : t('st.pass.bought', { name: st.name, days }));
+      setAsking(null);
     } catch (e) {
       toast.show(errorText(e, t('st.buy.failed')), 'error');
     } finally {
@@ -121,11 +123,23 @@ export function PassButton({ st, wallet, info, balance, onTokens }: { st: Strate
   }
   return (
     <>
-      <Button variant="primary" size="sm" disabled={balance == null} onClick={() => setAsking(true)}>
-        {t('st.pass.buy', { days, n: price })}
-      </Button>
-      <Confirm open={asking} title={t('st.pass.confirm', { name: st.name, days })} action={t('st.pass.confirmAction', { n: price })} busy={busy} onConfirm={() => void buy()} onClose={() => setAsking(false)}>
-        <p>{t('st.pass.confirmBody', { days, name: st.name, left: (balance ?? 0) - price })}</p>
+      <div className={s.passChoices}>
+        <Button variant="secondary" size="sm" disabled={balance == null} onClick={() => setAsking(1)}>
+          {t('st.pass.buyDay', { n: day })}
+        </Button>
+        <Button variant="primary" size="sm" disabled={balance == null || (balance ?? 0) < week} onClick={() => setAsking(7)}>
+          {t('st.pass.buy', { days, n: week })}
+        </Button>
+      </div>
+      <Confirm
+        open={asking != null}
+        title={asking === 1 ? t('st.pass.confirmDay', { name: st.name }) : t('st.pass.confirm', { name: st.name, days })}
+        action={t('st.pass.confirmAction', { n: price })}
+        busy={busy}
+        onConfirm={() => void buy(asking ?? 7)}
+        onClose={() => setAsking(null)}
+      >
+        <p>{asking === 1 ? t('st.pass.confirmBodyDay', { name: st.name, left: (balance ?? 0) - price }) : t('st.pass.confirmBody', { days, name: st.name, left: (balance ?? 0) - price })}</p>
       </Confirm>
     </>
   );

@@ -205,8 +205,8 @@
       '<canvas width="408" height="228" role="img" aria-label="Captain Bull sails a small boat toward an island with a gold Founder flag"></canvas>' +
       '<button class="zf-x" type="button" aria-label="Close">&times;</button>' +
       '<div class="zf-body"><span class="zf-k">FOUNDER PROGRAM</span><h3 id="zfTitle">Claim your island</h3>' +
-      (phone ? '<p>Bring 5 real traders to your community and become a Founder: 250 tokens + a permanent badge.</p>'
-             : '<p>Start a trading community, bring 5 real traders, and become an official Founder: <b>250 tokens</b> and a permanent Founder badge.</p>') +
+      (phone ? '<p>Bring 5 real traders to your community and become a Founder: 120 tokens + a permanent badge.</p>'
+             : '<p>Start a trading community, bring 5 real traders, and become an official Founder: <b>120 tokens</b> and a permanent Founder badge.</p>') +
       '<div class="zf-miles"><span class="is-first">5 &middot; Founder</span><span>10</span><span>25</span><span>50</span><span>100</span></div>' +
       '<div class="zf-acts"><a class="zf-btn zf-go" href="' + ROOT + 'practice/communities.html#start">Become a Founder</a><button class="zf-btn zf-later" type="button">Not now</button></div>' +
       '<span class="zf-fine">Free. Just a name and your state.</span></div>';
