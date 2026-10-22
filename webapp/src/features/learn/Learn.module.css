@@ -76,8 +76,8 @@
 .step { position: relative; }
 .step:has(+ .step)::after { content: ''; position: absolute; left: 27px; top: 60px; bottom: calc(-1 * var(--space-3)); width: 2px; border-radius: 2px; background: var(--border); }
 .step.done:has(+ .step)::after { background: var(--bull); }
-.stepLink { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--space-3); align-items: start; color: var(--ink); text-decoration: none; border-radius: var(--radius); }
-a.stepLink:hover .stepBody b { color: var(--accent); }
+.pathLink { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: var(--space-3); align-items: start; color: var(--ink); text-decoration: none; border-radius: var(--radius); }
+a.pathLink:hover .stepBody b { color: var(--accent); }
 .dot { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--border); background: var(--surface); font: 600 15px var(--mono); color: var(--muted); }
 .quizDot { font-size: 20px; }
 .done .dot { background: var(--bull); border-color: var(--bull); color: #fff; }
