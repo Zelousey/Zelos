@@ -15,17 +15,21 @@ import { OptionBuyForm } from './OptionBuyForm';
 import { OptionPositions } from './OptionPositions';
 import s from './Options.module.css';
 
-type Props = { sym: string; side: 'buy' | 'sell'; S: number | null; today: string; acct: Account | null; valued: Valued | null };
+/** initial: a contract to start on (an Options Scanner alert's "Trade this setup"). */
+type Props = { sym: string; side: 'buy' | 'sell'; S: number | null; today: string; acct: Account | null; valued: Valued | null; initial?: { kind: Kind; exp: string; strike: number } | null };
 
-export function OptionTicket({ sym, side, S, today, acct, valued }: Props) {
+export function OptionTicket({ sym, side, S, today, acct, valued, initial }: Props) {
   const vols = useVolMap();
   const vol = volFor(vols, sym);
   const exps = useMemo(() => expirations(today), [today]);
-  const [kind, setKind] = useState<Kind>('call');
-  const [exp, setExp] = useState(exps[2] ?? exps[0]!);
-  const list = useMemo(() => (S ? strikes(S) : []), [S]);
+  const [kind, setKind] = useState<Kind>(initial?.kind ?? 'call');
+  const [exp, setExp] = useState(initial && exps.includes(initial.exp) ? initial.exp : (exps[2] ?? exps[0]!));
+  const list = useMemo(() => {
+    const l = S ? strikes(S) : [];
+    return initial && l.length && !l.includes(initial.strike) ? [...l, initial.strike].sort((a, b) => a - b) : l;
+  }, [S, initial]);
   const atm = useMemo(() => (S && list.length ? list.reduce((b, k) => (Math.abs(k - S) < Math.abs(b - S) ? k : b), list[0]!) : null), [S, list]);
-  const [picked, setPicked] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(initial?.strike ?? null);
   const strike = picked != null && list.includes(picked) ? picked : atm;
   const expId = useId();
   const strikeId = useId();

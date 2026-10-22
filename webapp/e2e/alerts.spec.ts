@@ -26,6 +26,8 @@ test.beforeAll(async () => {
   await put('alerts/swing-trader-2026-09-30', { strategy: 'swing-trader', status: 'qualified', ticker: 'NVDA', ...plan, reasoning: 'Pulled back to the 20-day average on falling volume.', technicals: { RSI: 48, 'Volume vs avg': '0.7x' }, outcome: { result: 'hit-target', exitPrice: 110.4, notes: 'Target 1 hit on day 3.' } }, day(9));
   await put('alerts/breakout-rider-2026-10-01', { strategy: 'breakout-rider', status: 'qualified', ticker: 'AMD', ...plan, setupLabel: 'Flat base', outcome: { result: 'stopped-out', exitPrice: 95 } }, day(8));
   await put('alerts/options-scanner-2026-10-02', { strategy: 'options-scanner', status: 'no-qualifying-setup', marketRegime: 'Choppy' }, day(7));
+  // a server-run Options Scanner idea (still open, so the track record above is unchanged)
+  await put('alerts/options-scanner-2026-10-06', { strategy: 'options-scanner', status: 'qualified', ticker: 'AAPL', direction: 'long-put', setupLabel: 'Failed rally', score: 66, scoreMax: 80, entry: 250, stop: 258, target1: 234, target2: 228, riskPerShare: -8, rewardPerShare: -16, rewardRiskRatio: '2.0 : 1', optionsRule: 'Long put · 30–60 days to expiration · delta about -0.65', contract: { id: 'AAPL|20261120|P|25000', label: 'AAPL $250 Put 11/20', kind: 'put', exp: '2026-11-20', strike: 250, dte: 45, delta: -0.64, estMid: 8.15 } }, day(5));
   // a 3-Leg Options alert (open, so the track record above is unchanged); numbers as functions/three_leg.py works them out
   const legs = [
     { type: 'call', side: 'buy', strike: 180, qty: 1, price: 6 },
@@ -81,6 +83,10 @@ test('the list, the track record and a finished alert', async ({ page }) => {
   await expect(card.getByText('$181.80 · $198.20')).toBeVisible();
   await expect(card.getByRole('img', { name: 'Profit or loss at expiration, by stock price' })).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  // an Options Scanner idea: the contract it points at, and one tap to that contract on the ticket
+  await page.goto('alerts/options-scanner-2026-10-06');
+  await expect(page.getByText(/AAPL \$250 Put 11\/20 · about 45 days · delta -0\.64 · estimated \$8\.15 a share \(\$815 a contract\)/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Trade this setup' })).toHaveAttribute('href', /\/practice\/trade\/AAPL\?mode=options&contract=AAPL%7C20261120%7CP%7C25000$/);
   // a no-setup day
   await page.goto('alerts/options-scanner-2026-10-02');
   await expect(page.getByRole('heading', { name: 'No setup today' }).first()).toBeVisible();
