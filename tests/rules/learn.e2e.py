@@ -32,6 +32,19 @@ r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": wrong}, now)
 u = db.collection("users").document(uid).get().to_dict()
 ok(not r["passed"] and r["right"] == 0 and r["xp"] == 0 and u["xp"] == 0 and "learnPassed" not in u, "a failed quiz pays nothing and unlocks nothing")
 ok([x["answer"] for x in r["results"]] == key, "the results show the right answers to learn from")
+ok(r["retryAt"] == now + main.QUIZ_WAIT_MS and db.collection("users").document(uid).get().to_dict()["learnRetryAt"]["basics"] == r["retryAt"],
+   "a fail means an hour's wait before the next try")
+try:
+    main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key)}, now + 1000)
+    ok(False, "retaking during the wait must be refused")
+except https_fn.HttpsError as e:
+    ok("retake this quiz in 60 min" in str(e.message), "retaking during the wait is refused")
+# skipping the wait costs 10 tokens (tokens_boost does this in one transaction)
+w = main.tk_new_wallet(now)
+w["balance"] = 15
+w2, _ = main.boost_buy(w, "quiz-retry", now + 1000, "2026-10-22", r["retryAt"])
+ok(w2["balance"] == 5, "skipping the wait costs 10 tokens")
+db.collection("users").document(uid).set({"learnRetryAt": {"basics": firestore.DELETE_FIELD}}, merge=True)
 
 r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key)}, now + 1000)
 u = db.collection("users").document(uid).get().to_dict()

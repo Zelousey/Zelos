@@ -120,7 +120,8 @@ service cloud.firestore {
     match /users/{userId} {
       // missions: counted by the server (functions/missions.py), so mission XP can't be faked
       // learnPassed: Trading 101 chapter quizzes passed, written by learn_quiz after grading them
-      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed']; }
+      // learnRetryAt: when a failed chapter quiz can be retaken (learn_quiz; tokens_boost skips the wait)
+      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed', 'learnRetryAt']; }
       // blocked: the traders you blocked (uids); termsAt: when you agreed to the Terms
       function validBlocked(b) { return b is list && b.size() <= 500; }
       allow read, delete: if request.auth != null && request.auth.uid == userId;
@@ -131,6 +132,7 @@ service cloud.firestore {
         && !('lastAlertOpenDate' in request.resource.data)
         && !('missions' in request.resource.data)
         && !('learnPassed' in request.resource.data)
+        && !('learnRetryAt' in request.resource.data)
         && validBlocked(request.resource.data.get('blocked', []));
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields())

@@ -11,6 +11,7 @@ test.describe.configure({ timeout: 90_000 });
 const BASE = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents';
 const put = (path: string, fields: Record<string, unknown>) =>
   fetch(`${BASE}/${path}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) });
+const get = (path: string) => fetch(`${BASE}/${path}`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json());
 async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
@@ -72,6 +73,15 @@ test.describe('signed in', () => {
     await expect(three.getByRole('button', { name: '1-day pass · 45 tokens' })).toBeVisible();
     // the tokens sheet
     await page.getByRole('button', { name: /Your tokens: 50/ }).click();
-    await expect(page.getByRole('dialog', { name: 'Get tokens' }).getByText(/Earn free tokens every day|\$3/)).toBeVisible();
+    const sheet = page.getByRole('dialog', { name: 'Get tokens' });
+    await expect(sheet.getByText(/Earn free tokens every day|\$3/)).toBeVisible();
+    // boosts (owner 2026-10-22): an extra battle entry for 15; the 60-token XP booster is out of reach with 50
+    const boosts = sheet.getByRole('region', { name: 'Boosts' });
+    await expect(boosts.getByText('Double XP for 24 hours')).toBeVisible();
+    await expect(boosts.getByRole('listitem').filter({ hasText: 'XP booster' }).getByRole('button', { name: '60 tokens' })).toBeDisabled();
+    await boosts.getByRole('listitem').filter({ hasText: 'Extra battle entry' }).getByRole('button', { name: '15 tokens' }).click();
+    await expect(page.getByText('One more prize battle today')).toBeVisible();
+    await expect(boosts.getByText('(1 of 2 bought)')).toBeVisible();
+    await expect.poll(async () => (await get(`wallets/${uid}`)).fields?.balance?.integerValue).toBe('35');
   });
 });
