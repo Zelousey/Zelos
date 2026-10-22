@@ -136,5 +136,19 @@ ok(abs(a["cash"] - (acct["cash"] + 2 * close)) < 0.01, "at the closing price (%s
 # the hard stop: no calls left, no calls made
 db.collection("serverMeta").document("msUsage").set({"cycle": MD.ms_cycle(NEXT), "cycleCalls": 98000, "day": "2026-10-22", "calls": 0})
 ok(main.ms_budget_start(db, NEXT, "essential", 1) == 0, "at 98,000 the daily close gets no calls")
+
+# on-demand research for a ticker without stored bars: no Marketstack call past the cap either
+asked.clear()
+MD.CALLS[0] = 0
+MD.sec_get = lambda *a, **k: (_ for _ in ()).throw(TimeoutError("no SEC in tests"))
+NOW2 = datetime.now(NY)
+db.collection("serverMeta").document("msUsage").set({"cycle": MD.ms_cycle(NOW2), "cycleCalls": 98000, "day": "x", "calls": 0})
+doc = main.research_fetch(db, "ZZZZ", "k", NOW2)
+ok(isinstance(doc, dict) and doc.get("updatedAt"), "research still answers (SEC data only)")
+ok(asked == [] and MD.CALLS[0] == 0 and MD.BUDGET[0] is None, "research past the cap makes no Marketstack call")
+db.collection("serverMeta").document("msUsage").set({"cycle": MD.ms_cycle(NOW2), "cycleCalls": 0, "day": "x", "calls": 0})
+main.research_fetch(db, "ZZZZ", "k", NOW2)
+ok(len(asked) == 1 and asked[0][1] == ["ZZZZ"], "under the cap it asks for that one ticker")
+ok(main.ms_calls_cycle(db, NOW2) == 1, "and the call is counted")
 os.environ.pop("MS_CYCLE_SEED", None)
 print("\n%d daily close checks passed" % passed)
