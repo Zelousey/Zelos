@@ -49,7 +49,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import time as _time
 
@@ -554,6 +554,32 @@ def _load_practice_symbols():
 
 
 PRACTICE_SYMBOLS = _load_practice_symbols()
+
+
+def _load_fast_symbols():
+    """The "fast" stocks (day trading): prices every minute. The rest update every
+    MS_STEADY_EVERY_MIN minutes (long-term). Owner, 2026-10-22."""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "practice_universe.json"), encoding="utf-8") as f:
+            fast = [str(u["sym"]).upper() for u in json.load(f)["symbols"] if u.get("fast")]
+        return [s for s in PRACTICE_SYMBOLS if s in fast]
+    except Exception:
+        return [s for s in ("SPY", "QQQ", "AAPL", "NVDA", "MSFT", "AMD", "META", "AMZN") if s in PRACTICE_SYMBOLS]
+
+
+def _load_retired_symbols():
+    """Stocks taken off the list (data/retired-symbols.json): sell-only for anyone still holding
+    them, priced once a day from the closing price."""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "retired_symbols.json"), encoding="utf-8") as f:
+            return [s for s in (str(u["sym"]).upper() for u in json.load(f)["symbols"]) if s not in PRACTICE_SYMBOLS]
+    except Exception:
+        return []
+
+
+FAST_SYMBOLS = _load_fast_symbols()
+STEADY_SYMBOLS = [s for s in PRACTICE_SYMBOLS if s not in FAST_SYMBOLS]
+RETIRED_SYMBOLS = _load_retired_symbols()
 NY = ZoneInfo("America/New_York")
 DAILY_BARS_KEEP = 90
 INTRADAY_SESSIONS_KEEP = 5
@@ -680,50 +706,56 @@ def _fetch_all_quotes(api_key):
     memory=256,
 )
 def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
-    """Stock prices from Marketstack (see functions/mdata.py). Wakes every minute and calls
-    Marketstack every QUOTE_EVERY_MIN minutes (1 on the Professional plan, 15 on Basic), one
-    minute after each bar closes, plus once at 4:06 pm for the closing prices. If a day's
-    requests reach MS_DAILY_CALLS, updates slow to every 15 minutes for the rest of the day."""
+    """Stock prices from Marketstack (see functions/mdata.py), at two speeds so the plan's calls
+    last the whole billing cycle (owner, 2026-10-22):
+      - the "fast" stocks (day trading: SPY, QQQ and the biggest names) every QUOTE_EVERY_MIN minutes (1)
+      - the others (long-term) every MS_STEADY_EVERY_MIN minutes (15)
+    and both at 4:06 pm for the closing prices. Marketstack counts every symbol in a request as one
+    call, so a normal minute is 8 calls (~3,700 a market day with the long-term ones).
+    Hard stops: live prices stop for the day at MS_DAILY_CALLS, and until the next billing cycle at
+    MS_LIVE_CAP; markets/quotes then says "paused" (the app shows it) and the last prices stay."""
     now = datetime.now(NY)
     minutes = now.hour * 60 + now.minute
-    every = MD.quote_every_min()
+    every, steady_every = MD.quote_every_min(), MD.steady_every_min()
     in_session = SESSION_OPEN < minutes <= SESSION_CLOSE + 1
     on = lambda n: in_session and (minutes - SESSION_OPEN - 1) % n == 0  # noqa: E731
     closing = minutes == SESSION_CLOSE + 6
-    if not (on(every) or closing):
+    syms = (FAST_SYMBOLS if on(every) or closing else []) + (STEADY_SYMBOLS if on(steady_every) or closing else [])
+    if not syms:
         return
     db = firestore.client()
-    monthly = MD.monthly_call_limit()
-    if every < 15 and (ms_calls_today(db, now) >= MD.daily_call_limit() or (monthly and ms_calls_month(db, now) >= monthly)):
-        if not (on(15) or closing):
-            return
-        print("[refresh_quotes] daily or monthly request cap reached: every 15 minutes for now")
-        every = 15
     key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
     if not key:
         db.collection("markets").document("quotes").set({"error": "missing-key", "checkedAt": now.isoformat()}, merge=True)
+        return
+    if not ms_budget_start(db, now, "live", len(syms)):
+        ms_mark_paused(db, now)
         return
     fetched = None
     calls0 = MD.CALLS[0]
     try:
         try:
-            n, q, bars, step = ms_run_quotes(db, key, now, every=every)
+            n, q, bars, step = ms_run_quotes(db, key, now, every=every, symbols=syms)
         except MD.MsNotInPlan:
             # e.g. 1-minute bars on the Basic plan: say so and keep prices coming with 15-minute bars
             print("[refresh_quotes] %s bars aren't in the Marketstack plan; using 15min" % MD.ms_interval())
-            n, q, bars, step = ms_run_quotes(db, key, now, every=every, iv="15min")
+            n, q, bars, step = ms_run_quotes(db, key, now, every=every, iv="15min", symbols=syms)
             db.collection("markets").document("quotes").set({"note": "interval-not-in-plan"}, merge=True)
         fetched = (q, bars, step)
-        print("[refresh_quotes] %d prices" % n)
+        print("[refresh_quotes] %d prices (%d symbols asked)" % (n, len(syms)))
     except MD.MsKeyRejected:
         db.collection("markets").document("quotes").set({"error": "auth", "checkedAt": now.isoformat()}, merge=True)
         print("[refresh_quotes] Marketstack rejected the key")
+    except MD.MsBudget:
+        ms_mark_paused(db, now)
     except MD.MsQuota:
         db.collection("markets").document("quotes").set({"error": "quota", "checkedAt": now.isoformat()}, merge=True)
-        print("[refresh_quotes] Marketstack monthly requests used up")
+        print("[refresh_quotes] Marketstack says the plan's calls are used up")
     except Exception as e:
         db.collection("markets").document("quotes").set({"error": type(e).__name__, "checkedAt": now.isoformat()}, merge=True)
         print("[refresh_quotes] failed:", type(e).__name__, e)
+    finally:
+        MD.BUDGET[0] = None
     try:
         ms_count_calls(db, now, MD.CALLS[0] - calls0)
     except Exception as e:
@@ -1280,8 +1312,8 @@ def md_due(now, state):
 def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
     """Marketstack + SEC jobs, each only when due (state in serverMeta/marketData):
       - once: remove data from the old personal-use sources (news, earnings, FMP research, crypto)
-      - after the close: daily bars, 2-year history, the ticker-tape snapshot, the globe,
-        and the day's complete intraday bars for the stock list
+      - after the close: mark every practice account at the closing prices (no Marketstack calls:
+        daily bars, history, snapshot and globe come from ms_daily_close in run_scanners)
       - outside market hours: SEC research for 2 stock-list symbols a run, oldest first"""
     key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
     now = datetime.now(NY)
@@ -1299,24 +1331,27 @@ def refresh_market_data(event: scheduler_fn.ScheduledEvent) -> None:
         else:
             due = ms_due(now, state)
             if due["afterClose"]:
-                print("[market] after close:", ms_after_close(db, key, now, state))
                 state["closeDay"] = now.strftime("%Y-%m-%d")
                 try:
                     print("[practice] nightly revalue:", practice_revalue_all(db, int(now.timestamp() * 1000)))
                 except Exception as e:
                     print("[practice] nightly revalue failed:", type(e).__name__, e)
-            if due["research"]:
+            if due["research"] and ms_budget_start(db, now, "essential", 1):
                 ms_research_rotation(db, key, now, state)
             state["error"] = None
     except MD.MsKeyRejected:
         state["error"] = "auth"
         print("[market] Marketstack rejected the key")
+    except MD.MsBudget:
+        state["error"] = "budget"
+        print("[market] stopped by our Marketstack cap")
     except MD.MsQuota:
         state["error"] = "quota"
         print("[market] Marketstack monthly requests used up")
     except Exception as e:
         state["error"] = type(e).__name__
         print("[market] run failed:", type(e).__name__, e)
+    MD.BUDGET[0] = None
     state["ranAt"] = now.isoformat()
     sref.set(state)
     try:
@@ -1350,7 +1385,9 @@ def _load_countries():
 
 
 def _history_symbols():
-    return sorted(set(PRACTICE_SYMBOLS) | set(MD.SNAP_SYMBOLS))
+    """Stocks with ~2 years of daily history: the list, the ticker-tape ETFs and removed stocks
+    someone may still hold (their charts and nightly price)."""
+    return sorted(set(PRACTICE_SYMBOLS) | set(MD.SNAP_SYMBOLS) | set(RETIRED_SYMBOLS))
 
 
 def _ms_newest(bars):
@@ -1361,8 +1398,10 @@ def _ms_newest(bars):
     return datetime.strptime(max(labels), "%Y-%m-%d %H:%M").replace(tzinfo=NY).isoformat()
 
 
-def ms_run_quotes(db, key, now, every=None, iv=None):
-    """Intraday bars for the stock list -> quotes, intraday docs and movers.
+def ms_run_quotes(db, key, now, every=None, iv=None, symbols=None):
+    """Intraday bars for `symbols` (default: the whole stock list) -> quotes, intraday docs and
+    movers. Stocks not asked for this run keep their last quote as it was (the long-term ones
+    update every 15 minutes, not every minute).
 
     The first run of the day asks for the whole day; every later run asks only for bars since
     the newest one already stored (date_from with a time), so a run every minute costs about
@@ -1374,6 +1413,7 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     today = now.strftime("%Y-%m-%d")
     every = every or MD.quote_every_min()
     iv = iv or MD.ms_interval()
+    symbols = [s for s in (symbols or PRACTICE_SYMBOLS) if s in PRACTICE_SYMBOLS]
     label = iv.replace("min", "m").replace("1hour", "60m")
     step = MD.interval_minutes(iv)
     sref = db.collection("serverMeta").document("msQuotes")
@@ -1397,9 +1437,9 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     def fetch():
         """Stocks that are up to date share ONE request (a few new bars each); stocks that are
         behind (first run of the day, a failed run) are asked for 10 at a time, furthest behind
-        first. A normal minute is one Marketstack request for all 50 stocks."""
+        first. A normal minute is one Marketstack request for the fast stocks."""
         start = _time.monotonic()
-        order = MD.behind_first(PRACTICE_SYMBOLS, since_by)
+        order = MD.behind_first(symbols, since_by)
         together, apart = MD.ms_split_caught_up(order, since_by, MS_TOGETHER_LAG_MIN) if use_time else ([], order)
         rows, failed, err = [], [], None
         if together:
@@ -1434,7 +1474,7 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     try:
         rows, failed = fetch()
     except Exception as e:  # Marketstack refused a date_from with a time: whole days for the rest of today
-        if not use_time or not MD.ms_refused_time(e) or all(since_by.get(s) is None for s in PRACTICE_SYMBOLS):
+        if not use_time or not MD.ms_refused_time(e) or all(since_by.get(s) is None for s in symbols):
             raise
         print("[refresh_quotes] time filter refused (%s); using whole-day requests for today" % str(e)[:80])
         st["timeFilterOff"] = today
@@ -1448,7 +1488,7 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     quotes, today_bars, stale = {}, {}, set()
     failed = set(failed)
     batch, writes = db.batch(), 0
-    refs = [db.collection("markets").document("intraday_" + sym) for sym in PRACTICE_SYMBOLS]
+    refs = [db.collection("markets").document("intraday_" + sym) for sym in symbols]
     for snap in db.get_all(refs):
         sym = snap.id[len("intraday_"):]
         d = (snap.to_dict() or {}) if snap.exists else {}
@@ -1479,59 +1519,89 @@ def ms_run_quotes(db, key, now, every=None, iv=None):
     qref = db.collection("markets").document("quotes")
     live = {s: q for s, q in quotes.items() if s not in stale}
     if not live:
-        qref.set({"checkedAt": now.isoformat(), "error": None}, merge=True)  # holiday, before the first bar, or the whole feed stuck
+        qref.set({"checkedAt": now.isoformat(), "error": None, "paused": None}, merge=True)  # holiday, before the first bar, or the whole feed stuck
         return 0, {}, today_bars, step
-    # a stock with no fresh price keeps its last good one, marked stale (the app says "delayed")
+    # a stock asked for with no fresh price keeps its last good one, marked stale (the app says
+    # "delayed"); a stock not asked for this run keeps its last quote as it was. Removed stocks
+    # keep the closing price the daily close wrote (ms_daily_close).
     qsnap = qref.get()
     prev_q = ((qsnap.to_dict() or {}).get("quotes") or {}) if qsnap.exists else {}
+    asked = set(symbols)
     shown = {}
-    for sym in PRACTICE_SYMBOLS:
-        q = quotes.get(sym) or prev_q.get(sym)
+    for sym in PRACTICE_SYMBOLS + RETIRED_SYMBOLS:
+        q = (quotes.get(sym) if sym in asked else None) or prev_q.get(sym)
         if not q:
             continue
-        if sym in stale or sym not in quotes:
-            q = dict(q, stale=True)
-        else:
-            q = {k: v for k, v in q.items() if k != "stale"}
+        if sym in asked:
+            q = dict(q, stale=True) if sym in stale or sym not in quotes else {k: v for k, v in q.items() if k != "stale"}
         shown[sym] = q
     mins = now.hour * 60 + now.minute
     qref.set({"source": "marketstack", "updatedAt": now.isoformat(), "date": today, "marketOpen": SESSION_OPEN <= mins < SESSION_CLOSE,
-              "every": every, "interval": label, "error": None, "quotes": shown})
-    mv = MD.ms_movers(live, UNIVERSE_NAMES, UNIVERSE_GROUPS)
+              "every": every, "everySlow": MD.steady_every_min(), "fast": FAST_SYMBOLS, "interval": label, "error": None, "quotes": shown})
+    mv = MD.ms_movers({s: q for s, q in shown.items() if s in PRACTICE_SYMBOLS and not q.get("stale") and datetime.fromtimestamp(q.get("t") or 0, NY).strftime("%Y-%m-%d") == today},
+                      UNIVERSE_NAMES, UNIVERSE_GROUPS)
     mv.update({"updatedAt": now.isoformat(), "date": today, "source": "Marketstack"})
     db.collection("markets").document("movers").set(mv)
     return len(live), live, today_bars, step
 
 
 def ms_count_calls(db, now, n):
-    """Add n Marketstack requests to today's count (serverMeta/msUsage)."""
+    """Add n Marketstack calls (symbols x requests) to today's count and to the billing cycle's
+    (serverMeta/msUsage: day/calls, cycle/cycleCalls)."""
     if n <= 0:
         return
-    today = now.strftime("%Y-%m-%d")
+    today, cycle = now.strftime("%Y-%m-%d"), MD.ms_cycle(now)
     ref = db.collection("serverMeta").document("msUsage")
-    snap = ref.get()
-    d = (snap.to_dict() or {}) if snap.exists else {}
-    month = now.strftime("%Y-%m")
-    if d.get("day") == today:
-        if d.get("month") == month:
-            ref.update({"calls": firestore.Increment(n), "monthCalls": firestore.Increment(n), "at": now.isoformat()})
-        else:  # first count after this field was added: the month starts from today's count
-            ref.update({"calls": firestore.Increment(n), "month": month, "monthCalls": int(d.get("calls") or 0) + n, "at": now.isoformat()})
-    else:
-        ref.set({"day": today, "calls": n, "at": now.isoformat(), "yesterday": d.get("calls") if d.get("day") else None,
-                 "month": month, "monthCalls": (int(d.get("monthCalls") or 0) if d.get("month") == month else 0) + n})
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        d = (snap.to_dict() or {}) if snap.exists else {}
+        same_day, same_cycle = d.get("day") == today, d.get("cycle") == cycle
+        out = {"day": today, "calls": (int(d.get("calls") or 0) if same_day else 0) + n, "at": now.isoformat(),
+               "yesterday": d.get("yesterday") if same_day else (d.get("calls") if d.get("day") else None),
+               "cycle": cycle, "cycleCalls": (int(d.get("cycleCalls") or 0) if same_cycle else 0) + n,
+               "counting": "per symbol"}
+        t.set(ref, out)
+
+    txn(db.transaction())
+
+
+def ms_usage(db):
+    snap = db.collection("serverMeta").document("msUsage").get()
+    return (snap.to_dict() or {}) if snap.exists else {}
 
 
 def ms_calls_today(db, now):
-    snap = db.collection("serverMeta").document("msUsage").get()
-    d = (snap.to_dict() or {}) if snap.exists else {}
-    return int(d.get("calls") or 0) if d.get("day") == now.strftime("%Y-%m-%d") else 0
+    return MD.usage_used(ms_usage(db), now)[1]
 
 
-def ms_calls_month(db, now):
-    snap = db.collection("serverMeta").document("msUsage").get()
-    d = (snap.to_dict() or {}) if snap.exists else {}
-    return int(d.get("monthCalls") or 0) if d.get("month") == now.strftime("%Y-%m") else 0
+def ms_calls_cycle(db, now):
+    """Calls used this billing cycle (counted here + MS_CYCLE_SEED)."""
+    return MD.usage_used(ms_usage(db), now)[0]
+
+
+def ms_budget_start(db, now, kind, need=1):
+    """Gives this job its Marketstack allowance (MD.BUDGET; ms_get refuses past it). Returns the
+    allowance, or 0 when it can't cover `need` calls (the job then makes none)."""
+    left = MD.allowance(ms_usage(db), now, kind)
+    if left < need:
+        MD.BUDGET[0] = None
+        print("[marketstack] %s calls stopped by our cap (%d left, %d needed, %d used this cycle)" % (kind, left, need, ms_calls_cycle(db, now)))
+        return 0
+    MD.BUDGET[0] = left
+    return left
+
+
+def ms_mark_paused(db, now):
+    """markets/quotes says live prices are paused by the cap, and until when (the app shows it)."""
+    used = ms_calls_cycle(db, now)
+    cycle = MD.ms_cycle(now)
+    if used >= MD.live_cap():
+        paused = {"reason": "cycle", "until": MD.cycle_reset_date(cycle)}
+    else:
+        paused = {"reason": "day", "until": None}
+    db.collection("markets").document("quotes").set({"paused": paused, "checkedAt": now.isoformat()}, merge=True)
 
 
 def ms_due(now, state):
@@ -1539,7 +1609,7 @@ def ms_due(now, state):
     mins, wd, today = now.hour * 60 + now.minute, now.weekday(), now.strftime("%Y-%m-%d")
     weekday = wd < 5
     return {
-        "afterClose": (weekday and 16 * 60 + 20 <= mins < 20 * 60 and state.get("closeDay") != today) or not state.get("historyAt"),
+        "afterClose": weekday and 16 * 60 + 20 <= mins < 20 * 60 and state.get("closeDay") != today,
         "research": not (weekday and 9 * 60 + 25 <= mins <= 16 * 60 + 10),
     }
 
@@ -1567,77 +1637,6 @@ def _read_history(db):
         except Exception:
             pass
     return out
-
-
-def ms_after_close(db, key, now, state):
-    """Daily bars, history, snapshot, globe and the day's full 15-minute bars."""
-    today = now.strftime("%Y-%m-%d")
-    hist_syms = _history_symbols()
-    countries = _load_countries()
-    globe_syms = MD.globe_symbols(countries) if countries else []
-    full = not state.get("historyAt") or now.timestamp() - state.get("historyAt", 0) > 30 * 86400
-    # recent daily bars for everything we show (one paginated request per 100 symbols)
-    frm = (now - MD.timedelta(days=45)).strftime("%Y-%m-%d")
-    recent = {}
-    for ch in MD.chunks(sorted(set(hist_syms) | set(globe_syms)), 100):
-        recent.update(MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": ",".join(ch), "date_from": frm, "sort": "ASC"}, key)))
-    # history: a full ~2 years once a month, otherwise extend what's stored
-    if full:
-        hfrm = (now - MD.timedelta(days=int(MD.HISTORY_DAYS * 1.45))).strftime("%Y-%m-%d")
-        hist = {}
-        for ch in MD.chunks(hist_syms, 100):
-            hist.update(MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": ",".join(ch), "date_from": hfrm, "sort": "ASC"}, key, max_pages=80)))
-    else:
-        hist = _read_history(db)
-    for s in hist_syms:
-        if recent.get(s):
-            hist[s] = MD.merge_series(hist.get(s, []), recent[s], MD.HISTORY_DAYS)
-    hist = {s: rows for s, rows in hist.items() if rows and s in hist_syms}
-    if hist:
-        _write_history(db, hist, now)
-        if full:
-            state["historyAt"] = int(now.timestamp())
-    # dailyBars (charts, previous close)
-    ref = db.collection("markets").document("dailyBars")
-    snap = ref.get()
-    stored = ((snap.to_dict() or {}).get("bars") or {}) if snap.exists else {}
-    bars = {s: MD.merge_series([str(r) for r in stored.get(s, []) if str(r).split(",")[5:6] != ["0"]] if s in stored else [], hist.get(s) or recent.get(s) or [], MD.DAILY_BARS_KEEP)
-            for s in PRACTICE_SYMBOLS if hist.get(s) or recent.get(s)}
-    if bars:
-        ref.set({"updatedAt": now.isoformat(), "source": "Marketstack", "bars": bars})
-    # ticker tape / market overview, and the globe
-    snapd = MD.build_snapshot({s: hist.get(s) or recent.get(s) for s in MD.SNAP_SYMBOLS if hist.get(s) or recent.get(s)}, now)
-    if snapd["items"]:
-        db.collection("markets").document("snapshot").set({"json": json.dumps(snapd, separators=(",", ":")), "updatedAt": now.isoformat()})
-    if countries:
-        g = MD.build_globe(countries, MD.moves_from_daily({s: recent[s] for s in globe_syms if s in recent}))
-        if g["asOf"]:
-            db.collection("markets").document("globe").set({"json": json.dumps(g, ensure_ascii=False, separators=(",", ":")), "asOf": g["asOf"], "updatedAt": now.isoformat()})
-    # the day's complete intraday bars for the stock list, added to the stored sessions.
-    # 15-minute bars: the last 8 days in one go. 1-minute bars (390 a day): today only.
-    iv = MD.ms_interval()
-    label = iv.replace("min", "m").replace("1hour", "60m")
-    ifrm = (now - MD.timedelta(days=8)).strftime("%Y-%m-%d") if MD.interval_minutes(iv) >= 15 else today
-    # (a failure here must not undo the day's work above, or the job re-runs all evening)
-    ib = {}
-    try:
-        rows, failed = MD.ms_rows_chunked("intraday", {"interval": iv, "date_from": ifrm, "sort": "ASC"}, PRACTICE_SYMBOLS, key, size=10, max_pages=6, timeout=45, budget=200)
-        if failed:
-            print("[after-close] intraday bars missing for %d symbols" % len(failed))
-        ib = MD.ms_intraday_bars(rows)
-        batch = db.batch()
-        refs = [db.collection("markets").document("intraday_" + sym) for sym in ib if sym in PRACTICE_SYMBOLS]
-        for snap in (db.get_all(refs) if refs else []):
-            d = (snap.to_dict() or {}) if snap.exists else {}
-            # bars saved by an older parser are dropped (they were built from the wrong Marketstack fields)
-            old = [str(x) for x in d.get("bars", [])] if d.get("interval") == label and d.get("parser") == MD.MS_PARSER else []
-            batch.set(snap.reference, {"updatedAt": now.isoformat(), "interval": label, "source": "marketstack", "parser": MD.MS_PARSER, "bars": MD.merge_intraday(old, ib[snap.id[len("intraday_"):]])})
-        batch.commit()
-    except (MD.MsKeyRejected, MD.MsQuota):
-        raise
-    except Exception as e:
-        print("[after-close] intraday bars failed:", type(e).__name__, e)
-    return {"history": len(hist), "daily": len(bars), "snapshot": len(snapd["items"]), "intraday": len(ib), "full": full}
 
 
 def _sec_cik(db, sym, now):
@@ -4919,6 +4918,7 @@ def _pr_universe():
 
 
 PRACTICE_UNIVERSE = _pr_universe()
+RETIRED_SET = frozenset(RETIRED_SYMBOLS)
 
 
 def _pr_user(req):
@@ -5132,6 +5132,14 @@ def practice_account(req, db, uid, tok, now_ms):
     return {"created": created}
 
 
+def _pr_order_universe(data):
+    """(order, stocks it may name). A removed stock can only be sold (closing what you hold); it
+    is priced once a day at the close, so the order waits until it fills (good-till-cancelled)."""
+    if data.get("side") == "sell" and str(data.get("u") or data.get("sym") or "").upper() in RETIRED_SET:
+        return (data if data.get("kind") == "option" else dict(data, tif="gtc")), PRACTICE_UNIVERSE | RETIRED_SET
+    return data, PRACTICE_UNIVERSE
+
+
 @https_fn.on_call()
 @_pr_call
 def practice_order(req, db, uid, tok, now_ms):
@@ -5142,6 +5150,7 @@ def practice_order(req, db, uid, tok, now_ms):
     data = req.data if isinstance(req.data, dict) else {}
     sym = str(data.get("sym") or "").upper()
     vols = _pr_vols(db, now_ms) if data.get("kind") == "option" else {}
+    data, universe = _pr_order_universe(data)
     ref = db.collection("practiceAccounts").document(uid)
     oid = _secrets.token_hex(8)
 
@@ -5153,9 +5162,9 @@ def practice_order(req, db, uid, tok, now_ms):
         acct = snap.to_dict()
         if data.get("kind") == "option":
             u = str(data.get("u") or "").upper()
-            o = PR.validate_option_order(acct, data, (quotes.get(u) or {}).get("c"), vols.get(u, OPT.DEFAULT_VOL), PRACTICE_UNIVERSE, now_ms, oid)
+            o = PR.validate_option_order(acct, data, (quotes.get(u) or {}).get("c"), vols.get(u, OPT.DEFAULT_VOL), universe, now_ms, oid)
         else:
-            o = PR.validate_order(acct, data, (quotes.get(sym) or {}).get("c"), PRACTICE_UNIVERSE, now_ms, oid)
+            o = PR.validate_order(acct, data, (quotes.get(sym) or {}).get("c"), universe, now_ms, oid)
         PR.add_order(acct, o)
         acct["updatedAt"] = now_ms
         t.set(ref, acct)
@@ -6217,33 +6226,95 @@ SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_brea
 SCAN_HOLD_SESSIONS = 10  # a swing idea that hits neither level in ~2 weeks is "expired"
 
 
-def ms_eod_topup(db, key, now):
-    """The stored daily history, with today's final bar added once Marketstack has it.
-    None while it isn't out yet (or on a market holiday). Also refreshes the charts' daily bars."""
+GLOBE_KEEP = 30  # sessions of daily bars kept for the globe (it shows the day's and the month's move)
+
+
+def _eod_since(hist_rows, today, back_days):
+    """date_from for a symbol: the day after its newest stored bar (at most 10 days back), or
+    `back_days` ago when nothing is stored."""
+    last = hist_rows[-1][:10] if hist_rows else None
+    t = date.fromisoformat(today)
+    if not last:
+        return (t - timedelta(days=back_days)).isoformat()
+    return max(date.fromisoformat(last) + timedelta(days=1), t - timedelta(days=10)).isoformat()
+
+
+def ms_daily_close(db, key, now):
+    """The day's final prices, once, as cheaply as Marketstack allows (owner, 2026-10-22):
+      1. one call: is SPY's bar for today out yet? (No: return None, try again in 30 minutes.)
+      2. one end-of-day request per 100 symbols, from the day after each stock's newest stored bar
+         (normally just today), for the history stocks, the globe and removed stocks.
+    Then, with no further calls: history, the charts' daily bars, the ticker tape, the globe and
+    the removed stocks' prices. ~190 calls a market day. Returns the history, or None.
+    Without stored history (a new project) the first run fetches ~2 years (a few thousand calls,
+    once)."""
     today = now.strftime("%Y-%m-%d")
     hist = _read_history(db)
     if hist.get("SPY") and hist["SPY"][-1][:10] == today:
         return hist
-    syms = _history_symbols()
-    frm = (now - MD.timedelta(days=7)).strftime("%Y-%m-%d")
-    recent = {}
-    for ch in MD.chunks(syms, 100):
-        recent.update(MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": ",".join(ch), "date_from": frm, "sort": "ASC"}, key)))
-    if not (recent.get("SPY") and recent["SPY"][-1][:10] == today):
+    probe = MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": "SPY", "date_from": today, "sort": "ASC"}, key, max_pages=1))
+    if not (probe.get("SPY") and probe["SPY"][-1][:10] == today):
         return None
-    for s in syms:
+    hist_syms = _history_symbols()
+    countries = _load_countries()
+    globe_syms = MD.globe_symbols(countries) if countries else []
+    gref = db.collection("markets").document("globeBars")
+    gsnap = gref.get()
+    gbars = ((gsnap.to_dict() or {}).get("bars") or {}) if gsnap.exists else {}
+    since = {}
+    for s in sorted(set(hist_syms) | set(globe_syms)):
+        stored = hist.get(s) if s in hist_syms else gbars.get(s)
+        since[s] = _eod_since(stored, today, int(MD.HISTORY_DAYS * 1.45) if s in hist_syms else 45)
+    recent = {}
+    for frm in sorted(set(since.values())):
+        group = [s for s, f in since.items() if f == frm]
+        pages = 80 if frm < (date.fromisoformat(today) - timedelta(days=60)).isoformat() else 4
+        for ch in MD.chunks(group, 100):
+            recent.update(MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": ",".join(ch), "date_from": frm, "sort": "ASC"}, key, max_pages=pages)))
+    for s in hist_syms:
         if recent.get(s):
             hist[s] = MD.merge_series(hist.get(s, []), recent[s], MD.HISTORY_DAYS)
-    hist = {s: rows for s, rows in hist.items() if rows and s in syms}
+    hist = {s: rows for s, rows in hist.items() if rows and s in hist_syms}
     _write_history(db, hist, now)
+    # the charts' daily bars (and previous closes)
     ref = db.collection("markets").document("dailyBars")
     snap = ref.get()
     stored = ((snap.to_dict() or {}).get("bars") or {}) if snap.exists else {}
-    bars = dict(stored)
-    for s in PRACTICE_SYMBOLS:
-        if recent.get(s):
-            bars[s] = MD.merge_series(stored.get(s, []), recent[s], MD.DAILY_BARS_KEEP)
+    bars = {}
+    for s in PRACTICE_SYMBOLS + RETIRED_SYMBOLS:
+        old = [str(r) for r in stored.get(s, []) if str(r).split(",")[5:6] != ["0"]]
+        if recent.get(s) or old or hist.get(s):
+            bars[s] = MD.merge_series(old or (hist.get(s) or [])[-MD.DAILY_BARS_KEEP:], recent.get(s) or [], MD.DAILY_BARS_KEEP)
     ref.set({"updatedAt": now.isoformat(), "source": "Marketstack", "bars": bars})
+    # ticker tape / market overview
+    snapd = MD.build_snapshot({s: hist[s] for s in MD.SNAP_SYMBOLS if hist.get(s)}, now)
+    if snapd["items"]:
+        db.collection("markets").document("snapshot").set({"json": json.dumps(snapd, separators=(",", ":")), "updatedAt": now.isoformat()})
+    # the globe: its own short series (30 sessions), so its stocks needn't be in the history
+    if countries:
+        gbars = {s: MD.merge_series([str(r) for r in gbars.get(s, [])], recent.get(s) or hist.get(s, [])[-GLOBE_KEEP:], GLOBE_KEEP)
+                 for s in globe_syms if gbars.get(s) or recent.get(s) or hist.get(s)}
+        gref.set({"updatedAt": now.isoformat(), "bars": gbars})
+        g = MD.build_globe(countries, MD.moves_from_daily(gbars))
+        if g["asOf"]:
+            db.collection("markets").document("globe").set({"json": json.dumps(g, ensure_ascii=False, separators=(",", ":")), "asOf": g["asOf"], "updatedAt": now.isoformat()})
+    # removed stocks: today's close becomes their price (sell orders fill at it)
+    rq = {}
+    for s in RETIRED_SYMBOLS:
+        rows = MD.history_rows(bars.get(s))
+        if rows and rows[-1][0] == today:
+            last, prev = rows[-1], rows[-2] if len(rows) > 1 else None
+            q = {"c": last[4], "o": last[1], "h": last[2], "l": last[3], "pc": prev[4] if prev else None, "v": last[5],
+                 "t": int(datetime.strptime(today, "%Y-%m-%d").replace(hour=16, tzinfo=NY).timestamp()), "eod": True}
+            if prev and prev[4]:
+                q["chPct"] = round((last[4] / prev[4] - 1) * 100, 2)
+            rq[s] = q
+    if rq:
+        db.collection("markets").document("quotes").set({"quotes": rq}, merge=True)
+        try:
+            print("[practice] removed stocks' orders:", practice_pass(db, rq, {}, int(now.timestamp() * 1000)))
+        except Exception as e:
+            print("[practice] removed stocks' orders failed:", type(e).__name__, e)
     return hist
 
 
@@ -6305,7 +6376,9 @@ def run_scanners(event: scheduler_fn.ScheduledEvent) -> None:
     calls0 = MD.CALLS[0]
     state = {"day": today, "done": False, "ranAt": now.isoformat()}
     try:
-        hist = ms_eod_topup(db, key, now) if key else None
+        if key and not ms_budget_start(db, now, "essential", 1):
+            raise MD.MsBudget("no calls left this billing cycle")
+        hist = ms_daily_close(db, key, now) if key else None
         if hist is None:
             state["waiting"] = "no final bars for %s yet" % today if key else "missing Marketstack key"
         else:
@@ -6317,6 +6390,7 @@ def run_scanners(event: scheduler_fn.ScheduledEvent) -> None:
     except Exception as e:
         state["error"] = type(e).__name__
         print("[scanners] run failed:", type(e).__name__, e)
+    MD.BUDGET[0] = None
     sref.set(state)
     try:
         ms_count_calls(db, now, MD.CALLS[0] - calls0)

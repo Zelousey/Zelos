@@ -192,13 +192,46 @@ res = main.practice_pass(db, quotes, bars, PR.bar_start_ms("2026-10-07 10:02") +
 a = db.collection("practiceAccounts").document(uid).get().to_dict()
 ok(res["fills"] == 1 and abs(a["positions"]["AAPL"]["avg"] - (price("AAPL", 30) + 0.01)) < 1e-9, "market order filled at the 10:00 one-minute close, about a minute after it was placed")
 
-# usage counting
+# two speeds: a fast-only run (day trading stocks) leaves the long-term stocks' quotes as they were
+calls.clear()
+NOW_MIN[0] = 35
+before = db.collection("markets").document("quotes").get().to_dict()["quotes"]
+n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=5), symbols=main.FAST_SYMBOLS)
+asked = [x for c in calls for x in c["symbols"].split(",")]
+ok(sorted(asked) == sorted(main.FAST_SYMBOLS) and "TSLA" not in asked and "SPY" in asked, "a fast run asks only for the %d day-trading stocks" % len(asked))
+qd = db.collection("markets").document("quotes").get().to_dict()
+slow = main.STEADY_SYMBOLS[0]
+ok(qd["quotes"][slow] == before[slow] and not qd["quotes"][slow].get("stale"), "a long-term stock keeps its last quote, not marked delayed")
+ok(set(quotes) == set(main.FAST_SYMBOLS) and qd["fast"] == main.FAST_SYMBOLS and qd["everySlow"] == 15, "only the fast stocks are live this run; the doc lists them")
+ok(len(main.PRACTICE_SYMBOLS) == 30 and "AVGO" in main.RETIRED_SYMBOLS and "AVGO" not in main.PRACTICE_SYMBOLS, "30 stocks; removed ones are separate")
+
+# usage counting: per symbol, per day and per billing cycle (the 7th to the 7th)
+os.environ["MS_CYCLE_SEED"] = ""
 db.collection("serverMeta").document("msUsage").delete()
-main.ms_count_calls(db, DAY.replace(hour=10, minute=5), 5)
-main.ms_count_calls(db, DAY.replace(hour=10, minute=6), 5)
-ok(main.ms_calls_today(db, DAY.replace(hour=11)) == 10, "requests counted per day")
+main.ms_count_calls(db, DAY.replace(hour=10, minute=5), 8)
+main.ms_count_calls(db, DAY.replace(hour=10, minute=6), 8)
+ok(main.ms_calls_today(db, DAY.replace(hour=11)) == 16, "calls counted per day")
 ok(main.ms_calls_today(db, DAY.replace(hour=11) + timedelta(days=1)) == 0, "a new day starts at zero")
 main.ms_count_calls(db, DAY.replace(hour=10) + timedelta(days=1), 7)
-ok(main.ms_calls_month(db, DAY.replace(hour=11) + timedelta(days=1)) == 17, "requests counted per month too")
-ok(main.ms_calls_month(db, DAY.replace(day=1, hour=11) + timedelta(days=40)) == 0, "a new month starts at zero")
+ok(main.ms_calls_cycle(db, DAY.replace(hour=11) + timedelta(days=1)) == 23, "calls counted per billing cycle too")
+ok(main.ms_calls_cycle(db, datetime(2026, 11, 7, 10, tzinfo=NY)) == 0, "a new cycle (Nov 7) starts at zero")
+
+# the hard stop: a job gets only the calls left, and a run that can't afford its stocks makes none
+db.collection("serverMeta").document("msUsage").set({"cycle": "2026-10", "cycleCalls": 94995, "day": "2026-10-07", "calls": 10})
+t = DAY.replace(hour=10, minute=7)
+ok(main.ms_budget_start(db, t, "live", 8) == 0 and MD.BUDGET[0] is None, "live prices: 5 calls left, 8 needed, so nothing is asked")
+main.ms_mark_paused(db, t)
+qd = db.collection("markets").document("quotes").get().to_dict()
+ok(qd["paused"] == {"reason": "day", "until": None}, "the quotes doc says prices are paused (for today: the daily stop)")
+db.collection("serverMeta").document("msUsage").set({"cycle": "2026-10", "cycleCalls": 95000, "day": "2026-10-07", "calls": 10})
+main.ms_mark_paused(db, t)
+qd = db.collection("markets").document("quotes").get().to_dict()
+ok(qd["paused"] == {"reason": "cycle", "until": "2026-11-07"} and len(qd["quotes"]) >= len(SYMS), "at 95,000: paused until Nov 7, last prices kept")
+ok(main.ms_budget_start(db, t, "essential", 1) == 3000, "the daily close still has 3,000 calls (to 98,000)")
+# (ms_get refusing a request past the allowance is checked in scripts/marketstack_test.py)
+MD.BUDGET[0] = None
+NOW_MIN[0] = 38
+n, quotes, bars, step = main.ms_run_quotes(db, "k", DAY.replace(hour=10, minute=8))
+ok("paused" not in db.collection("markets").document("quotes").get().to_dict(), "the next good run clears the pause")
+os.environ.pop("MS_CYCLE_SEED", None)
 print("\n%d one-minute price checks passed" % passed)

@@ -10,10 +10,19 @@ number of Marketstack requests doesn't grow with the number of visitors.
 Settings (functions/.env, not secrets):
   QUOTE_EVERY_MIN=1    minutes between price updates (Basic plan: 15; Professional and up: 1)
   MS_INTERVAL=1min     intraday bar size (Basic plan: 15min and longer; Professional: 1min)
-  MS_DAILY_CALLS=3000  Marketstack requests per day before price updates slow to every 15 min
-  MS_MONTHLY_CALLS=0   Marketstack requests per calendar month before updates slow to every 15 min (0 = no cap)
+  MS_STEADY_EVERY_MIN=15  minutes between price updates for the long-term (not "fast") stocks
+  MS_CYCLE_DAY=7       the day of the month the Marketstack billing cycle restarts
+  MS_LIVE_CAP=95000    calls per billing cycle after which live prices stop until the next cycle
+  MS_HARD_CAP=98000    calls per billing cycle after which every Marketstack call stops (daily close, scanners)
+  MS_DAILY_CALLS=4300  calls per day after which live prices stop for the rest of the day
+  MS_CYCLE_SEED=2026-10:112000  calls already used in that cycle before this counter existed (optional)
+
+How Marketstack counts (marketstack.com/faq): every symbol in a request is one call, and each
+page of a paginated answer is another request. A failed request isn't counted. So a request for
+8 stocks costs 8 calls. ms_get counts that way and refuses (MsBudget) a request that would go past
+the budget the running job was given (BUDGET), so the caps above are hard stops, not targets.
 Every price update after the first of the day asks only for bars since the last one it saw
-(date_from with a time), so a 1-minute update costs about one request per 10 stocks.
+(date_from with a time), so it stays one page.
 Secrets (firebase functions:secrets:set NAME):
   MARKETSTACK_API_KEY  the Marketstack access key
   SEC_CONTACT          an email the SEC can reach you at (their required User-Agent); a secret so it stays out of the public repo
@@ -123,23 +132,89 @@ class MsNotInPlan(Exception):
     """The plan doesn't include this endpoint or interval (e.g. 1-minute bars on Basic)."""
 
 
-CALLS = [0]  # Marketstack HTTP requests made by this process (usage counting)
+class MsBudget(MsQuota):
+    """Our own cap: this request would take the job past the calls it may still make."""
+
+
+CALLS = [0]   # Marketstack calls (symbols x requests) made by this process (usage counting)
+BUDGET = [None]  # calls the running job may still make; None = not limited (tests, scripts)
+
+
+def _env_int(name, default, lo=0):
+    try:
+        return max(lo, int(os.environ.get(name, str(default))))
+    except ValueError:
+        return default
 
 
 def daily_call_limit():
-    try:
-        return max(100, int(os.environ.get("MS_DAILY_CALLS", "3000")))
-    except ValueError:
-        return 3000
+    return _env_int("MS_DAILY_CALLS", 4300, 100)
 
 
-def monthly_call_limit():
-    """MS_MONTHLY_CALLS: Marketstack requests per calendar month before price updates slow to
-    every 15 minutes (set it a little under the plan's allowance). 0 or unset: no monthly cap."""
+def live_cap():
+    return _env_int("MS_LIVE_CAP", 95000)
+
+
+def hard_cap():
+    return max(live_cap(), _env_int("MS_HARD_CAP", 98000))
+
+
+def steady_every_min():
+    return max(1, min(60, _env_int("MS_STEADY_EVERY_MIN", 15, 1)))
+
+
+def ms_cycle(now, day=None):
+    """The billing cycle a moment belongs to, named by the month it started in: with the 7th as
+    the start, Oct 7 - Nov 6 is "2026-10" and Nov 7 starts "2026-11"."""
+    day = day or _env_int("MS_CYCLE_DAY", 7, 1)
+    y, m = now.year, now.month
+    if now.day < day:
+        y, m = (y, m - 1) if m > 1 else (y - 1, 12)
+    return "%04d-%02d" % (y, m)
+
+
+def cycle_reset_date(cycle, day=None):
+    """'2026-10' -> '2026-11-07', the day the next cycle starts."""
+    day = day or _env_int("MS_CYCLE_DAY", 7, 1)
+    y, m = int(cycle[:4]), int(cycle[5:7])
+    y, m = (y, m + 1) if m < 12 else (y + 1, 1)
+    return "%04d-%02d-%02d" % (y, m, min(day, 28))
+
+
+def cycle_seed(cycle, raw=None):
+    """MS_CYCLE_SEED "2026-10:112000": calls Marketstack had already counted in that cycle
+    before this counter started. Only applies to that cycle."""
+    raw = os.environ.get("MS_CYCLE_SEED", "") if raw is None else raw
+    c, _, n = str(raw).strip().partition(":")
     try:
-        return max(0, int(os.environ.get("MS_MONTHLY_CALLS", "0")))
+        return max(0, int(n)) if c == cycle else 0
     except ValueError:
         return 0
+
+
+def usage_used(usage, now):
+    """(calls used this billing cycle, calls used today) from serverMeta/msUsage."""
+    d = usage or {}
+    cyc = ms_cycle(now)
+    used = (int(d.get("cycleCalls") or 0) if d.get("cycle") == cyc else 0) + cycle_seed(cyc)
+    today = int(d.get("calls") or 0) if d.get("day") == now.strftime("%Y-%m-%d") else 0
+    return used, today
+
+
+def allowance(usage, now, kind):
+    """Calls a job may still make. kind "live": price updates (stop at MS_LIVE_CAP for the cycle
+    and MS_DAILY_CALLS for the day). kind "essential": the daily close and the scanners (stop at
+    MS_HARD_CAP). Never below 0."""
+    used, today = usage_used(usage, now)
+    if kind == "live":
+        return max(0, min(live_cap() - used, daily_call_limit() - today))
+    return max(0, hard_cap() - used)
+
+
+def request_calls(params):
+    """What one request costs: one call per symbol in it (at least one)."""
+    syms = [x for x in str((params or {}).get("symbols") or "").split(",") if x.strip()]
+    return max(1, len(syms))
 
 
 def ms_time(dt):
@@ -154,7 +229,12 @@ def ms_get(path, params, api_key, timeout=20):
     q["access_key"] = api_key
     req = urllib.request.Request(MS_BASE + "/" + path.lstrip("/") + "?" + urllib.parse.urlencode(q),
                                  headers={"User-Agent": "agentictrading-data/1.0"})
-    CALLS[0] += 1
+    n = request_calls(params)
+    if BUDGET[0] is not None:
+        if n > BUDGET[0]:
+            raise MsBudget("%d calls needed, %d left" % (n, BUDGET[0]))
+        BUDGET[0] -= n
+    CALLS[0] += n  # counted before the answer: a failed request costs nothing, so this errs high
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))

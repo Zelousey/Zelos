@@ -14,6 +14,14 @@ async function noSidewaysScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+const BASE = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents';
+/** Server-only fields, written through the emulator's admin REST API (fake demo-zelos project only). */
+async function patch(path: string, fields: Record<string, unknown>) {
+  const mask = Object.keys(fields).map((k) => `updateMask.fieldPaths=${k}`).join('&');
+  const r = await fetch(`${BASE}/${path}?${mask}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) });
+  if (!r.ok) throw new Error(`seed ${path}: ${r.status} ${await r.text()}`);
+}
+
 async function signIn(page: Page, who: string) {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   await page.evaluate((email) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<unknown> }).__zelosTestSignIn(email, 'secret123'), `${who}@example.com`);
@@ -140,4 +148,30 @@ test('account value chart: today and longer ranges, with a table (owner 2026-10-
   await page.getByText('Show as a table').click();
   await expect(page.getByRole('table', { name: /Account value ·/ })).toContainText('$9,800.00');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+});
+
+test('a removed stock you still hold can only be sold, at the next close (owner 2026-10-22)', async ({ page }, info) => {
+  await page.goto('dashboard');
+  await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
+  const uid = await page.evaluate(
+    (email) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(email, 'secret123').then((c) => c.user.uid),
+    `retired-${info.project.name}-${Date.now()}@example.com`,
+  );
+  await page.getByRole('button', { name: 'Start with $10,000' }).click();
+  await expect(page.getByText('$10,000.00').first()).toBeVisible();
+  await patch(`practiceAccounts/${uid}`, {
+    positions: { mapValue: { fields: { AVGO: { mapValue: { fields: { qty: { integerValue: '3' }, avg: { doubleValue: 300.5 }, openedDay: { stringValue: '2026-10-01' } } } } } } },
+  });
+  await page.goto('practice/trade/AVGO?side=buy');
+  await expect(page.getByRole('heading', { level: 1, name: /AVGO/ })).toBeVisible();
+  await expect(page.getByRole('note').filter({ hasText: 'AVGO was removed from the Zelos stock list. You can sell the shares you hold.' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Buy' })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Options' })).toHaveCount(0);
+  await page.getByLabel('Shares', { exact: true }).fill('3');
+  await page.getByRole('button', { name: 'Review order' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Confirm order' });
+  await expect(dialog).toContainText('Sell 3 AVGO');
+  await dialog.getByRole('button', { name: /Place order: Sell 3 AVGO/ }).click();
+  await expect(page.getByText(/Sell order for 3 AVGO placed/)).toBeVisible();
+  await noSidewaysScroll(page);
 });

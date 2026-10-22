@@ -152,11 +152,38 @@ test('phone: chart controls fit one row and the trade bar is above the tab bar',
 });
 
 test('a stock with no fresh price shows its last good one, marked delayed', async ({ page }) => {
-  await page.goto('markets/DKNG');
-  await expect(page.getByRole('heading', { name: 'DKNG' })).toBeVisible();
+  await page.goto('markets/UBER');
+  await expect(page.getByRole('heading', { name: 'UBER' })).toBeVisible();
   await expect(page.getByText('Price feed delayed')).toBeVisible();
-  await expect(page.getByLabel(`Price ${price('DKNG')}`)).toBeVisible();
+  await expect(page.getByLabel(`Price ${price('UBER')}`)).toBeVisible();
   await page.goto('markets/AAPL');
   await expect(page.getByRole('heading', { name: 'AAPL' })).toBeVisible();
   await expect(page.getByText('Price feed delayed')).toHaveCount(0);
+});
+
+test('all stocks come in two sections: day trading (every minute) and long-term (every 15 minutes)', async ({ page }) => {
+  await page.goto('markets');
+  const list = page.getByRole('list', { name: 'Market' });
+  await expect(page.getByRole('tab', { name: 'Day trading', selected: true })).toBeVisible();
+  await expect(page.getByText('Prices every minute. For trades you open and close the same day.')).toBeVisible();
+  await expect(list.getByRole('link')).toHaveCount(8);
+  await expect(list).toContainText('SPY');
+  await expect(list).not.toContainText('TSLA');
+  await page.getByRole('tab', { name: 'Long-term' }).click();
+  await expect(page.getByText('Prices every 15 minutes. For trades you hold for days, weeks or longer.')).toBeVisible();
+  await expect(list).toContainText('TSLA');
+  await expect(list).not.toContainText('NVDA');
+  // a search that matches the other section says where it is
+  await page.getByRole('searchbox').fill('nvi');
+  await expect(page.getByText('It is in Day trading.')).toBeVisible();
+  await page.getByRole('button', { name: 'Day trading' }).click();
+  await expect(list.getByRole('link')).toHaveCount(1);
+  await expect(list).toContainText('NVDA');
+  // the choice is remembered
+  await page.getByRole('searchbox').fill('');
+  await page.getByRole('tab', { name: 'Long-term' }).click();
+  await page.reload();
+  await expect(page.getByRole('tab', { name: 'Long-term', selected: true })).toBeVisible();
+  // removed stocks aren't listed
+  await expect(page.getByRole('list', { name: 'Market' })).not.toContainText('Broadcom');
 });

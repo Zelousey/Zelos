@@ -10,8 +10,8 @@ nothing. Now the server runs them every market day. Nothing depends on anyone's 
 weekdays:
 
 1. **Get the day's final prices.** Marketstack's end-of-day bars aren't ready at 4:20 pm, when the
-   after-close job saves history, so this job asks again (one request for all ~56 symbols) until
-   today's bar is there. It then adds the bar to the stored history and the charts' daily bars. On a
+   after-close job runs, so this job asks (one call: SPY) until today's bar is there, then fetches
+   the day's bar for every stored symbol once (`ms_daily_close`). It then adds the bar to the stored history and the charts' daily bars. On a
    market holiday there is no bar, so nothing runs.
 2. **Grade open alerts** (functions/outcomes.py, the old scripts/check_alert_outcomes.py). Each one
    is graded as hit target, stopped out, or expired after 10 sessions. A finished alert goes public,
@@ -28,12 +28,13 @@ It runs once a day; state lives in `serverMeta/scanners`. If an alert for a scan
 today (for example, one published by hand), the job leaves it alone. A stock that already has an
 open alert isn't alerted again by the same scanner.
 
-**Universe:** the Zelos stock list (data/practice-universe.json, 45 stocks without the ETFs). These
+**Universe:** the Zelos stock list (data/practice-universe.json, 25 stocks without the ETFs, since 2026-10-22). These
 are exactly the stocks the practice account can trade, so every alert is one tap from a trade. A
 bigger list would need the practice account's minute prices for those stocks too.
 
-**Cost:** about 1 Marketstack request a day, more only when Marketstack is late. Firebase cost is
-negligible (one short job a day).
+**Cost:** one Marketstack call per try while the day's bars aren't out, then ~185 calls once (every
+symbol in a request is a call; see docs/market-data.md). Stops at the 98,000-call hard cap. Firebase
+cost is negligible.
 
 ## The rules
 

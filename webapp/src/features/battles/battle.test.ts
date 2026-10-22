@@ -3,7 +3,7 @@ import type { Quote, QuotesDoc } from '../../data/markets';
 import { allowedSymbols, liveEquity, onClock, parseAccount, parseBattle, parseBook, standings, stormNow, tradable } from './battle';
 
 const q = (c: number): Quote => ({ c, pc: c, o: c, h: c, l: c, t: 0, v: 0, chPct: null });
-const doc = (open: boolean, agoS: number): QuotesDoc => ({ quotes: {}, marketOpen: open, updatedAt: new Date(1_000_000_000 - agoS * 1000).toISOString(), source: 'x', error: null, every: null, interval: null });
+const doc = (open: boolean, agoS: number): QuotesDoc => ({ quotes: {}, marketOpen: open, updatedAt: new Date(1_000_000_000 - agoS * 1000).toISOString(), source: 'x', error: null, every: null, everySlow: null, interval: null, paused: null });
 
 describe('battles', () => {
   it('trades only during market hours on fresh prices (same as the server)', () => {
