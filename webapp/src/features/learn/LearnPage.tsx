@@ -106,17 +106,17 @@ function ChapterCard({ c, learnDone, learnPassed, gated }: { c: Chapter; learnDo
             return (
               <li key={l.id} className={[s.step, state].join(' ')}>
                 {open ? (
-                  <Link to={`/learn/${c.id}/${l.id}`} className={s.stepLink} aria-label={`${t('ln.lessonN', { n: i + 1 })}: ${l.title}${isDone ? ` (${t('ln.done')})` : ''}`}>
+                  <Link to={`/learn/${c.id}/${l.id}`} className={s.pathLink} aria-label={`${t('ln.lessonN', { n: i + 1 })}: ${l.title}${isDone ? ` (${t('ln.done')})` : ''}`}>
                     {inner}
                   </Link>
                 ) : (
-                  <div className={s.stepLink}>{inner}</div>
+                  <div className={s.pathLink}>{inner}</div>
                 )}
               </li>
             );
           })}
           <li className={[s.step, st.passed ? s.done : st.complete ? s.now : s.open].join(' ')}>
-            <Link to={`/learn/${c.id}/quiz`} className={s.stepLink}>
+            <Link to={`/learn/${c.id}/quiz`} className={s.pathLink}>
               <span className={[s.dot, s.quizDot].join(' ')} aria-hidden="true">
                 {st.passed ? '✓' : '★'}
               </span>
