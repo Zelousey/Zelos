@@ -69,9 +69,16 @@ ok(teaser["locked"] is True and "ticker" not in teaser and "entry" not in teaser
 ok(db.collection("alertPushes").document(bid).get().exists, "subscribers were notified (once)")
 sw = db.collection("alerts").document("swing-trader-" + today).get().to_dict()
 ok(sw["status"] in ("qualified", "no-qualifying-setup") and sw["source"] == "server", "Swing Trader published its result too")
+oid = "options-scanner-" + today
+opt = (db.collection("alertsLocked").document(oid).get().to_dict() or db.collection("alerts").document(oid).get().to_dict())
+ok(opt and opt["status"] == "qualified" and opt["ticker"] == "AMD" and opt["direction"] == "long-call" and opt["linkedTo"] == "breakout-rider",
+   "the Options Scanner turned today's breakout into a long call (linked)")
+ok(opt["contract"]["kind"] == "call" and 30 <= opt["contract"]["dte"] <= 60 and 0.5 <= opt["contract"]["delta"] <= 0.8
+   and opt["contract"]["estMid"] > 0 and "estimate" in opt["riskNotes"], "with a 30-60 day, delta ~0.65 contract at an estimated price")
+ok(opt["entry"] == full["entry"] and opt["stop"] == full["stop"], "using the breakout's own levels")
 
 s2 = main.scanners_pass(db, hist, today, now)
-ok(s2["alerts"] == {"swing-trader": "already published", "breakout-rider": "already published"} and s2["outcomes"] == 0,
+ok(s2["alerts"] == {"swing-trader": "already published", "breakout-rider": "already published", "options-scanner": "already published"} and s2["outcomes"] == 0,
    "a second run the same day changes nothing")
 
 # the next day, AMD is still open: it isn't alerted again
