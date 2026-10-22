@@ -1198,7 +1198,7 @@ const en = {
   'al.rr': 'Reward is {n}× the risk',
   'al.options': 'Options:',
   'al.size': 'Size:',
-  'al.practice': 'Practice this trade',
+  'al.practice': 'Trade this setup',
   'al.chart': 'Chart',
   'al.lock.title': 'Unlock this alert',
   'al.lock.live': 'This alert is live. The ticker and levels unlock with a pass or tokens. Live for another {time}.',

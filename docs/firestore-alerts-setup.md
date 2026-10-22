@@ -1,5 +1,10 @@
 # Wiring the scan skills (and the outcome checker) up to Firestore
 
+> **2026-10-22:** Swing Trader, Breakout Rider and the outcome checker now run on the server
+> (`run_scanners`, see `docs/SERVER_SCANNERS.md`); nothing below is needed for them. This page
+> still applies to anything published by hand through `publish_alert` (the server leaves a
+> scanner alone on a day it already has an alert).
+
 `docs/deploying-functions.md` gets the Cloud Functions themselves live. This
 page is the other half: what to set wherever the actual scans run on a
 schedule, so they call those functions instead of just doing the notification

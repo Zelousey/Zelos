@@ -276,7 +276,7 @@ class Push(unittest.TestCase):
         self.assertIn("score 59/80", body)
         self.assertNotIn("PFE", title + body)       # never the ticker
         self.assertNotIn("27.72", body)             # or the levels
-        self.assertEqual(link, "https://agentictrading.info/alert.html?id=breakout-rider-2026-10-01")
+        self.assertEqual(link, "https://agentictrading.info/app/alerts/breakout-rider-2026-10-01")  # opens in the app (Trade button)
         self.assertTrue(image.endswith("/images/alert-breakout-rider.png"))
 
     def test_send_drops_dead_tokens(self):

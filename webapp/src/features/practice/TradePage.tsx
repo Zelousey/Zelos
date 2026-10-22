@@ -154,9 +154,10 @@ function Ticket({
     limit: "",
     stop: "",
     tif: "day",
-    bracketOn: false,
-    sl: "",
-    tp: "",
+    // ?sl=95&tp=110: an alert's Trade button fills in its stop and target
+    bracketOn: !!(params.get("sl") || params.get("tp")),
+    sl: priceParam(params.get("sl")),
+    tp: priceParam(params.get("tp")),
   });
   const set = (patch: Partial<TicketInput>) =>
     setInput((x) => ({ ...x, ...patch }));
@@ -555,4 +556,10 @@ function Ticket({
       </Confirm>
     </>
   );
+}
+
+/** A price from the address bar, or "" if it isn't one. */
+function priceParam(v: string | null): string {
+  const n = Number(v);
+  return v && Number.isFinite(n) && n > 0 && n < 1e7 ? String(n) : "";
 }

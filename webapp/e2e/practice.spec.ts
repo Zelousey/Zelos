@@ -53,6 +53,13 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
   await expect(page.getByText('No open orders.')).toBeVisible();
   await page.getByText('Activity & account settings').click(); // history is folded away under the positions
   await expect(page.getByText(/Buy 5 AAPL cancelled · Cancelled by you/)).toBeVisible();
+
+
+  // an alert's "Trade this setup" opens the ticket with its stop and target filled in
+  await page.goto('practice/trade/AAPL?sl=1.5&tp=99999');
+  await expect(page.getByLabel('Stop-loss + Take-profit')).toBeChecked();
+  await expect(page.getByLabel('Stop-loss', { exact: true })).toHaveValue('1.5');
+  await expect(page.getByLabel('Take-profit', { exact: true })).toHaveValue('99999');
 });
 
 test('the ticket checks input before anything is sent', async ({ page }, info) => {

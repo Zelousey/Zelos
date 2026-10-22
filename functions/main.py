@@ -145,6 +145,29 @@ def release_alert_public(db, alert_id, outcome, now_ms):
     return True
 
 
+def alert_store(db, alert_id, alert, now_utc):
+    """Save a scanner's alert. A live one is a public teaser plus the full alert in alertsLocked
+    for token holders (a scanner pass or a single unlock); it goes public once its trade ends."""
+    alert = dict(alert, createdAt=firestore.SERVER_TIMESTAMP)
+    if alert_has_trade(alert):
+        until = alert_lock_until(now_utc)
+        db.collection("alertsLocked").document(alert_id).set(dict(alert, lockedUntil=until, released=False))
+        db.collection("alerts").document(alert_id).set(dict(alert_teaser(alert), locked=True, lockedUntil=until), merge=False)
+    else:
+        db.collection("alerts").document(alert_id).set(alert, merge=True)
+
+
+def alert_notify(db, alert_id, alert):
+    """Push a new live alert to subscribers (once). A notification problem never fails the publish."""
+    if not alert_has_trade(alert):
+        return 0
+    try:
+        return alert_push(db, alert_id, alert)
+    except Exception as e:
+        print("[push] alert %s failed: %s" % (alert_id, type(e).__name__))
+        return 0
+
+
 @scheduler_fn.on_schedule(schedule="10,40 16-23 * * 1-5", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=120, memory=256)
 def release_alerts(event: scheduler_fn.ScheduledEvent) -> None:
     n = release_due_alerts(firestore.client(), int(_time.time() * 1000))
@@ -190,27 +213,12 @@ def publish_alert(req: https_fn.Request) -> https_fn.Response:
         et_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     alert_id = "%s-%s" % (strategy, et_date)
-    alert["createdAt"] = firestore.SERVER_TIMESTAMP
-
     db = firestore.client()
     try:
-        if alert_has_trade(alert):
-            # Live alert: the public doc is a teaser; the full alert waits in alertsLocked
-            # for token holders (a scanner pass or a single unlock) and goes public after the close.
-            until = alert_lock_until(datetime.now(timezone.utc))
-            db.collection("alertsLocked").document(alert_id).set(dict(alert, lockedUntil=until, released=False))
-            db.collection("alerts").document(alert_id).set(dict(alert_teaser(alert), locked=True, lockedUntil=until), merge=False)
-        else:
-            db.collection("alerts").document(alert_id).set(alert, merge=True)
+        alert_store(db, alert_id, alert, datetime.now(timezone.utc))
     except Exception as e:
         return _write_failed("publish_alert", e)
-
-    sent = 0
-    if alert_has_trade(alert):
-        try:
-            sent = alert_push(db, alert_id, alert)
-        except Exception as e:  # a notification problem never fails the publish
-            print("[push] alert %s failed: %s" % (alert_id, type(e).__name__))
+    sent = alert_notify(db, alert_id, alert)
 
     return https_fn.Response(
         json.dumps({"ok": True, "id": alert_id, "notified": sent}),
@@ -4101,7 +4109,7 @@ def push_alert_message(alert_id, alert):
     if alert.get("marketRegime"):
         bits.append("%s market" % alert["marketRegime"])
     body = " · ".join(b for b in bits if b) + ". Tap to see it on Zelos."
-    return ("New %s alert" % name, body, "%s/alert.html?id=%s" % (SITE_URL, urllib.parse.quote(alert_id)),
+    return ("New %s alert" % name, body, "%s/app/alerts/%s" % (SITE_URL, urllib.parse.quote(alert_id)),
             "%s/images/alert-%s.png" % (SITE_URL, alert.get("strategy") if alert.get("strategy") in ALERT_IMAGES else "zelos"))
 
 
@@ -6169,3 +6177,121 @@ def report_content(req, db, uid, tok, now_ms):
     if admins:
         notify_users(db, admins, "reports", "New report: %s" % rep["kind"], "Reason: %s. Review it in Firestore → reports/%s." % (rep["reason"], ref.id), "", "report-" + ref.id)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Server-run scanners (owner 2026-10-22: "I don't want someone to purchase a strategy and then
+# it just never sends them a notification"). Swing Trader and Breakout Rider run here every
+# market day from the daily bars we already store (functions/scanner.py), so paid alerts never
+# depend on anyone running Claude. The same run checks every open alert for its win or loss
+# (functions/outcomes.py), which used to need an agent too.
+#   - From 6 pm New York time, every 30 minutes until Marketstack has the day's final bars
+#     (usually one request; the 4:20 pm after-close run is too early for them).
+#   - Then once: outcomes first (a finished trade frees its stock), then one alert per scanner,
+#     published like any other (teaser + token-gated full alert) and pushed to subscribers.
+#   - A scanner that already has today's alert (e.g. published by hand) is left alone.
+# State: serverMeta/scanners {day, done, outcomes, alerts}.
+import scanner as SC  # noqa: E402
+import outcomes as OC  # noqa: E402
+
+SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout}
+SCAN_HOLD_SESSIONS = 10  # a swing idea that hits neither level in ~2 weeks is "expired"
+
+
+def ms_eod_topup(db, key, now):
+    """The stored daily history, with today's final bar added once Marketstack has it.
+    None while it isn't out yet (or on a market holiday). Also refreshes the charts' daily bars."""
+    today = now.strftime("%Y-%m-%d")
+    hist = _read_history(db)
+    if hist.get("SPY") and hist["SPY"][-1][:10] == today:
+        return hist
+    syms = _history_symbols()
+    frm = (now - MD.timedelta(days=7)).strftime("%Y-%m-%d")
+    recent = {}
+    for ch in MD.chunks(syms, 100):
+        recent.update(MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": ",".join(ch), "date_from": frm, "sort": "ASC"}, key)))
+    if not (recent.get("SPY") and recent["SPY"][-1][:10] == today):
+        return None
+    for s in syms:
+        if recent.get(s):
+            hist[s] = MD.merge_series(hist.get(s, []), recent[s], MD.HISTORY_DAYS)
+    hist = {s: rows for s, rows in hist.items() if rows and s in syms}
+    _write_history(db, hist, now)
+    ref = db.collection("markets").document("dailyBars")
+    snap = ref.get()
+    stored = ((snap.to_dict() or {}).get("bars") or {}) if snap.exists else {}
+    bars = dict(stored)
+    for s in PRACTICE_SYMBOLS:
+        if recent.get(s):
+            bars[s] = MD.merge_series(stored.get(s, []), recent[s], MD.DAILY_BARS_KEEP)
+    ref.set({"updatedAt": now.isoformat(), "source": "Marketstack", "bars": bars})
+    return hist
+
+
+def scanners_pass(db, hist, today, now_utc):
+    """Outcomes for open alerts, then today's alert from each server scanner. Returns a summary."""
+    rows = {s: MD.history_rows(r) for s, r in hist.items()}
+    summary = {"outcomes": 0, "alerts": {}}
+    busy = {k: set() for k in SERVER_SCANNERS}
+    for snap in db.collection("alertsLocked").stream():
+        a = snap.to_dict() or {}
+        strat = a.get("strategy")
+        if a.get("public") or strat not in SERVER_SCANNERS or a.get("status") != "qualified":
+            continue
+        start = str(a.get("asOf") or snap.id[-10:])
+        after = [{"date": r[0], "high": r[2], "low": r[3], "close": r[4]} for r in rows.get(a.get("ticker"), []) if r[0] > start]
+        o = OC.outcome_for_alert(a, after, max_hold_sessions=SCAN_HOLD_SESSIONS)
+        prev = a.get("outcome") or {}
+        changed = o["result"] != prev.get("result") or o.get("target2Hit") != prev.get("target2Hit")
+        if changed and not (o["result"] == "open" and not prev):  # nothing to write while a new trade is still open
+            _, err = _apply_one_outcome(db, dict(o, alertId=snap.id))
+            summary["outcomes"] += 0 if err else 1
+        if o["result"] == "open":
+            busy[strat].add(a.get("ticker"))
+    spy, qqq = rows.get("SPY") or [], rows.get("QQQ") or []
+    for strat, scan in SERVER_SCANNERS.items():
+        alert_id = "%s-%s" % (strat, today)
+        if db.collection("alerts").document(alert_id).get().exists:
+            summary["alerts"][strat] = "already published"
+            continue
+        # only stocks the practice account trades (one tap from the alert), none already open
+        bars = {s: r for s, r in rows.items() if s in PRACTICE_SYMBOLS and s not in busy[strat]}
+        alert = dict(scan(bars, spy, qqq), source="server")
+        alert_store(db, alert_id, alert, now_utc)
+        sent = alert_notify(db, alert_id, alert)
+        summary["alerts"][strat] = "%s %s (%s devices)" % (alert["status"], alert.get("ticker") or "", sent)
+    return summary
+
+
+@scheduler_fn.on_schedule(schedule="5,35 18-23 * * 1-5", timezone=scheduler_fn.Timezone("America/New_York"),
+                          secrets=["MARKETSTACK_API_KEY"], timeout_sec=300, memory=512)
+def run_scanners(event: scheduler_fn.ScheduledEvent) -> None:
+    key = os.environ.get("MARKETSTACK_API_KEY", "").strip()
+    now = datetime.now(NY)
+    today = now.strftime("%Y-%m-%d")
+    db = firestore.client()
+    sref = db.collection("serverMeta").document("scanners")
+    snap = sref.get()
+    state = (snap.to_dict() or {}) if snap.exists else {}
+    if state.get("day") == today and state.get("done"):
+        return
+    calls0 = MD.CALLS[0]
+    state = {"day": today, "done": False, "ranAt": now.isoformat()}
+    try:
+        hist = ms_eod_topup(db, key, now) if key else None
+        if hist is None:
+            state["waiting"] = "no final bars for %s yet" % today if key else "missing Marketstack key"
+        else:
+            state.update(scanners_pass(db, hist, today, datetime.now(timezone.utc)), done=True)
+            print("[scanners]", state)
+    except (MD.MsKeyRejected, MD.MsQuota) as e:
+        state["error"] = type(e).__name__
+        print("[scanners] Marketstack refused:", type(e).__name__)
+    except Exception as e:
+        state["error"] = type(e).__name__
+        print("[scanners] run failed:", type(e).__name__, e)
+    sref.set(state)
+    try:
+        ms_count_calls(db, now, MD.CALLS[0] - calls0)
+    except Exception as e:
+        print("[scanners] usage count failed:", type(e).__name__)
