@@ -1777,12 +1777,28 @@ def market_research(req: https_fn.CallableRequest):
             return cached
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.RESOURCE_EXHAUSTED, "Research is busy right now. Try again later.")
     try:
-        return ms_refresh_research(db, sym, key, now)
+        return research_fetch(db, sym, key, now)
     except Exception as e:
         print("[research] on demand %s: %s" % (sym, type(e).__name__))
         if cached:
             return cached
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAVAILABLE, "Couldn't load research right now.")
+
+
+def research_fetch(db, sym, key, now):
+    """ms_refresh_research inside the Marketstack cap: Marketstack is only asked for a ticker
+    without stored daily bars, and past the cap the doc is built from SEC data alone."""
+    if key and not ms_budget_start(db, now, "essential", 1):
+        key = ""
+    calls0 = MD.CALLS[0]
+    try:
+        return ms_refresh_research(db, sym, key, now)
+    finally:
+        MD.BUDGET[0] = None
+        try:
+            ms_count_calls(db, now, MD.CALLS[0] - calls0)
+        except Exception as e:
+            print("[research] usage count failed:", type(e).__name__)
 
 
 # ---------------------------------------------------------------------------
