@@ -85,6 +85,16 @@ const into = async (page: Page, target: ReturnType<Page['locator']>) => {
     await page.waitForTimeout(250);
   }
 };
+// the scrubbed slide eases into place after a scroll: wait until it stops moving before grabbing
+const settle = async (page: Page, target: ReturnType<Page['locator']>) => {
+  let last = -1;
+  for (let i = 0; i < 20; i++) {
+    const y = Math.round((await target.boundingBox())?.y ?? -1);
+    if (y === last) return;
+    last = y;
+    await page.waitForTimeout(150);
+  }
+};
 
 test('a scroll lesson with reduced motion: every task works by tapping, and it reads well', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -149,6 +159,7 @@ test.describe('signed in', () => {
     await expect(page.getByText('+4 XP · 2 of 5 steps')).toBeVisible();
     const napoleon = page.getByRole('img', { name: 'Napoleon (drag him to Italy)' });
     await into(page, napoleon);
+    await settle(page, napoleon);
     const n = (await napoleon.boundingBox())!;
     const italy = (await page.getByText('Italy', { exact: true }).last().boundingBox())!;
     await page.mouse.move(n.x + n.width / 2, n.y + n.height / 2);
@@ -159,6 +170,7 @@ test.describe('signed in', () => {
     await expect(page.getByText('+6 XP · 3 of 5 steps')).toBeVisible();
     const buy = page.getByText('BUY', { exact: true });
     await into(page, buy);
+    await settle(page, buy);
     const b = (await buy.boundingBox())!;
     const support = (await page.getByText('support', { exact: true }).boundingBox())!;
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);

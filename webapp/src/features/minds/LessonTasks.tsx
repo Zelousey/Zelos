@@ -207,7 +207,6 @@ function LevelTask({ task, done, onDone }: Props<'level'>) {
     if (!r) return y;
     return Math.max(14, Math.min(126, ((clientY - r.top) / r.height) * 140));
   };
-  const near = Math.abs(y - LEVEL) <= 7;
   const price = 'M8 30 L40 44 L62 36 L90 58 L112 52 L140 72 L162 66 L190 84';
   return (
     <div className={s.task}>
@@ -218,13 +217,14 @@ function LevelTask({ task, done, onDone }: Props<'level'>) {
         role="img"
         aria-label={t('sl.levelChart')}
         onPointerMove={(e) => dragging && setY(toY(e.clientY))}
-        onPointerUp={() => {
+        onPointerUp={(e) => {
           if (!dragging) return;
           setDragging(false);
-          if (near) {
+          // judge where the finger let go, not the last drawn position (a quick release can beat the redraw)
+          if (Math.abs(toY(e.clientY) - LEVEL) <= 7) {
             setY(LEVEL);
             onDone();
-          }
+          } else setY(toY(e.clientY));
         }}
       >
         <line x1="0" x2="300" y1={LEVEL} y2={LEVEL} className={s.support} />
