@@ -1,0 +1,32 @@
+/* The battle clash: mock-up H (blue sword for the bulls, red for the bears) as a short overlay. */
+.overlay {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; gap: var(--space-4);
+  grid-template-rows: 1fr auto auto; padding: var(--space-6) var(--space-4);
+  background: linear-gradient(115deg, #050d24 0%, #0b2a6b 44%, #3a0507 56%, #7a0b0f 100%);
+  cursor: pointer; animation: fadeIn 0.3s ease-out both;
+}
+.leaving { animation: fadeOut 0.4s ease-in forwards; }
+.stage { width: min(100%, 880px); height: auto; max-height: 100%; animation: shake 2.6s ease-in-out both; }
+.left { animation: left 2.6s cubic-bezier(0.5, 0, 0.2, 1) both; }
+.right { animation: right 2.6s cubic-bezier(0.5, 0, 0.2, 1) both; }
+.flash { opacity: 0; animation: flash 2.6s ease-out both; transform-box: fill-box; transform-origin: center; }
+.ray { opacity: 0; animation: ray 2.6s ease-out both; transform-box: fill-box; transform-origin: left center; }
+.spark { opacity: 0; animation: spark 2.6s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.title { font-weight: 900; font-size: 40px; letter-spacing: 0.04em; fill: #fff; animation: title 2.6s ease-out both; }
+.side { font-weight: 900; font-size: 30px; letter-spacing: 0.06em; }
+.sub { margin: 0; color: #fff; font-weight: 600; font-size: var(--text-md, 1rem); text-align: center; animation: title 2.6s ease-out both; }
+.skip {
+  background: none; border: 1px solid rgb(255 255 255 / 0.4); color: #fff; border-radius: 999px;
+  padding: var(--space-2) var(--space-5); font: inherit; font-size: var(--text-sm); min-height: var(--tap); cursor: pointer;
+}
+.skip:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+/* the swings: in from the sides, clash at about 0.9s, bounce, then hold crossed */
+@keyframes left { 0%, 8% { transform: rotate(-78deg); } 34% { transform: rotate(36deg); } 42% { transform: rotate(30deg); } 50% { transform: rotate(33deg); } 58%, 100% { transform: rotate(32deg); } }
+@keyframes right { 0%, 8% { transform: rotate(78deg); } 34% { transform: rotate(-36deg); } 42% { transform: rotate(-30deg); } 50% { transform: rotate(-33deg); } 58%, 100% { transform: rotate(-32deg); } }
+@keyframes flash { 0%, 33% { opacity: 0; transform: scale(0.2); } 36% { opacity: 1; transform: scale(1.1); } 55%, 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes ray { 0%, 33% { opacity: 0; transform: scaleX(0.3); } 37% { opacity: 1; } 58%, 100% { opacity: 0; transform: scaleX(1.5); } }
+@keyframes spark { 0%, 33% { opacity: 0; transform: translate(0, 0); } 36% { opacity: 1; } 64%, 100% { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+@keyframes shake { 0%, 33%, 52%, 100% { transform: translate(0, 0); } 36% { transform: translate(-8px, 5px); } 40% { transform: translate(7px, -4px); } 45% { transform: translate(-3px, 2px); } }
+@keyframes title { 0%, 42% { opacity: 0; transform: translateY(12px); } 56%, 100% { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; visibility: hidden; } }

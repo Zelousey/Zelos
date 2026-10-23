@@ -224,3 +224,41 @@ test('knocked out of Last Man Standing: come back in for 20 tokens, once', async
   await expect(page.getByText("You're out")).toHaveCount(0);
   await expect(page.getByText('4 of 4 still standing')).toBeVisible();
 });
+
+test('the sword clash plays once when a battle goes live and once before the results', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.removeItem('zelosClashOff'));
+  await page.goto('battles');
+  const uid = await signIn(page, `clash-${info.project.name}${Date.now()}@example.com`);
+  const now = Date.now();
+  const id = rid();
+  const base = {
+    name: 'Clash test', host: 'rivalUid0001', hostName: 'Rex', buyIn: 500, days: 1, maxPlayers: 2,
+    players: [uid, 'rivalUid0001'], names: { [uid]: 'Me', rivalUid0001: 'Rex' }, rules: {}, modes: {},
+    startAt: now - 60_000, endAt: now + 86400_000, createdAt: now - 120_000,
+  };
+  await put(`tradeWars/${id}`, { ...base, status: 'active' });
+  await put(`tradeWars/${id}/accounts/${uid}`, { name: 'Me', start: 500, cash: 500, equity: 500 });
+  await page.goto(`battles/${id}`);
+  const clash = page.getByTestId('battle-clash');
+  await expect(clash).toBeVisible();
+  await expect(clash).toContainText('The battle starts now');
+  expect(await axe(page)).toEqual([]);
+  await expect(clash).toBeHidden({ timeout: 6000 });
+  await page.reload();
+  await expect(page.getByText('Clash test')).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(clash).toHaveCount(0); // once per battle
+
+  // the battle ends: it plays again before the results, and Skip closes it
+  await put(`tradeWars/${id}`, {
+    ...base, status: 'ended', endAt: now - 1000,
+    results: [
+      { uid, name: 'Me', start: 500, final: 520, pnl: 20, pnlPct: 4, trades: 2, out: false, outReason: null, rank: 1 },
+      { uid: 'rivalUid0001', name: 'Rex', start: 500, final: 490, pnl: -10, pnlPct: -2, trades: 1, out: false, outReason: null, rank: 2 },
+    ],
+  });
+  await expect(clash).toBeVisible();
+  await expect(clash).toContainText('The battle is over');
+  await page.getByRole('button', { name: 'Skip' }).click();
+  await expect(clash).toBeHidden();
+});

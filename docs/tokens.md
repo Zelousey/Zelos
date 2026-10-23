@@ -57,6 +57,14 @@ scanner pages, the Terms) quote the same numbers; update them together.
 - `tokens_wallet`: your wallet + prices (makes it, adds welcome tokens once).
   `canBuy` is true once the Square access token is set.
 - `tokens_spend`: `{kind: 'pass', strategy}` or `{kind: 'unlock', alertId}`.
+- `tw_revive`: `{warId}` → back into a Last Man Standing battle for
+  `TOKENS['revive']` (20) tokens, once per battle (owner 2026-10-23). You come back
+  with the money you had when knocked out; the knockout rules start fresh from
+  there (`reviveBase`, `reviveLosses` on the account) and you skip the next timed
+  cut (`reviveSafe` on the battle). Rankings still count from the starting money.
+  Not after surrendering, in the last hour, or once only two traders are left.
+  The rules are the pure `tw_revive_fields`; the charge and the comeback are one
+  transaction.
 - `tokens_checkout`: `{pack}` → `{url}`, a Square Checkout payment link. The
   price and token amount come only from `TOKENS`; anything else the browser
   sends is ignored. Uses `SQUARE_LOCATION_ID` if set, otherwise the account's

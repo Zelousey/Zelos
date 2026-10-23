@@ -573,6 +573,8 @@ const en = {
   'bt.revive.title': 'Come back into the battle?',
   'bt.revive.body': 'For {n} tokens you are back in with the money you had when you were knocked out. The knockout rules start fresh from there, and you are safe from the next timed cut. Rankings still count from your starting money, so you need a real comeback to win. One revive per battle.',
   'bt.revived': "You're back in the battle!",
+  'bt.clashStart': 'The battle starts now',
+  'bt.clashEnd': 'The battle is over. Here are the results.',
   'bt.needTwo': 'Needs at least 2 players.',
   'bt.waitHost': 'Waiting for {name} to start it.',
   'bt.playersOnly': 'Only the players can see a battle while it runs. The final standings show here when it ends.',
