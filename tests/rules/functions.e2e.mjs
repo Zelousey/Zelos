@@ -213,5 +213,14 @@ ok(re1 && /need 15 tokens and have 5/.test(re1.message), 'not enough tokens is r
 re1 = null; try { await call('minds_follow', { figure: 'elon' }); } catch (x) { re1 = x; }
 ok(re1 && /isn.t in the Hall of Minds/.test(re1.message), 'only figures in the Hall can be followed');
 
+// --- Training Ground hints: 3 tokens, only in Where's the Stop? and Grade the Setup
+await admin('wallets/' + troll.uid, { balance: { integerValue: 4 } });
+r = await call('drill_hint', { drill: 'stop-drill' });
+ok(r.charged === 3 && r.balance === 1, 'a drill hint costs 3 tokens');
+re1 = null; try { await call('drill_hint', { drill: 'grade-the-setup' }); } catch (x) { re1 = x; }
+ok(re1 && /need 3 tokens and have 1/.test(re1.message), 'not enough tokens for a hint');
+re1 = null; try { await call('drill_hint', { drill: 'daily-challenge' }); } catch (x) { re1 = x; }
+ok(re1 && /aren.t available in this drill/.test(re1.message), 'no hints in the Daily Challenge');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

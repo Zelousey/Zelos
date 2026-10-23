@@ -57,6 +57,12 @@ scanner pages, the Terms) quote the same numbers; update them together.
 - `tokens_wallet`: your wallet + prices (makes it, adds welcome tokens once).
   `canBuy` is true once the Square access token is set.
 - `tokens_spend`: `{kind: 'pass', strategy}` or `{kind: 'unlock', alertId}`.
+- `drill_hint`: `{drill}` → one Training Ground hint for `TOKENS['hint']` (3) tokens
+  (owner 2026-10-23), only in Where's the Stop? and Grade the Setup (`HINT_DRILLS`;
+  not the Daily Challenge). The drill (games/zelos-chart-engine.js, via
+  `ZelosTokens.hint`) then marks the swing low (and the recent high in Grade the
+  Setup): where to look, not the answer. That round scores half points, so a paid
+  hint can't buy a leaderboard spot.
 - `tokens_checkout`: `{pack}` → `{url}`, a Square Checkout payment link. The
   price and token amount come only from `TOKENS`; anything else the browser
   sends is ignored. Uses `SQUARE_LOCATION_ID` if set, otherwise the account's

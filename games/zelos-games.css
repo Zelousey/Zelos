@@ -149,3 +149,9 @@ body.zr-fullport .zg-stat{ border-color:var(--zr-glow); }
 .zg-chart-wrap.zg-tp-hit{ animation:zg-tp 1.4s ease-out 1; }
 @keyframes zg-tp{ 0%{ box-shadow:0 0 0 0 rgba(62,203,124,0); } 20%{ box-shadow:0 0 0 3px rgba(62,203,124,0.7), 0 0 36px rgba(62,203,124,0.45); } 100%{ box-shadow:0 0 0 0 rgba(62,203,124,0); } }
 @media (prefers-reduced-motion: reduce){ .zg-chart-wrap.zg-tp-hit{ animation:none; } }
+
+/* paid drill hints (owner 2026-10-23) */
+.zg-hint-box { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 10px 0 0; }
+.zg-hint-box .zg-fine { margin: 0; }
+.zg-hint-msg:empty { display: none; }
+.zg-hint-used { display: inline-block; margin-left: 6px; font-size: .85em; font-weight: 600; color: var(--gold, #d9a441); }
