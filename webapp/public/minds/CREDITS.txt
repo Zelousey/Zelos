@@ -1,0 +1,10 @@
+Hall of Minds portraits: public-domain works from Wikimedia Commons (checked 2026-10-23),
+cropped and turned black-and-white for the app.
+
+aristotle.jpg  Bust of Aristotle, Roman copy after Lysippos (Palazzo Altemps). File:Aristotle_Altemps_Inv8575.jpg
+alexander.jpg  Statue of Alexander the Great (Istanbul Archaeology Museums). File:Alexander1256.jpg
+napoleon.jpg   Jacques-Louis David, The Emperor Napoleon in His Study at the Tuileries (1812). File:Jacques-Louis_David_-_The_Emperor_Napoleon_in_His_Study_at_the_Tuileries_-_Google_Art_Project.jpg
+caesar.jpg     Bust of Julius Caesar (Vatican Museums). File:Gaius_Iulius_Caesar_(Vatican_Museum).jpg
+franklin.jpg   Joseph Siffrein Duplessis, Benjamin Franklin (c. 1785). File:Joseph_Siffrein_Duplessis_-_Benjamin_Franklin_-_Google_Art_Project.jpg
+edison.jpg     Thomas Edison, photograph by Louis Bachrach (1922). File:Thomas_Edison2.jpg
+tesla.jpg      Nikola Tesla, photograph by Napoleon Sarony (c. 1890). File:Tesla_circa_1890.jpeg

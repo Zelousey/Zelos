@@ -40,6 +40,7 @@ export function MindsPage() {
         )}
       </ul>
       <p className={s.fine}>{t('hm.more')}</p>
+      <p className={s.fine}>{t('hm.credits')}</p>
     </>
   );
 }

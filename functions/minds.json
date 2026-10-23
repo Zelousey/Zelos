@@ -19,7 +19,7 @@
    "role": "Philosopher",
    "years": "384–322 BC",
    "tagline": "The teacher of Alexander the Great, who wrote down how good habits are built.",
-   "portrait": "aristotle.jpg",
+   "portrait": "aristotle.webp",
    "lessons": [
     {
      "id": "habits",
@@ -95,7 +95,7 @@
    "role": "Conqueror",
    "years": "356–323 BC",
    "tagline": "Taught by Aristotle, he built one of the largest empires in history before he was 30.",
-   "portrait": "alexander.jpg",
+   "portrait": "alexander.webp",
    "lessons": [
     {
      "id": "study",
@@ -164,7 +164,7 @@
    "role": "War strategist",
    "years": "1769–1821",
    "tagline": "A young officer who rose to rule France and rewrote how wars are fought.",
-   "portrait": "napoleon.jpg",
+   "portrait": "napoleon.webp",
    "lessons": [
     {
      "id": "study",
@@ -233,7 +233,7 @@
    "role": "Empire builder",
    "years": "100–44 BC",
    "tagline": "A general and writer who turned the Roman Republic into an empire.",
-   "portrait": "caesar.jpg",
+   "portrait": "caesar.webp",
    "lessons": [
     {
      "id": "rubicon",
@@ -309,7 +309,7 @@
    "role": "Polymath",
    "years": "1706–1790",
    "tagline": "Printer, inventor, scientist and statesman, who became rich by being careful and steady.",
-   "portrait": "franklin.jpg",
+   "portrait": "franklin.webp",
    "lessons": [
     {
      "id": "compound",
@@ -385,7 +385,7 @@
    "role": "Inventor",
    "years": "1847–1931",
    "tagline": "The inventor of the phonograph and a practical light bulb, who built the first invention factory.",
-   "portrait": "edison.jpg",
+   "portrait": "edison.webp",
    "lessons": [
     {
      "id": "work",
@@ -447,7 +447,7 @@
    "role": "Visionary",
    "years": "1856–1943",
    "tagline": "The inventor of the AC power system that lights the world, who built machines in his head first.",
-   "portrait": "tesla.jpg",
+   "portrait": "tesla.webp",
    "lessons": [
     {
      "id": "imagine",

@@ -17,7 +17,7 @@ export function Portrait({ figure, className }: { figure: Figure; className?: st
       </span>
     );
   }
-  return <img className={[s.portrait, className].filter(Boolean).join(' ')} src={portraitUrl(figure)} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />;
+  return <img className={[s.portrait, className].filter(Boolean).join(' ')} src={portraitUrl(figure)} alt="" decoding="async" onError={() => setBroken(true)} />;
 }
 
 export function FigureCard({ figure, pill, big, to }: { figure: Figure; pill: string; big?: boolean; to?: string }) {
@@ -71,8 +71,8 @@ export function MeltFilter() {
   return (
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden focusable="false">
       <filter id="hm-melt">
-        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.06" numOctaves="2" seed="7" />
-        <feDisplacementMap in="SourceGraphic" scale="28" xChannelSelector="R" yChannelSelector="G" />
+        <feTurbulence type="fractalNoise" baseFrequency="0.004 0.045" numOctaves="2" seed="7" />
+        <feDisplacementMap in="SourceGraphic" scale="60" xChannelSelector="R" yChannelSelector="G" />
       </filter>
     </svg>
   );

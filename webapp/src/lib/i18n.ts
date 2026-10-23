@@ -599,6 +599,7 @@ const en = {
   'hm.vs': 'Head-to-head',
   'hm.read': 'Read ✓',
   'hm.more': 'More great minds are on the way.',
+  'hm.credits': 'Portraits: public-domain paintings, sculptures and photographs from Wikimedia Commons.',
   'hm.missing': 'That page isn’t in the Hall of Minds.',
   'hm.back': 'Hall of Minds',
   'hm.progress': '{n} of {of} lessons read',

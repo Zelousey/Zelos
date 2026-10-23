@@ -16,31 +16,29 @@ a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .cardBig { aspect-ratio: 16 / 8; }
 @media (max-width: 760px) { .cardBig { aspect-ratio: 16 / 10; } }
 
-/* black-and-white portrait on red: grayscale, then multiplied onto the red, so the light parts of
-   the painting turn red and the darks stay dark */
-.portrait { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%; filter: grayscale(1) contrast(1.25) brightness(1.08); mix-blend-mode: multiply; z-index: 0; }
-.initials { display: grid; place-items: center; font-family: Georgia, 'Times New Roman', serif; font-size: 5rem; font-weight: 700; color: #1c0403; mix-blend-mode: normal; filter: none; }
+/* black-and-white cut-out portrait standing on the red (transparent WebP, public/minds/) */
+.portrait { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 76%; width: auto; max-width: none; z-index: 0; filter: drop-shadow(0 6px 18px rgb(0 0 0 / 0.35)); }
+.initials { display: grid; place-items: center; inset: 0; transform: none; width: 100%; height: 100%; font-family: Georgia, 'Times New Roman', serif; font-size: 5rem; font-weight: 700; color: #1c0403; filter: none; }
 
 .cardName {
-  position: absolute; top: 7%; left: 0; right: 0; z-index: 2; padding: 0 var(--space-4); text-align: center;
-  font-weight: 900; font-size: clamp(1.05rem, 2.4vw, 1.5rem); letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.05;
+  position: absolute; top: 6%; left: 0; right: 0; z-index: 2; padding: 0 var(--space-4); text-align: center;
+  font-weight: 900; font-size: clamp(0.95rem, 1.7vw, 1.2rem); letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.05;
   text-shadow: 0 2px 10px rgb(0 0 0 / 0.55);
 }
-.cardBig .cardName { font-size: clamp(1.4rem, 4vw, 2.4rem); }
+.cardBig .cardName { font-size: clamp(1.2rem, 3vw, 1.9rem); }
+.cardBig .portrait { height: 80%; }
 .pill {
   position: absolute; right: 4%; bottom: 7%; z-index: 2; padding: 0.35em 0.8em; border-radius: 999px;
   background: rgb(30 4 2 / 0.78); color: #fff; font-weight: 700; font-size: var(--text-sm); font-variant-numeric: tabular-nums;
 }
 
-/* a pair: the two faces melt into each other in the middle */
-.pairFaces { position: absolute; inset: 0; z-index: 0; mix-blend-mode: multiply; }
-.pairFaces .portrait { width: 62%; mix-blend-mode: normal; }
-.pairFaces .left { left: 0; right: auto; -webkit-mask-image: linear-gradient(to right, #000 62%, transparent 92%); mask-image: linear-gradient(to right, #000 62%, transparent 92%); }
-.pairFaces .right { left: auto; right: 0; -webkit-mask-image: linear-gradient(to left, #000 62%, transparent 92%); mask-image: linear-gradient(to left, #000 62%, transparent 92%); }
-.pairFaces .melt { left: auto; right: 0; filter: grayscale(1) contrast(1.25) brightness(1.08) url(#hm-melt); -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 22%, #000 38%, transparent 55%); mask-image: linear-gradient(to right, transparent 0%, #000 22%, #000 38%, transparent 55%); }
-.pairFaces { filter: grayscale(1) contrast(1.25) brightness(1.08); }
-.pairFaces .left, .pairFaces .right { filter: none; }
-@media (prefers-reduced-motion: no-preference) { a.pairCard:hover .melt { filter: grayscale(1) contrast(1.25) url(#hm-melt) blur(0.4px); } }
+/* a pair: two faces side by side, melting into each other where they meet (an SVG ripple on a
+   copy of the right face, shown only on its left edge) */
+.pairFaces { position: absolute; inset: 0; z-index: 0; }
+.pairFaces .portrait { height: 76%; }
+.pairFaces .left { left: 37%; }
+.pairFaces .right { left: 63%; -webkit-mask-image: linear-gradient(to right, transparent 26%, #000 46%); mask-image: linear-gradient(to right, transparent 26%, #000 46%); }
+.pairFaces .melt { left: 63%; filter: url(#hm-melt); opacity: 0.9; -webkit-mask-image: linear-gradient(to right, transparent 8%, #000 24%, #000 34%, transparent 50%); mask-image: linear-gradient(to right, transparent 8%, #000 24%, #000 34%, transparent 50%); }
 
 /* figure and pair pages */
 .page { display: grid; gap: var(--space-5); max-width: 820px; }
