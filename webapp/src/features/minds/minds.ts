@@ -13,12 +13,19 @@ import { callFunction, db } from '../../lib/firebase';
 
 export type MindLesson = { id: string; title: string; text: string[]; trading: string };
 export type MindQuote = { id: string; text: string; source: string; plain: string; trading: string };
-export type Figure = { id: string; name: string; role: string; years: string; tagline: string; portrait: string; lessons: MindLesson[]; quotes: MindQuote[] };
+export type Account = { title: string; text: string; source: string };
+/** Then & now: a words-only comparison with a modern person (owner 2026-10-23: no modern faces). */
+export type ThenNow = { modern: string; text: string[]; trading: string };
+export type Figure = {
+  id: string; name: string; role: string; years: string; tagline: string; portrait: string;
+  story: string[]; carried: Account[]; lessons: MindLesson[]; quotes: MindQuote[]; thenNow?: ThenNow;
+};
 export type Pair = { id: string; a: string; b: string; title: string; tagline: string; rounds: { topic: string; a: string; b: string }[]; takeaway: string };
 export type Tile = { kind: 'figure'; figure: Figure } | { kind: 'pair'; pair: Pair };
 
 export const FIGURES = raw.figures as Figure[];
 export const PAIRS = raw.pairs as Pair[];
+export const MODERN_NOTE = raw.modernNote as string;
 export const MIND_XP = 10;
 export const FOLLOW_COST = 15;
 export const FOLLOW_DAYS = 30;
@@ -39,6 +46,7 @@ export const TILES: Tile[] = (raw.order as string[]).flatMap((id): Tile[] => {
 
 /** Portraits are public-domain paintings, served from /app/minds/. */
 export const portraitUrl = (f: Figure) => `${import.meta.env.BASE_URL}minds/${f.portrait}`;
+export const pairUrl = (p: Pair) => `${import.meta.env.BASE_URL}minds/pair-${p.id}.webp`;
 
 export const lessonRef = (figure: string, lesson: string) => `${figure}:${lesson}`;
 export const pairRef = (pair: string) => `vs:${pair}`;

@@ -1,11 +1,11 @@
 /**
  * The red cards (owner's reference images, 2026-10-22): a black-and-white portrait on red, the
- * name in bold capitals, a dark pill bottom-right. A pair card melts two portraits into each
- * other in the middle (an SVG ripple on the seam).
+ * name in bold capitals, a dark pill bottom-right. A pair card shows two faces melting into
+ * each other (made ahead of time by scripts/minds/pairs.py: public/minds/pair-<id>.webp).
  */
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { figureById, portraitUrl, type Figure, type Pair } from './minds';
+import { figureById, pairUrl, portraitUrl, type Figure, type Pair } from './minds';
 import s from './Minds.module.css';
 
 export function Portrait({ figure, className }: { figure: Figure; className?: string }) {
@@ -41,15 +41,17 @@ export function FigureCard({ figure, pill, big, to }: { figure: Figure; pill: st
 }
 
 export function PairCard({ pair, pill, big, to }: { pair: Pair; pill: string; big?: boolean; to?: string }) {
-  const a = figureById(pair.a)!;
-  const b = figureById(pair.b)!;
+  const [broken, setBroken] = useState(false);
   const body = (
     <>
-      <span className={s.pairFaces} aria-hidden>
-        <Portrait figure={a} className={s.left} />
-        <Portrait figure={b} className={s.right} />
-        <Portrait figure={b} className={s.melt} />
-      </span>
+      {broken ? (
+        <span className={s.pairFaces} aria-hidden>
+          <Portrait figure={figureById(pair.a)!} className={s.left} />
+          <Portrait figure={figureById(pair.b)!} className={s.right} />
+        </span>
+      ) : (
+        <img className={s.pairArt} src={pairUrl(pair)} alt="" decoding="async" onError={() => setBroken(true)} />
+      )}
       <span className={s.cardName}>{pair.title}</span>
       <span className={s.pill}>{pill}</span>
     </>
@@ -63,17 +65,5 @@ export function PairCard({ pair, pill, big, to }: { pair: Pair; pill: string; bi
     <div className={cls} role="img" aria-label={pair.title}>
       {body}
     </div>
-  );
-}
-
-/** The ripple the pair cards use on the seam between the two faces (rendered once per page). */
-export function MeltFilter() {
-  return (
-    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden focusable="false">
-      <filter id="hm-melt">
-        <feTurbulence type="fractalNoise" baseFrequency="0.004 0.045" numOctaves="2" seed="7" />
-        <feDisplacementMap in="SourceGraphic" scale="60" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </svg>
   );
 }

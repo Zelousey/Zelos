@@ -35,10 +35,24 @@ class Content(unittest.TestCase):
             self.assertIn(p["a"], M.FIGURES)
             self.assertIn(p["b"], M.FIGURES)
 
-    def test_no_modern_people(self):
-        # owner 2026-10-22: historical figures only (no living people's or recent faces)
-        for name in ("Elon", "Musk", "Jobs", "Bezos", "Buffett"):
-            self.assertNotIn(name, json.dumps(M.DATA))
+    def test_modern_people_in_words_only(self):
+        # owner 2026-10-22/23: every figure and picture is historical; modern people appear only
+        # in a figure's words-only "then & now", never as a figure, a card or a picture
+        everything_but_then_now = json.dumps([{k: v for k, v in f.items() if k != "thenNow"} for f in M.FIGURES.values()] + list(M.PAIRS.values()))
+        for name in ("Elon", "Musk", "Jobs", "Bezos", "Buffett", "Munger"):
+            self.assertNotIn(name, everything_but_then_now)
+        for f in M.FIGURES.values():
+            tn = f.get("thenNow")
+            if tn:
+                self.assertEqual(set(tn), {"modern", "text", "trading"}, "no image or anything else")
+        self.assertIn("aren't connected to Zelos", M.DATA["modernNote"])
+
+    def test_story_and_accounts_with_sources(self):
+        for f in M.FIGURES.values():
+            self.assertGreaterEqual(len(f["story"]), 5, f["id"])
+            self.assertGreaterEqual(len(f["carried"]), 3, f["id"])
+            for c in f["carried"]:
+                self.assertTrue(c["title"] and c["text"] and c["source"], (f["id"], c["title"]))
 
 
 class Follow(unittest.TestCase):

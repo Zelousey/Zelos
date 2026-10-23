@@ -14,8 +14,8 @@ import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, EmptyState, Icon, useToast } from '../../ui';
 import { errorMessage } from '../practice/actions';
 import { useWalletDoc } from '../strategies/strategies';
-import { FigureCard, MeltFilter, PairCard } from './MindCard';
-import { figureById, figureProgress, FOLLOW_COST, FOLLOW_DAYS, followFigure, lessonRef, pairRef, pairsOf, type Figure } from './minds';
+import { FigureCard, PairCard } from './MindCard';
+import { figureById, figureProgress, FOLLOW_COST, MODERN_NOTE, FOLLOW_DAYS, followFigure, lessonRef, pairRef, pairsOf, type Figure } from './minds';
 import { ReadButton } from './ReadButton';
 import s from './Minds.module.css';
 
@@ -42,7 +42,6 @@ function Figure({ f }: { f: Figure }) {
       <Link className={s.back} to="/minds">
         ← {t('hm.back')}
       </Link>
-      <MeltFilter />
       <FigureCard figure={f} big pill={f.years} />
       <header className={s.heroText}>
         <span className={s.kicker}>{f.role}</span>
@@ -52,6 +51,37 @@ function Figure({ f }: { f: Figure }) {
       </header>
 
       <FollowBox f={f} />
+
+      <section aria-labelledby="hm-story">
+        <h2 id="hm-story" className={s.h2}>
+          {t('hm.story')}
+        </h2>
+        <Card pad>
+          {f.story.map((p) => (
+            <p key={p} className={s.p}>
+              {p}
+            </p>
+          ))}
+        </Card>
+      </section>
+
+      <section aria-labelledby="hm-carried">
+        <h2 id="hm-carried" className={s.h2}>
+          {t('hm.carried')}
+        </h2>
+        <p className={s.fine}>{t('hm.carriedNote')}</p>
+        <ul className={s.accounts}>
+          {f.carried.map((c) => (
+            <li key={c.title}>
+              <Card as="article" pad>
+                <h3 className={s.h3}>{c.title}</h3>
+                <p className={s.p}>{c.text}</p>
+                <p className={s.source}>— {c.source}</p>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section aria-labelledby="hm-lessons">
         <h2 id="hm-lessons" className={s.h2}>
@@ -110,6 +140,26 @@ function Figure({ f }: { f: Figure }) {
           ))}
         </ul>
       </section>
+
+      {f.thenNow && (
+        <section aria-labelledby="hm-now">
+          <h2 id="hm-now" className={s.h2}>
+            {t('hm.thenNow', { name: f.name.split(' ')[0]!, modern: f.thenNow.modern })}
+          </h2>
+          <Card pad>
+            {f.thenNow.text.map((p) => (
+              <p key={p} className={s.p}>
+                {p}
+              </p>
+            ))}
+            <div className={s.trading}>
+              <b>{t('hm.inTrading')}</b>
+              <p>{f.thenNow.trading}</p>
+            </div>
+            <p className={s.fine}>{MODERN_NOTE}</p>
+          </Card>
+        </section>
+      )}
 
       {pairs.length > 0 && (
         <section aria-labelledby="hm-vs">

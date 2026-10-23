@@ -6,7 +6,7 @@ import { useAuth } from '../../lib/auth';
 import { useUserDoc } from '../../data/userDoc';
 import { t } from '../../lib/i18n';
 import { PageHeader } from '../../ui';
-import { FigureCard, MeltFilter, PairCard } from './MindCard';
+import { FigureCard, PairCard } from './MindCard';
 import { figureProgress, pairRef, TILES } from './minds';
 import s from './Minds.module.css';
 
@@ -17,7 +17,6 @@ export function MindsPage() {
   return (
     <>
       <PageHeader title={t('nav.minds')} subtitle={t('hm.sub')} />
-      <MeltFilter />
       <ul className={s.grid} aria-label={t('nav.minds')}>
         {TILES.map((tile) =>
           tile.kind === 'figure' ? (

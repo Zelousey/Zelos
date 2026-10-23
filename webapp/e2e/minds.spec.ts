@@ -32,12 +32,19 @@ test('a figure: lessons with a trading takeaway, real quotes explained in plain 
   await expect(page).toHaveURL(/\/app\/minds\/napoleon$/);
   await expect(page.getByRole('heading', { name: 'Napoleon Bonaparte', level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Lessons from Napoleon' })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 3 })).toHaveCount(4);
+  await expect(page.getByRole('region', { name: 'Lessons from Napoleon' }).getByRole('heading', { level: 3 })).toHaveCount(4);
   await expect(page.getByText('Use it in trading').first()).toBeVisible();
   await expect(page.getByText(/Read over and over again the campaigns of Alexander/)).toBeVisible();
   await expect(page.getByText(/Military Maxims of Napoleon, Maxim 78/)).toBeVisible();
   await expect(page.getByText('In plain words').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign in to turn on' })).toBeVisible();
+  // the deeper sections: their story, accounts with sources, and a words-only modern comparison
+  await expect(page.getByRole('heading', { name: 'Their story' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'How they carried themselves' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Fighting next to his men' })).toBeVisible();
+  await expect(page.getByText(/the little corporal/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Then & now: Napoleon and Elon Musk' })).toBeVisible();
+  await expect(page.getByText(/aren.t connected to Zelos and don.t endorse it/)).toBeVisible();
   await axe(page);
   // a head-to-head he is in, then the comparison itself
   await page.getByRole('link', { name: /^Alexander vs Napoleon/ }).click();

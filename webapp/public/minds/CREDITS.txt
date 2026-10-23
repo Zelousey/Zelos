@@ -8,3 +8,6 @@ caesar.jpg     Bust of Julius Caesar (Vatican Museums). File:Gaius_Iulius_Caesar
 franklin.jpg   Joseph Siffrein Duplessis, Benjamin Franklin (c. 1785). File:Joseph_Siffrein_Duplessis_-_Benjamin_Franklin_-_Google_Art_Project.jpg
 edison.jpg     Thomas Edison, photograph by Louis Bachrach (1922). File:Thomas_Edison2.jpg
 tesla.jpg      Nikola Tesla, photograph by Napoleon Sarony (c. 1890). File:Tesla_circa_1890.jpeg
+
+pair-*.webp are made from the portraits above (scripts/minds/pairs.py).
+The portraits are made with scripts/minds/portraits.py (crop, background removal, black and white).

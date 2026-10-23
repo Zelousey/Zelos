@@ -4,7 +4,7 @@ import { useAuth } from '../../lib/auth';
 import { useUserDoc } from '../../data/userDoc';
 import { t } from '../../lib/i18n';
 import { Card, EmptyState } from '../../ui';
-import { MeltFilter, PairCard } from './MindCard';
+import { PairCard } from './MindCard';
 import { figureById, pairById, pairRef } from './minds';
 import { ReadButton } from './ReadButton';
 import s from './Minds.module.css';
@@ -23,7 +23,6 @@ export function PairPage() {
       <Link className={s.back} to="/minds">
         ← {t('hm.back')}
       </Link>
-      <MeltFilter />
       <PairCard pair={p} big pill={t('hm.vs')} />
       <header className={s.heroText}>
         <span className={s.kicker}>{t('hm.headToHead')}</span>
