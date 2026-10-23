@@ -12,7 +12,7 @@ BOX = {  # (left, top, right, bottom) as fractions of the source image
     "napoleon": ("Jacques_Louis_David_The_Emperor_Napoleon_in_His_St.jpg", (0.18, 0.04, 0.82, 0.42)),
     "franklin": ("Joseph_Siffrein_Duplessis_Benjamin_Franklin_Google.jpg", (0.0, 0.02, 1.0, 0.9)),
     "tesla": ("Tesla_circa_1890_jpeg.jpg", (0.0, 0.0, 1.0, 0.85)),
-    "edison": ("Thomas_Edison2_jpg.jpg", (0.2, 0.0, 1.0, 0.62)),
+    "edison": ("Thomas_Edison2_jpg.jpg", (0.2, 0.0, 0.93, 0.62)),
     "alexander": ("Alexander1256.jpg", (0.02, 0.0, 0.66, 0.36)),
     "livermore": ("livermore.jpg", (0.04, 0.02, 0.96, 0.86)),
     "dow": ("dow.jpg", (0.0, 0.0, 1.0, 1.0)),
@@ -22,6 +22,8 @@ BOX = {  # (left, top, right, bottom) as fractions of the source image
 sess = new_session("u2net_human_seg")
 sess_general = new_session("isnet-general-use")
 GENERAL = {"livermore"}  # the people-model left newspaper background on him
+HAIR = {"newton": 82}
+TIGHT = {"newton", "edison"}  # owner 2026-10-23: a little black came off their sides
 rng = np.random.default_rng(7)
 
 
@@ -39,7 +41,19 @@ for fid, (f, (l, t, r, b)) in BOX.items():
     w, h = im.size
     im = im.crop((int(l * w), int(t * h), int(r * w), int(b * h)))
     cut = remove(im, session=sess_general if fid in GENERAL else sess)
-    alpha = cut.split()[3].filter(ImageFilter.GaussianBlur(1.2))
+    alpha = cut.split()[3]
+    if fid in TIGHT:  # dark smudges left on the edge: drop the half-transparent fringe, pull the edge in
+        alpha = alpha.point(lambda v: 0 if v < 150 else min(255, int((v - 150) * 2.5))).filter(ImageFilter.MinFilter(5))
+    if fid in HAIR:  # light hair on a dark painted background: around the hair keep only the light strands
+        core = np.asarray(alpha.filter(ImageFilter.MinFilter(61))) > 200
+        light = cut.convert("L").filter(ImageFilter.GaussianBlur(2)).point(lambda v: 255 if v > HAIR[fid] else 0)
+        light = np.asarray(light.filter(ImageFilter.MaxFilter(51)).filter(ImageFilter.MinFilter(41))) > 0  # fill the hair's dark strands
+        band = ~core
+        band[int(band.shape[0] * 0.6):] = False  # the coat below is dark on dark: leave it alone
+        a = np.asarray(alpha).copy()
+        a[band & ~light] = 0
+        alpha = Image.fromarray(a)
+    alpha = alpha.filter(ImageFilter.GaussianBlur(1.2))
     gray = look(cut.convert("L"))
     x0, y0, x1, y1 = alpha.point(lambda v: 255 if v > 40 else 0).getbbox()
     pad = int((y1 - y0) * 0.04)
