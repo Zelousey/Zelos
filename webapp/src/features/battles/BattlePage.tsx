@@ -15,6 +15,7 @@ import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, Confirm, EmptyState, LoadingState, PageHeader, useToast } from '../../ui';
 import { createInvite, errorText, shareLink } from '../invites/invites';
 import { BATTLE_ID_RE, cancelBattle, joinBattle, leaveBattle, OUT_REASON, startBattle, surrender, useAccounts, useBattle, useBook, useEvents, type Battle } from './battle';
+import { BattleClash } from './BattleClash';
 import { DraftView } from './DraftView';
 import { LiveView } from './LiveView';
 import { clock, RulesBox } from './parts';
@@ -134,6 +135,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
       {b.status === 'draft' && player && <DraftView b={b} uid={uid} now={now} />}
       {b.status === 'active' && player && <LiveView b={b} uid={uid} accounts={accounts} me={me} book={book.status === 'ready' ? book.data : { positions: [], fills: [] }} events={events.status === 'ready' ? events.data : []} quotes={quotes.status === 'ready' ? quotes.data : null} now={now} />}
       {b.status === 'ended' && <Results b={b} uid={uid} />}
+      {player && (b.status === 'active' || b.status === 'ended') && <BattleClash key={b.status} battleId={b.id} stage={b.status === 'active' ? 'start' : 'end'} />}
 
       <Confirm
         open={!!confirm}

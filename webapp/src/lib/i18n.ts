@@ -569,6 +569,8 @@ const en = {
   'bt.joined': "You're in.",
   'bt.start': 'Start the battle',
   'bt.started': 'The battle has started.',
+  'bt.clashStart': 'The battle starts now',
+  'bt.clashEnd': 'The battle is over. Here are the results.',
   'bt.needTwo': 'Needs at least 2 players.',
   'bt.waitHost': 'Waiting for {name} to start it.',
   'bt.playersOnly': 'Only the players can see a battle while it runs. The final standings show here when it ends.',
