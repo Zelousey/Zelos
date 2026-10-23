@@ -53,5 +53,14 @@ ok(XP.decide("chapter", "charts", "2026-10-21") == (50, "charts", None), "chapte
 ok(XP.decide("chapter", "basics", "2026-10-21") == (50, "basics", None) and "chapter" in XP.SERVER_ONLY, "chapter XP, paid only by the server")
 ok(len(L.LESSON_IDS) == sum(len(c["lessons"]) for c in L.CHAPTERS.values()), "lesson ids are unique across chapters")
 
+# retakes (owner 2026-10-23): free 12 hours after a fail, or LEARN.RETAKE_COST tokens now
+H = 3600 * 1000
+ok(L.retake_at("basics", {}, {}, 5) is None and L.retake_at("basics", None, None, 5) is None, "never failed: take it now")
+ok(L.retake_at("basics", {"basics": 1000}, {}, 1000 + H) == 1000 + 12 * H, "failed an hour ago: free in 11 more hours")
+ok(L.retake_at("basics", {"basics": 1000}, {}, 1000 + 12 * H) is None, "12 hours later: free again")
+ok(L.retake_at("basics", {"basics": 1000}, {"basics": 2000}, 1000 + H) is None, "a passed chapter never waits")
+ok(L.retake_at("charts", {"basics": 1000}, {}, 1000 + H) is None, "each chapter has its own wait")
+ok(L.RETAKE_COST == 10 and L.RETAKE_WAIT_MS == 12 * H, "10 tokens, 12 hours (owner)")
+
 print("\n%s" % ("ALL CHECKS PASSED" if not fails else "%d FAILED" % fails))
 sys.exit(1 if fails else 0)

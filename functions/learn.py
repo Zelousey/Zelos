@@ -59,3 +59,22 @@ def grade(chapter, answers):
     results = [{"ok": p == k, "answer": k} for p, k in zip(picked, key)]
     right = sum(1 for r in results if r["ok"])
     return right, len(key), right >= c["pass"], results
+
+
+# Retakes (owner 2026-10-23): after a failed chapter quiz the next try is free 12 hours later,
+# or RETAKE_COST tokens right away. The results show the right answers, so an instant free
+# retake would just be copying them. users/{uid}.learnFailed {chapter: ms} is server-only.
+RETAKE_WAIT_MS = 12 * 3600 * 1000
+RETAKE_COST = 10
+
+
+def retake_at(chapter, failed, passed, now_ms):
+    """When a free retake opens (ms), or None if the quiz can be taken free now: it was never
+    failed, its wait is over, or the chapter is already passed."""
+    failed = failed if isinstance(failed, dict) else {}
+    passed = passed if isinstance(passed, dict) else {}
+    last = failed.get(chapter)
+    if passed.get(chapter) or not isinstance(last, (int, float)):
+        return None
+    free = int(last) + RETAKE_WAIT_MS
+    return free if free > now_ms else None

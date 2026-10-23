@@ -9,7 +9,9 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { Badge, Button, buttonClass, Card, EmptyState, PageHeader, useToast } from '../../ui';
-import { CHAPTER_XP, CHAPTERS, chapterById, chapterState, gradeQuiz, type QuizResult } from './chapters';
+import { useNow } from '../../lib/useNow';
+import { errorText } from '../invites/invites';
+import { CHAPTER_XP, CHAPTERS, chapterById, chapterState, gradeQuiz, RETAKE_COST, retakeAt, type QuizResult } from './chapters';
 import { useSkill } from './useSkill';
 import s from './Learn.module.css';
 
@@ -20,11 +22,13 @@ export function ChapterQuiz() {
   const nextRaw = useSearchParams()[0].get('next') ?? '';
   const next = nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : null;
   const { isReal, openSignIn } = useAuth();
-  const { learnDone, learnPassed, loaded } = useSkill();
+  const { learnDone, learnPassed, learnFailed, loaded } = useSkill();
+  const now = useNow(30_000);
   const toast = useToast();
   const [answers, setAnswers] = useState<(number | null)[]>(() => (c ? c.quiz.map(() => null) : []));
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
+  const [payNow, setPayNow] = useState(false); // chose to retake within the 12-hour wait for tokens
   if (!c) return <EmptyState icon="learn" title={t('ln.missing')} actions={<Link to="/learn">{t('ln.back')}</Link>} />;
   // chapters go in order: no Chapter 2 quiz before Chapter 1 is passed (the server checks too)
   if (isReal && loaded && !chapterState(c, learnDone, learnPassed).unlocked) {
@@ -32,14 +36,20 @@ export function ChapterQuiz() {
   }
   const nextChapter = CHAPTERS[CHAPTERS.indexOf(c) + 1] ?? null;
   const all = answers.every((a) => a != null);
+  // after a fail the next try is free 12 hours later, or RETAKE_COST tokens now (the server decides)
+  const waitUntil = isReal ? retakeAt(c.id, learnFailed, learnPassed, now) : null;
+  const locked = !!waitUntil && !payNow && !result;
 
   async function submit() {
     setBusy(true);
     try {
-      setResult(await gradeQuiz(c!.id, answers.map((a) => a ?? -1)));
+      const r = await gradeQuiz(c!.id, answers.map((a) => a ?? -1), payNow && !!waitUntil);
+      setResult(r);
+      setPayNow(false);
+      if (r.charged) toast.show(t('ln.retakePaid', { n: r.charged }));
       window.scrollTo?.({ top: 0 });
-    } catch {
-      toast.show(t('qz.failed'), 'error');
+    } catch (e) {
+      toast.show(errorText(e, t('qz.failed')), 'error');
     } finally {
       setBusy(false);
     }
@@ -87,6 +97,23 @@ export function ChapterQuiz() {
             </div>
           </Card>
         )}
+        {locked && (
+          <Card pad>
+            <div className={s.result} role="status">
+              <p className={s.resultTitle}>{t('ln.retakeWait', { t: waitLeft(waitUntil! - now) })}</p>
+              <p className={s.muted}>{t('ln.retakeWhy')}</p>
+              <div className={s.lessonActions}>
+                <Button variant="primary" onClick={() => setPayNow(true)}>
+                  {t('ln.retakeNow', { n: RETAKE_COST })}
+                </Button>
+                <Link className={buttonClass({ variant: 'secondary' })} to={`/learn`}>
+                  {t('ln.reviewLessons')}
+                </Link>
+              </div>
+            </div>
+          </Card>
+        )}
+        {payNow && waitUntil && !result && <p className={s.muted}>{t('ln.retakeNote', { n: RETAKE_COST })}</p>}
         {!isReal && (
           <Card pad>
             <div className={s.levelRow}>
@@ -102,7 +129,7 @@ export function ChapterQuiz() {
             const r = result?.results[qi];
             return (
               <li key={qi}>
-                <fieldset className={s.question} disabled={!!result}>
+                <fieldset className={s.question} disabled={!!result || locked}>
                   <legend className={s.qTitle}>
                     {qi + 1}. {q.q}
                   </legend>
@@ -128,11 +155,17 @@ export function ChapterQuiz() {
           })}
         </ol>
         {!result && (
-          <Button variant="primary" size="lg" block disabled={!all || busy || !isReal} onClick={() => void submit()}>
+          <Button variant="primary" size="lg" block disabled={!all || busy || !isReal || locked} onClick={() => void submit()}>
             {all ? t('ln.checkAnswers') : t('ln.answerAll', { n: answers.filter((a) => a == null).length })}
           </Button>
         )}
       </div>
     </>
   );
+}
+
+/** "11h 40m" / "25m" until a free retake. */
+function waitLeft(ms: number): string {
+  const mins = Math.max(1, Math.ceil(ms / 60_000));
+  return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
 }
