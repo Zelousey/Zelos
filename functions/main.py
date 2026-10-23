@@ -3448,8 +3448,10 @@ TOKENS = {
     "unlock": 25,                  # one live alert (before the 4 pm ET close)
     "unlockClosed": 8,             # one alert after the close, until its trade finishes (then free)
     "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
+    "hint": 3,                     # one Training Ground drill hint (owner 2026-10-23)
     "revive": 20,                  # Last Man Standing: back in once per battle (owner 2026-10-23)
 }
+HINT_DRILLS = ("stop-drill", "grade-the-setup")  # not the Daily Challenge: its board stays even
 TK_UNLOCKED_MAX = 300
 SITE_URL = "https://agentictrading.info"
 
@@ -6555,6 +6557,42 @@ def run_scanners(event: scheduler_fn.ScheduledEvent) -> None:
         ms_count_calls(db, now, MD.CALLS[0] - calls0)
     except Exception as e:
         print("[scanners] usage count failed:", type(e).__name__)
+
+
+# ---------------------------------------------------------------------------
+# Training Ground drill hints (owner 2026-10-23): TOKENS['hint'] tokens show where to look on
+# the chart (the swing low, and the recent high in Grade the Setup), not the answer. The drill
+# page (games/zelos-chart-engine.js) halves that round's points, so a paid hint can't buy a
+# leaderboard spot. Only in HINT_DRILLS.
+def hint_charge(wallet, drill, now_ms):
+    """Pure: (wallet, ledger line) for one hint, or raises TWError."""
+    if drill not in HINT_DRILLS:
+        raise TWError("INVALID_ARGUMENT", "Hints aren't available in this drill.")
+    cost = TOKENS["hint"]
+    if wallet.get("balance", 0) < cost:
+        raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet.get("balance", 0)))
+    w = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+    return w, tk_ledger("drill-hint", -cost, w["balance"], now_ms, "Drill hint", drill)
+
+
+@https_fn.on_call()
+@_tk_call
+def drill_hint(req, db, uid, tok, now_ms):
+    """{drill} -> wallet + {charged}."""
+    drill = str((req.data or {}).get("drill") or "")[:40]
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet, line = hint_charge(snap.to_dict() if snap.exists else tk_new_wallet(now_ms), drill, now_ms)
+        t.set(ref, wallet)
+        t.set(ref.collection("ledger").document(), line)
+        return wallet
+
+    out = _tk_public(txn(db.transaction()))
+    out["charged"] = TOKENS["hint"]
+    return out
 
 
 # ---------------------------------------------------------------------------

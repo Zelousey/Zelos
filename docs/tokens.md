@@ -63,6 +63,12 @@ scanner pages, the Terms) quote the same numbers; update them together.
   just be copying them. `users/{uid}.learnFailed {chapter: ms}` is server-only; a
   passed chapter never waits. A too-early try without `retakeNow` is refused with
   `details: {retakeAt, cost}`.
+- `drill_hint`: `{drill}` → one Training Ground hint for `TOKENS['hint']` (3) tokens
+  (owner 2026-10-23), only in Where's the Stop? and Grade the Setup (`HINT_DRILLS`;
+  not the Daily Challenge). The drill (games/zelos-chart-engine.js, via
+  `ZelosTokens.hint`) then marks the swing low (and the recent high in Grade the
+  Setup): where to look, not the answer. That round scores half points, so a paid
+  hint can't buy a leaderboard spot.
 - `xp_boost`: `{}` → double XP for 24 hours for `XP.BOOST_COST` (25) tokens
   (owner 2026-10-23). Buying again adds 24 hours. It doubles lessons (Trading 101,
   Hall of Minds), chapter quizzes, missions and Trade War trades/wins
