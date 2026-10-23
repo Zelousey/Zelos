@@ -213,5 +213,16 @@ ok(re1 && /need 15 tokens and have 5/.test(re1.message), 'not enough tokens is r
 re1 = null; try { await call('minds_follow', { figure: 'elon' }); } catch (x) { re1 = x; }
 ok(re1 && /isn.t in the Hall of Minds/.test(re1.message), 'only figures in the Hall can be followed');
 
+// --- XP booster: 25 tokens, double XP from lessons for 24 hours
+await admin('wallets/' + troll.uid, { balance: { integerValue: 30 } });
+r = await call('xp_boost', {});
+ok(r.charged === 25 && r.balance === 5 && r.xpBoostUntil > Date.now() + 23 * 36e5, 'XP booster: 25 tokens for 24 hours');
+r = await call('xp_award', { type: 'mind', refId: 'napoleon:study' });
+ok(r.awarded && r.xp - r.before === 20, 'a lesson pays double while it runs');
+r = await call('xp_award', { type: 'daily-checkin', refId: nyDay() });
+ok(!r.awarded || r.xp - r.before === 3, 'the daily check-in is not doubled');
+re1 = null; try { await call('xp_boost', {}); } catch (x) { re1 = x; }
+ok(re1 && /need 25 tokens and have 5/.test(re1.message), 'not enough tokens for another booster');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

@@ -65,3 +65,26 @@ test('creating a squad in the app unlocks Squad Up', async ({ page }, info) => {
   await expect(page.getByRole('listitem').filter({ hasText: 'Squad Up' }).getByText('Earned')).toBeVisible();
   if (process.env.E2E_FUNCTIONS === '1') await expect.poll(async () => Number((await get(`users/${uid}`))?.xp?.integerValue ?? 0), { timeout: 30_000 }).toBe(25); // paid once by the server
 });
+
+test('XP booster: double XP for 24 hours for 25 tokens', async ({ page }, info) => {
+  test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
+  await page.goto('missions');
+  const uid = await signIn(page, `boost-${info.project.name}${Date.now()}@example.com`);
+  await put(`wallets/${uid}`, { balance: 40 });
+  await page.reload();
+  await expect(page.getByText('Double XP for 24 hours')).toBeVisible();
+  await page.getByRole('button', { name: 'Get it · 25 tokens' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Buying again adds another 24 hours');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Get it · 25 tokens' }).click();
+  await expect(page.getByText('Double XP is on for 24 hours!')).toBeVisible();
+  await expect(page.getByText('Double XP is on', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^2[34]h \d+m left/)).toBeVisible();
+  const w = await get(`wallets/${uid}`);
+  expect(w?.balance).toEqual({ integerValue: '15' });
+  // another 25 isn't there: the server says how many you have
+  await page.getByRole('button', { name: 'Add 24 hours · 25 tokens' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Get it · 25 tokens' }).click();
+  await expect(page.getByText('You need 25 tokens and have 15.')).toBeVisible();
+});
