@@ -41,7 +41,7 @@ SOURCES = {
     "achievement": ("achievements", "Achievement"), "onboard": ("platform", "Getting set up"),
     "coach-task": ("coaching", "Coach task done"), "coach-bonus": ("coaching", "Your student finished a task"),
     "lesson": ("learn", "Trading 101 lesson"), "chapter": ("learn", "Trading 101 chapter quiz"),
-    "mind": ("learn", "Hall of Minds lesson"),
+    "mind": ("learn", "Hall of Minds lesson"), "mind-step": ("learn", "Hall of Minds lesson step"),
 }
 
 DAILY_MISSIONS = {"trade": 10, "analyze": 10, "grade": 10, "news": 5, "xp": 20}
@@ -64,7 +64,7 @@ DAILY_LIMIT = {
     "alert-open": 50, "practice-trade": 10, "practice-win": 10, "grade-setup": 5,
     "real-trade": 3, "referral": 10, "mission": 12, "achievement": 30, "onboard": 4,
     "coach-task": 3, "coach-bonus": 6, "lesson": 40, "chapter": 10,
-    "mind": MINDS.DAILY_LIMIT,
+    "mind": MINDS.DAILY_LIMIT, "mind-step": MINDS.STEP_DAILY_LIMIT,
 }
 # Coaching (functions/coaching.py), paid only by the server: refId "<task kind>:<task id>".
 # A student earns from at most 3 coach tasks a day; a coach from at most 6 student tasks a day.
@@ -78,7 +78,7 @@ DAILY_XP_CEILING = 2500
 # 24 hours (users/{uid}.xpBoostUntil, server-only). Battle token rewards are not changed.
 BOOST_COST = 25
 BOOST_MS = 24 * 3600 * 1000
-BOOST_KINDS = ("lesson", "chapter", "mind", "mission", "practice-trade", "practice-win")
+BOOST_KINDS = ("lesson", "chapter", "mind", "mind-step", "mission", "practice-trade", "practice-win")
 
 
 def boost_buy(user, balance, now_ms):
@@ -178,6 +178,10 @@ def decide(kind, ref_id, today, counts=None, xp_today=0, boosted=False):
         if ref_id not in MINDS.XP_REFS:
             return 0, ref_id, "bad-ref"
         amount = MINDS.LESSON_XP
+    elif kind == "mind-step":
+        if ref_id not in MINDS.STEP_REFS:
+            return 0, ref_id, "bad-ref"
+        amount = MINDS.STEP_XP
     elif kind == "chapter":
         if ref_id not in LEARN.CHAPTERS:
             return 0, ref_id, "bad-ref"

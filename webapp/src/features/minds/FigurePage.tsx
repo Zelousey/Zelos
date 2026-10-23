@@ -15,7 +15,7 @@ import { Badge, Button, Card, EmptyState, Icon, useToast } from '../../ui';
 import { errorMessage } from '../practice/actions';
 import { useWalletDoc } from '../strategies/strategies';
 import { FigureCard } from './MindCard';
-import { figureById, figureProgress, FOLLOW_COST, MODERN_NOTE, FOLLOW_DAYS, followFigure, lessonRef, type Figure } from './minds';
+import { figureById, figureProgress, FOLLOW_COST, MODERN_NOTE, FOLLOW_DAYS, followFigure, lessonPath, lessonRef, scrollTasks, STEP_XP, type Figure } from './minds';
 import { ReadButton } from './ReadButton';
 import s from './Minds.module.css';
 
@@ -116,6 +116,19 @@ function Figure({ f }: { f: Figure }) {
         <ol className={s.lessons}>
           {f.lessons.map((l, i) => {
             const ref = lessonRef(f.id, l.id);
+            if (l.scroll) {
+              // a scroll lesson plays on its own page; here it's a card that opens it
+              return (
+                <li key={l.id}>
+                  <Link to={lessonPath(f.id, l.id)} className={s.playCard}>
+                    <span className={s.kicker}>{t('hm.lessonN', { n: i + 1 })} · {t('sl.interactive')}</span>
+                    <h3 className={s.h3}>{l.title}</h3>
+                    <p className={s.p}>{t('sl.cardBody', { n: scrollTasks(l).length, xp: STEP_XP })}</p>
+                    <span className={s.playGo}>{done.includes(ref) ? t('sl.again') : t('sl.start')} →</span>
+                  </Link>
+                </li>
+              );
+            }
             return (
               <li key={l.id}>
                 <Card as="article" pad>

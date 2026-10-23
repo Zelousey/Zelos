@@ -74,3 +74,10 @@ a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .groupTabs { margin-bottom: var(--space-4); }
 .seeAlso { display: inline-flex; align-items: center; min-height: var(--tap); margin-top: var(--space-1); color: var(--accent-ink, var(--accent)); font-weight: 600; text-decoration: none; }
 .seeAlso:hover { text-decoration: underline; }
+
+/* a scroll lesson's card on the figure page (owner 2026-10-23) */
+.playCard { display: block; padding: var(--space-4); border-radius: var(--radius-lg, 14px); background: #b3170f; color: #fff; text-decoration: none; box-shadow: 0 1px 0 rgb(0 0 0 / 0.2); transition: transform var(--dur-fast, 120ms) var(--ease-out, ease-out); }
+.playCard:hover { transform: translateY(-2px); }
+.playCard:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.playCard .kicker { color: rgb(255 255 255 / 0.82); }
+.playGo { display: inline-block; margin-top: var(--space-1); font-weight: 700; color: #fde68a; }

@@ -12,7 +12,19 @@ import { arrayUnion, doc, setDoc } from 'firebase/firestore';
 import raw from '../../../../data/minds.json';
 import { callFunction, db } from '../../lib/firebase';
 
-export type MindLesson = { id: string; title: string; text: string[]; trading: string };
+/**
+ * A scroll lesson (owner 2026-10-23): slides that pin while their lines come in, each ending in
+ * a task you do to go on (hold, drag, a question). Each task pays STEP_XP once (xp_award
+ * "mind-step", checked by the server against functions/minds.py STEP_REFS).
+ */
+export type ScrollTask =
+  | { id: string; kind: 'hold'; label: string; done: string }
+  | { id: string; kind: 'quiz'; question: string; options: string[]; answer: number; why: string }
+  | { id: string; kind: 'drag'; label: string; tap: string; done: string }
+  | { id: string; kind: 'level'; label: string; tap: string; done: string };
+export type ScrollSlide = { lines: string[]; image?: boolean; source?: string; task?: ScrollTask };
+export type ScrollLesson = { image: string; credit: string; slides: ScrollSlide[] };
+export type MindLesson = { id: string; title: string; text: string[]; trading: string; scroll?: ScrollLesson };
 export type MindQuote = { id: string; text: string; source: string; plain: string; trading: string };
 export type Account = { title: string; text: string; source: string };
 /** Who they learned from (or who learned from them), linking to those figures' pages. */
@@ -27,6 +39,7 @@ export type Figure = {
 export const FIGURES = raw.figures as Figure[];
 export const MODERN_NOTE = raw.modernNote as string;
 export const MIND_XP = 10;
+export const STEP_XP = 2; // functions/minds.py STEP_XP
 export const FOLLOW_COST = 15;
 export const FOLLOW_DAYS = 30;
 
@@ -37,10 +50,15 @@ export const ORDERED: Figure[] = (raw.order as string[]).map((id) => figureById(
 
 /** Portraits are public-domain paintings, served from /app/minds/. */
 export const portraitUrl = (f: Figure) => `${import.meta.env.BASE_URL}minds/${f.portrait}`;
+export const mindImageUrl = (file: string) => `${import.meta.env.BASE_URL}minds/${file}`;
 
 export const lessonRef = (figure: string, lesson: string) => `${figure}:${lesson}`;
+export const stepRef = (figure: string, lesson: string, task: string) => `${figure}:${lesson}:${task}`;
+export const lessonPath = (figure: string, lesson: string) => `/minds/${figure}/learn/${lesson}`;
+export const scrollTasks = (l: MindLesson) => (l.scroll?.slides ?? []).flatMap((x) => (x.task ? [x.task] : []));
 export const figureProgress = (f: Figure, done: string[]) => f.lessons.filter((l) => done.includes(lessonRef(f.id, l.id))).length;
 
 export const markMind = (uid: string, ref: string) => setDoc(doc(db(), 'users', uid), { mindsDone: arrayUnion(ref) }, { merge: true });
+export const stepXp = (ref: string) => callFunction<{ type: string; refId: string }, { awarded?: boolean; xp?: number; before?: number }>('xp_award', { type: 'mind-step', refId: ref });
 export const mindXp = (ref: string) => callFunction<{ type: string; refId: string }, { awarded?: boolean }>('xp_award', { type: 'mind', refId: ref });
 export const followFigure = (figure: string) => callFunction<{ figure: string }, { balance: number; charged: number }>('minds_follow', { figure });

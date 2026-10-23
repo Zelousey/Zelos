@@ -272,7 +272,94 @@
       "His armies marched faster than anyone in Europe, living off the land instead of waiting for supply wagons.",
       "He said the strength of an army is its mass times its speed."
      ],
-     "trading": "Being prepared is what lets you act fast. Have your watchlist and levels ready, so when price reaches your level you place the order, not start thinking."
+     "trading": "Being prepared is what lets you act fast. Have your watchlist and levels ready, so when price reaches your level you place the order, not start thinking.",
+     "scroll": {
+      "image": "lessons/napoleon-alps.webp",
+      "credit": "Jacques-Louis David, Napoleon Crossing the Alps (1801), Château de Malmaison. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Spring 1796. France's army in Italy is hungry, unpaid and losing.",
+         "Its new general is 26 years old: Napoleon Bonaparte."
+        ],
+        "image": true
+       },
+       {
+        "lines": [
+         "Other armies moved at the speed of their supply wagons.",
+         "His soldiers carried little and lived off the land, so they marched much faster."
+        ],
+        "task": {
+         "id": "march",
+         "kind": "hold",
+         "label": "Hold to march",
+         "done": "Your army arrived while the wagons were still on the road."
+        }
+       },
+       {
+        "lines": [
+         "He wrote that an army's strength is its mass times its speed."
+        ],
+        "source": "Military Maxims of Napoleon, maxim 9",
+        "task": {
+         "id": "formula",
+         "kind": "quiz",
+         "question": "So how could he make his army stronger without adding soldiers?",
+         "options": [
+          "Bring more cannons",
+          "Move faster",
+          "Carry bigger flags"
+         ],
+         "answer": 1,
+         "why": "Mass times speed: the same army, moving faster, hits harder."
+        }
+       },
+       {
+        "lines": [
+         "May 1800: he takes his army over the snowy Great St Bernard Pass, a route his enemy thought was too hard.",
+         "He comes down into Italy behind the Austrian army."
+        ],
+        "image": true,
+        "task": {
+         "id": "alps",
+         "kind": "drag",
+         "label": "Drag Napoleon over the Alps into Italy",
+         "tap": "Send him over the Alps",
+         "done": "Weeks later he won the Battle of Marengo."
+        }
+       },
+       {
+        "lines": [
+         "In trading, speed comes from being ready, not from rushing.",
+         "Mark your level before the price gets there."
+        ],
+        "task": {
+         "id": "level",
+         "kind": "level",
+         "label": "Drag your buy line onto the support level",
+         "tap": "Put my line on the level",
+         "done": "Now when the price comes down, your order is already waiting."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "ready",
+         "kind": "quiz",
+         "question": "The price reaches the level you planned. What do you do?",
+         "options": [
+          "Start reading about the company",
+          "Place the order you planned",
+          "Wait to see what others do"
+         ],
+         "answer": 1,
+         "why": "The thinking was done before. Being ready is what makes you fast."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "concentrate",
