@@ -1845,9 +1845,9 @@ _TW_ID_RE = _re.compile(r"^[A-Za-z0-9]{12}$")
 
 class TWError(Exception):
     """A rule of the game was broken; code is a FunctionsErrorCode name."""
-    def __init__(self, code, message):
+    def __init__(self, code, message, details=None):
         super().__init__(message)
-        self.code, self.message = code, message
+        self.code, self.message, self.details = code, message, details
 
 
 def _r2(x):
@@ -2233,6 +2233,50 @@ def _tw_check_learned(db, uid):
         raise TWError("FAILED_PRECONDITION", "Battles unlock when you pass the Chapter 1 quiz in Trading 101 (The basics). It takes about 15 minutes, or test out with the quiz.")
 
 
+# Battle slots (owner 2026-10-23): you can be in 3 open battles (lobby, draft or live) for free;
+# each one past that costs TOKENS["slot"] when you create, join or accept it. The app asks first
+# and calls again with extraSlot: true. Finished and cancelled battles free their slot.
+TW_FREE_SLOTS = 3
+TW_OPEN = ("lobby", "draft", "active")
+
+
+def _tw_open_count(db, uid):
+    """How many open battles you're in, counted up to the free limit (at most 3 reads)."""
+    q = db.collection("tradeWars").where("players", "array_contains", uid).where("status", "in", list(TW_OPEN))
+    return sum(1 for _ in q.limit(TW_FREE_SLOTS).select([]).stream())
+
+
+def tw_slot_charge(wallet, open_count, extra, now_ms, war_id):
+    """Pure: None while a free slot is left, else (wallet, ledger line) for one paid slot.
+    Without extra (the person hasn't said yes yet) it raises with details the app shows."""
+    if open_count < TW_FREE_SLOTS:
+        return None
+    cost = TOKENS["slot"]
+    if not extra:
+        raise TWError("FAILED_PRECONDITION", "You're already in %d open battles, the free limit. Finish one first, or use %d tokens for another." % (TW_FREE_SLOTS, cost),
+                      {"reason": "battle-slot", "free": TW_FREE_SLOTS, "cost": cost})
+    bal = wallet.get("balance", 0)
+    if bal < cost:
+        raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, bal))
+    w = dict(wallet, balance=bal - cost, updatedAt=now_ms)
+    return w, tk_ledger("battle-slot", -cost, w["balance"], now_ms, "Extra battle slot", war_id)
+
+
+def _tw_slot_txn(t, db, uid, open_count, extra, now_ms, war_id):
+    """Inside a transaction: read the wallet and return a writer for the slot charge (or None).
+    Call it after every other read; call the writer with the other writes."""
+    if open_count < TW_FREE_SLOTS:
+        return None
+    ref = db.collection("wallets").document(uid)
+    snap = ref.get(transaction=t)
+    out = tw_slot_charge(snap.to_dict() if snap.exists else tk_new_wallet(now_ms), open_count, extra, now_ms, war_id)
+
+    def write():
+        t.set(ref, out[0])
+        t.set(ref.collection("ledger").document(), out[1])
+    return write
+
+
 def _tw_check_buyin(db, uid, buy_in):
     try:
         u = db.collection("users").document(uid).get()
@@ -2390,7 +2434,7 @@ def _tw_prices(db, now_s=None, stale_out=None):
 
 
 def _tw_http(e):
-    return https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), e.message)
+    return https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), e.message, getattr(e, "details", None))
 
 
 def _tw_user(req):
@@ -2487,31 +2531,42 @@ def tw_create(req, db, uid, now_ms):
     wid = "".join(_secrets.choice(alphabet) for _ in range(12))
     pname = _tw_name(db, uid, req.auth.token)
     war_ref = db.collection("tradeWars").document(wid)
-    batch = db.batch()
-    batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
+    open_count, extra = _tw_open_count(db, uid), (req.data or {}).get("extraSlot") is True
+
+    @firestore.transactional
+    def txn(t):
+        pay = _tw_slot_txn(t, db, uid, open_count, extra, now_ms, wid)
+        t.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
                         "maxPlayers": max_players, "status": "lobby", "players": [uid], "names": {uid: pname},
                         "lms": lms, "modes": modes, "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
                         "rules": {"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}})
-    batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
-    batch.set(war_ref.collection("books").document(uid), tw_new_book())
-    batch.commit()
-    return {"warId": wid}
+        t.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
+        t.set(war_ref.collection("books").document(uid), tw_new_book())
+        if pay:
+            pay()
+        return bool(pay)
+
+    paid = txn(db.transaction())
+    return {"warId": wid, "charged": TOKENS["slot"] if paid else 0}
 
 
 @https_fn.on_call()
 @_tw_call
 def tw_join(req, db, uid, now_ms):
     wid = _tw_war_id(req.data)
-    _tw_join(db, wid, uid, _tw_name(db, uid, req.auth.token), now_ms)
-    return {"ok": True}
+    paid = _tw_join(db, wid, uid, _tw_name(db, uid, req.auth.token), now_ms, (req.data or {}).get("extraSlot") is True)
+    return {"ok": True, "charged": TOKENS["slot"] if paid else 0}
 
 
-def _tw_join(db, wid, uid, pname, now_ms):
-    """Join a Trade War lobby (also used by invite_accept). No-op if you're already in."""
+def _tw_join(db, wid, uid, pname, now_ms, extra=False):
+    """Join a Trade War lobby (also used by invite_accept). No-op if you're already in.
+    Returns True when the join used a paid battle slot."""
     war_ref = db.collection("tradeWars").document(wid)
     w0 = war_ref.get()
+    open_count = 0
     if not (w0.exists and uid in ((w0.to_dict() or {}).get("players") or [])):
         _tw_check_learned(db, uid)
+        open_count = _tw_open_count(db, uid)
 
     @firestore.transactional
     def txn(t):
@@ -2525,11 +2580,15 @@ def _tw_join(db, wid, uid, pname, now_ms):
             raise TWError("FAILED_PRECONDITION", "This Trade War has already started. Buy-ins are locked once it begins.")
         if len(war["players"]) >= war["maxPlayers"]:
             raise TWError("FAILED_PRECONDITION", "This Trade War is full.")
+        pay = _tw_slot_txn(t, db, uid, open_count, extra, now_ms, wid)
         t.update(war_ref, {"players": war["players"] + [uid], "names.%s" % uid: pname})
         t.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, war["buyIn"], now_ms))
         t.set(war_ref.collection("books").document(uid), tw_new_book())
+        if pay:
+            pay()
+        return bool(pay)
 
-    txn(db.transaction())
+    return bool(txn(db.transaction()))
 
 
 @https_fn.on_call()
@@ -3294,6 +3353,19 @@ def _tw_close_invites(db, wid, status, now_ms):
         print("[tradewar] closing invites failed:", type(e).__name__)
 
 
+class _TwTxnBatch:
+    """Collects set() calls so they can be written inside a transaction (after its reads)."""
+    def __init__(self):
+        self.ops = []
+
+    def set(self, ref, data):
+        self.ops.append((ref, data))
+
+    def apply(self, t):
+        for ref, data in self.ops:
+            t.set(ref, data)
+
+
 @https_fn.on_call()
 @_tw_call
 def tw_challenge(req, db, uid, now_ms):
@@ -3329,7 +3401,8 @@ def tw_challenge(req, db, uid, now_ms):
     alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     wid = "".join(_secrets.choice(alphabet) for _ in range(12))
     war_ref = db.collection("tradeWars").document(wid)
-    batch = db.batch()
+    open_count, extra = _tw_open_count(db, uid), (req.data or {}).get("extraSlot") is True
+    batch = _TwTxnBatch()
     batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
                         "maxPlayers": 1 + len(targets), "status": "lobby", "players": [uid], "names": {uid: pname},
                         "invited": targets, "mode": mode, "squadId": squad_id or None, "lms": lms, "modes": modes,
@@ -3346,12 +3419,21 @@ def tw_challenge(req, db, uid, now_ms):
             "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode, "lms": lms, "modes": modes,
             "symbols": extra_rules.get("symbols"),
             "status": "pending", "createdAt": now_ms, "respondedAt": None})
-    batch.commit()
+
+    @firestore.transactional
+    def txn(t):
+        pay = _tw_slot_txn(t, db, uid, open_count, extra, now_ms, wid)
+        batch.apply(t)
+        if pay:
+            pay()
+        return bool(pay)
+
+    paid = txn(db.transaction())
     for to in targets:
         notify_users(db, [to], "challenges", "%s challenged you to a Trade War" % pname,
                      "%s · %s virtual buy-in · %d day%s. Tap to accept or decline." % (name, _tw_money(buy_in).split(".")[0], days, "" if days == 1 else "s")
                      + (" Last Man Standing." if lms else ""), "practice/index.html", "inv-" + wid, action={"type": "tw", "id": inv_ids[to]})
-    return {"warId": wid, "invited": len(targets), "mode": mode}
+    return {"warId": wid, "invited": len(targets), "mode": mode, "charged": TOKENS["slot"] if paid else 0}
 
 
 @https_fn.on_call()
@@ -3366,6 +3448,7 @@ def tw_respond(req, db, uid, now_ms):
         _tw_check_learned(db, uid)
     inv_ref = db.collection("twInvites").document(iid)
     pname = _tw_name(db, uid, req.auth.token) if accept else None
+    open_count, extra = (_tw_open_count(db, uid) if accept else 0), data.get("extraSlot") is True
     seen = {}
 
     @firestore.transactional
@@ -3389,9 +3472,14 @@ def tw_respond(req, db, uid, now_ms):
             if war.get("mode") == "duel":
                 t.update(war_ref, {"status": "cancelled"})
             return {"status": "declined", "warId": inv["warId"]}
+        paid = False
         if uid not in war["players"]:
             if len(war["players"]) >= war["maxPlayers"]:
                 raise TWError("FAILED_PRECONDITION", "This Trade War is full.")
+            pay = _tw_slot_txn(t, db, uid, open_count, extra, now_ms, inv["warId"])
+            if pay:
+                pay()
+                paid = True
             upd = {"players": war["players"] + [uid], "names.%s" % uid: pname}
             started = None
             if war.get("mode") == "duel":
@@ -3405,7 +3493,7 @@ def tw_respond(req, db, uid, now_ms):
             t.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, war["buyIn"], now_ms))
             t.set(war_ref.collection("books").document(uid), tw_new_book())
         t.update(inv_ref, {"status": "accepted", "respondedAt": now_ms})
-        return {"status": "accepted", "warId": inv["warId"], "started": war.get("mode") == "duel"}
+        return {"status": "accepted", "warId": inv["warId"], "started": war.get("mode") == "duel", "charged": TOKENS["slot"] if paid else 0}
 
     out = txn(db.transaction())
     if seen.get("from") and out.get("status") in ("accepted", "declined"):
@@ -3450,6 +3538,7 @@ TOKENS = {
     "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
     "hint": 3,                     # one Training Ground drill hint (owner 2026-10-23)
     "revive": 20,                  # Last Man Standing: back in once per battle (owner 2026-10-23)
+    "slot": 15,                    # one battle past the free open ones (owner 2026-10-23)
 }
 HINT_DRILLS = ("stop-drill", "grade-the-setup")  # not the Daily Challenge: its board stays even
 TK_UNLOCKED_MAX = 300
@@ -5607,7 +5696,7 @@ def _inv_call(fn):
             uid = _tw_user(req)
             return fn(req, firestore.client(), uid, (req.auth.token or {}), int(_time.time() * 1000))
         except (INV.InviteError, TWError) as e:
-            raise https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), e.message)
+            raise https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), e.message, getattr(e, "details", None))
         except https_fn.HttpsError:
             raise
         except Exception as e:
@@ -5778,7 +5867,7 @@ def invite_accept(req, db, uid, tok, now_ms):
     if inv["kind"] == "coach":
         out["coachingId"] = coach_start(db, inv["from"], inv.get("fromName"), uid, pname, now_ms)
     if inv["kind"] == "battle":
-        _tw_join(db, inv["warId"], uid, pname, now_ms)
+        out["charged"] = TOKENS["slot"] if _tw_join(db, inv["warId"], uid, pname, now_ms, (req.data or {}).get("extraSlot") is True) else 0
     elif inv["kind"] == "squad":
         sref = db.collection("squads").document(inv["squadId"])
 

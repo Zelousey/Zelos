@@ -212,7 +212,7 @@ export const OUT_REASON: Record<string, string> = { floor: 'Fell below the P&L f
 
 // ---------------------------------------------------------------- the server calls
 type Ok = { ok: boolean };
-export const joinBattle = (warId: string) => callFunction<{ warId: string }, Ok>('tw_join', { warId });
+export const joinBattle = (warId: string, extraSlot = false) => callFunction<{ warId: string; extraSlot?: boolean }, Ok>('tw_join', { warId, ...(extraSlot && { extraSlot }) });
 export const leaveBattle = (warId: string) => callFunction<{ warId: string }, Ok>('tw_leave', { warId });
 
 /** Last Man Standing revive (owner 2026-10-23): shown price only, the server charges TOKENS['revive']. */

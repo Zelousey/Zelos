@@ -63,11 +63,12 @@ export const useMySquads = (uid: string | null) =>
 export type Created = { code: string; url: string; reused: boolean };
 export const createInvite = (data: { kind: InviteKind; warId?: string; squadId?: string }) => callFunction<typeof data, Created>('invite_create', data);
 export const sendInvite = (code: string, to: string) => callFunction<{ code: string; to: string }, { sent: boolean; already?: boolean }>('invite_send', { code, to });
-export type Accepted = { kind: InviteKind; warId: string | null; squadId: string | null; coachingId?: string; referral: boolean; xp: number; again: boolean };
-export const acceptInvite = (code: string) => callFunction<{ code: string }, Accepted>('invite_accept', { code });
-export const createBattle = (data: { name: string; buyIn: number; days: number; maxPlayers: number } & Payload) => callFunction<typeof data, { warId: string }>('tw_create', data);
-export const respondChallenge = (inviteId: string, accept: boolean) =>
-  callFunction<{ inviteId: string; accept: boolean }, { status: string; warId: string; started?: boolean }>('tw_respond', { inviteId, accept });
+export type Accepted = { kind: InviteKind; warId: string | null; squadId: string | null; coachingId?: string; referral: boolean; xp: number; again: boolean; charged?: number };
+// extraSlot: the person said yes to paying for a battle past the free open ones (battles/slots.tsx)
+export const acceptInvite = (code: string, extraSlot = false) => callFunction<{ code: string; extraSlot?: boolean }, Accepted>('invite_accept', { code, ...(extraSlot && { extraSlot }) });
+export const createBattle = (data: { name: string; buyIn: number; days: number; maxPlayers: number } & Payload & { extraSlot?: boolean }) => callFunction<typeof data, { warId: string; charged?: number }>('tw_create', data);
+export const respondChallenge = (inviteId: string, accept: boolean, extraSlot = false) =>
+  callFunction<{ inviteId: string; accept: boolean; extraSlot?: boolean }, { status: string; warId: string; started?: boolean; charged?: number }>('tw_respond', { inviteId, accept, ...(extraSlot && { extraSlot }) });
 
 /** The server's message for a failed call ("This invite has expired…"), or a generic one. */
 export function errorText(e: unknown, fallback: string): string {

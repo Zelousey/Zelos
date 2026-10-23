@@ -17,6 +17,7 @@ import { useSkill } from '../learn/useSkill';
 import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { unlockQuietly } from '../missions/missions';
 import { challenge } from './profile';
+import { useSlotGate } from '../battles/slots';
 import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
 import s from './Profile.module.css';
 
@@ -33,6 +34,7 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const battles = useBattlesOpen();
+  const slot = useSlotGate();
   function pickDays(d: number) {
     setDays(d);
     setSettings((v) => fitDays(v, d));
@@ -46,7 +48,8 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
     setBusy(true);
     setErr(null);
     try {
-      const r = await challenge({ ...(squadId ? { squadId } : { to: to ?? '' }), name: title, buyIn, days, ...toPayload(settings) });
+      const r = await slot.gate((x) => challenge({ ...(squadId ? { squadId } : { to: to ?? '' }), name: title, buyIn, days, ...toPayload(settings), ...(x && { extraSlot: true }) }));
+      if (!r) return setBusy(false);
       toast.show(t('pf.ch.sent', { name: toName }));
       const me = auth().currentUser;
       if (me) await Promise.race([unlockQuietly(me.uid, 'challenger', 'Challenger', toast.show), new Promise((ok) => setTimeout(ok, 2500))]); // the page changes next
@@ -81,6 +84,7 @@ export function ChallengeSheet({ open, onClose, to, squadId, toName }: { open: b
           {busy ? t('pf.ch.sending') : t('pf.ch.send')}
         </Button>
       </form>
+      {slot.dialog}
     </Sheet>
   );
 }

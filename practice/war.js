@@ -398,7 +398,9 @@
   function msg(t, good) { var m = $('twMsg'); if (!m) return; m.textContent = t; m.hidden = !t; m.classList.toggle('is-ok', !!good); }
   function wireLobby() {
     if ($('twSignIn')) $('twSignIn').onclick = signIn;
-    var act = function (btn, name, after) { if (!btn) return; btn.onclick = function () { var b = this; b.disabled = true; call(name, { warId: warId }).then(after || function () {}, function (e) { b.disabled = false; msg(errText(e)); }); }; };
+    // joining past the 3 free open battles asks before paying for another (zelos-tokens.js)
+    var send = function (name, d) { return name === 'tw_join' && window.ZelosTokens && ZelosTokens.slot ? ZelosTokens.slot(function (x) { return call(name, x); }, d) : call(name, d); };
+    var act = function (btn, name, after) { if (!btn) return; btn.onclick = function () { var b = this; b.disabled = true; send(name, { warId: warId }).then(after || function () {}, function (e) { b.disabled = false; msg(errText(e)); }); }; };
     act($('twJoin'), 'tw_join'); act($('twStart'), 'tw_start');
     act($('twLeave'), 'tw_leave', function () { location.href = 'war.html'; });
     if ($('twCancel')) $('twCancel').onclick = function () { if (!confirm('Cancel this Trade War? Players will see it was cancelled.')) return; var b = this; b.disabled = true; call('tw_cancel', { warId: warId }).catch(function (e) { b.disabled = false; msg(errText(e)); }); };

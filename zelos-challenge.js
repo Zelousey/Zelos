@@ -84,6 +84,8 @@
     return fnsPromise;
   }
   function call(name, data) { return functions().then(function (f) { return f.httpsCallable(name)(data); }).then(function (r) { return r.data; }); }
+  // past the 3 free open battles, ask before paying 15 tokens for another (zelos-tokens.js)
+  function slotCall(name, data) { return global.ZelosTokens && ZelosTokens.slot ? ZelosTokens.slot(function (d) { return call(name, d); }, data) : call(name, data); }
   function errText(e) { return String((e && e.message) || e || 'Something went wrong.').replace(/^FirebaseError: /, ''); }
 
   // ------------------------------------------------------------ styles
@@ -182,7 +184,7 @@
     $('zcNo').onclick = function () { busy(true); say('Declining…'); call('tw_respond', { inviteId: inv.id, accept: false }).then(function () { remember(SEEN, inv.id); next(); }, function (e) { busy(false); say(errText(e), true); }); };
     $('zcYes').onclick = function () {
       busy(true); say('Joining with ' + money(inv.buyIn) + ' of virtual money…');
-      call('tw_respond', { inviteId: inv.id, accept: true }).then(function (r) {
+      slotCall('tw_respond', { inviteId: inv.id, accept: true }).then(function (r) {
         remember(SEEN, inv.id);
         if (r.status === 'accepted') { say(r.started ? 'Game on. Entering the Trade War…' : 'You\'re in. Entering the lobby…'); setTimeout(function () { location.href = ROOT + 'practice/war.html?w=' + encodeURIComponent(r.warId); }, 450); }
         else { say(r.status === 'expired' ? 'This Trade War already started or was cancelled.' : 'This challenge was already answered.', true); setTimeout(next, 1400); }
@@ -289,7 +291,7 @@
           if (!Object.keys(data.lms).length) return bad('Pick at least one elimination rule for Last Man Standing.');
         }
         var go = function (name, payload) {
-          return call(name, payload).then(function (r) {
+          return slotCall(name, payload).then(function (r) {
             if (name === 'tw_challenge' && global.ZelosProgress) ZelosProgress.bump('challenges');
             $('zcMsg').textContent = name === 'tw_create' ? 'Trade War created. Opening it so you can share the invite link…' : 'Challenge sent. Opening your Trade War…';
             setTimeout(function () { m.close(true); resolve(r); location.href = ROOT + 'practice/war.html?w=' + encodeURIComponent(r.warId); }, 500);

@@ -17,6 +17,7 @@ import { useSkill } from '../learn/useSkill';
 import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
 import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
 import { InviteScene } from './InviteScene';
+import { useSlotGate } from '../battles/slots';
 import s from './Invites.module.css';
 
 type Step = { at: 'pick' } | { at: 'battle' } | { at: 'squad' } | { at: 'ready'; kind: InviteKind; created: Created; warId?: string };
@@ -125,6 +126,7 @@ function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string;
   const [days, setDays] = useState(3);
   const [players, setPlayers] = useState(4);
   const [busy, setBusy] = useState(false);
+  const slot = useSlotGate();
   const [error, setError] = useState<string | null>(null);
   function pickDays(d: number) {
     setDays(d);
@@ -138,7 +140,8 @@ function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string;
     setBusy(true);
     setError(null);
     try {
-      const war = await createBattle({ name: title.trim(), buyIn, days, maxPlayers: players, ...toPayload(settings) });
+      const war = await slot.gate((x) => createBattle({ name: title.trim(), buyIn, days, maxPlayers: players, ...toPayload(settings), ...(x && { extraSlot: true }) }));
+      if (!war) return;
       onReady(await createInvite({ kind: 'battle', warId: war.warId }), war.warId);
     } catch (err) {
       const m = errorText(err, t('inv.failed'));
@@ -150,6 +153,7 @@ function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string;
   }
   return (
     <Card pad>
+      {slot.dialog}
       <form className={s.form} onSubmit={submit}>
         <BackRow onBack={onBack} title={t('inv.battle')} icon="war" />
         <Field label={t('inv.battle.name')} value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} required />

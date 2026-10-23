@@ -60,7 +60,8 @@
     el.querySelectorAll('[data-inv]').forEach(function (b) {
       b.onclick = function () {
         var ok = b.getAttribute('data-ok') === '1'; b.disabled = true;
-        window.ZelosChallenge.call('tw_respond', { inviteId: b.getAttribute('data-inv'), accept: ok }).then(function (r) {
+        var d = { inviteId: b.getAttribute('data-inv'), accept: ok }, send = function (x) { return window.ZelosChallenge.call('tw_respond', x); };
+        (ok && window.ZelosTokens && ZelosTokens.slot ? ZelosTokens.slot(send, d) : send(d)).then(function (r) {
           if (ok && r.status === 'accepted') location.href = 'war.html?w=' + encodeURIComponent(r.warId);
         }, function (e) { b.disabled = false; alert((e && e.message) || 'Something went wrong.'); });
       };

@@ -483,6 +483,37 @@ class Prices(unittest.TestCase):
         self.assertFalse(m._tw_prices(self.DB(None), now)[1])
 
 
+class BattleSlots(unittest.TestCase):
+    """3 open battles free, 15 tokens for each one past that (owner 2026-10-23)."""
+
+    def test_free_while_under_the_limit(self):
+        for n in range(m.TW_FREE_SLOTS):
+            self.assertIsNone(m.tw_slot_charge({"balance": 0}, n, False, T0, "w1"))
+            self.assertIsNone(m.tw_slot_charge({"balance": 0}, n, True, T0, "w1"))  # never charged early
+
+    def test_asks_first_with_details(self):
+        with self.assertRaises(m.TWError) as c:
+            m.tw_slot_charge({"balance": 100}, 3, False, T0, "w1")
+        self.assertEqual(c.exception.code, "FAILED_PRECONDITION")
+        self.assertEqual(c.exception.details, {"reason": "battle-slot", "free": 3, "cost": 15})
+
+    def test_charges_once_said_yes(self):
+        w, line = m.tw_slot_charge({"balance": 40, "passes": {}}, 5, True, T0, "w1")
+        self.assertEqual((w["balance"], w["updatedAt"], w["passes"]), (25, T0, {}))
+        self.assertEqual((line["type"], line["amount"], line["balanceAfter"], line["ref"]), ("battle-slot", -15, 25, "w1"))
+
+    def test_not_enough_tokens(self):
+        with self.assertRaises(m.TWError) as c:
+            m.tw_slot_charge({"balance": 14}, 3, True, T0, "w1")
+        self.assertEqual(c.exception.message, "You need 15 tokens and have 14.")
+        self.assertIsNone(c.exception.details)
+
+    def test_wallet_not_mutated(self):
+        w0 = {"balance": 40}
+        m.tw_slot_charge(w0, 3, True, T0, "w1")
+        self.assertEqual(w0, {"balance": 40})
+
+
 if __name__ == "__main__":
     unittest.main()
 

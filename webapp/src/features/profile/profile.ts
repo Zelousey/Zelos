@@ -82,7 +82,7 @@ export async function addFriend(me: string, uid: string): Promise<{ mutual: bool
 export const removeFriend = (me: string, uid: string) => updateDoc(doc(db(), 'users', me), { friends: arrayRemove(uid) });
 
 /** Challenge a trader, or everyone else in your squad, to a Trade War (functions/main.py tw_challenge: they get a card to accept or decline). */
-export const challenge = (data: ({ to: string } | { squadId: string }) & { name: string; buyIn: number; days: number } & Payload) => callFunction<typeof data, { warId: string }>('tw_challenge', data);
+export const challenge = (data: ({ to: string } | { squadId: string }) & { name: string; buyIn: number; days: number } & Payload & { extraSlot?: boolean }) => callFunction<typeof data, { warId: string }>('tw_challenge', data);
 
 // ---------------------------------------------------------------- editing
 export const BIO_MAX = 160;

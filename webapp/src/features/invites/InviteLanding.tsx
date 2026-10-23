@@ -14,6 +14,7 @@ import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, EmptyState, Icon, Skeleton, useToast } from '../../ui';
 import { Celebrate } from './Celebrate';
 import { acceptInvite, CODE_RE, copyText, errorText, useInvite, type Accepted, type Invite } from './invites';
+import { useSlotGate } from '../battles/slots';
 import s from './Invites.module.css';
 
 export default function InviteLanding() {
@@ -59,6 +60,7 @@ function Landing({ inv }: { inv: Invite }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Accepted | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const slot = useSlotGate();
   const own = !!user && user.uid === inv.from;
   const closed = inv.status !== 'open' ? 'cancelled' : now >= inv.expiresAt ? 'expired' : null;
 
@@ -66,7 +68,8 @@ function Landing({ inv }: { inv: Invite }) {
     setBusy(true);
     setError(null);
     try {
-      setDone(await acceptInvite(inv.code));
+      const r = await slot.gate((x) => acceptInvite(inv.code, x));
+      if (r) setDone(r);
     } catch (e) {
       setError(errorText(e, t('land.failed')));
     } finally {
@@ -79,6 +82,7 @@ function Landing({ inv }: { inv: Invite }) {
   const what = inv.kind === 'battle' ? t('land.battle') : inv.kind === 'squad' ? t('land.squad') : inv.kind === 'coach' ? t('land.coach') : t('land.join');
   return (
     <div className={s.landing}>
+      {slot.dialog}
       <Card pad className={s.landCard}>
         <div className={s.inviter}>
           {inv.fromPhoto ? <img src={inv.fromPhoto} alt="" width={64} height={64} referrerPolicy="no-referrer" /> : <span aria-hidden>{inv.fromName.slice(0, 1).toUpperCase()}</span>}

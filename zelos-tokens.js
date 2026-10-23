@@ -49,6 +49,16 @@
     return fnsP;
   }
   function call(name, data) { return functions().then(function (f) { return f.httpsCallable(name)(data || {}); }).then(function (r) { return r.data; }); }
+  // Battle slots (owner 2026-10-23): 3 open battles are free. Past that the server refuses with
+  // details.reason 'battle-slot'; ask, then call again with extraSlot (it charges 15 tokens).
+  function slot(fn, data) {
+    return fn(data).catch(function (e) {
+      var d = e && e.details;
+      if (!d || d.reason !== 'battle-slot') throw e;
+      if (!global.confirm(errText(e) + '\n\nUse ' + d.cost + ' tokens for one more battle?')) throw new Error('No problem. Nothing was charged.');
+      return fn(Object.assign({}, data, { extraSlot: true }));
+    });
+  }
   function errText(e) { return String((e && e.message) || e || 'Something went wrong.').replace(/^FirebaseError: /, ''); }
   function user() { var f = fb(), u = f && f.auth.currentUser; return u && !u.isAnonymous ? u : null; }
   function emit() { listeners.forEach(function (fn) { try { fn(wallet); } catch (e) {} }); }
@@ -462,6 +472,6 @@
     var nav = d.getElementById('navAuth');
     if (nav && global.MutationObserver) new MutationObserver(function () { if (me && !nav.querySelector('.zt-chip')) chip(); }).observe(nav, { childList: true });
   }
-  global.ZelosTokens = { open: open, full: full, hint: hint, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, reward: reward, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
+  global.ZelosTokens = { open: open, full: full, hint: hint, slot: slot, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, reward: reward, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);

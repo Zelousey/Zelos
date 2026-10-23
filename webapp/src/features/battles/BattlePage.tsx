@@ -19,6 +19,7 @@ import { BattleClash } from './BattleClash';
 import { DraftView } from './DraftView';
 import { LiveView } from './LiveView';
 import { clock, RulesBox } from './parts';
+import { useSlotGate } from './slots';
 import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
 import s from './Battles.module.css';
 
@@ -58,6 +59,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<null | 'leave' | 'cancel' | 'surrender'>(null);
+  const slot = useSlotGate();
   const host = b.host === uid;
   const accounts = accts.status === 'ready' ? accts.data : [];
   const me = accounts.find((a) => a.uid === uid) ?? null;
@@ -65,8 +67,8 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
   async function run(fn: () => Promise<unknown>, ok?: string) {
     setBusy(true);
     try {
-      await fn();
-      if (ok) toast.show(ok, 'success');
+      const r = await fn();
+      if (ok && r !== null) toast.show(ok, 'success'); // null: they said no to a paid battle slot
     } catch (e) {
       toast.show(errorText(e, t('bt.failed')), 'error');
     } finally {
@@ -90,6 +92,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
   const statusBadge = { lobby: t('bt.status.lobby'), draft: t('bt.status.draft'), active: t('bt.status.active'), ended: t('bt.status.ended'), cancelled: t('bt.cancelled') }[b.status];
   return (
     <>
+      {slot.dialog}
       <Link to="/battles" className={s.back}>
         ← {t('bt.back')}
       </Link>
@@ -130,7 +133,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
         }
       />
 
-      {b.status === 'lobby' && <Lobby b={b} uid={uid} busy={busy} onJoin={() => void run(() => joinBattle(b.id), t('bt.joined'))} onStart={() => void run(() => startBattle(b.id), t('bt.started'))} />}
+      {b.status === 'lobby' && <Lobby b={b} uid={uid} busy={busy} onJoin={() => void run(() => slot.gate((x) => joinBattle(b.id, x)), t('bt.joined'))} onStart={() => void run(() => startBattle(b.id), t('bt.started'))} />}
       {b.status !== 'lobby' && !player && b.status !== 'ended' && <EmptyState icon="war" body={t('bt.playersOnly')} />}
       {b.status === 'draft' && player && <DraftView b={b} uid={uid} now={now} />}
       {b.status === 'active' && player && <LiveView b={b} uid={uid} accounts={accounts} me={me} book={book.status === 'ready' ? book.data : { positions: [], fills: [] }} events={events.status === 'ready' ? events.data : []} quotes={quotes.status === 'ready' ? quotes.data : null} now={now} />}

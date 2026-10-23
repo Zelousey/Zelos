@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { acceptInvite, errorText, respondChallenge } from '../features/invites/invites';
 import { parseBattle } from '../features/battles/battle';
+import { useSlotGate } from '../features/battles/slots';
 import { modeLines } from '../features/battles/parts';
 import { useLiveDoc } from '../data/liveDoc';
 import type { DocumentData } from 'firebase/firestore';
@@ -81,15 +82,16 @@ export function NotificationsSheet({ open, onClose, signedIn, items, error, onSi
 function Actions({ item, onClose }: { item: InboxItem; onClose: () => void }) {
   const toast = useToast();
   const [state, setState] = useState<'idle' | 'busy' | 'accepted' | 'declined'>('idle');
+  const slot = useSlotGate();
   const a = item.action!;
   async function run(accept: boolean) {
     setState('busy');
     try {
       if (a.type === 'invite') {
-        await acceptInvite(a.code);
-        setState('accepted');
+        setState((await slot.gate((x) => acceptInvite(a.code, x))) ? 'accepted' : 'idle');
       } else {
-        const r = await respondChallenge(a.id, accept);
+        const r = await slot.gate((x) => respondChallenge(a.id, accept, x));
+        if (!r) return setState('idle'); // they said no to a paid battle slot
         setState(r.status === 'accepted' ? 'accepted' : 'declined');
         if (r.status === 'expired') toast.show(t('land.expired'));
       }
@@ -114,6 +116,7 @@ function Actions({ item, onClose }: { item: InboxItem; onClose: () => void }) {
     );
   return (
     <div className={s.notifActions}>
+      {slot.dialog}
       {a.type === 'tw' && <ChallengeModes id={a.id} />}
       <Button size="sm" variant="primary" disabled={state === 'busy'} onClick={() => void run(true)}>
         {t('bell.accept')}
