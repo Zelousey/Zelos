@@ -55,7 +55,8 @@
 /* tasks */
 .task { display: grid; justify-items: center; gap: var(--space-3); margin: 0; padding: var(--space-4); border: 0; border-radius: var(--radius, 10px); background: var(--sl-deep); text-align: center; }
 .hint { margin: 0; font-size: var(--text-sm); color: var(--sl-soft); }
-.question { padding: 0; font-weight: 700; font-size: var(--text-md, 17px); margin-bottom: var(--space-2); }
+/* a fieldset draws its legend on the border; floating it keeps the question inside the dark box */
+.question { float: left; width: 100%; padding: 0; font-weight: 700; font-size: var(--text-md, 17px); line-height: 1.35; margin: 0 0 var(--space-1); }
 .options { display: grid; gap: var(--space-2); width: 100%; }
 .option { min-height: 48px; padding: 10px 14px; border-radius: var(--radius, 10px); border: 2px solid rgb(255 255 255 / 0.35); background: transparent; color: #fff; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .option:hover:not(:disabled) { border-color: #fff; }
