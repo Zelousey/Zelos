@@ -122,9 +122,10 @@ jobs:
 
   webapp:
     # The app (webapp/): lint, typecheck, unit tests, production build, then browser
-    # smoke tests (phone + desktop, accessibility) against that build.
+    # smoke tests (phone + desktop, accessibility) against that build. The browser suite
+    # runs about 13-16 minutes now, so the limit leaves room to grow.
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: webapp
