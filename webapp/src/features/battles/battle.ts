@@ -53,6 +53,7 @@ export type Battle = {
   nextCutAt: number | null;
   whales: string[];
   shields: Record<string, number>;
+  revived: string[];
   draft: Draft | null;
   storm: Storm | null;
   bounties: Bounty[];
@@ -109,6 +110,7 @@ export function parseBattle(id: string, d: DocumentData): Battle {
     nextCutAt: typeof d.nextCutAt === 'number' ? d.nextCutAt : null,
     whales: arr<string>(d.whales),
     shields: Object.fromEntries(Object.entries(rec(d.shields)).map(([k, v]) => [k, num(v)])),
+    revived: arr<string>(d.revived).filter((x) => typeof x === 'string'),
     draft,
     storm,
     bounties: arr<Record<string, unknown>>(d.bounties).map((b) => ({
@@ -212,6 +214,15 @@ export const OUT_REASON: Record<string, string> = { floor: 'Fell below the P&L f
 type Ok = { ok: boolean };
 export const joinBattle = (warId: string) => callFunction<{ warId: string }, Ok>('tw_join', { warId });
 export const leaveBattle = (warId: string) => callFunction<{ warId: string }, Ok>('tw_leave', { warId });
+
+/** Last Man Standing revive (owner 2026-10-23): shown price only, the server charges TOKENS['revive']. */
+export const REVIVE_COST = 20;
+const REVIVE_CUTOFF_MS = 3_600_000;
+/** Mirrors tw_revive_fields so the button only shows when the server would say yes. */
+export const canRevive = (b: Battle, me: Account | null, uid: string, now: number) =>
+  !!b.lms && b.status === 'active' && !!me?.out && me.outReason !== 'surrender' && !b.revived.includes(uid) &&
+  b.endAt - now >= REVIVE_CUTOFF_MS && (b.alive ?? []).filter((u) => u !== uid).length >= 3;
+export const revive = (warId: string) => callFunction<{ warId: string }, Ok & { charged: number; balance: number }>('tw_revive', { warId });
 export const startBattle = (warId: string) => callFunction<{ warId: string }, Ok>('tw_start', { warId });
 export const cancelBattle = (warId: string) => callFunction<{ warId: string }, Ok>('tw_cancel', { warId });
 export const surrender = (warId: string) => callFunction<{ warId: string }, { ok: boolean; place: number }>('tw_surrender', { warId });

@@ -213,5 +213,31 @@ ok(re1 && /need 15 tokens and have 5/.test(re1.message), 'not enough tokens is r
 re1 = null; try { await call('minds_follow', { figure: 'elon' }); } catch (x) { re1 = x; }
 ok(re1 && /isn.t in the Hall of Minds/.test(re1.message), 'only figures in the Hall can be followed');
 
+// --- Last Man Standing revive: 20 tokens, once, back with the money you had
+const fv = (x) => x === null ? { nullValue: null } : typeof x === 'string' ? { stringValue: x } : typeof x === 'boolean' ? { booleanValue: x }
+  : typeof x === 'number' ? (Number.isInteger(x) ? { integerValue: String(x) } : { doubleValue: x })
+  : Array.isArray(x) ? { arrayValue: { values: x.map(fv) } } : { mapValue: { fields: Object.fromEntries(Object.entries(x).map(([k, y]) => [k, fv(y)])) } };
+const seed = (path, o) => admin(path, Object.fromEntries(Object.entries(o).map(([k, y]) => [k, fv(y)])));
+const lmsWar = 'revivewarxyz';
+const others = ['rv1', 'rv2', 'rv3'];
+await seed('tradeWars/' + lmsWar, {
+  name: 'Revive night', host: 'rv1', status: 'active', players: [troll.uid, ...others], names: { [troll.uid]: 'Troll' },
+  lms: { floorPct: 10, cutHours: 6 }, alive: others, outs: [{ uid: troll.uid, name: 'Troll', reason: 'floor', at: 1, pnlPct: -11, place: 4 }],
+  endAt: Date.now() + 864e5, startAt: Date.now() - 36e5, buyIn: 1000, days: 1, maxPlayers: 4, rules: {}, modes: {},
+});
+await seed(`tradeWars/${lmsWar}/accounts/${troll.uid}`, { name: 'Troll', start: 1000, cash: 890, equity: 890, pnl: -110, pnlPct: -11, losses: 2, out: true, outReason: 'floor', place: 4 });
+await admin('wallets/' + troll.uid, { balance: { integerValue: 19 } });
+re1 = null; try { await call('tw_revive', { warId: lmsWar }); } catch (x) { re1 = x; }
+ok(re1 && /need 20 tokens and have 19/.test(re1.message), 'a revive needs 20 tokens');
+await admin('wallets/' + troll.uid, { balance: { integerValue: 45 } });
+r = await call('tw_revive', { warId: lmsWar });
+ok(r.charged === 20 && r.balance === 25, 'revive: 20 tokens');
+const rw = (await getDoc(doc(db, 'tradeWars', lmsWar))).data();
+const ra = (await getDoc(doc(db, 'tradeWars', lmsWar, 'accounts', troll.uid))).data();
+ok(rw.alive.includes(troll.uid) && rw.outs.length === 0 && rw.reviveSafe.includes(troll.uid), 'back among the traders still standing, safe from the next cut');
+ok(ra.out === false && ra.equity === 890 && ra.reviveBase === 890 && ra.start === 1000, 'with the money they had; rankings still count from the start');
+re1 = null; try { await call('tw_revive', { warId: lmsWar }); } catch (x) { re1 = x; }
+ok(re1 && /still in this battle/.test(re1.message), 'cannot revive while still in');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

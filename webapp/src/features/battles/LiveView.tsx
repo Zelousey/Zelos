@@ -9,12 +9,12 @@ import type { QuotesDoc } from '../../data/markets';
 import { instrument } from '../../data/universe';
 import { formatMoney, formatPercent, formatPrice, formatRelative, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { Badge, Button, Card, Change, EmptyState, Field, useToast } from '../../ui';
+import { Badge, Button, Card, Change, Confirm, EmptyState, Field, useToast } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { TIMEFRAMES } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { errorText } from '../invites/invites';
-import { allowedSymbols, liveEquity, OUT_REASON, placeBounty, setBracket, spendShield, standings, stormNow, trade, tradable, type Account, type Battle, type Book, type Position, type TickerEvent } from './battle';
+import { allowedSymbols, canRevive, liveEquity, OUT_REASON, placeBounty, revive, REVIVE_COST, setBracket, spendShield, standings, stormNow, trade, tradable, type Account, type Battle, type Book, type Position, type TickerEvent } from './battle';
 import { clock, RulesBox } from './parts';
 import s from './Battles.module.css';
 
@@ -48,6 +48,7 @@ export function LiveView({ b, uid, accounts, me, book, events, quotes, now }: Pr
           <b>{t('bt.youreOut')}</b>
           <span>{me.outReason ? (OUT_REASON[me.outReason] ?? me.outReason) : ''}</span>
           <span className={s.muted}>{t('bt.outPlace', { n: me.place ?? '—' })}</span>
+          {canRevive(b, me, uid, now) && <ReviveButton warId={b.id} />}
         </Card>
       )}
 
@@ -381,5 +382,40 @@ function Bounties({ b, uid, me, now }: { b: Battle; uid: string; me: Account | n
         </form>
       )}
     </Card>
+  );
+}
+
+/** Last Man Standing: back in once, with the money you had (tw_revive). */
+function ReviveButton({ warId }: { warId: string }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <Button variant="primary" className={s.reviveBtn} disabled={busy} onClick={() => setOpen(true)}>
+        {t('bt.revive', { n: REVIVE_COST })}
+      </Button>
+      <Confirm
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t('bt.revive.title')}
+        action={t('bt.revive', { n: REVIVE_COST })}
+        busy={busy}
+        onConfirm={async () => {
+          setBusy(true);
+          try {
+            await revive(warId);
+            toast.show(t('bt.revived'), 'success');
+            setOpen(false);
+          } catch (e) {
+            toast.show(errorText(e), 'error');
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <p>{t('bt.revive.body', { n: REVIVE_COST })}</p>
+      </Confirm>
+    </>
   );
 }

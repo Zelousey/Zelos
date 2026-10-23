@@ -196,3 +196,31 @@ test('a challenge in the bell lists its game modes before you accept', async ({ 
   await expect(modes).toContainText('Stop-loss and take-profit are allowed on buys.');
   expect(await axe(page)).toEqual([]);
 });
+
+test('knocked out of Last Man Standing: come back in for 20 tokens, once', async ({ page }, info) => {
+  await page.goto('battles');
+  const uid = await signIn(page, `revive-${info.project.name}${Date.now()}@example.com`);
+  const now = Date.now();
+  const id = rid();
+  const others = ['rivalUid0001', 'rivalUid0002', 'rivalUid0003'];
+  await put(`tradeWars/${id}`, {
+    name: 'Second chance', host: 'rivalUid0001', hostName: 'Rex', buyIn: 1000, days: 2, maxPlayers: 4, status: 'active',
+    players: [uid, ...others], names: { [uid]: 'Me', rivalUid0001: 'Rex', rivalUid0002: 'Ann', rivalUid0003: 'Bo' },
+    rules: {}, modes: {}, lms: { floorPct: 10 }, alive: others,
+    outs: [{ uid, name: 'Me', reason: 'floor', at: now - 1000, pnlPct: -11, place: 4 }],
+    startAt: now - 3600_000, endAt: now + 86400_000, createdAt: now - 7200_000,
+  });
+  await put(`tradeWars/${id}/accounts/${uid}`, { name: 'Me', start: 1000, cash: 890, equity: 890, pnl: -110, pnlPct: -11, trades: 3, losses: 2, out: true, outReason: 'floor', place: 4 });
+  for (const o of others) await put(`tradeWars/${id}/accounts/${o}`, { name: o, start: 1000, cash: 1000, equity: 1000, pnl: 0, pnlPct: 0, trades: 1 });
+  await put(`wallets/${uid}`, { balance: 30 });
+  await page.goto(`battles/${id}`);
+  await expect(page.getByText("You're out")).toBeVisible();
+  await page.getByRole('button', { name: 'Come back in · 20 tokens' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('with the money you had');
+  expect(await axe(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Come back in · 20 tokens' }).click();
+  await expect(page.getByText("You're back in the battle!")).toBeVisible();
+  await expect(page.getByText("You're out")).toHaveCount(0);
+  await expect(page.getByText('4 of 4 still standing')).toBeVisible();
+});
