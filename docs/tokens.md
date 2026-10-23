@@ -57,6 +57,15 @@ scanner pages, the Terms) quote the same numbers; update them together.
 - `tokens_wallet`: your wallet + prices (makes it, adds welcome tokens once).
   `canBuy` is true once the Square access token is set.
 - `tokens_spend`: `{kind: 'pass', strategy}` or `{kind: 'unlock', alertId}`.
+- Battle slots (owner 2026-10-23): you can be in `TW_FREE_SLOTS` (3) open battles
+  (lobby, draft or live) for free. `tw_create`, `tw_challenge`, `tw_join`, `tw_respond`
+  (accept) and `invite_accept` (battle invites) count them first (`_tw_open_count`, at most 3
+  reads, Firestore index in `firestore.indexes.json`). Past the limit they refuse with
+  `details: {reason: 'battle-slot', free, cost}`; the app and the website ask, then call
+  again with `extraSlot: true`, which charges `TOKENS['slot']` (15) in the same transaction
+  as the join (ledger type `battle-slot`). Finished and cancelled battles free their slot.
+  The count is read just before the transaction, so two joins at the very same moment
+  could both get the last free slot (at most one free extra battle; not worth a lock).
 - `cosmetics_buy` / `cosmetics_equip`: profile looks (`COSMETICS`). Since 2026-10-23
   (owner): animated badges 200 (spinning coin, fire, lightning, rocket launch), photo
   frames 120 (gold, diamond, flame, emerald) and chart themes 100 (Midnight, Paper,

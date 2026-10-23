@@ -85,7 +85,7 @@
       var bn = String(box.querySelector('#zivName').value || '').replace(/[<>]/g, '').trim();
       if (bn.length < 2) { box.querySelector('#zivName').focus(); m.textContent = 'Give your battle a name, so you can tell your battles apart.'; return; }
       go.disabled = true; go.textContent = 'Creating your battle…';
-      call('tw_create', { name: bn, buyIn: +box.querySelector('#zivBuy').value, days: +box.querySelector('#zivDays').value, maxPlayers: 10 }).then(function (r) {
+      (global.ZelosTokens && ZelosTokens.slot ? function (n, d) { return ZelosTokens.slot(function (x) { return call(n, x); }, d); } : call)('tw_create', { name: bn, buyIn: +box.querySelector('#zivBuy').value, days: +box.querySelector('#zivDays').value, maxPlayers: 10 }).then(function (r) {
         sent(link('&battle=' + encodeURIComponent(r.warId) + '&bn=' + encodeURIComponent(bn)), 'battle', bn, r.warId);
       }, function (e) { go.disabled = false; go.textContent = 'Create invite link'; m.textContent = errText(e); });
     }

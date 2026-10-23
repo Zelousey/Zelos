@@ -257,5 +257,25 @@ ok(ra.out === false && ra.equity === 890 && ra.reviveBase === 890 && ra.start ==
 re1 = null; try { await call('tw_revive', { warId: lmsWar }); } catch (x) { re1 = x; }
 ok(re1 && /still in this battle/.test(re1.message), 'cannot revive while still in');
 
+// --- Battle slots: 3 open battles free (the revive battle is one), 15 tokens for each one past that
+const mk = (extra) => call('tw_create', { name: 'Slot test', buyIn: 1000, days: 1, maxPlayers: 4, ...(extra ? { extraSlot: true } : {}) });
+r = await mk(); ok(r.warId && r.charged === 0, 'a 2nd open battle is free');
+const slot2 = r.warId;
+r = await mk(); ok(r.warId && r.charged === 0, 'a 3rd open battle is free');
+re1 = null; try { await mk(); } catch (x) { re1 = x; }
+ok(re1 && /3 open battles/.test(re1.message) && re1.details?.reason === 'battle-slot' && re1.details?.cost === 15, 'a 4th asks first, with the price for the app');
+r = await mk(true);
+ok(r.charged === 15 && (await adminGet('wallets/' + troll.uid)).fields.balance.integerValue === '10', 'and costs 15 tokens once you say yes');
+const slotWar = 'slotlobbyxyz';
+await seed('tradeWars/' + slotWar, { name: 'Open lobby', host: 'rv1', status: 'lobby', players: ['rv1'], names: { rv1: 'Rv' }, buyIn: 1000, days: 1, maxPlayers: 4, rules: {}, modes: {} });
+re1 = null; try { await call('tw_join', { warId: slotWar }); } catch (x) { re1 = x; }
+ok(re1 && re1.details?.reason === 'battle-slot', 'joining a 5th asks too');
+re1 = null; try { await call('tw_join', { warId: slotWar, extraSlot: true }); } catch (x) { re1 = x; }
+ok(re1 && /need 15 tokens and have 10/.test(re1.message), 'and needs the tokens');
+ok(!(await getDoc(doc(db, 'tradeWars', slotWar))).data().players.includes(troll.uid), 'a refused join leaves the lobby as it was');
+for (const w of [lmsWar, slot2]) await admin(`tradeWars/${w}?updateMask.fieldPaths=status`, { status: { stringValue: w === lmsWar ? 'ended' : 'cancelled' } });
+r = await call('tw_join', { warId: slotWar });
+ok(r.charged === 0 && (await getDoc(doc(db, 'tradeWars', slotWar))).data().players.includes(troll.uid), 'finished and cancelled battles free their slots');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

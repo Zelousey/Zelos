@@ -225,6 +225,32 @@ test('knocked out of Last Man Standing: come back in for 20 tokens, once', async
   await expect(page.getByText('4 of 4 still standing')).toBeVisible();
 });
 
+test('battle slots: 3 open battles are free, a 4th asks before using 15 tokens', async ({ page }, info) => {
+  await page.goto('battles');
+  const uid = await signIn(page, `slots-${info.project.name}${Date.now()}@example.com`);
+  await passBasics(uid);
+  const now = Date.now();
+  const base = { hostName: 'Rex', buyIn: 1000, days: 2, maxPlayers: 4, rules: {}, modes: {}, createdAt: now - 7200_000 };
+  for (const status of ['lobby', 'draft', 'active'])
+    await put(`tradeWars/${rid()}`, { ...base, name: `Open ${status}`, host: 'rivalUid0001', status, players: [uid, 'rivalUid0001'], names: { [uid]: 'Me', rivalUid0001: 'Rex' } });
+  const id = rid();
+  await put(`tradeWars/${id}`, { ...base, name: 'One too many', host: 'rivalUid0002', status: 'lobby', players: ['rivalUid0002'], names: { rivalUid0002: 'Ann' } });
+  await put(`wallets/${uid}`, { balance: 20 });
+  await page.goto(`battles/${id}`);
+  const join = page.getByRole('button', { name: /^Join/ });
+  await join.click();
+  const dialog = page.getByRole('dialog', { name: 'One more battle?' });
+  await expect(dialog).toContainText('already in 3 open battles');
+  expect(await axe(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(join).toBeEnabled(); // said no: nothing joined, nothing charged
+  await join.click();
+  await page.getByRole('dialog', { name: 'One more battle?' }).getByRole('button', { name: 'Use 15 tokens' }).click();
+  await expect(page.getByText("You're in.")).toBeVisible();
+  await expect.poll(async () => (await fetch(`${BASE}/wallets/${uid}`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json())).fields?.balance?.integerValue).toBe('5');
+});
+
 test('the sword clash plays once when a battle goes live and once before the results', async ({ page }, info) => {
   await page.addInitScript(() => localStorage.removeItem('zelosClashOff'));
   await page.goto('battles');
