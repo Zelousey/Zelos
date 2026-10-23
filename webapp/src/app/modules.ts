@@ -62,6 +62,8 @@ export const MODULES: AppModule[] = [
   { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', load: () => import('../features/social/SocialModule') },
   { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', load: () => import('../features/missions/MissionsPage') },
   { id: 'learn', path: 'learn', label: 'nav.learn', icon: 'learn', group: 'play', load: () => import('../features/learn/LearnModule') },
+  // Hall of Minds (owner 2026-10-22): history's great minds, what a trader can take from them
+  { id: 'minds', path: 'minds', label: 'nav.minds', icon: 'learn', group: 'play', load: () => import('../features/minds/MindsModule') },
   { id: 'quiz', path: 'quiz', label: 'nav.quiz', icon: 'learn', group: 'play', parent: 'learn', nav: false, load: () => import('../features/learn/QuizPage') },
   { id: 'training', path: 'training', label: 'nav.training', icon: 'arcade', group: 'play', load: () => import('../features/training/TrainingModule') },
   // the old name: /arcade/... -> /training/...

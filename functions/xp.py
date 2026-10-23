@@ -23,6 +23,7 @@ import re
 from datetime import date, timedelta
 
 import learn as LEARN  # Trading 101 lessons and chapters (functions/learn.py)
+import minds as MINDS  # Hall of Minds lessons and pairs (functions/minds.py)
 
 FIXED = {
     "alert-open": 5, "daily-checkin": 3, "arcade-play": 5,
@@ -40,6 +41,7 @@ SOURCES = {
     "achievement": ("achievements", "Achievement"), "onboard": ("platform", "Getting set up"),
     "coach-task": ("coaching", "Coach task done"), "coach-bonus": ("coaching", "Your student finished a task"),
     "lesson": ("learn", "Trading 101 lesson"), "chapter": ("learn", "Trading 101 chapter quiz"),
+    "mind": ("learn", "Hall of Minds lesson"),
 }
 
 DAILY_MISSIONS = {"trade": 10, "analyze": 10, "grade": 10, "news": 5, "xp": 20}
@@ -62,6 +64,7 @@ DAILY_LIMIT = {
     "alert-open": 50, "practice-trade": 10, "practice-win": 10, "grade-setup": 5,
     "real-trade": 3, "referral": 10, "mission": 12, "achievement": 30, "onboard": 4,
     "coach-task": 3, "coach-bonus": 6, "lesson": 40, "chapter": 10,
+    "mind": MINDS.DAILY_LIMIT,
 }
 # Coaching (functions/coaching.py), paid only by the server: refId "<task kind>:<task id>".
 # A student earns from at most 3 coach tasks a day; a coach from at most 6 student tasks a day.
@@ -157,6 +160,10 @@ def decide(kind, ref_id, today, counts=None, xp_today=0):
         if ref_id not in LEARN.LESSON_IDS:
             return 0, ref_id, "bad-ref"
         amount = LEARN.LESSON_XP
+    elif kind == "mind":
+        if ref_id not in MINDS.XP_REFS:
+            return 0, ref_id, "bad-ref"
+        amount = MINDS.LESSON_XP
     elif kind == "chapter":
         if ref_id not in LEARN.CHAPTERS:
             return 0, ref_id, "bad-ref"

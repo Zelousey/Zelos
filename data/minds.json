@@ -1,0 +1,1236 @@
+{
+ "version": 3,
+ "modernNote": "Modern comparisons are our own, based on public reporting. These people aren't connected to Zelos and don't endorse it.",
+ "note": "Hall of Minds (owner 2026-10-22). Historical figures only; portraits are public-domain paintings. Quotes are checked against the source given; 'plain' and 'trading' are our own explanations. Edit here; scripts/build_practice.py copies it to functions/minds.json.",
+ "order": [
+  "napoleon",
+  "alexander",
+  "caesar",
+  "livermore",
+  "aristotle",
+  "dow",
+  "tesla",
+  "edison",
+  "newton",
+  "morgan",
+  "franklin"
+ ],
+ "figures": [
+  {
+   "id": "aristotle",
+   "name": "Aristotle",
+   "role": "Philosopher",
+   "years": "384–322 BC",
+   "tagline": "The teacher of Alexander the Great, who wrote down how good habits are built.",
+   "portrait": "aristotle.webp",
+   "lessons": [
+    {
+     "id": "habits",
+     "title": "You become what you practice",
+     "text": [
+      "Aristotle taught that nobody is born brave, fair or skilled. You become brave by doing brave things, again and again, until it is who you are.",
+      "Skill is not a gift you wait for. It is the sum of what you repeat."
+     ],
+     "trading": "Good trading is a habit, not a mood. Follow the same checklist on every trade, even the boring ones, until you do it without thinking."
+    },
+    {
+     "id": "mean",
+     "title": "The golden middle",
+     "text": [
+      "Aristotle said most good qualities sit between two bad ones. Courage sits between being reckless and being a coward.",
+      "Too much of a good thing turns into a bad thing."
+     ],
+     "trading": "Risk works the same way. Risking nothing teaches you nothing; risking too much wipes you out. The middle is a small, fixed amount on every trade."
+    },
+    {
+     "id": "one-swallow",
+     "title": "One good day is not a season",
+     "text": [
+      "He said one swallow does not make a spring. A single good day does not make a happy life.",
+      "What counts is the long run."
+     ],
+     "trading": "One big win doesn't prove your method works, and one loss doesn't prove it fails. Judge yourself on 20 or more trades, not one."
+    },
+    {
+     "id": "anger",
+     "title": "Feel it, but aim it",
+     "text": [
+      "Aristotle didn't say never get angry. He said anyone can get angry; doing it at the right time, for the right reason, by the right amount, is the hard part.",
+      "Emotions are fine. Being run by them isn't."
+     ],
+     "trading": "After a loss you will want to win it back fast. That is revenge trading. Notice the feeling, close the app, and come back to your plan tomorrow."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "one-swallow",
+     "text": "For as it is not one swallow or a fine day that makes a spring, so it is not one day or a short time that makes a man blessed and happy.",
+     "source": "Nicomachean Ethics, Book I, ch. 7 (W. D. Ross translation)",
+     "plain": "One good day doesn't make a good life. Only a long run of them does.",
+     "trading": "Don't judge a strategy on one trade. Judge it on many."
+    },
+    {
+     "id": "learn-by-doing",
+     "text": "For the things we have to learn before we can do them, we learn by doing them, e.g. men become builders by building and lyre-players by playing the lyre.",
+     "source": "Nicomachean Ethics, Book II, ch. 1 (W. D. Ross translation)",
+     "plain": "You learn a skill by doing it, not just by reading about it.",
+     "trading": "Practice trades teach you more than any video. That's why Zelos gives you practice money."
+    },
+    {
+     "id": "mean",
+     "text": "It is a mean between two vices, that which depends on excess and that which depends on defect.",
+     "source": "Nicomachean Ethics, Book II, ch. 6 (W. D. Ross translation)",
+     "plain": "The right way is usually in the middle, between too much and too little.",
+     "trading": "Not too big, not too small: risk the same modest amount on every trade."
+    },
+    {
+     "id": "anger",
+     "text": "Any one can get angry—that is easy—or give or spend money; but to do this to the right person, to the right extent, at the right time, with the right motive, and in the right way, that is not for every one, nor is it easy.",
+     "source": "Nicomachean Ethics, Book II, ch. 9 (W. D. Ross translation)",
+     "plain": "Having feelings is easy. Using them well, at the right time and amount, is hard.",
+     "trading": "A loss will make you want to act. Wait until you are calm, then act on your plan."
+    }
+   ],
+   "story": [
+    "Aristotle was born in 384 BC in Stagira, in northern Greece. His father was the doctor to the king of Macedon.",
+    "At 17 he went to Athens to study at Plato's Academy, the best school in the Greek world, and stayed for about 20 years.",
+    "After Plato died, he travelled. On the island of Lesbos he studied sea creatures up close, one of the first people to do science by careful watching.",
+    "In 343 BC King Philip asked him to teach his son, the future Alexander the Great.",
+    "Back in Athens he opened his own school, the Lyceum. He wrote about almost everything: logic, animals, the stars, politics, poetry and how to live a good life.",
+    "He left Athens in 323 BC, when feeling turned against anyone linked to Macedon, and died the next year."
+   ],
+   "carried": [
+    {
+     "title": "He looked for himself",
+     "text": "Aristotle described hundreds of animals from careful watching and dissection, and noticed things others missed, such as dolphins breathing air and feeding their young with milk.",
+     "source": "Aristotle, History of Animals"
+    },
+    {
+     "title": "Collect the evidence",
+     "text": "To understand which governments work, his school collected and studied the constitutions of 158 Greek cities instead of just theorizing.",
+     "source": "Aristotle, Constitution of the Athenians (the one that survives)"
+    },
+    {
+     "title": "Teaching on the move",
+     "text": "He taught while walking up and down the covered walkways of the Lyceum, so his followers became known as the 'Peripatetics', the walkers.",
+     "source": "Diogenes Laertius, Lives of the Eminent Philosophers, Book 5"
+    },
+    {
+     "title": "Truth over his teacher",
+     "text": "He disagreed openly with his own teacher Plato, writing that, though friends and truth are both dear, it is right to honor truth first.",
+     "source": "Aristotle, Nicomachean Ethics, Book I, ch. 6"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Plato",
+     "text": "Aristotle studied under Plato at the Academy in Athens for about 20 years, then went on to disagree with him on many things.",
+     "source": "Diogenes Laertius, Lives of the Eminent Philosophers, Book 5",
+     "figures": []
+    }
+   ],
+   "group": "history",
+   "thenNow": {
+    "modern": "Charlie Munger",
+    "text": [
+     "Charlie Munger, Warren Buffett's late business partner, told people to build a 'latticework of mental models': the big ideas from many subjects, not just one.",
+     "That's very close to how Aristotle worked: he studied animals, politics, logic and ethics, and used each to understand the others."
+    ],
+    "trading": "Don't learn only charts. Learn a little about how businesses, the economy and people's emotions work; each makes you read the chart better."
+   }
+  },
+  {
+   "id": "alexander",
+   "name": "Alexander the Great",
+   "role": "Conqueror",
+   "years": "356–323 BC",
+   "tagline": "Taught by Aristotle, he built one of the largest empires in history before he was 30.",
+   "portrait": "alexander.webp",
+   "lessons": [
+    {
+     "id": "study",
+     "title": "Learn from the best before you lead",
+     "text": [
+      "As a teenager, Alexander was taught by Aristotle himself. He kept a copy of Homer's Iliad with him on campaign.",
+      "He studied the great before trying to become one."
+     ],
+     "trading": "Before you trade a setup with practice money, study it. Read how it works, look at old charts, then try it."
+    },
+    {
+     "id": "speed",
+     "title": "Move before the other side is ready",
+     "text": [
+      "Alexander often moved faster than his enemies thought possible, and struck before they were set.",
+      "Speed won battles that numbers alone would have lost."
+     ],
+     "trading": "In trading, speed means having your plan ready before the market opens: your entry, your stop, your target. Then you act, instead of deciding in a rush."
+    },
+    {
+     "id": "knot",
+     "title": "Cut the knot",
+     "text": [
+      "Legend said whoever untied the Gordian Knot would rule Asia. Alexander didn't untie it. He cut it with his sword.",
+      "Sometimes the answer is to stop fiddling and solve the problem directly."
+     ],
+     "trading": "If a trade hits your stop, don't search for reasons to stay in. The stop is the sword: cut it and move on."
+    },
+    {
+     "id": "front",
+     "title": "Lead from the front",
+     "text": [
+      "Alexander rode into battle at the front of his cavalry and was wounded many times. His soldiers followed because he took the same risks.",
+      "People trust leaders who share the danger."
+     ],
+     "trading": "If you post a trade idea in your squad, take it yourself in your practice account. Own your calls, wins and losses."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "steal",
+     "text": "I will not steal a victory.",
+     "source": "Plutarch, Life of Alexander, ch. 31 (before the battle of Gaugamela, when told to attack at night)",
+     "plain": "He wanted to win fair and in the open, so nobody could say it was luck or a trick.",
+     "trading": "A win you don't understand teaches you nothing. Win by your rules, so you can do it again."
+    },
+    {
+     "id": "diogenes",
+     "text": "If I were not Alexander, I would be Diogenes.",
+     "source": "Plutarch, Life of Alexander, ch. 14",
+     "plain": "He admired the poor philosopher Diogenes, who wanted nothing, as much as he loved his own power.",
+     "trading": "Wanting less is a strength. A trader who doesn't need every trade can wait for the good ones."
+    },
+    {
+     "id": "worlds",
+     "text": "Is it not worthy of tears that, when the number of worlds is infinite, we have not yet become lords of a single one?",
+     "source": "Plutarch, Moralia, On Tranquillity of Mind, ch. 4",
+     "plain": "Even when he had a lot, he felt he had too little. His hunger never ended.",
+     "trading": "Ambition drives you, but greed sinks accounts. Set a goal, and know when to stop for the day."
+    }
+   ],
+   "story": [
+    "Alexander was born in 356 BC in Macedon, in northern Greece, the son of King Philip II, who had built the strongest army of the time.",
+    "From 13 to 16 he was taught by the philosopher Aristotle. He loved Homer's Iliad and dreamed of being a hero like Achilles.",
+    "His father was murdered in 336 BC, and Alexander became king at 20. Two years later he crossed into Asia to take on the huge Persian Empire.",
+    "He beat the Persians at the Granicus river, at Issus and finally at Gaugamela in 331 BC, took Egypt (where he founded the city of Alexandria), and pushed on as far as India.",
+    "In India his exhausted army refused to go further, and he had to turn back. He died in Babylon in 323 BC, aged 32, and his generals split his empire between them."
+   ],
+   "carried": [
+    {
+     "title": "Watching before acting",
+     "text": "As a boy, Alexander tamed the wild horse Bucephalus, which no one could ride. He'd noticed the horse was scared of its own shadow, so he turned it to face the sun.",
+     "source": "Plutarch, Life of Alexander, ch. 6"
+    },
+    {
+     "title": "Sharing the thirst",
+     "text": "Crossing a desert where his army was dying of thirst, soldiers brought him a helmet of water. He poured it on the ground, because his men had none.",
+     "source": "Arrian, The Campaigns of Alexander, Book 6, ch. 26"
+    },
+    {
+     "title": "First over the wall",
+     "text": "Attacking a town in India, he climbed the ladder first and jumped inside the walls almost alone. An arrow went through his chest, and he nearly died.",
+     "source": "Arrian, The Campaigns of Alexander, Book 6, ch. 9–11"
+    },
+    {
+     "title": "Scars as proof",
+     "text": "When his army mutinied, he reminded them that he had shared every danger, saying there was no part of his body, except his back, without a scar.",
+     "source": "Arrian, The Campaigns of Alexander, Book 7, ch. 10"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Aristotle",
+     "text": "From 13 to 16, Alexander was taught by Aristotle, and kept a copy of the Iliad, annotated by his teacher, with him on campaign.",
+     "source": "Plutarch, Life of Alexander, ch. 7–8",
+     "figures": [
+      "aristotle"
+     ]
+    }
+   ],
+   "group": "history"
+  },
+  {
+   "id": "napoleon",
+   "name": "Napoleon Bonaparte",
+   "role": "War strategist",
+   "years": "1769–1821",
+   "tagline": "A young officer who rose to rule France and rewrote how wars are fought.",
+   "portrait": "napoleon.webp",
+   "lessons": [
+    {
+     "id": "study",
+     "title": "Study the greats",
+     "text": [
+      "Napoleon read the campaigns of Alexander, Hannibal and Caesar over and over. He told officers to model themselves on them.",
+      "He didn't start from zero. He started from the best."
+     ],
+     "trading": "You don't have to invent a strategy. Learn a proven one first (Trading 101, the Strategy library), then make it your own."
+    },
+    {
+     "id": "speed",
+     "title": "Speed is a weapon",
+     "text": [
+      "His armies marched faster than anyone in Europe, living off the land instead of waiting for supply wagons.",
+      "He said the strength of an army is its mass times its speed."
+     ],
+     "trading": "Being prepared is what lets you act fast. Have your watchlist and levels ready, so when price reaches your level you place the order, not start thinking."
+    },
+    {
+     "id": "concentrate",
+     "title": "Bring everything to one point",
+     "text": [
+      "Napoleon's favorite move was to gather his forces at one place and hit the enemy's weakest point with all of it.",
+      "Spread thin, you are weak everywhere."
+     ],
+     "trading": "Ten tiny trades at once means you watch none of them. Focus on the 1 to 3 best setups you understand."
+    },
+    {
+     "id": "mind",
+     "title": "The mind wins three quarters",
+     "text": [
+      "Napoleon believed morale counted three times more than numbers or guns. Tired, scared troops lose.",
+      "How people feel decides how they fight."
+     ],
+     "trading": "Your mood is part of your strategy. Tired, angry or bored? Don't trade. Take a break and keep your edge for when you're sharp."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "models",
+     "text": "Read over and over again the campaigns of Alexander, Hannibal, Caesar, Gustavus, Turenne, Eugene, and Frederic. Model yourself upon them.",
+     "source": "The Military Maxims of Napoleon, Maxim 78 (collected 1827; English edition 1831)",
+     "plain": "Study the best people in your field again and again, and copy how they did it.",
+     "trading": "Replay great trades, yours and others'. Ask: why did this work, and could I see it coming?"
+    },
+    {
+     "id": "mass-speed",
+     "text": "The strength of an army, like the quantity of motion in mechanics, is estimated by the mass multiplied by the velocity.",
+     "source": "The Military Maxims of Napoleon, Maxim 9 (English edition 1831)",
+     "plain": "Being big isn't enough; you also have to be quick.",
+     "trading": "A good idea entered too late is a bad trade. Plan early so you can act on time."
+    },
+    {
+     "id": "moral",
+     "text": "In war, three-quarters turns on personal character and relations; the balance of manpower and materials counts only for the remaining quarter.",
+     "source": "Napoleon, note on the affairs of Spain, 27 August 1808 (Correspondance de Napoléon Ier)",
+     "plain": "Mindset matters more than tools. Three parts mind, one part everything else.",
+     "trading": "Discipline beats a fancy indicator. Most losses come from breaking your own rules."
+    }
+   ],
+   "story": [
+    "Napoleon was born in 1769 on Corsica, an island France had taken over the year before. At nine he was sent to a military school in France, where other boys mocked his accent and his family's lack of money. He spent his free time reading history.",
+    "He became an artillery officer. In 1793, aged 24, he worked out how to drive the British fleet out of the port of Toulon: take the hills above the harbor and put cannons there. It worked, and he was made a general.",
+    "In 1796 he was given France's army in Italy: hungry, unpaid and losing. Within months he won battle after battle, mostly by moving faster than his enemies and hitting them one at a time.",
+    "In 1799 he seized power, and in 1804 he crowned himself Emperor. He also rewrote France's laws into one clear code, the Napoleonic Code, which is still the base of the law in many countries.",
+    "His greatest win was Austerlitz in 1805. Then he overreached: a long war in Spain, and in 1812 an invasion of Russia that cost him most of his army.",
+    "He was exiled in 1814, escaped and came back for 100 days, and lost for good at Waterloo in 1815. He died in exile on the island of Saint Helena in 1821."
+   ],
+   "carried": [
+    {
+     "title": "Fighting next to his men",
+     "text": "At Lodi in 1796, Napoleon was seen at the front aiming the cannons himself, a job for an ordinary corporal. His soldiers started calling him \"the little corporal\", a nickname that stuck for life.",
+     "source": "As told in Andrew Roberts, Napoleon: A Life (2014)"
+    },
+    {
+     "title": "Leading from the bridge",
+     "text": "At Arcole the same year, with his attack stalled, he grabbed a flag and led a charge onto the bridge himself, and ended up knocked into a marsh.",
+     "source": "As told in David Chandler, The Campaigns of Napoleon (1966)"
+    },
+    {
+     "title": "He knew his soldiers",
+     "text": "He was famous for remembering veterans' names and battles, stopping to talk to them and teasingly pulling their ears, which made ordinary soldiers feel seen by the Emperor.",
+     "source": "From the memoirs of his valet Constant and Las Cases' Memorial of Saint Helena"
+    },
+    {
+     "title": "He studied everything",
+     "text": "His secretary described him working through reports, numbers and maps late into the night, asking officers, engineers and locals about roads, rivers and supplies until he knew the ground better than they did.",
+     "source": "Baron Fain, Memoirs (published 1908)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Alexander and Caesar",
+     "text": "Napoleon read the campaigns of Alexander, Hannibal and Caesar over and over, and told his officers to model themselves on them.",
+     "source": "The Military Maxims of Napoleon, Maxim 78",
+     "figures": [
+      "alexander",
+      "caesar"
+     ]
+    }
+   ],
+   "group": "history",
+   "thenNow": {
+    "modern": "Elon Musk",
+    "text": [
+     "Like Napoleon, Elon Musk is known for very long working weeks, getting into the smallest details himself, and deadlines that most people think are impossible.",
+     "Both used speed as a weapon: Napoleon out-marched his enemies, and SpaceX tests rockets, learns from the ones that blow up, and rebuilds faster than older companies.",
+     "Both stories also show the risk: taking on too much at once."
+    ],
+    "trading": "Speed and hands-on work win, but only with a limit you respect. Plan fast, act fast, and stop for the day when you hit your loss limit."
+   }
+  },
+  {
+   "id": "caesar",
+   "name": "Julius Caesar",
+   "role": "Empire builder",
+   "years": "100–44 BC",
+   "tagline": "A general and writer who turned the Roman Republic into an empire.",
+   "portrait": "caesar.webp",
+   "lessons": [
+    {
+     "id": "rubicon",
+     "title": "Cross the Rubicon",
+     "text": [
+      "In 49 BC, Caesar led his army across the Rubicon river into Italy. By law that meant civil war. There was no going back.",
+      "Once he decided, he committed fully."
+     ],
+     "trading": "Decide your plan before the trade, then follow it. Changing your stop in the middle of a trade is how small losses become big ones."
+    },
+    {
+     "id": "believe",
+     "title": "People believe what they want to",
+     "text": [
+      "Caesar wrote that people usually believe what they wish were true. He used it against his enemies, and guarded against it in himself.",
+      "Wanting something to be true doesn't make it true."
+     ],
+     "trading": "Once you're in a trade, you'll look for news that agrees with you. Ask instead: what would prove me wrong? Then watch for that."
+    },
+    {
+     "id": "small",
+     "title": "Small causes, big changes",
+     "text": [
+      "Caesar noticed that in war, tiny events (a rumor, a wrong turn, a sudden storm) often decided great battles.",
+      "Small things are not always small."
+     ],
+     "trading": "One surprise headline can move a stock 10% overnight. That's why you size every trade so a surprise can't hurt you badly."
+    },
+    {
+     "id": "record",
+     "title": "Write it down",
+     "text": [
+      "Caesar wrote his own account of his wars, the Commentaries, in short, clear sentences. He controlled the story and remembered the lessons.",
+      "What gets written down gets learned."
+     ],
+     "trading": "Keep a trading journal: why you entered, how it ended and what you felt. Your notes become your best teacher."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "veni",
+     "text": "Veni, vidi, vici. (I came, I saw, I conquered.)",
+     "source": "Caesar's report of his quick victory at Zela, 47 BC (Suetonius, Life of Julius Caesar, 37; Plutarch, Life of Caesar, 50)",
+     "plain": "It was so quick and clear that three words were enough.",
+     "trading": "The best trades are usually simple. If you need a long story to justify one, skip it."
+    },
+    {
+     "id": "die",
+     "text": "The die is cast. (Alea iacta est.)",
+     "source": "Suetonius, Life of Julius Caesar, 32 (crossing the Rubicon, 49 BC)",
+     "plain": "The decision is made, and we live with it.",
+     "trading": "Once your order is in, let your plan run. Don't keep second-guessing it."
+    },
+    {
+     "id": "believe",
+     "text": "Men willingly believe what they wish.",
+     "source": "Caesar, Commentaries on the Gallic War, Book III, ch. 18",
+     "plain": "People believe things because they want them to be true.",
+     "trading": "Hoping a stock goes up is not a reason to hold it. Your stop is your reality check."
+    },
+    {
+     "id": "small",
+     "text": "Fortune, which has great power in all matters and especially in war, brings about great changes by small causes.",
+     "source": "Caesar, Commentaries on the Civil War, Book III, ch. 68",
+     "plain": "Small, random things can change everything, so be ready for surprises.",
+     "trading": "Never risk so much that one surprise can knock you out."
+    }
+   ],
+   "story": [
+    "Julius Caesar was born in 100 BC into an old Roman family that had more name than money.",
+    "As a young man he was captured by pirates. He joked with them, wrote poems while he waited for the ransom, and told them he'd come back and punish them. He did.",
+    "He climbed Rome's political ladder by spending huge sums on games and favors, borrowing heavily, and making a deal with Rome's two most powerful men, Pompey and Crassus.",
+    "From 58 to 50 BC he conquered Gaul (roughly today's France and Belgium) and wrote short, clear reports on the war that are still read today.",
+    "In 49 BC he crossed the Rubicon river with his army, starting a civil war, and won it. He made himself dictator, and among many reforms he fixed the calendar: our 365-day year with a leap day comes from him.",
+    "Many senators feared he would make himself king, and on the Ides of March (15 March) 44 BC a group of them stabbed him to death."
+   ],
+   "carried": [
+    {
+     "title": "Calm under pressure",
+     "text": "Held by pirates, Caesar told them their ransom was too low and to ask for more. He treated them like his guards, and promised to come back and punish them. Once free, he raised ships and did.",
+     "source": "Plutarch, Life of Caesar, ch. 2"
+    },
+    {
+     "title": "Into the front line",
+     "text": "At the river Sabis in 57 BC, with his army about to break, Caesar grabbed a shield from a soldier, pushed to the front and called his officers by name until the line held.",
+     "source": "Caesar, Commentaries on the Gallic War, Book II, ch. 25"
+    },
+    {
+     "title": "\"Comrades\"",
+     "text": "He called his troops \"comrades\" rather than \"soldiers\", and they followed him through ten years of war.",
+     "source": "Suetonius, Life of Julius Caesar, ch. 67"
+    },
+    {
+     "title": "Mercy as a strategy",
+     "text": "After winning the civil war, he pardoned many of his enemies instead of killing them, a choice that won him support (and, in the end, let some of his killers live).",
+     "source": "Suetonius, Life of Julius Caesar, ch. 75"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Alexander",
+     "text": "As a young official in Spain, Caesar saw a statue of Alexander the Great and sighed: at an age when Alexander had already conquered the world, he had done nothing memorable. Soon after, he asked to return to Rome to chase bigger things.",
+     "source": "Suetonius, Life of Julius Caesar, ch. 7",
+     "figures": [
+      "alexander"
+     ]
+    }
+   ],
+   "group": "history"
+  },
+  {
+   "id": "franklin",
+   "name": "Benjamin Franklin",
+   "role": "Polymath",
+   "years": "1706–1790",
+   "tagline": "Printer, inventor, scientist and statesman, who became rich by being careful and steady.",
+   "portrait": "franklin.webp",
+   "lessons": [
+    {
+     "id": "compound",
+     "title": "Money makes money",
+     "text": [
+      "Franklin explained to young businessmen how money grows: money earns more money, and that money earns more too.",
+      "He left money in his will to Boston and Philadelphia to grow for 200 years. It did."
+     ],
+     "trading": "Small, steady gains add up. 1% a month, kept and grown, beats a lucky double that you give back."
+    },
+    {
+     "id": "time",
+     "title": "Time is money",
+     "text": [
+      "Franklin said an hour wasted is money lost, because you could have earned in that time.",
+      "He planned every hour of his day on a written schedule."
+     ],
+     "trading": "Set your trading time and your learning time. Watching charts all day isn't working; it usually leads to bad trades."
+    },
+    {
+     "id": "virtues",
+     "title": "Track yourself",
+     "text": [
+      "Franklin picked 13 habits to build and kept a little chart, marking each day he slipped.",
+      "He couldn't fix what he didn't measure."
+     ],
+     "trading": "Score yourself after each trading day: did I follow my plan? Your Zelos history and win rate show the numbers. Your journal shows why."
+    },
+    {
+     "id": "haste",
+     "title": "Haste makes waste",
+     "text": [
+      "Franklin printed sayings like this in Poor Richard's Almanack, a yearly book of plain advice.",
+      "Rushing costs more than it saves."
+     ],
+     "trading": "Chasing a stock that already ran usually means buying the top. If you missed it, wait for the next setup."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "time-money",
+     "text": "Remember that time is money.",
+     "source": "Advice to a Young Tradesman, 1748",
+     "plain": "Time you waste is money you could have made.",
+     "trading": "Spend your trading time on planning and review, not on staring at the screen."
+    },
+    {
+     "id": "beget",
+     "text": "Money can beget money, and its offspring can beget more, and so on.",
+     "source": "Advice to a Young Tradesman, 1748",
+     "plain": "Money you keep and invest earns more money, and then that earns more too.",
+     "trading": "Protect your account first. A big loss stops your money from growing."
+    },
+    {
+     "id": "lost-time",
+     "text": "Lost time is never found again.",
+     "source": "Poor Richard's Almanack, 1748",
+     "plain": "You can't get back time you wasted.",
+     "trading": "Learn from every loss right away, so the time it cost you isn't wasted."
+    },
+    {
+     "id": "well-done",
+     "text": "Well done is better than well said.",
+     "source": "Poor Richard's Almanack, 1737",
+     "plain": "Doing something matters more than talking about it.",
+     "trading": "Talking about trades is easy. Follow your plan in your account; that's what counts."
+    }
+   ],
+   "story": [
+    "Benjamin Franklin was born in Boston in 1706, the 15th of 17 children. His family could only afford two years of school.",
+    "At 12 he started work in his brother's print shop. At 17 he ran away to Philadelphia with almost no money and no friends there.",
+    "He built his own printing business with long hours and a reputation for being reliable. His yearly book of advice, Poor Richard's Almanack, made him famous.",
+    "At 42 he had enough money to step back from business, and spent his time on science and his city: he proved lightning is electricity, invented the lightning rod and bifocal glasses, and started a library, a fire company and a university.",
+    "He then became a diplomat. In Paris he won France to America's side in its war for independence, and he signed both the Declaration of Independence and the US Constitution.",
+    "He died in 1790, one of the most famous people in the world."
+   ],
+   "carried": [
+    {
+     "title": "He taught himself to write",
+     "text": "Without schooling, he took essays he admired, wrote them out again from memory, then compared his version with the original to find his mistakes.",
+     "source": "Franklin, Autobiography"
+    },
+    {
+     "title": "He let people see the work",
+     "text": "As a young printer he made a point of being seen working, and sometimes pushed his own paper home through the streets in a wheelbarrow, so people knew he was hardworking and could be trusted.",
+     "source": "Franklin, Autobiography"
+    },
+    {
+     "title": "A club for getting better",
+     "text": "At 21 he started the Junto, a weekly club of young tradesmen who met to swap ideas, books and advice on improving themselves and their city.",
+     "source": "Franklin, Autobiography"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Books",
+     "text": "Franklin taught himself from the books he could borrow or buy: Plutarch's Lives, Bunyan, and Defoe's Essay upon Projects, which he said shaped how he thought.",
+     "source": "Franklin, Autobiography",
+     "figures": []
+    }
+   ],
+   "group": "history",
+   "thenNow": {
+    "modern": "Warren Buffett",
+    "text": [
+     "Warren Buffett, like Franklin, explains money in plain words. His yearly letters to his shareholders are read almost like Poor Richard's Almanack.",
+     "Both made most of their fortune by letting money grow on itself over a very long time, and both are known for simple, careful habits."
+    ],
+    "trading": "Compounding needs time and no big losses. Protect your account first; growth comes from staying in the game."
+   }
+  },
+  {
+   "id": "edison",
+   "name": "Thomas Edison",
+   "role": "Inventor",
+   "years": "1847–1931",
+   "tagline": "The inventor of the phonograph and a practical light bulb, who built the first invention factory.",
+   "portrait": "edison.webp",
+   "lessons": [
+    {
+     "id": "work",
+     "title": "Ninety-nine percent work",
+     "text": [
+      "Edison said genius is mostly hard work, not a flash of brilliance.",
+      "His lab tested thousands of materials to find a light bulb filament that lasted."
+     ],
+     "trading": "There is no magic setup. Steady practice, review and patience make a trader."
+    },
+    {
+     "id": "failure",
+     "title": "Every miss is information",
+     "text": [
+      "When a helper felt sorry about thousands of failed tests, Edison said he had lots of results: he now knew thousands of things that didn't work.",
+      "A failed test is still a result."
+     ],
+     "trading": "A losing trade that followed your rules isn't a failure. It's data. Write down what happened and keep going."
+    },
+    {
+     "id": "system",
+     "title": "Build a system",
+     "text": [
+      "At Menlo Park, Edison built a lab where a team invented things on a schedule. It was the first invention factory.",
+      "He turned invention from luck into a process."
+     ],
+     "trading": "Turn trading into a routine: scan, plan, enter, manage, review. A process you repeat beats waiting for inspiration."
+    },
+    {
+     "id": "useful",
+     "title": "Make it useful",
+     "text": [
+      "Edison aimed his lab at inventions people would actually buy and use: light, sound recording, movies.",
+      "Clever doesn't count if nobody can use it."
+     ],
+     "trading": "Use tools you understand. A simple strategy you follow is worth more than a complicated one you don't."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "genius",
+     "text": "Genius is one per cent inspiration, ninety-nine per cent perspiration.",
+     "source": "Thomas Edison, spoken c. 1903 (as published in Harper's Monthly, September 1932)",
+     "plain": "Success comes mostly from hard work, not from being a genius.",
+     "trading": "Show up, follow the plan, review. That's the 99%."
+    },
+    {
+     "id": "results",
+     "text": "Why, man, I have gotten lots of results! I know several thousand things that won't work.",
+     "source": "Frank Dyer and T. C. Martin, Edison: His Life and Inventions (1910), as remembered by his associate Walter Mallory",
+     "plain": "Each failure taught him something, so none of them was wasted.",
+     "trading": "Every losing trade teaches you something, if you write it down."
+    }
+   ],
+   "story": [
+    "Thomas Edison was born in Ohio in 1847. He had only a few months of school and was taught mostly by his mother.",
+    "At 12 he sold newspapers and snacks on trains, and set up a little chemistry lab in a baggage car. He lost most of his hearing as a boy.",
+    "He became a telegraph operator, then an inventor. His first patent, a machine to count votes, didn't sell: nobody wanted it. He decided to only invent things people would pay for.",
+    "In 1876 he built a laboratory at Menlo Park, New Jersey, with a team that invented on purpose, day after day.",
+    "Out came the phonograph (1877), a long-lasting light bulb (1879) and the whole system to power it: in 1882 his Pearl Street station began lighting part of New York. Later came early movie cameras.",
+    "He collected 1,093 US patents and died in 1931."
+   ],
+   "carried": [
+    {
+     "title": "Learn from the first flop",
+     "text": "When his first invention, a vote-counting machine, found no buyers, he decided never again to invent something nobody wanted.",
+     "source": "Frank Dyer and T. C. Martin, Edison: His Life and Inventions (1910)"
+    },
+    {
+     "title": "Work beside the team",
+     "text": "He worked through the night with his team at Menlo Park and was known to nap on a lab bench or a table before carrying on.",
+     "source": "Frank Dyer and T. C. Martin, Edison: His Life and Inventions (1910)"
+    },
+    {
+     "title": "Calm in a disaster",
+     "text": "When fire destroyed much of his factory in 1914, his son recalled him calmly watching it and saying they could rebuild. Work started again the next day.",
+     "source": "As recalled by his son Charles Edison; told in Edmund Morris, Edison (2019)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "His rival, Tesla",
+     "text": "Edison employed the young Tesla for a few months. Their rivalry, Edison's DC against Tesla's AC, became known as the 'war of the currents'.",
+     "source": "W. Bernard Carlson, Tesla: Inventor of the Electrical Age (2013)",
+     "figures": [
+      "tesla"
+     ]
+    }
+   ],
+   "group": "history",
+   "thenNow": {
+    "modern": "Steve Jobs",
+    "text": [
+     "Steve Jobs, like Edison, was less a lone inventor than a builder of teams and products that ordinary people wanted.",
+     "Edison sold a whole system (the bulb and the power to run it); Apple sold the device, the software and the store together."
+    ],
+    "trading": "Think in systems, not single tricks: your setup, your sizing, your exits and your review all work together."
+   }
+  },
+  {
+   "id": "tesla",
+   "name": "Nikola Tesla",
+   "role": "Visionary",
+   "years": "1856–1943",
+   "tagline": "The inventor of the AC power system that lights the world, who built machines in his head first.",
+   "portrait": "tesla.webp",
+   "lessons": [
+    {
+     "id": "imagine",
+     "title": "Build it in your head first",
+     "text": [
+      "Tesla said he didn't rush to build. He pictured each machine in his mind, ran it, and fixed it there before touching any metal.",
+      "Thinking first saved him months of trial and error."
+     ],
+     "trading": "Picture the trade before you take it: where you get in, where you're wrong, where you take profit. If you can't see it clearly, don't take it."
+    },
+    {
+     "id": "theory",
+     "title": "A little theory saves a lot of work",
+     "text": [
+      "Tesla once worked for Edison. He felt Edison tried things blindly, when a little math would have saved most of the effort.",
+      "Understanding why beats guessing."
+     ],
+     "trading": "Learn why a setup works (trend, support, volume), not just what it looks like. Then you can spot when it won't work."
+    },
+    {
+     "id": "future",
+     "title": "Think long term",
+     "text": [
+      "Tesla's AC power won the 'war of the currents' against Edison's DC system and still powers homes today. He kept looking decades ahead.",
+      "Big ideas take time to pay off."
+     ],
+     "trading": "Not every idea is a day trade. The Long-term section of Market is for ideas that need weeks or months to work."
+    },
+    {
+     "id": "focus",
+     "title": "Deep focus",
+     "text": [
+      "Tesla worked long hours alone, deep in one problem at a time.",
+      "Big breakthroughs need long stretches without distraction."
+     ],
+     "trading": "Turn off what distracts you when you study charts. One focused hour beats a whole day half-watching."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "method",
+     "text": "My method is different. I do not rush into actual work. When I get an idea I start at once building it up in my imagination.",
+     "source": "Nikola Tesla, My Inventions (1919), ch. 1",
+     "plain": "He planned everything in his head before doing it for real.",
+     "trading": "Plan the whole trade before you click Buy."
+    },
+    {
+     "id": "invention",
+     "text": "The progressive development of man is vitally dependent on invention.",
+     "source": "Nikola Tesla, My Inventions (1919), opening line",
+     "plain": "People move forward by inventing new things.",
+     "trading": "Keep improving your method. What worked last year may need a tweak this year."
+    },
+    {
+     "id": "haystack",
+     "text": "If Edison had a needle to find in a haystack, he would proceed at once with the diligence of the bee to examine straw after straw until he found the object of his search.",
+     "source": "Nikola Tesla, quoted in The New York Times, 19 October 1931",
+     "plain": "Edison worked very hard, but often by brute force instead of thinking first.",
+     "trading": "Don't test random ideas on real money. Think first, then test with practice money."
+    }
+   ],
+   "story": [
+    "Nikola Tesla was born in 1856 in a Serbian family in Smiljan, in today's Croatia. He studied engineering in Austria.",
+    "In 1882, walking in a park in Budapest, he suddenly saw how to build a motor run by alternating current (AC), a type of electricity that can travel much further than Edison's DC.",
+    "In 1884 he arrived in New York with almost nothing and worked for Edison for a few months, before leaving after a dispute.",
+    "After his first company pushed him out, he dug ditches for a living for a while. Then his AC patents were bought by George Westinghouse.",
+    "AC won the 'war of the currents', and in 1895 his system powered the great Niagara Falls power station. He went on to work on radio and wireless power.",
+    "He was brilliant but bad with money. His big wireless tower project ran out of funding, and he died alone and poor in a New York hotel room in 1943."
+   ],
+   "carried": [
+    {
+     "title": "The idea in the park",
+     "text": "Walking in Budapest and reciting a poem, he suddenly saw how his AC motor would work, and drew the design in the sand with a stick.",
+     "source": "Nikola Tesla, My Inventions (1919)"
+    },
+    {
+     "title": "Down but not out",
+     "text": "After his first company pushed him out, he dug ditches for a living. Within about two years, his AC patents were being bought by Westinghouse.",
+     "source": "W. Bernard Carlson, Tesla: Inventor of the Electrical Age (2013)"
+    },
+    {
+     "title": "Running it all in his head",
+     "text": "He said he could picture a machine so exactly in his mind that he could see which parts would wear out, before building anything.",
+     "source": "Nikola Tesla, My Inventions (1919)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Edison",
+     "text": "Tesla came to America with a letter of introduction to Edison and worked for him for a few months. They split over money and over AC versus DC, and became famous rivals.",
+     "source": "Nikola Tesla, My Inventions (1919)",
+     "figures": [
+      "edison"
+     ]
+    }
+   ],
+   "group": "history",
+   "thenNow": {
+    "modern": "the car company named after him",
+    "text": [
+     "The best-known car company of our time was named after Nikola Tesla when it was founded in 2003, more than 50 years after he died poor.",
+     "His ideas paid off hugely, but mostly for others, because he never learned to protect and fund his own work."
+    ],
+    "trading": "A great idea isn't enough. In trading, a great entry is wasted without a stop and a plan for taking profit."
+   }
+  },
+  {
+   "id": "livermore",
+   "name": "Jesse Livermore",
+   "role": "Trader",
+   "years": "1877–1940",
+   "tagline": "The most famous stock trader ever: made and lost several fortunes, and made millions betting against the 1929 crash.",
+   "portrait": "livermore.webp",
+   "lessons": [
+    {
+     "id": "trend",
+     "title": "Follow the line of least resistance",
+     "text": [
+      "Livermore believed prices move in the easiest direction, like water running downhill, and keep going until something stops them.",
+      "He didn't try to guess tops and bottoms. He waited for the market to show its direction, then went with it."
+     ],
+     "trading": "Trade with the trend, not against it. If a stock keeps making higher highs and higher lows, don't keep shorting it because it 'must' fall."
+    },
+    {
+     "id": "sit",
+     "title": "The money is in the sitting",
+     "text": [
+      "He said his big profits never came from clever thinking. They came from sitting tight in a winning trade while the move played out.",
+      "Most people take a small profit too early, and hold their losers too long."
+     ],
+     "trading": "Let winners run with a trailing stop. Cut losers fast at your stop. Most beginners do the opposite."
+    },
+    {
+     "id": "records",
+     "title": "Keep a notebook",
+     "text": [
+      "As a teenage clerk writing prices on a board, he kept a notebook of how prices moved before big changes, and tested his guesses on paper before risking a cent.",
+      "His 'feel' for the market came from years of written records."
+     ],
+     "trading": "Journal every trade and every pattern you notice. Your notes become your edge."
+    },
+    {
+     "id": "ruin",
+     "title": "Even the best go broke",
+     "text": [
+      "Livermore went broke more than once: by trading too big, trusting tips and breaking his own rules.",
+      "Each comeback started with admitting exactly what he'd done wrong."
+     ],
+     "trading": "Never risk so much that one bad run wipes you out. Small, fixed risk per trade keeps you in the game."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "nothing-new",
+     "text": "There is nothing new in Wall Street. There can't be because speculation is as old as the hills. Whatever happens in the stock market today has happened before and will happen again.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923), ch. 1: the thinly disguised story of Livermore's life, told in his voice",
+     "plain": "Markets go up and down for the same human reasons they always have: greed and fear.",
+     "trading": "Study old charts. The patterns repeat because people don't change."
+    },
+    {
+     "id": "sitting",
+     "text": "It never was my thinking that made the big money for me. It always was my sitting.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923), ch. 5",
+     "plain": "His profits came from holding good trades long enough, not from being clever.",
+     "trading": "Once a trade works, don't rush out. Let it run with a stop that follows it."
+    },
+    {
+     "id": "least-resistance",
+     "text": "Prices, like everything else, move along the line of least resistance.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "plain": "Prices go the easy way, like water going downhill.",
+     "trading": "Trade in the direction the stock is already going."
+    },
+    {
+     "id": "game",
+     "text": "The game taught me the game. And it didn't spare the rod while teaching.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "plain": "He learned by losing, and the lessons hurt.",
+     "trading": "Practice money lets you learn the lessons without the pain. Use it."
+    }
+   ],
+   "story": [
+    "Jesse Livermore was born on a poor farm in Massachusetts in 1877. At 14 he left home with five dollars and found a job in Boston writing stock prices on a big board at a brokerage.",
+    "Writing the same prices all day, he started noticing patterns, and wrote them in a notebook.",
+    "He began betting on prices in 'bucket shops', betting parlors on stock prices, and won so often that they banned him. People called him the 'Boy Plunger'.",
+    "In New York he made and lost fortunes. In 1906 he was betting against Union Pacific stock when the San Francisco earthquake hit, and the fall made him rich.",
+    "In the panic of 1907 he made about a million dollars in a day, and in the 1929 crash he made millions more by betting prices would fall.",
+    "His last years were hard: he lost most of his fortune, and died in 1940. His story is still the book traders recommend most."
+   ],
+   "carried": [
+    {
+     "title": "He wrote it all down",
+     "text": "As a teenage board boy, he kept a little notebook of how prices moved before big changes, and 'traded' his guesses on paper long before he used real money.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923), ch. 1"
+    },
+    {
+     "title": "Banned for winning",
+     "text": "He won so often in the bucket shops of Boston that they refused to take his bets, so he had to trade under other names and then move to New York.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)"
+    },
+    {
+     "title": "Owning his mistakes",
+     "text": "Each time he went broke, he went back over exactly which rule he'd broken: trading too big, acting on tips, or not waiting for the right moment.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)"
+    },
+    {
+     "title": "When Morgan asked",
+     "text": "In the 1907 panic, with prices collapsing, he was asked on behalf of J.P. Morgan's circle to stop betting against the market. He agreed, covered, and bought stocks near the bottom instead.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "J.P. Morgan",
+     "text": "In the 1907 panic, Livermore stopped betting against the market when Morgan's circle asked him to, and bought instead.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "figures": [
+      "morgan"
+     ]
+    }
+   ],
+   "group": "markets"
+  },
+  {
+   "id": "dow",
+   "name": "Charles Dow",
+   "role": "Market pioneer",
+   "years": "1851–1902",
+   "tagline": "Founder of The Wall Street Journal and the Dow average, whose ideas about trends started chart reading.",
+   "portrait": "dow.webp",
+   "lessons": [
+    {
+     "id": "average",
+     "title": "Measure the whole market",
+     "text": [
+      "In 1884 Dow simply added up the prices of 11 big stocks, mostly railroads, and divided by the number. It was the first stock market average.",
+      "One number showed whether the market as a whole was rising or falling."
+     ],
+     "trading": "Before trading a stock, check the market. Most stocks follow SPY and QQQ; swimming against the whole market is hard."
+    },
+    {
+     "id": "tides",
+     "title": "Tides, waves and ripples",
+     "text": [
+      "Dow wrote that the market has three movements at once: the big main trend that lasts years, shorter swings of weeks, and small day-to-day moves.",
+      "He compared them to the tide, the waves and the ripples on a beach."
+     ],
+     "trading": "Know which one you're trading. A day trader rides ripples, a swing trader waves, a long-term investor the tide. Check the bigger trend before you enter."
+    },
+    {
+     "id": "confirm",
+     "title": "Look for confirmation",
+     "text": [
+      "Dow and those who carried on his ideas watched for the industrial and railroad averages to move together. One alone could be a false signal; both together meant a real trend.",
+      "One clue is a hint. Two clues that agree are evidence."
+     ],
+     "trading": "Don't trade on one signal. Look for price, volume and the market's direction to agree."
+    },
+    {
+     "id": "facts",
+     "title": "Report, don't guess",
+     "text": [
+      "Dow was a reporter first. His paper's job was to give traders fast, accurate facts, not tips.",
+      "He built his reputation on being careful and correct."
+     ],
+     "trading": "Separate facts (price, volume, earnings) from opinions (tips, hype). Trade the facts."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "three",
+     "text": "The market is always to be considered as having three movements, all going at the same time.",
+     "source": "Charles Dow, The Wall Street Journal (editorial, 1902), as collected in S. A. Nelson, The ABC of Stock Speculation (1902)",
+     "plain": "Big trend, medium swings and small daily moves all happen at once.",
+     "trading": "Check the big trend before you trade the small move."
+    },
+    {
+     "id": "tide",
+     "text": "A person watching the tide coming in and who wishes to know the exact spot which marks the high tide, sets a stick in the sand at the points reached by the incoming waves until the stick reaches a position where the waves do not come up to it.",
+     "source": "Charles Dow, The Wall Street Journal (editorial, 1900), as collected in S. A. Nelson, The ABC of Stock Speculation (1902)",
+     "plain": "You find out the tide has turned when the waves stop reaching your marker.",
+     "trading": "A trend is over when price stops making new highs. Mark the last high, and watch whether it's beaten."
+    }
+   ],
+   "story": [
+    "Charles Dow was born on a farm in Connecticut in 1851. He left school young and became a newspaper reporter.",
+    "In 1880 he moved to New York to report on Wall Street. Two years later he and Edward Jones started Dow Jones & Company, delivering short handwritten news bulletins to traders.",
+    "In 1884 he published the first stock market average, and in 1889 the company launched The Wall Street Journal.",
+    "In 1896 he started the Dow Jones Industrial Average with 12 companies. It still exists, now with 30.",
+    "In his editorials he explained how the market moves in trends. After he died in 1902, others collected these ideas and called them 'Dow Theory', the start of technical analysis."
+   ],
+   "carried": [
+    {
+     "title": "News, fast",
+     "text": "Dow Jones started by sending messengers around Wall Street with short handwritten news sheets, so traders got facts quickly.",
+     "source": "Dow Jones & Company history; Wall Street Journal archives"
+    },
+    {
+     "title": "Simple tools",
+     "text": "His first average was nothing fancy: add up the prices of a few big stocks and divide. Simple enough that anyone could follow it.",
+     "source": "The Wall Street Journal; S. A. Nelson, The ABC of Stock Speculation (1902)"
+    },
+    {
+     "title": "A careful writer",
+     "text": "He wrote short, plain editorials explaining what the market was doing and why, rather than predicting or promoting stocks.",
+     "source": "S. A. Nelson, The ABC of Stock Speculation (1902)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Those who came after",
+     "text": "After Dow died, his ideas were collected and named 'Dow Theory', and nearly every chart method since builds on them.",
+     "source": "S. A. Nelson, The ABC of Stock Speculation (1902); W. P. Hamilton, The Stock Market Barometer (1922)",
+     "figures": []
+    }
+   ],
+   "group": "markets"
+  },
+  {
+   "id": "newton",
+   "name": "Isaac Newton",
+   "role": "Scientist",
+   "years": "1643–1727",
+   "tagline": "The genius who explained gravity, and then lost a fortune in a stock market bubble.",
+   "portrait": "newton.webp",
+   "lessons": [
+    {
+     "id": "bubble",
+     "title": "Even a genius can catch the fever",
+     "text": [
+      "In 1720 shares in the South Sea Company soared. Newton bought, sold early with a good profit, then watched the price keep climbing without him.",
+      "He bought back in, much higher, just before the crash, and lost a fortune."
+     ],
+     "trading": "Missing a move is not a loss. Chasing it is how you buy the top. If you missed it, wait for the next setup."
+    },
+    {
+     "id": "giants",
+     "title": "Stand on giants' shoulders",
+     "text": [
+      "Newton built on the work of Galileo, Kepler and others before him, and said so.",
+      "Even the greatest mind of his age started by studying the best who came before."
+     ],
+     "trading": "Learn proven methods first, then improve on them."
+    },
+    {
+     "id": "evidence",
+     "title": "Test it, don't just believe it",
+     "text": [
+      "Newton built his ideas on careful measurements and experiments, not on guesses. He wrote that he did not 'frame hypotheses' he couldn't support.",
+      "If the evidence didn't fit, the idea had to go."
+     ],
+     "trading": "Back up your strategy with evidence: test it on old charts and with practice money before trusting it."
+    },
+    {
+     "id": "focus",
+     "title": "Deep work",
+     "text": [
+      "When Cambridge closed during the plague of 1665–66, Newton went home and, mostly alone, worked out the beginnings of calculus, his ideas on light and on gravity.",
+      "Long, uninterrupted focus produced his biggest breakthroughs."
+     ],
+     "trading": "Give your learning real, focused time. A distracted hour on the charts teaches little."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "giants",
+     "text": "If I have seen further it is by standing on the shoulders of Giants.",
+     "source": "Isaac Newton, letter to Robert Hooke, 5 February 1676",
+     "plain": "He could see so far only because he built on the work of the great people before him.",
+     "trading": "Study the traders and methods that came before you; you don't have to start from zero."
+    },
+    {
+     "id": "hypotheses",
+     "text": "I frame no hypotheses.",
+     "source": "Isaac Newton, Principia, General Scholium (2nd edition, 1713)",
+     "plain": "He refused to claim things he couldn't prove.",
+     "trading": "Don't trade on a story you can't check. Trade what the chart and the numbers show."
+    }
+   ],
+   "story": [
+    "Isaac Newton was born in 1643 in Lincolnshire, England. His father had died before he was born.",
+    "He studied at Cambridge. When the plague closed the university in 1665, he went home and, in about two years, laid the foundations of calculus, optics and his theory of gravity.",
+    "In 1687 he published the Principia, which explained gravity and how planets move. It made him the most famous scientist in the world.",
+    "In 1696 he went to run the Royal Mint, where he chased down forgers of coins.",
+    "In 1720, the South Sea Company bubble pulled in almost everyone in London. Newton made money, sold, bought back near the top, and lost heavily when it crashed.",
+    "He died in 1727, honored as one of the greatest minds who ever lived."
+   ],
+   "carried": [
+    {
+     "title": "Alone with a problem",
+     "text": "During the plague years, he worked mostly alone at his family's farm, thinking about one problem for days on end. That is where his ideas on gravity began.",
+     "source": "Richard Westfall, Never at Rest (1980)"
+    },
+    {
+     "title": "Forgetting to eat",
+     "text": "His assistant later remembered Newton so absorbed in his work that he forgot meals and often left food untouched.",
+     "source": "Recollections of Humphrey Newton, in letters to John Conduitt (1727–28)"
+    },
+    {
+     "title": "Detective at the Mint",
+     "text": "At the Mint he gathered evidence himself against coin forgers, questioning witnesses, and caught the notorious forger William Chaloner.",
+     "source": "Thomas Levenson, Newton and the Counterfeiter (2009)"
+    },
+    {
+     "title": "The bubble",
+     "text": "Records of his investments show he sold South Sea shares at a profit, bought back much higher, and lost a large part of his fortune in the crash.",
+     "source": "Andrew Odlyzko, 'Newton's financial misadventures in the South Sea Bubble' (2019)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Galileo and Kepler",
+     "text": "Newton built his laws of motion and gravity on the work of Galileo and Kepler before him, and said he had seen further by standing on the shoulders of giants.",
+     "source": "Isaac Newton, letter to Robert Hooke, 1676",
+     "figures": []
+    }
+   ],
+   "group": "markets"
+  },
+  {
+   "id": "morgan",
+   "name": "J.P. Morgan",
+   "role": "Banker",
+   "years": "1837–1913",
+   "tagline": "The banker who built giant companies and, at 70, stopped the Panic of 1907 almost single-handedly.",
+   "portrait": "morgan.webp",
+   "lessons": [
+    {
+     "id": "calm",
+     "title": "Calm in a crash",
+     "text": [
+      "In October 1907 banks were failing and people were queuing to pull out their money. Morgan, 70 years old, took charge.",
+      "He sorted the banks that could be saved from those that couldn't, and organized the money to save them."
+     ],
+     "trading": "Panic sells at the bottom. Have your plan (stops, position size) ready before the market gets wild, so you act instead of panic."
+    },
+    {
+     "id": "character",
+     "title": "Character first",
+     "text": [
+      "Asked by Congress whether loans were based on money or property, Morgan said the first thing was character.",
+      "He lent to people he trusted, and stayed away from those he didn't, however rich."
+     ],
+     "trading": "Your discipline is your 'character' as a trader: doing what your plan says, every time."
+    },
+    {
+     "id": "big",
+     "title": "Think big, organize well",
+     "text": [
+      "Morgan reorganized failing railroads and in 1901 merged steel companies into U.S. Steel, the first company worth over a billion dollars.",
+      "He made messy industries simple and stable."
+     ],
+     "trading": "Organize your trading: a clear watchlist, a routine and simple rules beat a messy screen full of ideas."
+    },
+    {
+     "id": "liquidity",
+     "title": "Cash is a weapon",
+     "text": [
+      "Morgan could stop the panic because he and his friends had cash when everyone else was desperate for it.",
+      "In a crash, whoever has cash has choices."
+     ],
+     "trading": "Keep some buying power free. After a sharp drop, the best setups need cash you didn't already spend."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "character",
+     "text": "The first thing is character.",
+     "source": "J.P. Morgan, testimony to Congress (the Pujo Committee), 19 December 1912",
+     "plain": "Trust in a person matters more than how much money they have.",
+     "trading": "Your discipline matters more than the size of your account."
+    },
+    {
+     "id": "cannot-buy",
+     "text": "Before money or anything else. Money cannot buy it.",
+     "source": "J.P. Morgan, testimony to Congress (the Pujo Committee), 19 December 1912, on character",
+     "plain": "Good character comes first, and you can't buy it.",
+     "trading": "Nobody can sell you discipline. You build it trade by trade."
+    }
+   ],
+   "story": [
+    "John Pierpont Morgan was born in Hartford, Connecticut, in 1837, into a wealthy banking family. He studied in Switzerland and Germany.",
+    "He went into banking and became the most powerful banker in America, funding and reorganizing railroads.",
+    "In 1895, when the US government was running out of gold, his bank arranged the gold to steady it.",
+    "In 1901 he merged steel companies into U.S. Steel, the first billion-dollar company.",
+    "In 1907 a panic swept the banks. Morgan, then 70, led the rescue. The scare led Congress to create the Federal Reserve in 1913, the same year he died."
+   ],
+   "carried": [
+    {
+     "title": "Locked in the library",
+     "text": "In November 1907, he gathered the leading bankers in his library in New York and, the story goes, locked the door until they agreed to put up the money to save the weaker banks.",
+     "source": "Jean Strouse, Morgan: American Financier (1999)"
+    },
+    {
+     "title": "Fast decisions",
+     "text": "During the panic he had experts check which banks were really sound, then decided in minutes who would be saved.",
+     "source": "Jean Strouse, Morgan: American Financier (1999)"
+    },
+    {
+     "title": "Character over money",
+     "text": "He told Congress he'd refuse to lend to a man he didn't trust, even with all the bonds in Christendom as security.",
+     "source": "J.P. Morgan, testimony to the Pujo Committee, 19 December 1912"
+    }
+   ],
+   "studied": [
+    {
+     "title": "A trader in the panic",
+     "text": "In 1907, Morgan's circle asked the famous trader Jesse Livermore to stop betting against the market while they steadied it. He did.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "figures": [
+      "livermore"
+     ]
+    }
+   ],
+   "group": "markets"
+  }
+ ]
+}

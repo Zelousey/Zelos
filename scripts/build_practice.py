@@ -347,6 +347,8 @@ def main():
     print('copied data/practice-universe.json -> functions/practice_universe.json')
     shutil.copyfile(os.path.join(ROOT, 'data', 'retired-symbols.json'), os.path.join(ROOT, 'functions', 'retired_symbols.json'))
     print('copied data/retired-symbols.json -> functions/retired_symbols.json')
+    shutil.copyfile(os.path.join(ROOT, 'data', 'minds.json'), os.path.join(ROOT, 'functions', 'minds.json'))
+    print('copied data/minds.json -> functions/minds.json')
     shutil.copyfile(os.path.join(ROOT, 'data', 'crypto-universe.json'), os.path.join(ROOT, 'functions', 'crypto_universe.json'))
     print('copied data/crypto-universe.json -> functions/crypto_universe.json')
     shutil.copyfile(os.path.join(ROOT, 'scripts', 'page-src', 'country_links.py'), os.path.join(ROOT, 'functions', 'country_links.py'))
