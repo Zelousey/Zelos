@@ -19,7 +19,7 @@ class Content(unittest.TestCase):
             self.assertEqual(json.load(a), json.load(b), "run python3 scripts/build_practice.py")
 
     def test_every_figure_is_complete(self):
-        self.assertGreaterEqual(len(M.FIGURES), 7)
+        self.assertGreaterEqual(len(M.FIGURES), 11)
         for f in M.FIGURES.values():
             self.assertTrue(f["lessons"] and f["quotes"], f["id"])
             for l in f["lessons"]:
@@ -28,17 +28,24 @@ class Content(unittest.TestCase):
                 # every quote says where it comes from, and what it means
                 self.assertTrue(q["text"] and q["source"] and q["plain"] and q["trading"], (f["id"], q["id"]))
 
-    def test_order_and_pairs_name_real_figures(self):
-        order = M.DATA["order"]
-        self.assertEqual(set(order), set(M.FIGURES) | set(M.PAIRS))
-        for p in M.PAIRS.values():
-            self.assertIn(p["a"], M.FIGURES)
-            self.assertIn(p["b"], M.FIGURES)
+    def test_order_and_links_name_real_figures(self):
+        # owner 2026-10-23: head-to-head pairs removed; "who they learned from" links instead
+        self.assertEqual(set(M.DATA["order"]), set(M.FIGURES))
+        self.assertFalse(M.PAIRS)
+        for f in M.FIGURES.values():
+            self.assertIn(f["group"], ("markets", "history"))
+            for x in f["studied"]:
+                self.assertTrue(x["text"] and x["source"], f["id"])
+                for other in x["figures"]:
+                    self.assertIn(other, M.FIGURES, (f["id"], other))
+
+    def test_market_legends(self):
+        self.assertEqual({f for f, v in M.FIGURES.items() if v["group"] == "markets"}, {"livermore", "dow", "newton", "morgan"})
 
     def test_modern_people_in_words_only(self):
         # owner 2026-10-22/23: every figure and picture is historical; modern people appear only
         # in a figure's words-only "then & now", never as a figure, a card or a picture
-        everything_but_then_now = json.dumps([{k: v for k, v in f.items() if k != "thenNow"} for f in M.FIGURES.values()] + list(M.PAIRS.values()))
+        everything_but_then_now = json.dumps([{k: v for k, v in f.items() if k != "thenNow"} for f in M.FIGURES.values()])
         for name in ("Elon", "Musk", "Jobs", "Bezos", "Buffett", "Munger"):
             self.assertNotIn(name, everything_but_then_now)
         for f in M.FIGURES.values():
@@ -85,9 +92,10 @@ class Quote(unittest.TestCase):
 
 
 class Xp(unittest.TestCase):
-    def test_lessons_and_pairs_pay_10_once_each(self):
+    def test_lessons_pay_10_once_each(self):
         self.assertEqual(XP.decide("mind", "napoleon:speed", "2026-10-22")[0], 10)
-        self.assertEqual(XP.decide("mind", "vs:edison-tesla", "2026-10-22")[0], 10)
+        self.assertEqual(XP.decide("mind", "livermore:sit", "2026-10-22")[0], 10)
+        self.assertEqual(XP.decide("mind", "vs:edison-tesla", "2026-10-22")[2], "bad-ref")  # pairs are gone
         self.assertEqual(XP.decide("mind", "napoleon:nope", "2026-10-22")[2], "bad-ref")
         self.assertEqual(XP.decide("mind", "napoleon:speed", "2026-10-22", {"mind": 20})[2], "daily-limit")
 

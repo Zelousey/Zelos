@@ -32,16 +32,7 @@ a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   background: rgb(30 4 2 / 0.78); color: #fff; font-weight: 700; font-size: var(--text-sm); font-variant-numeric: tabular-nums;
 }
 
-/* a pair: one picture of the two faces melting into each other (public/minds/pair-<id>.webp);
-   if it doesn't load, the two portraits side by side */
-.pairArt { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 84%; width: auto; max-width: none; z-index: 0; filter: drop-shadow(0 6px 18px rgb(0 0 0 / 0.35)); }
-.cardBig .pairArt { height: 88%; }
-.pairFaces { position: absolute; inset: 0; z-index: 0; }
-.pairFaces .portrait { height: 76%; }
-.pairFaces .left { left: 33%; }
-.pairFaces .right { left: 67%; }
-
-/* figure and pair pages */
+/* figure pages */
 .page { display: grid; gap: var(--space-5); max-width: 820px; }
 .back { color: var(--ink-2); text-decoration: none; font-size: var(--text-sm); justify-self: start; min-height: var(--tap); display: inline-flex; align-items: center; }
 .back:hover { color: var(--ink); }
@@ -80,3 +71,6 @@ a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .vs tr:last-child th, .vs tr:last-child td { border-bottom: 0; }
 @media (max-width: 560px) { .vs tbody th { width: auto; } .vs th, .vs td { padding: var(--space-2) var(--space-1); } }
 .accounts { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.groupTabs { margin-bottom: var(--space-4); }
+.seeAlso { display: inline-flex; align-items: center; min-height: var(--tap); margin-top: var(--space-1); color: var(--accent-ink, var(--accent)); font-weight: 600; text-decoration: none; }
+.seeAlso:hover { text-decoration: underline; }

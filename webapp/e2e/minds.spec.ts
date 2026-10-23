@@ -1,7 +1,7 @@
 /**
- * Hall of Minds (owner 2026-10-22): the red-card grid with head-to-heads mixed in, a figure's
- * lessons and explained quotes, a head-to-head, and (with the Functions emulator) reading a lesson
- * for XP and turning on a figure's daily quotes with tokens.
+ * Hall of Minds (owner 2026-10-22/23): the opening book animation, the red-card grid with its
+ * tabs, a figure's story, accounts, who they learned from, lessons and explained quotes, and (with
+ * the Functions emulator) reading a lesson for XP and turning on a figure's daily quotes with tokens.
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -13,20 +13,35 @@ async function signIn(page: Page, who: string): Promise<string> {
 }
 const axe = async (page: Page) => expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
 
-test('the grid: one red card per great mind, head-to-heads mixed in', async ({ page }) => {
+test('the opening book flips through a few great minds, once per visit, and can be skipped', async ({ page }) => {
+  await page.goto('minds');
+  const skip = page.getByRole('button', { name: 'Skip' });
+  await expect(skip).toBeVisible();
+  await skip.click();
+  await expect(skip).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Hall of Minds', level: 1 })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Skip' })).toHaveCount(0); // once per visit
+});
+
+test('the grid: one red card per great mind, with market legends on their own tab', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' }); // no opening animation
   await page.goto('minds');
   await expect(page.getByRole('heading', { name: 'Hall of Minds', level: 1 })).toBeVisible();
   const grid = page.getByRole('list', { name: 'Hall of Minds' });
-  await expect(grid.getByRole('link')).toHaveCount(9);
+  await expect(grid.getByRole('link')).toHaveCount(11);
   await expect(grid.getByRole('link', { name: /^Napoleon Bonaparte, War strategist/ })).toBeVisible();
-  await expect(grid.getByRole('link', { name: /^Alexander vs Napoleon/ })).toBeVisible();
-  await expect(grid.getByRole('link', { name: /^Edison vs Tesla/ })).toBeVisible();
+  await expect(grid.getByRole('link', { name: / vs / })).toHaveCount(0); // no head-to-heads (owner 2026-10-23)
+  await page.getByRole('tab', { name: 'Market legends' }).click();
+  await expect(grid.getByRole('link')).toHaveCount(4);
+  await expect(grid.getByRole('link', { name: /^Jesse Livermore, Trader/ })).toBeVisible();
   await axe(page);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
 test('a figure: lessons with a trading takeaway, real quotes explained in plain words', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('minds');
   await page.getByRole('link', { name: /^Napoleon Bonaparte/ }).click();
   await expect(page).toHaveURL(/\/app\/minds\/napoleon$/);
@@ -35,7 +50,7 @@ test('a figure: lessons with a trading takeaway, real quotes explained in plain 
   await expect(page.getByRole('region', { name: 'Lessons from Napoleon' }).getByRole('heading', { level: 3 })).toHaveCount(4);
   await expect(page.getByText('Use it in trading').first()).toBeVisible();
   await expect(page.getByText(/Read over and over again the campaigns of Alexander/)).toBeVisible();
-  await expect(page.getByText(/Military Maxims of Napoleon, Maxim 78/)).toBeVisible();
+  await expect(page.getByText(/Military Maxims of Napoleon, Maxim 78/).first()).toBeVisible();
   await expect(page.getByText('In plain words').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign in to turn on' })).toBeVisible();
   // the deeper sections: their story, accounts with sources, and a words-only modern comparison
@@ -46,13 +61,14 @@ test('a figure: lessons with a trading takeaway, real quotes explained in plain 
   await expect(page.getByRole('heading', { name: 'Then & now: Napoleon and Elon Musk' })).toBeVisible();
   await expect(page.getByText(/aren.t connected to Zelos and don.t endorse it/)).toBeVisible();
   await axe(page);
-  // a head-to-head he is in, then the comparison itself
-  await page.getByRole('link', { name: /^Alexander vs Napoleon/ }).click();
-  await expect(page).toHaveURL(/\/app\/minds\/vs\/alexander-napoleon$/);
-  const table = page.getByRole('table', { name: 'Alexander vs Napoleon' });
-  await expect(table.getByRole('rowheader')).toHaveCount(4);
-  await expect(table.getByRole('row', { name: /Speed/ })).toContainText('Marched faster');
-  await axe(page);
+  // who he learned from, linking to their pages
+  await expect(page.getByRole('heading', { name: 'Who they learned from' })).toBeVisible();
+  await page.getByRole('link', { name: 'Meet Alexander the Great →' }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/alexander$/);
+  await expect(page.getByRole('heading', { name: 'Alexander the Great', level: 1 })).toBeVisible();
+  // the old head-to-head pages go to the grid
+  await page.goto('minds/vs/alexander-napoleon');
+  await expect(page).toHaveURL(/\/app\/minds$/);
   // a daily-quote notification opens the figure on that quote
   await page.goto('minds/caesar?q=believe');
   await expect(page.getByText('Men willingly believe what they wish.', { exact: false })).toBeInViewport();

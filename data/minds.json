@@ -1,16 +1,18 @@
 {
- "version": 2,
+ "version": 3,
  "modernNote": "Modern comparisons are our own, based on public reporting. These people aren't connected to Zelos and don't endorse it.",
  "note": "Hall of Minds (owner 2026-10-22). Historical figures only; portraits are public-domain paintings. Quotes are checked against the source given; 'plain' and 'trading' are our own explanations. Edit here; scripts/build_practice.py copies it to functions/minds.json.",
  "order": [
   "napoleon",
-  "alexander-napoleon",
   "alexander",
   "caesar",
+  "livermore",
   "aristotle",
-  "edison-tesla",
+  "dow",
   "tesla",
   "edison",
+  "newton",
+  "morgan",
   "franklin"
  ],
  "figures": [
@@ -119,6 +121,15 @@
      "source": "Aristotle, Nicomachean Ethics, Book I, ch. 6"
     }
    ],
+   "studied": [
+    {
+     "title": "Plato",
+     "text": "Aristotle studied under Plato at the Academy in Athens for about 20 years, then went on to disagree with him on many things.",
+     "source": "Diogenes Laertius, Lives of the Eminent Philosophers, Book 5",
+     "figures": []
+    }
+   ],
+   "group": "history",
    "thenNow": {
     "modern": "Charlie Munger",
     "text": [
@@ -224,7 +235,18 @@
      "text": "When his army mutinied, he reminded them that he had shared every danger, saying there was no part of his body, except his back, without a scar.",
      "source": "Arrian, The Campaigns of Alexander, Book 7, ch. 10"
     }
-   ]
+   ],
+   "studied": [
+    {
+     "title": "Aristotle",
+     "text": "From 13 to 16, Alexander was taught by Aristotle, and kept a copy of the Iliad, annotated by his teacher, with him on campaign.",
+     "source": "Plutarch, Life of Alexander, ch. 7–8",
+     "figures": [
+      "aristotle"
+     ]
+    }
+   ],
+   "group": "history"
   },
   {
    "id": "napoleon",
@@ -324,6 +346,18 @@
      "source": "Baron Fain, Memoirs (published 1908)"
     }
    ],
+   "studied": [
+    {
+     "title": "Alexander and Caesar",
+     "text": "Napoleon read the campaigns of Alexander, Hannibal and Caesar over and over, and told his officers to model themselves on them.",
+     "source": "The Military Maxims of Napoleon, Maxim 78",
+     "figures": [
+      "alexander",
+      "caesar"
+     ]
+    }
+   ],
+   "group": "history",
    "thenNow": {
     "modern": "Elon Musk",
     "text": [
@@ -438,7 +472,18 @@
      "text": "After winning the civil war, he pardoned many of his enemies instead of killing them, a choice that won him support (and, in the end, let some of his killers live).",
      "source": "Suetonius, Life of Julius Caesar, ch. 75"
     }
-   ]
+   ],
+   "studied": [
+    {
+     "title": "Alexander",
+     "text": "As a young official in Spain, Caesar saw a statue of Alexander the Great and sighed: at an age when Alexander had already conquered the world, he had done nothing memorable. Soon after, he asked to return to Rome to chase bigger things.",
+     "source": "Suetonius, Life of Julius Caesar, ch. 7",
+     "figures": [
+      "alexander"
+     ]
+    }
+   ],
+   "group": "history"
   },
   {
    "id": "franklin",
@@ -540,6 +585,15 @@
      "source": "Franklin, Autobiography"
     }
    ],
+   "studied": [
+    {
+     "title": "Books",
+     "text": "Franklin taught himself from the books he could borrow or buy: Plutarch's Lives, Bunyan, and Defoe's Essay upon Projects, which he said shaped how he thought.",
+     "source": "Franklin, Autobiography",
+     "figures": []
+    }
+   ],
+   "group": "history",
    "thenNow": {
     "modern": "Warren Buffett",
     "text": [
@@ -635,6 +689,17 @@
      "source": "As recalled by his son Charles Edison; told in Edmund Morris, Edison (2019)"
     }
    ],
+   "studied": [
+    {
+     "title": "His rival, Tesla",
+     "text": "Edison employed the young Tesla for a few months. Their rivalry, Edison's DC against Tesla's AC, became known as the 'war of the currents'.",
+     "source": "W. Bernard Carlson, Tesla: Inventor of the Electrical Age (2013)",
+     "figures": [
+      "tesla"
+     ]
+    }
+   ],
+   "group": "history",
    "thenNow": {
     "modern": "Steve Jobs",
     "text": [
@@ -737,6 +802,17 @@
      "source": "Nikola Tesla, My Inventions (1919)"
     }
    ],
+   "studied": [
+    {
+     "title": "Edison",
+     "text": "Tesla came to America with a letter of introduction to Edison and worked for him for a few months. They split over money and over AC versus DC, and became famous rivals.",
+     "source": "Nikola Tesla, My Inventions (1919)",
+     "figures": [
+      "edison"
+     ]
+    }
+   ],
+   "group": "history",
    "thenNow": {
     "modern": "the car company named after him",
     "text": [
@@ -745,68 +821,416 @@
     ],
     "trading": "A great idea isn't enough. In trading, a great entry is wasted without a stop and a plan for taking profit."
    }
-  }
- ],
- "pairs": [
-  {
-   "id": "alexander-napoleon",
-   "a": "alexander",
-   "b": "napoleon",
-   "title": "Alexander vs Napoleon",
-   "tagline": "Napoleon studied Alexander. 2,000 years apart, same playbook.",
-   "rounds": [
-    {
-     "topic": "Speed",
-     "a": "Struck before enemies were ready, crossing whole countries fast.",
-     "b": "Marched faster than any army in Europe by living off the land."
-    },
-    {
-     "topic": "Learning",
-     "a": "Taught by Aristotle; carried the Iliad on campaign.",
-     "b": "Read Alexander's and Caesar's campaigns over and over."
-    },
-    {
-     "topic": "Leading",
-     "a": "Fought at the front and was wounded many times.",
-     "b": "Rose from a young artillery officer and shared his soldiers' hardships on campaign."
-    },
-    {
-     "topic": "Downfall",
-     "a": "Never stopped pushing east, until his own army refused to go on.",
-     "b": "Invaded Russia in 1812 and lost most of his army."
-    }
-   ],
-   "takeaway": "Both won with speed and preparation, and both were finally beaten by never knowing when to stop. In trading: plan fast, act fast, and set a point where you stop for the day, even when you are winning."
   },
   {
-   "id": "edison-tesla",
-   "a": "edison",
-   "b": "tesla",
-   "title": "Edison vs Tesla",
-   "tagline": "The tireless tester vs the planner who ran it all in his head.",
-   "rounds": [
+   "id": "livermore",
+   "name": "Jesse Livermore",
+   "role": "Trader",
+   "years": "1877–1940",
+   "tagline": "The most famous stock trader ever: made and lost several fortunes, and made millions betting against the 1929 crash.",
+   "portrait": "livermore.webp",
+   "lessons": [
     {
-     "topic": "Method",
-     "a": "Try thousands of things until one works.",
-     "b": "Picture it, fix it in your head, then build it once."
+     "id": "trend",
+     "title": "Follow the line of least resistance",
+     "text": [
+      "Livermore believed prices move in the easiest direction, like water running downhill, and keep going until something stops them.",
+      "He didn't try to guess tops and bottoms. He waited for the market to show its direction, then went with it."
+     ],
+     "trading": "Trade with the trend, not against it. If a stock keeps making higher highs and higher lows, don't keep shorting it because it 'must' fall."
     },
     {
-     "topic": "Power",
-     "a": "Backed DC power.",
-     "b": "Invented the AC system, which won and still powers the world."
+     "id": "sit",
+     "title": "The money is in the sitting",
+     "text": [
+      "He said his big profits never came from clever thinking. They came from sitting tight in a winning trade while the move played out.",
+      "Most people take a small profit too early, and hold their losers too long."
+     ],
+     "trading": "Let winners run with a trailing stop. Cut losers fast at your stop. Most beginners do the opposite."
     },
     {
-     "topic": "Business",
-     "a": "A great businessman: built companies, sold inventions.",
-     "b": "A visionary who was often short of money, and died poor."
+     "id": "records",
+     "title": "Keep a notebook",
+     "text": [
+      "As a teenage clerk writing prices on a board, he kept a notebook of how prices moved before big changes, and tested his guesses on paper before risking a cent.",
+      "His 'feel' for the market came from years of written records."
+     ],
+     "trading": "Journal every trade and every pattern you notice. Your notes become your edge."
     },
     {
-     "topic": "Legacy",
-     "a": "Showed that hard work and a system beat waiting for genius.",
-     "b": "Showed that deep thinking can skip years of trial and error."
+     "id": "ruin",
+     "title": "Even the best go broke",
+     "text": [
+      "Livermore went broke more than once: by trading too big, trusting tips and breaking his own rules.",
+      "Each comeback started with admitting exactly what he'd done wrong."
+     ],
+     "trading": "Never risk so much that one bad run wipes you out. Small, fixed risk per trade keeps you in the game."
     }
    ],
-   "takeaway": "You need both: Tesla's planning before the trade, and Edison's patient testing and record-keeping after it. Plan in your head, test with practice money, write down the results."
+   "quotes": [
+    {
+     "id": "nothing-new",
+     "text": "There is nothing new in Wall Street. There can't be because speculation is as old as the hills. Whatever happens in the stock market today has happened before and will happen again.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923), ch. 1: the thinly disguised story of Livermore's life, told in his voice",
+     "plain": "Markets go up and down for the same human reasons they always have: greed and fear.",
+     "trading": "Study old charts. The patterns repeat because people don't change."
+    },
+    {
+     "id": "sitting",
+     "text": "It never was my thinking that made the big money for me. It always was my sitting.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923), ch. 5",
+     "plain": "His profits came from holding good trades long enough, not from being clever.",
+     "trading": "Once a trade works, don't rush out. Let it run with a stop that follows it."
+    },
+    {
+     "id": "least-resistance",
+     "text": "Prices, like everything else, move along the line of least resistance.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "plain": "Prices go the easy way, like water going downhill.",
+     "trading": "Trade in the direction the stock is already going."
+    },
+    {
+     "id": "game",
+     "text": "The game taught me the game. And it didn't spare the rod while teaching.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "plain": "He learned by losing, and the lessons hurt.",
+     "trading": "Practice money lets you learn the lessons without the pain. Use it."
+    }
+   ],
+   "story": [
+    "Jesse Livermore was born on a poor farm in Massachusetts in 1877. At 14 he left home with five dollars and found a job in Boston writing stock prices on a big board at a brokerage.",
+    "Writing the same prices all day, he started noticing patterns, and wrote them in a notebook.",
+    "He began betting on prices in 'bucket shops', betting parlors on stock prices, and won so often that they banned him. People called him the 'Boy Plunger'.",
+    "In New York he made and lost fortunes. In 1906 he was betting against Union Pacific stock when the San Francisco earthquake hit, and the fall made him rich.",
+    "In the panic of 1907 he made about a million dollars in a day, and in the 1929 crash he made millions more by betting prices would fall.",
+    "His last years were hard: he lost most of his fortune, and died in 1940. His story is still the book traders recommend most."
+   ],
+   "carried": [
+    {
+     "title": "He wrote it all down",
+     "text": "As a teenage board boy, he kept a little notebook of how prices moved before big changes, and 'traded' his guesses on paper long before he used real money.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923), ch. 1"
+    },
+    {
+     "title": "Banned for winning",
+     "text": "He won so often in the bucket shops of Boston that they refused to take his bets, so he had to trade under other names and then move to New York.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)"
+    },
+    {
+     "title": "Owning his mistakes",
+     "text": "Each time he went broke, he went back over exactly which rule he'd broken: trading too big, acting on tips, or not waiting for the right moment.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)"
+    },
+    {
+     "title": "When Morgan asked",
+     "text": "In the 1907 panic, with prices collapsing, he was asked on behalf of J.P. Morgan's circle to stop betting against the market. He agreed, covered, and bought stocks near the bottom instead.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "J.P. Morgan",
+     "text": "In the 1907 panic, Livermore stopped betting against the market when Morgan's circle asked him to, and bought instead.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "figures": [
+      "morgan"
+     ]
+    }
+   ],
+   "group": "markets"
+  },
+  {
+   "id": "dow",
+   "name": "Charles Dow",
+   "role": "Market pioneer",
+   "years": "1851–1902",
+   "tagline": "Founder of The Wall Street Journal and the Dow average, whose ideas about trends started chart reading.",
+   "portrait": "dow.webp",
+   "lessons": [
+    {
+     "id": "average",
+     "title": "Measure the whole market",
+     "text": [
+      "In 1884 Dow simply added up the prices of 11 big stocks, mostly railroads, and divided by the number. It was the first stock market average.",
+      "One number showed whether the market as a whole was rising or falling."
+     ],
+     "trading": "Before trading a stock, check the market. Most stocks follow SPY and QQQ; swimming against the whole market is hard."
+    },
+    {
+     "id": "tides",
+     "title": "Tides, waves and ripples",
+     "text": [
+      "Dow wrote that the market has three movements at once: the big main trend that lasts years, shorter swings of weeks, and small day-to-day moves.",
+      "He compared them to the tide, the waves and the ripples on a beach."
+     ],
+     "trading": "Know which one you're trading. A day trader rides ripples, a swing trader waves, a long-term investor the tide. Check the bigger trend before you enter."
+    },
+    {
+     "id": "confirm",
+     "title": "Look for confirmation",
+     "text": [
+      "Dow and those who carried on his ideas watched for the industrial and railroad averages to move together. One alone could be a false signal; both together meant a real trend.",
+      "One clue is a hint. Two clues that agree are evidence."
+     ],
+     "trading": "Don't trade on one signal. Look for price, volume and the market's direction to agree."
+    },
+    {
+     "id": "facts",
+     "title": "Report, don't guess",
+     "text": [
+      "Dow was a reporter first. His paper's job was to give traders fast, accurate facts, not tips.",
+      "He built his reputation on being careful and correct."
+     ],
+     "trading": "Separate facts (price, volume, earnings) from opinions (tips, hype). Trade the facts."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "three",
+     "text": "The market is always to be considered as having three movements, all going at the same time.",
+     "source": "Charles Dow, The Wall Street Journal (editorial, 1902), as collected in S. A. Nelson, The ABC of Stock Speculation (1902)",
+     "plain": "Big trend, medium swings and small daily moves all happen at once.",
+     "trading": "Check the big trend before you trade the small move."
+    },
+    {
+     "id": "tide",
+     "text": "A person watching the tide coming in and who wishes to know the exact spot which marks the high tide, sets a stick in the sand at the points reached by the incoming waves until the stick reaches a position where the waves do not come up to it.",
+     "source": "Charles Dow, The Wall Street Journal (editorial, 1900), as collected in S. A. Nelson, The ABC of Stock Speculation (1902)",
+     "plain": "You find out the tide has turned when the waves stop reaching your marker.",
+     "trading": "A trend is over when price stops making new highs. Mark the last high, and watch whether it's beaten."
+    }
+   ],
+   "story": [
+    "Charles Dow was born on a farm in Connecticut in 1851. He left school young and became a newspaper reporter.",
+    "In 1880 he moved to New York to report on Wall Street. Two years later he and Edward Jones started Dow Jones & Company, delivering short handwritten news bulletins to traders.",
+    "In 1884 he published the first stock market average, and in 1889 the company launched The Wall Street Journal.",
+    "In 1896 he started the Dow Jones Industrial Average with 12 companies. It still exists, now with 30.",
+    "In his editorials he explained how the market moves in trends. After he died in 1902, others collected these ideas and called them 'Dow Theory', the start of technical analysis."
+   ],
+   "carried": [
+    {
+     "title": "News, fast",
+     "text": "Dow Jones started by sending messengers around Wall Street with short handwritten news sheets, so traders got facts quickly.",
+     "source": "Dow Jones & Company history; Wall Street Journal archives"
+    },
+    {
+     "title": "Simple tools",
+     "text": "His first average was nothing fancy: add up the prices of a few big stocks and divide. Simple enough that anyone could follow it.",
+     "source": "The Wall Street Journal; S. A. Nelson, The ABC of Stock Speculation (1902)"
+    },
+    {
+     "title": "A careful writer",
+     "text": "He wrote short, plain editorials explaining what the market was doing and why, rather than predicting or promoting stocks.",
+     "source": "S. A. Nelson, The ABC of Stock Speculation (1902)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Those who came after",
+     "text": "After Dow died, his ideas were collected and named 'Dow Theory', and nearly every chart method since builds on them.",
+     "source": "S. A. Nelson, The ABC of Stock Speculation (1902); W. P. Hamilton, The Stock Market Barometer (1922)",
+     "figures": []
+    }
+   ],
+   "group": "markets"
+  },
+  {
+   "id": "newton",
+   "name": "Isaac Newton",
+   "role": "Scientist",
+   "years": "1643–1727",
+   "tagline": "The genius who explained gravity, and then lost a fortune in a stock market bubble.",
+   "portrait": "newton.webp",
+   "lessons": [
+    {
+     "id": "bubble",
+     "title": "Even a genius can catch the fever",
+     "text": [
+      "In 1720 shares in the South Sea Company soared. Newton bought, sold early with a good profit, then watched the price keep climbing without him.",
+      "He bought back in, much higher, just before the crash, and lost a fortune."
+     ],
+     "trading": "Missing a move is not a loss. Chasing it is how you buy the top. If you missed it, wait for the next setup."
+    },
+    {
+     "id": "giants",
+     "title": "Stand on giants' shoulders",
+     "text": [
+      "Newton built on the work of Galileo, Kepler and others before him, and said so.",
+      "Even the greatest mind of his age started by studying the best who came before."
+     ],
+     "trading": "Learn proven methods first, then improve on them."
+    },
+    {
+     "id": "evidence",
+     "title": "Test it, don't just believe it",
+     "text": [
+      "Newton built his ideas on careful measurements and experiments, not on guesses. He wrote that he did not 'frame hypotheses' he couldn't support.",
+      "If the evidence didn't fit, the idea had to go."
+     ],
+     "trading": "Back up your strategy with evidence: test it on old charts and with practice money before trusting it."
+    },
+    {
+     "id": "focus",
+     "title": "Deep work",
+     "text": [
+      "When Cambridge closed during the plague of 1665–66, Newton went home and, mostly alone, worked out the beginnings of calculus, his ideas on light and on gravity.",
+      "Long, uninterrupted focus produced his biggest breakthroughs."
+     ],
+     "trading": "Give your learning real, focused time. A distracted hour on the charts teaches little."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "giants",
+     "text": "If I have seen further it is by standing on the shoulders of Giants.",
+     "source": "Isaac Newton, letter to Robert Hooke, 5 February 1676",
+     "plain": "He could see so far only because he built on the work of the great people before him.",
+     "trading": "Study the traders and methods that came before you; you don't have to start from zero."
+    },
+    {
+     "id": "hypotheses",
+     "text": "I frame no hypotheses.",
+     "source": "Isaac Newton, Principia, General Scholium (2nd edition, 1713)",
+     "plain": "He refused to claim things he couldn't prove.",
+     "trading": "Don't trade on a story you can't check. Trade what the chart and the numbers show."
+    }
+   ],
+   "story": [
+    "Isaac Newton was born in 1643 in Lincolnshire, England. His father had died before he was born.",
+    "He studied at Cambridge. When the plague closed the university in 1665, he went home and, in about two years, laid the foundations of calculus, optics and his theory of gravity.",
+    "In 1687 he published the Principia, which explained gravity and how planets move. It made him the most famous scientist in the world.",
+    "In 1696 he went to run the Royal Mint, where he chased down forgers of coins.",
+    "In 1720, the South Sea Company bubble pulled in almost everyone in London. Newton made money, sold, bought back near the top, and lost heavily when it crashed.",
+    "He died in 1727, honored as one of the greatest minds who ever lived."
+   ],
+   "carried": [
+    {
+     "title": "Alone with a problem",
+     "text": "During the plague years, he worked mostly alone at his family's farm, thinking about one problem for days on end. That is where his ideas on gravity began.",
+     "source": "Richard Westfall, Never at Rest (1980)"
+    },
+    {
+     "title": "Forgetting to eat",
+     "text": "His assistant later remembered Newton so absorbed in his work that he forgot meals and often left food untouched.",
+     "source": "Recollections of Humphrey Newton, in letters to John Conduitt (1727–28)"
+    },
+    {
+     "title": "Detective at the Mint",
+     "text": "At the Mint he gathered evidence himself against coin forgers, questioning witnesses, and caught the notorious forger William Chaloner.",
+     "source": "Thomas Levenson, Newton and the Counterfeiter (2009)"
+    },
+    {
+     "title": "The bubble",
+     "text": "Records of his investments show he sold South Sea shares at a profit, bought back much higher, and lost a large part of his fortune in the crash.",
+     "source": "Andrew Odlyzko, 'Newton's financial misadventures in the South Sea Bubble' (2019)"
+    }
+   ],
+   "studied": [
+    {
+     "title": "Galileo and Kepler",
+     "text": "Newton built his laws of motion and gravity on the work of Galileo and Kepler before him, and said he had seen further by standing on the shoulders of giants.",
+     "source": "Isaac Newton, letter to Robert Hooke, 1676",
+     "figures": []
+    }
+   ],
+   "group": "markets"
+  },
+  {
+   "id": "morgan",
+   "name": "J.P. Morgan",
+   "role": "Banker",
+   "years": "1837–1913",
+   "tagline": "The banker who built giant companies and, at 70, stopped the Panic of 1907 almost single-handedly.",
+   "portrait": "morgan.webp",
+   "lessons": [
+    {
+     "id": "calm",
+     "title": "Calm in a crash",
+     "text": [
+      "In October 1907 banks were failing and people were queuing to pull out their money. Morgan, 70 years old, took charge.",
+      "He sorted the banks that could be saved from those that couldn't, and organized the money to save them."
+     ],
+     "trading": "Panic sells at the bottom. Have your plan (stops, position size) ready before the market gets wild, so you act instead of panic."
+    },
+    {
+     "id": "character",
+     "title": "Character first",
+     "text": [
+      "Asked by Congress whether loans were based on money or property, Morgan said the first thing was character.",
+      "He lent to people he trusted, and stayed away from those he didn't, however rich."
+     ],
+     "trading": "Your discipline is your 'character' as a trader: doing what your plan says, every time."
+    },
+    {
+     "id": "big",
+     "title": "Think big, organize well",
+     "text": [
+      "Morgan reorganized failing railroads and in 1901 merged steel companies into U.S. Steel, the first company worth over a billion dollars.",
+      "He made messy industries simple and stable."
+     ],
+     "trading": "Organize your trading: a clear watchlist, a routine and simple rules beat a messy screen full of ideas."
+    },
+    {
+     "id": "liquidity",
+     "title": "Cash is a weapon",
+     "text": [
+      "Morgan could stop the panic because he and his friends had cash when everyone else was desperate for it.",
+      "In a crash, whoever has cash has choices."
+     ],
+     "trading": "Keep some buying power free. After a sharp drop, the best setups need cash you didn't already spend."
+    }
+   ],
+   "quotes": [
+    {
+     "id": "character",
+     "text": "The first thing is character.",
+     "source": "J.P. Morgan, testimony to Congress (the Pujo Committee), 19 December 1912",
+     "plain": "Trust in a person matters more than how much money they have.",
+     "trading": "Your discipline matters more than the size of your account."
+    },
+    {
+     "id": "cannot-buy",
+     "text": "Before money or anything else. Money cannot buy it.",
+     "source": "J.P. Morgan, testimony to Congress (the Pujo Committee), 19 December 1912, on character",
+     "plain": "Good character comes first, and you can't buy it.",
+     "trading": "Nobody can sell you discipline. You build it trade by trade."
+    }
+   ],
+   "story": [
+    "John Pierpont Morgan was born in Hartford, Connecticut, in 1837, into a wealthy banking family. He studied in Switzerland and Germany.",
+    "He went into banking and became the most powerful banker in America, funding and reorganizing railroads.",
+    "In 1895, when the US government was running out of gold, his bank arranged the gold to steady it.",
+    "In 1901 he merged steel companies into U.S. Steel, the first billion-dollar company.",
+    "In 1907 a panic swept the banks. Morgan, then 70, led the rescue. The scare led Congress to create the Federal Reserve in 1913, the same year he died."
+   ],
+   "carried": [
+    {
+     "title": "Locked in the library",
+     "text": "In November 1907, he gathered the leading bankers in his library in New York and, the story goes, locked the door until they agreed to put up the money to save the weaker banks.",
+     "source": "Jean Strouse, Morgan: American Financier (1999)"
+    },
+    {
+     "title": "Fast decisions",
+     "text": "During the panic he had experts check which banks were really sound, then decided in minutes who would be saved.",
+     "source": "Jean Strouse, Morgan: American Financier (1999)"
+    },
+    {
+     "title": "Character over money",
+     "text": "He told Congress he'd refuse to lend to a man he didn't trust, even with all the bonds in Christendom as security.",
+     "source": "J.P. Morgan, testimony to the Pujo Committee, 19 December 1912"
+    }
+   ],
+   "studied": [
+    {
+     "title": "A trader in the panic",
+     "text": "In 1907, Morgan's circle asked the famous trader Jesse Livermore to stop betting against the market while they steadied it. He did.",
+     "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+     "figures": [
+      "livermore"
+     ]
+    }
+   ],
+   "group": "markets"
   }
  ]
 }

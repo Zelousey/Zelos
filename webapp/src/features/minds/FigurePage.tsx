@@ -14,8 +14,8 @@ import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, EmptyState, Icon, useToast } from '../../ui';
 import { errorMessage } from '../practice/actions';
 import { useWalletDoc } from '../strategies/strategies';
-import { FigureCard, PairCard } from './MindCard';
-import { figureById, figureProgress, FOLLOW_COST, MODERN_NOTE, FOLLOW_DAYS, followFigure, lessonRef, pairRef, pairsOf, type Figure } from './minds';
+import { FigureCard } from './MindCard';
+import { figureById, figureProgress, FOLLOW_COST, MODERN_NOTE, FOLLOW_DAYS, followFigure, lessonRef, type Figure } from './minds';
 import { ReadButton } from './ReadButton';
 import s from './Minds.module.css';
 
@@ -36,7 +36,6 @@ function Figure({ f }: { f: Figure }) {
   useEffect(() => {
     quoteRef.current?.scrollIntoView({ block: 'center' });
   }, []);
-  const pairs = pairsOf(f.id);
   return (
     <div className={s.page}>
       <Link className={s.back} to="/minds">
@@ -82,6 +81,33 @@ function Figure({ f }: { f: Figure }) {
           ))}
         </ul>
       </section>
+
+      {f.studied.length > 0 && (
+        <section aria-labelledby="hm-studied">
+          <h2 id="hm-studied" className={s.h2}>
+            {t('hm.studied')}
+          </h2>
+          <ul className={s.accounts}>
+            {f.studied.map((x) => (
+              <li key={x.title}>
+                <Card as="article" pad>
+                  <h3 className={s.h3}>{x.title}</h3>
+                  <p className={s.p}>{x.text}</p>
+                  <p className={s.source}>— {x.source}</p>
+                  {x.figures.map((id) => {
+                    const o = figureById(id);
+                    return o ? (
+                      <Link key={id} className={s.seeAlso} to={`/minds/${id}`}>
+                        {t('hm.meet', { name: o.name })} →
+                      </Link>
+                    ) : null;
+                  })}
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="hm-lessons">
         <h2 id="hm-lessons" className={s.h2}>
@@ -161,20 +187,6 @@ function Figure({ f }: { f: Figure }) {
         </section>
       )}
 
-      {pairs.length > 0 && (
-        <section aria-labelledby="hm-vs">
-          <h2 id="hm-vs" className={s.h2}>
-            {t('hm.headToHead')}
-          </h2>
-          <ul className={s.grid}>
-            {pairs.map((p) => (
-              <li key={p.id}>
-                <PairCard pair={p} to={`/minds/vs/${p.id}`} pill={done.includes(pairRef(p.id)) ? t('hm.read') : t('hm.vs')} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

@@ -1,10 +1,9 @@
 """Hall of Minds (owner 2026-10-22): history's great minds, as the server sees them.
 
-The content (figures, lessons, quotes, head-to-head pairs) lives in data/minds.json, the same
+The content (figures with their story, accounts, lessons and quotes) lives in data/minds.json, the same
 file the app shows; scripts/build_practice.py copies it next to this module. The server needs it
 for three things:
-  - XP: 10 once per lesson or pair read (xp_award type "mind", refId "<figure>:<lesson>" or
-    "vs:<pair>"), at most 20 a day;
+  - XP: 10 once per lesson read (xp_award type "mind", refId "<figure>:<lesson>"), at most 20 a day;
   - daily quotes: following a figure costs FOLLOW_COST tokens for FOLLOW_DAYS days (renewing adds
     30 more days), kept on the wallet as mindQuotes {figure: until ms};
   - picking each follower's one quote a day (pick_quote), so nobody gets more than one a day
@@ -32,8 +31,8 @@ def _load():
 
 DATA = _load()
 FIGURES = {f["id"]: f for f in DATA.get("figures") or []}
-PAIRS = {p["id"]: p for p in DATA.get("pairs") or []}
-XP_REFS = frozenset(["%s:%s" % (f, l["id"]) for f, fig in FIGURES.items() for l in fig["lessons"]] + ["vs:" + p for p in PAIRS])
+PAIRS = {p["id"]: p for p in DATA.get("pairs") or []}  # none since 2026-10-23 (owner removed the head-to-heads)
+XP_REFS = frozenset("%s:%s" % (f, l["id"]) for f, fig in FIGURES.items() for l in fig["lessons"])
 
 
 def follow(wallet, figure, now_ms):

@@ -230,42 +230,30 @@ fig("tesla", "Nikola Tesla", "Visionary", "1856–1943",
       "Edison worked very hard, but often by brute force instead of thinking first.",
       "Don't test random ideas on real money. Think first, then test with practice money.")])
 
-PAIRS = [
-    {"id": "alexander-napoleon", "a": "alexander", "b": "napoleon", "title": "Alexander vs Napoleon",
-     "tagline": "Napoleon studied Alexander. 2,000 years apart, same playbook.",
-     "rounds": [
-         {"topic": "Speed", "a": "Struck before enemies were ready, crossing whole countries fast.", "b": "Marched faster than any army in Europe by living off the land."},
-         {"topic": "Learning", "a": "Taught by Aristotle; carried the Iliad on campaign.", "b": "Read Alexander's and Caesar's campaigns over and over."},
-         {"topic": "Leading", "a": "Fought at the front and was wounded many times.", "b": "Rose from a young artillery officer and shared his soldiers' hardships on campaign."},
-         {"topic": "Downfall", "a": "Never stopped pushing east, until his own army refused to go on.", "b": "Invaded Russia in 1812 and lost most of his army."},
-     ],
-     "takeaway": "Both won with speed and preparation, and both were finally beaten by never knowing when to stop. In trading: plan fast, act fast, and set a point where you stop for the day, even when you are winning."},
-    {"id": "edison-tesla", "a": "edison", "b": "tesla", "title": "Edison vs Tesla",
-     "tagline": "The tireless tester vs the planner who ran it all in his head.",
-     "rounds": [
-         {"topic": "Method", "a": "Try thousands of things until one works.", "b": "Picture it, fix it in your head, then build it once."},
-         {"topic": "Power", "a": "Backed DC power.", "b": "Invented the AC system, which won and still powers the world."},
-         {"topic": "Business", "a": "A great businessman: built companies, sold inventions.", "b": "A visionary who was often short of money, and died poor."},
-         {"topic": "Legacy", "a": "Showed that hard work and a system beat waiting for genius.", "b": "Showed that deep thinking can skip years of trial and error."},
-     ],
-     "takeaway": "You need both: Tesla's planning before the trade, and Edison's patient testing and record-keeping after it. Plan in your head, test with practice money, write down the results."},
-]
+PAIRS = []
 
-ORDER = ["napoleon", "alexander-napoleon", "alexander", "caesar", "aristotle", "edison-tesla", "tesla", "edison", "franklin"]
+ORDER = ["napoleon", "alexander", "caesar", "livermore", "aristotle", "dow", "tesla", "edison", "newton", "morgan", "franklin"]
 
 import importlib.util, os
-_spec = importlib.util.spec_from_file_location("deep", os.path.join(os.path.dirname(os.path.abspath(__file__)), "deep.py"))
-D = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(D)
+def _load(name):
+    spec = importlib.util.spec_from_file_location(name, os.path.join(os.path.dirname(os.path.abspath(__file__)), name + ".py"))
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m
+D, MK = _load("deep"), _load("market")
+for row in MK.FIGS:
+    fig(*row)
+D.STORY.update(MK.STORY); D.CARRIED.update(MK.CARRIED)
 for f in F:
     f["story"] = D.STORY[f["id"]]
     f["carried"] = [{"title": c[0], "text": c[1], "source": c[2]} for c in D.CARRIED[f["id"]]]
+    f["studied"] = [{"title": x[0], "text": x[1], "source": x[2], "figures": x[3]} for x in MK.STUDIED.get(f["id"], [])]
+    f["group"] = "markets" if f["id"] in MK.MARKET else "history"
     tn = D.THEN_NOW.get(f["id"])
     if tn:
         f["thenNow"] = {"modern": tn[0], "text": tn[1], "trading": tn[2]}
 
-data = {"version": 2, "modernNote": D.MODERN_NOTE, "note": "Hall of Minds (owner 2026-10-22). Historical figures only; portraits are public-domain paintings. Quotes are checked against the source given; 'plain' and 'trading' are our own explanations. Edit here; scripts/build_practice.py copies it to functions/minds.json.",
-        "order": ORDER, "figures": F, "pairs": PAIRS}
-ids = {f["id"] for f in F} | {p["id"] for p in PAIRS}
+data = {"version": 3, "modernNote": D.MODERN_NOTE, "note": "Hall of Minds (owner 2026-10-22). Historical figures only; portraits are public-domain paintings. Quotes are checked against the source given; 'plain' and 'trading' are our own explanations. Edit here; scripts/build_practice.py copies it to functions/minds.json.",
+        "order": ORDER, "figures": F}
+ids = {f["id"] for f in F}
 assert set(ORDER) == ids, ids ^ set(ORDER)
 open("/home/user/Zelos/data/minds.json", "w").write(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
 print(len(F), sum(len(f["lessons"]) for f in F), sum(len(f["quotes"]) for f in F))
