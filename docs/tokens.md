@@ -57,6 +57,12 @@ scanner pages, the Terms) quote the same numbers; update them together.
 - `tokens_wallet`: your wallet + prices (makes it, adds welcome tokens once).
   `canBuy` is true once the Square access token is set.
 - `tokens_spend`: `{kind: 'pass', strategy}` or `{kind: 'unlock', alertId}`.
+- `learn_quiz` with `retakeNow: true`: after a failed Trading 101 chapter quiz the next
+  try is free 12 hours later, or `LEARN.RETAKE_COST` (10) tokens right away (owner
+  2026-10-23). The results show the right answers, so an instant free retake would
+  just be copying them. `users/{uid}.learnFailed {chapter: ms}` is server-only; a
+  passed chapter never waits. A too-early try without `retakeNow` is refused with
+  `details: {retakeAt, cost}`.
 - `drill_hint`: `{drill}` → one Training Ground hint for `TOKENS['hint']` (3) tokens
   (owner 2026-10-23), only in Where's the Stop? and Grade the Setup (`HINT_DRILLS`;
   not the Daily Challenge). The drill (games/zelos-chart-engine.js, via
