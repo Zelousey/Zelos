@@ -14,8 +14,14 @@ BOX = {  # (left, top, right, bottom) as fractions of the source image
     "tesla": ("Tesla_circa_1890_jpeg.jpg", (0.0, 0.0, 1.0, 0.85)),
     "edison": ("Thomas_Edison2_jpg.jpg", (0.2, 0.0, 1.0, 0.62)),
     "alexander": ("Alexander1256.jpg", (0.02, 0.0, 0.66, 0.36)),
+    "livermore": ("livermore.jpg", (0.04, 0.02, 0.96, 0.86)),
+    "dow": ("dow.jpg", (0.0, 0.0, 1.0, 1.0)),
+    "newton": ("newton.jpg", (0.14, 0.0, 0.86, 0.62)),
+    "morgan": ("morgan.jpg", (0.0, 0.0, 1.0, 0.62)),
 }
 sess = new_session("u2net_human_seg")
+sess_general = new_session("isnet-general-use")
+GENERAL = {"livermore"}  # the people-model left newspaper background on him
 rng = np.random.default_rng(7)
 
 
@@ -32,7 +38,7 @@ for fid, (f, (l, t, r, b)) in BOX.items():
     im = Image.open(f"{RAW}/{f}").convert("RGB")
     w, h = im.size
     im = im.crop((int(l * w), int(t * h), int(r * w), int(b * h)))
-    cut = remove(im, session=sess)
+    cut = remove(im, session=sess_general if fid in GENERAL else sess)
     alpha = cut.split()[3].filter(ImageFilter.GaussianBlur(1.2))
     gray = look(cut.convert("L"))
     x0, y0, x1, y1 = alpha.point(lambda v: 255 if v > 40 else 0).getbbox()
