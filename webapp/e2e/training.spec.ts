@@ -72,3 +72,56 @@ test('a drill runs inside the app without the website menu, and its links come b
   await frame.locator('#backTest').click();
   await expect(page).toHaveURL(/\/training$/);
 });
+
+test('drill hints: 3 tokens show where to look, and the round scores half', async ({ page }) => {
+  await page.route(/127\.0\.0\.1:4173\/(games\/[a-z-]+\.(html|js|css)|zelos-[a-z-]+\.(js|css)|[a-z-]+\.css)(\?.*)?$/, (route) => {
+    const path = new URL(route.request().url()).pathname.slice(1);
+    const type = path.endsWith('.html') ? 'text/html' : path.endsWith('.css') ? 'text/css' : 'text/javascript';
+    try {
+      return route.fulfill({ status: 200, contentType: type, body: readFileSync(resolve(ROOT, path)) });
+    } catch {
+      return route.fulfill({ status: 404, body: '' });
+    }
+  });
+  await page.route(/gstatic\.com|googletagmanager|firebasejs/, (route) => route.abort());
+  // sample charts instead of the live database (zelos-mdata.js steps aside when ZelosData exists)
+  await page.addInitScript(() => {
+    const series = (seed: number) => {
+      let p = 50 + seed, x = seed;
+      const rows: [string, number, number, number, number, number][] = [];
+      for (let i = 0; i < 240; i++) {
+        x = (x * 9301 + 49297) % 233280;
+        const r = x / 233280 - 0.45;
+        const o = p, c = Math.max(5, p * (1 + r * 0.03));
+        const d = new Date(Date.UTC(2024, 0, 2) + i * 864e5).toISOString().slice(0, 10);
+        rows.push([d, o, Math.max(o, c) * 1.01, Math.min(o, c) * 0.99, c, 1e6 + (x % 5e5)]);
+        p = c;
+      }
+      return rows;
+    };
+    (window as unknown as { ZelosData: unknown }).ZelosData = { history: () => Promise.resolve({ source: 'test', symbols: { AAA: series(1), BBB: series(7), CCC: series(13) } }) };
+  });
+  await page.goto('/games/stop-drill.html');
+  const hintBtn = page.getByRole('button', { name: 'Hint · 3 tokens' });
+  await expect(hintBtn).toBeVisible();
+  await expect(page.getByText('The round scores half points.')).toBeVisible();
+  // not enough tokens: the server's message shows and the button comes back
+  await page.evaluate(() => { (window as unknown as { ZelosTokens: { hint: () => Promise<unknown> } }).ZelosTokens.hint = () => Promise.reject(new Error('You need 3 tokens and have 1.')); });
+  await hintBtn.click();
+  await expect(page.getByText('You need 3 tokens and have 1.')).toBeVisible();
+  await expect(hintBtn).toBeEnabled();
+  await page.evaluate(() => { (window as unknown as { ZelosTokens: { hint: () => Promise<unknown> } }).ZelosTokens.hint = () => Promise.resolve({ balance: 7 }); });
+  await hintBtn.click();
+  await expect(page.getByText('the gold line is the lowest low of the last 10 days')).toBeVisible();
+  await expect(hintBtn).toHaveCount(0);
+  expect((await new AxeBuilder({ page }).include('#zgRound').withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  const box = (await page.locator('#zgRound canvas').boundingBox())!;
+  // tap low on the price pane (pointerdown is what the chart listens for, on phones too)
+  await page.locator('#zgRound canvas').dispatchEvent('pointerdown', { clientX: box.x + box.width * 0.6, clientY: box.y + box.height * 0.72, pointerId: 1, isPrimary: true });
+  await page.getByRole('button', { name: 'Lock in stop' }).click();
+  await expect(page.locator('.zg-verdict')).toContainText('Hint used: half points.');
+  // the Daily Challenge has no hints, so its board stays even
+  await page.goto('/games/daily-challenge.html');
+  await expect(page.locator('#zgRound canvas')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Hint/ })).toHaveCount(0);
+});

@@ -13,7 +13,7 @@ function zgRunDrill(cfg) {
     var k = results.length;
     if (k >= rounds.length) return finish();
     var kind = rounds[k];
-    var meta = { no: 'Round ' + (k + 1) + ' of ' + rounds.length, label: kind === 'grade' ? 'Grade the setup' : 'Where\'s the stop?', nextLabel: k === rounds.length - 1 ? 'See results &rarr;' : 'Next round &rarr;' };
+    var meta = { no: 'Round ' + (k + 1) + ' of ' + rounds.length, label: kind === 'grade' ? 'Grade the setup' : 'Where\'s the stop?', nextLabel: k === rounds.length - 1 ? 'See results &rarr;' : 'Next round &rarr;', hint: cfg.hint || null };
     host._locked = false;
     (kind === 'grade' ? ZC.gradeRound : ZC.stopRound)(host, cfg.data, cfg.rand, meta, function (res) {
       results.push(res);

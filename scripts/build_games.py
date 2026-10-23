@@ -60,7 +60,7 @@ def drill_page(path, game_id, title, h1, kicker, lede, rounds, howto, seo_title,
   var best = ZC.store('best-' + GAME); document.getElementById('zgBest').textContent = best == null ? '–' : best;
   function start(){{
     ZC.load().then(function(data){{
-      zgRunDrill({{ data: data, rand: ZC.rng(String(Date.now())), rounds: ROUNDS, onFinish: function(res){{
+      zgRunDrill({{ data: data, rand: ZC.rng(String(Date.now())), rounds: ROUNDS, hint: GAME, onFinish: function(res){{
         var b = ZC.store('best-' + GAME) || 0; if (res.total > b) ZC.store('best-' + GAME, res.total);
         document.getElementById('zgBest').textContent = Math.max(b, res.total);
         res.host.innerHTML = '<div class="zg-end"><p class="zg-kicker">Session complete</p><h2>' + {jstitle} + '</h2>' +

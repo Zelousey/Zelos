@@ -18,6 +18,7 @@
  *   ZelosTokens.full(alert, id)                Promise<full alert | null>
  *   ZelosTokens.lockCard(alert, id, onOpen)    element: the locked-alert card
  *   ZelosTokens.isLocked(alert)
+ *   ZelosTokens.hint(drill)                    Promise: pays for one drill hint (drill_hint)
  *
  * Tokens are site credit only: no cash value, not transferable, not refundable
  * except where the law requires (terms.html §07).
@@ -298,6 +299,12 @@
   function isLocked(a) { return !!(a && a.locked); }
   function isClosed(a) { return !!(a && (a.afterClose || (a.lockedUntil || 0) <= Date.now())); }
   // The full alert if you have a pass or unlocked it; null otherwise.
+  // One Training Ground drill hint (main.py drill_hint, 3 tokens). Rejects with a message to show.
+  function hint(drill) {
+    if (!user()) return Promise.reject(new Error('Sign in to use hints. New accounts start with free tokens.'));
+    return call('drill_hint', { drill: drill }).then(function (w) { wallet = Object.assign({}, wallet || {}, w); emit(); return w; },
+      function (e) { throw new Error(errText(e)); });
+  }
   function full(a, id) {
     var f = fb(), u = user(); if (!f || !u || !isLocked(a)) return Promise.resolve(null);
     return f.db.collection('alertsLocked').doc(id).get().then(function (s) { return s.exists ? Object.assign({ id: id }, s.data()) : null; }).catch(function () { return null; });
@@ -476,6 +483,6 @@
     var nav = d.getElementById('navAuth');
     if (nav && global.MutationObserver) new MutationObserver(function () { if (me && !nav.querySelector('.zt-chip')) chip(); }).observe(nav, { childList: true });
   }
-  global.ZelosTokens = { open: open, full: full, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, reward: reward, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, frameCss: frameCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
+  global.ZelosTokens = { open: open, full: full, hint: hint, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, reward: reward, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, frameCss: frameCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);

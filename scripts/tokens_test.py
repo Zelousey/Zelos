@@ -337,5 +337,21 @@ class Push(unittest.TestCase):
         self.assertEqual(sent_msgs[0]["webpush"]["fcm_options"]["link"], "https://x/l")
 
 
+class DrillHints(unittest.TestCase):
+    """Training Ground hints (owner 2026-10-23): 3 tokens, Where's the Stop? and Grade the Setup only."""
+
+    def test_charges_three(self):
+        w, line = m.hint_charge({"balance": 10}, "stop-drill", 5)
+        self.assertEqual((w["balance"], line["amount"], line["type"], line["ref"]), (7, -3, "drill-hint", "stop-drill"))
+        self.assertEqual(m.hint_charge({"balance": 3}, "grade-the-setup", 5)[0]["balance"], 0)
+
+    def test_refusals(self):
+        with self.assertRaises(m.TWError):
+            m.hint_charge({"balance": 2}, "stop-drill", 5)
+        for drill in ("daily-challenge", "chart-replay", "", "x" * 40):
+            with self.assertRaises(m.TWError):
+                m.hint_charge({"balance": 50}, drill, 5)
+
+
 if __name__ == "__main__":
     unittest.main()
