@@ -3820,6 +3820,14 @@ COSMETICS = {
     "banner": {"sunset": ("Sunset banner", 160), "midnight": ("Midnight banner", 160), "neon": ("Neon grid banner", 200),
                "ocean": ("Ocean banner", 160), "gold": ("Gold rush banner", 300)},
 }
+# token spending batch 2 (owner 2026-10-23): animated badges 200, profile frames 120, chart themes 100.
+# Plain candle colour changes stay free (the chart's own colour picker).
+COSMETICS["badge"].update({"coin": ("Spinning coin badge", 200), "fire": ("Fire badge", 200),
+                           "bolt": ("Lightning badge", 200), "launch": ("Rocket launch badge", 200)})
+COSMETICS["frame"] = {"gold": ("Gold frame", 120), "diamond": ("Diamond frame", 120),
+                      "flame": ("Flame frame", 120), "emerald": ("Emerald frame", 120)}
+COSMETICS["chart"] = {"midnight": ("Midnight chart theme", 100), "paper": ("Paper chart theme", 100),
+                      "neon": ("Neon chart theme", 100)}
 
 
 def cosmetic_buy(wallet, kind, cid, now_ms):

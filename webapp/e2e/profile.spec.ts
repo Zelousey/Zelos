@@ -115,3 +115,44 @@ test('the leaderboard opens profiles in the app', async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/profile/${OTHER}$`));
   await expect(page.getByRole('heading', { name: /Rival Rita/, level: 1 })).toBeVisible();
 });
+
+test('profile looks: buy a photo frame and an animated badge; a chart theme follows you', async ({ page }, info) => {
+  test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
+  const id = `${info.project.name}${Date.now()}`;
+  await page.goto('profile');
+  const uid = await signIn(page, `pflk-${id}@example.com`);
+  await put(`wallets/${uid}`, { balance: 450 });
+  await put(`traders/${uid}`, { name: 'Looks Tester' });
+  await page.goto('profile');
+  await page.getByRole('button', { name: 'Profile looks' }).click();
+  const shop = page.getByRole('dialog', { name: 'Profile looks' });
+  await expect(shop.getByRole('heading', { name: 'Photo frames' })).toBeVisible();
+  await expect(shop.getByRole('heading', { name: 'Chart themes' })).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  await shop.getByRole('button', { name: /Gold frame/ }).click();
+  await page.getByRole('dialog', { name: 'Buy this look?' }).getByRole('button', { name: 'Buy · 120 tokens' }).click();
+  await expect(page.getByText('Gold frame is yours and switched on.')).toBeVisible();
+  await expect(shop.getByRole('button', { name: /Gold frame/ })).toHaveAttribute('aria-pressed', 'true');
+  await shop.getByRole('button', { name: /Spinning coin badge/ }).click();
+  await page.getByRole('dialog', { name: 'Buy this look?' }).getByRole('button', { name: 'Buy · 200 tokens' }).click();
+  await expect(page.getByText('Spinning coin badge is yours and switched on.')).toBeVisible();
+  await shop.getByRole('button', { name: /Paper chart theme/ }).click();
+  await page.getByRole('dialog', { name: 'Buy this look?' }).getByRole('button', { name: 'Buy · 100 tokens' }).click();
+  await expect(page.getByText('Paper chart theme is yours and switched on.')).toBeVisible();
+  // 30 left: the next buy is refused with the numbers
+  await shop.getByRole('button', { name: /Diamond frame/ }).click();
+  await page.getByRole('dialog', { name: 'Buy this look?' }).getByRole('button', { name: 'Buy · 120 tokens' }).click();
+  await expect(page.getByText('You need 120 tokens and have 30.')).toBeVisible();
+  await page.getByRole('dialog', { name: 'Buy this look?' }).getByRole('button', { name: 'Cancel' }).click();
+  await page.keyboard.press('Escape');
+  // on the profile: the frame around the picture and the badge by the name
+  await expect(page.locator('h1').getByText('🪙')).toBeVisible();
+  const frame = await page.locator('[class*="frameRing"]').first().evaluate((el) => getComputedStyle(el).backgroundImage);
+  expect(frame).toContain('gradient');
+  // the chart engine now draws with the theme on this device
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('zelosChartTheme'))).toBe('paper');
+  // taking it off switches charts back to the plain look
+  await page.getByRole('button', { name: 'Profile looks' }).click();
+  await page.getByRole('dialog', { name: 'Profile looks' }).getByRole('button', { name: /Paper chart theme/ }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('zelosChartTheme'))).toBeNull();
+});

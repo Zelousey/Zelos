@@ -83,15 +83,22 @@ test('coach a new player: link, accept, react to a trade, a custom task, end', a
   await expect(coach.getByRole('heading', { name: 'Draw up a play for Bo' })).toBeVisible();
   const layer = coach.getByTestId('draw-layer');
   await expect(coach.getByRole('img', { name: 'AAPL chart with 0 drawings from the coach' })).toBeVisible();
-  await coach.waitForTimeout(500); // the chart lays out its bars
   const box = (await layer.boundingBox())!;
-  await coach.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4); // inside the price panel (the RSI panel sits below)
-  await coach.mouse.down();
-  await coach.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.25, { steps: 5 });
-  await coach.mouse.up();
+  // a drag before the chart has laid out its bars is dropped (no point under it), which a slow
+  // CI runner hit (2026-10-23): drag again only while nothing has registered
+  await expect(async () => {
+    if (await coach.getByRole('img', { name: 'AAPL chart with 0 drawings from the coach' }).isVisible()) {
+      await coach.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4); // inside the price panel (the RSI panel sits below)
+      await coach.mouse.down();
+      await coach.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.25, { steps: 5 });
+      await coach.mouse.up();
+    }
+    await expect(coach.getByText(/1 of 40 drawings/)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
   await coach.getByRole('button', { name: 'Price level' }).click();
   await coach.getByRole('radio', { name: 'Red' }).click();
   await layer.click({ position: { x: box.width * 0.5, y: box.height * 0.3 } });
+  await expect(coach.getByText(/2 of 40 drawings/)).toBeVisible();
   await coach.getByRole('button', { name: 'Label' }).click();
   await layer.click({ position: { x: box.width * 0.4, y: box.height * 0.35 } }); // below the legend, which takes more lines on a phone
   await coach.getByRole('dialog', { name: 'Add a label' }).getByLabel('Label').fill('entry here');

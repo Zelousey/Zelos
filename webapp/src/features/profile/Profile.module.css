@@ -85,3 +85,32 @@
 .bioField small { color: var(--muted); font-size: var(--text-xs); }
 .error { color: var(--down-ink); font-size: var(--text-sm); margin: 0; }
 .tableWrap:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius); }
+
+/* profile looks: animated badges, the shop (owner 2026-10-23) */
+.badgeIcon { display: inline-block; }
+.anim_spin { animation: lkSpin 2.4s linear infinite; }
+.anim_flicker { animation: lkFlicker 1.2s ease-in-out infinite; }
+.anim_pulse { animation: lkPulse 1.4s ease-in-out infinite; }
+.anim_lift { animation: lkLift 1.8s ease-in-out infinite; }
+@keyframes lkSpin { to { transform: rotateY(360deg); } }
+@keyframes lkFlicker { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15) rotate(-4deg); opacity: 0.8; } }
+@keyframes lkPulse { 0%, 100% { transform: scale(1); filter: none; } 50% { transform: scale(1.2); filter: drop-shadow(0 0 4px #facc15); } }
+@keyframes lkLift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px) rotate(-8deg); } }
+@media (prefers-reduced-motion: reduce) { .anim_spin, .anim_flicker, .anim_pulse, .anim_lift { animation: none; } }
+.lkBalance { margin: 0 0 var(--space-3); font-weight: 700; }
+.lkGroup { margin-top: var(--space-4); }
+.lkGroup h3 { margin: 0 0 var(--space-2); font-size: var(--text-md); }
+.lkItems { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: var(--space-2); }
+.lkItem { display: grid; justify-items: center; gap: 4px; padding: var(--space-3) var(--space-2); border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font: inherit; text-align: center; cursor: pointer; min-height: var(--tap); }
+.lkItem b { font-size: var(--text-sm); }
+.lkItem small { color: var(--ink-2); font-size: var(--text-xs); }
+.lkItem:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.lkItem:disabled { opacity: 0.6; cursor: default; }
+.lkOn { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.swName { font-weight: 800; font-size: 1.2rem; }
+.swBadge { display: inline-block; font-size: 1.4rem; line-height: 1; }
+.swRing { width: 30px; height: 30px; border-radius: 50%; box-shadow: inset 0 0 0 7px var(--surface-2); }
+.swBox { width: 46px; height: 26px; border-radius: 6px; }
+.lkBody { padding: var(--space-3) var(--space-4) var(--space-5); }
+.frameRing { display: block; padding: 4px; border-radius: 50%; } /* a photo frame bought with tokens */
+.frameRing .photo { border-color: var(--surface); }
