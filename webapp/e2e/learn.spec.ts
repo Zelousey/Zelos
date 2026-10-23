@@ -9,6 +9,8 @@ test.describe.configure({ timeout: 120_000 });
 
 const BASE = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents';
 const get = (path: string) => fetch(`${BASE}/${path}`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json());
+const put = (path: string, data: Record<string, number>) =>
+  fetch(`${BASE}/${path}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, { integerValue: String(v) }])) }) });
 async function signIn(page: Page, email: string): Promise<string> {
   await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
   return page.evaluate((e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid), email);
@@ -139,9 +141,17 @@ test.describe('signed in', () => {
     await expect(page.getByText('Not quite yet')).toBeVisible();
     await expect(page.getByText('0 of 5 right. You need 4 to pass.')).toBeVisible();
     await page.getByRole('button', { name: 'Try again' }).click();
+    // the results showed the answers, so the next try waits 12 hours, or costs 10 tokens now (owner 2026-10-23)
+    await expect(page.getByText(/^Free retake in 1[12]h \d+m$/)).toBeVisible();
+    await expect(page.getByRole('radio').first()).toBeDisabled(); // the questions stay locked until then
+    await put(`wallets/${uid}`, { balance: 12 });
+    await page.getByRole('button', { name: 'Retake now · 10 tokens' }).click();
+    await expect(page.getByText('This retake costs 10 tokens when you check your answers.')).toBeVisible();
     await pick([1, 0, 2, 2, 0]);
     await page.getByRole('button', { name: 'Check my answers' }).click();
     await expect(page.getByText('You passed!')).toBeVisible();
+    await expect(page.getByText('10 tokens spent on the retake.')).toBeVisible();
+    await expect.poll(async () => (await get(`wallets/${uid}`)).fields?.balance?.integerValue).toBe('2');
     await expect(page.getByText('+50 XP')).toBeVisible();
     await axe(page);
     await expect.poll(async () => !!(await get(`users/${uid}`)).fields?.learnPassed?.mapValue?.fields?.basics).toBe(true);

@@ -33,9 +33,28 @@ u = db.collection("users").document(uid).get().to_dict()
 ok(not r["passed"] and r["right"] == 0 and r["xp"] == 0 and u["xp"] == 0 and "learnPassed" not in u, "a failed quiz pays nothing and unlocks nothing")
 ok([x["answer"] for x in r["results"]] == key, "the results show the right answers to learn from")
 
-r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key)}, now + 1000)
+# retakes (owner 2026-10-23): free 12 hours after a fail, or 10 tokens right away
+ok(u["learnFailed"]["basics"] == now and r["retakeAt"] == now + main.LEARN.RETAKE_WAIT_MS, "the fail is recorded with when a free retake opens")
+try:
+    main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key)}, now + 500)
+    ok(False, "an instant free retake must be refused")
+except https_fn.HttpsError as e:
+    ok(e.details == {"retakeAt": now + main.LEARN.RETAKE_WAIT_MS, "cost": 10}, "an instant retake is refused, with when it's free and the price")
+db.collection("wallets").document(uid).set({"balance": 4})
+try:
+    main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key), "retakeNow": True}, now + 600)
+    ok(False, "paying with too few tokens must be refused")
+except https_fn.HttpsError as e:
+    ok("need 10 tokens and have 4" in str(e.message) and "learnPassed" not in db.collection("users").document(uid).get().to_dict(), "paying with too few tokens is refused and nothing is graded")
+db.collection("wallets").document(uid).set({"balance": 15})
+r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key), "retakeNow": True}, now + 1000)
 u = db.collection("users").document(uid).get().to_dict()
-ok(r["passed"] and r["xp"] == 50 and u["xp"] == 50, "a passed quiz pays 50 XP")
+ok(r["passed"] and r["xp"] == 50 and u["xp"] == 50 and r["charged"] == 10, "a passed quiz pays 50 XP")
+ok(db.collection("wallets").document(uid).get().to_dict()["balance"] == 5, "the retake now cost 10 tokens")
+other = "learn-wait-%d" % now
+main.learn_quiz_run(db, other, {"chapter": "basics", "answers": wrong}, now)
+r = main.learn_quiz_run(db, other, {"chapter": "basics", "answers": list(key)}, now + main.LEARN.RETAKE_WAIT_MS + 1)
+ok(r["passed"] and r["charged"] == 0, "12 hours later the retake is free")
 ok(u["learnPassed"]["basics"] == now + 1000 and u["learnDone"] == ["stocks"], "and records the pass (lessons list untouched)")
 
 r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key)}, now + 2000)
