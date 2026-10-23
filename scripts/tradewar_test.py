@@ -510,3 +510,68 @@ class NotifySurrender(unittest.TestCase):
         res4[0], res4[4] = res4[0], res4[4]
         paid = m.tw_rewards(res4, None, set("abcde"))
         self.assertNotIn("e", [p[0] for p in paid])
+
+
+class Revive(unittest.TestCase):
+    """Last Man Standing revive (owner 2026-10-23): back in once, with the money you had."""
+
+    def setup(self, **kw):
+        war = {"lms": {"floorPct": 10, "cutHours": 6}, "players": list("abcde"), "status": "active",
+               "alive": ["b", "c", "d"], "outs": [{"uid": "a", "reason": "floor", "place": 5}],
+               "endAt": T0 + 86400000}
+        war.update(kw)
+        acct = {"name": "Al", "start": 1000, "cash": 890, "equity": 890, "pnl": -110, "pnlPct": -11.0,
+                "losses": 4, "worst": -60, "out": True, "outReason": "floor", "place": 5}
+        return war, acct
+
+    def test_back_in_with_the_money_you_had(self):
+        war, acct = self.setup()
+        a, up = m.tw_revive_fields(war, acct, "a", T0)
+        self.assertFalse(a["out"])
+        self.assertIsNone(a["place"])
+        self.assertEqual((a["equity"], a["start"], a["reviveBase"]), (890, 1000, 890))
+        self.assertEqual(up["alive"], ["b", "c", "d", "a"])
+        self.assertEqual(up["outs"], [])
+        self.assertEqual(up["revived"], ["a"])
+        self.assertEqual(up["reviveSafe"], ["a"])
+
+    def test_rules_start_fresh_after_a_revive(self):
+        war, acct = self.setup()
+        a, _ = m.tw_revive_fields(war, acct, "a", T0)
+        self.assertIsNone(m.tw_out_reason(a, war["lms"]))  # -11% overall, but 0% since the revive
+        self.assertIsNone(m.tw_out_reason(dict(a, equity=810), war["lms"]))  # -9% since the revive
+        self.assertEqual(m.tw_out_reason(dict(a, equity=800), war["lms"]), "floor")  # -10.1%
+        rules = {"maxLosses": 5}
+        self.assertIsNone(m.tw_out_reason(dict(a, losses=8), rules))
+        self.assertEqual(m.tw_out_reason(dict(a, losses=9), rules), "losses")
+
+    def test_skips_the_next_timed_cut(self):
+        accts = {u: {"start": 1000, "equity": e, "pnl": e - 1000, "pnlPct": (e - 1000) / 10.0} for u, e in (("a", 890), ("b", 950), ("c", 1010))}
+        picks = m.tw_pick_outs(["a", "b", "c"], accts, {"cutHours": 6}, T0, T0 - 1, safe={"a"})
+        self.assertEqual(picks, [("b", "cut")])
+        self.assertEqual(m.tw_pick_outs(["a", "b", "c"], accts, {"cutHours": 6}, T0, T0 - 1), [("a", "cut")])
+
+    def test_when_you_cannot(self):
+        bad = [
+            dict(lms=None),
+            dict(status="ended"),
+            dict(revived=["a"]),
+            dict(endAt=T0 + 30 * 60000),
+            dict(alive=["b", "c"]),
+        ]
+        for kw in bad:
+            war, acct = self.setup(**kw)
+            with self.assertRaises(m.TWError, msg=str(kw)):
+                m.tw_revive_fields(war, acct, "a", T0)
+        war, acct = self.setup()
+        for a2 in (dict(acct, out=False), dict(acct, outReason="surrender"), None):
+            with self.assertRaises(m.TWError):
+                m.tw_revive_fields(war, a2, "a", T0)
+        with self.assertRaises(m.TWError):
+            m.tw_revive_fields(war, acct, "zz", T0)
+
+    def test_inputs_are_not_mutated(self):
+        war, acct = self.setup()
+        before = (repr(war), repr(acct))
+        m.tw_revive_fields(war, acct, "a", T0)
+        self.assertEqual(before, (repr(war), repr(acct)))

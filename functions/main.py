@@ -1922,11 +1922,14 @@ def tw_out_reason(acct, elim):
     """Which elimination rule this account breaks (None if none). Cuts are handled by tw_pick_outs."""
     if not elim or acct.get("out"):
         return None
-    if elim.get("floorPct") and (acct.get("pnlPct") or 0) <= -elim["floorPct"]:
+    # after a revive the rules start fresh from the money you came back with
+    base = acct.get("reviveBase")
+    pct = (acct["equity"] / base - 1) * 100 if base else (acct.get("pnlPct") or 0)
+    if elim.get("floorPct") and pct <= -elim["floorPct"]:
         return "floor"
     if elim.get("maxLossPct") and -(acct.get("worst") or 0) > acct["start"] * elim["maxLossPct"] / 100.0 + 1e-9:
         return "bigLoss"
-    if elim.get("maxLosses") and (acct.get("losses") or 0) >= elim["maxLosses"]:
+    if elim.get("maxLosses") and (acct.get("losses") or 0) - (acct.get("reviveLosses") or 0) >= elim["maxLosses"]:
         return "losses"
     return None
 
@@ -1935,11 +1938,12 @@ def _tw_order(acct, uid):
     return (acct.get("pnlPct") or 0, acct.get("pnl") or 0, uid)
 
 
-def tw_pick_outs(alive, accts, elim, now_ms, next_cut, shields=None, used=None):
+def tw_pick_outs(alive, accts, elim, now_ms, next_cut, shields=None, used=None, safe=()):
     """Pure: [(uid, reason)] to knock out now, worst first. Never knocks out everyone left:
     if all would go, the best of them survives (and wins). A Shield Token (Whale vs Minnow)
     saves a player from a timed cut: the shield is spent (uid appended to used) and the
-    next-worst player without one is cut instead."""
+    next-worst player without one is cut instead. Players in safe (just revived) skip the
+    next timed cut without spending anything."""
     outs = [(u, r) for u in alive for r in [tw_out_reason(accts[u], elim)] if r]
     if elim.get("cutHours") and next_cut and now_ms >= next_cut:
         hit = {u for u, _ in outs}
@@ -1947,6 +1951,9 @@ def tw_pick_outs(alive, accts, elim, now_ms, next_cut, shields=None, used=None):
         shields = dict(shields or {})
         while len(rest) > 1:
             u = rest[0]
+            if u in safe:
+                rest = rest[1:]
+                continue
             if shields.get(u, 0) > 0:
                 shields[u] -= 1
                 if used is not None:
@@ -2653,6 +2660,75 @@ def tw_surrender(req, db, uid, now_ms):
     return {"ok": True, "place": place}
 
 
+TW_REVIVE_CUTOFF_MS = 3600000  # no revives in a battle's last hour
+
+
+def tw_revive_fields(war, acct, uid, now_ms):
+    """Pure: (account, battle update) for a Last Man Standing revive, or raises TWError.
+    You come back once per battle with the money you had when knocked out; the knockout rules
+    start fresh from there (tw_out_reason) and you skip the next timed cut. Rankings still
+    count from your original start. Not after surrendering, in the battle's last hour, or
+    once only two traders are left (the final is theirs)."""
+    if not war.get("lms"):
+        raise TWError("FAILED_PRECONDITION", "Revives are only in Last Man Standing battles.")
+    if uid not in (war.get("players") or []):
+        raise TWError("PERMISSION_DENIED", "You're not in this Trade War.")
+    if war.get("status") != "active":
+        raise TWError("FAILED_PRECONDITION", "This Trade War isn't live.")
+    if not acct or not acct.get("out"):
+        raise TWError("FAILED_PRECONDITION", "You're still in this battle.")
+    if acct.get("outReason") == "surrender":
+        raise TWError("FAILED_PRECONDITION", "You surrendered, so you can't come back.")
+    if uid in (war.get("revived") or []):
+        raise TWError("FAILED_PRECONDITION", "You've already used your revive in this battle.")
+    if (war.get("endAt") or 0) - now_ms < TW_REVIVE_CUTOFF_MS:
+        raise TWError("FAILED_PRECONDITION", "It's too late in the battle to come back.")
+    alive = [u for u in (war.get("alive") or []) if u != uid]
+    if len(alive) < 3:
+        raise TWError("FAILED_PRECONDITION", "Only two traders are left: the final is theirs.")
+    a = dict(acct, out=False, outReason=None, outAt=None, place=None, reviveBase=acct["equity"],
+             reviveLosses=acct.get("losses") or 0, worst=0, revivedAt=now_ms, updatedAt=now_ms)
+    update = {"alive": alive + [uid], "outs": [o for o in (war.get("outs") or []) if o.get("uid") != uid],
+              "revived": list(war.get("revived") or []) + [uid]}
+    if war["lms"].get("cutHours"):
+        update["reviveSafe"] = list(war.get("reviveSafe") or []) + [uid]
+    return a, update
+
+
+@https_fn.on_call()
+@_tw_call
+def tw_revive(req, db, uid, now_ms):
+    """Last Man Standing: back in for TOKENS['revive'] tokens (tw_revive_fields has the rules)."""
+    war_ref = db.collection("tradeWars").document(_tw_war_id(req.data))
+    wallet_ref = db.collection("wallets").document(uid)
+    cost = TOKENS["revive"]
+
+    @firestore.transactional
+    def txn(t):
+        snap = war_ref.get(transaction=t)
+        if not snap.exists:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        war = snap.to_dict()
+        aref = war_ref.collection("accounts").document(uid)
+        a = aref.get(transaction=t)
+        w = wallet_ref.get(transaction=t)
+        acct, update = tw_revive_fields(war, a.to_dict() if a.exists else None, uid, now_ms)
+        wallet = w.to_dict() if w.exists else tk_new_wallet(now_ms)
+        if wallet.get("balance", 0) < cost:
+            raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet.get("balance", 0)))
+        wallet = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+        t.set(wallet_ref, wallet)
+        t.set(wallet_ref.collection("ledger").document(), tk_ledger("revive", -cost, wallet["balance"], now_ms,
+                                                                    "Revive in %s" % (war.get("name") or "a battle"), snap.id))
+        t.set(aref, acct)
+        t.update(war_ref, update)
+        _tw_log(t, war_ref, tw_event("revive", "%s is back in the battle!" % (acct.get("name") or "Trader"), now_ms, uid=uid))
+        return wallet
+
+    wallet = txn(db.transaction())
+    return {"ok": True, "charged": cost, "balance": wallet["balance"]}
+
+
 @https_fn.on_call()
 @_tw_call
 def tw_trade(req, db, uid, now_ms):
@@ -2950,7 +3026,7 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
         alive = [u for u in (war.get("alive") or war["players"]) if u in accts and not accts[u].get("out")]
         if lms:
             outs, used, shields = list(war.get("outs") or []), [], dict(war.get("shields") or {})
-            picks = tw_pick_outs(alive, accts, lms, now_ms, war.get("nextCutAt"), shields, used)
+            picks = tw_pick_outs(alive, accts, lms, now_ms, war.get("nextCutAt"), shields, used, set(war.get("reviveSafe") or []))
             for u in used:
                 shields[u] -= 1
                 events.append(tw_event("shield", "%s used a Shield Token to survive the cut" % names.get(u, "Trader"), now_ms, uid=u))
@@ -2968,6 +3044,8 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
             cut = lms.get("cutHours")
             if cut and war.get("nextCutAt") and now_ms >= war["nextCutAt"]:
                 update["nextCutAt"] = war["nextCutAt"] + cut * 3600000
+                if war.get("reviveSafe"):
+                    update["reviveSafe"] = []  # that was the cut a revive protects from
         # Last Man Standing ends with one trader left; any match ends when everyone else surrendered
         ending = time_up or (len(alive) <= 1 and (lms or len(accts) > 1))
         if ending and not time_up and any(b["status"] == "open" for b in update.get("bounties") or war.get("bounties") or []):
@@ -3370,6 +3448,7 @@ TOKENS = {
     "unlock": 25,                  # one live alert (before the 4 pm ET close)
     "unlockClosed": 8,             # one alert after the close, until its trade finishes (then free)
     "packs": {"p100": (100, 300), "p350": (350, 1000), "p750": (750, 2000)},  # id: (tokens, US cents)
+    "revive": 20,                  # Last Man Standing: back in once per battle (owner 2026-10-23)
 }
 TK_UNLOCKED_MAX = 300
 SITE_URL = "https://agentictrading.info"
