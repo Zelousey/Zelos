@@ -93,11 +93,11 @@ class Quote(unittest.TestCase):
 
 class Xp(unittest.TestCase):
     def test_lessons_pay_10_once_each(self):
-        self.assertEqual(XP.decide("mind", "napoleon:study", "2026-10-22")[0], 10)
+        self.assertEqual(XP.decide("mind", "caesar:rubicon", "2026-10-22")[0], 10)
         self.assertEqual(XP.decide("mind", "livermore:sit", "2026-10-22")[0], 10)
         self.assertEqual(XP.decide("mind", "vs:edison-tesla", "2026-10-22")[2], "bad-ref")  # pairs are gone
         self.assertEqual(XP.decide("mind", "napoleon:nope", "2026-10-22")[2], "bad-ref")
-        self.assertEqual(XP.decide("mind", "napoleon:study", "2026-10-22", {"mind": 20})[2], "daily-limit")
+        self.assertEqual(XP.decide("mind", "caesar:rubicon", "2026-10-22", {"mind": 20})[2], "daily-limit")
 
     def test_scroll_lessons_pay_2_a_step_about_10_a_lesson(self):
         # owner 2026-10-23: a little XP for each task, about the same 10 per lesson
@@ -107,11 +107,12 @@ class Xp(unittest.TestCase):
         self.assertEqual(XP.decide("mind-step", "napoleon:speed:nope", "2026-10-23")[2], "bad-ref")
         self.assertEqual(XP.decide("mind-step", "napoleon:study:march", "2026-10-23")[2], "bad-ref")
         self.assertEqual(XP.decide("mind-step", "napoleon:speed:ready", "2026-10-23", {"mind-step": 100})[2], "daily-limit")
-        tasks = [r for r in M.STEP_REFS if r.startswith("napoleon:speed:")]
-        self.assertEqual(len(tasks) * M.STEP_XP, 10)
+        for lesson in ("speed", "study", "concentrate", "mind"):
+            tasks = [r for r in M.STEP_REFS if r.startswith("napoleon:%s:" % lesson)]
+            self.assertEqual(len(tasks) * M.STEP_XP, 10, lesson)
 
     def test_scroll_lessons_are_well_formed(self):
-        kinds = {"hold", "quiz", "drag", "level"}
+        kinds = {"hold", "quiz", "drag", "level", "collect", "tap", "target", "pick"}
         for f in M.FIGURES.values():
             for l in f["lessons"]:
                 sc = l.get("scroll")
@@ -134,6 +135,22 @@ class Xp(unittest.TestCase):
                         self.assertTrue(t["label"])
                     if t["kind"] in ("drag", "level"):
                         self.assertTrue(t["tap"], "a tap alternative to dragging (WCAG 2.5.7)")
+                    if t["kind"] == "collect":
+                        self.assertTrue(any(not i.get("wrong") for i in t["items"]))
+                    if t["kind"] == "tap":
+                        self.assertTrue(os.path.exists(os.path.join(ROOT, "webapp", "public", "minds", t["image"])), t["image"])
+                        self.assertIn("Public domain", t["credit"])
+                        self.assertTrue(any(sp.get("right") for sp in t["spots"]))
+                        for sp in t["spots"]:
+                            self.assertTrue(0 <= sp["x"] and sp["x"] + sp["w"] <= 1.001 and 0 <= sp["y"] and sp["y"] + sp["h"] <= 1.001, sp)
+                    if t["kind"] == "target":
+                        self.assertEqual(sum(1 for z in t["zones"] if z.get("right")), 1)
+                    if t["kind"] == "pick":
+                        self.assertGreaterEqual(sum(1 for o in t["options"] if o.get("right")), t["need"])
+                for s in sc["slides"]:
+                    if isinstance(s.get("image"), str):
+                        self.assertTrue(os.path.exists(os.path.join(ROOT, "webapp", "public", "minds", s["image"])), s["image"])
+                        self.assertIn("Public domain", s["credit"])
 
 
 if __name__ == "__main__":

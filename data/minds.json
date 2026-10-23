@@ -263,7 +263,143 @@
       "Napoleon read the campaigns of Alexander, Hannibal and Caesar over and over. He told officers to model themselves on them.",
       "He didn't start from zero. He started from the best."
      ],
-     "trading": "You don't have to invent a strategy. Learn a proven one first (Trading 101, the Strategy library), then make it your own."
+     "trading": "You don't have to invent a strategy. Learn a proven one first (Trading 101, the Strategy library), then make it your own.",
+     "scroll": {
+      "image": "lessons/napoleon-study.webp",
+      "credit": "Jacques-Louis David, The Emperor Napoleon in His Study at the Tuileries (1812), National Gallery of Art, Washington. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "At nine, Napoleon was sent to a military school in France.",
+         "Other boys mocked his accent and his family's lack of money. He spent his free time reading history."
+        ],
+        "image": true
+       },
+       {
+        "lines": [
+         "He read the campaigns of Alexander, Hannibal and Caesar over and over."
+        ],
+        "task": {
+         "id": "books",
+         "kind": "collect",
+         "label": "Drag the three books onto his desk (or tap them)",
+         "target": "His desk",
+         "items": [
+          {
+           "label": "Alexander"
+          },
+          {
+           "label": "Hannibal"
+          },
+          {
+           "label": "Caesar"
+          }
+         ],
+         "done": "He kept going back to them all his life."
+        }
+       },
+       {
+        "lines": [
+         "Years later he told his officers: read the campaigns of the great commanders over and over, and model yourselves on them."
+        ],
+        "source": "The Military Maxims of Napoleon, Maxim 78",
+        "task": {
+         "id": "model",
+         "kind": "quiz",
+         "question": "What did he tell his officers to do?",
+         "options": [
+          "Forget the past and invent everything new",
+          "Study the great commanders and copy what worked",
+          "Trust their luck"
+         ],
+         "answer": 1,
+         "why": "Learn from the best first. Then make it your own."
+        }
+       },
+       {
+        "lines": [
+         "When David painted him crossing the Alps in 1800, he carved three names into the rocks.",
+         "One of them had crossed the Alps with an army about 2,000 years earlier."
+        ],
+        "task": {
+         "id": "names",
+         "kind": "tap",
+         "label": "Tap the name of the general who crossed the Alps long before him",
+         "image": "lessons/napoleon-names.webp",
+         "credit": "Jacques-Louis David, Napoleon Crossing the Alps (1801), Château de Malmaison. Public domain, via Wikimedia Commons.",
+         "spots": [
+          {
+           "label": "Bonaparte",
+           "x": 0.01,
+           "y": 0.28,
+           "w": 0.37,
+           "h": 0.45
+          },
+          {
+           "label": "Hannibal",
+           "x": 0.05,
+           "y": 0.74,
+           "w": 0.3,
+           "h": 0.26,
+           "right": true
+          },
+          {
+           "label": "Charlemagne (Karolus Magnus)",
+           "x": 0.45,
+           "y": 0.8,
+           "w": 0.4,
+           "h": 0.2
+          }
+         ],
+         "miss": "Not that one. Look along the bottom of the rocks.",
+         "done": "Hannibal crossed in 218 BC, with war elephants. Napoleon wanted to be seen following him."
+        }
+       },
+       {
+        "lines": [
+         "You don't have to invent a strategy either.",
+         "Start from the best."
+        ],
+        "task": {
+         "id": "proven",
+         "kind": "collect",
+         "label": "Drag the proven places to learn into your notebook (or tap them)",
+         "target": "Your notebook",
+         "items": [
+          {
+           "label": "Trading 101"
+          },
+          {
+           "label": "A stranger's hot tip",
+           "wrong": true
+          },
+          {
+           "label": "The Strategy library"
+          }
+         ],
+         "wrong": "Not that one. A tip isn't a strategy.",
+         "done": "Learn a proven one first, then make it your own."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "first",
+         "kind": "quiz",
+         "question": "You're new to trading. What's the smart first step?",
+         "options": [
+          "Invent your own system from scratch",
+          "Learn a proven strategy, then adapt it",
+          "Follow whoever is loudest online"
+         ],
+         "answer": 1,
+         "why": "Napoleon started from the best. So can you."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "speed",
@@ -368,7 +504,135 @@
       "Napoleon's favorite move was to gather his forces at one place and hit the enemy's weakest point with all of it.",
       "Spread thin, you are weak everywhere."
      ],
-     "trading": "Ten tiny trades at once means you watch none of them. Focus on the 1 to 3 best setups you understand."
+     "trading": "Ten tiny trades at once means you watch none of them. Focus on the 1 to 3 best setups you understand.",
+     "scroll": {
+      "image": "lessons/napoleon-austerlitz.webp",
+      "credit": "François Gérard, The Battle of Austerlitz (1810), Palace of Versailles. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "December 2, 1805: Austerlitz, in today's Czech Republic.",
+         "Napoleon faced the armies of Austria and Russia together, and he had fewer men."
+        ],
+        "task": {
+         "id": "find",
+         "kind": "tap",
+         "label": "Find Napoleon in the painting and tap him",
+         "image": "lessons/napoleon-austerlitz.webp",
+         "credit": "François Gérard, The Battle of Austerlitz (1810), Palace of Versailles. Public domain, via Wikimedia Commons.",
+         "spots": [
+          {
+           "label": "Napoleon",
+           "x": 0.59,
+           "y": 0.14,
+           "w": 0.2,
+           "h": 0.48,
+           "right": true
+          }
+         ],
+         "miss": "Not there. Look for the plain coat and black hat on the white horse.",
+         "done": "That's him. General Rapp rides in to show him the captured flags."
+        }
+       },
+       {
+        "lines": [
+         "Before the battle he made his right side look weak, so the enemy would send troops to attack it.",
+         "That left the high ground in the middle, the Pratzen Heights, thinly held."
+        ],
+        "task": {
+         "id": "heights",
+         "kind": "target",
+         "label": "Drag your troops to the weak point (or tap a place)",
+         "token": "Your troops",
+         "zones": [
+          {
+           "label": "North",
+           "why": "They're still strong there."
+          },
+          {
+           "label": "Pratzen Heights (middle)",
+           "right": true
+          },
+          {
+           "label": "South",
+           "why": "That's where they sent their troops. Look where they left."
+          }
+         ],
+         "done": "Marshal Soult's men took the heights and split the enemy army in two."
+        }
+       },
+       {
+        "lines": [
+         "One hard blow at the right point beat a bigger army.",
+         "Spread thin, you are weak everywhere."
+        ],
+        "task": {
+         "id": "why",
+         "kind": "quiz",
+         "question": "Why did hitting one point work?",
+         "options": [
+          "He had more soldiers everywhere",
+          "All his strength hit where they were weakest",
+          "The enemy gave up before it started"
+         ],
+         "answer": 1,
+         "why": "Gather everything, then hit the weakest point."
+        }
+       },
+       {
+        "lines": [
+         "In trading, ten tiny trades at once means you watch none of them."
+        ],
+        "task": {
+         "id": "focus",
+         "kind": "pick",
+         "label": "Pick the 3 setups you would focus on",
+         "need": 3,
+         "options": [
+          {
+           "label": "A breakout you planned, with a clear stop",
+           "right": true
+          },
+          {
+           "label": "A random tip from a group chat"
+          },
+          {
+           "label": "A pullback to support on your watchlist",
+           "right": true
+          },
+          {
+           "label": "A stock you've never looked at"
+          },
+          {
+           "label": "A trend you understand, with rising volume",
+           "right": true
+          },
+          {
+           "label": "Chasing a stock that's up 40% today"
+          }
+         ],
+         "why": "Few, planned and understood. That's your one point."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "open8",
+         "kind": "quiz",
+         "question": "You have 8 trades open and can't keep track. What do you do?",
+         "options": [
+          "Open more to spread the risk",
+          "Close the weakest and focus on the 1 to 3 you understand",
+          "Ignore them until the weekend"
+         ],
+         "answer": 1,
+         "why": "Bring everything to one point."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "mind",
@@ -377,7 +641,122 @@
       "Napoleon believed morale counted three times more than numbers or guns. Tired, scared troops lose.",
       "How people feel decides how they fight."
      ],
-     "trading": "Your mood is part of your strategy. Tired, angry or bored? Don't trade. Take a break and keep your edge for when you're sharp."
+     "trading": "Your mood is part of your strategy. Tired, angry or bored? Don't trade. Take a break and keep your edge for when you're sharp.",
+     "scroll": {
+      "image": "lessons/napoleon-arcole.webp",
+      "credit": "Antoine-Jean Gros, Bonaparte at the Bridge of Arcole (1796). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "November 1796, at Arcole in northern Italy. His attack stalled at a bridge under heavy fire.",
+         "His soldiers were scared and would not go forward."
+        ],
+        "task": {
+         "id": "flag",
+         "kind": "tap",
+         "label": "Tap the flag to lead the charge",
+         "image": "lessons/napoleon-arcole.webp",
+         "credit": "Antoine-Jean Gros, Bonaparte at the Bridge of Arcole (1796). Public domain, via Wikimedia Commons.",
+         "spots": [
+          {
+           "label": "The flag",
+           "x": 0.02,
+           "y": 0.08,
+           "w": 0.42,
+           "h": 0.42,
+           "right": true
+          }
+         ],
+         "miss": "Find the flag he is carrying.",
+         "done": "He grabbed a flag and led the charge onto the bridge himself."
+        }
+       },
+       {
+        "lines": [
+         "The charge failed, and he was knocked into a marsh.",
+         "But his men had seen their general share their danger. After three days of fighting, the French won."
+        ],
+        "source": "As told in David Chandler, The Campaigns of Napoleon (1966)",
+        "task": {
+         "id": "rally",
+         "kind": "hold",
+         "scene": "rally",
+         "label": "Hold to rally the troops",
+         "done": "Their fear turns into fight."
+        }
+       },
+       {
+        "lines": [
+         "He wrote that in war, three-quarters turns on character and how people get on. Men and supplies count for only the last quarter."
+        ],
+        "source": "Napoleon, note on the affairs of Spain, 27 August 1808",
+        "task": {
+         "id": "quarters",
+         "kind": "quiz",
+         "question": "What did he think counted most?",
+         "options": [
+          "The number of guns",
+          "Character and how people feel",
+          "The weather"
+         ],
+         "answer": 1,
+         "why": "How people feel decides how they fight."
+        }
+       },
+       {
+        "lines": [
+         "Your mood is part of your strategy too."
+        ],
+        "task": {
+         "id": "mood",
+         "kind": "pick",
+         "label": "Pick the 3 signs that say: don't trade today",
+         "need": 3,
+         "options": [
+          {
+           "label": "Up all night",
+           "right": true
+          },
+          {
+           "label": "Rested, with your plan ready"
+          },
+          {
+           "label": "Angry after a loss",
+           "right": true
+          },
+          {
+           "label": "Calm, levels already marked"
+          },
+          {
+           "label": "Bored and want some action",
+           "right": true
+          },
+          {
+           "label": "Clear head after a walk"
+          }
+         ],
+         "why": "Tired, angry or bored: take a break and keep your edge for when you're sharp."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "tilt",
+         "kind": "quiz",
+         "question": "You just lost two trades and feel angry. What now?",
+         "options": [
+          "Trade bigger to win it back",
+          "Take a break and come back sharp",
+          "Copy someone else's trade"
+         ],
+         "answer": 1,
+         "why": "Keep your edge for when you're sharp."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
