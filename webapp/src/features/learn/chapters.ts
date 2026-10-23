@@ -379,5 +379,16 @@ export function lessonOpen(c: Chapter, idx: number, learnDone: string[], passed:
 export const markLesson = (uid: string, id: string) => setDoc(doc(db(), 'users', uid), { learnDone: arrayUnion(id) }, { merge: true });
 export const lessonXp = (id: string) => callFunction<{ type: string; refId: string }, { awarded?: boolean }>('xp_award', { type: 'lesson', refId: id });
 
-export type QuizResult = { right: number; total: number; passed: boolean; need: number; results: { ok: boolean; answer: number }[]; xp: number };
-export const gradeQuiz = (chapter: string, answers: number[]) => callFunction<{ chapter: string; answers: number[] }, QuizResult>('learn_quiz', { chapter, answers });
+export type QuizResult = { right: number; total: number; passed: boolean; need: number; results: { ok: boolean; answer: number }[]; xp: number; charged?: number; retakeAt?: number };
+/** retakeNow: pay RETAKE_COST tokens to retake within 12 hours of a fail (the server checks and charges). */
+export const gradeQuiz = (chapter: string, answers: number[], retakeNow = false) =>
+  callFunction<{ chapter: string; answers: number[]; retakeNow?: boolean }, QuizResult>('learn_quiz', retakeNow ? { chapter, answers, retakeNow } : { chapter, answers });
+/** Retakes (owner 2026-10-23): free 12 hours after a fail, or 10 tokens now. Shown price; the server charges. */
+export const RETAKE_COST = 10;
+export const RETAKE_WAIT_MS = 12 * 3600_000;
+/** When a free retake opens, or null if the quiz is free now (mirrors functions/learn.py retake_at). */
+export function retakeAt(chapter: string, failed: Record<string, number>, passed: Record<string, number>, now: number): number | null {
+  const last = failed[chapter];
+  if (passed[chapter] || typeof last !== 'number') return null;
+  return last + RETAKE_WAIT_MS > now ? last + RETAKE_WAIT_MS : null;
+}

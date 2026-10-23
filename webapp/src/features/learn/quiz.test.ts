@@ -83,3 +83,15 @@ describe('Trading 101 chapters', () => {
     }
   });
 });
+
+describe('chapter quiz retakes', () => {
+  it('waits 12 hours after a fail, never for a passed chapter (mirrors functions/learn.py)', async () => {
+    const { retakeAt, RETAKE_WAIT_MS } = await import('./chapters');
+    const H = 3600_000;
+    expect(retakeAt('basics', {}, {}, 5)).toBeNull();
+    expect(retakeAt('basics', { basics: 1000 }, {}, 1000 + H)).toBe(1000 + RETAKE_WAIT_MS);
+    expect(retakeAt('basics', { basics: 1000 }, {}, 1000 + 12 * H)).toBeNull();
+    expect(retakeAt('basics', { basics: 1000 }, { basics: 2000 }, 1000 + H)).toBeNull();
+    expect(retakeAt('charts', { basics: 1000 }, {}, 1000 + H)).toBeNull();
+  });
+});

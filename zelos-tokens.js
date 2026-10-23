@@ -106,6 +106,7 @@
     me = u; wallet = null; emit();
     if (!u) return;
     checkin(u);
+    look(u.uid).then(applyChartTheme);
     var f = fb(), made = false;
     walletUnsub = f.db.collection('wallets').doc(u.uid).onSnapshot(function (s) {
       if (!s.exists) { if (!made) { made = true; ensureWallet().catch(function () {}); } return; }
@@ -242,7 +243,11 @@
       '.zt-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:2140;display:flex;gap:10px;align-items:center;max-width:min(460px,calc(100vw - 32px));padding:12px 16px;border-radius:12px;border:1px solid rgba(232,178,61,.5);background:#0d1016;color:#f4f5f7;font-size:.9rem;box-shadow:0 20px 50px rgba(0,0,0,.5);cursor:pointer;transition:opacity .35s}',
       '.zt-toast.is-gone{opacity:0}.zt-toast .zt-coin{width:18px;height:18px}',
       '.zt-name{font-weight:inherit}.zt-prism{background:linear-gradient(90deg,#f87171,#fbbf24,#34d399,#38bdf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}',
-      '.zt-badge{font-size:.95em}.zt-founder{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:999px;border:1px solid rgba(232,178,61,.5);background:rgba(232,178,61,.1);color:#f2d38a;font:600 .7rem "IBM Plex Mono",monospace;vertical-align:middle;white-space:nowrap}',
+      '.zt-badge{display:inline-block;font-size:.95em}.zt-anim-spin{animation:ztSpin 2.4s linear infinite}.zt-anim-flicker{animation:ztFlicker 1.2s ease-in-out infinite}.zt-anim-pulse{animation:ztPulse 1.4s ease-in-out infinite}.zt-anim-lift{animation:ztLift 1.8s ease-in-out infinite}' +
+      '@keyframes ztSpin{to{transform:rotateY(360deg)}}@keyframes ztFlicker{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15) rotate(-4deg);opacity:.8}}@keyframes ztPulse{0%,100%{transform:scale(1);filter:none}50%{transform:scale(1.2);filter:drop-shadow(0 0 4px #facc15)}}@keyframes ztLift{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px) rotate(-8deg)}}' +
+      '@media (prefers-reduced-motion:reduce){.zt-anim-spin,.zt-anim-flicker,.zt-anim-pulse,.zt-anim-lift{animation:none}}' +
+      '.zt-frame{display:inline-block;padding:4px;border-radius:50%;line-height:0}.zt-frame img{border-radius:50%}',
+      '.zt-founder{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:999px;border:1px solid rgba(232,178,61,.5);background:rgba(232,178,61,.1);color:#f2d38a;font:600 .7rem "IBM Plex Mono",monospace;vertical-align:middle;white-space:nowrap}',
       '.zt-preview{display:flex;align-items:flex-end;height:74px;border-radius:12px;padding:10px 14px;margin:10px 0 4px;font-size:1.15rem;font-weight:700;border:1px solid #262b36}.zt-preview>span{background:rgba(8,10,14,.72);padding:3px 10px;border-radius:8px}',
       '.zt-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}',
       '.zt-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:12px;border:1px solid #2b3140;background:#11151d;color:#f4f5f7;font:inherit;cursor:pointer;text-align:center}',
@@ -357,7 +362,15 @@
   // What each item looks like; the server (COSMETICS in functions/main.py) owns names and prices.
   var LOOKS = {
     color: { gold: '#f2c14e', emerald: '#34d399', electric: '#38bdf8', crimson: '#fb7185', violet: '#a78bfa', rainbow: 'prism' },
-    badge: { bull: '🐂', bear: '🐻', rocket: '🚀', diamond: '💎', crown: '👑' },
+    badge: { bull: '🐂', bear: '🐻', rocket: '🚀', diamond: '💎', crown: '👑', coin: '🪙', fire: '🔥', bolt: '⚡', launch: '🚀' },
+    // animated badges (owner 2026-10-23): the badge id -> its animation
+    anim: { coin: 'spin', fire: 'flicker', bolt: 'pulse', launch: 'lift' },
+    frame: {
+      gold: 'linear-gradient(135deg,#f9d976,#b8860b 55%,#f9d976)', diamond: 'linear-gradient(135deg,#a5f3fc,#e0e7ff 45%,#67e8f9)',
+      flame: 'linear-gradient(135deg,#facc15,#f97316 45%,#ef4444)', emerald: 'linear-gradient(135deg,#6ee7b7,#059669 55%,#065f46)'
+    },
+    // chart themes: the colours live in practice/practice-chart.js THEMES; this is the swatch
+    chart: { midnight: 'linear-gradient(135deg,#0b1630 60%,#5eead4 60% 80%,#f472b6 80%)', paper: 'linear-gradient(135deg,#f6f1e4 60%,#1f7a4d 60% 80%,#b42318 80%)', neon: 'linear-gradient(135deg,#05010d 60%,#39ff14 60% 80%,#ff2bd6 80%)' },
     banner: {
       sunset: 'linear-gradient(135deg,#ff7e5f,#feb47b 45%,#6a3093)', midnight: 'linear-gradient(135deg,#0f2027,#203a43 50%,#2c5364)',
       neon: 'linear-gradient(rgba(0,255,255,.18) 1px,transparent 1px) 0 0/18px 18px,linear-gradient(90deg,rgba(255,0,200,.18) 1px,transparent 1px) 0 0/18px 18px,linear-gradient(135deg,#12002b,#2b0050)',
@@ -379,10 +392,16 @@
     lk = lk || {}; style();
     var c = LOOKS.color[lk.color], st = c && c !== 'prism' ? ' style="color:' + c + '"' : '';
     return '<span class="zt-name' + (c === 'prism' ? ' zt-prism' : '') + '"' + st + '>' + esc(name) + '</span>' +
-      (LOOKS.badge[lk.badge] ? ' <span class="zt-badge" title="' + esc(lk.badge) + '">' + LOOKS.badge[lk.badge] + '</span>' : '') +
+      (LOOKS.badge[lk.badge] ? ' <span class="zt-badge' + (LOOKS.anim[lk.badge] ? ' zt-anim-' + LOOKS.anim[lk.badge] : '') + '" title="' + esc(lk.badge) + '">' + LOOKS.badge[lk.badge] + '</span>' : '') +
       (lk.founder ? ' <span class="zt-founder" title="' + esc(lk.founder.title + ' of ' + (lk.founder.name || 'a community')) + '">' + (FOUNDER_ICONS[lk.founder.tier] || '🏛️') + ' ' + esc(lk.founder.title) + '</span>' : '');
   }
   function bannerCss(lk) { return lk && LOOKS.banner[lk.banner] || ''; }
+  function frameCss(lk) { return lk && LOOKS.frame[lk.frame] || ''; }
+  // your chart theme follows you: mirror cosmetics/{uid}.chart into the chart engine on this device
+  function applyChartTheme(lk) {
+    var C = global.ZelosTradeChart, id = lk && lk.chart;
+    if (C && C.setTheme && (id || C.loadTheme())) C.setTheme(id);
+  }
 
   // ------------------------------------------------------------ name colors everywhere
   // One property per trader: cosmetics/{uid} (server-written). Any element with
@@ -435,16 +454,18 @@
     var m = modal('<button class="zt-x" type="button" aria-label="Close">&times;</button><h2 id="ztTitle">Profile looks</h2><p class="zt-muted">Make your name stand out on your profile, in communities and on leaderboards. Buy once, switch any time.</p><div id="ztShop"><p class="zt-muted">Loading…</p></div><p class="zt-msg" id="ztShopMsg" role="status"></p>');
     var box = m.el.querySelector('#ztShop'), msg = m.el.querySelector('#ztShopMsg'), state = null;
     var me2 = user(), nm = (me2 && me2.displayName || 'You').split(' ')[0];
-    var TITLES = { color: 'Name colors', badge: 'Badges', banner: 'Profile banners' };
+    var TITLES = { color: 'Name colors', badge: 'Badges', frame: 'Photo frames', banner: 'Profile banners', chart: 'Chart themes' };
     function draw() {
       var owned = state.owned || [], lk = state.look || {};
       box.innerHTML = '<div class="zt-preview" style="background:' + (bannerCss(lk) || '#151a23') + '"><span>' + nameHtml(nm, lk) + '</span></div>' +
         '<p class="zt-muted">You have <b>' + (wallet ? wallet.balance : '…') + '</b> tokens.</p>' +
-        ['color', 'badge', 'banner'].map(function (k) {
+        ['color', 'badge', 'frame', 'banner', 'chart'].filter(function (k) { return state.shop[k]; }).map(function (k) {
           return '<h3>' + TITLES[k] + '</h3><div class="zt-items">' + state.shop[k].map(function (it) {
             var have = owned.indexOf(k + ':' + it.id) !== -1, on = lk[k] === it.id;
             var sw = k === 'color' ? '<span class="zt-name' + (LOOKS.color[it.id] === 'prism' ? ' zt-prism' : '') + '" style="' + (LOOKS.color[it.id] !== 'prism' ? 'color:' + LOOKS.color[it.id] : '') + '">Aa</span>'
-              : k === 'badge' ? '<span style="font-size:1.3rem">' + LOOKS.badge[it.id] + '</span>' : '<span class="zt-sw" style="background:' + LOOKS.banner[it.id] + '"></span>';
+              : k === 'badge' ? '<span class="zt-badge' + (LOOKS.anim[it.id] ? ' zt-anim-' + LOOKS.anim[it.id] : '') + '" style="font-size:1.3rem">' + LOOKS.badge[it.id] + '</span>'
+              : k === 'frame' ? '<span class="zt-sw" style="border-radius:50%;background:' + LOOKS.frame[it.id] + '"></span>'
+              : '<span class="zt-sw" style="background:' + (k === 'chart' ? LOOKS.chart[it.id] : LOOKS.banner[it.id]) + '"></span>';
             return '<button type="button" class="zt-item' + (on ? ' is-on' : '') + '" data-k="' + k + '" data-id="' + it.id + '" data-have="' + (have ? 1 : 0) + '">' + sw +
               '<b>' + esc(it.name) + '</b><small>' + (on ? 'Wearing · tap to remove' : have ? 'Owned · tap to wear' : it.price + ' tokens') + '</small></button>';
           }).join('') + '</div>';
@@ -455,7 +476,7 @@
         box.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
         var p = have ? call('cosmetics_equip', { kind: k, id: on ? null : id }) : call('cosmetics_buy', { kind: k, id: id }).then(function (r) { msg.className = 'zt-msg is-ok'; msg.textContent = 'Bought! It\'s on your profile now.'; return call('cosmetics_equip'); });
         p.then(function (r) { if (r && r.shop) state = r; else return call('cosmetics_equip').then(function (r2) { state = r2; }); })
-          .then(function () { delete lookCache[me2.uid]; delete looksIn[me2.uid]; d.querySelectorAll('[data-zname="' + me2.uid + '"]').forEach(function (el) { if (el.hasAttribute('data-zntext')) el.textContent = el.getAttribute('data-zntext'); el.removeAttribute('data-znp'); }); paintNames(); draw(); emitLook(); }, function (e) { msg.className = 'zt-msg is-bad'; msg.textContent = errText(e); draw(); });
+          .then(function () { applyChartTheme(state.look); delete lookCache[me2.uid]; delete looksIn[me2.uid]; d.querySelectorAll('[data-zname="' + me2.uid + '"]').forEach(function (el) { if (el.hasAttribute('data-zntext')) el.textContent = el.getAttribute('data-zntext'); el.removeAttribute('data-znp'); }); paintNames(); draw(); emitLook(); }, function (e) { msg.className = 'zt-msg is-bad'; msg.textContent = errText(e); draw(); });
       }; });
     }
     call('cosmetics_equip').then(function (r) { state = r; draw(); }, function (e) { box.innerHTML = '<p class="zt-msg is-bad">' + esc(errText(e)) + '</p>'; });
@@ -472,6 +493,6 @@
     var nav = d.getElementById('navAuth');
     if (nav && global.MutationObserver) new MutationObserver(function () { if (me && !nav.querySelector('.zt-chip')) chip(); }).observe(nav, { childList: true });
   }
-  global.ZelosTokens = { open: open, full: full, hint: hint, slot: slot, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, reward: reward, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
+  global.ZelosTokens = { open: open, full: full, hint: hint, slot: slot, resolve: resolve, lockCard: lockCard, isLocked: isLocked, isClosed: isClosed, look: look, lookNow: lookNow, reward: reward, paintNames: paintNames, nameHtml: nameHtml, bannerCss: bannerCss, frameCss: frameCss, shop: shop, onLook: function (fn) { lookListeners.push(fn); }, LOOKS: LOOKS, hasAccess: hasAccess, wallet: function () { return wallet; }, onChange: function (fn) { listeners.push(fn); }, ensure: ensureWallet, buy: buy, call: call };
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot); else boot();
 })(window);

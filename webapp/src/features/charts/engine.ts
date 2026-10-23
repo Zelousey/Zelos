@@ -66,6 +66,9 @@ type EngineGlobal = {
   computeIndicators: (s: EngineSeries) => EngineSeries;
   INDICATORS: Indicator[];
   alerts: AlertStore;
+  /** chart themes bought with tokens (cosmetics/{uid}.chart); null switches back to the plain look */
+  setTheme(id: string | null): void;
+  loadTheme(): unknown;
 };
 
 export function engine(): EngineGlobal {

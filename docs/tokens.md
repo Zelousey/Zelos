@@ -66,6 +66,20 @@ scanner pages, the Terms) quote the same numbers; update them together.
   as the join (ledger type `battle-slot`). Finished and cancelled battles free their slot.
   The count is read just before the transaction, so two joins at the very same moment
   could both get the last free slot (at most one free extra battle; not worth a lock).
+- `cosmetics_buy` / `cosmetics_equip`: profile looks (`COSMETICS`). Since 2026-10-23
+  (owner): animated badges 200 (spinning coin, fire, lightning, rocket launch), photo
+  frames 120 (gold, diamond, flame, emerald) and chart themes 100 (Midnight, Paper,
+  Neon). A chart theme (cosmetics/{uid}.chart) changes the background, grid, text and
+  candle colours of every chart on that person's devices: zelos-tokens.js and the
+  app's ChartThemeSync mirror it into the shared engine (practice/practice-chart.js
+  THEMES, localStorage `zelosChartTheme`). The free candle colour presets stay free.
+  The app has the shop on your own profile ("Profile looks").
+- `learn_quiz` with `retakeNow: true`: after a failed Trading 101 chapter quiz the next
+  try is free 12 hours later, or `LEARN.RETAKE_COST` (10) tokens right away (owner
+  2026-10-23). The results show the right answers, so an instant free retake would
+  just be copying them. `users/{uid}.learnFailed {chapter: ms}` is server-only; a
+  passed chapter never waits. A too-early try without `retakeNow` is refused with
+  `details: {retakeAt, cost}`.
 - `drill_hint`: `{drill}` → one Training Ground hint for `TOKENS['hint']` (3) tokens
   (owner 2026-10-23), only in Where's the Stop? and Grade the Setup (`HINT_DRILLS`;
   not the Daily Challenge). The drill (games/zelos-chart-engine.js, via

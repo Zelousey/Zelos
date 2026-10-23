@@ -24,6 +24,7 @@ import { STRATEGIES } from '../strategies/strategies';
 import { TokensSheet, useTokens } from '../strategies/Tokens';
 import { ChallengeSheet } from './ChallengeSheet';
 import { EditProfileSheet } from './EditProfileSheet';
+import { LooksShop } from './LooksShop';
 import { addFriend, groupEarned, isWarGroup, removeFriend, useLooks, useWarRecord, type Looks, type WarRecord } from './profile';
 import { Coin } from '../tokens/Coin';
 import s from './Profile.module.css';
@@ -135,7 +136,12 @@ function Name({ name, looks }: { name: string; looks: Looks | null }) {
       <span className={looks?.prism ? s.prism : undefined} style={style}>
         {name}
       </span>
-      {looks?.badge && <span aria-hidden="true"> {looks.badge}</span>}
+      {looks?.badge && (
+        <span aria-hidden="true">
+          {' '}
+          <span className={[s.badgeIcon, looks.badgeAnim && s[`anim_${looks.badgeAnim}`]].filter(Boolean).join(' ')}>{looks.badge}</span>
+        </span>
+      )}
       {looks?.founder && (
         <span className={s.founder} title={looks.founder.of ? t('pf.founderOf', { title: looks.founder.title, of: looks.founder.of }) : undefined}>
           {looks.founder.icon} {looks.founder.title}
@@ -157,7 +163,9 @@ function Header({ uid, mine, me, p, id, looks, xp, isFriend, onEdit }: { uid: st
       {looks?.banner && <div className={s.banner} style={{ background: looks.banner }} aria-hidden="true" />}
       <div className={s.headMain}>
         <div className={s.pics}>
-          {photo ? <img className={s.photo} src={photo} alt="" width={88} height={88} referrerPolicy="no-referrer" /> : <span className={s.photo} aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>}
+          <span className={looks?.frame ? s.frameRing : undefined} style={looks?.frame ? { background: looks.frame } : undefined}>
+            {photo ? <img className={s.photo} src={photo} alt="" width={88} height={88} referrerPolicy="no-referrer" /> : <span className={s.photo} aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>}
+          </span>
           <span className={s.badge}>
             <LevelBadge level={lv.level} size={40} />
           </span>
@@ -196,6 +204,7 @@ function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: s
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [challenging, setChallenging] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
   async function share() {
     const text = p ? t('pf.share.war', { name, v: money(p.equity) }) : t('pf.share.text', { name });
     const r = await shareLink(profileUrl(uid), t('pf.share.title', { name }), text);
@@ -225,6 +234,10 @@ function Actions({ uid, mine, me, name, p, isFriend, blocked, onEdit }: { uid: s
           <Button variant="primary" size="sm" onClick={onEdit}>
             {t('pf.edit')}
           </Button>
+          <Button variant="secondary" size="sm" onClick={() => setShopOpen(true)}>
+            {t('lk.open')}
+          </Button>
+          <LooksShop open={shopOpen} onClose={() => setShopOpen(false)} />
           <Button variant="secondary" size="sm" onClick={() => void share()}>
             {t('pf.share')}
           </Button>

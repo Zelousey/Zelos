@@ -3909,6 +3909,14 @@ COSMETICS = {
     "banner": {"sunset": ("Sunset banner", 160), "midnight": ("Midnight banner", 160), "neon": ("Neon grid banner", 200),
                "ocean": ("Ocean banner", 160), "gold": ("Gold rush banner", 300)},
 }
+# token spending batch 2 (owner 2026-10-23): animated badges 200, profile frames 120, chart themes 100.
+# Plain candle colour changes stay free (the chart's own colour picker).
+COSMETICS["badge"].update({"coin": ("Spinning coin badge", 200), "fire": ("Fire badge", 200),
+                           "bolt": ("Lightning badge", 200), "launch": ("Rocket launch badge", 200)})
+COSMETICS["frame"] = {"gold": ("Gold frame", 120), "diamond": ("Diamond frame", 120),
+                      "flame": ("Flame frame", 120), "emerald": ("Emerald frame", 120)}
+COSMETICS["chart"] = {"midnight": ("Midnight chart theme", 100), "paper": ("Paper chart theme", 100),
+                      "neon": ("Neon chart theme", 100)}
 
 
 def cosmetic_buy(wallet, kind, cid, now_ms):
@@ -4868,8 +4876,21 @@ def learn_quiz_run(db, uid, data, now_ms):
     if not LEARN.chapter_open(chapter, ((u.to_dict() or {}).get("learnPassed") if u.exists else None)):
         n = LEARN.ORDER.index(chapter)
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, "Pass the Chapter %d quiz first." % n)
+    ud = (u.to_dict() or {}) if u.exists else {}
+    wait = LEARN.retake_at(chapter, ud.get("learnFailed"), ud.get("learnPassed"), now_ms)
+    charged = 0
+    if wait:
+        if data.get("retakeNow") is not True:
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+                                      "You can retake this quiz free in a few hours, or now for %d tokens." % LEARN.RETAKE_COST,
+                                      {"retakeAt": wait, "cost": LEARN.RETAKE_COST})
+        learn_retake_charge(db, uid, chapter, now_ms)
+        charged = LEARN.RETAKE_COST
     right, total, passed, results = graded
-    out = {"right": right, "total": total, "passed": passed, "need": LEARN.CHAPTERS[chapter]["pass"], "results": results, "xp": 0}
+    out = {"right": right, "total": total, "passed": passed, "need": LEARN.CHAPTERS[chapter]["pass"], "results": results, "xp": 0, "charged": charged}
+    if not passed:
+        db.collection("users").document(uid).set({"learnFailed": {chapter: now_ms}}, merge=True)
+        out["retakeAt"] = now_ms + LEARN.RETAKE_WAIT_MS
     if passed:
         db.collection("users").document(uid).set({"learnPassed": {chapter: now_ms}}, merge=True)
         g = xp_grant(db, uid, "chapter", chapter, now_ms)
@@ -4878,9 +4899,27 @@ def learn_quiz_run(db, uid, data, now_ms):
     return out
 
 
+def learn_retake_charge(db, uid, chapter, now_ms):
+    """Charge LEARN.RETAKE_COST tokens for a retake right away (one transaction)."""
+    ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        cost = LEARN.RETAKE_COST
+        if wallet.get("balance", 0) < cost:
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, "You need %d tokens and have %d." % (cost, wallet.get("balance", 0)))
+        wallet = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+        t.set(ref, wallet)
+        t.set(ref.collection("ledger").document(), tk_ledger("quiz-retake", -cost, wallet["balance"], now_ms, "Quiz retake now", chapter))
+
+    txn(db.transaction())
+
+
 @https_fn.on_call()
 def learn_quiz(req: https_fn.CallableRequest):
-    """{chapter, answers: [choice index, ...]} -> {right, total, passed, need, results, xp}."""
+    """{chapter, answers: [choice index, ...], retakeNow?} -> {right, total, passed, need, results, xp, charged, retakeAt?}."""
     a = req.auth
     if not a or not a.uid:
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to take the chapter quiz.")
