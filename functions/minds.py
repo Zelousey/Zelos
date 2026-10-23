@@ -3,7 +3,10 @@
 The content (figures with their story, accounts, lessons and quotes) lives in data/minds.json, the same
 file the app shows; scripts/build_practice.py copies it next to this module. The server needs it
 for three things:
-  - XP: 10 once per lesson read (xp_award type "mind", refId "<figure>:<lesson>"), at most 20 a day;
+  - XP: 10 once per lesson read (xp_award type "mind", refId "<figure>:<lesson>"), at most 20 a day.
+    Scroll lessons (owner 2026-10-23: pinned slides, a task to do before each next one) pay
+    STEP_XP per task instead (type "mind-step", refId "<figure>:<lesson>:<task>"), about the same
+    10 per lesson, at most STEP_DAILY_LIMIT tasks a day (the same ~20 lessons);
   - daily quotes: following a figure costs FOLLOW_COST tokens for FOLLOW_DAYS days (renewing adds
     30 more days), kept on the wallet as mindQuotes {figure: until ms};
   - picking each follower's one quote a day (pick_quote), so nobody gets more than one a day
@@ -15,6 +18,8 @@ from datetime import date
 
 LESSON_XP = 10
 DAILY_LIMIT = 20
+STEP_XP = 2
+STEP_DAILY_LIMIT = DAILY_LIMIT * 5
 FOLLOW_COST = 15
 FOLLOW_DAYS = 30
 DAY_MS = 86400000
@@ -32,7 +37,10 @@ def _load():
 DATA = _load()
 FIGURES = {f["id"]: f for f in DATA.get("figures") or []}
 PAIRS = {p["id"]: p for p in DATA.get("pairs") or []}  # none since 2026-10-23 (owner removed the head-to-heads)
-XP_REFS = frozenset("%s:%s" % (f, l["id"]) for f, fig in FIGURES.items() for l in fig["lessons"])
+# a scroll lesson pays per task, not once at the end, so it isn't paid twice
+XP_REFS = frozenset("%s:%s" % (f, l["id"]) for f, fig in FIGURES.items() for l in fig["lessons"] if not l.get("scroll"))
+STEP_REFS = frozenset("%s:%s:%s" % (f, l["id"], s["task"]["id"]) for f, fig in FIGURES.items() for l in fig["lessons"]
+                      for s in (l.get("scroll") or {}).get("slides", []) if s.get("task"))
 
 
 def follow(wallet, figure, now_ms):

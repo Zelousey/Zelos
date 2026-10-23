@@ -17,7 +17,19 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
   quotes found online were never said by the person: check the source before adding one.
 - **Modern people in words only** (owner 2026-10-23): a "Then & now" section, no photos, never a
   card, with the note that they aren't connected to Zelos.
-- **Lessons are free** and pay 10 XP once each, at most 20 a day (xp_award type `mind`).
+- **Lessons are free** and pay 10 XP once each, at most 20 lessons a day (xp_award type `mind`).
+- **Scroll lessons** (owner 2026-10-23; first one: Napoleon, "Speed is a weapon"). Slides pin
+  while their lines come in (GSAP + ScrollTrigger, `webapp/src/lib/gsap.ts`), and each ends in a
+  task you must do before the next slide appears: hold a button, answer a question, drag
+  something (every drag also has a button that does the same). Each task pays **2 XP** once
+  (xp_award type `mind-step`, refId `<figure>:<lesson>:<task>`), about 10 per lesson as before,
+  at most 100 steps a day. A scroll lesson is not also paid the old 10 XP at the end.
+  - Content: a lesson's `scroll` in data/minds.json (`image`, `credit`, `slides` with `lines`
+    and an optional `task`: `hold`, `quiz`, `drag` or `level`). New task kinds need code in
+    `webapp/src/features/minds/LessonTasks.tsx`.
+  - Pictures: public-domain paintings from Wikimedia Commons, turned red-and-black to match
+    the cards (`webapp/public/minds/lessons/`), always with the credit line.
+  - With reduced motion nothing moves and pins; the tasks still gate the slides.
 - **Daily quotes cost 15 tokens for 30 days per figure** (`minds_follow`). Each person gets at
   most one quote a day, whoever they follow (`minds_daily_quote`, 9:05 am New York). It goes to the
   bell and, if "Daily quotes" is on in notification settings, as a push.

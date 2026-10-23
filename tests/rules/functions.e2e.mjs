@@ -201,10 +201,17 @@ re1 = null; try { await call('tw_challenge', { to: rep.uid, buyIn: 1000, days: 1
 ok(re1 && /can.t challenge/.test(re1.message), 'someone you blocked cannot challenge you');
 
 // --- Hall of Minds: lessons pay 10 XP once; daily quotes cost 15 tokens for 30 days
-r = await call('xp_award', { type: 'mind', refId: 'napoleon:speed' });
+r = await call('xp_award', { type: 'mind', refId: 'livermore:sit' });
 ok(r.awarded, 'a Hall of Minds lesson pays XP');
-r = await call('xp_award', { type: 'mind', refId: 'napoleon:speed' });
+r = await call('xp_award', { type: 'mind', refId: 'livermore:sit' });
 ok(!r.awarded, 'but only once');
+// scroll lessons (owner 2026-10-23) pay 2 XP a task instead, once each
+r = await call('xp_award', { type: 'mind-step', refId: 'napoleon:speed:march' });
+ok(r.awarded && r.xp - r.before === 2, 'a scroll-lesson step pays 2 XP');
+r = await call('xp_award', { type: 'mind-step', refId: 'napoleon:speed:march' });
+ok(!r.awarded, 'once');
+r = await call('xp_award', { type: 'mind', refId: 'napoleon:speed' });
+ok(!r.awarded, 'and the scroll lesson itself is not paid again at the end');
 await admin('wallets/' + troll.uid, { balance: { integerValue: 20 } });
 r = await call('minds_follow', { figure: 'napoleon' });
 ok(r.charged === 15 && r.balance === 5 && r.mindQuotes.napoleon > Date.now() + 29 * 864e5, 'daily quotes from Napoleon: 15 tokens for 30 days');

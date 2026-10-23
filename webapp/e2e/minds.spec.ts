@@ -76,6 +76,55 @@ test('a figure: lessons with a trading takeaway, real quotes explained in plain 
   await expect(page.getByText('That page isn’t in the Hall of Minds.')).toBeVisible();
 });
 
+// scroll lessons (owner 2026-10-23): slides pin, a task opens the next one
+const into = async (page: Page, target: ReturnType<Page['locator']>) => {
+  for (let i = 0; i < 16; i++) {
+    const b = await target.boundingBox();
+    if (b && b.y > 110 && b.y + b.height < page.viewportSize()!.height - 80) return;
+    await page.mouse.wheel(0, 260);
+    await page.waitForTimeout(250);
+  }
+};
+// the scrubbed slide eases into place after a scroll: wait until it stops moving before grabbing
+const settle = async (page: Page, target: ReturnType<Page['locator']>) => {
+  let last = -1;
+  for (let i = 0; i < 20; i++) {
+    const y = Math.round((await target.boundingBox())?.y ?? -1);
+    if (y === last) return;
+    last = y;
+    await page.waitForTimeout(150);
+  }
+};
+
+test('a scroll lesson with reduced motion: every task works by tapping, and it reads well', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('minds/napoleon');
+  await page.getByRole('link', { name: /Speed is a weapon/ }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/napoleon\/learn\/speed$/);
+  await expect(page.getByText('Sign in to earn 2 XP a step')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hold to march' })).toBeVisible();
+  await expect(page.getByText(/Military Maxims/)).toHaveCount(0); // the next slide waits for the task
+  await axe(page);
+  await page.getByRole('button', { name: 'Hold to march' }).focus();
+  await page.keyboard.down('Space');
+  await expect(page.getByText('Your army arrived while the wagons were still on the road.')).toBeVisible({ timeout: 5000 });
+  await page.keyboard.up('Space');
+  await page.getByRole('button', { name: 'Bring more cannons' }).click();
+  await expect(page.getByText('Not quite. Think again.')).toBeVisible();
+  await page.getByRole('button', { name: 'Move faster' }).click();
+  await expect(page.getByText('Mass times speed: the same army, moving faster, hits harder.')).toBeVisible();
+  await page.getByRole('button', { name: 'Send him over the Alps' }).click();
+  await expect(page.getByText('Weeks later he won the Battle of Marengo.')).toBeVisible();
+  await page.getByRole('button', { name: 'Put my line on the level' }).click();
+  await page.getByRole('button', { name: 'Place the order you planned' }).click();
+  await expect(page.getByRole('heading', { name: 'Speed is a weapon', level: 2 })).toBeVisible();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Lesson progress' })).toHaveAttribute('aria-valuenow', '5');
+  await axe(page);
+  await page.getByRole('link', { name: 'Back to Napoleon', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/napoleon$/);
+});
+
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
   test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {
@@ -91,5 +140,56 @@ test.describe('signed in', () => {
     await expect(page.getByText('Daily quotes from Nikola are on for 30 days')).toBeVisible();
     await expect(page.getByText(/^On until /)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add 30 days · 15 tokens' })).toBeVisible();
+  });
+
+  test('a scroll lesson, animated: hold, answer, drag Napoleon over the Alps, drag the buy line; 2 XP a step', async ({ page }, info) => {
+    await page.goto('minds/napoleon');
+    const uid = await signIn(page, `scroll-${info.project.name}-${Date.now()}`);
+    await page.getByRole('link', { name: /Speed is a weapon/ }).click();
+    const hold = page.getByRole('button', { name: 'Hold to march' });
+    await into(page, hold);
+    const h = (await hold.boundingBox())!;
+    await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+    await page.mouse.down();
+    await expect(page.getByText('+2 XP · 1 of 5 steps')).toBeVisible({ timeout: 6000 });
+    await page.mouse.up();
+    const fast = page.getByRole('button', { name: 'Move faster' });
+    await into(page, fast);
+    await fast.click();
+    await expect(page.getByText('+4 XP · 2 of 5 steps')).toBeVisible();
+    const napoleon = page.getByRole('img', { name: 'Napoleon (drag him to Italy)' });
+    await into(page, napoleon);
+    await settle(page, napoleon);
+    const n = (await napoleon.boundingBox())!;
+    const italy = (await page.getByText('Italy', { exact: true }).last().boundingBox())!;
+    await page.mouse.move(n.x + n.width / 2, n.y + n.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(italy.x + italy.width / 2, italy.y + 20, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.getByText('Weeks later he won the Battle of Marengo.')).toBeVisible();
+    await expect(page.getByText('+6 XP · 3 of 5 steps')).toBeVisible();
+    const buy = page.getByText('BUY', { exact: true });
+    await into(page, buy);
+    await settle(page, buy);
+    const b = (await buy.boundingBox())!;
+    const support = (await page.getByText('support', { exact: true }).boundingBox())!;
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(b.x + 30, support.y - 8, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.getByText('Now when the price comes down, your order is already waiting.')).toBeVisible();
+    const order = page.getByRole('button', { name: 'Place the order you planned' });
+    await into(page, order);
+    await order.click();
+    await expect(page.getByText('You earned 10 XP.')).toBeVisible();
+    await expect.poll(async () => (await fetch(`${BASE}/users/${uid}`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json())).fields?.mindsDone?.arrayValue?.values?.map((v: { stringValue: string }) => v.stringValue)).toContain('napoleon:speed');
+    // again: the steps don't pay twice
+    await page.goto('minds/napoleon/learn/speed');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.getByRole('button', { name: 'Hold to march' }).focus();
+    await page.keyboard.down('Space');
+    await expect(page.getByText(/1 of 5 steps/)).toBeVisible({ timeout: 5000 });
+    await page.keyboard.up('Space');
+    await expect(page.getByText('+0 XP · 1 of 5 steps')).toBeVisible();
   });
 });
