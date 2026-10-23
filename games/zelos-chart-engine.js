@@ -485,6 +485,24 @@
   // the next 20 days forward bar by bar through your boxes.
   // Scoring: 1 point per plan level (stop in the structural zone, target at the
   // obvious resistance), 1 per checklist answer, 2 for the final call: 8 max.
+  // A paid hint (owner 2026-10-23; zelos-tokens.js -> drill_hint, 3 tokens): shows where to look on
+  // the chart, not the answer, and the round then scores half points so a hint can't buy a top score.
+  function hintBox(meta, onShow) {
+    var T = global.ZelosTokens;
+    if (!meta.hint || !T || !T.hint) return null;
+    var box = el('div', 'zg-hint-box');
+    var b = el('button', 'zg-btn zg-btn-sm', 'Hint · 3 tokens'); b.type = 'button';
+    var note = el('span', 'zg-fine', 'Shows where to look. The round scores half points.');
+    var msg = el('p', 'zg-fine zg-hint-msg'); msg.setAttribute('role', 'status');
+    b.addEventListener('click', function () {
+      b.disabled = true; msg.textContent = 'Getting your hint…';
+      T.hint(meta.hint).then(function () { box.innerHTML = ''; box.appendChild(msg); onShow(msg); }, function (e) { b.disabled = false; msg.textContent = (e && e.message) || 'Couldn\'t get a hint. Try again.'; });
+    });
+    box.appendChild(b); box.appendChild(note); box.appendChild(msg);
+    return box;
+  }
+  var HINT_NOTE = ' <span class="zg-hint-used">Hint used: half points.</span>';
+
   function gradeRound(host, data, r, meta, done) {
     var pick = pickGrade(data, r), s = pick.s, i = pick.i, ev = evaluateSetup(s, i);
     var a = s.atr[i], entry = ev.entry, swing = minRange(s.l, i - 9, i), hi30 = maxRange(s.h, i - 30, i);
@@ -524,7 +542,16 @@
     var bPass = el('button', 'zg-btn', 'Doesn\'t qualify: pass'); bPass.type = 'button'; bPass.disabled = true;
     actions.appendChild(bTake); actions.appendChild(bPass);
     var result = el('div', 'zg-result'); result.hidden = true;
-    [head, steps, wrap, ticket, hint, list, actions, result].forEach(function (x) { host.appendChild(x); });
+    var hinted = false, hbox = hintBox(meta, function (msg) {
+      hinted = true;
+      ch.lines = [
+        { price: swing, color: cssVar('--gold', '#d9a441'), label: 'SWING LOW (10 days)', dash: [2, 3], labelLeft: true, fit: false },
+        { price: hi30, color: cssVar('--gold', '#d9a441'), label: 'RECENT HIGH (30 days)', dash: [2, 3], labelLeft: true, fit: false }
+      ];
+      msg.innerHTML = '<b>Hint:</b> the gold lines mark the lowest low of the last 10 days and the highest high of the last 30. Stops usually go just under the swing low; the recent high is the first place sellers show up.';
+      ch.draw();
+    });
+    [head, steps, wrap, ticket, hint, hbox, list, actions, result].forEach(function (x) { if (x) host.appendChild(x); });
 
     var red = cssVar('--danger', '#e0483f'), green = cssVar('--bull', '#3ecb7c');
     var ch = new Chart(cv);
@@ -633,6 +660,8 @@
       });
       var finalRight = take === ev.qualifies;
       if (finalRight) pts += 2;
+      if (hinted) pts = Math.round(pts / 2);
+      if (hbox) hbox.remove();
       var MAX = 8;
       var grade = pts >= 6.5 ? 'g' : pts >= 4 ? 'y' : 'r';
       var out = simulate(s, i, entry, plan.stop, plan.target, 20);
@@ -667,7 +696,7 @@
         result.innerHTML =
           '<div class="zg-next-head"><span class="zg-next-dot"></span>What happened next</div>' +
           '<p>This was <b>' + s.sym + '</b>, ' + monthYear(s.d[i]) + '. Your plan ' + outTxt + '. The checklist\'s own plan (stop ' + fmt(ev.stop) + ', target ' + fmt(ev.target) + ') ' + refTxt + '.</p>' +
-          '<div class="zg-verdict ' + grade + '">' + (finalRight ? 'Right call.' : 'Wrong call.') + ' The checklist says <b>' + (ev.qualifies ? 'qualifies' : 'pass') + '</b>. +' + pts + ' / ' + MAX + '</div>' +
+          '<div class="zg-verdict ' + grade + '">' + (finalRight ? 'Right call.' : 'Wrong call.') + ' The checklist says <b>' + (ev.qualifies ? 'qualifies' : 'pass') + '</b>. +' + pts + ' / ' + MAX + (hinted ? HINT_NOTE : '') + '</div>' +
           why +
           '<ul class="zg-plan-notes"><li class="' + (pg.stop ? 'ok' : 'miss') + '">' + (pg.stop ? '✓ ' : '✗ ') + pg.sTxt + '</li><li class="' + (pg.target ? 'ok' : 'miss') + '">' + (pg.target ? '✓ ' : '✗ ') + pg.tTxt + '</li></ul>' +
           '<p class="zg-fine">Outcomes vary even for textbook setups. Points are for planning and following the checklist, not for guessing the future.</p>';
@@ -721,7 +750,13 @@
     var lock = el('button', 'zg-btn zg-btn-primary', 'Lock in stop'); lock.type = 'button'; lock.disabled = true;
     actions.appendChild(lock);
     var result = el('div', 'zg-result'); result.hidden = true;
-    [head, wrap, prompt, status, actions, result].forEach(function (x) { host.appendChild(x); });
+    var hinted = false, hbox = hintBox(meta, function (msg) {
+      hinted = true;
+      ch.lines.push({ price: swing, color: cssVar('--gold', '#d9a441'), label: 'SWING LOW (10 days)', dash: [2, 3], fit: false });
+      msg.innerHTML = '<b>Hint:</b> the gold line is the lowest low of the last 10 days. A stop usually belongs just under it, outside normal day-to-day noise.';
+      ch.draw();
+    });
+    [head, wrap, prompt, status, actions, hbox, result].forEach(function (x) { if (x) host.appendChild(x); });
     var ch = new Chart(cv), stop = null;
     ch.lines = [{ price: entry, color: cssVar('--ink', '#d8dde6'), label: 'ENTRY', dash: [4, 3] }];
     ch.prompt = { text: 'Tap the chart where your stop-loss belongs', color: cssVar('--danger', '#e0483f') };
@@ -745,6 +780,8 @@
       var out = simulate(s, i, entry, stop, tgt, 20);
       var outPts = out.kind === 'target' ? 30 : out.kind === 'open' && out.r > -1 ? 15 : 0;
       var pts = Math.round(placement * 0.7 + outPts);
+      if (hinted) pts = Math.round(pts / 2);
+      if (hbox) hbox.remove();
       ch.zones = [{ lo: zoneLo, hi: zoneHi, color: 'rgba(62,203,124,0.13)' }];
       ch.lines = [
         { price: entry, color: cssVar('--ink', '#d8dde6'), label: 'ENTRY', dash: [4, 3] },
@@ -757,7 +794,7 @@
       var outTxt = out.kind === 'target' ? 'reached the 2R target on day ' + out.day : out.kind === 'stop' ? 'hit your stop on day ' + out.day : 'neither stop nor target was hit in 20 days';
       var grade = pts >= 80 ? 'g' : pts >= 50 ? 'y' : 'r';
       result.hidden = false;
-      result.innerHTML = '<div class="zg-verdict ' + grade + '">' + verdict + ' <b>+' + pts + ' / 100</b></div>' +
+      result.innerHTML = '<div class="zg-verdict ' + grade + '">' + verdict + ' <b>+' + pts + ' / 100</b>' + (hinted ? HINT_NOTE : '') + '</div>' +
         '<p>The green band is the structural stop zone (just under the swing low, within one daily range). This was <b>' + s.sym + '</b>, ' + monthYear(s.d[i]) + '. With your stop, price ' + outTxt + '.</p>' +
         '<p class="zg-fine">70 points are for placement and 30 for what happened next. Placement is the skill; the outcome is partly luck.</p>';
       var next = el('button', 'zg-btn zg-btn-primary zg-pulse', meta.nextLabel || 'Next &rarr;'); next.type = 'button';

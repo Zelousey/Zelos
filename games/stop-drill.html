@@ -47,7 +47,7 @@
 </style>
 <script src="zelos-embed.js?v=73ab2627"></script>
 <link rel="stylesheet" href="../zelos-theme.css?v=1911ab88">
-<link rel="stylesheet" href="zelos-games.css?v=74fcdb83">
+<link rel="stylesheet" href="zelos-games.css?v=4c71ea8a">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
@@ -230,11 +230,11 @@
 <script src="../zelos-mood.js?v=15cc718b"></script>
 <script src="../zelos-xp.js?v=4f74402e"></script>
 <script src="../zelos-challenge.js?v=00bf8e79"></script>
-<script src="../zelos-tokens.js?v=5dcc57a9"></script>
+<script src="../zelos-tokens.js?v=26b78ed2"></script>
 <script src="../leaderboard.js?v=1e830bca"></script>
 <script src="../zelos-progress.js?v=d7ac960b"></script>
 <script src="../zelos-mdata.js?v=98cfde3a"></script>
-<script src="zelos-chart-engine.js?v=824fb005"></script>
+<script src="zelos-chart-engine.js?v=abc7f268"></script>
 <script>
 /* Shared runner for the round-based drills (Grade the Setup, Where's the Stop, Daily Challenge). */
 function zgRunDrill(cfg) {
@@ -251,7 +251,7 @@ function zgRunDrill(cfg) {
     var k = results.length;
     if (k >= rounds.length) return finish();
     var kind = rounds[k];
-    var meta = { no: 'Round ' + (k + 1) + ' of ' + rounds.length, label: kind === 'grade' ? 'Grade the setup' : 'Where\'s the stop?', nextLabel: k === rounds.length - 1 ? 'See results &rarr;' : 'Next round &rarr;' };
+    var meta = { no: 'Round ' + (k + 1) + ' of ' + rounds.length, label: kind === 'grade' ? 'Grade the setup' : 'Where\'s the stop?', nextLabel: k === rounds.length - 1 ? 'See results &rarr;' : 'Next round &rarr;', hint: cfg.hint || null };
     host._locked = false;
     (kind === 'grade' ? ZC.gradeRound : ZC.stopRound)(host, cfg.data, cfg.rand, meta, function (res) {
       results.push(res);
@@ -300,7 +300,7 @@ function zgLeaderboard(host, gameId, score, label, ref) {
   var best = ZC.store('best-' + GAME); document.getElementById('zgBest').textContent = best == null ? '–' : best;
   function start(){
     ZC.load().then(function(data){
-      zgRunDrill({ data: data, rand: ZC.rng(String(Date.now())), rounds: ROUNDS, onFinish: function(res){
+      zgRunDrill({ data: data, rand: ZC.rng(String(Date.now())), rounds: ROUNDS, hint: GAME, onFinish: function(res){
         var b = ZC.store('best-' + GAME) || 0; if (res.total > b) ZC.store('best-' + GAME, res.total);
         document.getElementById('zgBest').textContent = Math.max(b, res.total);
         res.host.innerHTML = '<div class="zg-end"><p class="zg-kicker">Session complete</p><h2>' + "Where's the Stop?" + '</h2>' +
