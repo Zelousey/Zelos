@@ -135,7 +135,7 @@
     if (!tokensCard.hooked) { tokensCard.hooked = true; T.onChange(draw); }
     draw(T.wallet());
   }
-  // Profile looks bought with tokens (cosmetics/{uid}): name color, badge, banner, Founder title, community
+  // Profile looks bought with tokens (cosmetics/{uid}): name color, badge, photo frame, banner, Founder title, community
   function looks(uid, name, mine) {
     var T = window.ZelosTokens, h1 = document.querySelector('.pf-head h1'); if (!T || !h1) return;
     T.look(uid).then(function (lk) {
@@ -143,6 +143,9 @@
       var head = document.querySelector('.pf-head'), bg = T.bannerCss(lk), old = document.querySelector('.pf-banner');
       if (old) old.remove();
       if (bg && head) { var b = document.createElement('div'); b.className = 'pf-banner'; b.style.background = bg; head.parentNode.insertBefore(b, head); }
+      // a photo frame bought with tokens: a coloured ring around the picture
+      var photo = document.querySelector('.pf-photo'), fr = T.frameCss ? T.frameCss(lk) : '';
+      if (photo) { photo.style.padding = fr ? '4px' : ''; photo.style.background = fr || ''; }
       var tags = document.querySelector('.pf-tags'), c = lk.community;
       if (tags && c && c.cid && !tags.querySelector('.pf-comm')) tags.insertAdjacentHTML('beforeend', '<a class="pf-comm" href="communities.html?c=' + encodeURIComponent(c.cid) + '">🏘️ ' + esc(c.name) + ' · ' + esc(c.state) + '</a>');
     });

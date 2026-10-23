@@ -133,6 +133,20 @@
     return { id: 'classic', up: PRESETS[0].up, down: PRESETS[0].down };
   }
   function saveColors(c) { try { localStorage.setItem(COLOR_KEY, JSON.stringify(c)); } catch (e) {} }
+  // Chart themes bought with tokens (owner 2026-10-23; cosmetics/{uid}.chart, mirrored here by
+  // zelos-tokens.js and the app): background, grid, text and candle colours. The free colour
+  // presets above still work when no theme is on.
+  var THEME_KEY = 'zelosChartTheme';
+  var THEMES = {
+    midnight: { bg: '#0b1630', grid: 'rgba(120,160,255,0.10)', ink: '#e6ecff', muted: '#8ea0c8', up: '#5eead4', down: '#f472b6', light: false },
+    paper: { bg: '#f6f1e4', grid: 'rgba(60,40,20,0.10)', ink: '#2b2418', muted: '#7a6e5a', up: '#1f7a4d', down: '#b42318', light: true },
+    neon: { bg: '#05010d', grid: 'rgba(255,0,200,0.12)', ink: '#f5f5ff', muted: '#a09ac0', up: '#39ff14', down: '#ff2bd6', light: false }
+  };
+  function loadTheme() { try { return THEMES[localStorage.getItem(THEME_KEY)] || null; } catch (e) { return null; } }
+  function setTheme(id) {
+    try { if (THEMES[id]) localStorage.setItem(THEME_KEY, id); else localStorage.removeItem(THEME_KEY); } catch (e) {}
+    try { global.dispatchEvent(new Event('zelos:theme')); } catch (e) {}
+  }
   function rgba(hex, a) { if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex; var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
   function lum(hex) { if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0.5; var n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; }
 
@@ -347,12 +361,14 @@
       c.textAlign = 'left'; return;
     }
     var L = this.layout(), self = this, show = this.show;
-    var bull = this.colors.up, bear = this.colors.down, acc = cssVar('--accent', '#4a86ff');
-    var lightBg = document.documentElement.getAttribute('data-theme') === 'white';
-    var muted = cssVar('--muted', '#8a8f98'), green = '#3ecb7c', red = '#e0483f';
-    var ink = cssVar('--ink', '#f4f5f7'), grid = cssVar('--chart-grid', 'rgba(255,255,255,0.06)'), cross = cssVar('--chart-cross', 'rgba(255,255,255,0.35)');
-    var tagInk = cssVar('--chart-label-ink', '#0b0c0f'), bg = cssVar('--bg', '#0c0d10');
+    var th = loadTheme();
+    var bull = th ? th.up : this.colors.up, bear = th ? th.down : this.colors.down, acc = cssVar('--accent', '#4a86ff');
+    var lightBg = th ? th.light : document.documentElement.getAttribute('data-theme') === 'white';
+    var muted = th ? th.muted : cssVar('--muted', '#8a8f98'), green = '#3ecb7c', red = '#e0483f';
+    var ink = th ? th.ink : cssVar('--ink', '#f4f5f7'), grid = th ? th.grid : cssVar('--chart-grid', 'rgba(255,255,255,0.06)'), cross = cssVar('--chart-cross', 'rgba(255,255,255,0.35)');
+    var tagInk = cssVar('--chart-label-ink', '#0b0c0f'), bg = th ? th.bg : cssVar('--bg', '#0c0d10');
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); c.clearRect(0, 0, this.W, this.H);
+    if (th) { c.fillStyle = th.bg; c.fillRect(0, 0, this.W, this.H); }
     var bw = this.barW(), from = this.from, to = this.to;
     function X(i) { return L.x0 + (i - from + 0.5) * bw; }
     var overlays = INDICATORS.filter(function (d) { return d.kind === 'overlay' && show[d.id]; });
@@ -827,5 +843,5 @@
   }
   global.ZelosTradeChart = {
     loadHistory: loadHistory, dailySeries: dailySeries, mount: mount, TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol,
-    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, alerts: new AlertStore(), AlertStore: AlertStore, abc: abcStore };
+    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, THEMES: THEMES, setTheme: setTheme, loadTheme: loadTheme, alerts: new AlertStore(), AlertStore: AlertStore, abc: abcStore };
 })(window);

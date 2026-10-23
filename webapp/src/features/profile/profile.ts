@@ -42,7 +42,22 @@ export const useWarRecord = (uid: string | null) => useLiveDoc(uid ? `twRecords/
 // ---------------------------------------------------------------- profile looks
 /** Same items as the website (zelos-tokens.js LOOKS); the server owns names, prices and who owns what. */
 export const LOOK_COLORS: Record<string, string> = { gold: '#f2c14e', emerald: '#34d399', electric: '#38bdf8', crimson: '#fb7185', violet: '#a78bfa', rainbow: 'prism' };
-export const LOOK_BADGES: Record<string, string> = { bull: '🐂', bear: '🐻', rocket: '🚀', diamond: '💎', crown: '👑' };
+export const LOOK_BADGES: Record<string, string> = { bull: '🐂', bear: '🐻', rocket: '🚀', diamond: '💎', crown: '👑', coin: '🪙', fire: '🔥', bolt: '⚡', launch: '🚀' };
+/** Animated badges (owner 2026-10-23): badge id -> its animation. */
+export const LOOK_BADGE_ANIM: Record<string, 'spin' | 'flicker' | 'pulse' | 'lift'> = { coin: 'spin', fire: 'flicker', bolt: 'pulse', launch: 'lift' };
+/** Photo frames: a coloured ring around your picture. */
+export const LOOK_FRAMES: Record<string, string> = {
+  gold: 'linear-gradient(135deg,#f9d976,#b8860b 55%,#f9d976)',
+  diamond: 'linear-gradient(135deg,#a5f3fc,#e0e7ff 45%,#67e8f9)',
+  flame: 'linear-gradient(135deg,#facc15,#f97316 45%,#ef4444)',
+  emerald: 'linear-gradient(135deg,#6ee7b7,#059669 55%,#065f46)',
+};
+/** Chart theme swatches (the colours themselves live in practice/practice-chart.js THEMES). */
+export const LOOK_CHARTS: Record<string, string> = {
+  midnight: 'linear-gradient(135deg,#0b1630 60%,#5eead4 60% 80%,#f472b6 80%)',
+  paper: 'linear-gradient(135deg,#f6f1e4 60%,#1f7a4d 60% 80%,#b42318 80%)',
+  neon: 'linear-gradient(135deg,#05010d 60%,#39ff14 60% 80%,#ff2bd6 80%)',
+};
 export const LOOK_BANNERS: Record<string, string> = {
   sunset: 'linear-gradient(135deg,#ff7e5f,#feb47b 45%,#6a3093)',
   midnight: 'linear-gradient(135deg,#0f2027,#203a43 50%,#2c5364)',
@@ -52,7 +67,7 @@ export const LOOK_BANNERS: Record<string, string> = {
 };
 const FOUNDER_ICONS: Record<number, string> = { 5: '🏛️', 10: '⭐', 25: '🏗️', 50: '🛡️', 100: '🏆' };
 
-export type Looks = { color: string | null; prism: boolean; badge: string | null; banner: string | null; founder: { title: string; icon: string; of: string } | null; community: { cid: string; name: string; state: string } | null };
+export type Looks = { color: string | null; prism: boolean; badge: string | null; badgeAnim: 'spin' | 'flicker' | 'pulse' | 'lift' | null; frame: string | null; chart: string | null; banner: string | null; founder: { title: string; icon: string; of: string } | null; community: { cid: string; name: string; state: string } | null };
 export function parseLooks(d: DocumentData): Looks {
   const c = typeof d.color === 'string' ? LOOK_COLORS[d.color] : undefined;
   const f = d.founder && typeof d.founder === 'object' ? (d.founder as Record<string, unknown>) : null;
@@ -61,6 +76,9 @@ export function parseLooks(d: DocumentData): Looks {
     color: c && c !== 'prism' ? c : null,
     prism: c === 'prism',
     badge: typeof d.badge === 'string' ? (LOOK_BADGES[d.badge] ?? null) : null,
+    badgeAnim: typeof d.badge === 'string' ? (LOOK_BADGE_ANIM[d.badge] ?? null) : null,
+    frame: typeof d.frame === 'string' ? (LOOK_FRAMES[d.frame] ?? null) : null,
+    chart: typeof d.chart === 'string' && d.chart in LOOK_CHARTS ? d.chart : null,
     banner: typeof d.banner === 'string' ? (LOOK_BANNERS[d.banner] ?? null) : null,
     founder: f && str(f.title, 40) ? { title: str(f.title, 40), icon: FOUNDER_ICONS[num(f.tier)] ?? '🏛️', of: str(f.name, 40) } : null,
     community: cm && /^[A-Za-z0-9_-]{3,40}$/.test(String(cm.cid ?? '')) ? { cid: String(cm.cid), name: str(cm.name, 40), state: str(cm.state, 20) } : null,
@@ -164,3 +182,15 @@ export function groupEarned(ids: string[]): { group: string; items: AchievementD
 }
 /** Groups earned in Trade War (virtual) play, tagged TRADE WAR like on the website. */
 export const isWarGroup = (g: string) => g === 'Trading' || g === 'Milestones' || g === 'Seasons';
+
+// ---------------------------------------------------------------- the looks shop (cosmetics_*)
+export type ShopKind = 'color' | 'badge' | 'frame' | 'banner' | 'chart';
+export const SHOP_KINDS: ShopKind[] = ['color', 'badge', 'frame', 'banner', 'chart'];
+export type ShopItem = { id: string; name: string; price: number };
+export type ShopState = { shop: Partial<Record<ShopKind, ShopItem[]>>; owned: string[]; look: Record<string, unknown> };
+/** The shop, what you own and what you're wearing (the server owns names, prices and ownership). */
+export const loadShop = () => callFunction<Record<string, never>, ShopState>('cosmetics_equip', {});
+/** Buy an item (charged once) and wear it. */
+export const buyLook = (kind: ShopKind, id: string) => callFunction<{ kind: ShopKind; id: string }, { balance: number; owned: string[]; charged: number }>('cosmetics_buy', { kind, id });
+/** Wear something you own, or take it off (id null). */
+export const wearLook = (kind: ShopKind, id: string | null) => callFunction<{ kind: ShopKind; id: string | null }, ShopState>('cosmetics_equip', { kind, id });

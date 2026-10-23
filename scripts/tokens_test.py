@@ -233,6 +233,18 @@ class Cosmetics(unittest.TestCase):
         with self.assertRaises(m.TWError):
             m.cosmetic_buy(w, "color", "plaid", T0)
 
+    def test_batch_two_items(self):
+        """Owner 2026-10-23: chart themes 100, profile frames 120, animated badges 200."""
+        self.assertEqual({v[1] for v in m.COSMETICS["chart"].values()}, {100})
+        self.assertEqual({v[1] for v in m.COSMETICS["frame"].values()}, {120})
+        self.assertEqual({m.COSMETICS["badge"][k][1] for k in ("coin", "fire", "bolt", "launch")}, {200})
+        w = dict(m.tk_new_wallet(T0), balance=220)
+        w, line = m.cosmetic_buy(w, "frame", "gold", T0)
+        w, line2 = m.cosmetic_buy(w, "chart", "paper", T0)
+        self.assertEqual((w["balance"], w["owned"], line["amount"], line2["amount"]), (0, ["frame:gold", "chart:paper"], -120, -100))
+        shop = m._cosmetics_shop()
+        self.assertEqual(sorted(shop), ["badge", "banner", "chart", "color", "frame"])
+
 
 class Founder(unittest.TestCase):
     def test_slug(self):

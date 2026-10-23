@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { safeLink } from '../../shell/NotificationsSheet';
 import { parseRanked } from '../dashboard/social';
 import { parseDetail } from './detail';
-import { BIO_MAX, cleanBio, groupEarned, isWarGroup, LOOK_BADGES, LOOK_BANNERS, LOOK_COLORS, parseLooks, parseRecord, PHOTO_MAX, SHRINK_STEPS, UID_RE } from './profile';
+import { BIO_MAX, cleanBio, groupEarned, isWarGroup, LOOK_BADGES, LOOK_BANNERS, LOOK_BADGE_ANIM, LOOK_CHARTS, LOOK_FRAMES, LOOK_COLORS, parseLooks, parseRecord, PHOTO_MAX, SHRINK_STEPS, UID_RE } from './profile';
 
 const root = resolve(__dirname, '../../../..');
 const read = (p: string) => readFileSync(resolve(root, p), 'utf8');
@@ -36,6 +36,21 @@ describe('profile', () => {
     for (const [k, v] of Object.entries(LOOK_COLORS)) expect(js).toContain(`${k}: '${v}'`);
     for (const [k, v] of Object.entries(LOOK_BADGES)) expect(js).toContain(`${k}: '${v}'`);
     for (const [k, v] of Object.entries(LOOK_BANNERS)) expect(js).toContain(`${k}: '${v}'`);
+    for (const [k, v] of Object.entries(LOOK_FRAMES)) expect(js).toContain(`${k}: '${v}'`);
+    for (const [k, v] of Object.entries(LOOK_CHARTS)) expect(js).toContain(`${k}: '${v}'`);
+    for (const [k, v] of Object.entries(LOOK_BADGE_ANIM)) expect(js).toContain(`${k}: '${v}'`);
+    // every chart theme sold has colours in the shared chart engine, and the server sells the same ids
+    const engine = read('practice/practice-chart.js');
+    const server = read('functions/main.py');
+    for (const k of Object.keys(LOOK_CHARTS)) {
+      expect(engine).toMatch(new RegExp(`\\b${k}: \\{ bg: '#`));
+      expect(server).toContain(`"${k}": ("`);
+    }
+    for (const k of [...Object.keys(LOOK_FRAMES), ...Object.keys(LOOK_BADGE_ANIM)]) expect(server).toContain(`"${k}": ("`);
+  });
+  it('reads frames, animated badges and chart themes', () => {
+    expect(parseLooks({ badge: 'coin', frame: 'gold', chart: 'paper' })).toMatchObject({ badge: '🪙', badgeAnim: 'spin', frame: LOOK_FRAMES.gold, chart: 'paper' });
+    expect(parseLooks({ badge: 'bull', frame: 'url(x)', chart: 'plaid' })).toMatchObject({ badge: '🐂', badgeAnim: null, frame: null, chart: null });
   });
   it('the editor keeps the website’s and the rules’ limits', () => {
     const js = read('zelos-profile.js');
