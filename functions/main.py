@@ -4824,10 +4824,12 @@ def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
         before = max(0, int(u.get("xp") or 0))
         upd, awarded = {}, False
         if not ev.exists:
-            amt, _, why2 = XP.decide(kind, ref, today, s.get("counts") or {}, int(s.get("xp") or 0))
+            boosted = int(u.get("xpBoostUntil") or 0) > now_ms
+            amt, _, why2 = XP.decide(kind, ref, today, s.get("counts") or {}, int(s.get("xp") or 0), boosted)
             if not why2:
                 upd["xp"] = before + amt
-                t.set(eref, {"type": kind, "refId": ref, "xp": amt, "source": src[0], "label": src[1],
+                doubled = boosted and kind in XP.BOOST_KINDS
+                t.set(eref, {"type": kind, "refId": ref, "xp": amt, "source": src[0], "label": src[1] + (" (2× XP)" if doubled else ""),
                              "createdAt": firestore.SERVER_TIMESTAMP})
                 counts = dict(s.get("counts") or {})
                 counts[kind] = counts.get(kind, 0) + 1
@@ -4843,6 +4845,35 @@ def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
     out = txn(db.transaction())
     if out.get("awarded") and out["xp"] > out["before"]:
         mission_record(db, uid, "xp", now_ms, n=out["xp"] - out["before"])
+    return out
+
+
+# ---------------------------------------------------------------- XP booster (owner 2026-10-23)
+#   xp_boost {} -> wallet + {charged, xpBoostUntil}: XP.BOOST_COST tokens for 24 more hours of
+#   double XP from lessons, missions and battles (XP.BOOST_KINDS). users/{uid}.xpBoostUntil is
+#   server-only (firestore.rules); xp_grant reads it.
+@https_fn.on_call()
+@_tk_call
+def xp_boost(req, db, uid, tok, now_ms):
+    wref, uref = db.collection("wallets").document(uid), db.collection("users").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        ws, us = wref.get(transaction=t), uref.get(transaction=t)
+        wallet = ws.to_dict() if ws.exists else tk_new_wallet(now_ms)
+        try:
+            until, cost = XP.boost_buy(us.to_dict() if us.exists else {}, wallet.get("balance", 0), now_ms)
+        except ValueError as e:
+            raise TWError("FAILED_PRECONDITION", str(e))
+        wallet = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+        t.set(wref, wallet)
+        t.set(wref.collection("ledger").document(), tk_ledger("xp-boost", -cost, wallet["balance"], now_ms, "Double XP for 24 hours"))
+        t.set(uref, {"xpBoostUntil": until}, merge=True)
+        return wallet, until
+
+    wallet, until = txn(db.transaction())
+    out = _tk_public(wallet)
+    out.update({"charged": XP.BOOST_COST, "xpBoostUntil": until})
     return out
 
 

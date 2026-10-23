@@ -57,6 +57,12 @@ scanner pages, the Terms) quote the same numbers; update them together.
 - `tokens_wallet`: your wallet + prices (makes it, adds welcome tokens once).
   `canBuy` is true once the Square access token is set.
 - `tokens_spend`: `{kind: 'pass', strategy}` or `{kind: 'unlock', alertId}`.
+- `xp_boost`: `{}` → double XP for 24 hours for `XP.BOOST_COST` (25) tokens
+  (owner 2026-10-23). Buying again adds 24 hours. It doubles lessons (Trading 101,
+  Hall of Minds), chapter quizzes, missions and Trade War trades/wins
+  (`XP.BOOST_KINDS`); battle token prizes and other XP stay the same, and the
+  doubled amount counts toward the daily XP ceiling. `users/{uid}.xpBoostUntil` is
+  server-only (firestore.rules); `xp_grant` reads it.
 - `tw_revive`: `{warId}` → back into a Last Man Standing battle for
   `TOKENS['revive']` (20) tokens, once per battle (owner 2026-10-23). You come back
   with the money you had when knocked out; the knockout rules start fresh from

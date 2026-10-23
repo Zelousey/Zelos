@@ -61,3 +61,8 @@
 .pathNow { background: var(--surface-2); outline: 1px solid var(--accent-line); }
 .pathNext > span:first-child { opacity: 0.45; filter: saturate(0.6); }
 .path:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius); }
+
+/* XP booster */
+.boost { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.boostText { display: grid; gap: 2px; min-width: 0; flex: 1 1 240px; }
+.boostText span { color: var(--ink-2); font-size: var(--text-sm); }

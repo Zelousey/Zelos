@@ -74,6 +74,19 @@ _COACH_REF = re.compile(r"^([a-z]+):[A-Za-z0-9]{6,40}$")
 # chapter: paid by learn_quiz only after the server grades the quiz (functions/learn.py)
 SERVER_ONLY = ("mission", "coach-task", "coach-bonus", "chapter")
 DAILY_XP_CEILING = 2500
+# XP booster (owner 2026-10-23): 25 tokens doubles the XP from lessons, missions and battles for
+# 24 hours (users/{uid}.xpBoostUntil, server-only). Battle token rewards are not changed.
+BOOST_COST = 25
+BOOST_MS = 24 * 3600 * 1000
+BOOST_KINDS = ("lesson", "chapter", "mind", "mission", "practice-trade", "practice-win")
+
+
+def boost_buy(user, balance, now_ms):
+    """Pure: (new xpBoostUntil, cost) for 24 more hours of double XP, stacking on a boost
+    that is still running. Raises ValueError with a message for the person."""
+    if balance < BOOST_COST:
+        raise ValueError("You need %d tokens and have %d." % (BOOST_COST, balance))
+    return max(int((user or {}).get("xpBoostUntil") or 0), now_ms) + BOOST_MS, BOOST_COST
 
 _DAY = r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
 _UID = re.compile(r"^[A-Za-z0-9]{10,128}$")
@@ -87,12 +100,13 @@ def iso_week_key(day_str):
     return "w%d_%02d" % (y, w)
 
 
-def decide(kind, ref_id, today, counts=None, xp_today=0):
+def decide(kind, ref_id, today, counts=None, xp_today=0, boosted=False):
     """Pure. Returns (amount, ref_id, error). amount > 0 means award it.
 
     today   NY date "YYYY-MM-DD"
     counts  {type: awards so far today}
     xp_today XP already awarded today
+    boosted an XP booster is running (BOOST_KINDS pay double)
     """
     counts = counts or {}
     ref_id = "" if ref_id is None else str(ref_id)
@@ -177,6 +191,8 @@ def decide(kind, ref_id, today, counts=None, xp_today=0):
     else:
         return 0, ref_id, "bad-type"
 
+    if boosted and kind in BOOST_KINDS:
+        amount *= 2
     if counts.get(kind, 0) >= DAILY_LIMIT.get(kind, 10 ** 6):
         return 0, ref_id, "daily-limit"
     if xp_today + amount > DAILY_XP_CEILING:

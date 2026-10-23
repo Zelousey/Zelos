@@ -12,12 +12,13 @@ import { formatRelative } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
-import { Badge, Button, buttonClass, Card, EmptyState, LoadingState, PageHeader, useToast } from '../../ui';
+import { Badge, Button, buttonClass, Card, Confirm, EmptyState, LoadingState, PageHeader, useToast } from '../../ui';
 import { LevelBadge } from '../dashboard/LevelBadge';
 import { ACHIEVEMENTS, achievementsView, mergeProgress, missionsView, readLocal, STREAK_NEED, type MissionView } from '../dashboard/progress';
 import { useMyProfile } from '../dashboard/social';
 import { useMySquadList } from '../social/squads';
-import { nextTier, referralTier, STREAK_REWARDS, unlockAchievement, useReferralCount, useXpHistory } from './missions';
+import { errorText } from '../invites/invites';
+import { BOOST_COST, boostLeft, buyBoost, nextTier, referralTier, STREAK_REWARDS, unlockAchievement, useReferralCount, useXpHistory } from './missions';
 import s from './Missions.module.css';
 
 export default function MissionsPage() {
@@ -61,6 +62,7 @@ function Missions({ uid }: { uid: string }) {
       <PageHeader title={t('nav.missions')} subtitle={t('ms.subtitle')} />
       <div className={s.page}>
         <LevelCard xp={xp} streak={m.streak} best={m.best} />
+        <BoostCard until={doc?.xpBoostUntil ?? null} now={now} />
         <LevelPath xp={xp} />
         <div className={s.cols}>
           <Card flush title={t('ms.daily')} subtitle={t('ms.daily.sub', { done: m.doneToday, need: STREAK_NEED })}>
@@ -78,6 +80,46 @@ function Missions({ uid }: { uid: string }) {
         </div>
       </div>
     </>
+  );
+}
+
+/** The XP booster: double XP from lessons, missions and battles for 24 hours (xp_boost). */
+function BoostCard({ until, now }: { until: number | null; now: number }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const left = boostLeft(until, now);
+  return (
+    <Card pad className={s.boost}>
+      <div className={s.boostText}>
+        <b>{left ? t('ms.boost.on') : t('ms.boost.title')}</b>
+        <span>{left ? t('ms.boost.left', { t: left }) : t('ms.boost.what')}</span>
+      </div>
+      <Button variant={left ? 'ghost' : 'primary'} onClick={() => setOpen(true)} disabled={busy}>
+        {left ? t('ms.boost.more', { n: BOOST_COST }) : t('ms.boost.buy', { n: BOOST_COST })}
+      </Button>
+      <Confirm
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t('ms.boost.title')}
+        action={t('ms.boost.buy', { n: BOOST_COST })}
+        busy={busy}
+        onConfirm={async () => {
+          setBusy(true);
+          try {
+            await buyBoost();
+            toast.show(t('ms.boost.done'), 'success');
+            setOpen(false);
+          } catch (e) {
+            toast.show(errorText(e, t('ms.boost.failed')), 'error');
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <p>{t('ms.boost.body', { n: BOOST_COST })}</p>
+      </Confirm>
+    </Card>
   );
 }
 

@@ -169,6 +169,12 @@ test('Trading 101: chapter passes are written by the server; your lessons list i
   await assertSucceeds(updateDoc(doc(real('alice').firestore(), 'users/alice'), { learnDone: ['stocks', 'prices'] }));
 });
 
+test('XP booster: only the server sets when it ends', async () => {
+  await assertFails(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, xpBoostUntil: Date.now() + 864e5 }));
+  await assertSucceeds(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0 }));
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'users/alice'), { xpBoostUntil: Date.now() + 864e5 }));
+});
+
 test('coaching: only the coach and the student can read it; nobody writes from the browser', async () => {
   await env.withSecurityRulesDisabled(async (c) => {
     await setDoc(doc(c.firestore(), 'coachings/alice_bob'), { coach: 'alice', student: 'bob', status: 'active' });
