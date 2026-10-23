@@ -63,6 +63,20 @@ scanner pages, the Terms) quote the same numbers; update them together.
   `ZelosTokens.hint`) then marks the swing low (and the recent high in Grade the
   Setup): where to look, not the answer. That round scores half points, so a paid
   hint can't buy a leaderboard spot.
+- `xp_boost`: `{}` → double XP for 24 hours for `XP.BOOST_COST` (25) tokens
+  (owner 2026-10-23). Buying again adds 24 hours. It doubles lessons (Trading 101,
+  Hall of Minds), chapter quizzes, missions and Trade War trades/wins
+  (`XP.BOOST_KINDS`); battle token prizes and other XP stay the same, and the
+  doubled amount counts toward the daily XP ceiling. `users/{uid}.xpBoostUntil` is
+  server-only (firestore.rules); `xp_grant` reads it.
+- `tw_revive`: `{warId}` → back into a Last Man Standing battle for
+  `TOKENS['revive']` (20) tokens, once per battle (owner 2026-10-23). You come back
+  with the money you had when knocked out; the knockout rules start fresh from
+  there (`reviveBase`, `reviveLosses` on the account) and you skip the next timed
+  cut (`reviveSafe` on the battle). Rankings still count from the starting money.
+  Not after surrendering, in the last hour, or once only two traders are left.
+  The rules are the pure `tw_revive_fields`; the charge and the comeback are one
+  transaction.
 - `tokens_checkout`: `{pack}` → `{url}`, a Square Checkout payment link. The
   price and token amount come only from `TOKENS`; anything else the browser
   sends is ignored. Uses `SQUARE_LOCATION_ID` if set, otherwise the account's

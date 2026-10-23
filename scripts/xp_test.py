@@ -84,6 +84,32 @@ class Streak(unittest.TestCase):
         self.assertEqual(XP.streak_update({"lastAlertOpenDate": "2026-10-01", "streakDays": 9}, T, Y)["streakDays"], 1)
 
 
+class Booster(unittest.TestCase):
+    """XP booster (owner 2026-10-23): 25 tokens, double XP for 24 hours from lessons, missions and battles."""
+    DAY = "2026-10-23"
+
+    def test_doubles_lessons_missions_and_battles(self):
+        self.assertEqual(XP.decide("lesson", "stocks", self.DAY, boosted=True)[0], 20)
+        self.assertEqual(XP.decide("mission", "d:%s:trade" % self.DAY, self.DAY, boosted=True)[0], 20)
+        self.assertEqual(XP.decide("practice-win", "%s:1" % self.DAY, self.DAY, boosted=True)[0], 20)
+        self.assertEqual(XP.decide("lesson", "stocks", self.DAY)[0], 10)
+
+    def test_other_xp_is_not_doubled(self):
+        self.assertEqual(XP.decide("daily-checkin", self.DAY, self.DAY, boosted=True)[0], 3)
+        self.assertEqual(XP.decide("referral-welcome", "welcome", self.DAY, boosted=True)[0], 50)
+
+    def test_the_daily_ceiling_counts_the_doubled_amount(self):
+        self.assertEqual(XP.decide("lesson", "stocks", self.DAY, xp_today=XP.DAILY_XP_CEILING - 15, boosted=True)[2], "daily-limit")
+
+    def test_buying_stacks_24_hours(self):
+        now = 1_760_000_000_000
+        self.assertEqual(XP.boost_buy({}, 25, now), (now + XP.BOOST_MS, 25))
+        self.assertEqual(XP.boost_buy({"xpBoostUntil": now + 3600000}, 30, now)[0], now + 3600000 + XP.BOOST_MS)
+        self.assertEqual(XP.boost_buy({"xpBoostUntil": now - 5}, 30, now)[0], now + XP.BOOST_MS)  # an old one has ended
+        with self.assertRaises(ValueError):
+            XP.boost_buy({}, 24, now)
+
+
 class TablesMatchTheBrowser(unittest.TestCase):
     """The pages show XP amounts; the server tables must agree with them."""
     ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

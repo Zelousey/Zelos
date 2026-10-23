@@ -93,3 +93,13 @@ export const STREAK_REWARDS: [number, number][] = [
   [14, 150],
   [30, 300],
 ];
+
+/** XP booster (owner 2026-10-23): the shown price only; the server charges XP.BOOST_COST. */
+export const BOOST_COST = 25;
+export const buyBoost = () => callFunction<Record<string, never>, { balance: number; charged: number; xpBoostUntil: number }>('xp_boost', {});
+/** "13h 20m" left on a running booster, or null when none is running. */
+export function boostLeft(until: number | null, now: number): string | null {
+  if (!until || until <= now) return null;
+  const mins = Math.max(1, Math.floor((until - now) / 60000));
+  return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+}

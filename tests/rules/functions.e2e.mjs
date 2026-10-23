@@ -221,6 +221,41 @@ re1 = null; try { await call('drill_hint', { drill: 'grade-the-setup' }); } catc
 ok(re1 && /need 3 tokens and have 1/.test(re1.message), 'not enough tokens for a hint');
 re1 = null; try { await call('drill_hint', { drill: 'daily-challenge' }); } catch (x) { re1 = x; }
 ok(re1 && /aren.t available in this drill/.test(re1.message), 'no hints in the Daily Challenge');
+// --- XP booster: 25 tokens, double XP from lessons for 24 hours
+await admin('wallets/' + troll.uid, { balance: { integerValue: 30 } });
+r = await call('xp_boost', {});
+ok(r.charged === 25 && r.balance === 5 && r.xpBoostUntil > Date.now() + 23 * 36e5, 'XP booster: 25 tokens for 24 hours');
+r = await call('xp_award', { type: 'mind', refId: 'napoleon:study' });
+ok(r.awarded && r.xp - r.before === 20, 'a lesson pays double while it runs');
+r = await call('xp_award', { type: 'daily-checkin', refId: nyDay() });
+ok(!r.awarded || r.xp - r.before === 3, 'the daily check-in is not doubled');
+re1 = null; try { await call('xp_boost', {}); } catch (x) { re1 = x; }
+ok(re1 && /need 25 tokens and have 5/.test(re1.message), 'not enough tokens for another booster');
+// --- Last Man Standing revive: 20 tokens, once, back with the money you had
+const fv = (x) => x === null ? { nullValue: null } : typeof x === 'string' ? { stringValue: x } : typeof x === 'boolean' ? { booleanValue: x }
+  : typeof x === 'number' ? (Number.isInteger(x) ? { integerValue: String(x) } : { doubleValue: x })
+  : Array.isArray(x) ? { arrayValue: { values: x.map(fv) } } : { mapValue: { fields: Object.fromEntries(Object.entries(x).map(([k, y]) => [k, fv(y)])) } };
+const seed = (path, o) => admin(path, Object.fromEntries(Object.entries(o).map(([k, y]) => [k, fv(y)])));
+const lmsWar = 'revivewarxyz';
+const others = ['rv1', 'rv2', 'rv3'];
+await seed('tradeWars/' + lmsWar, {
+  name: 'Revive night', host: 'rv1', status: 'active', players: [troll.uid, ...others], names: { [troll.uid]: 'Troll' },
+  lms: { floorPct: 10, cutHours: 6 }, alive: others, outs: [{ uid: troll.uid, name: 'Troll', reason: 'floor', at: 1, pnlPct: -11, place: 4 }],
+  endAt: Date.now() + 864e5, startAt: Date.now() - 36e5, buyIn: 1000, days: 1, maxPlayers: 4, rules: {}, modes: {},
+});
+await seed(`tradeWars/${lmsWar}/accounts/${troll.uid}`, { name: 'Troll', start: 1000, cash: 890, equity: 890, pnl: -110, pnlPct: -11, losses: 2, out: true, outReason: 'floor', place: 4 });
+await admin('wallets/' + troll.uid, { balance: { integerValue: 19 } });
+re1 = null; try { await call('tw_revive', { warId: lmsWar }); } catch (x) { re1 = x; }
+ok(re1 && /need 20 tokens and have 19/.test(re1.message), 'a revive needs 20 tokens');
+await admin('wallets/' + troll.uid, { balance: { integerValue: 45 } });
+r = await call('tw_revive', { warId: lmsWar });
+ok(r.charged === 20 && r.balance === 25, 'revive: 20 tokens');
+const rw = (await getDoc(doc(db, 'tradeWars', lmsWar))).data();
+const ra = (await getDoc(doc(db, 'tradeWars', lmsWar, 'accounts', troll.uid))).data();
+ok(rw.alive.includes(troll.uid) && rw.outs.length === 0 && rw.reviveSafe.includes(troll.uid), 'back among the traders still standing, safe from the next cut');
+ok(ra.out === false && ra.equity === 890 && ra.reviveBase === 890 && ra.start === 1000, 'with the money they had; rankings still count from the start');
+re1 = null; try { await call('tw_revive', { warId: lmsWar }); } catch (x) { re1 = x; }
+ok(re1 && /still in this battle/.test(re1.message), 'cannot revive while still in');
 
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);
