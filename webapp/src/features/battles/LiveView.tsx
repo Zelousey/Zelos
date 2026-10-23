@@ -408,7 +408,7 @@ function ReviveButton({ warId }: { warId: string }) {
             toast.show(t('bt.revived'), 'success');
             setOpen(false);
           } catch (e) {
-            toast.show(errorText(e), 'error');
+            toast.show(errorText(e, t('bt.failed')), 'error');
           } finally {
             setBusy(false);
           }
