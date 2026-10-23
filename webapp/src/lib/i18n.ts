@@ -1648,6 +1648,7 @@ const en = {
   'ms.boost.more': 'Add 24 hours · {n} tokens',
   'ms.boost.body': 'For {n} tokens, lessons (Trading 101 and Hall of Minds), missions and Trade War trades and wins pay double XP for 24 hours. Buying again adds another 24 hours. Battle token prizes and other XP stay the same.',
   'ms.boost.done': 'Double XP is on for 24 hours!',
+  'ms.boost.failed': "That didn't work. Try again.",
   'ms.subtitle': 'Your level, daily and weekly missions, streak and achievements. Every trade, win and mission earns XP.',
   'ms.signIn': 'Sign in to see your level, missions and achievements. XP is kept on your account, so it follows you to every device.',
   'ms.level': 'Level {n} · {title}',

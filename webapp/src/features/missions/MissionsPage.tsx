@@ -111,7 +111,7 @@ function BoostCard({ until, now }: { until: number | null; now: number }) {
             toast.show(t('ms.boost.done'), 'success');
             setOpen(false);
           } catch (e) {
-            toast.show(errorText(e), 'error');
+            toast.show(errorText(e, t('ms.boost.failed')), 'error');
           } finally {
             setBusy(false);
           }
