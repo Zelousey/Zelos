@@ -1,13 +1,14 @@
 /**
  * The tasks that end a scroll-lesson slide (owner 2026-10-23: "you have to do something to
- * continue"): hold a button to march, answer a question, drag Napoleon over the Alps, drag a buy
- * line onto a level. Every drag has a button that does the same (WCAG 2.5.7), and holding works
- * with Space or Enter. onDone fires once, when the task is complete.
+ * continue"): hold a button (march, rally), answer a question, drag Napoleon over the Alps, drag a
+ * buy line onto a level, drag items into one place, find something in a painting, drag to the one
+ * right zone, pick the right few. Every drag can also be done by tapping (WCAG 2.5.7), and holding
+ * works with Space or Enter. onDone fires once, when the task is complete.
  */
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../../lib/i18n';
 import { Button } from '../../ui';
-import type { ScrollTask } from './minds';
+import { mindImageUrl, type ScrollTask } from './minds';
 import s from './ScrollLesson.module.css';
 
 type Props<K extends ScrollTask['kind']> = { task: Extract<ScrollTask, { kind: K }>; done: boolean; onDone: () => void; portrait: string };
@@ -16,6 +17,10 @@ export function LessonTask({ task, done, onDone, portrait }: { task: ScrollTask;
   if (task.kind === 'hold') return <HoldTask task={task} done={done} onDone={onDone} portrait={portrait} />;
   if (task.kind === 'quiz') return <QuizTask task={task} done={done} onDone={onDone} portrait={portrait} />;
   if (task.kind === 'drag') return <AlpsTask task={task} done={done} onDone={onDone} portrait={portrait} />;
+  if (task.kind === 'collect') return <CollectTask task={task} done={done} onDone={onDone} portrait={portrait} />;
+  if (task.kind === 'tap') return <TapTask task={task} done={done} onDone={onDone} portrait={portrait} />;
+  if (task.kind === 'target') return <TargetTask task={task} done={done} onDone={onDone} portrait={portrait} />;
+  if (task.kind === 'pick') return <PickTask task={task} done={done} onDone={onDone} portrait={portrait} />;
   return <LevelTask task={task} done={done} onDone={onDone} portrait={portrait} />;
 }
 
@@ -56,6 +61,15 @@ function HoldTask({ task, done, onDone }: Props<'hold'>) {
   const wagons = 30 + p * 110;
   return (
     <div className={s.task}>
+      {task.scene === 'rally' ? (
+        <div className={s.morale} role="img" aria-label={t('sl.rallyMeter', { pct: Math.round(p * 100) })}>
+          <span>{t('sl.scared')}</span>
+          <div className={s.moraleBar}>
+            <i style={{ width: `${Math.round(p * 100)}%` }} />
+          </div>
+          <span>{t('sl.ready')}</span>
+        </div>
+      ) : (
       <svg className={s.map} viewBox="0 0 320 120" role="img" aria-label={t('sl.marchMap', { pct: Math.round(p * 100) })}>
         <path d="M30 80 C 90 40, 160 110, 280 60" className={s.route} />
         <text x="22" y="104" className={s.mapLabel}>
@@ -77,6 +91,7 @@ function HoldTask({ task, done, onDone }: Props<'hold'>) {
           <path d="M-4 1 L0 -5 L4 1 Z" fill="#fff" />
         </g>
       </svg>
+      )}
       <button
         type="button"
         className={s.hold}
@@ -260,3 +275,239 @@ function LevelTask({ task, done, onDone }: Props<'level'>) {
   );
 }
 
+
+/** Drag the right items into one place, one by one; a wrong one bounces back. Tapping an item does the same. */
+function CollectTask({ task, done, onDone }: Props<'collect'>) {
+  const zone = useRef<HTMLDivElement>(null);
+  const [placed, setPlaced] = useState<string[]>(done ? task.items.filter((i) => !i.wrong).map((i) => i.label) : []);
+  const [drag, setDrag] = useState<{ label: string; x: number; y: number; sx: number; sy: number } | null>(null);
+  const [over, setOver] = useState(false);
+  const [note, setNote] = useState('');
+  const need = task.items.filter((i) => !i.wrong).length;
+  function put(item: { label: string; wrong?: boolean }) {
+    if (done || placed.includes(item.label)) return;
+    if (item.wrong) return setNote(task.wrong ?? t('sl.notThatOne'));
+    setNote('');
+    const next = [...placed, item.label];
+    setPlaced(next);
+    if (next.length === need) onDone();
+  }
+  return (
+    <div className={s.task}>
+      <div className={s.collect}>
+        <div className={s.tokens}>
+          {task.items.filter((i) => !placed.includes(i.label)).map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={[s.chip, drag?.label === item.label && s.dragging].filter(Boolean).join(' ')}
+              style={drag?.label === item.label ? { transform: `translate(${drag.x - drag.sx}px, ${drag.y - drag.sy}px) scale(1.06)` } : undefined}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture?.(e.pointerId);
+                setDrag({ label: item.label, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
+              }}
+              onPointerMove={(e) => {
+                if (drag?.label !== item.label) return;
+                setDrag({ ...drag, x: e.clientX, y: e.clientY });
+                setOver(inside(zone.current, e.clientX, e.clientY, 10));
+              }}
+              onPointerUp={(e) => {
+                if (drag?.label !== item.label) return;
+                const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 8;
+                setDrag(null);
+                setOver(false);
+                // a tap (no real drag) puts it in too, so this works without dragging
+                if (!moved || inside(zone.current, e.clientX, e.clientY, 10)) put(item);
+              }}
+              onPointerCancel={() => {
+                setDrag(null);
+                setOver(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  put(item);
+                }
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div ref={zone} className={[s.drop, s.dropWide, over && s.dropOver, placed.length === need && s.dropDone].filter(Boolean).join(' ')}>
+          <span className={s.alpsLabel}>{task.target}</span>
+          <div className={s.placed}>
+            {placed.map((l) => (
+              <span key={l} className={s.chipIn}>
+                {l}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p className={s.hint} role="status">
+        {placed.length === need ? task.done : note || task.label}
+      </p>
+    </div>
+  );
+}
+
+/** Find it in the painting: the spots are buttons over the picture; a tap anywhere else says look again. */
+function TapTask({ task, done, onDone }: Props<'tap'>) {
+  const [msg, setMsg] = useState('');
+  const [hit, setHit] = useState<string | null>(done ? (task.spots.find((x) => x.right)?.label ?? null) : null);
+  return (
+    <div className={s.task}>
+      <figure className={s.tapPic} onClick={() => !hit && setMsg(task.miss)}>
+        <img src={mindImageUrl(task.image)} alt={t('sl.alt', { credit: task.credit.split(',')[0]! })} draggable={false} />
+        {task.spots.map((sp) => (
+          <button
+            key={sp.label}
+            type="button"
+            aria-label={sp.label}
+            disabled={!!hit}
+            className={[s.spot, hit === sp.label && s.spotHit].filter(Boolean).join(' ')}
+            style={{ left: `${sp.x * 100}%`, top: `${sp.y * 100}%`, width: `${sp.w * 100}%`, height: `${sp.h * 100}%` }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (sp.right) {
+                setHit(sp.label);
+                setMsg('');
+                onDone();
+              } else setMsg(task.miss);
+            }}
+          />
+        ))}
+        <figcaption className={s.credit}>{task.credit}</figcaption>
+      </figure>
+      <p className={s.hint} role="status">
+        {hit ? task.done : msg || task.label}
+      </p>
+    </div>
+  );
+}
+
+/** Drag your token to the right zone; each zone is a button too. A wrong zone explains why. */
+function TargetTask({ task, done, onDone }: Props<'target'>) {
+  const zones = useRef<(HTMLButtonElement | null)[]>([]);
+  const [drag, setDrag] = useState<{ x: number; y: number; sx: number; sy: number } | null>(null);
+  const [at, setAt] = useState<number | null>(done ? task.zones.findIndex((z) => z.right) : null);
+  const [over, setOver] = useState<number | null>(null);
+  const [msg, setMsg] = useState('');
+  const right = at !== null && !!task.zones[at]?.right;
+  function choose(i: number) {
+    if (right) return;
+    setAt(i);
+    if (task.zones[i]!.right) {
+      setMsg('');
+      onDone();
+    } else setMsg(task.zones[i]!.why ?? t('sl.tryAgain'));
+  }
+  const zoneAt = (x: number, y: number) => zones.current.findIndex((el) => inside(el, x, y, 6));
+  return (
+    <div className={s.task}>
+      <div className={s.battle}>
+        <div className={s.zones}>
+          {task.zones.map((z, i) => (
+            <button
+              key={z.label}
+              ref={(el) => {
+                zones.current[i] = el;
+              }}
+              type="button"
+              className={[s.zone, over === i && s.dropOver, at === i && (z.right ? s.dropDone : s.zoneWrong)].filter(Boolean).join(' ')}
+              disabled={right}
+              onClick={() => choose(i)}
+            >
+              <span>{z.label}</span>
+              {at === i && <b className={s.troops}>{task.token}</b>}
+            </button>
+          ))}
+        </div>
+        {!right && (
+          <span
+            role="img"
+            aria-label={t('sl.dragToken', { token: task.token })}
+            className={[s.troops, s.troopsStart, drag && s.dragging].filter(Boolean).join(' ')}
+            style={drag ? { transform: `translate(${drag.x - drag.sx}px, ${drag.y - drag.sy}px) scale(1.08)` } : undefined}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.currentTarget.setPointerCapture?.(e.pointerId);
+              setDrag({ x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
+            }}
+            onPointerMove={(e) => {
+              if (!drag) return;
+              setDrag({ ...drag, x: e.clientX, y: e.clientY });
+              const i = zoneAt(e.clientX, e.clientY);
+              setOver(i < 0 ? null : i);
+            }}
+            onPointerUp={(e) => {
+              if (!drag) return;
+              setDrag(null);
+              setOver(null);
+              const i = zoneAt(e.clientX, e.clientY);
+              if (i >= 0) choose(i);
+            }}
+            onPointerCancel={() => {
+              setDrag(null);
+              setOver(null);
+            }}
+          >
+            {task.token}
+          </span>
+        )}
+      </div>
+      <p className={s.hint} role="status">
+        {right ? task.done : msg || task.label}
+      </p>
+    </div>
+  );
+}
+
+/** Choose exactly `need` options; all of them must be right ones. */
+function PickTask({ task, done, onDone }: Props<'pick'>) {
+  const [sel, setSel] = useState<string[]>(done ? task.options.filter((o) => o.right).map((o) => o.label) : []);
+  const [checked, setChecked] = useState(done);
+  const ok = checked && sel.length === task.need && sel.every((l) => task.options.find((o) => o.label === l)?.right);
+  return (
+    <fieldset className={s.task}>
+      <legend className={s.question}>{task.label}</legend>
+      <div className={s.picks}>
+        {task.options.map((o) => {
+          const on = sel.includes(o.label);
+          return (
+            <button
+              key={o.label}
+              type="button"
+              aria-pressed={on}
+              disabled={ok}
+              className={[s.option, on && s.optionOn, checked && on && (o.right ? s.right : s.wrong)].filter(Boolean).join(' ')}
+              onClick={() => {
+                setChecked(false);
+                setSel(on ? sel.filter((l) => l !== o.label) : sel.length < task.need ? [...sel, o.label] : sel);
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {!ok && (
+        <Button
+          size="sm"
+          disabled={sel.length !== task.need}
+          onClick={() => {
+            setChecked(true);
+            if (sel.every((l) => task.options.find((o) => o.label === l)?.right)) onDone();
+          }}
+        >
+          {t('sl.check', { n: sel.length, of: task.need })}
+        </Button>
+      )}
+      <p className={s.feedback} role="status">
+        {ok ? task.why : checked ? t('sl.pickAgain') : ''}
+      </p>
+    </fieldset>
+  );
+}

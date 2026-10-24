@@ -17,12 +17,22 @@ import { callFunction, db } from '../../lib/firebase';
  * a task you do to go on (hold, drag, a question). Each task pays STEP_XP once (xp_award
  * "mind-step", checked by the server against functions/minds.py STEP_REFS).
  */
+export type TapSpot = { label: string; x: number; y: number; w: number; h: number; right?: boolean };
 export type ScrollTask =
-  | { id: string; kind: 'hold'; label: string; done: string }
+  | { id: string; kind: 'hold'; label: string; done: string; scene?: 'march' | 'rally' }
   | { id: string; kind: 'quiz'; question: string; options: string[]; answer: number; why: string }
   | { id: string; kind: 'drag'; label: string; tap: string; done: string }
-  | { id: string; kind: 'level'; label: string; tap: string; done: string };
-export type ScrollSlide = { lines: string[]; image?: boolean; source?: string; task?: ScrollTask };
+  | { id: string; kind: 'level'; label: string; tap: string; done: string }
+  /** drag the right items into one place (a wrong one bounces back with `wrong`); tapping an item moves it too */
+  | { id: string; kind: 'collect'; label: string; target: string; items: { label: string; wrong?: boolean }[]; wrong?: string; done: string }
+  /** find something in a picture: spots are fractions of the image; one or more are right */
+  | { id: string; kind: 'tap'; label: string; image: string; credit: string; spots: TapSpot[]; miss: string; done: string }
+  /** drag one token to the right zone out of several; each zone is also a button */
+  | { id: string; kind: 'target'; label: string; token: string; zones: { label: string; right?: boolean; why?: string }[]; done: string }
+  /** choose exactly `need` options, all of them right ones */
+  | { id: string; kind: 'pick'; label: string; need: number; options: { label: string; right?: boolean }[]; why: string };
+/** image: true uses the lesson's picture; a file name gives the slide its own (with its credit) */
+export type ScrollSlide = { lines: string[]; image?: boolean | string; credit?: string; source?: string; task?: ScrollTask };
 export type ScrollLesson = { image: string; credit: string; slides: ScrollSlide[] };
 export type MindLesson = { id: string; title: string; text: string[]; trading: string; scroll?: ScrollLesson };
 export type MindQuote = { id: string; text: string; source: string; plain: string; trading: string };

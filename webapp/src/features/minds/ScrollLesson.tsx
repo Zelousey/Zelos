@@ -51,8 +51,12 @@ function Lesson({ f, l, sc }: { f: Figure; l: MindLesson; sc: ScrollLesson }) {
         const pic = sec.querySelector('[data-pic]');
         const task = sec.querySelector('[data-task]');
         const reveal = () => Math.round(window.innerHeight * (0.5 + lines.length * 0.3));
+        // a slide taller than the screen isn't pinned (its bottom could never be reached); it just scrolls
+        const fits = sec.offsetHeight <= window.innerHeight - top() - 8;
         const tl = gsap.timeline({
-          scrollTrigger: { trigger: sec, start: () => `top ${top()}px`, end: () => `+=${reveal()}`, pin: true, scrub: 0.5, invalidateOnRefresh: true },
+          scrollTrigger: fits
+            ? { trigger: sec, start: () => `top ${top()}px`, end: () => `+=${reveal()}`, pin: true, scrub: 0.5, invalidateOnRefresh: true }
+            : { trigger: sec, start: 'top 85%', end: 'top 35%', scrub: 0.5 },
         });
         if (pic) tl.fromTo(pic, { scale: 1.16 }, { scale: 1, duration: 1, ease: 'none' }, 0);
         if (lines.length) tl.from(lines, { opacity: 0, y: 24, stagger: 0.35, duration: 0.35 }, 0.1);
@@ -75,7 +79,7 @@ function Lesson({ f, l, sc }: { f: Figure; l: MindLesson; sc: ScrollLesson }) {
       if (!el) return;
       ScrollTrigger.refresh();
       const st = ScrollTrigger.getAll().find((x) => x.trigger === el);
-      const top = st ? st.start + 2 : el.getBoundingClientRect().top + window.scrollY - (bar.current?.getBoundingClientRect().bottom ?? 0) - 8;
+      const top = st?.pin ? st.start + 2 : el.getBoundingClientRect().top + window.scrollY - (bar.current?.getBoundingClientRect().bottom ?? 0) - 8;
       window.scrollTo({ top: Math.min(top, ScrollTrigger.maxScroll(window)), behavior: reduced ? 'auto' : 'smooth' });
     });
     return () => cancelAnimationFrame(id);
@@ -135,8 +139,8 @@ function Lesson({ f, l, sc }: { f: Figure; l: MindLesson; sc: ScrollLesson }) {
           <div className={s.stage}>
             {slide.image && (
               <figure className={[s.picWrap, slide.task && s.picSmall].filter(Boolean).join(' ')}>
-                <img data-pic src={mindImageUrl(sc.image)} alt={t('sl.alt', { credit: sc.credit.split(',')[0]! })} className={s.pic} />
-                <figcaption className={s.credit}>{sc.credit}</figcaption>
+                <img data-pic src={mindImageUrl(typeof slide.image === 'string' ? slide.image : sc.image)} alt={t('sl.alt', { credit: (slide.credit ?? sc.credit).split(',')[0]! })} className={s.pic} />
+                <figcaption className={s.credit}>{slide.credit ?? sc.credit}</figcaption>
               </figure>
             )}
             <div className={s.words}>

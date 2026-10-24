@@ -125,6 +125,64 @@ test('a scroll lesson with reduced motion: every task works by tapping, and it r
   await expect(page).toHaveURL(/\/app\/minds\/napoleon$/);
 });
 
+test('Napoleon\'s other scroll lessons: books, the carved names, Austerlitz, Arcole; every task by tapping', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const progress = page.getByRole('progressbar', { name: 'Lesson progress' });
+  // Study the greats: collect (with a wrong item), a tap in the painting
+  await page.goto('minds/napoleon/learn/study');
+  for (const book of ['Alexander', 'Hannibal', 'Caesar']) await page.getByRole('button', { name: book }).click();
+  await expect(page.getByText('He kept going back to them all his life.')).toBeVisible();
+  await page.getByRole('button', { name: 'Study the great commanders and copy what worked' }).click();
+  await expect(page.getByText(/Maxim 78/)).toBeVisible();
+  await page.getByRole('button', { name: 'Bonaparte' }).click();
+  await expect(page.getByText('Not that one. Look along the bottom of the rocks.')).toBeVisible();
+  await axe(page);
+  await page.getByRole('button', { name: 'Hannibal', exact: true }).click();
+  await expect(page.getByText(/Hannibal crossed in 218 BC/)).toBeVisible();
+  await page.getByRole('button', { name: "A stranger's hot tip" }).click();
+  await expect(page.getByText("Not that one. A tip isn't a strategy.")).toBeVisible();
+  await page.getByRole('button', { name: 'Trading 101' }).click();
+  await page.getByRole('button', { name: 'The Strategy library' }).click();
+  await page.getByRole('button', { name: 'Learn a proven strategy, then adapt it' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+  // Bring everything to one point: find him, the target zones, pick 3
+  await page.goto('minds/napoleon/learn/concentrate');
+  await page.getByRole('button', { name: 'Napoleon', exact: true }).click();
+  await expect(page.getByText(/General Rapp rides in/)).toBeVisible();
+  await page.getByRole('button', { name: 'South' }).click();
+  await expect(page.getByText(/That's where they sent their troops/)).toBeVisible();
+  await page.getByRole('button', { name: /Pratzen Heights/ }).click();
+  await expect(page.getByText(/split the enemy army in two/)).toBeVisible();
+  await page.getByRole('button', { name: 'All his strength hit where they were weakest' }).click();
+  const check = page.getByRole('button', { name: /^Check/ });
+  await expect(check).toBeDisabled();
+  for (const o of ['A breakout you planned, with a clear stop', 'A random tip from a group chat', 'A pullback to support on your watchlist']) await page.getByRole('button', { name: o }).click();
+  await check.click();
+  await expect(page.getByText(/Not all of those are right/)).toBeVisible();
+  await axe(page);
+  await page.getByRole('button', { name: 'A random tip from a group chat' }).click();
+  await page.getByRole('button', { name: 'A trend you understand, with rising volume' }).click();
+  await check.click();
+  await expect(page.getByText(/That's your one point/)).toBeVisible();
+  await page.getByRole('button', { name: 'Close the weakest and focus on the 1 to 3 you understand' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  // The mind wins three quarters: the flag, hold to rally (keyboard), pick 3
+  await page.goto('minds/napoleon/learn/mind');
+  await page.getByRole('button', { name: 'The flag' }).click();
+  await expect(page.getByText(/led the charge onto the bridge himself/)).toBeVisible();
+  await page.getByRole('button', { name: 'Hold to rally the troops' }).focus();
+  await page.keyboard.down('Space');
+  await expect(page.getByText('Their fear turns into fight.')).toBeVisible({ timeout: 5000 });
+  await page.keyboard.up('Space');
+  await page.getByRole('button', { name: 'Character and how people feel' }).click();
+  for (const o of ['Up all night', 'Angry after a loss', 'Bored and want some action']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: 'Take a break and come back sharp' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await axe(page);
+});
+
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
   test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {
