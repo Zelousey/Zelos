@@ -12,6 +12,11 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   retries: 0,
+  // A Cloud Function's first call starts its emulator worker: about 5 s here, more on a busy CI
+  // runner. The default 5 s per check was right at that edge, so whichever test happened to make
+  // a function's first call could fail (alerts unlock, coach task, 2026-10-24). Passing checks
+  // still finish as soon as they pass.
+  expect: { timeout: 15_000 },
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://127.0.0.1:4173/app/',
