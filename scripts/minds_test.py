@@ -93,11 +93,11 @@ class Quote(unittest.TestCase):
 
 class Xp(unittest.TestCase):
     def test_lessons_pay_10_once_each(self):
-        self.assertEqual(XP.decide("mind", "franklin:compound", "2026-10-22")[0], 10)
+        self.assertEqual(XP.decide("mind", "edison:work", "2026-10-22")[0], 10)
         self.assertEqual(XP.decide("mind", "livermore:sit", "2026-10-22")[0], 10)
         self.assertEqual(XP.decide("mind", "vs:edison-tesla", "2026-10-22")[2], "bad-ref")  # pairs are gone
         self.assertEqual(XP.decide("mind", "napoleon:nope", "2026-10-22")[2], "bad-ref")
-        self.assertEqual(XP.decide("mind", "franklin:compound", "2026-10-22", {"mind": 20})[2], "daily-limit")
+        self.assertEqual(XP.decide("mind", "edison:work", "2026-10-22", {"mind": 20})[2], "daily-limit")
 
     def test_scroll_lessons_pay_2_a_step_about_10_a_lesson(self):
         # owner 2026-10-23: a little XP for each task, about the same 10 per lesson
@@ -111,7 +111,8 @@ class Xp(unittest.TestCase):
         for lesson in ("napoleon:speed", "napoleon:study", "napoleon:concentrate", "napoleon:mind",
                        "caesar:rubicon", "caesar:believe", "caesar:small", "caesar:record",
                        "alexander:study", "alexander:speed", "alexander:knot", "alexander:front",
-                       "aristotle:habits", "aristotle:mean", "aristotle:one-swallow", "aristotle:anger"):
+                       "aristotle:habits", "aristotle:mean", "aristotle:one-swallow", "aristotle:anger",
+                       "franklin:compound", "franklin:time", "franklin:virtues", "franklin:haste"):
             tasks = [r for r in M.STEP_REFS if r.startswith(lesson + ":")]
             self.assertEqual(len(tasks) * M.STEP_XP, 10, lesson)
 

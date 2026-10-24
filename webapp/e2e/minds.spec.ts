@@ -410,6 +410,64 @@ test('answers say Correct! or Not quite, questions sit inside their box, tap spo
   expect(spot.y).toBeGreaterThanOrEqual(img.y - 1);
 });
 
+test("Franklin's scroll lessons: money makes money, time is money, the virtues chart, haste makes waste; every task by tapping", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const progress = page.getByRole('progressbar', { name: 'Lesson progress' });
+  const hold = async (name: string, done: string) => {
+    await page.getByRole('button', { name }).focus();
+    await page.keyboard.down('Space');
+    await expect(page.getByText(done)).toBeVisible({ timeout: 5000 });
+    await page.keyboard.up('Space');
+  };
+  // Money makes money: a question, hold to grow, which grows more, keep it growing, the 50% loss
+  await page.goto('minds/franklin');
+  await page.getByRole('link', { name: /Money makes money/ }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/franklin\/learn\/compound$/);
+  await page.getByRole('button', { name: 'Produce more of' }).click();
+  await hold('Hold to let it grow', 'At 1% a month, $1,000 becomes about $3,300 in 10 years.');
+  await page.getByRole('button', { name: 'A lucky double, then giving it back' }).click();
+  await expect(page.getByText(/back near where you started/)).toBeVisible();
+  await page.getByRole('button', { name: '1% a month, kept and grown' }).click();
+  await page.getByRole('button', { name: 'One big bet to get rich fast' }).click();
+  await expect(page.getByText('A big loss stops the growing.')).toBeVisible();
+  for (const o of ['Small, steady gains', 'Small losses, cut quickly', 'Keeping your gains in the account']) await page.getByRole('button', { name: o }).click();
+  await axe(page);
+  await page.getByRole('button', { name: '100%' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+  // Time is money: two questions, where the time goes, a trading day, an alert
+  await page.goto('minds/franklin/learn/time');
+  await page.getByRole('button', { name: 'An hour wasted is money you could have earned' }).click();
+  await page.getByRole('button', { name: 'What good shall I do this day?' }).click();
+  await page.getByRole('button', { name: 'Planning before, reviewing after' }).click();
+  for (const o of ['Plan before the open', 'Set alerts at your levels', 'Review after the close']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: 'Set an alert and get on with your day' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  // Track yourself: pick 3 virtues, 13 weeks, the scorecard, a slip
+  await page.goto('minds/franklin/learn/virtues');
+  for (const o of ['Order', 'Frugality', 'Silence']) await page.getByRole('button', { name: o, exact: true }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: '13', exact: true }).click();
+  await page.getByRole('button', { name: 'Did I make money today?' }).click();
+  await expect(page.getByText('A lucky day can break the plan. Score the plan.')).toBeVisible();
+  for (const o of ['Did I follow my plan?', 'Did I respect my stops?', 'Did I size each trade right?']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: 'Mark it, and work on that one habit next week' }).click();
+  await page.getByRole('button', { name: /Not yet: the habit is slipping/ }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await axe(page);
+  // Haste makes waste: Poor Richard, pick 2, wait for the pullback, hold, a missed breakout
+  await page.goto('minds/franklin/learn/haste');
+  await page.getByRole('button', { name: 'A character Franklin made up' }).click();
+  for (const o of ['Haste makes waste', 'Look before you leap']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: 'Wait for the pullback' }).click();
+  await expect(page.getByText(/your order is waiting/)).toBeVisible();
+  await hold('Hold to wait for the next setup', "There's always another setup.");
+  await page.getByRole('button', { name: 'Wait for the next setup' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+});
+
 test('a hold made with the keyboard keeps going when the pointer passes over the button', async ({ page }) => {
   // CI on main 2026-10-24: tapping the sword glides the page, the resting mouse slid over the hold
   // button and off it, and that pointer-leave ended a Space-key hold
