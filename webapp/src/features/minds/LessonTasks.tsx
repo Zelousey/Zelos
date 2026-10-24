@@ -33,6 +33,9 @@ function HoldTask({ task, done, onDone }: Props<'hold'>) {
   const holding = useRef(false);
   const last = useRef(0);
   const raf = useRef(0);
+  // a hold started with a key ends only on that key's release, and one started with a finger or
+  // mouse only when it lifts or leaves; a pointer passing over (the page glides after a task) doesn't end a key hold
+  const by = useRef<'key' | 'pointer' | null>(null);
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
   // letting go slowly drains the bar, so a few short taps don't add up to a march
   function tick(now: number) {
@@ -44,18 +47,22 @@ function HoldTask({ task, done, onDone }: Props<'hold'>) {
     setP(n);
     if (n >= 1) {
       holding.current = false;
+      by.current = null;
       onDone();
     } else if (holding.current || n > 0) raf.current = requestAnimationFrame(tick);
   }
-  function start() {
+  function start(how: 'key' | 'pointer') {
     if (done || holding.current || prog.current >= 1) return;
     holding.current = true;
+    by.current = how;
     last.current = 0;
     cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(tick);
   }
-  const stop = () => {
+  const stop = (how: 'key' | 'pointer') => {
+    if (by.current !== how) return;
     holding.current = false;
+    by.current = null;
   };
   const army = 30 + p * 250;
   const wagons = 30 + p * 110;
@@ -99,18 +106,18 @@ function HoldTask({ task, done, onDone }: Props<'hold'>) {
         style={{ ['--p' as string]: p }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture?.(e.pointerId);
-          start();
+          start('pointer');
         }}
-        onPointerUp={stop}
-        onPointerCancel={stop}
-        onPointerLeave={stop}
+        onPointerUp={() => stop('pointer')}
+        onPointerCancel={() => stop('pointer')}
+        onPointerLeave={() => stop('pointer')}
         onKeyDown={(e) => {
           if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
             e.preventDefault();
-            start();
+            start('key');
           }
         }}
-        onKeyUp={stop}
+        onKeyUp={() => stop('key')}
         onContextMenu={(e) => e.preventDefault()}
       >
         <span>{done ? task.done : task.label}</span>

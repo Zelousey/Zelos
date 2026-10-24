@@ -374,6 +374,23 @@ test("Aristotle's scroll lessons: habits, the golden middle, one swallow, aimed 
   await expect(progress).toHaveAttribute('aria-valuenow', '5');
 });
 
+test('a hold made with the keyboard keeps going when the pointer passes over the button', async ({ page }) => {
+  // CI on main 2026-10-24: tapping the sword glides the page, the resting mouse slid over the hold
+  // button and off it, and that pointer-leave ended a Space-key hold
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('minds/alexander/learn/knot');
+  await page.getByRole('button', { name: 'To rule Asia' }).click();
+  await page.getByRole('button', { name: 'The sword' }).click();
+  const hold = page.getByRole('button', { name: 'Hold to cut the knot' });
+  await hold.focus();
+  await page.keyboard.down('Space');
+  const b = (await hold.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.move(b.x + b.width / 2, b.y - 40);
+  await expect(page.getByText('Cut. Problem solved.')).toBeVisible({ timeout: 5000 });
+  await page.keyboard.up('Space');
+});
+
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
   test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {
