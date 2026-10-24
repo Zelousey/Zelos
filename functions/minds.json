@@ -2440,7 +2440,120 @@
       "Franklin explained to young businessmen how money grows: money earns more money, and that money earns more too.",
       "He left money in his will to Boston and Philadelphia to grow for 200 years. It did."
      ],
-     "trading": "Small, steady gains add up. 1% a month, kept and grown, beats a lucky double that you give back."
+     "trading": "Small, steady gains add up. 1% a month, kept and grown, beats a lucky double that you give back.",
+     "scroll": {
+      "image": "franklin.webp",
+      "credit": "Joseph Siffrein Duplessis, Benjamin Franklin (about 1785). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "1748. Franklin wrote a letter of advice to a young tradesman.",
+         "“Money can beget money, and its offspring can beget more, and so on.”"
+        ],
+        "source": "Benjamin Franklin, Advice to a Young Tradesman, 1748",
+        "image": true,
+        "task": {
+         "id": "beget",
+         "kind": "quiz",
+         "question": "What does “beget” mean here?",
+         "options": [
+          "Spend",
+          "Produce more of",
+          "Hide away"
+         ],
+         "answer": 1,
+         "why": "Money you keep earns more money, and then that earns more too."
+        }
+       },
+       {
+        "lines": [
+         "Small steady gains add up, because each gain starts earning too.",
+         "Watch $1,000 grow at 1% a month."
+        ],
+        "task": {
+         "id": "grow",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Year 1",
+         "to": "Year 10",
+         "label": "Hold to let it grow",
+         "done": "At 1% a month, $1,000 becomes about $3,300 in 10 years."
+        }
+       },
+       {
+        "lines": [
+         "Franklin trusted this so much that, in his will, he left £1,000 each to Boston and Philadelphia, to be lent out and left to grow for 200 years.",
+         "By 1990, Boston's fund had grown to almost $5 million."
+        ],
+        "task": {
+         "id": "which",
+         "kind": "target",
+         "label": "Which grows more over 10 years? Drag your $1,000 there (or tap)",
+         "token": "Your $1,000",
+         "zones": [
+          {
+           "label": "A lucky double, then giving it back",
+           "why": "Doubled, then lost: back near where you started."
+          },
+          {
+           "label": "1% a month, kept and grown",
+           "right": true
+          },
+          {
+           "label": "Spending the gains each month",
+           "why": "Gains you spend can't earn more."
+          }
+         ],
+         "done": "Kept gains earn their own gains."
+        }
+       },
+       {
+        "lines": [
+         "In trading, the enemy of compounding is the big loss."
+        ],
+        "task": {
+         "id": "keep",
+         "kind": "collect",
+         "label": "Drag what lets an account keep compounding into the box, or tap it",
+         "target": "Keeps it growing",
+         "items": [
+          {
+           "label": "Small, steady gains"
+          },
+          {
+           "label": "One big bet to get rich fast",
+           "wrong": true
+          },
+          {
+           "label": "Small losses, cut quickly"
+          },
+          {
+           "label": "Keeping your gains in the account"
+          }
+         ],
+         "wrong": "A big loss stops the growing.",
+         "done": "Protect the account, and let it grow."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "half",
+         "kind": "quiz",
+         "question": "Your account drops 50%. How much do you need to make to get back to even?",
+         "options": [
+          "50%",
+          "100%",
+          "25%"
+         ],
+         "answer": 1,
+         "why": "Half of $10,000 is $5,000, and $5,000 has to double to get back. That's why you protect the account first."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "time",
@@ -2449,7 +2562,123 @@
       "Franklin said an hour wasted is money lost, because you could have earned in that time.",
       "He planned every hour of his day on a written schedule."
      ],
-     "trading": "Set your trading time and your learning time. Watching charts all day isn't working; it usually leads to bad trades."
+     "trading": "Set your trading time and your learning time. Watching charts all day isn't working; it usually leads to bad trades.",
+     "scroll": {
+      "image": "lessons/franklin-lightning.webp",
+      "credit": "Benjamin West, Benjamin Franklin Drawing Electricity from the Sky (about 1816), Philadelphia Museum of Art. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Franklin ran a print shop, proved lightning is electricity, started a library and a fire company, and helped found a country.",
+         "He told a young tradesman: “Remember that time is money.”"
+        ],
+        "source": "Benjamin Franklin, Advice to a Young Tradesman, 1748",
+        "image": true,
+        "task": {
+         "id": "meaning",
+         "kind": "quiz",
+         "question": "What did he mean by “time is money”?",
+         "options": [
+          "Work every hour you're awake",
+          "An hour wasted is money you could have earned",
+          "Clocks are expensive"
+         ],
+         "answer": 1,
+         "why": "Time you waste is money you could have made."
+        }
+       },
+       {
+        "lines": [
+         "He planned his day on a written schedule: rise at 5, work 8 to 12 and 2 to 6, sleep at 10.",
+         "Every morning he asked himself one question."
+        ],
+        "source": "Benjamin Franklin, Autobiography",
+        "task": {
+         "id": "question",
+         "kind": "quiz",
+         "question": "Which question did he ask every morning?",
+         "options": [
+          "What good shall I do this day?",
+          "How much will I earn today?",
+          "Who can I beat today?"
+         ],
+         "answer": 0,
+         "why": "And every evening: “What good have I done to-day?”"
+        }
+       },
+       {
+        "lines": [
+         "In trading, staring at charts all day isn't working. It usually leads to bad trades."
+        ],
+        "task": {
+         "id": "hour",
+         "kind": "target",
+         "label": "Where should most of your trading time go? Drag it there (or tap)",
+         "token": "Your trading time",
+         "zones": [
+          {
+           "label": "Watching every tick all day",
+           "why": "That usually leads to bad trades."
+          },
+          {
+           "label": "Planning before, reviewing after",
+           "right": true
+          },
+          {
+           "label": "Checking the app every 5 minutes",
+           "why": "That's fidgeting, not working."
+          }
+         ],
+         "done": "Plan, act, review. Then live your day."
+        }
+       },
+       {
+        "lines": [
+         "Build a trading day the way Franklin built his."
+        ],
+        "task": {
+         "id": "day",
+         "kind": "collect",
+         "label": "Drag the parts of a good trading day into your schedule, or tap them",
+         "target": "My trading day",
+         "items": [
+          {
+           "label": "Plan before the open"
+          },
+          {
+           "label": "Watch every tick until the close",
+           "wrong": true
+          },
+          {
+           "label": "Set alerts at your levels"
+          },
+          {
+           "label": "Review after the close"
+          }
+         ],
+         "wrong": "Alerts watch the price so you don't have to.",
+         "done": "That's a schedule Franklin would sign."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "far",
+         "kind": "quiz",
+         "question": "Your stock is nowhere near your buy level. What do you do?",
+         "options": [
+          "Keep watching it anyway",
+          "Set an alert and get on with your day",
+          "Buy now so you don't miss it"
+         ],
+         "answer": 1,
+         "why": "Lost time is never found again."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "virtues",
@@ -2458,7 +2687,140 @@
       "Franklin picked 13 habits to build and kept a little chart, marking each day he slipped.",
       "He couldn't fix what he didn't measure."
      ],
-     "trading": "Score yourself after each trading day: did I follow my plan? Your Zelos history and win rate show the numbers. Your journal shows why."
+     "trading": "Score yourself after each trading day: did I follow my plan? Your Zelos history and win rate show the numbers. Your journal shows why.",
+     "scroll": {
+      "image": "lessons/franklin-virtues.webp",
+      "credit": "Franklin's chart for his 13 virtues, redrawn from his Autobiography. Public domain (CC0), via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "As a young man, Franklin picked 13 virtues he wanted to build, from Temperance to Humility."
+        ],
+        "source": "Benjamin Franklin, Autobiography",
+        "task": {
+         "id": "pick",
+         "kind": "pick",
+         "label": "Pick 3 of Franklin's 13 virtues",
+         "need": 3,
+         "options": [
+          {
+           "label": "Order",
+           "right": true
+          },
+          {
+           "label": "Speed"
+          },
+          {
+           "label": "Frugality",
+           "right": true
+          },
+          {
+           "label": "Fame"
+          },
+          {
+           "label": "Silence",
+           "right": true
+          },
+          {
+           "label": "Luck"
+          }
+         ],
+         "why": "Order, Frugality and Silence were on his list, with Industry, Sincerity and the rest."
+        }
+       },
+       {
+        "lines": [
+         "He kept a little book: a row for each virtue, a column for each day.",
+         "Every slip got a black dot."
+        ],
+        "image": true,
+        "task": {
+         "id": "weeks",
+         "kind": "quiz",
+         "question": "He worked on one virtue each week. How many weeks to get through all 13?",
+         "options": [
+          "7",
+          "13",
+          "52"
+         ],
+         "answer": 1,
+         "why": "13 weeks, so he went through the whole list four times a year."
+        }
+       },
+       {
+        "lines": [
+         "He couldn't fix what he didn't measure.",
+         "In trading, score the plan, not just the money."
+        ],
+        "task": {
+         "id": "score",
+         "kind": "collect",
+         "label": "Drag what to score after each trading day into your scorecard, or tap it",
+         "target": "My daily scorecard",
+         "items": [
+          {
+           "label": "Did I follow my plan?"
+          },
+          {
+           "label": "Did I make money today?",
+           "wrong": true
+          },
+          {
+           "label": "Did I respect my stops?"
+          },
+          {
+           "label": "Did I size each trade right?"
+          }
+         ],
+         "wrong": "A lucky day can break the plan. Score the plan.",
+         "done": "Black dots on the plan, not the profit."
+        }
+       },
+       {
+        "lines": [
+         "You broke your plan twice this week."
+        ],
+        "task": {
+         "id": "slip",
+         "kind": "target",
+         "label": "What would Franklin's book tell you to do? Drag it there (or tap)",
+         "token": "This week",
+         "zones": [
+          {
+           "label": "Don't write it down",
+           "why": "You can't fix what you don't measure."
+          },
+          {
+           "label": "Mark it, and work on that one habit next week",
+           "right": true
+          },
+          {
+           "label": "Give up on having a plan",
+           "why": "He kept going for years, one dot at a time."
+          }
+         ],
+         "done": "One habit at a time, week by week."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "good",
+         "kind": "quiz",
+         "question": "You made money this week, but your journal shows you skipped your stops. Was it a good week?",
+         "options": [
+          "Yes, I made money",
+          "Not yet: the habit is slipping, fix it before it costs you",
+          "Stop keeping a journal"
+         ],
+         "answer": 1,
+         "why": "Your history shows the numbers. Your journal shows why."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "haste",
@@ -2467,7 +2829,105 @@
       "Franklin printed sayings like this in Poor Richard's Almanack, a yearly book of plain advice.",
       "Rushing costs more than it saves."
      ],
-     "trading": "Chasing a stock that already ran usually means buying the top. If you missed it, wait for the next setup."
+     "trading": "Chasing a stock that already ran usually means buying the top. If you missed it, wait for the next setup.",
+     "scroll": {
+      "image": "lessons/franklin-almanack.webp",
+      "credit": "Poor Richard, 1739: An Almanack, printed and sold by B. Franklin, Philadelphia. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "For about 25 years, Franklin printed Poor Richard's Almanack: weather, tides, dates, and short sayings.",
+         "It sold about 10,000 copies a year."
+        ],
+        "image": true,
+        "task": {
+         "id": "who",
+         "kind": "quiz",
+         "question": "Who was “Poor Richard”?",
+         "options": [
+          "A real farmer",
+          "A character Franklin made up",
+          "Franklin's brother"
+         ],
+         "answer": 1,
+         "why": "The cover says “By Richard Saunders”: Franklin's pen name."
+        }
+       },
+       {
+        "lines": [
+         "Its plain advice kept warning readers not to rush.",
+         "Rushing costs more than it saves."
+        ],
+        "task": {
+         "id": "sayings",
+         "kind": "pick",
+         "label": "Pick the 2 sayings that warn against rushing",
+         "need": 2,
+         "options": [
+          {
+           "label": "Haste makes waste",
+           "right": true
+          },
+          {
+           "label": "Strike while the iron is hot"
+          },
+          {
+           "label": "Look before you leap",
+           "right": true
+          },
+          {
+           "label": "The early bird gets the worm"
+          }
+         ],
+         "why": "Slow down and look first."
+        }
+       },
+       {
+        "lines": [
+         "A stock already ran up 30% today. Buying now usually means buying near the top.",
+         "If it pulls back to support, you can buy calmly."
+        ],
+        "task": {
+         "id": "wait",
+         "kind": "level",
+         "label": "Don't chase: drag your buy line down onto support",
+         "tap": "Wait for the pullback",
+         "done": "If it comes back, your order is waiting. If it doesn't, you didn't chase."
+        }
+       },
+       {
+        "lines": [
+         "Missing one trade costs nothing. Chasing can cost a lot."
+        ],
+        "task": {
+         "id": "fomo",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Fear of missing out",
+         "to": "Patient",
+         "label": "Hold to wait for the next setup",
+         "done": "There's always another setup."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "missed",
+         "kind": "quiz",
+         "question": "You missed the breakout and it's up 30%. What now?",
+         "options": [
+          "Buy now before it goes higher",
+          "Wait for the next setup",
+          "Buy double to make up for being late"
+         ],
+         "answer": 1,
+         "why": "Haste makes waste."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [

@@ -30,6 +30,9 @@ caesar-crossing.webp         Jean Fouquet, Caesar Crossing the Rubicon (about 14
 caesar-rubicon.webp          Gustave Boulanger, Julius Caesar at the Rubicon (1854), Musée de Picardie, Amiens. Public domain, via Wikimedia Commons.
 caesar-senate.webp           Jean-Léon Gérôme, The Death of Caesar (1859–67), Walters Art Museum, Baltimore. Public domain, via Wikimedia Commons.
 caesar-writing.webp          Caesar writing his Commentaries, from a 1783 Venice edition of his works. Public domain, via Wikimedia Commons.
+franklin-almanack.webp       Poor Richard, 1739: An Almanack, printed and sold by B. Franklin, Philadelphia. Public domain, via Wikimedia Commons.
+franklin-lightning.webp      Benjamin West, Benjamin Franklin Drawing Electricity from the Sky (about 1816), Philadelphia Museum of Art. Public domain, via Wikimedia Commons.
+franklin-virtues.webp        Franklin's chart for his 13 virtues, redrawn from his Autobiography. Public domain (CC0), via Wikimedia Commons.
 napoleon-alps.webp           Jacques-Louis David, Napoleon Crossing the Alps (1801), Château de Malmaison. Public domain, via Wikimedia Commons.
 napoleon-arcole.webp         Antoine-Jean Gros, Bonaparte at the Bridge of Arcole (1796). Public domain, via Wikimedia Commons.
 napoleon-austerlitz.webp     François Gérard, The Battle of Austerlitz (1810), Palace of Versailles. Public domain, via Wikimedia Commons.

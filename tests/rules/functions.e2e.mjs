@@ -232,7 +232,7 @@ ok(re1 && /aren.t available in this drill/.test(re1.message), 'no hints in the D
 await admin('wallets/' + troll.uid, { balance: { integerValue: 30 } });
 r = await call('xp_boost', {});
 ok(r.charged === 25 && r.balance === 5 && r.xpBoostUntil > Date.now() + 23 * 36e5, 'XP booster: 25 tokens for 24 hours');
-r = await call('xp_award', { type: 'mind', refId: 'franklin:compound' });
+r = await call('xp_award', { type: 'mind', refId: 'edison:work' });
 ok(r.awarded && r.xp - r.before === 20, 'a lesson pays double while it runs');
 r = await call('xp_award', { type: 'daily-checkin', refId: nyDay() });
 ok(!r.awarded || r.xp - r.before === 3, 'the daily check-in is not doubled');
