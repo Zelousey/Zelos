@@ -43,7 +43,10 @@
   background: var(--sl-red); border-radius: var(--radius-lg, 14px); padding: var(--space-5) var(--space-4); overflow: hidden;
 }
 .picWrap { margin: 0; position: relative; border-radius: var(--radius, 10px); overflow: hidden; max-height: 42dvh; }
-.pic { display: block; width: 100%; height: 42dvh; object-fit: cover; object-position: 50% 22%; transform-origin: 50% 30%; }
+/* the painting fills its box (owner 2026-10-24); a tall portrait is cut from the top so the face sits
+   at the top of the box (it used to be cropped from the middle, which cut off Napoleon's head) */
+.pic { display: block; width: 100%; height: 42dvh; object-fit: cover; object-position: 50% 35%; transform-origin: 50% 35%; }
+.pic[data-tall] { object-position: 50% 0%; transform-origin: 50% 0%; }
 /* with a task on the same slide the painting steps back, so everything fits on a phone */
 .picSmall, .picSmall .pic { max-height: 24dvh; height: 24dvh; }
 .credit { pointer-events: none; position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 6px; font-size: 10px; line-height: 1.3; color: var(--sl-soft); background: linear-gradient(transparent, rgb(0 0 0 / 0.6)); }
@@ -55,8 +58,8 @@
 /* tasks */
 .task { display: grid; justify-items: center; gap: var(--space-3); margin: 0; padding: var(--space-4); border: 0; border-radius: var(--radius, 10px); background: var(--sl-deep); text-align: center; }
 .hint { margin: 0; font-size: var(--text-sm); color: var(--sl-soft); }
-/* a fieldset draws its legend on the border; floating it keeps the question inside the dark box */
-.question { float: left; width: 100%; padding: 0; font-weight: 700; font-size: var(--text-md, 17px); line-height: 1.35; margin: 0 0 var(--space-1); }
+/* the question is a plain paragraph inside the box (a fieldset legend sat on the border) */
+.question { width: 100%; padding: 0; font-weight: 700; font-size: var(--text-md, 17px); line-height: 1.35; margin: 0 0 var(--space-1); }
 .options { display: grid; gap: var(--space-2); width: 100%; }
 .option { min-height: 48px; padding: 10px 14px; border-radius: var(--radius, 10px); border: 2px solid rgb(255 255 255 / 0.35); background: transparent; color: #fff; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .option:hover:not(:disabled) { border-color: #fff; }
@@ -64,6 +67,8 @@
 .right { border-color: #4ade80; background: rgb(74 222 128 / 0.18); }
 .wrong { border-color: #fca5a5; background: rgb(0 0 0 / 0.18); }
 .option:disabled { cursor: default; }
+.yes { color: #86efac; font-weight: 800; }
+.no { color: #fecaca; font-weight: 800; }
 .feedback { margin: 0; min-height: 1.4em; font-size: var(--text-sm); color: var(--sl-soft); }
 
 .map, .chart { user-select: none; -webkit-user-select: none; width: 100%; max-width: 420px; height: auto; touch-action: none; }
@@ -130,6 +135,7 @@
 .tapPic { position: relative; margin: 0; display: inline-block; max-width: 100%; border-radius: var(--radius, 10px); overflow: hidden; cursor: crosshair; user-select: none; -webkit-user-select: none; }
 /* on a find-it picture the credit sits under the painting, never over something to tap */
 .tapPic .credit { position: static; padding: 4px 2px 0; background: none; }
+.tapArea { position: relative; line-height: 0; }
 .tapPic img { display: block; max-width: 100%; max-height: 38dvh; width: auto; height: auto; }
 .spot { position: absolute; padding: 0; border: 2px dashed transparent; border-radius: 12px; background: transparent; cursor: pointer; }
 .spot:focus-visible { border-color: #fde68a; outline: none; }

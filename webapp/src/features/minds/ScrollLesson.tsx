@@ -16,6 +16,11 @@ import { LessonTask } from './LessonTasks';
 import { figureById, lessonRef, markMind, mindImageUrl, portraitUrl, scrollTasks, STEP_XP, stepRef, stepXp, type Figure, type MindLesson, type ScrollLesson, type ScrollTask } from './minds';
 import s from './ScrollLesson.module.css';
 
+/** a portrait (taller than wide) is shown from the top, so the face isn't cut off */
+const markTall = (img: HTMLImageElement) => {
+  if (img.naturalHeight > img.naturalWidth * 0.9) img.dataset.tall = '';
+};
+
 export function ScrollLessonPage() {
   const { id = '', lesson = '' } = useParams();
   const f = figureById(id);
@@ -139,7 +144,7 @@ function Lesson({ f, l, sc }: { f: Figure; l: MindLesson; sc: ScrollLesson }) {
           <div className={s.stage}>
             {slide.image && (
               <figure className={[s.picWrap, slide.task && s.picSmall].filter(Boolean).join(' ')}>
-                <img data-pic src={mindImageUrl(typeof slide.image === 'string' ? slide.image : sc.image)} alt={t('sl.alt', { credit: (slide.credit ?? sc.credit).split(',')[0]! })} className={s.pic} />
+                <img data-pic src={mindImageUrl(typeof slide.image === 'string' ? slide.image : sc.image)} alt={t('sl.alt', { credit: (slide.credit ?? sc.credit).split(',')[0]! })} className={s.pic} onLoad={(e) => markTall(e.currentTarget)} />
                 <figcaption className={s.credit}>{slide.credit ?? sc.credit}</figcaption>
               </figure>
             )}

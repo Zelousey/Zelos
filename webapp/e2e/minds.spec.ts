@@ -13,15 +13,30 @@ async function signIn(page: Page, who: string): Promise<string> {
 }
 const axe = async (page: Page) => expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
 
-test('the opening book flips through a few great minds, once per visit, and can be skipped', async ({ page }) => {
+test('the opening book flips through every great mind each time you come in, and can be skipped', async ({ page }) => {
   await page.goto('minds');
+  const book = page.getByTestId('book-intro');
+  await expect(book).toBeVisible();
+  // every page turns (owner 2026-10-24: it used to look stuck on the first quote)
+  await expect(book.locator('[data-page]')).toHaveCount(11);
+  await expect(book.locator('[data-page="10"]')).toHaveClass(/flipped/, { timeout: 6000 });
+  await expect(book).toHaveCount(0, { timeout: 6000 }); // then fades into the grid
+  // back to the grid from a figure: no book again
+  await page.getByRole('link', { name: /^Napoleon Bonaparte/ }).click();
+  await expect(page.getByRole('heading', { name: 'Napoleon Bonaparte', level: 1 })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Hall of Minds', level: 1 })).toBeVisible();
+  await expect(book).toHaveCount(0);
+  // coming in again plays it again, and Skip closes it
+  await page.reload();
   const skip = page.getByRole('button', { name: 'Skip' });
   await expect(skip).toBeVisible();
   await skip.click();
-  await expect(skip).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByRole('heading', { name: 'Hall of Minds', level: 1 })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Skip' })).toHaveCount(0); // once per visit
+  await expect(book).toHaveCount(0);
+  // a link straight to a figure opens without it
+  await page.goto('minds/caesar');
+  await expect(page.getByRole('heading', { name: 'Julius Caesar', level: 1 })).toBeVisible();
+  await expect(book).toHaveCount(0);
 });
 
 test('the grid: one red card per great mind, with market legends on their own tab', async ({ page }) => {
@@ -372,6 +387,27 @@ test("Aristotle's scroll lessons: habits, the golden middle, one swallow, aimed 
   await page.getByRole('button', { name: "When you're calm and it fits your plan" }).click();
   await expect(page.getByText('Lesson complete')).toBeVisible();
   await expect(progress).toHaveAttribute('aria-valuenow', '5');
+});
+
+test('answers say Correct! or Not quite, questions sit inside their box, tap spots sit on the painting', async ({ page }) => {
+  // owner 2026-10-24: a two-line question ran into the box border, and the found-it box sat on the credit
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('minds/napoleon/learn/study');
+  for (const book of ['Alexander', 'Hannibal', 'Caesar']) await page.getByRole('button', { name: book }).click();
+  await page.getByRole('button', { name: 'Forget the past and invent everything new' }).click();
+  await expect(page.getByText('Not quite. Think again.')).toBeVisible();
+  await page.getByRole('button', { name: 'Study the great commanders and copy what worked' }).click();
+  await expect(page.getByText(/^Correct! Learn from the best/)).toBeVisible();
+  const box = (await page.locator('[data-task]').nth(1).locator('[role="group"]').boundingBox())!;
+  const q = (await page.getByText('What did he tell his officers to do?').boundingBox())!;
+  expect(q.y).toBeGreaterThan(box.y);
+  await page.getByRole('button', { name: 'Bonaparte' }).click();
+  await expect(page.getByText(/^Not quite\. Not that one/)).toBeVisible();
+  await page.getByRole('button', { name: 'Hannibal', exact: true }).click();
+  const img = (await page.locator('[data-task] figure img').boundingBox())!;
+  const spot = (await page.getByRole('button', { name: 'Hannibal', exact: true }).boundingBox())!;
+  expect(spot.y + spot.height).toBeLessThanOrEqual(img.y + img.height + 1);
+  expect(spot.y).toBeGreaterThanOrEqual(img.y - 1);
 });
 
 test("Franklin's scroll lessons: money makes money, time is money, the virtues chart, haste makes waste; every task by tapping", async ({ page }) => {
