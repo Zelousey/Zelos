@@ -22,7 +22,7 @@ BOX = {  # (left, top, right, bottom) as fractions of the source image
 sess = new_session("u2net_human_seg")
 sess_general = new_session("isnet-general-use")
 GENERAL = {"livermore"}  # the people-model left newspaper background on him
-HAIR = {"newton": 82}
+HAIR: dict[str, int] = {}  # owner 2026-10-24: the hair filter cut a chunk out of Newton's hair; the plain cut-out is cleaner
 TIGHT = {"newton", "edison"}  # owner 2026-10-23: a little black came off their sides
 rng = np.random.default_rng(7)
 

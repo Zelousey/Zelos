@@ -1,6 +1,6 @@
 /**
  * Hall of Minds (/minds): a grid of red cards, one per great mind (owner 2026-10-22), with tabs for
- * the market legends and the rest of history. Opens with a short book animation (BookIntro).
+ * the market legends and the rest of history. The book animation (BookIntro) plays from MindsModule.
  * Free to read; every lesson pays XP once.
  */
 import { useState } from 'react';
@@ -8,7 +8,6 @@ import { useAuth } from '../../lib/auth';
 import { useUserDoc } from '../../data/userDoc';
 import { t } from '../../lib/i18n';
 import { PageHeader, Tabs } from '../../ui';
-import { BookIntro } from './BookIntro';
 import { FigureCard } from './MindCard';
 import { figureProgress, ORDERED, type Group } from './minds';
 import s from './Minds.module.css';
@@ -21,7 +20,6 @@ export function MindsPage() {
   const shown = ORDERED.filter((f) => group === 'all' || f.group === group);
   return (
     <>
-      <BookIntro />
       <PageHeader title={t('nav.minds')} subtitle={t('hm.sub')} />
       <div className={s.groupTabs}>
         <Tabs

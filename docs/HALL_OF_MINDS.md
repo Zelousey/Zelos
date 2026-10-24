@@ -3,7 +3,9 @@
 **What it is (owner, 2026-10-22):** a ☰ section about history's great minds: how they thought and
 acted, and what a trader can take from them. Red cards like the owner's reference images, one per
 figure, with tabs for **Market legends** (Livermore, Dow, Newton, J.P. Morgan) and **History**. It
-opens with a short book animation (once per visit, skippable, off with reduced motion).
+opens with a short book animation that flips through every great mind (owner 2026-10-24: every time
+you come in at the grid, not again when you go back to the grid from a figure, not for a link straight
+to a figure or lesson; skippable, off with reduced motion).
 
 Each figure's page: their story, how they carried themselves (accounts from people around them,
 each with its source), who they learned from (links to those figures), short lessons ending in "Use
@@ -55,6 +57,9 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
     always with the credit line. A credit never covers something to tap.
   - A slide taller than the screen scrolls instead of pinning, so its task is always reachable.
   - With reduced motion nothing moves and pins; the tasks still gate the slides.
+  - Every answer says **Correct!** or **Not quite.** before its explanation (owner 2026-10-24).
+  - Lesson paintings are shown whole on a dark backdrop, never cropped (a cropped portrait cut off
+    Napoleon's head on a wide screen).
 - **Daily quotes cost 15 tokens for 30 days per figure** (`minds_follow`). Each person gets at
   most one quote a day, whoever they follow (`minds_daily_quote`, 9:05 am New York). It goes to the
   bell and, if "Daily quotes" is on in notification settings, as a push.
