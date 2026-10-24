@@ -20,10 +20,14 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
 - **Modern people in words only** (owner 2026-10-23): a "Then & now" section, no photos, never a
   card, with the note that they aren't connected to Zelos.
 - **Lessons are free** and pay 10 XP once each, at most 20 lessons a day (xp_award type `mind`).
-- **Scroll lessons** (owner 2026-10-23; first one: Napoleon, "Speed is a weapon"). Slides pin
-  while their lines come in (GSAP + ScrollTrigger, `webapp/src/lib/gsap.ts`), and each ends in a
-  task you must do before the next slide appears: hold a button, answer a question, drag
-  something (every drag also has a button that does the same). Each task pays **2 XP** once
+- **Scroll lessons**, played as **swipe pages** (owner 2026-10-23, swipe pages 2026-10-24). One swipe
+  (or one scroll, an arrow key, or the Next button) moves exactly one page. Each slide is a story page
+  (its painting and lines) that slides in sideways, then a task page that comes up from below; the next
+  page waits until the task is done. Sitting on an open page for 4 seconds shows "Swipe left/up for the
+  next one". A swipe that starts on an unfinished task is that task's own drag, never a page turn.
+  The player is `webapp/src/features/minds/ScrollLesson.tsx` (GSAP moves the pages); with reduced
+  motion pages switch without moving.
+  Every drag also has a button that does the same. Each task pays **2 XP** once
   (xp_award type `mind-step`, refId `<figure>:<lesson>:<task>`), about 10 per lesson as before,
   at most 100 steps a day. A scroll lesson is not also paid the old 10 XP at the end.
   - Content: a lesson's `scroll` in data/minds.json (`image`, `credit`, `slides` with `lines`,
