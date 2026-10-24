@@ -62,21 +62,21 @@ function HoldTask({ task, done, onDone }: Props<'hold'>) {
   return (
     <div className={s.task}>
       {task.scene === 'rally' ? (
-        <div className={s.morale} role="img" aria-label={t('sl.rallyMeter', { pct: Math.round(p * 100) })}>
-          <span>{t('sl.scared')}</span>
+        <div className={s.morale} role="img" aria-label={t('sl.rallyMeter', { pct: Math.round(p * 100), from: task.from ?? t('sl.scared'), to: task.to ?? t('sl.ready') })}>
+          <span>{task.from ?? t('sl.scared')}</span>
           <div className={s.moraleBar}>
             <i style={{ width: `${Math.round(p * 100)}%` }} />
           </div>
-          <span>{t('sl.ready')}</span>
+          <span>{task.to ?? t('sl.ready')}</span>
         </div>
       ) : (
-      <svg className={s.map} viewBox="0 0 320 120" role="img" aria-label={t('sl.marchMap', { pct: Math.round(p * 100) })}>
+      <svg className={s.map} viewBox="0 0 320 120" role="img" aria-label={t('sl.marchMap', { pct: Math.round(p * 100), to: task.to ?? t('sl.italy') })}>
         <path d="M30 80 C 90 40, 160 110, 280 60" className={s.route} />
         <text x="22" y="104" className={s.mapLabel}>
-          {t('sl.france')}
+          {task.from ?? t('sl.france')}
         </text>
         <text x="262" y="92" className={s.mapLabel}>
-          {t('sl.italy')}
+          {task.to ?? t('sl.italy')}
         </text>
         <g transform={`translate(${wagons} 26)`} className={s.wagons}>
           <rect x="-11" y="-7" width="22" height="13" rx="2" />
@@ -155,7 +155,7 @@ function inside(el: Element | null, x: number, y: number, pad = 0) {
   return !!r && x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
 }
 
-/** Drag Napoleon (his portrait) from France over the Alps and drop him in Italy. */
+/** Drag the figure (their portrait) over the Alps or a river: Napoleon to Italy, Caesar over the Rubicon. */
 function AlpsTask({ task, done, onDone, portrait }: Props<'drag'>) {
   const zone = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ x: number; y: number; sx: number; sy: number } | null>(null);
@@ -163,19 +163,26 @@ function AlpsTask({ task, done, onDone, portrait }: Props<'drag'>) {
   return (
     <div className={s.task}>
       <div className={s.alps}>
-        <span className={s.alpsLabel}>{t('sl.france')}</span>
-        <svg className={s.peaks} viewBox="0 0 120 60" aria-hidden>
-          <path d="M0 60 L22 18 L34 34 L52 6 L70 36 L84 20 L120 60 Z" />
-          <path d="M44 20 L52 6 L60 20 Z M18 26 L22 18 L27 27 Z" className={s.snow} />
-        </svg>
+        <span className={s.alpsLabel}>{task.from ?? t('sl.france')}</span>
+        {task.scene === 'river' ? (
+          <svg className={s.river} viewBox="0 0 120 60" preserveAspectRatio="none" aria-hidden>
+            <path d="M34 0 C 58 16, 24 36, 44 60 L 80 60 C 62 36, 96 16, 72 0 Z" />
+            <path d="M48 9 q 5 -3 10 0 M42 30 q 5 -3 10 0 M56 48 q 5 -3 10 0" className={s.ripple} />
+          </svg>
+        ) : (
+          <svg className={s.peaks} viewBox="0 0 120 60" aria-hidden>
+            <path d="M0 60 L22 18 L34 34 L52 6 L70 36 L84 20 L120 60 Z" />
+            <path d="M44 20 L52 6 L60 20 Z M18 26 L22 18 L27 27 Z" className={s.snow} />
+          </svg>
+        )}
         <div ref={zone} className={[s.drop, over && s.dropOver, done && s.dropDone].filter(Boolean).join(' ')}>
-          <span className={s.alpsLabel}>{t('sl.italy')}</span>
+          <span className={s.alpsLabel}>{task.to ?? t('sl.italy')}</span>
           {done && <img src={portrait} alt="" className={s.token} />}
         </div>
         {!done && (
           <img
             src={portrait}
-            alt={t('sl.napoleon')}
+            alt={task.who ?? t('sl.napoleon')}
             draggable={false}
             className={[s.token, s.tokenStart, drag && s.dragging].filter(Boolean).join(' ')}
             style={drag ? { transform: `translate(${drag.x - drag.sx}px, ${drag.y - drag.sy}px) scale(1.08)` } : undefined}

@@ -19,9 +19,11 @@ import { callFunction, db } from '../../lib/firebase';
  */
 export type TapSpot = { label: string; x: number; y: number; w: number; h: number; right?: boolean };
 export type ScrollTask =
-  | { id: string; kind: 'hold'; label: string; done: string; scene?: 'march' | 'rally' }
+  /** march: a map race to `to`; rally: a meter from `from` to `to` (both default to Napoleon's labels) */
+  | { id: string; kind: 'hold'; label: string; done: string; scene?: 'march' | 'rally'; from?: string; to?: string }
   | { id: string; kind: 'quiz'; question: string; options: string[]; answer: number; why: string }
-  | { id: string; kind: 'drag'; label: string; tap: string; done: string }
+  /** drag the figure (their portrait, named `who`) over the Alps or a river, from `from` to `to` */
+  | { id: string; kind: 'drag'; label: string; tap: string; done: string; scene?: 'alps' | 'river'; from?: string; to?: string; who?: string }
   | { id: string; kind: 'level'; label: string; tap: string; done: string }
   /** drag the right items into one place (a wrong one bounces back with `wrong`); tapping an item moves it too */
   | { id: string; kind: 'collect'; label: string; target: string; items: { label: string; wrong?: boolean }[]; wrong?: string; done: string }
