@@ -5,7 +5,7 @@
  * right zone, pick the right few. Every drag can also be done by tapping (WCAG 2.5.7), and holding
  * works with Space or Enter. onDone fires once, when the task is complete.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { t } from '../../lib/i18n';
 import { Button } from '../../ui';
 import { mindImageUrl, type ScrollTask } from './minds';
@@ -131,8 +131,10 @@ function QuizTask({ task, done, onDone }: Props<'quiz'>) {
   const [pick, setPick] = useState<number | null>(done ? task.answer : null);
   const right = pick === task.answer;
   return (
-    <fieldset className={s.task}>
-      <legend className={s.question}>{task.question}</legend>
+    <div className={s.task} role="group" aria-labelledby={`q-${task.id}`}>
+      <p id={`q-${task.id}`} className={s.question}>
+        {task.question}
+      </p>
       <div className={s.options}>
         {task.options.map((o, i) => (
           <button
@@ -151,9 +153,20 @@ function QuizTask({ task, done, onDone }: Props<'quiz'>) {
         ))}
       </div>
       <p className={s.feedback} role="status">
-        {pick === null ? '' : right ? task.why : t('sl.tryAgain')}
+        <Verdict ok={pick === null ? null : right}>{pick === null ? '' : right ? task.why : t('sl.tryAgain')}</Verdict>
       </p>
-    </fieldset>
+    </div>
+  );
+}
+
+/** "Correct!" or "Not quite." in front of a task's feedback (owner 2026-10-24); nothing before an answer. */
+function Verdict({ ok, children }: { ok: boolean | null; children: ReactNode }) {
+  return (
+    <>
+      {ok !== null && <b className={ok ? s.yes : s.no}>{t(ok ? 'sl.correct' : 'sl.notQuite')}</b>}
+      {ok !== null && ' '}
+      {children}
+    </>
   );
 }
 
@@ -361,7 +374,7 @@ function CollectTask({ task, done, onDone }: Props<'collect'>) {
         </div>
       </div>
       <p className={s.hint} role="status">
-        {placed.length === need ? task.done : note || task.label}
+        {placed.length === need ? <Verdict ok>{task.done}</Verdict> : note ? <Verdict ok={false}>{note}</Verdict> : task.label}
       </p>
     </div>
   );
@@ -374,29 +387,32 @@ function TapTask({ task, done, onDone }: Props<'tap'>) {
   return (
     <div className={s.task}>
       <figure className={s.tapPic} onClick={() => !hit && setMsg(task.miss)}>
-        <img src={mindImageUrl(task.image)} alt={t('sl.alt', { credit: task.credit.split(',')[0]! })} draggable={false} />
-        {task.spots.map((sp) => (
-          <button
-            key={sp.label}
-            type="button"
-            aria-label={sp.label}
-            disabled={!!hit}
-            className={[s.spot, hit === sp.label && s.spotHit].filter(Boolean).join(' ')}
-            style={{ left: `${sp.x * 100}%`, top: `${sp.y * 100}%`, width: `${sp.w * 100}%`, height: `${sp.h * 100}%` }}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (sp.right) {
-                setHit(sp.label);
-                setMsg('');
-                onDone();
-              } else setMsg(task.miss);
-            }}
-          />
-        ))}
+        {/* the spots are fractions of the picture alone, so the credit sits outside this box */}
+        <div className={s.tapArea}>
+          <img src={mindImageUrl(task.image)} alt={t('sl.alt', { credit: task.credit.split(',')[0]! })} draggable={false} />
+          {task.spots.map((sp) => (
+            <button
+              key={sp.label}
+              type="button"
+              aria-label={sp.label}
+              disabled={!!hit}
+              className={[s.spot, hit === sp.label && s.spotHit].filter(Boolean).join(' ')}
+              style={{ left: `${sp.x * 100}%`, top: `${sp.y * 100}%`, width: `${sp.w * 100}%`, height: `${sp.h * 100}%` }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (sp.right) {
+                  setHit(sp.label);
+                  setMsg('');
+                  onDone();
+                } else setMsg(task.miss);
+              }}
+            />
+          ))}
+        </div>
         <figcaption className={s.credit}>{task.credit}</figcaption>
       </figure>
       <p className={s.hint} role="status">
-        {hit ? task.done : msg || task.label}
+        {hit ? <Verdict ok>{task.done}</Verdict> : msg ? <Verdict ok={false}>{msg}</Verdict> : task.label}
       </p>
     </div>
   );
@@ -473,7 +489,7 @@ function TargetTask({ task, done, onDone }: Props<'target'>) {
         )}
       </div>
       <p className={s.hint} role="status">
-        {right ? task.done : msg || task.label}
+        {right ? <Verdict ok>{task.done}</Verdict> : msg ? <Verdict ok={false}>{msg}</Verdict> : task.label}
       </p>
     </div>
   );
@@ -485,8 +501,10 @@ function PickTask({ task, done, onDone }: Props<'pick'>) {
   const [checked, setChecked] = useState(done);
   const ok = checked && sel.length === task.need && sel.every((l) => task.options.find((o) => o.label === l)?.right);
   return (
-    <fieldset className={s.task}>
-      <legend className={s.question}>{task.label}</legend>
+    <div className={s.task} role="group" aria-labelledby={`q-${task.id}`}>
+      <p id={`q-${task.id}`} className={s.question}>
+        {task.label}
+      </p>
       <div className={s.picks}>
         {task.options.map((o) => {
           const on = sel.includes(o.label);
@@ -520,8 +538,8 @@ function PickTask({ task, done, onDone }: Props<'pick'>) {
         </Button>
       )}
       <p className={s.feedback} role="status">
-        {ok ? task.why : checked ? t('sl.pickAgain') : ''}
+        <Verdict ok={ok ? true : checked ? false : null}>{ok ? task.why : checked ? t('sl.pickAgain') : ''}</Verdict>
       </p>
-    </fieldset>
+    </div>
   );
 }

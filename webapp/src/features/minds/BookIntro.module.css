@@ -18,8 +18,9 @@
 .coverTitle { color: #fff; font-weight: 900; font-size: clamp(1rem, 3vw, 1.6rem); letter-spacing: 0.06em; text-transform: uppercase; text-align: center; padding: 0 var(--space-3); }
 .page {
   left: 50%; transform-origin: left center; transform-style: preserve-3d;
-  animation: flip 0.55s cubic-bezier(0.45, 0, 0.3, 1) forwards;
+  transition: transform 0.5s cubic-bezier(0.45, 0, 0.3, 1);
 }
+.flipped { transform: rotateY(-180deg); }
 .front, .back {
   position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   border-radius: 0 10px 10px 0; overflow: hidden;
@@ -41,7 +42,6 @@
   padding: var(--space-2) var(--space-5); font: inherit; font-size: var(--text-sm); min-height: var(--tap); cursor: pointer;
 }
 .skip:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-@keyframes flip { to { transform: rotateY(-180deg); } }
 @keyframes open { from { transform: scale(0.7) rotateX(18deg); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } }
 @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
