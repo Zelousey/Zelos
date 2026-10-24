@@ -247,6 +247,71 @@ test("Caesar's scroll lessons: the Rubicon, the fake deserter, small causes, the
   await expect(progress).toHaveAttribute('aria-valuenow', '5');
 });
 
+test("Alexander's scroll lessons: Aristotle and Bucephalus, Thebes, the Gordian knot, the Granicus; every task by tapping", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const progress = page.getByRole('progressbar', { name: 'Lesson progress' });
+  const hold = async (name: string, done: string) => {
+    await page.getByRole('button', { name }).focus();
+    await page.keyboard.down('Space');
+    await expect(page.getByText(done)).toBeVisible({ timeout: 5000 });
+    await page.keyboard.up('Space');
+  };
+  // Learn from the best: a question, turn the horse, the study list, pick 3
+  await page.goto('minds/alexander');
+  await page.getByRole('link', { name: /Learn from the best before you lead/ }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/alexander\/learn\/study$/);
+  await page.getByRole('button', { name: 'Aristotle' }).click();
+  await page.getByRole('button', { name: 'Away from the sun' }).click();
+  await expect(page.getByText('Then its shadow is right in front of it.')).toBeVisible();
+  await page.getByRole('button', { name: 'Toward the sun' }).click();
+  await expect(page.getByText(/the horse calmed down/)).toBeVisible();
+  await page.getByRole('button', { name: /sure thing/ }).click();
+  await expect(page.getByText("A tip isn't study.")).toBeVisible();
+  for (const o of ['How the setup works', 'Old charts where it worked, and where it failed', 'Where the stop goes']) await page.getByRole('button', { name: o }).click();
+  await axe(page);
+  for (const o of ['Read how it works', 'Look at it on old charts', 'Try it with practice money']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: 'Study it on old charts, then try it with practice money' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+  // Move before the other side is ready: march, a question, the plan, where the order comes from
+  await page.goto('minds/alexander/learn/speed');
+  await hold('Hold to march south', 'About two weeks later, his army was outside Thebes.');
+  await page.getByRole('button', { name: "The other side wasn't ready yet" }).click();
+  for (const o of ['Your entry', 'Your stop', 'Your target']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: 'The plan you wrote last night' }).click();
+  await page.getByRole('button', { name: 'Stop, make a plan, and only act on the plan' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  // Cut the knot: a question, find the sword, hold to cut, the stop, pick 2
+  await page.goto('minds/alexander/learn/knot');
+  await page.getByRole('button', { name: 'To rule Asia' }).click();
+  await page.getByRole('button', { name: 'The priest' }).click();
+  await expect(page.getByText(/Look at what Alexander is holding up/)).toBeVisible();
+  await page.getByRole('button', { name: 'The sword' }).click();
+  await hold('Hold to cut the knot', 'Cut. Problem solved.');
+  await page.getByRole('button', { name: 'Move the stop lower' }).click();
+  await expect(page.getByText("That's tying a new knot.")).toBeVisible();
+  await page.getByRole('button', { name: 'Sell. The stop did its job' }).click();
+  for (const o of ["It'll come back, it always does", "I'll just move my stop a little"]) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await axe(page);
+  // Lead from the front: cross the Granicus, find him in the mosaic, a question, pick 2
+  await page.goto('minds/alexander/learn/front');
+  await expect(page.getByRole('img', { name: 'Alexander (drag him across the Granicus)' })).toBeVisible();
+  await page.getByRole('button', { name: 'Lead the charge across' }).click();
+  await expect(page.getByText(/his friend Cleitus cut down an attacker/)).toBeVisible();
+  await page.getByRole('button', { name: 'Darius' }).click();
+  await expect(page.getByText(/Look left for the rider with no helmet/)).toBeVisible();
+  await page.getByRole('button', { name: 'Alexander', exact: true }).click();
+  await page.getByRole('button', { name: 'He took the same risks they did' }).click();
+  for (const o of ['Take your own idea in your practice account', 'Share your losses, not just your wins']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: /Own it/ }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+});
+
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
   test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {

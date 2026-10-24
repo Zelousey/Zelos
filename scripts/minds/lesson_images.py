@@ -22,6 +22,11 @@ JOBS = {
     "caesar-writing": ("ms.jpg", (0.1, 0.3, 0.46, 0.86), 600),  # 1783 frontispiece: Caesar writing
     "caesar-alesia": ("royer.jpg", (0, 0, 1, 1), 1100),
     "caesar-senate": ("gerome.jpg", (0, 0, 1, 1), 1000),
+    "alexander-aristotle": ("ferris.img", (0, 0.32, 1, 0.95), 700),  # Ferris: Aristotle teaching the young Alexander
+    "alexander-knot": ("gordian.img", (0, 0, 1, 1), 1000),  # Berthelemy: the sword and the knot
+    "alexander-issus": ("mosaic.img", (0.015, 0.03, 0.985, 0.95), 1200),  # the Alexander Mosaic, without its border
+    "alexander-charge": ("mosaic.img", (0.07, 0.28, 0.37, 0.6), 640),  # its left side: Alexander charging
+    "alexander-granicus": ("granique.img", (0, 0, 1, 1), 1100),  # Le Brun: the crossing of the Granicus
 }
 
 
