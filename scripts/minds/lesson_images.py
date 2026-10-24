@@ -27,6 +27,11 @@ JOBS = {
     "alexander-issus": ("mosaic.img", (0.015, 0.03, 0.985, 0.95), 1200),  # the Alexander Mosaic, without its border
     "alexander-charge": ("mosaic.img", (0.07, 0.28, 0.37, 0.6), 640),  # its left side: Alexander charging
     "alexander-granicus": ("granique.img", (0, 0, 1, 1), 1100),  # Le Brun: the crossing of the Granicus
+    "aristotle-athens": ("athens.img", (0.06, 0.12, 0.94, 0.98), 1100),  # Raphael's School of Athens
+    "aristotle-plato": ("athens.img", (0.36, 0.42, 0.66, 0.74), 800),  # its middle: Plato and Aristotle
+    "aristotle-homer": ("rembrandt.img", (0.12, 0.14, 0.95, 0.78), 900),  # Rembrandt: Aristotle with a bust of Homer
+    "aristotle-achilles": ("achilles.img", (0, 0, 1, 1), 1000),  # David: Achilles reaches for his sword
+    "aristotle-swallow": ("naumann.img", (0.3, 0.5, 0.98, 0.86), 900),  # Naumann's plate: the barn swallow
 }
 
 

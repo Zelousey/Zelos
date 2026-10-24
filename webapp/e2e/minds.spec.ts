@@ -312,6 +312,85 @@ test("Alexander's scroll lessons: Aristotle and Bucephalus, Thebes, the Gordian 
   await expect(progress).toHaveAttribute('aria-valuenow', '5');
 });
 
+test("Aristotle's scroll lessons: habits, the golden middle, one swallow, aimed anger; every task by tapping", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const progress = page.getByRole('progressbar', { name: 'Lesson progress' });
+  const hold = async (name: string, done: string) => {
+    await page.getByRole('button', { name }).focus();
+    await page.keyboard.down('Space');
+    await expect(page.getByText(done)).toBeVisible({ timeout: 5000 });
+    await page.keyboard.up('Space');
+  };
+  // You become what you practice: find him in the School of Athens, a question, hold, the checklist
+  await page.goto('minds/aristotle');
+  await page.getByRole('link', { name: /You become what you practice/ }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/aristotle\/learn\/habits$/);
+  await page.getByRole('button', { name: 'Plato' }).click();
+  await expect(page.getByText(/That's Plato, pointing up to the sky/)).toBeVisible();
+  await axe(page);
+  await page.getByRole('button', { name: 'Aristotle', exact: true }).click();
+  await expect(page.getByText("That's him, holding his Ethics.")).toBeVisible();
+  await page.getByRole('button', { name: 'By building' }).click();
+  await hold('Hold to repeat it', 'Skill is the sum of what you repeat.');
+  await page.getByRole('button', { name: 'Skip it when I feel lucky' }).click();
+  await expect(page.getByText("A habit doesn't take days off.")).toBeVisible();
+  for (const o of ['Is there a clear setup?', 'Where is my stop?', 'Is the size right?']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: 'Yes, every trade, even the boring ones' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+  // The golden middle: courage in the middle, generosity, pick 2, risk per trade
+  await page.goto('minds/aristotle/learn/mean');
+  await page.getByRole('button', { name: 'Reckless (too much)' }).click();
+  await expect(page.getByText("That's too much.")).toBeVisible();
+  await page.getByRole('button', { name: 'The middle' }).click();
+  await page.getByRole('button', { name: 'Being stingy and wasting money' }).click();
+  for (const o of ['Risk the same small amount on every trade', 'Trade a few good setups a week']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: 'About $100 (1%)' }).click();
+  await page.getByRole('button', { name: 'No, keep the same modest size' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  // One good day is not a season: a question, real proof, log 20 trades, the first loss
+  await page.goto('minds/aristotle/learn/one-swallow');
+  await page.getByRole('button', { name: "One good sign doesn't prove the season has changed" }).click();
+  await page.getByRole('button', { name: 'One huge win last week' }).click();
+  await expect(page.getByText("That's one swallow.")).toBeVisible();
+  for (const o of ['20+ trades, all tracked', 'Wins and losses both written down']) await page.getByRole('button', { name: o }).click();
+  await hold('Hold to log 20 trades', 'Now you have enough to judge it.');
+  await page.getByRole('button', { name: 'Keep following it, and judge it after 20 trades' }).click();
+  await page.getByRole('button', { name: '20 trades with a small, steady edge' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await axe(page);
+  // Feel it, but aim it: cool down, the four rights, warning signs, the next step
+  await page.goto('minds/aristotle/learn/anger');
+  await hold('Hold to cool down', 'Breathe. Now you can think.');
+  for (const o of ['The right person', 'The right amount', 'The right time', 'The right reason']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  for (const o of ['Doubling your size after a loss', 'Trading a stock you never planned', /get it back/]) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: 'Jump into another trade now' }).click();
+  await expect(page.getByText("That's anger choosing.")).toBeVisible();
+  await page.getByRole('button', { name: 'Close the app, come back tomorrow' }).click();
+  await page.getByRole('button', { name: "When you're calm and it fits your plan" }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+});
+
+test('a hold made with the keyboard keeps going when the pointer passes over the button', async ({ page }) => {
+  // CI on main 2026-10-24: tapping the sword glides the page, the resting mouse slid over the hold
+  // button and off it, and that pointer-leave ended a Space-key hold
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('minds/alexander/learn/knot');
+  await page.getByRole('button', { name: 'To rule Asia' }).click();
+  await page.getByRole('button', { name: 'The sword' }).click();
+  const hold = page.getByRole('button', { name: 'Hold to cut the knot' });
+  await hold.focus();
+  await page.keyboard.down('Space');
+  const b = (await hold.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.move(b.x + b.width / 2, b.y - 40);
+  await expect(page.getByText('Cut. Problem solved.')).toBeVisible({ timeout: 5000 });
+  await page.keyboard.up('Space');
+});
+
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
   test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {
