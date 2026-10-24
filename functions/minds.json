@@ -154,7 +154,143 @@
       "As a teenager, Alexander was taught by Aristotle himself. He kept a copy of Homer's Iliad with him on campaign.",
       "He studied the great before trying to become one."
      ],
-     "trading": "Before you trade a setup with practice money, study it. Read how it works, look at old charts, then try it."
+     "trading": "Before you trade a setup with practice money, study it. Read how it works, look at old charts, then try it.",
+     "scroll": {
+      "image": "lessons/alexander-aristotle.webp",
+      "credit": "Jean Leon Gerome Ferris, Aristotle Tutoring Alexander (1895). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "343 BC. King Philip of Macedon hired the most famous thinker in Greece to teach his 13-year-old son.",
+         "For about three years, Alexander studied with him at Mieza."
+        ],
+        "source": "Plutarch, Life of Alexander, 7",
+        "image": true,
+        "task": {
+         "id": "teacher",
+         "kind": "quiz",
+         "question": "Who was Alexander's teacher?",
+         "options": [
+          "Socrates",
+          "Aristotle",
+          "Homer"
+         ],
+         "answer": 1,
+         "why": "Aristotle taught him ethics, politics, even medicine."
+        }
+       },
+       {
+        "lines": [
+         "As a boy, Alexander saw a wild horse, Bucephalus, that nobody could ride.",
+         "Before trying, he watched it, and noticed it was scared of its own shadow."
+        ],
+        "source": "Plutarch, Life of Alexander, 6",
+        "task": {
+         "id": "horse",
+         "kind": "target",
+         "label": "Which way should he turn the horse? Drag Bucephalus there (or tap a way)",
+         "token": "Bucephalus",
+         "zones": [
+          {
+           "label": "Away from the sun",
+           "why": "Then its shadow is right in front of it."
+          },
+          {
+           "label": "Toward the sun",
+           "right": true
+          },
+          {
+           "label": "Sideways",
+           "why": "It can still see its shadow."
+          }
+         ],
+         "done": "With its shadow behind it, the horse calmed down. Alexander rode it, and kept it for the rest of its life."
+        }
+       },
+       {
+        "lines": [
+         "On campaign he slept with a copy of Homer's Iliad under his pillow, next to his dagger.",
+         "He studied the great before trying to become one."
+        ],
+        "source": "Plutarch, Life of Alexander, 8",
+        "task": {
+         "id": "list",
+         "kind": "collect",
+         "label": "Drag what to study before you trade a setup into your list, or tap it",
+         "target": "Your study list",
+         "items": [
+          {
+           "label": "How the setup works"
+          },
+          {
+           "label": "A stranger's “sure thing”",
+           "wrong": true
+          },
+          {
+           "label": "Old charts where it worked, and where it failed"
+          },
+          {
+           "label": "Where the stop goes"
+          }
+         ],
+         "wrong": "A tip isn't study.",
+         "done": "That's how you learn a setup before you trade it."
+        }
+       },
+       {
+        "lines": [
+         "In trading, the same rule holds: learn it before you lead with it."
+        ],
+        "task": {
+         "id": "steps",
+         "kind": "pick",
+         "label": "Pick the 3 steps before trading a new setup",
+         "need": 3,
+         "options": [
+          {
+           "label": "Read how it works",
+           "right": true
+          },
+          {
+           "label": "Go big with real money first"
+          },
+          {
+           "label": "Look at it on old charts",
+           "right": true
+          },
+          {
+           "label": "Copy whatever is trending today"
+          },
+          {
+           "label": "Try it with practice money",
+           "right": true
+          },
+          {
+           "label": "Skip the stop to keep it simple"
+          }
+         ],
+         "why": "Study, check, practice. Then trade."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "new",
+         "kind": "quiz",
+         "question": "You found a new setup online. What do you do first?",
+         "options": [
+          "Trade it big today",
+          "Study it on old charts, then try it with practice money",
+          "Ask a chat if it works, then buy"
+         ],
+         "answer": 1,
+         "why": "Learn from the best before you lead."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "speed",
@@ -163,7 +299,119 @@
       "Alexander often moved faster than his enemies thought possible, and struck before they were set.",
       "Speed won battles that numbers alone would have lost."
      ],
-     "trading": "In trading, speed means having your plan ready before the market opens: your entry, your stop, your target. Then you act, instead of deciding in a rush."
+     "trading": "In trading, speed means having your plan ready before the market opens: your entry, your stop, your target. Then you act, instead of deciding in a rush.",
+     "scroll": {
+      "image": "lessons/alexander-charge.webp",
+      "credit": "The Alexander Mosaic (about 100 BC), from the House of the Faun, Pompeii; National Archaeological Museum, Naples. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "335 BC. Alexander was fighting far to the north when a rumor spread that he was dead.",
+         "The city of Thebes, in Greece, rose up against him."
+        ],
+        "image": true,
+        "task": {
+         "id": "march",
+         "kind": "hold",
+         "from": "The north",
+         "to": "Thebes",
+         "label": "Hold to march south",
+         "done": "About two weeks later, his army was outside Thebes."
+        }
+       },
+       {
+        "lines": [
+         "The Thebans didn't believe it was him. They said it must be a different Alexander.",
+         "He was there before they were ready."
+        ],
+        "source": "Arrian, The Campaigns of Alexander, Book 1, ch. 7",
+        "task": {
+         "id": "why",
+         "kind": "quiz",
+         "question": "Why did his speed work?",
+         "options": [
+          "He had more soldiers",
+          "The other side wasn't ready yet",
+          "Thebes invited him in"
+         ],
+         "answer": 1,
+         "why": "Speed won battles that numbers alone would have lost."
+        }
+       },
+       {
+        "lines": [
+         "In trading, speed doesn't mean rushing.",
+         "It means your plan is ready before the market opens at 9:30."
+        ],
+        "task": {
+         "id": "plan",
+         "kind": "collect",
+         "label": "Drag your plan into the box before the open, or tap it",
+         "target": "Ready before 9:30",
+         "items": [
+          {
+           "label": "Your entry"
+          },
+          {
+           "label": "Decide once it starts moving",
+           "wrong": true
+          },
+          {
+           "label": "Your stop"
+          },
+          {
+           "label": "Your target"
+          }
+         ],
+         "wrong": "That's deciding in a rush.",
+         "done": "Entry, stop, target. Now you act instead of guessing."
+        }
+       },
+       {
+        "lines": [
+         "9:31. Your stock jumps 8%."
+        ],
+        "task": {
+         "id": "open",
+         "kind": "target",
+         "label": "Where should your order come from? Drag it there (or tap one)",
+         "token": "Your order",
+         "zones": [
+          {
+           "label": "A guess in the first minute",
+           "why": "That's deciding in a rush."
+          },
+          {
+           "label": "The plan you wrote last night",
+           "right": true
+          },
+          {
+           "label": "Whatever the chat is buying",
+           "why": "Their plan isn't yours."
+          }
+         ],
+         "done": "Ready before the open, like Alexander at Thebes."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "noplan",
+         "kind": "quiz",
+         "question": "The market opens, your stock jumps, and you have no plan. What do you do?",
+         "options": [
+          "Chase it before it's gone",
+          "Stop, make a plan, and only act on the plan",
+          "Buy twice as much to catch up"
+         ],
+         "answer": 1,
+         "why": "Have the plan ready first. Then you can move fast."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "knot",
@@ -172,7 +420,134 @@
       "Legend said whoever untied the Gordian Knot would rule Asia. Alexander didn't untie it. He cut it with his sword.",
       "Sometimes the answer is to stop fiddling and solve the problem directly."
      ],
-     "trading": "If a trade hits your stop, don't search for reasons to stay in. The stop is the sword: cut it and move on."
+     "trading": "If a trade hits your stop, don't search for reasons to stay in. The stop is the sword: cut it and move on.",
+     "scroll": {
+      "image": "lessons/alexander-knot.webp",
+      "credit": "Jean-Simon Berthélemy, Alexander Cuts the Gordian Knot (1767). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "333 BC, the city of Gordium (in today's Turkey). In a temple stood an old wagon tied with a knot so tangled no one could find its ends.",
+         "Legend said whoever undid it would rule Asia."
+        ],
+        "source": "Arrian, The Campaigns of Alexander, Book 2, ch. 3",
+        "task": {
+         "id": "legend",
+         "kind": "quiz",
+         "question": "What did the legend promise?",
+         "options": [
+          "A pile of gold",
+          "To rule Asia",
+          "A famous horse"
+         ],
+         "answer": 1,
+         "why": "Everyone had tried. Nobody had done it."
+        }
+       },
+       {
+        "lines": [
+         "Alexander tried too, and couldn't find the ends.",
+         "So, most of the old writers say, he stopped fiddling."
+        ],
+        "task": {
+         "id": "find",
+         "kind": "tap",
+         "label": "What did he use to undo it? Tap it in the painting",
+         "image": "lessons/alexander-knot.webp",
+         "credit": "Jean-Simon Berthélemy, Alexander Cuts the Gordian Knot (1767). Public domain, via Wikimedia Commons.",
+         "spots": [
+          {
+           "label": "The priest",
+           "x": 0.06,
+           "y": 0.33,
+           "w": 0.13,
+           "h": 0.2
+          },
+          {
+           "label": "The sword",
+           "x": 0.34,
+           "y": 0.25,
+           "w": 0.09,
+           "h": 0.11,
+           "right": true
+          }
+         ],
+         "miss": "That's a priest watching. Look at what Alexander is holding up.",
+         "done": "The sword."
+        }
+       },
+       {
+        "lines": [
+         "He drew his sword and cut through it."
+        ],
+        "source": "Plutarch, Life of Alexander, 18",
+        "task": {
+         "id": "cut",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Tangled",
+         "to": "Cut",
+         "label": "Hold to cut the knot",
+         "done": "Cut. Problem solved."
+        }
+       },
+       {
+        "lines": [
+         "In trading, your stop is the sword.",
+         "When a trade hits it, don't search for reasons to stay in."
+        ],
+        "task": {
+         "id": "stop",
+         "kind": "target",
+         "label": "Your trade just hit its stop. Drag it to what you do (or tap)",
+         "token": "Your trade",
+         "zones": [
+          {
+           "label": "Wait. It might come back",
+           "why": "That's fiddling with the knot."
+          },
+          {
+           "label": "Sell. The stop did its job",
+           "right": true
+          },
+          {
+           "label": "Move the stop lower",
+           "why": "That's tying a new knot."
+          }
+         ],
+         "done": "Cut it and move on."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "fiddle",
+         "kind": "pick",
+         "label": "Pick the 2 thoughts that mean you're fiddling with the knot",
+         "need": 2,
+         "options": [
+          {
+           "label": "It'll come back, it always does",
+           "right": true
+          },
+          {
+           "label": "My stop was hit, so I'm out"
+          },
+          {
+           "label": "I'll just move my stop a little",
+           "right": true
+          },
+          {
+           "label": "I'll write down what happened"
+          }
+         ],
+         "why": "When you hear yourself say these, reach for the sword."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "front",
@@ -181,7 +556,126 @@
       "Alexander rode into battle at the front of his cavalry and was wounded many times. His soldiers followed because he took the same risks.",
       "People trust leaders who share the danger."
      ],
-     "trading": "If you post a trade idea in your squad, take it yourself in your practice account. Own your calls, wins and losses."
+     "trading": "If you post a trade idea in your squad, take it yourself in your practice account. Own your calls, wins and losses.",
+     "scroll": {
+      "image": "lessons/alexander-granicus.webp",
+      "credit": "Charles Le Brun, The Crossing of the Granicus (1665), Louvre, Paris. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "334 BC, the Granicus river. The Persian army waited on the far bank.",
+         "Alexander led his cavalry into the river himself."
+        ],
+        "image": true,
+        "task": {
+         "id": "cross",
+         "kind": "drag",
+         "scene": "river",
+         "from": "Your bank",
+         "to": "Persians",
+         "who": "Alexander (drag him across the Granicus)",
+         "label": "Drag Alexander across the Granicus",
+         "tap": "Lead the charge across",
+         "done": "He was almost killed: his friend Cleitus cut down an attacker just in time (Arrian, Book 1, ch. 15)."
+        }
+       },
+       {
+        "lines": [
+         "A year later at Issus, he aimed his charge straight at the Persian king, Darius."
+        ],
+        "task": {
+         "id": "find",
+         "kind": "tap",
+         "label": "Find Alexander in the mosaic and tap him",
+         "image": "lessons/alexander-issus.webp",
+         "credit": "The Alexander Mosaic (about 100 BC), from the House of the Faun, Pompeii; National Archaeological Museum, Naples. Public domain, via Wikimedia Commons.",
+         "spots": [
+          {
+           "label": "Darius",
+           "x": 0.57,
+           "y": 0.23,
+           "w": 0.14,
+           "h": 0.23
+          },
+          {
+           "label": "Alexander",
+           "x": 0.11,
+           "y": 0.32,
+           "w": 0.19,
+           "h": 0.24,
+           "right": true
+          }
+         ],
+         "miss": "That's Darius, turning to flee in his chariot. Look left for the rider with no helmet.",
+         "done": "That's him, charging in front, no helmet. Darius fled."
+        }
+       },
+       {
+        "lines": [
+         "In India, he was first up a ladder onto an enemy wall, and was badly wounded by an arrow.",
+         "His soldiers followed him because he took the same risks they did."
+        ],
+        "source": "Arrian, The Campaigns of Alexander, Book 6, ch. 9–10",
+        "task": {
+         "id": "why",
+         "kind": "quiz",
+         "question": "Why did his soldiers follow him?",
+         "options": [
+          "He paid them the most",
+          "He took the same risks they did",
+          "They had no choice"
+         ],
+         "answer": 1,
+         "why": "People trust leaders who share the danger."
+        }
+       },
+       {
+        "lines": [
+         "In trading, if you post an idea in your squad, take it yourself."
+        ],
+        "task": {
+         "id": "own",
+         "kind": "pick",
+         "label": "Pick the 2 ways to lead from the front",
+         "need": 2,
+         "options": [
+          {
+           "label": "Take your own idea in your practice account",
+           "right": true
+          },
+          {
+           "label": "Delete the post if it goes wrong"
+          },
+          {
+           "label": "Share your losses, not just your wins",
+           "right": true
+          },
+          {
+           "label": "Tell others to buy, but don't buy yourself"
+          }
+         ],
+         "why": "Own your calls, wins and losses."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "lost",
+         "kind": "quiz",
+         "question": "Your squad followed your trade idea, and it lost. What do you do?",
+         "options": [
+          "Delete the post",
+          "Own it: share what happened and what you learned",
+          "Blame the market"
+         ],
+         "answer": 1,
+         "why": "That's how you earn trust."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [

@@ -40,6 +40,11 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
     they want to (Sabinus and the fake deserter, Gallic War III.17-19; facts vs wishes), Small
     causes, big changes (Dyrrachium's wrong wall, the warning note he never read, sizing for
     surprises), Write it down (the Commentaries, find Caesar at Alesia, a trading journal).
+  - All four Alexander lessons are scroll lessons (owner 2026-10-24): Learn from the best
+    (Aristotle, turning Bucephalus toward the sun, the Iliad under his pillow), Move before
+    the other side is ready (the march on Thebes, a plan before the open), Cut the knot
+    (Gordium; your stop is the sword), Lead from the front (the Granicus, find him in the
+    Alexander Mosaic, the Malli wall).
   - Pictures: public-domain paintings from Wikimedia Commons (licence checked on Commons),
     toned red-and-black by `scripts/minds/lesson_images.py` into `webapp/public/minds/lessons/`,
     always with the credit line. A credit never covers something to tap.
