@@ -24,11 +24,20 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
   something (every drag also has a button that does the same). Each task pays **2 XP** once
   (xp_award type `mind-step`, refId `<figure>:<lesson>:<task>`), about 10 per lesson as before,
   at most 100 steps a day. A scroll lesson is not also paid the old 10 XP at the end.
-  - Content: a lesson's `scroll` in data/minds.json (`image`, `credit`, `slides` with `lines`
-    and an optional `task`: `hold`, `quiz`, `drag` or `level`). New task kinds need code in
-    `webapp/src/features/minds/LessonTasks.tsx`.
-  - Pictures: public-domain paintings from Wikimedia Commons, turned red-and-black to match
-    the cards (`webapp/public/minds/lessons/`), always with the credit line.
+  - Content: a lesson's `scroll` in data/minds.json (`image`, `credit`, `slides` with `lines`,
+    an optional own `image` + `credit`, and an optional `task`). Task kinds
+    (`webapp/src/features/minds/LessonTasks.tsx`): `hold` (scene `march` or `rally`), `quiz`,
+    `drag` (Napoleon over the Alps), `level` (a buy line onto support), `collect` (drag items
+    into one place; `wrong` ones bounce back), `tap` (find it in a painting; spots are
+    fractions of the image), `target` (drag to the one right zone; zones are buttons too),
+    `pick` (choose exactly `need` right options). scripts/minds_test.py checks the shape.
+  - All four Napoleon lessons are scroll lessons (owner 2026-10-23): Study the greats (books,
+    Maxim 78, the names David carved on the rocks), Speed is a weapon (Alps), Bring everything
+    to one point (Austerlitz, the Pratzen Heights), The mind wins three quarters (Arcole).
+  - Pictures: public-domain paintings from Wikimedia Commons (licence checked on Commons),
+    toned red-and-black by `scripts/minds/lesson_images.py` into `webapp/public/minds/lessons/`,
+    always with the credit line. A credit never covers something to tap.
+  - A slide taller than the screen scrolls instead of pinning, so its task is always reachable.
   - With reduced motion nothing moves and pins; the tasks still gate the slides.
 - **Daily quotes cost 15 tokens for 30 days per figure** (`minds_follow`). Each person gets at
   most one quote a day, whoever they follow (`minds_daily_quote`, 9:05 am New York). It goes to the
