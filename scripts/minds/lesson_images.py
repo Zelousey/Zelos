@@ -32,6 +32,9 @@ JOBS = {
     "aristotle-homer": ("rembrandt.img", (0.12, 0.14, 0.95, 0.78), 900),  # Rembrandt: Aristotle with a bust of Homer
     "aristotle-achilles": ("achilles.img", (0, 0, 1, 1), 1000),  # David: Achilles reaches for his sword
     "aristotle-swallow": ("naumann.img", (0.3, 0.5, 0.98, 0.86), 900),  # Naumann's plate: the barn swallow
+    "franklin-almanack": ("poor.img", (0.05, 0.02, 0.97, 0.98), 600),  # Poor Richard, 1739
+    "franklin-virtues": ("virtues.img", (0.03, 0.02, 0.97, 0.62), 800),  # his chart of the 13 virtues
+    "franklin-lightning": ("west.img", (0, 0, 1, 0.8), 800),  # West: Franklin drawing electricity from the sky
 }
 
 

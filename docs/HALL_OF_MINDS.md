@@ -50,6 +50,10 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
     middle (courage between coward and reckless, 1% risk), One good day is not a season (the
     swallow; judge a strategy on 20 trades), Feel it, but aim it (Achilles' rage, the four
     "rights", revenge trading).
+  - All four Franklin lessons are scroll lessons (owner 2026-10-24): Money makes money (Advice
+    to a Young Tradesman, his 200-year bequest, the 50% loss), Time is money (his daily
+    schedule, alerts instead of screen-watching), Track yourself (the 13 virtues chart, a daily
+    scorecard for the plan), Haste makes waste (Poor Richard, wait for the pullback).
   - Pictures: public-domain paintings from Wikimedia Commons (licence checked on Commons),
     toned red-and-black by `scripts/minds/lesson_images.py` into `webapp/public/minds/lessons/`,
     always with the credit line. A credit never covers something to tap.
