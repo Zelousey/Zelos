@@ -26,14 +26,20 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
   at most 100 steps a day. A scroll lesson is not also paid the old 10 XP at the end.
   - Content: a lesson's `scroll` in data/minds.json (`image`, `credit`, `slides` with `lines`,
     an optional own `image` + `credit`, and an optional `task`). Task kinds
-    (`webapp/src/features/minds/LessonTasks.tsx`): `hold` (scene `march` or `rally`), `quiz`,
-    `drag` (Napoleon over the Alps), `level` (a buy line onto support), `collect` (drag items
+    (`webapp/src/features/minds/LessonTasks.tsx`): `hold` (scene `march` or `rally`; optional
+    `from`/`to` labels), `quiz`, `drag` (the figure over the Alps, or `scene: "river"` with
+    `from`/`to`/`who`), `level` (a buy line onto support), `collect` (drag items
     into one place; `wrong` ones bounce back), `tap` (find it in a painting; spots are
     fractions of the image), `target` (drag to the one right zone; zones are buttons too),
     `pick` (choose exactly `need` right options). scripts/minds_test.py checks the shape.
   - All four Napoleon lessons are scroll lessons (owner 2026-10-23): Study the greats (books,
     Maxim 78, the names David carved on the rocks), Speed is a weapon (Alps), Bring everything
     to one point (Austerlitz, the Pratzen Heights), The mind wins three quarters (Arcole).
+  - All four Caesar lessons are scroll lessons (owner 2026-10-24): Cross the Rubicon (hold to
+    decide, drag him across the river, pick what to decide before you buy), People believe what
+    they want to (Sabinus and the fake deserter, Gallic War III.17-19; facts vs wishes), Small
+    causes, big changes (Dyrrachium's wrong wall, the warning note he never read, sizing for
+    surprises), Write it down (the Commentaries, find Caesar at Alesia, a trading journal).
   - Pictures: public-domain paintings from Wikimedia Commons (licence checked on Commons),
     toned red-and-black by `scripts/minds/lesson_images.py` into `webapp/public/minds/lessons/`,
     always with the credit line. A credit never covers something to tap.

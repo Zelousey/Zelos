@@ -849,7 +849,121 @@
       "In 49 BC, Caesar led his army across the Rubicon river into Italy. By law that meant civil war. There was no going back.",
       "Once he decided, he committed fully."
      ],
-     "trading": "Decide your plan before the trade, then follow it. Changing your stop in the middle of a trade is how small losses become big ones."
+     "trading": "Decide your plan before the trade, then follow it. Changing your stop in the middle of a trade is how small losses become big ones.",
+     "scroll": {
+      "image": "lessons/caesar-rubicon.webp",
+      "credit": "Gustave Boulanger, Julius Caesar at the Rubicon (1854), Musée de Picardie, Amiens. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "January, 49 BC. Caesar has spent nine years conquering Gaul.",
+         "The Senate in Rome orders him to give up his army. A small river, the Rubicon, marks where Italy begins.",
+         "By law, a general who crossed it with his army was making war on Rome."
+        ],
+        "image": true,
+        "task": {
+         "id": "law",
+         "kind": "quiz",
+         "question": "What would crossing the river with his army mean?",
+         "options": [
+          "A short visit home",
+          "Civil war with Rome",
+          "A peace deal with the Senate"
+         ],
+         "answer": 1,
+         "why": "There was no small version of this choice."
+        }
+       },
+       {
+        "lines": [
+         "He stopped at the river and thought it over.",
+         "“Even yet we may draw back; but once cross yon little bridge, and the whole issue is with the sword.”"
+        ],
+        "source": "Suetonius, Life of Julius Caesar, 31",
+        "task": {
+         "id": "decide",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Turn back",
+         "to": "Cross",
+         "label": "Hold to make up your mind",
+         "done": "His mind is made up."
+        }
+       },
+       {
+        "lines": [
+         "Then he crossed, and said: “The die is cast.”"
+        ],
+        "source": "Suetonius, Life of Julius Caesar, 32",
+        "image": "lessons/caesar-crossing.webp",
+        "credit": "Jean Fouquet, Caesar Crossing the Rubicon (about 1470), Louvre, Paris. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "cross",
+         "kind": "drag",
+         "scene": "river",
+         "from": "Gaul",
+         "to": "Italy",
+         "who": "Caesar (drag him across the Rubicon)",
+         "label": "Drag Caesar across the Rubicon",
+         "tap": "Cross the Rubicon",
+         "done": "No going back. Within 60 days he held all of Italy (Plutarch, Life of Caesar, 35)."
+        }
+       },
+       {
+        "lines": [
+         "Once he decided, he committed fully.",
+         "In trading, the time to decide is before you buy."
+        ],
+        "task": {
+         "id": "plan",
+         "kind": "pick",
+         "label": "Pick the 3 things to decide before you buy",
+         "need": 3,
+         "options": [
+          {
+           "label": "Where you'll get in",
+           "right": true
+          },
+          {
+           "label": "How you'll feel if it drops"
+          },
+          {
+           "label": "Where your stop goes (where you're wrong)",
+           "right": true
+          },
+          {
+           "label": "What the group chat says later"
+          },
+          {
+           "label": "How many shares",
+           "right": true
+          },
+          {
+           "label": "Whether to move the stop if it gets close"
+          }
+         ],
+         "why": "Decide it all before the trade. Then let the plan run."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "stop",
+         "kind": "quiz",
+         "question": "Your stock falls toward your stop. What do you do?",
+         "options": [
+          "Move the stop lower to give it room",
+          "Let the stop do its job",
+          "Buy more to lower your average price"
+         ],
+         "answer": 1,
+         "why": "You crossed with a plan. Moving the stop mid-trade is how small losses become big ones."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "believe",
@@ -858,7 +972,125 @@
       "Caesar wrote that people usually believe what they wish were true. He used it against his enemies, and guarded against it in himself.",
       "Wanting something to be true doesn't make it true."
      ],
-     "trading": "Once you're in a trade, you'll look for news that agrees with you. Ask instead: what would prove me wrong? Then watch for that."
+     "trading": "Once you're in a trade, you'll look for news that agrees with you. Ask instead: what would prove me wrong? Then watch for that.",
+     "scroll": {
+      "image": "lessons/caesar-book.webp",
+      "credit": "Caesar's Commentaries on the Gallic War, a 15th-century copy, Bibliothèque nationale de France. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "56 BC, in northwest Gaul. Caesar's officer Sabinus faced a much bigger Gallic army.",
+         "He stayed in his camp on a hill and let them think he was afraid."
+        ],
+        "image": true,
+        "task": {
+         "id": "wait",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Day 1",
+         "to": "Trap set",
+         "label": "Hold to wait in the camp",
+         "done": "Every day the Gauls grew bolder."
+        }
+       },
+       {
+        "lines": [
+         "Then he paid a Gaul to pretend to desert. The man told them the Romans were scared and would slip away that night.",
+         "It was exactly what they wanted to hear."
+        ],
+        "task": {
+         "id": "why",
+         "kind": "quiz",
+         "question": "Why did the Gauls believe him?",
+         "options": [
+          "He showed them proof",
+          "It was what they wished were true",
+          "Caesar told them himself"
+         ],
+         "answer": 1,
+         "why": "Nobody checked. They wanted it to be true."
+        }
+       },
+       {
+        "lines": [
+         "They ran uphill to the camp carrying heavy bundles of wood, and got there out of breath.",
+         "The Romans burst out of two gates, and the Gauls broke and ran."
+        ],
+        "source": "Caesar, Commentaries on the Gallic War, Book III, ch. 17–19",
+        "task": {
+         "id": "facts",
+         "kind": "collect",
+         "label": "Drag only the facts into the box (a wish bounces back), or tap them",
+         "target": "What we actually know",
+         "items": [
+          {
+           "label": "The Romans haven't left their camp"
+          },
+          {
+           "label": "One man says they're scared",
+           "wrong": true
+          },
+          {
+           "label": "Their camp is on a hill"
+          },
+          {
+           "label": "We hope they'll run",
+           "wrong": true
+          }
+         ],
+         "wrong": "That's a story you want to believe, not a fact.",
+         "done": "Facts, not wishes. The Gauls skipped this step."
+        }
+       },
+       {
+        "lines": [
+         "Caesar wrote: “Men willingly believe what they wish.”",
+         "Once you own a stock, you'll look for news that agrees with you."
+        ],
+        "source": "Caesar, Commentaries on the Gallic War, Book III, ch. 18",
+        "task": {
+         "id": "wrong",
+         "kind": "pick",
+         "label": "You own a stock. Pick the 2 things that would prove you wrong",
+         "need": 2,
+         "options": [
+          {
+           "label": "It closes below your stop",
+           "right": true
+          },
+          {
+           "label": "A post says it's going to the moon"
+          },
+          {
+           "label": "Earnings miss and it falls on heavy volume",
+           "right": true
+          },
+          {
+           "label": "A friend bought it too"
+          }
+         ],
+         "why": "Know what would prove you wrong, and watch for that."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "headline",
+         "kind": "quiz",
+         "question": "You own a stock and read a headline saying it will soar. What's the best next step?",
+         "options": [
+          "Buy more right away",
+          "Ask what would prove you wrong, and check it",
+          "Stop reading anything negative"
+         ],
+         "answer": 1,
+         "why": "Wanting something to be true doesn't make it true."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "small",
@@ -867,7 +1099,123 @@
       "Caesar noticed that in war, tiny events (a rumor, a wrong turn, a sudden storm) often decided great battles.",
       "Small things are not always small."
      ],
-     "trading": "One surprise headline can move a stock 10% overnight. That's why you size every trade so a surprise can't hurt you badly."
+     "trading": "One surprise headline can move a stock 10% overnight. That's why you size every trade so a surprise can't hurt you badly.",
+     "scroll": {
+      "image": "lessons/caesar-senate.webp",
+      "credit": "Jean-Léon Gérôme, The Death of Caesar (1859–67), Walters Art Museum, Baltimore. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "48 BC, near Dyrrachium (today's Durrës, in Albania). Caesar faced Pompey, Rome's other great general.",
+         "Caesar planned a surprise attack on part of Pompey's lines."
+        ],
+        "task": {
+         "id": "attack",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Caesar's lines",
+         "to": "Pompey's camp",
+         "label": "Hold to lead the attack",
+         "done": "It starts well. Pompey's men fall back."
+        }
+       },
+       {
+        "lines": [
+         "But one wing followed a long wall, thinking it led to the camp. It didn't.",
+         "They got lost. Then Pompey's cavalry appeared, and panic spread."
+        ],
+        "task": {
+         "id": "wall",
+         "kind": "quiz",
+         "question": "What small thing turned the battle?",
+         "options": [
+          "Pompey had better soldiers",
+          "One wing followed the wrong wall",
+          "Caesar's men ran out of food"
+         ],
+         "answer": 1,
+         "why": "One wrong turn, then panic."
+        }
+       },
+       {
+        "lines": [
+         "Caesar lost almost a thousand men that day. He wrote:",
+         "“Fortune, which has great power in all matters and especially in war, brings about great changes by small causes.”"
+        ],
+        "source": "Caesar, Commentaries on the Civil War, Book III, ch. 68–71",
+        "task": {
+         "id": "surprises",
+         "kind": "collect",
+         "label": "Drag the things that can move a stock overnight into the box, or tap them",
+         "target": "Overnight surprises",
+         "items": [
+          {
+           "label": "A surprise earnings miss"
+          },
+          {
+           "label": "The weather where you live",
+           "wrong": true
+          },
+          {
+           "label": "The CEO suddenly quits"
+          },
+          {
+           "label": "A lawsuit or a product recall"
+          }
+         ],
+         "wrong": "That one won't move a stock.",
+         "done": "Any of these can move a stock 10% before you wake up."
+        }
+       },
+       {
+        "lines": [
+         "Four years later, on his way into the Senate, a man handed Caesar a note warning him of a plot to kill him.",
+         "He tried to read it, but people kept talking to him. He went in still holding it.",
+         "Small things are not always small."
+        ],
+        "source": "Plutarch, Life of Caesar, 65",
+        "image": true,
+        "task": {
+         "id": "size",
+         "kind": "target",
+         "label": "Drag your $10,000 to the safest plan (or tap a plan)",
+         "token": "Your $10,000",
+         "zones": [
+          {
+           "label": "All of it in one stock",
+           "why": "A 10% surprise would cost you $1,000 at once."
+          },
+          {
+           "label": "Smaller trades, each with a stop",
+           "right": true
+          },
+          {
+           "label": "Borrow money to buy more",
+           "why": "A surprise would hurt twice as much."
+          }
+         ],
+         "done": "Now a surprise costs a little, not a lot."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "gap",
+         "kind": "quiz",
+         "question": "You have $10,000. A stock could drop 10% overnight on earnings. Which size makes sense?",
+         "options": [
+          "All $10,000. It'll probably be fine",
+          "About $1,000, so a 10% drop costs about $100 (1% of your account)",
+          "Any size, as long as you skip the stop"
+         ],
+         "answer": 1,
+         "why": "Size every trade so a surprise can't hurt you badly."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "record",
@@ -876,7 +1224,153 @@
       "Caesar wrote his own account of his wars, the Commentaries, in short, clear sentences. He controlled the story and remembered the lessons.",
       "What gets written down gets learned."
      ],
-     "trading": "Keep a trading journal: why you entered, how it ended and what you felt. Your notes become your best teacher."
+     "trading": "Keep a trading journal: why you entered, how it ended and what you felt. Your notes become your best teacher.",
+     "scroll": {
+      "image": "lessons/caesar-writing.webp",
+      "credit": "Caesar writing his Commentaries, from a 1783 Venice edition of his works. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Caesar didn't just fight his wars. He wrote them down, in his Commentaries.",
+         "He used short, plain sentences, and he calls himself “Caesar”, as if a reporter were telling it."
+        ],
+        "image": true,
+        "task": {
+         "id": "voice",
+         "kind": "quiz",
+         "question": "How does Caesar write about himself in the Commentaries?",
+         "options": [
+          "As “I”",
+          "As “Caesar”, as if someone else were telling it",
+          "He leaves himself out"
+         ],
+         "answer": 1,
+         "why": "Writing about yourself like an outsider makes it easier to see what really happened."
+        }
+       },
+       {
+        "lines": [
+         "The book opens with a famous line:",
+         "“All Gaul is divided into three parts.”"
+        ],
+        "source": "Caesar, Commentaries on the Gallic War, Book I, ch. 1",
+        "image": "lessons/caesar-book.webp",
+        "credit": "Caesar's Commentaries on the Gallic War, a 15th-century copy, Bibliothèque nationale de France. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "gaul",
+         "kind": "pick",
+         "label": "Pick the 3 peoples Caesar says lived in Gaul",
+         "need": 3,
+         "options": [
+          {
+           "label": "The Belgae",
+           "right": true
+          },
+          {
+           "label": "The Vikings"
+          },
+          {
+           "label": "The Aquitani",
+           "right": true
+          },
+          {
+           "label": "The Persians"
+          },
+          {
+           "label": "The Celts (“whom we call Gauls”)",
+           "right": true
+          },
+          {
+           "label": "The Egyptians"
+          }
+         ],
+         "why": "Clear and simple from the very first line."
+        }
+       },
+       {
+        "lines": [
+         "52 BC, at Alesia. The Gallic leader Vercingetorix surrendered to Caesar.",
+         "Caesar's own report of it takes only a few words."
+        ],
+        "source": "Caesar, Commentaries on the Gallic War, Book VII, ch. 89",
+        "task": {
+         "id": "find",
+         "kind": "tap",
+         "label": "Find Caesar in the painting and tap him",
+         "image": "lessons/caesar-alesia.webp",
+         "credit": "Lionel Royer, Vercingetorix Throws Down His Arms at the Feet of Julius Caesar (1899), Musée Crozatier, Le Puy-en-Velay. Public domain, via Wikimedia Commons.",
+         "spots": [
+          {
+           "label": "Vercingetorix",
+           "x": 0.22,
+           "y": 0.14,
+           "w": 0.2,
+           "h": 0.42
+          },
+          {
+           "label": "Caesar",
+           "x": 0.57,
+           "y": 0.25,
+           "w": 0.21,
+           "h": 0.43,
+           "right": true
+          }
+         ],
+         "miss": "Not him. That's Vercingetorix. Look for the man sitting calmly in red.",
+         "done": "That's him, calm and seated. He wrote it just as plainly: Vercingetorix surrendered, the weapons were thrown down."
+        }
+       },
+       {
+        "lines": [
+         "What gets written down gets learned.",
+         "In trading, your journal is your Commentaries."
+        ],
+        "task": {
+         "id": "journal",
+         "kind": "collect",
+         "label": "Drag what belongs in a trading journal into it, or tap it",
+         "target": "Your journal",
+         "items": [
+          {
+           "label": "Why you got in"
+          },
+          {
+           "label": "Only your winning trades",
+           "wrong": true
+          },
+          {
+           "label": "Where your stop was"
+          },
+          {
+           "label": "How it ended"
+          },
+          {
+           "label": "How you felt"
+          }
+         ],
+         "wrong": "Write the losers too. They teach the most.",
+         "done": "That's an entry worth reading later."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "loss",
+         "kind": "quiz",
+         "question": "You just closed a losing trade. What do you do first?",
+         "options": [
+          "Forget it and find the next one",
+          "Write down why you got in, how it ended and how you felt",
+          "Delete it from your history"
+         ],
+         "answer": 1,
+         "why": "Your notes become your best teacher."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [

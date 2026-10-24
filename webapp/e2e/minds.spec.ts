@@ -183,6 +183,70 @@ test('Napoleon\'s other scroll lessons: books, the carved names, Austerlitz, Arc
   await axe(page);
 });
 
+test("Caesar's scroll lessons: the Rubicon, the fake deserter, small causes, the Commentaries; every task by tapping", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const progress = page.getByRole('progressbar', { name: 'Lesson progress' });
+  const hold = async (name: string, done: string) => {
+    await page.getByRole('button', { name }).focus();
+    await page.keyboard.down('Space');
+    await expect(page.getByText(done)).toBeVisible({ timeout: 5000 });
+    await page.keyboard.up('Space');
+  };
+  // Cross the Rubicon: a question, hold to decide, cross the river, pick 3
+  await page.goto('minds/caesar');
+  await page.getByRole('link', { name: /Cross the Rubicon/ }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/caesar\/learn\/rubicon$/);
+  await page.getByRole('button', { name: 'Civil war with Rome' }).click();
+  await hold('Hold to make up your mind', 'His mind is made up.');
+  await expect(page.getByRole('img', { name: 'Caesar (drag him across the Rubicon)' })).toBeVisible();
+  await axe(page);
+  await page.getByRole('button', { name: 'Cross the Rubicon' }).click();
+  await expect(page.getByText(/Within 60 days he held all of Italy/)).toBeVisible();
+  for (const o of ["Where you'll get in", "Where your stop goes (where you're wrong)", 'How many shares']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: 'Let the stop do its job' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+  // People believe what they want to: hold, a question, facts only (a wish bounces back), pick 2
+  await page.goto('minds/caesar/learn/believe');
+  await hold('Hold to wait in the camp', 'Every day the Gauls grew bolder.');
+  await page.getByRole('button', { name: 'It was what they wished were true' }).click();
+  await page.getByRole('button', { name: 'We hope they\'ll run' }).click();
+  await expect(page.getByText("That's a story you want to believe, not a fact.")).toBeVisible();
+  for (const o of ["The Romans haven't left their camp", 'Their camp is on a hill']) await page.getByRole('button', { name: o }).click();
+  await expect(page.getByText('Facts, not wishes. The Gauls skipped this step.')).toBeVisible();
+  for (const o of ['It closes below your stop', 'Earnings miss and it falls on heavy volume']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: 'Ask what would prove you wrong, and check it' }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await axe(page);
+  // Small causes, big changes: hold, the wrong wall, overnight surprises, where the $10,000 goes
+  await page.goto('minds/caesar/learn/small');
+  await hold('Hold to lead the attack', "It starts well. Pompey's men fall back.");
+  await page.getByRole('button', { name: 'One wing followed the wrong wall' }).click();
+  for (const o of ['A surprise earnings miss', 'The CEO suddenly quits', 'A lawsuit or a product recall']) await page.getByRole('button', { name: o }).click();
+  await expect(page.getByText(/Any of these can move a stock 10%/)).toBeVisible();
+  await page.getByRole('button', { name: 'All of it in one stock' }).click();
+  await expect(page.getByText('A 10% surprise would cost you $1,000 at once.')).toBeVisible();
+  await page.getByRole('button', { name: 'Smaller trades, each with a stop' }).click();
+  await page.getByRole('button', { name: /About \$1,000/ }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  // Write it down: a question, pick 3, find Caesar in the painting, the journal
+  await page.goto('minds/caesar/learn/record');
+  await page.getByRole('button', { name: /As “Caesar”/ }).click();
+  for (const o of ['The Belgae', 'The Aquitani', /The Celts/]) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /^Check/ }).click();
+  await page.getByRole('button', { name: 'Vercingetorix' }).click();
+  await expect(page.getByText(/Look for the man sitting calmly in red/)).toBeVisible();
+  await axe(page);
+  await page.getByRole('button', { name: 'Caesar', exact: true }).click();
+  await expect(page.getByText(/That's him, calm and seated/)).toBeVisible();
+  for (const o of ['Why you got in', 'Where your stop was', 'How it ended', 'How you felt']) await page.getByRole('button', { name: o }).click();
+  await page.getByRole('button', { name: /Write down why you got in/ }).click();
+  await expect(page.getByText('Lesson complete')).toBeVisible();
+  await expect(progress).toHaveAttribute('aria-valuenow', '5');
+});
+
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
   test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {

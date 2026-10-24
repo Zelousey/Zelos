@@ -12,3 +12,16 @@ livermore.webp  Jesse Livermore, press photograph (c. 1923). File:Jesse_Livermor
 dow.webp        Charles Henry Dow, photograph (19th century). File:Charles_Henry_Dow.jpg
 newton.webp     Godfrey Kneller, Portrait of Sir Isaac Newton (1689). File:Portrait_of_Sir_Isaac_Newton,_1689.jpg
 morgan.webp     J.P. Morgan, photograph by Pach Brothers (1902). File:J.P._Morgan.jpg
+
+Scroll-lesson pictures (webapp/public/minds/lessons/, toned red by scripts/minds/lesson_images.py):
+caesar-alesia.webp           Lionel Royer, Vercingetorix Throws Down His Arms at the Feet of Julius Caesar (1899), Musée Crozatier, Le Puy-en-Velay. Public domain, via Wikimedia Commons.
+caesar-book.webp             Caesar's Commentaries on the Gallic War, a 15th-century copy, Bibliothèque nationale de France. Public domain, via Wikimedia Commons.
+caesar-crossing.webp         Jean Fouquet, Caesar Crossing the Rubicon (about 1470), Louvre, Paris. Public domain, via Wikimedia Commons.
+caesar-rubicon.webp          Gustave Boulanger, Julius Caesar at the Rubicon (1854), Musée de Picardie, Amiens. Public domain, via Wikimedia Commons.
+caesar-senate.webp           Jean-Léon Gérôme, The Death of Caesar (1859–67), Walters Art Museum, Baltimore. Public domain, via Wikimedia Commons.
+caesar-writing.webp          Caesar writing his Commentaries, from a 1783 Venice edition of his works. Public domain, via Wikimedia Commons.
+napoleon-alps.webp           Jacques-Louis David, Napoleon Crossing the Alps (1801), Château de Malmaison. Public domain, via Wikimedia Commons.
+napoleon-arcole.webp         Antoine-Jean Gros, Bonaparte at the Bridge of Arcole (1796). Public domain, via Wikimedia Commons.
+napoleon-austerlitz.webp     François Gérard, The Battle of Austerlitz (1810), Palace of Versailles. Public domain, via Wikimedia Commons.
+napoleon-names.webp          Jacques-Louis David, Napoleon Crossing the Alps (1801), Château de Malmaison. Public domain, via Wikimedia Commons.
+napoleon-study.webp          Jacques-Louis David, The Emperor Napoleon in His Study at the Tuileries (1812), National Gallery of Art, Washington. Public domain, via Wikimedia Commons.
