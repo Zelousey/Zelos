@@ -45,6 +45,11 @@ The head-to-head cards were removed (owner 2026-10-23); "who they learned from" 
     the other side is ready (the march on Thebes, a plan before the open), Cut the knot
     (Gordium; your stop is the sword), Lead from the front (the Granicus, find him in the
     Alexander Mosaic, the Malli wall).
+  - All four Aristotle lessons are scroll lessons (owner 2026-10-24): You become what you
+    practice (find him in Raphael's School of Athens, an every-trade checklist), The golden
+    middle (courage between coward and reckless, 1% risk), One good day is not a season (the
+    swallow; judge a strategy on 20 trades), Feel it, but aim it (Achilles' rage, the four
+    "rights", revenge trading).
   - Pictures: public-domain paintings from Wikimedia Commons (licence checked on Commons),
     toned red-and-black by `scripts/minds/lesson_images.py` into `webapp/public/minds/lessons/`,
     always with the credit line. A credit never covers something to tap.

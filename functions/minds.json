@@ -31,7 +31,125 @@
       "Aristotle taught that nobody is born brave, fair or skilled. You become brave by doing brave things, again and again, until it is who you are.",
       "Skill is not a gift you wait for. It is the sum of what you repeat."
      ],
-     "trading": "Good trading is a habit, not a mood. Follow the same checklist on every trade, even the boring ones, until you do it without thinking."
+     "trading": "Good trading is a habit, not a mood. Follow the same checklist on every trade, even the boring ones, until you do it without thinking.",
+     "scroll": {
+      "image": "lessons/aristotle-athens.webp",
+      "credit": "Raphael, The School of Athens (1509–11), Apostolic Palace, Vatican. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "About 1,800 years after Aristotle, Raphael painted him at the center of The School of Athens, next to his own teacher, Plato.",
+         "Aristotle carries a book: his Ethics, about how to live well."
+        ],
+        "image": true,
+        "task": {
+         "id": "find",
+         "kind": "tap",
+         "label": "Find Aristotle and tap him",
+         "image": "lessons/aristotle-plato.webp",
+         "credit": "Raphael, The School of Athens (1509–11), Apostolic Palace, Vatican. Public domain, via Wikimedia Commons.",
+         "spots": [
+          {
+           "label": "Plato",
+           "x": 0.36,
+           "y": 0.33,
+           "w": 0.14,
+           "h": 0.55
+          },
+          {
+           "label": "Aristotle",
+           "x": 0.51,
+           "y": 0.33,
+           "w": 0.15,
+           "h": 0.55,
+           "right": true
+          }
+         ],
+         "miss": "That's Plato, pointing up to the sky. Aristotle holds his hand out over the real world.",
+         "done": "That's him, holding his Ethics."
+        }
+       },
+       {
+        "lines": [
+         "In the Ethics he wrote that we learn by doing:",
+         "“men become builders by building and lyre-players by playing the lyre.”"
+        ],
+        "source": "Aristotle, Nicomachean Ethics, Book II, ch. 1",
+        "task": {
+         "id": "builder",
+         "kind": "quiz",
+         "question": "How does someone become a builder, says Aristotle?",
+         "options": [
+          "By being born one",
+          "By building",
+          "By reading about buildings"
+         ],
+         "answer": 1,
+         "why": "You learn a skill by doing it."
+        }
+       },
+       {
+        "lines": [
+         "Character works the same way. We become brave by doing brave acts, and fair by doing fair acts.",
+         "Do something often enough, and it becomes who you are."
+        ],
+        "task": {
+         "id": "repeat",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Day 1",
+         "to": "Habit",
+         "label": "Hold to repeat it",
+         "done": "Skill is the sum of what you repeat."
+        }
+       },
+       {
+        "lines": [
+         "Good trading is a habit, not a mood."
+        ],
+        "task": {
+         "id": "checklist",
+         "kind": "collect",
+         "label": "Drag your every-trade checklist into the box, or tap it",
+         "target": "My checklist, every trade",
+         "items": [
+          {
+           "label": "Is there a clear setup?"
+          },
+          {
+           "label": "Skip it when I feel lucky",
+           "wrong": true
+          },
+          {
+           "label": "Where is my stop?"
+          },
+          {
+           "label": "Is the size right?"
+          }
+         ],
+         "wrong": "A habit doesn't take days off.",
+         "done": "Same checklist, every trade, until you do it without thinking."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "fiftieth",
+         "kind": "quiz",
+         "question": "It's your 50th trade and the setup looks obvious. Do you still run your checklist?",
+         "options": [
+          "No, I know it by now",
+          "Yes, every trade, even the boring ones",
+          "Only if the last trade lost"
+         ],
+         "answer": 1,
+         "why": "You become what you practice."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "mean",
@@ -40,7 +158,131 @@
       "Aristotle said most good qualities sit between two bad ones. Courage sits between being reckless and being a coward.",
       "Too much of a good thing turns into a bad thing."
      ],
-     "trading": "Risk works the same way. Risking nothing teaches you nothing; risking too much wipes you out. The middle is a small, fixed amount on every trade."
+     "trading": "Risk works the same way. Risking nothing teaches you nothing; risking too much wipes you out. The middle is a small, fixed amount on every trade.",
+     "scroll": {
+      "image": "lessons/aristotle-homer.webp",
+      "credit": "Rembrandt, Aristotle with a Bust of Homer (1653), Metropolitan Museum of Art, New York. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Aristotle said most good qualities sit between two bad ones.",
+         "Courage sits between being a coward (too little) and being reckless (too much)."
+        ],
+        "source": "Aristotle, Nicomachean Ethics, Book II, ch. 7",
+        "image": true,
+        "task": {
+         "id": "courage",
+         "kind": "target",
+         "label": "Where does courage sit? Drag it there (or tap a place)",
+         "token": "Courage",
+         "zones": [
+          {
+           "label": "Coward (too little)",
+           "why": "That's too little."
+          },
+          {
+           "label": "The middle",
+           "right": true
+          },
+          {
+           "label": "Reckless (too much)",
+           "why": "That's too much."
+          }
+         ],
+         "done": "Between too little and too much: the golden middle."
+        }
+       },
+       {
+        "lines": [
+         "He found the same pattern everywhere. Even with money."
+        ],
+        "task": {
+         "id": "generous",
+         "kind": "quiz",
+         "question": "Being generous sits between which two?",
+         "options": [
+          "Being stingy and wasting money",
+          "Being rich and being poor",
+          "Being kind and being mean"
+         ],
+         "answer": 0,
+         "why": "Too little is stingy, too much is wasteful."
+        }
+       },
+       {
+        "lines": [
+         "Too much of a good thing turns into a bad thing.",
+         "In trading, the middle has a shape too."
+        ],
+        "task": {
+         "id": "middle",
+         "kind": "pick",
+         "label": "Pick the 2 that are the golden middle in trading",
+         "need": 2,
+         "options": [
+          {
+           "label": "Risk the same small amount on every trade",
+           "right": true
+          },
+          {
+           "label": "Bet everything on one trade"
+          },
+          {
+           "label": "Trade a few good setups a week",
+           "right": true
+          },
+          {
+           "label": "Never place a trade at all"
+          }
+         ],
+         "why": "Not too much, not too little."
+        }
+       },
+       {
+        "lines": [
+         "Risking nothing teaches you nothing. Risking too much wipes you out."
+        ],
+        "task": {
+         "id": "risk",
+         "kind": "target",
+         "label": "Your $10,000 account. How much do you risk on one trade? Drag it (or tap)",
+         "token": "Risk per trade",
+         "zones": [
+          {
+           "label": "$1 (almost nothing)",
+           "why": "Too little to learn how a loss feels."
+          },
+          {
+           "label": "About $100 (1%)",
+           "right": true
+          },
+          {
+           "label": "$3,000 (30%)",
+           "why": "Three losses in a row and you're nearly broke."
+          }
+         ],
+         "done": "Small and fixed, every trade."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "streak",
+         "kind": "quiz",
+         "question": "You had a great week. Should you triple your trade size?",
+         "options": [
+          "Yes, ride the streak",
+          "No, keep the same modest size",
+          "Stop trading for good"
+         ],
+         "answer": 1,
+         "why": "Too much of a good thing turns into a bad thing."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "one-swallow",
@@ -49,7 +291,120 @@
       "He said one swallow does not make a spring. A single good day does not make a happy life.",
       "What counts is the long run."
      ],
-     "trading": "One big win doesn't prove your method works, and one loss doesn't prove it fails. Judge yourself on 20 or more trades, not one."
+     "trading": "One big win doesn't prove your method works, and one loss doesn't prove it fails. Judge yourself on 20 or more trades, not one.",
+     "scroll": {
+      "image": "lessons/aristotle-swallow.webp",
+      "credit": "Barn swallow, from Johann Andreas Naumann's Natural History of the Birds of Germany (1820–60). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "In Greece, swallows fly back every spring.",
+         "Aristotle wrote: “It is not one swallow or a fine day that makes a spring.”"
+        ],
+        "source": "Aristotle, Nicomachean Ethics, Book I, ch. 7",
+        "image": true,
+        "task": {
+         "id": "meaning",
+         "kind": "quiz",
+         "question": "What does “one swallow doesn't make a spring” mean?",
+         "options": [
+          "Birds can't be trusted",
+          "One good sign doesn't prove the season has changed",
+          "Spring is short"
+         ],
+         "answer": 1,
+         "why": "One good day doesn't make a good life. Only a long run of them does."
+        }
+       },
+       {
+        "lines": [
+         "What counts is the long run.",
+         "So what would actually prove a trading strategy works?"
+        ],
+        "task": {
+         "id": "proof",
+         "kind": "collect",
+         "label": "Drag only real proof into the box (the rest bounces back), or tap it",
+         "target": "Real proof",
+         "items": [
+          {
+           "label": "20+ trades, all tracked"
+          },
+          {
+           "label": "One huge win last week",
+           "wrong": true
+          },
+          {
+           "label": "Wins and losses both written down"
+          },
+          {
+           "label": "A friend says it works",
+           "wrong": true
+          }
+         ],
+         "wrong": "That's one swallow.",
+         "done": "A season, not a swallow."
+        }
+       },
+       {
+        "lines": [
+         "One big win doesn't prove your method works, and one loss doesn't prove it fails."
+        ],
+        "task": {
+         "id": "twenty",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Trade 1",
+         "to": "Trade 20",
+         "label": "Hold to log 20 trades",
+         "done": "Now you have enough to judge it."
+        }
+       },
+       {
+        "lines": [
+         "Your new strategy just lost its very first trade."
+        ],
+        "task": {
+         "id": "first",
+         "kind": "target",
+         "label": "What now? Drag your strategy there (or tap)",
+         "token": "Your strategy",
+         "zones": [
+          {
+           "label": "Throw it out",
+           "why": "One loss is one swallow."
+          },
+          {
+           "label": "Keep following it, and judge it after 20 trades",
+           "right": true
+          },
+          {
+           "label": "Double the size to win it back",
+           "why": "That's revenge, not a plan."
+          }
+         ],
+         "done": "Judge the season, not the day."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "which",
+         "kind": "quiz",
+         "question": "Which tells you more about a strategy?",
+         "options": [
+          "One trade that made 40%",
+          "20 trades with a small, steady edge",
+          "A screenshot from a stranger"
+         ],
+         "answer": 1,
+         "why": "Judge yourself on 20 or more trades, not one."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "anger",
@@ -58,7 +413,138 @@
       "Aristotle didn't say never get angry. He said anyone can get angry; doing it at the right time, for the right reason, by the right amount, is the hard part.",
       "Emotions are fine. Being run by them isn't."
      ],
-     "trading": "After a loss you will want to win it back fast. That is revenge trading. Notice the feeling, close the app, and come back to your plan tomorrow."
+     "trading": "After a loss you will want to win it back fast. That is revenge trading. Notice the feeling, close the app, and come back to your plan tomorrow.",
+     "scroll": {
+      "image": "lessons/aristotle-achilles.webp",
+      "credit": "Jacques-Louis David, The Anger of Achilles (1819), Kimbell Art Museum, Fort Worth. Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "The Iliad, the poem Aristotle's student Alexander carried everywhere, begins with one word: rage. The rage of Achilles.",
+         "His anger at his own king, Agamemnon, cost the Greeks dearly."
+        ],
+        "image": true,
+        "task": {
+         "id": "calm",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Angry",
+         "to": "Calm",
+         "label": "Hold to cool down",
+         "done": "Breathe. Now you can think."
+        }
+       },
+       {
+        "lines": [
+         "Aristotle didn't say never get angry. He wrote:",
+         "“Any one can get angry—that is easy—… but to do this to the right person, to the right extent, at the right time, with the right motive, and in the right way, that is not for every one.”"
+        ],
+        "source": "Aristotle, Nicomachean Ethics, Book II, ch. 9",
+        "task": {
+         "id": "rights",
+         "kind": "pick",
+         "label": "Pick the 4 “rights” Aristotle lists",
+         "need": 4,
+         "options": [
+          {
+           "label": "The right person",
+           "right": true
+          },
+          {
+           "label": "The loudest way"
+          },
+          {
+           "label": "The right amount",
+           "right": true
+          },
+          {
+           "label": "The right time",
+           "right": true
+          },
+          {
+           "label": "As fast as possible"
+          },
+          {
+           "label": "The right reason",
+           "right": true
+          }
+         ],
+         "why": "Feelings are fine. Aim them."
+        }
+       },
+       {
+        "lines": [
+         "After a loss, you'll want to win it back fast. That's revenge trading."
+        ],
+        "task": {
+         "id": "signs",
+         "kind": "collect",
+         "label": "Drag the warning signs of revenge trading into the box, or tap them",
+         "target": "Warning signs",
+         "items": [
+          {
+           "label": "Doubling your size after a loss"
+          },
+          {
+           "label": "Sticking to your normal size",
+           "wrong": true
+          },
+          {
+           "label": "Trading a stock you never planned"
+          },
+          {
+           "label": "Needing to “get it back” today"
+          }
+         ],
+         "wrong": "That's the calm move.",
+         "done": "Spot the feeling before it trades for you."
+        }
+       },
+       {
+        "lines": [
+         "You just lost $200 on a trade."
+        ],
+        "task": {
+         "id": "next",
+         "kind": "target",
+         "label": "Drag yourself to the right next step (or tap one)",
+         "token": "You",
+         "zones": [
+          {
+           "label": "Jump into another trade now",
+           "why": "That's anger choosing."
+          },
+          {
+           "label": "Close the app, come back tomorrow",
+           "right": true
+          },
+          {
+           "label": "Double up to win it back",
+           "why": "That's revenge trading."
+          }
+         ],
+         "done": "Emotions are fine. Being run by them isn't."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "when",
+         "kind": "quiz",
+         "question": "After a big loss, when should you make your next trade?",
+         "options": [
+          "Right away, while you're fired up",
+          "When you're calm and it fits your plan",
+          "Never again"
+         ],
+         "answer": 1,
+         "why": "Notice the feeling, then come back to your plan."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
