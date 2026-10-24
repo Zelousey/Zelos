@@ -16,8 +16,13 @@ import { useEmulators } from './firebaseConfig';
 // Browser tests only (emulator build): sign in with email/password, since Google's popup
 // can't be driven in CI. Vite drops this from normal builds (useEmulators is false there).
 if (useEmulators) {
-  (window as unknown as { __zelosTestSignIn?: (email: string, pw: string) => Promise<unknown> }).__zelosTestSignIn = (email, pw) =>
-    signInWithEmailAndPassword(auth(), email, pw).catch(() => createUserWithEmailAndPassword(auth(), email, pw));
+  // wait for Auth to finish starting up first: a sign-in sent before that could be dropped
+  // unanswered, which failed a test about 1 run in 170 ("promise was garbage collected", 2026-10-24)
+  (window as unknown as { __zelosTestSignIn?: (email: string, pw: string) => Promise<unknown> }).__zelosTestSignIn = async (email, pw) => {
+    const a = auth();
+    await a.authStateReady();
+    return signInWithEmailAndPassword(a, email, pw).catch(() => createUserWithEmailAndPassword(a, email, pw));
+  };
 }
 
 export type SignInProvider = 'apple' | 'google';
