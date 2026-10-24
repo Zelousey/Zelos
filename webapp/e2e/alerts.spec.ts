@@ -102,7 +102,8 @@ test.describe('signed in', () => {
     await put(`wallets/${uid}`, { balance: 50, welcomed: true, passes: {} });
     await page.reload();
     await page.getByRole('button', { name: 'Unlock · 25 tokens' }).click();
-    await expect(page.getByRole('heading', { name: 'MSFT', level: 1 })).toBeVisible();
+    // the first tokens_spend call starts its emulator worker (~5 s here, more on a busy CI runner)
+    await expect(page.getByRole('heading', { name: 'MSFT', level: 1 })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText('$95.00')).toBeVisible();
     const w = await get(`wallets/${uid}`);
     expect(w.fields.balance.integerValue).toBe('25');
