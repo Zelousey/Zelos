@@ -3,7 +3,7 @@
 > Canonical snapshot of what exists, what is in progress, what is broken, and what must be verified.
 > This file is the **current-state document**, not the complete product specification
 > (that is `MASTER_PLAN.md` plus `AGENTICTRADING_MASTER_SPEC.md`).
-> A new Claude session should be able to continue from this file alone.
+> A new Claude session should be able to continue from this file alone. Start with `docs/HANDOFF.md` (latest handoff).
 >
 > **Last verified against the repository:** 2026-10-08 (after PRs #37 and #38; News v2 on `claude/news-v2`).
 
