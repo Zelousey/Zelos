@@ -1,5 +1,7 @@
 # Handoff (2026-10-25)
 
+(The `xp_award` deploy for the new lesson steps is done, owner 2026-10-25.)
+
 For the next Claude session: read this first, then `PROJECT_STATE.md` (decision log, newest first)
 and the topic doc for whatever you work on. Everything below is on `main` unless it says otherwise.
 
@@ -19,14 +21,11 @@ and the topic doc for whatever you work on. Everything below is on `main` unless
   only** ("Then & now", with the not-connected note), never a picture or a card.
 
 ## Waiting on the owner
-1. **Deploy `xp_award`** (the Caesar, Alexander, Aristotle and Franklin lesson steps pay XP only after it):
-   ```
-   cd ~/Zelos && git checkout main && git pull origin main && source functions/venv/bin/activate && npx -y firebase-tools@latest deploy --only "functions:xp_award" --project leaderboard-agentictrading
-   ```
-2. Sign in with Apple setup (key + Services ID + Firebase): `docs/SIGN_IN_WITH_APPLE.md`.
-3. Verify the Square token checkout end to end before launch.
+1. Sign in with Apple setup (key + Services ID + Firebase): `docs/SIGN_IN_WITH_APPLE.md`.
+2. Verify the Square token checkout end to end before launch.
 
 ## Open PRs
+- **#117** new logo (the owner's bull vs bear picture, every icon): waiting for the owner's "merge".
 - **#81** iPhone app shell (Codemagic): **on hold** by the owner. Don't merge.
 - **#94** "Boosts" (Oct 22): most likely **superseded** by the later spends that are on main
   (XP booster, battle slots, quiz retake). Compare with main and ask the owner before closing it.
@@ -40,18 +39,17 @@ and the topic doc for whatever you work on. Everything below is on `main` unless
 - Details: `docs/HALL_OF_MINDS.md`.
 
 ## Next up (owner's queue)
-- **Square UI look** and **logo mock-ups** (owner 2026-10-25): mock-ups are in `docs/mockups/`,
-  sent to the owner; **waiting for their pick**, build nothing before it.
+- **Square UI look** (owner 2026-10-25): mock-ups in `docs/mockups/`, sent to the owner;
+  **waiting for their pick (A/B/C)**, build nothing before it.
   - Square UI: `square-*.jpg` show real screens in A (today, 8/12px corners), B (2px) and C (0px).
     Corners come from `--radius-sm/--radius/--radius-lg/--radius-pill` in
     `webapp/src/styles/tokens.css`, plus about 30 one-off `border-radius` values in module CSS
     (`grep -rn "border-radius" webapp/src`). The mock-up forced them with an injected stylesheet;
     a real change should set the tokens and replace the one-offs, then re-check every screen
     (avatars and round dots may stay round if the owner wants).
-  - Logo: `logo-directions.jpg` (from `logo-directions.html`, plain SVG): 1 Z-Arrow, 2 Candle Z,
-    3 Trade War shield, 4 Square monogram, 5 Laurel Z, 6 Target O. The current icon is
-    `webapp/public/icons/icon-*.png` (glowing blue A/Z with network dots). After a pick: refine,
-    then export all icon sizes (PWA manifest, favicon, Apple touch icon, the classic site's icons).
+  - Logo: **decided** (owner 2026-10-25): their own bull vs bear picture, PR #117; master at
+    `docs/brand/logo-master.png`. `logo-directions.*` are the earlier ideas, kept for reference.
+    Not yet updated: the share image `og-image.png` and the arcade/demo favicons.
 - Scroll lessons for the other 6 figures: **Edison, Tesla, Livermore, Dow, Newton, Morgan**.
   When Edison converts, move the old-style 10 XP test lesson `edison:work` (in
   `scripts/minds_test.py` and `tests/rules/functions.e2e.mjs`) to a figure that's still old-style.
