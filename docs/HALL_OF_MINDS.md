@@ -25,6 +25,15 @@ that quote. The pictures are public domain from Wikimedia Commons, toned red by
 `webapp/public/minds/CREDITS.txt`; `pictures` in `data/minds.json` picks them per figure.
 The head-to-head cards were removed (owner 2026-10-23); "who they learned from" keeps the links.
 
+**The quote card** (owner 2026-10-24, "in-app card"): when someone opens Zelos and hasn't been in the
+Hall of Minds for 3 days, a small red card with a random short real quote slides up after a few
+seconds, with the figure's name (linking to that quote) and **Open Hall of Minds**. At most once a
+day, closable, never inside the Hall of Minds. This device remembers the last visit
+(`localStorage` `zelosMindsSeen`, set when the Hall of Minds opens; `zelosMindsCardDay` for the
+once-a-day limit), so it's per device and needs no server. Someone who has never been in gets their
+first card 3 days after first opening the app, so it doesn't crowd the welcome. The quotes load only
+when a card is due (`webapp/src/features/minds/QuoteCard.tsx`).
+
 ## Rules the owner set
 - **Historical figures only.** Modern people's photos belong to photographers, and their faces carry
   publicity rights (Steve Jobs's estate included); Apple also rejects apps for it.
