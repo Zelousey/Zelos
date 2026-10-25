@@ -39,14 +39,18 @@ export type ScrollLesson = { image: string; credit: string; slides: ScrollSlide[
 export type MindLesson = { id: string; title: string; text: string[]; trading: string; scroll?: ScrollLesson };
 export type MindQuote = { id: string; text: string; source: string; plain: string; trading: string };
 export type Account = { title: string; text: string; source: string };
-/** Who they learned from (or who learned from them), linking to those figures' pages. */
-export type Studied = { title: string; text: string; source: string; figures: string[] };
+/** A public-domain picture under public/minds/, with its credit. */
+export type Picture = { image: string; credit: string };
+/** Who they learned from (or who learned from them), linking to those figures' pages; a teacher who isn't a figure here can have a picture. */
+export type Studied = { title: string; text: string; source: string; figures: string[]; picture?: Picture };
 export type Group = 'markets' | 'history';
 /** Then & now: a words-only comparison with a modern person (owner 2026-10-23: no modern faces). */
 export type ThenNow = { modern: string; text: string[]; trading: string };
 export type Figure = {
   id: string; name: string; role: string; years: string; tagline: string; portrait: string;
   story: string[]; carried: Account[]; studied: Studied[]; group: Group; lessons: MindLesson[]; quotes: MindQuote[]; thenNow?: ThenNow;
+  /** the pictures on the story and "how they carried themselves" pages (owner 2026-10-24) */
+  pictures: { story: Picture; carried: Picture };
 };
 export const FIGURES = raw.figures as Figure[];
 export const MODERN_NOTE = raw.modernNote as string;
@@ -67,6 +71,15 @@ export const mindImageUrl = (file: string) => `${import.meta.env.BASE_URL}minds/
 export const lessonRef = (figure: string, lesson: string) => `${figure}:${lesson}`;
 export const stepRef = (figure: string, lesson: string, task: string) => `${figure}:${lesson}:${task}`;
 export const lessonPath = (figure: string, lesson: string) => `/minds/${figure}/learn/${lesson}`;
+
+/**
+ * A figure's page is a dashboard of short pages (owner 2026-10-24: "instead of one long page"),
+ * in this order; Then & now only for figures that have one.
+ */
+export const SECTIONS = ['story', 'carried', 'learned', 'lessons', 'quotes', 'now'] as const;
+export type Section = (typeof SECTIONS)[number];
+export const sectionsOf = (f: Figure): Section[] => SECTIONS.filter((x) => x !== 'now' || !!f.thenNow);
+export const sectionPath = (figure: string, section: Section) => `/minds/${figure}/${section}`;
 export const scrollTasks = (l: MindLesson) => (l.scroll?.slides ?? []).flatMap((x) => (x.task ? [x.task] : []));
 export const figureProgress = (f: Figure, done: string[]) => f.lessons.filter((l) => done.includes(lessonRef(f.id, l.id))).length;
 

@@ -14,7 +14,7 @@ import { t } from '../../lib/i18n';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { Button, buttonClass } from '../../ui';
 import { LessonTask } from './LessonTasks';
-import { figureById, lessonRef, markMind, mindImageUrl, portraitUrl, scrollTasks, STEP_XP, stepRef, stepXp, type Figure, type MindLesson, type ScrollLesson, type ScrollSlide, type ScrollTask } from './minds';
+import { figureById, lessonRef, markMind, mindImageUrl, portraitUrl, scrollTasks, sectionPath, STEP_XP, stepRef, stepXp, type Figure, type MindLesson, type ScrollLesson, type ScrollSlide, type ScrollTask } from './minds';
 import s from './ScrollLesson.module.css';
 
 /** a portrait (taller than wide) is shown from the top, so the face isn't cut off */
@@ -215,7 +215,7 @@ function Lesson({ f, l, sc }: { f: Figure; l: MindLesson; sc: ScrollLesson }) {
             <p>{l.trading}</p>
           </div>
           <p className={s.total}>{signedIn ? (earned > 0 ? t('sl.earned', { xp: earned }) : t('sl.already')) : t('sl.signInXp', { xp: STEP_XP })}</p>
-          <Link to={`/minds/${f.id}`} className={buttonClass({ variant: 'primary' })}>
+          <Link to={sectionPath(f.id, 'lessons')} className={buttonClass({ variant: 'primary' })}>
             {t('sl.backTo', { name: f.name.split(' ')[0]! })}
           </Link>
         </div>
@@ -263,7 +263,7 @@ function Lesson({ f, l, sc }: { f: Figure; l: MindLesson; sc: ScrollLesson }) {
   return (
     <div className={s.lesson} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className={s.bar}>
-        <Link to={`/minds/${f.id}`} className={s.barBack} aria-label={t('sl.back', { name: f.name })}>
+        <Link to={sectionPath(f.id, 'lessons')} className={s.barBack} aria-label={t('sl.back', { name: f.name })}>
           ←
         </Link>
         <div className={s.barText}>

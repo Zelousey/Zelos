@@ -35,6 +35,19 @@ JOBS = {
     "franklin-almanack": ("poor.img", (0.05, 0.02, 0.97, 0.98), 600),  # Poor Richard, 1739
     "franklin-virtues": ("virtues.img", (0.03, 0.02, 0.97, 0.62), 800),  # his chart of the 13 virtues
     "franklin-lightning": ("west.img", (0, 0, 1, 0.8), 800),  # West: Franklin drawing electricity from the sky
+    # a figure's story and "how they carried themselves" pages (owner 2026-10-24)
+    "edison-phonograph": ("edison-phono.img", (0, 0.1, 1, 0.78), 800),  # Brady, 1878: Edison and his phonograph
+    "edison-menlo": ("edison-lab.img", (0.02, 0, 0.98, 0.78), 900),  # the Menlo Park lab and its team, 1879
+    "tesla-sparks": ("tesla-equip.img", (0, 0, 1, 1), 1000),  # Colorado Springs, 1899: calm beside the sparks
+    "tesla-lab": ("tesla-lab.img", (0, 0.42, 1, 1), 700),  # the Colorado Springs lab
+    "livermore-panic": ("panic1907.img", (0, 0, 1, 1), 800),  # Wall Street in the Panic of 1907
+    "livermore-floor": ("nyse1908.img", (0, 0, 1, 1), 737),  # the New York Stock Exchange floor, 1908
+    "dow-journal": ("wsj1889.img", (0, 0, 1, 1), 571),  # the first Wall Street Journal, 1889
+    "dow-ticker": ("ticker.img", (0.1, 0.06, 0.9, 0.95), 700),  # Edison's stock ticker
+    "newton-principia": ("principia.img", (0.03, 0.02, 0.97, 0.98), 700),  # the Principia, 1687
+    "newton-blake": ("blake.img", (0, 0, 1, 1), 1000),  # William Blake's Newton
+    "morgan-puck": ("puck1910.img", (0, 0, 1, 1), 800),  # Puck, 1910: The Central Bank
+    "morgan-steichen": ("steichen.img", (0.05, 0.08, 0.95, 0.9), 800),  # Steichen's 1903 photograph
 }
 
 

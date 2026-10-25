@@ -55,40 +55,104 @@ test('the grid: one red card per great mind, with market legends on their own ta
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test('a figure: lessons with a trading takeaway, real quotes explained in plain words', async ({ page }) => {
+test('a figure: a dashboard of short pages, from the story to then & now', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('minds');
   await page.getByRole('link', { name: /^Napoleon Bonaparte/ }).click();
   await expect(page).toHaveURL(/\/app\/minds\/napoleon$/);
   await expect(page.getByRole('heading', { name: 'Napoleon Bonaparte', level: 1 })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Lessons from Napoleon' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Lessons from Napoleon' }).getByRole('heading', { level: 3 })).toHaveCount(4);
-  await expect(page.getByText('Use it in trading').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in to turn on' })).toBeVisible();
+  // owner 2026-10-24: a little dashboard instead of one long page
+  const tiles = page.getByRole('navigation', { name: 'About Napoleon Bonaparte' }).getByRole('link');
+  await expect(tiles).toHaveCount(6);
+  await expect(tiles.nth(0)).toContainText('Their story');
+  await expect(tiles.nth(5)).toContainText('Then & now');
+  await expect(page.getByRole('heading', { name: 'Fighting next to his men' })).toHaveCount(0); // the parts are on their own pages
+  await axe(page);
+  // their story, with a picture and its credit
+  await tiles.nth(0).click();
+  await expect(page).toHaveURL(/\/app\/minds\/napoleon\/story$/);
+  await expect(page.getByRole('heading', { name: 'Their story', level: 1 })).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Picture: Jacques-Louis David/ })).toBeVisible();
+  await expect(page.getByText(/^Napoleon was born in 1769 on Corsica/)).toBeVisible();
+  await axe(page);
+  // Next goes through the parts in order
+  const next = page.getByRole('navigation', { name: 'More about them' }).getByRole('link', { name: /^Next/ });
+  await next.click();
+  await expect(page.getByRole('heading', { name: 'How they carried themselves', level: 1 })).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Picture: Antoine-Jean Gros/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Fighting next to his men' })).toBeVisible();
+  await expect(page.getByText(/the little corporal/)).toBeVisible();
+  await next.click();
+  await expect(page.getByRole('heading', { name: 'Who they learned from', level: 1 })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Alexander the Great, .*Meet Alexander/ })).toBeVisible(); // their red cards
+  await axe(page);
+  await next.click();
+  await expect(page.getByRole('heading', { name: 'Lessons from Napoleon', level: 1 })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('listitem').getByRole('heading', { level: 2 })).toHaveCount(4);
+  await next.click();
+  await expect(page.getByRole('heading', { name: 'In Napoleon’s words', level: 1 })).toBeVisible();
   await expect(page.getByText(/Read over and over again the campaigns of Alexander/)).toBeVisible();
   await expect(page.getByText(/Military Maxims of Napoleon, Maxim 78/).first()).toBeVisible();
   await expect(page.getByText('In plain words').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign in to turn on' })).toBeVisible();
-  // the deeper sections: their story, accounts with sources, and a words-only modern comparison
-  await expect(page.getByRole('heading', { name: 'Their story' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'How they carried themselves' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Fighting next to his men' })).toBeVisible();
-  await expect(page.getByText(/the little corporal/)).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Then & now: Napoleon and Elon Musk' })).toBeVisible();
+  await next.click();
+  await expect(page.getByRole('heading', { name: 'Then & now: Napoleon and Elon Musk', level: 1 })).toBeVisible();
   await expect(page.getByText(/aren.t connected to Zelos and don.t endorse it/)).toBeVisible();
+  await expect(page.getByRole('main').getByRole('img')).toHaveCount(0); // words only, no modern faces
   await axe(page);
-  // who he learned from, linking to their pages
-  await expect(page.getByRole('heading', { name: 'Who they learned from' })).toBeVisible();
-  await page.getByRole('link', { name: 'Meet Alexander the Great →' }).click();
+  // the last part leads back to the dashboard; Back goes the other way
+  await page.getByRole('link', { name: /Back to Napoleon’s page/ }).click();
+  await expect(page).toHaveURL(/\/app\/minds\/napoleon$/);
+  await page.goto('minds/napoleon/carried');
+  await page.getByRole('navigation', { name: 'More about them' }).getByRole('link', { name: /^← Back/ }).click();
+  await expect(page.getByRole('heading', { name: 'Their story', level: 1 })).toBeVisible();
+  // a teacher's red card opens their page
+  await page.goto('minds/napoleon/learned');
+  await page.getByRole('link', { name: /^Alexander the Great/ }).click();
   await expect(page).toHaveURL(/\/app\/minds\/alexander$/);
   await expect(page.getByRole('heading', { name: 'Alexander the Great', level: 1 })).toBeVisible();
+  // a figure without a then & now has five parts; an unknown part goes to the dashboard
+  await expect(page.getByRole('navigation', { name: 'About Alexander the Great' }).getByRole('link')).toHaveCount(5);
+  await page.goto('minds/alexander/now');
+  await expect(page).toHaveURL(/\/app\/minds\/alexander$/);
   // the old head-to-head pages go to the grid
   await page.goto('minds/vs/alexander-napoleon');
   await expect(page).toHaveURL(/\/app\/minds$/);
-  // a daily-quote notification opens the figure on that quote
+  // a daily-quote notification opens the quotes page on that quote
   await page.goto('minds/caesar?q=believe');
+  await expect(page).toHaveURL(/\/app\/minds\/caesar\/quotes\?q=believe$/);
   await expect(page.getByText('Men willingly believe what they wish.', { exact: false })).toBeInViewport();
   await page.goto('minds/elon');
   await expect(page.getByText('That page isn’t in the Hall of Minds.')).toBeVisible();
+});
+
+test('a figure on a phone: swipe sideways between the parts, and every tile has its picture', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'touch swipes');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const id of ['aristotle', 'alexander', 'napoleon', 'caesar', 'franklin', 'edison', 'tesla', 'livermore', 'dow', 'newton', 'morgan']) {
+    await page.goto(`minds/${id}`);
+    const pics = page.getByRole('navigation', { name: /^About / }).locator('img');
+    await expect.poll(async () => (await pics.evaluateAll((xs) => xs.map((x) => (x as HTMLImageElement).naturalWidth > 0))).every(Boolean), { message: id }).toBe(true);
+  }
+  await page.goto('minds/napoleon/story');
+  await expect(page.getByRole('heading', { name: 'Their story', level: 1 })).toBeVisible();
+  const swipe = (dx: number) =>
+    page.evaluate((dx) => {
+      const el = document.querySelector('h1')!; // the swipe bubbles up to the page
+      const at = (x: number) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 })];
+      el.dispatchEvent(new TouchEvent('touchstart', { touches: at(200), changedTouches: at(200), bubbles: true }));
+      el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: at(200 + dx), bubbles: true }));
+    }, dx);
+  await swipe(-150);
+  await expect(page.getByRole('heading', { name: 'How they carried themselves', level: 1 })).toBeVisible();
+  await swipe(-150);
+  await expect(page.getByRole('heading', { name: 'Who they learned from', level: 1 })).toBeVisible();
+  await swipe(150);
+  await expect(page.getByRole('heading', { name: 'How they carried themselves', level: 1 })).toBeVisible();
+  await swipe(-30); // too short: stays
+  await expect(page.getByRole('heading', { name: 'How they carried themselves', level: 1 })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
 });
 
 // scroll lessons (owner 2026-10-23): slides pin, a task opens the next one
@@ -111,7 +175,7 @@ const see = async (page: Page, target: Locator) => expect(await reach(page, targ
 
 test('a scroll lesson with reduced motion: every task works by tapping, and it reads well', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('minds/napoleon');
+  await page.goto('minds/napoleon/lessons');
   await tap(page, page.getByRole('link', { name: /Speed is a weapon/ }));
   await expect(page).toHaveURL(/\/app\/minds\/napoleon\/learn\/speed$/);
   await see(page, page.getByText('Sign in to earn 2 XP a step'));
@@ -135,7 +199,7 @@ test('a scroll lesson with reduced motion: every task works by tapping, and it r
   await expect(page.getByRole('progressbar', { name: 'Lesson progress' })).toHaveAttribute('aria-valuenow', '5');
   await axe(page);
   await tap(page, page.getByRole('link', { name: 'Back to Napoleon', exact: true }));
-  await expect(page).toHaveURL(/\/app\/minds\/napoleon$/);
+  await expect(page).toHaveURL(/\/app\/minds\/napoleon\/lessons$/); // back to the lessons it came from
 });
 
 test('Napoleon\'s other scroll lessons: books, the carved names, Austerlitz, Arcole; every task by tapping', async ({ page }) => {
@@ -206,7 +270,7 @@ test("Caesar's scroll lessons: the Rubicon, the fake deserter, small causes, the
     await page.keyboard.up('Space');
   };
   // Cross the Rubicon: a question, hold to decide, cross the river, pick 3
-  await page.goto('minds/caesar');
+  await page.goto('minds/caesar/lessons');
   await tap(page, page.getByRole('link', { name: /Cross the Rubicon/ }));
   await expect(page).toHaveURL(/\/app\/minds\/caesar\/learn\/rubicon$/);
   await tap(page, page.getByRole('button', { name: 'Civil war with Rome' }));
@@ -270,7 +334,7 @@ test("Alexander's scroll lessons: Aristotle and Bucephalus, Thebes, the Gordian 
     await page.keyboard.up('Space');
   };
   // Learn from the best: a question, turn the horse, the study list, pick 3
-  await page.goto('minds/alexander');
+  await page.goto('minds/alexander/lessons');
   await tap(page, page.getByRole('link', { name: /Learn from the best before you lead/ }));
   await expect(page).toHaveURL(/\/app\/minds\/alexander\/learn\/study$/);
   await tap(page, page.getByRole('button', { name: 'Aristotle' }));
@@ -335,7 +399,7 @@ test("Aristotle's scroll lessons: habits, the golden middle, one swallow, aimed 
     await page.keyboard.up('Space');
   };
   // You become what you practice: find him in the School of Athens, a question, hold, the checklist
-  await page.goto('minds/aristotle');
+  await page.goto('minds/aristotle/lessons');
   await tap(page, page.getByRole('link', { name: /You become what you practice/ }));
   await expect(page).toHaveURL(/\/app\/minds\/aristotle\/learn\/habits$/);
   await tap(page, page.getByRole('button', { name: 'Plato' }));
@@ -418,7 +482,7 @@ test("Franklin's scroll lessons: money makes money, time is money, the virtues c
     await page.keyboard.up('Space');
   };
   // Money makes money: a question, hold to grow, which grows more, keep it growing, the 50% loss
-  await page.goto('minds/franklin');
+  await page.goto('minds/franklin/lessons');
   await tap(page, page.getByRole('link', { name: /Money makes money/ }));
   await expect(page).toHaveURL(/\/app\/minds\/franklin\/learn\/compound$/);
   await tap(page, page.getByRole('button', { name: 'Produce more of' }));
@@ -486,12 +550,13 @@ test('a hold made with the keyboard keeps going when the pointer passes over the
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
   test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {
-    await page.goto('minds/tesla');
+    await page.goto('minds/tesla/lessons');
     const uid = await signIn(page, `minds-${info.project.name}-${Date.now()}`);
     const lesson = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Build it in your head first' }) });
     await lesson.getByRole('button', { name: 'Done reading · +10 XP' }).click();
     await expect(page.getByText('+10 XP', { exact: true })).toBeVisible();
     await expect(lesson.getByText('Read ✓')).toBeVisible();
+    await page.getByRole('link', { name: '← Nikola Tesla' }).click();
     await expect(page.getByText('1 of 4 lessons read')).toBeVisible();
     await fetch(`${BASE}/wallets/${uid}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { balance: { integerValue: '20' } } }) });
     await page.getByRole('button', { name: 'Turn on · 15 tokens' }).click();
@@ -501,7 +566,7 @@ test.describe('signed in', () => {
   });
 
   test('a swipe lesson, animated: hold, answer, drag Napoleon over the Alps, drag the buy line; 2 XP a step', async ({ page }, info) => {
-    await page.goto('minds/napoleon');
+    await page.goto('minds/napoleon/lessons');
     const uid = await signIn(page, `scroll-${info.project.name}-${Date.now()}`);
     await page.getByRole('link', { name: /Speed is a weapon/ }).click();
     // one wheel turn moves exactly one page (owner 2026-10-24: no long scrolling)
