@@ -40,8 +40,18 @@ and the topic doc for whatever you work on. Everything below is on `main` unless
 - Details: `docs/HALL_OF_MINDS.md`.
 
 ## Next up (owner's queue)
-- **Square UI look** and **logo mock-ups**: mock-ups were being made when this file was written
-  (owner 2026-10-25: "square UI, logo mock up"). Show pictures first; build nothing until they pick.
+- **Square UI look** and **logo mock-ups** (owner 2026-10-25): mock-ups are in `docs/mockups/`,
+  sent to the owner; **waiting for their pick**, build nothing before it.
+  - Square UI: `square-*.jpg` show real screens in A (today, 8/12px corners), B (2px) and C (0px).
+    Corners come from `--radius-sm/--radius/--radius-lg/--radius-pill` in
+    `webapp/src/styles/tokens.css`, plus about 30 one-off `border-radius` values in module CSS
+    (`grep -rn "border-radius" webapp/src`). The mock-up forced them with an injected stylesheet;
+    a real change should set the tokens and replace the one-offs, then re-check every screen
+    (avatars and round dots may stay round if the owner wants).
+  - Logo: `logo-directions.jpg` (from `logo-directions.html`, plain SVG): 1 Z-Arrow, 2 Candle Z,
+    3 Trade War shield, 4 Square monogram, 5 Laurel Z, 6 Target O. The current icon is
+    `webapp/public/icons/icon-*.png` (glowing blue A/Z with network dots). After a pick: refine,
+    then export all icon sizes (PWA manifest, favicon, Apple touch icon, the classic site's icons).
 - Scroll lessons for the other 6 figures: **Edison, Tesla, Livermore, Dow, Newton, Morgan**.
   When Edison converts, move the old-style 10 XP test lesson `edison:work` (in
   `scripts/minds_test.py` and `tests/rules/functions.e2e.mjs`) to a figure that's still old-style.
