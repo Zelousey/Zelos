@@ -1,8 +1,8 @@
-/** /minds → the Hall of Minds grid, /minds/:id → one great mind, /minds/:id/learn/:lesson → a scroll lesson. (The old head-to-head pages, /minds/vs/…, go to the grid.) */
+/** /minds → the Hall of Minds grid, /minds/:id → one great mind's dashboard, /minds/:id/:section → one of its pages, /minds/:id/learn/:lesson → a scroll lesson. (The old head-to-head pages, /minds/vs/…, go to the grid.) */
 import { useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { BookIntro } from './BookIntro';
-import { FigurePage } from './FigurePage';
+import { FigurePage, FigureSectionPage } from './FigurePage';
 import { MindsPage } from './MindsPage';
 import { ScrollLessonPage } from './ScrollLesson';
 
@@ -20,6 +20,7 @@ export default function MindsModule() {
         <Route path="vs/*" element={<Navigate to="/minds" replace />} />
         <Route path=":id" element={<FigurePage />} />
         <Route path=":id/learn/:lesson" element={<ScrollLessonPage />} />
+        <Route path=":id/:section" element={<FigureSectionPage />} />
       </Routes>
     </>
   );

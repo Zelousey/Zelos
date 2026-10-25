@@ -612,7 +612,11 @@
      "title": "Plato",
      "text": "Aristotle studied under Plato at the Academy in Athens for about 20 years, then went on to disagree with him on many things.",
      "source": "Diogenes Laertius, Lives of the Eminent Philosophers, Book 5",
-     "figures": []
+     "figures": [],
+     "picture": {
+      "image": "lessons/aristotle-plato.webp",
+      "credit": "Raphael, The School of Athens (1509–11), Apostolic Palace, Vatican. Public domain, via Wikimedia Commons."
+     }
     }
    ],
    "group": "history",
@@ -623,6 +627,16 @@
      "That's very close to how Aristotle worked: he studied animals, politics, logic and ethics, and used each to understand the others."
     ],
     "trading": "Don't learn only charts. Learn a little about how businesses, the economy and people's emotions work; each makes you read the chart better."
+   },
+   "pictures": {
+    "story": {
+     "image": "lessons/aristotle-athens.webp",
+     "credit": "Raphael, The School of Athens (1509–11), Apostolic Palace, Vatican. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/aristotle-homer.webp",
+     "credit": "Rembrandt, Aristotle with a Bust of Homer (1653), Metropolitan Museum of Art, New York. Public domain, via Wikimedia Commons."
+    }
    }
   },
   {
@@ -1226,7 +1240,17 @@
      ]
     }
    ],
-   "group": "history"
+   "group": "history",
+   "pictures": {
+    "story": {
+     "image": "lessons/alexander-issus.webp",
+     "credit": "The Alexander Mosaic (about 100 BC), from the House of the Faun, Pompeii; National Archaeological Museum, Naples. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/alexander-granicus.webp",
+     "credit": "Charles Le Brun, The Crossing of the Granicus (1665), Louvre, Paris. Public domain, via Wikimedia Commons."
+    }
+   }
   },
   {
    "id": "napoleon",
@@ -1812,6 +1836,16 @@
      "Both stories also show the risk: taking on too much at once."
     ],
     "trading": "Speed and hands-on work win, but only with a limit you respect. Plan fast, act fast, and stop for the day when you hit your loss limit."
+   },
+   "pictures": {
+    "story": {
+     "image": "lessons/napoleon-study.webp",
+     "credit": "Jacques-Louis David, The Emperor Napoleon in His Study at the Tuileries (1812), National Gallery of Art, Washington. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/napoleon-arcole.webp",
+     "credit": "Antoine-Jean Gros, Bonaparte at the Bridge of Arcole (1796). Public domain, via Wikimedia Commons."
+    }
    }
   },
   {
@@ -2423,7 +2457,17 @@
      ]
     }
    ],
-   "group": "history"
+   "group": "history",
+   "pictures": {
+    "story": {
+     "image": "lessons/caesar-rubicon.webp",
+     "credit": "Gustave Boulanger, Julius Caesar at the Rubicon (1854), Musée de Picardie, Amiens. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/caesar-alesia.webp",
+     "credit": "Lionel Royer, Vercingetorix Throws Down His Arms at the Feet of Julius Caesar (1899), Musée Crozatier, Le Puy-en-Velay. Public domain, via Wikimedia Commons."
+    }
+   }
   },
   {
    "id": "franklin",
@@ -3001,6 +3045,16 @@
      "Both made most of their fortune by letting money grow on itself over a very long time, and both are known for simple, careful habits."
     ],
     "trading": "Compounding needs time and no big losses. Protect your account first; growth comes from staying in the game."
+   },
+   "pictures": {
+    "story": {
+     "image": "lessons/franklin-lightning.webp",
+     "credit": "Benjamin West, Benjamin Franklin Drawing Electricity from the Sky (about 1816), Philadelphia Museum of Art. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/franklin-virtues.webp",
+     "credit": "Franklin's chart for his 13 virtues, redrawn from his Autobiography. Public domain (CC0), via Wikimedia Commons."
+    }
    }
   },
   {
@@ -3107,6 +3161,16 @@
      "Edison sold a whole system (the bulb and the power to run it); Apple sold the device, the software and the store together."
     ],
     "trading": "Think in systems, not single tricks: your setup, your sizing, your exits and your review all work together."
+   },
+   "pictures": {
+    "story": {
+     "image": "lessons/edison-phonograph.webp",
+     "credit": "Thomas Edison with his phonograph, photographed at Mathew Brady's studio (1878), Library of Congress. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/edison-menlo.webp",
+     "credit": "Edison's laboratory at Menlo Park and its team (1879), Thomas Edison National Historical Park. Public domain, via Wikimedia Commons."
+    }
    }
   },
   {
@@ -3220,6 +3284,16 @@
      "His ideas paid off hugely, but mostly for others, because he never learned to protect and fund his own work."
     ],
     "trading": "A great idea isn't enough. In trading, a great entry is wasted without a stop and a plan for taking profit."
+   },
+   "pictures": {
+    "story": {
+     "image": "lessons/tesla-lab.webp",
+     "credit": "Tesla's Colorado Springs laboratory, photograph by Charles Alley (1899). Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/tesla-sparks.webp",
+     "credit": "Nikola Tesla in his Colorado Springs laboratory, photograph by Dickenson V. Alley (1899, a double exposure). Public domain, via Wikimedia Commons."
+    }
    }
   },
   {
@@ -3337,7 +3411,17 @@
      ]
     }
    ],
-   "group": "markets"
+   "group": "markets",
+   "pictures": {
+    "story": {
+     "image": "lessons/livermore-panic.webp",
+     "credit": "A crowd on Wall Street in the Panic of 1907, New York Public Library. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/livermore-floor.webp",
+     "credit": "The floor of the New York Stock Exchange, by Helen D. Van Eaton, Leslie's Monthly Magazine (1908). Public domain, via Wikimedia Commons."
+    }
+   }
   },
   {
    "id": "dow",
@@ -3432,7 +3516,17 @@
      "figures": []
     }
    ],
-   "group": "markets"
+   "group": "markets",
+   "pictures": {
+    "story": {
+     "image": "lessons/dow-journal.webp",
+     "credit": "The first issue of The Wall Street Journal (8 July 1889), Dow Jones & Company. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/dow-ticker.webp",
+     "credit": "Thomas Edison's stock ticker, National Museum of American History, photograph by Jaclyn Nash. Public domain, via Wikimedia Commons."
+    }
+   }
   },
   {
    "id": "newton",
@@ -3533,7 +3627,17 @@
      "figures": []
     }
    ],
-   "group": "markets"
+   "group": "markets",
+   "pictures": {
+    "story": {
+     "image": "lessons/newton-principia.webp",
+     "credit": "The title page of Newton's Principia (1687), first edition, University of Strasbourg library. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/newton-blake.webp",
+     "credit": "William Blake, Newton (about 1795–1805). Public domain, via Wikimedia Commons."
+    }
+   }
   },
   {
    "id": "morgan",
@@ -3630,7 +3734,17 @@
      ]
     }
    ],
-   "group": "markets"
+   "group": "markets",
+   "pictures": {
+    "story": {
+     "image": "lessons/morgan-puck.webp",
+     "credit": "Frank A. Nankivell, The Central Bank, a cover of Puck magazine (1910), Library of Congress. Public domain, via Wikimedia Commons."
+    },
+    "carried": {
+     "image": "lessons/morgan-steichen.webp",
+     "credit": "Edward Steichen, J.P. Morgan (1903), The Morgan Library & Museum. Public domain, via Wikimedia Commons."
+    }
+   }
   }
  ]
 }

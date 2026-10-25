@@ -13,7 +13,7 @@ dow.webp        Charles Henry Dow, photograph (19th century). File:Charles_Henry
 newton.webp     Godfrey Kneller, Portrait of Sir Isaac Newton (1689). File:Portrait_of_Sir_Isaac_Newton,_1689.jpg
 morgan.webp     J.P. Morgan, photograph by Pach Brothers (1902). File:J.P._Morgan.jpg
 
-Scroll-lesson pictures (webapp/public/minds/lessons/, toned red by scripts/minds/lesson_images.py):
+Lesson and figure-page pictures (webapp/public/minds/lessons/, toned red by scripts/minds/lesson_images.py):
 alexander-aristotle.webp     Jean Leon Gerome Ferris, Aristotle Tutoring Alexander (1895). Public domain, via Wikimedia Commons.
 alexander-charge.webp        The Alexander Mosaic (about 100 BC), from the House of the Faun, Pompeii; National Archaeological Museum, Naples. Public domain, via Wikimedia Commons.
 alexander-granicus.webp      Charles Le Brun, The Crossing of the Granicus (1665), Louvre, Paris. Public domain, via Wikimedia Commons.
@@ -30,11 +30,23 @@ caesar-crossing.webp         Jean Fouquet, Caesar Crossing the Rubicon (about 14
 caesar-rubicon.webp          Gustave Boulanger, Julius Caesar at the Rubicon (1854), Musée de Picardie, Amiens. Public domain, via Wikimedia Commons.
 caesar-senate.webp           Jean-Léon Gérôme, The Death of Caesar (1859–67), Walters Art Museum, Baltimore. Public domain, via Wikimedia Commons.
 caesar-writing.webp          Caesar writing his Commentaries, from a 1783 Venice edition of his works. Public domain, via Wikimedia Commons.
+dow-journal.webp             The first issue of The Wall Street Journal (8 July 1889), Dow Jones & Company. Public domain, via Wikimedia Commons.
+dow-ticker.webp              Thomas Edison's stock ticker, National Museum of American History, photograph by Jaclyn Nash. Public domain, via Wikimedia Commons.
+edison-menlo.webp            Edison's laboratory at Menlo Park and its team (1879), Thomas Edison National Historical Park. Public domain, via Wikimedia Commons.
+edison-phonograph.webp       Thomas Edison with his phonograph, photographed at Mathew Brady's studio (1878), Library of Congress. Public domain, via Wikimedia Commons.
 franklin-almanack.webp       Poor Richard, 1739: An Almanack, printed and sold by B. Franklin, Philadelphia. Public domain, via Wikimedia Commons.
 franklin-lightning.webp      Benjamin West, Benjamin Franklin Drawing Electricity from the Sky (about 1816), Philadelphia Museum of Art. Public domain, via Wikimedia Commons.
 franklin-virtues.webp        Franklin's chart for his 13 virtues, redrawn from his Autobiography. Public domain (CC0), via Wikimedia Commons.
+livermore-floor.webp         The floor of the New York Stock Exchange, by Helen D. Van Eaton, Leslie's Monthly Magazine (1908). Public domain, via Wikimedia Commons.
+livermore-panic.webp         A crowd on Wall Street in the Panic of 1907, New York Public Library. Public domain, via Wikimedia Commons.
+morgan-puck.webp             Frank A. Nankivell, The Central Bank, a cover of Puck magazine (1910), Library of Congress. Public domain, via Wikimedia Commons.
+morgan-steichen.webp         Edward Steichen, J.P. Morgan (1903), The Morgan Library & Museum. Public domain, via Wikimedia Commons.
 napoleon-alps.webp           Jacques-Louis David, Napoleon Crossing the Alps (1801), Château de Malmaison. Public domain, via Wikimedia Commons.
 napoleon-arcole.webp         Antoine-Jean Gros, Bonaparte at the Bridge of Arcole (1796). Public domain, via Wikimedia Commons.
 napoleon-austerlitz.webp     François Gérard, The Battle of Austerlitz (1810), Palace of Versailles. Public domain, via Wikimedia Commons.
 napoleon-names.webp          Jacques-Louis David, Napoleon Crossing the Alps (1801), Château de Malmaison. Public domain, via Wikimedia Commons.
 napoleon-study.webp          Jacques-Louis David, The Emperor Napoleon in His Study at the Tuileries (1812), National Gallery of Art, Washington. Public domain, via Wikimedia Commons.
+newton-blake.webp            William Blake, Newton (about 1795–1805). Public domain, via Wikimedia Commons.
+newton-principia.webp        The title page of Newton's Principia (1687), first edition, University of Strasbourg library. Public domain, via Wikimedia Commons.
+tesla-lab.webp               Tesla's Colorado Springs laboratory, photograph by Charles Alley (1899). Public domain, via Wikimedia Commons.
+tesla-sparks.webp            Nikola Tesla in his Colorado Springs laboratory, photograph by Dickenson V. Alley (1899, a double exposure). Public domain, via Wikimedia Commons.

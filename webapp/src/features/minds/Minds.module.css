@@ -81,3 +81,51 @@ a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .playCard:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .playCard .kicker { color: rgb(255 255 255 / 0.82); }
 .playGo { display: inline-block; margin-top: var(--space-1); font-weight: 700; color: #fde68a; }
+
+/* a figure's dashboard (owner 2026-10-24): six tiles, each opening a short page */
+.tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile {
+  display: grid; grid-template-rows: auto 1fr; height: 100%; overflow: hidden; border-radius: var(--radius-lg, 14px);
+  background: var(--surface); border: 1px solid var(--border-soft); color: var(--ink); text-decoration: none;
+  transition: transform var(--dur-fast, 120ms) var(--ease-out, ease-out), box-shadow var(--dur-fast, 120ms);
+}
+.tile:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgb(0 0 0 / 0.3); }
+.tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.tileVisual { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 10; overflow: hidden; background: #b3170f; color: #fff; }
+.tilePic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; }
+.tileText { display: grid; align-content: start; gap: 2px; padding: var(--space-3); }
+.tileTitle { font-size: var(--text-sm); line-height: 1.25; }
+.tileLine { color: var(--ink-2); font-size: var(--text-xs); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tileBig { font-weight: 900; font-size: clamp(1.8rem, 6vw, 2.6rem); font-variant-numeric: tabular-nums; }
+.tileQuote {
+  margin: 0 var(--space-3); font-family: Georgia, 'Times New Roman', serif; font-size: var(--text-sm); line-height: 1.35; text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; max-height: calc(1.35em * 4);
+}
+.tileNow { display: grid; justify-items: center; gap: 2px; padding: var(--space-3); text-align: center; font-size: var(--text-sm); line-height: 1.2; }
+.tileNow i { font-style: normal; opacity: 0.8; }
+.tileTeachers { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-end; }
+.tileFace { position: relative; flex: 0 1 40%; height: 88%; }
+.tileFace .portrait { height: 100%; }
+
+/* a section page: its picture, and the next / back bar */
+.pic { margin: 0; overflow: hidden; border-radius: var(--radius-lg, 14px); background: #140303; }
+.pic img { display: block; width: 100%; height: clamp(200px, 44vh, 420px); object-fit: cover; object-position: 50% 20%; }
+.picCredit { padding: var(--space-2) var(--space-3); color: rgb(255 255 255 / 0.75); font-size: var(--text-xs); line-height: 1.35; }
+.studied { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.studied .pic { margin-top: var(--space-2); }
+.meetList { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.sectionNav { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.sectionPrev, .sectionNext {
+  display: grid; gap: 2px; padding: var(--space-3) var(--space-4); min-height: var(--tap); border-radius: var(--radius-lg, 14px);
+  background: var(--surface); border: 1px solid var(--border-soft); color: var(--ink); text-decoration: none;
+}
+.sectionNext { text-align: right; background: #b3170f; border-color: #b3170f; color: #fff; }
+.sectionNext .kicker { color: rgb(255 255 255 / 0.82); }
+.sectionPrev:hover, .sectionNext:hover { transform: translateY(-1px); }
+.sectionPrev:focus-visible, .sectionNext:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.inRight { animation: hm-in-right 280ms var(--ease-out, ease-out); }
+.inLeft { animation: hm-in-left 280ms var(--ease-out, ease-out); }
+@keyframes hm-in-right { from { opacity: 0; transform: translateX(48px); } }
+@keyframes hm-in-left { from { opacity: 0; transform: translateX(-48px); } }
+@media (max-width: 760px) { .tileQuote { -webkit-line-clamp: 3; max-height: calc(1.35em * 3); font-size: var(--text-xs); } }

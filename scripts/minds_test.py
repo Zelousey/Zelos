@@ -54,6 +54,16 @@ class Content(unittest.TestCase):
                 self.assertEqual(set(tn), {"modern", "text", "trading"}, "no image or anything else")
         self.assertIn("aren't connected to Zelos", M.DATA["modernNote"])
 
+    def test_every_figure_page_has_its_pictures(self):
+        # owner 2026-10-24: the story and "how they carried themselves" pages each have a picture
+        for f in M.FIGURES.values():
+            pics = [f["pictures"]["story"], f["pictures"]["carried"]] + [x["picture"] for x in f["studied"] if x.get("picture")]
+            for p in pics:
+                self.assertEqual(set(p), {"image", "credit"}, f["id"])
+                self.assertIn("Public domain", p["credit"], (f["id"], p["image"]))
+                self.assertTrue(os.path.exists(os.path.join(ROOT, "webapp", "public", "minds", p["image"])), p["image"])
+            self.assertNotEqual(f["pictures"]["story"]["image"], f["pictures"]["carried"]["image"], f["id"])
+
     def test_story_and_accounts_with_sources(self):
         for f in M.FIGURES.values():
             self.assertGreaterEqual(len(f["story"]), 5, f["id"])
