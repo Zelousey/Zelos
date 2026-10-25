@@ -1,9 +1,10 @@
 /** /minds → the Hall of Minds grid, /minds/:id → one great mind's dashboard, /minds/:id/:section → one of its pages, /minds/:id/learn/:lesson → a scroll lesson. (The old head-to-head pages, /minds/vs/…, go to the grid.) */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { BookIntro } from './BookIntro';
 import { FigurePage, FigureSectionPage } from './FigurePage';
 import { MindsPage } from './MindsPage';
+import { markMindsSeen } from './QuoteCard';
 import { ScrollLessonPage } from './ScrollLesson';
 
 export default function MindsModule() {
@@ -12,6 +13,8 @@ export default function MindsModule() {
   // figure or a lesson opens without it
   const { pathname } = useLocation();
   const [intro] = useState(() => /\/minds\/?$/.test(pathname));
+  // the quote card waits until you've been away from the Hall of Minds a few days
+  useEffect(() => markMindsSeen(), []);
   return (
     <>
       {intro && <BookIntro />}

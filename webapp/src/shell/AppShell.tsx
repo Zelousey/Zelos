@@ -36,6 +36,7 @@ import { NotificationsSheet } from './NotificationsSheet';
 import { ProfileSheet } from './ProfileSheet';
 import { TokenChip } from '../features/tokens/TokenChip';
 import { LevelUpWatcher } from '../features/levels/LevelUp';
+import { MindsQuoteCard } from '../features/minds/QuoteCard';
 import { useInbox } from './useInbox';
 import { useOnline } from './useOnline';
 import s from './Shell.module.css';
@@ -188,6 +189,7 @@ export function AppShell() {
       <NotificationsSheet open={sheet === 'notifications'} onClose={() => setSheet(null)} signedIn={isReal} items={inbox.items} error={inbox.error} onSignIn={signIn} />
       <ProfileSheet open={sheet === 'profile'} onClose={() => setSheet(null)} />
       <LevelUpWatcher />
+      <MindsQuoteCard />
       <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} />
     </div>
   );

@@ -155,6 +155,55 @@ test('a figure on a phone: swipe sideways between the parts, and every tile has 
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test('the quote card: after 3 days away, a random quote that opens the Hall of Minds, at most once a day', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const card = page.getByRole('complementary', { name: 'A quote from the Hall of Minds' });
+  const away = (days: number, shownToday = false) =>
+    page.evaluate(
+      ([days, shownToday]) => {
+        localStorage.setItem('zelosMindsSeen', String(Date.now() - (days as number) * 86_400_000));
+        const d = new Date();
+        const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (shownToday) localStorage.setItem('zelosMindsCardDay', today);
+        else localStorage.removeItem('zelosMindsCardDay');
+      },
+      [days, shownToday] as const,
+    );
+  // a first app open only starts the count
+  await page.goto('dashboard');
+  await page.waitForTimeout(3500);
+  await expect(card).toHaveCount(0);
+  // 2 days away: still nothing
+  await away(2);
+  await page.reload();
+  await page.waitForTimeout(3500);
+  await expect(card).toHaveCount(0);
+  // 4 days away: a real quote, its figure linking to that quote, and the way in
+  await away(4);
+  await page.reload();
+  await expect(card).toBeVisible({ timeout: 8000 });
+  await expect(card.getByRole('link', { name: /^— / })).toHaveAttribute('href', /\/app\/minds\/[a-z]+\/quotes\?q=/);
+  await axe(page);
+  await card.getByRole('link', { name: 'Open Hall of Minds →' }).click();
+  await expect(page).toHaveURL(/\/app\/minds$/);
+  await expect(card).toHaveCount(0);
+  // you've just been in: no card next time
+  await page.goto('dashboard');
+  await page.waitForTimeout(3500);
+  await expect(card).toHaveCount(0);
+  // once a day: away again, but a card was already shown today
+  await away(5, true);
+  await page.reload();
+  await page.waitForTimeout(3500);
+  await expect(card).toHaveCount(0);
+  // and it closes
+  await away(5);
+  await page.reload();
+  await expect(card).toBeVisible({ timeout: 8000 });
+  await card.getByRole('button', { name: 'Close' }).click();
+  await expect(card).toHaveCount(0);
+});
+
 // scroll lessons (owner 2026-10-23): slides pin, a task opens the next one
 // swipe-page lessons (owner 2026-10-24): only the current page is on screen, so tap Next until the
 // target shows (a task page's Next stays off until its task is done)
