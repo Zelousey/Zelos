@@ -594,7 +594,7 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 | 15 | Content: Trading 101 Ch 3+, Hall of Minds pictures | L3, U2 | U2 waits for the owner's picture choice (Q8) | `features/learn/chapters.ts`, `quizzes.json`, `webapp/public/minds/` |
 | 16 | Release readiness | T4, T5 | — | tests, docs |
 
-**Blocked on the owner:** the questions Q1–Q18 in the addendum. Phases 11–13 need Q1 (no War/territory spec exists in the repo).
+**Owner answered Q1–Q5, Q8, Q9 and Q11 on 2026-10-27** (recorded in the addendum). The War/challenges/Squad rulesets/Chaos Simulator design is in `docs/WAR_DESIGN.md`, **waiting for approval**. New notification pictures were proposed, also waiting for approval. Still open: Q6, Q7, Q10, Q12–Q18.
 
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.

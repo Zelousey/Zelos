@@ -1462,6 +1462,18 @@ One PR per item unless it says otherwise. Each phase waits for the owner's go, a
 - **Q17** Team Cooperation: how a team score is made (sum, average) and whether teammates see each other's trades.
 - **Q18** Market page indices: OK to show SPY/QQQ/DIA ETFs labelled as "index ETFs" (true index levels would need another provider)?
 
+**Owner answers (2026-10-27, second message):**
+- **Q1:** write a War design for approval. Done: `docs/WAR_DESIGN.md` (draft, waiting for approval).
+- **Q2:** approved. Challenges earn attack progress; hidden deployment stays the main way to hold territory.
+- **Q3:** the short side exists **only inside challenges**, with a **fixed maximum loss** (a set amount, "more like a put"). It's shown as simple Bull/Bear sides for new users. Virtual money only.
+- **Q4:** **candles are the default on every chart, green up / red down,** unless the user picks other colours in Settings. (This changes the 2026-10-09 line default.)
+- **Q5:** Chaos Simulator: wild charts (generated, or real ones that went crazy) on the same timeframes, with 20% days instead of 2%. You keep only **5–10% of the profit**. Details are in `docs/WAR_DESIGN.md` §7.
+- **Q9:** the owner doesn't remember the approved notification picture, so I proposed new ones in the style of the new share picture (#120) for approval.
+- **Q8:** yes, "Hall of Mines" is the Hall of Minds.
+- **Q11:** "Solo" means trading on your own (not on a team). A Solo account can stay open while you're in a head-to-head battle, and each keeps its own account value.
+
+Still open: Q6, Q7, Q10, Q12–Q18. Most of them get proposed answers in `docs/WAR_DESIGN.md` §9 for the owner to approve.
+
 ### 5. Risks and breaking changes
 - **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.
 - **Short selling changes match accounting** (`tw_apply_trade`, `tw_mark`, knock-outs, LMS floors). It touches every mode, so it's limited to challenges unless decided otherwise.
