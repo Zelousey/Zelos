@@ -1593,6 +1593,37 @@ Full rules are in `docs/WAR_DESIGN.md` **v3**. All earlier approvals are kept.
 - **C14:** Respect vs the checklist's §26/§36 Trader Reputation (compatible).
 - **C15:** the always-on simulated market vs the real-data rules (it must be labelled simulated).
 
+### 4d. Owner answers (2026-10-27, fifth message)
+**Approved by the owner:**
+- the one-day wait (no attacking back land you just lost for 1 trading day);
+- the XP amounts (neutral 2, win 10, defence 10, Giant-slayer +5);
+- **D1** "Heavy enemy presence";
+- **D2** Camouflage paid in soldiers;
+- **D3** Hot zones;
+- **D4** 80% contested margin + Command;
+- **D5** "Soldiers";
+- **D6** everyone starts every War the same (no carry-over);
+- **D7** War Score 60/40;
+- **D9** "Battle Level" (for now);
+- the soldier numbers, the contested-win bonus and Rally;
+- **War lengths: no longer than a week.**
+
+**Owner directions to settle:**
+- **Chaos "a week at most":** read as a session lasting up to 7 days (confirm, **E3**).
+- **Paying tokens to skip or shorten the one-day wait:** wanted by the owner. Proposed: once per War, only shortens the wait, logged, hidden on iOS until in-app purchase exists. **E2:** the price (no token price is invented).
+- **D10 market mode: still not decided.** The owner is leaning towards a simulated War zone. Pros and cons are in `docs/WAR_DESIGN.md` §20; both options stay in the spec.
+
+**Open decisions:**
+- **E1** (only if simulated is chosen): made-up company names per sector (recommended) or "SIM-" versions of real tickers. Fake prices on real names could mislead.
+- **E2:** the token price for skipping the wait. Once per War?
+- **E3:** confirm the Chaos reading: sessions last up to 7 days, auto-close and still count.
+- **D10:** the final market mode.
+- **Approval of the whole revised spec, including WAR_DESIGN Section 9.** It is **still NOT approved**.
+
+**New conflict C16:**
+- Paying tokens to skip the wait vs the master rule of fair competition and an equal start.
+- It's kept to a timing shortcut that changes no result. The owner has decided to allow it; it's flagged here so it's a known, deliberate exception.
+
 ### 5. Risks and breaking changes
 - **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.
 - **Short selling changes match accounting** (`tw_apply_trade`, `tw_mark`, knock-outs, LMS floors). It touches every mode, so it's limited to challenges unless decided otherwise.

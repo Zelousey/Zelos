@@ -5,7 +5,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 ## Current phase
 **2026-10-27: Planning for update lists A–D + the War Mode rules update. Docs only. Waiting for the owner's approval.**
 - Plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27" (incl. §4b, the War Mode rules update). The checklist itself is unchanged.
-- War rules: `docs/WAR_DESIGN.md` **v3**. **The whole revised spec, including Section 9, is NOT approved** (pending the owner's explicit approval). The individually approved decisions are listed in WAR_DESIGN §0.
+- War rules: `docs/WAR_DESIGN.md` **v3.1**. **The whole revised spec, including Section 9, is NOT approved** (pending the owner's explicit approval). The individually approved decisions are listed in WAR_DESIGN §0.
 - Approved so far:
   - the v1 numbers;
   - the capture model;
@@ -13,7 +13,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
   - candles as the default, green/red;
   - the notification pictures;
   - the new logo.
-- Open decisions: D1–D10, the soldier/XP/length numbers and the ping-pong rule (War; spec §4c), plus Q6, Q7, Q10, Q12–Q18 (plan).
+- Open decisions: D10 market mode (leaning simulated), E1–E3 (spec §4d), approval of the whole revised spec; plus Q6, Q7, Q10, Q12–Q18 (plan).
 - Recommended next: **Phase 1 (audits and reports, no app changes)**, then **Phase 2 (global header + Token Store)** as the first code phase.
 - Everything built through #121 is on main; `docs/HANDOFF.md` is the current done/to-do list.
 - Older status (kept for history): Phases 1–12 of the first plan are done. Their notes are below.
@@ -25,6 +25,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 | 2026-10-27 | Owner answers Q1–Q5, Q8, Q9, Q11; War design v1 | spec "Owner answers"; `docs/WAR_DESIGN.md` v1 |
 | 2026-10-27 | War Mode rules update: visibility, tie battles, attack eligibility, counterplay, declines, comebacks, neutral rewards, battle notifications, invitations; pictures and logo approved; v1 numbers kept; **Section 9 not approved**; W1–W12 open; conflicts C1–C9 | spec §4b; `docs/WAR_DESIGN.md` v2 |
 | 2026-10-27 | Owner decisions W1–W12. New: enemy-presence warning kept; concealment options; Hot zones; contested margin + Command; soldiers economy; W3 definition checked against code; War Score 60% trading / 40% strategy; Respect; resource uses; fast Wars; market mode (real vs always-on simulated) kept open; exact Chaos accounting. D1–D10 open; conflicts C10–C15. **Still not approved as a whole.** | spec §4c; `docs/WAR_DESIGN.md` v3 |
+| 2026-10-27 | Owner approved D1–D7, D9 (Battle Level), the soldier numbers, the contested bonus, Rally, the XP amounts, the one-day wait, Wars of a week at most. New: token skip of the wait (price open, conflict C16); Chaos sessions up to a week (confirm); market-mode pros and cons (leaning simulated, not decided). **Still not approved as a whole.** | spec §4d; `docs/WAR_DESIGN.md` v3.1 |
 
 ## 2026-10-07 — Project review, docs, CI, Marketstack merge, security fixes
 Current-state summary now lives in `PROJECT_STATE.md` (canonical handoff). This log keeps the detail.

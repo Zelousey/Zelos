@@ -1,6 +1,6 @@
 # War, challenges, Squad rulesets and Chaos Simulator: design for approval
 
-**Version 3 (2026-10-27, after the owner's "War Mode — Decisions & Updates").**
+**Version 3.1 (2026-10-27): v3 plus the owner's answers to D1–D10 and the leftovers.**
 **Status: DRAFT. Not approved as a whole.** The owner approved some decisions one by one (§0). The whole
 specification, including **Section 9**, stays **pending** until the owner explicitly approves it. No code until then.
 It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and §4c.
@@ -35,6 +35,21 @@ It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and �
 | Real-market vs always-on simulated market | **Not decided:** both options kept (§20) |
 | XP values (v2 "W8": neutral 2, win 10, defence 10, Giant-slayer +5) | **Still open:** the owner's "W8" approved notifications, not these (see §21) |
 | Ping-pong rule (v2 "W11") | **Still open:** the owner's "W11" approved Chaos, not this (see §21) |
+| D1 "Heavy enemy presence" (30+) | **Owner-approved** |
+| D2 Camouflage paid in soldiers (5 each, max 2), not tokens | **Owner-approved** |
+| D3 Hot zones | **Owner-approved** |
+| D4 Contested margin 80% + Command | **Owner-approved** |
+| D5 Name "Soldiers" | **Owner-approved** |
+| D6 Everyone starts every War with the same soldiers (no carry-over) | **Owner-approved** |
+| D7 War Score 60% trading / 40% strategy, −10%…+10% scale | **Owner-approved** |
+| D9 Name: **"Battle Level"** (for now) | **Owner-approved** |
+| Soldier numbers (+10 / +5 / +3 / −5 / retreat at half), contested-win bonus (+5 soldiers, +1 point), Rally (15 soldiers) | **Owner-approved** |
+| XP amounts (neutral 2, win 10, defence 10, Giant-slayer +5) | **Owner-approved** |
+| One-day wait before attacking back land you just lost | **Owner-approved** |
+| Paying tokens to skip or shorten that wait | **Owner direction**: price and limits open (§5, decision E2) |
+| War length: no longer than a week | **Owner-approved** (§8) |
+| Chaos: "a week at most" | **Owner answer**: read as a session lasting up to 7 days (§14, decision E3 to confirm) |
+| D10 Market mode | **Not decided.** The owner is leaning towards a **simulated War zone**; pros and cons are in §20 |
 | **Section 9 / the whole specification** | **NOT approved: pending** |
 
 ## 1. War in one paragraph
@@ -131,10 +146,14 @@ The owner doesn't want a single soldier's difference to decide ownership automat
 - one battle per territory;
 - the same attacker → defender pair at most 3 a day;
 - no new attacks in the last hour.
-- The ping-pong rule is still open (§21).
+- **One-day wait (owner-approved):** you can't attack back land you just lost for 1 trading day (1 day in a simulated War).
+- **Skip the wait with tokens (owner direction; price and limits open, E2) ⚖️:**
+  - Proposed: once per War, at a price the owner sets; it only shortens the wait and gives no other advantage.
+  - It's the one place tokens touch a War, so it's labelled clearly and logged in the token ledger.
+  - It's hidden on iOS until Apple in-app purchase exists (tokens can't be bought there yet).
 
 ## 6. Soldiers (owner W9; terms and balance proposed) ⚖️
-- **Name:** **Soldiers** (instead of "pieces" or "chips"), to match "War". Open decision **D5**.
+- **Name:** **Soldiers** (owner-approved, D5).
 - **What you see:** your soldiers on each territory, your **reserve** (soldiers not on the map), and your total. Opponents' counts stay hidden (the W1 principle).
 - **Start:** 100 each (approved), all placed during claiming, so the reserve starts at 0.
 
@@ -152,7 +171,7 @@ The owner doesn't want a single soldier's difference to decide ownership automat
 **Within one War only (proposed):**
 - Soldiers don't carry over to the next War.
 - Carrying them over would break the master rule of an **equal start** for every player. The persistent progress is **Respect** (§17), which gives no power inside a match.
-- "Losing wars can cost soldiers" is applied **within the War** (battles lost). Open decision **D6** if the owner meant across Wars.
+- **Owner-approved (D6):** everyone starts every War with the same 100 soldiers, and nothing carries over.
 
 **Balance check:**
 - Captures pay more than losses cost, so attacking is worth it.
@@ -167,13 +186,13 @@ The owner doesn't want a single soldier's difference to decide ownership automat
 
 ## 8. Lobby and lifecycle (v2; length shortened, proposed)
 - The stored statuses stay `lobby / active / ended / cancelled`, with a new `stage` (configuring, recruiting, ready). Start happens once.
-- **War length (proposed, for fast matches):** **1, 2, 3 or 5 trading days**. War leaves out the 7/14/30-day lengths; normal Battles keep theirs.
+- **War length (owner: no longer than a week):** **1, 2, 3 or 5 trading days** on the real market; **1, 2, 3, 5 or 7 days** in a simulated War zone. Normal Battles keep their lengths.
 - **Lobby deadline (proposed):** 1 h, 6 h or 24 h (72 h dropped).
 - At the deadline it starts with the locked-in players if there are at least 2; otherwise it's cancelled and battle slots are returned. The organizer can cancel before the start.
 
 ## 9. What to approve — **NOT APPROVED (pending the owner's explicit approval of the whole revised spec)**
 The individually approved items are in §0. Still needed:
-1. **D1–D10** and the leftovers in §21.
+1. **D10** (market mode), **E1–E3** (spec §4d), and the token wait-skip.
 2. The War Score formula (§10).
 3. Soldiers economy (§6).
 4. Respect (§17).
@@ -241,7 +260,9 @@ One engine with a `ruleset` setting: Free-for-all, Fantasy Draft (draft + timer 
 
 XP: normal trade XP within the existing daily caps.
 
-**Still to set:** how long a session is (e.g. one simulated day of bars played in about 15 minutes). Open decision **D8**.
+**Session length (owner: "a week at most"):** read as **a Chaos session can stay open for up to 7 days**. Confirm with **E3**.
+- If that reading is right, a session ends when you close it or **automatically after 7 days, and it still counts**, so a loss can't be dodged.
+- Payment happens on the day it closes, still at most one paid close a day.
 
 ## 15. Conflicts with earlier rules or code
 | # | Conflict | Resolution |
@@ -317,7 +338,7 @@ XP: normal trade XP within the existing daily caps.
 - Hot zones refresh daily, and Reinforce and the neutral claim reset daily, so there's always something to do.
 - The final-hour freeze keeps the finish clean.
 
-## 20. Market mode: NOT DECIDED (both options kept)
+## 20. Market mode: NOT DECIDED (both options kept; the owner is leaning towards a simulated War zone)
 | | **A. Real market** | **B. Always-on simulated market** |
 |---|---|---|
 | Prices | Real (Marketstack), market hours only | Generated on the server (the Chaos engine, calmer settings), 24/7 including nights and weekends |
@@ -328,7 +349,23 @@ XP: normal trade XP within the existing daily caps.
 
 One possibility is an organizer setting per War. **Both stay in the specification until the owner decides (D10).**
 
-## 21. Leftovers from v2 (numbering mismatch)
+**Pros and cons (for the owner's decision):**
+| | Real market | Simulated War zone |
+|---|---|---|
+| Activity | Quiet nights and weekends; battles wait for the open | **Always on**: battles any time, so more activity (the owner's point) |
+| Speed | 5 trading days = a full week | 7 days really is 7 days of play; Wars feel faster |
+| Learning | What you learn works on the real market (what Trading 101 promises) | Game skill; less transfer to real trading |
+| Fairness and security | Prices nobody controls | The server makes the prices; the method must stay secret and the prices can't be seen ahead (same as Chaos) |
+| Cost | Uses the Marketstack quota | **No data cost** |
+| Hot zones | From real market news | From simulated events instead |
+| Misleading-price risk | None | **Fake prices on real company names (e.g. "NVDA +20%") could confuse people or look like real news.** Recommendation: use **made-up companies per sector** (e.g. "Voltex Energy"), or clearly marked "SIM-" tickers |
+| Night-time | No issue | Needs **quiet hours**: no push at night, and response deadlines pause overnight in each player's time zone |
+| Deadlines | 2 market hours | Would become 2 hours, paused in quiet hours |
+
+**If simulated is chosen (the owner's lean):** War zone = simulated; Solo Real Market and normal Battles stay on real prices; Chaos and the War zone share one price engine.
+
+## 21. Leftovers from v2 (resolved 2026-10-27)
+The XP amounts and the one-day wait are now **owner-approved**. The text below is kept for history.
 The owner's answers used the W-numbers differently from my v2 list:
 - v2 **W8** was **XP values**, but the owner's W8 approved notifications. → The XP values are **still open**: neutral 2, battle win 10, defence 10, Giant-slayer +5, all within the daily caps.
 - v2 **W11** was the **ping-pong rule**, but the owner's W11 approved Chaos. → The ping-pong rule is **still open**: you can't attack back land you just lost for 1 trading day.
