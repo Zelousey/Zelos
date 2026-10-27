@@ -1624,6 +1624,40 @@ Full rules are in `docs/WAR_DESIGN.md` **v3**. All earlier approvals are kept.
 - Paying tokens to skip the wait vs the master rule of fair competition and an equal start.
 - It's kept to a timing shortcut that changes no result. The owner has decided to allow it; it's flagged here so it's a known, deliberate exception.
 
+### 4e. Owner answers (2026-10-27, sixth message): market mode decided, Chaos redefined
+- **D10 decided:**
+  - **only War mode (territories)** runs on a **simulated, always-on market**, up to 7 days, so it's fast and players come back;
+  - **every other mode stays on real prices** (Solo, head-to-head and other Battles, Squads).
+  - The War zone must be clearly marked as simulated, so nobody confuses it with real-market trading.
+  - Details: `docs/WAR_DESIGN.md` §20.
+- **Chaos is redefined:** Chaos isn't a separate mode or session. It's **random wild-market events inside the simulated War zone** (e.g. weekends), see §14. This **supersedes** the Solo "Chaos Simulator", the 5% payout and the one paid session a day (W11/W12), pending confirmation **E3**. List B's Solo section becomes Real Market only.
+- **Quiet hours:**
+  - no night-time notifications;
+  - overnight moves are reported in a morning summary;
+  - attacks and contested battles involving a sleeping player wait until they're awake (§22).
+- **Company names:** the owner wanted real companies but is fine with made-up ones, and asked whether real names are legal. Recommendation: made-up companies under real sector names for launch; ask the lawyer about real names marked "SIM" (§23).
+- **Skipping the one-day wait:** "$10 or $15", which **assumes 10–15 tokens** (about $0.30–$0.45). In dollars it would be roughly 350–500 tokens.
+
+**New requirements:**
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R18 | M/S | Server-made simulated prices for the War zone, the same for every player, secret settings, nothing visible ahead. |
+| W-R19 | U | "SIMULATED WAR ZONE" marking on every War screen, chart and notification; a one-time explainer pointing to real-market Battles. |
+| W-R20 | F | Chaos events: random wild-market periods (more on weekends), announced 30 min ahead, create Hot zones. |
+| W-R21 | F/S | Quiet hours (default 10 pm–8 am, max 10 h), a morning summary, attacks and deadlines paused for sleeping players. |
+| W-R22 | S | War "days" are 24-hour periods from the War's start, for every per-day limit. |
+
+**Open decisions:**
+- **E1:** company names: made-up companies plus real sector names (recommended), or real names after the lawyer's OK?
+- **E2:** is the skip price **10 or 15 tokens**, or $10–15? Once per War?
+- **E3:** confirm the Solo Chaos Simulator, the 5% payout and paid sessions are **dropped** (Chaos = War-zone events only).
+- **E4:** Chaos event frequency (at most 1 a day, 1–3 hours, more on weekends) and the 30-minute warning?
+- **E5:** quiet hours default 10 pm–8 am, max 10 hours?
+- **E6:** do Squad matches stay real-market (assumed yes, since "all those modes" stay real)?
+- **Approval of the whole revised spec (incl. WAR_DESIGN Section 9): still NOT approved.**
+
+**New conflict C17:** the checklist's live-price / FMP items for the Trade War chart. They still apply to real-market Battles; the War zone is simulated on purpose, by the owner's decision.
+
 ### 5. Risks and breaking changes
 - **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.
 - **Short selling changes match accounting** (`tw_apply_trade`, `tw_mark`, knock-outs, LMS floors). It touches every mode, so it's limited to challenges unless decided otherwise.

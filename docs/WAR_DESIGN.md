@@ -1,6 +1,6 @@
 # War, challenges, Squad rulesets and Chaos Simulator: design for approval
 
-**Version 3.1 (2026-10-27): v3 plus the owner's answers to D1–D10 and the leftovers.**
+**Version 3.2 (2026-10-27): the market mode is decided (a simulated War zone), Chaos is redefined as events inside it, and quiet hours are added.**
 **Status: DRAFT. Not approved as a whole.** The owner approved some decisions one by one (§0). The whole
 specification, including **Section 9**, stays **pending** until the owner explicitly approves it. No code until then.
 It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and §4c.
@@ -29,8 +29,8 @@ It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and �
 | W8 Notification updates and invitation types | **Owner-approved** |
 | W9 Soldiers: show your counts; losing costs soldiers; capturing earns soldiers | **Owner direction**: terms and balance in §6 (proposed) |
 | W10 Redeploy pass | **Owner-approved** |
-| W11 Chaos Mode rules | **Owner-approved** |
-| W12 Chaos losses count in the 5% rule, with one paid session | **Owner-approved**: exact accounting in §14 |
+| W11 Chaos Mode rules | Approved, then **redefined by the owner** (see Chaos below) |
+| W12 Chaos losses count in the 5% rule, with one paid session | **Superseded** (to confirm, E3): there are no Chaos sessions any more, so there's no 5% payout |
 | Victory mainly from good trading; Respect / Battle Level; more uses for resources; fast matches | **Owner direction**: §10, §17–§19 (proposed) |
 | Real-market vs always-on simulated market | **Not decided:** both options kept (§20) |
 | XP values (v2 "W8": neutral 2, win 10, defence 10, Giant-slayer +5) | **Still open:** the owner's "W8" approved notifications, not these (see §21) |
@@ -48,8 +48,11 @@ It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and �
 | One-day wait before attacking back land you just lost | **Owner-approved** |
 | Paying tokens to skip or shorten that wait | **Owner direction**: price and limits open (§5, decision E2) |
 | War length: no longer than a week | **Owner-approved** (§8) |
-| Chaos: "a week at most" | **Owner answer**: read as a session lasting up to 7 days (§14, decision E3 to confirm) |
-| D10 Market mode | **Not decided.** The owner is leaning towards a **simulated War zone**; pros and cons are in §20 |
+| Chaos | **Owner, redefined:** Chaos isn't a separate Solo mode; it's **wild-market events inside the simulated War zone** (e.g. weekends). §14 |
+| D10 Market mode | **Owner-decided:** **War mode only** runs on a **simulated, always-on market** for up to 7 days. Every other mode (Solo, head-to-head and other Battles, Squads) stays on **real prices**. §20 |
+| Quiet hours | **Owner-approved:** no night-time notifications; overnight moves are reported in the morning; battles against a sleeping player wait until they're awake. §22 |
+| Company names in the War zone | **Owner leaning:** made-up names are fine; real names were wanted but need a legal check first. §23 (E1) |
+| Skip the one-day wait | **Owner:** 10 or 15 (tokens assumed; see E2) |
 | **Section 9 / the whole specification** | **NOT approved: pending** |
 
 ## 1. War in one paragraph
@@ -62,7 +65,7 @@ A War is a short Trade War match (1–5 trading days, proposed) with a **map of 
 - Owners are then revealed (counts stay private; you always see your own).
 - Players trade their equal virtual buy-in, attack and defend through Bull/Bear battles, claim neutral land, and win or lose soldiers.
 - **The final War Score is mostly trading performance (60%) plus strategy (40%: territory points).**
-- A persistent **Respect** level grows across Wars.
+- A persistent **Battle Level** grows across Wars.
 
 ## 2. The map (owner-approved)
 - Sector territories (Tech, Finance, Health, Energy, Consumer, Communication, Industrials, Index…), each with stocks from the 30-stock list.
@@ -186,13 +189,14 @@ The owner doesn't want a single soldier's difference to decide ownership automat
 
 ## 8. Lobby and lifecycle (v2; length shortened, proposed)
 - The stored statuses stay `lobby / active / ended / cancelled`, with a new `stage` (configuring, recruiting, ready). Start happens once.
-- **War length (owner: no longer than a week):** **1, 2, 3 or 5 trading days** on the real market; **1, 2, 3, 5 or 7 days** in a simulated War zone. Normal Battles keep their lengths.
+- **War length (owner):** the War zone is simulated and always on, so Wars run **1, 2, 3, 5 or 7 days** (never longer than a week). Normal Battles keep their lengths and real prices.
+- **"Per day" limits in a War** (free decline, neutral claim, Reinforce, Counter-pick, Rally, the one-day wait) use **War days**: 24-hour periods counted from the War's start.
 - **Lobby deadline (proposed):** 1 h, 6 h or 24 h (72 h dropped).
 - At the deadline it starts with the locked-in players if there are at least 2; otherwise it's cancelled and battle slots are returned. The organizer can cancel before the start.
 
 ## 9. What to approve — **NOT APPROVED (pending the owner's explicit approval of the whole revised spec)**
 The individually approved items are in §0. Still needed:
-1. **D10** (market mode), **E1–E3** (spec §4d), and the token wait-skip.
+1. **E1–E6** (spec §4e).
 2. The War Score formula (§10).
 3. Soldiers economy (§6).
 4. Respect (§17).
@@ -236,33 +240,27 @@ The individually approved items are in §0. Still needed:
 ## 13. Squad rulesets (v1; pending)
 One engine with a `ruleset` setting: Free-for-all, Fantasy Draft (draft + timer + optional bans), Last Man Standing (explicit thresholds, realized losses during the day unless "strict"), Team Cooperation (average return; teammates see trades).
 
-## 14. Chaos Simulator (owner-approved W11, W12): exact accounting ⚖️
-- A separate Solo mode with generated wild prices on real timeframes, labelled "Simulated prices". Prices are made bar by bar on the server.
+## 14. Chaos: wild-market events inside the War zone (owner, redefined)
+**What Chaos is now:** not a separate mode or session, but **random wild-market events** in the simulated War zone, when the market suddenly "goes crazy". Moves of 10–20% replace the normal 1–2%.
 
-**Session:**
-- Each session starts a fresh **$10,000 Chaos account**, separate from Solo Real Market.
-- One open session at a time.
+**Proposed rules:**
+- **When:** on random days, more often on **weekends** ("Chaos Weekend"). At most **1 event a day**, lasting **1–3 hours**.
+- **Warning:** every player gets a heads-up **30 minutes before** ("Chaos incoming: Energy in 30 min"), unless they're in quiet hours. Then it's in their morning summary.
+- **Scope:** one territory's stocks, or the whole market.
+- **Fairness:**
+  - every player sees the same prices at the same time;
+  - the server makes the prices bar by bar;
+  - nobody can see ahead;
+  - when and how big each event is gets decided on the server and stays secret until it's announced.
+- Chaos events also create **Hot zones** (§3): the stocks a Chaos event hits become hot.
+- Battles running during a Chaos event are allowed. Both sides face the same wild prices, so it stays fair, just riskier.
 
-**Paid session:** the **first session you close each day** (New York calendar day) is the paid one. Later sessions that day are practice: no transfer.
+**What this replaces (to confirm, E3):**
+- the separate **Solo Chaos Simulator** (list B's "Solo: Real Market / Chaos Simulator");
+- the **5% payout to Solo**;
+- the **one paid session a day**.
 
-**Settlement of the paid session:**
-- Result = final Chaos account value − $10,000.
-- **5% of the result** goes to your Solo Real Market account's **cash**:
-  - a profit adds to cash; a **loss is taken from cash** (owner W12);
-  - rounded to the cent;
-  - a loss can't push Solo cash below $0. If cash is short, only what's there is taken; nothing else is sold.
-- **One ledger line** in the Solo account history: "Chaos session: +$X / −$X (5% of +$Y / −$Y)".
-- Idempotent per session: it can't be paid twice.
-
-**No dodging:**
-- A session left open closes automatically at the end of its day **and still counts** as that day's paid session if it's the first.
-- Abandoning a losing session therefore doesn't avoid the 5% loss.
-
-XP: normal trade XP within the existing daily caps.
-
-**Session length (owner: "a week at most"):** read as **a Chaos session can stay open for up to 7 days**. Confirm with **E3**.
-- If that reading is right, a session ends when you close it or **automatically after 7 days, and it still counts**, so a loss can't be dodged.
-- Payment happens on the day it closes, still at most one paid close a day.
+The Solo section becomes Real Market only.
 
 ## 15. Conflicts with earlier rules or code
 | # | Conflict | Resolution |
@@ -301,17 +299,21 @@ XP: normal trade XP within the existing daily caps.
   - the defence recalculates.
 - **War Score:** the formula, the caps at −10% and +10%, the 60/40 weights, the tie-breakers.
 - **Hot zones:** at most 2 a day, from market data only; the points are added once.
-- **Chaos:**
-  - only the first close of the day pays;
-  - gains and losses at 5%;
-  - Solo cash never below 0;
-  - one ledger line; no double pay;
-  - an abandoned session auto-closes and counts.
-- **Respect:** only real results add to it; there's no in-match effect.
+- **Simulated War zone:**
+  - every player in a War gets identical prices;
+  - no future bars reach a browser (rules and payload tests);
+  - the SIMULATED marking is on every War screen, chart, notification and share image.
+- **Chaos events:** at most 1 a day; the 30-minute warning (or the morning summary in quiet hours); they create Hot zones.
+- **Quiet hours:**
+  - no push during them, and one morning summary;
+  - attacks on a sleeping player are queued, and their deadline is paused;
+  - quiet hours are capped at 10 hours;
+  - contested battles start only when everyone involved is awake.
+- **Battle Level:** only real results add to it; there's no in-match effect.
 - **Every PR:** lint, typecheck, unit, build, Playwright phone and desktop with axe, rules tests, functions e2e; screenshots or video.
 
-## 17. Respect: persistent battle progression (explore; proposed)
-- **Name:** **Respect**, with ranks Recruit → Soldier → Sergeant → Captain → Commander → General. "Battle Level" is the alternative name (D9).
+## 17. Battle Level: persistent battle progression (name owner-approved, D9; details proposed)
+- **Name:** **Battle Level** (owner, for now), with ranks Recruit → Soldier → Sergeant → Captain → Commander → General.
 - **Earned only from real results:**
   - battle win +3;
   - successful defence +3;
@@ -338,34 +340,67 @@ XP: normal trade XP within the existing daily caps.
 - Hot zones refresh daily, and Reinforce and the neutral claim reset daily, so there's always something to do.
 - The final-hour freeze keeps the finish clean.
 
-## 20. Market mode: NOT DECIDED (both options kept; the owner is leaning towards a simulated War zone)
-| | **A. Real market** | **B. Always-on simulated market** |
-|---|---|---|
-| Prices | Real (Marketstack), market hours only | Generated on the server (the Chaos engine, calmer settings), 24/7 including nights and weekends |
-| Battles and ties | During market hours; at the next open otherwise | Any time, immediately |
-| Pace | Pauses overnight and on weekends | Always moving; good for fast Wars |
-| Skill | Real-market trading skill | Game skill on realistic but simulated prices |
-| Must | Use existing quotes within the Marketstack cap | Be labelled "Simulated prices"; the same prices for every player; no peeking ahead |
+## 20. Market mode: DECIDED by the owner (2026-10-27)
+| Mode | Prices |
+|---|---|
+| **War (territories)** | **Simulated, always on**, 24/7, up to 7 days, with Chaos events |
+| Solo, head-to-head and other Battles, Squads, everything else | **Real market prices**, as today |
 
-One possibility is an organizer setting per War. **Both stay in the specification until the owner decides (D10).**
+**Why (the owner's reasons):**
+- a simulated War zone keeps players coming back, and nights and weekends aren't dead time;
+- it also costs nothing in price data.
 
-**Pros and cons (for the owner's decision):**
-| | Real market | Simulated War zone |
-|---|---|---|
-| Activity | Quiet nights and weekends; battles wait for the open | **Always on**: battles any time, so more activity (the owner's point) |
-| Speed | 5 trading days = a full week | 7 days really is 7 days of play; Wars feel faster |
-| Learning | What you learn works on the real market (what Trading 101 promises) | Game skill; less transfer to real trading |
-| Fairness and security | Prices nobody controls | The server makes the prices; the method must stay secret and the prices can't be seen ahead (same as Chaos) |
-| Cost | Uses the Marketstack quota | **No data cost** |
-| Hot zones | From real market news | From simulated events instead |
-| Misleading-price risk | None | **Fake prices on real company names (e.g. "NVDA +20%") could confuse people or look like real news.** Recommendation: use **made-up companies per sector** (e.g. "Voltex Energy"), or clearly marked "SIM-" tickers |
-| Night-time | No issue | Needs **quiet hours**: no push at night, and response deadlines pause overnight in each player's time zone |
-| Deadlines | 2 market hours | Would become 2 hours, paused in quiet hours |
+**Must be obvious to players** (the owner asked for this):
+- The War zone looks different: a **"SIMULATED WAR ZONE"** badge on every War screen and chart, and a different chart background.
+- Before the first War, a one-time explainer: "Prices in the War zone are simulated. For real-market trading, go head to head in Battles or trade Solo." It has a link to Battles.
+- **Every War notification says it's simulated**, and nothing in the War zone uses the word "live".
+- Real-market screens stay exactly as they are.
 
-**If simulated is chosen (the owner's lean):** War zone = simulated; Solo Real Market and normal Battles stay on real prices; Chaos and the War zone share one price engine.
+**Price engine:**
+- One server engine makes realistic prices for each War zone stock: normal days, trends, and Chaos events.
+- The same prices go to every player in that War.
+- The settings and the random seed stay secret on the server.
+- Stocks start from realistic levels so the charts look natural.
+
+**Conflict C17:** the checklist's Trade War chart and live-price items (§3, §13; FMP/live data). They still apply to **Battles**, which stay on real prices. The War zone is a new mode that is simulated on purpose, by the owner's decision.
 
 ## 21. Leftovers from v2 (resolved 2026-10-27)
 The XP amounts and the one-day wait are now **owner-approved**. The text below is kept for history.
 The owner's answers used the W-numbers differently from my v2 list:
 - v2 **W8** was **XP values**, but the owner's W8 approved notifications. → The XP values are **still open**: neutral 2, battle win 10, defence 10, Giant-slayer +5, all within the daily caps.
 - v2 **W11** was the **ping-pong rule**, but the owner's W11 approved Chaos. → The ping-pong rule is **still open**: you can't attack back land you just lost for 1 trading day.
+
+## 22. Quiet hours (owner-approved; details proposed)
+- **Default quiet hours:** 10 pm–8 am in each player's local time. They can be changed in Settings, but **are never longer than 10 hours** a day, so nobody can hide from battles forever.
+- **During quiet hours:**
+  - no push notifications;
+  - the War keeps running, and anyone awake can still trade.
+- **Morning summary:** when your quiet hours end, you get **one notification** listing what happened overnight, e.g. "While you slept: Ana attacked Tech (waiting for you), Chaos hit Energy, you're now 3rd."
+- **Battles wait for the defender:**
+  - An attack on a player in quiet hours is **queued**. It starts when their quiet hours end.
+  - The 2-hour answer time counts only outside quiet hours.
+  - The attacker sees "Waiting: Ben is offline until 8:00 am (his time)".
+- **Contested battles** start when **all** the players involved are outside quiet hours. With quiet hours capped at 10 hours there's always an overlap; if there isn't one within 24 hours, it starts at the next end of anyone's quiet hours.
+- **Chaos warnings** during your quiet hours go into the morning summary instead.
+- **Fairness:** a queued attack still counts toward the attacker's limit of 1 open attack, so nobody can pile up attacks against sleepers.
+
+## 23. Company names in the War zone ⚖️ (legal; E1)
+The owner wanted real companies but is open to made-up ones, and asked whether real names are legally all right.
+
+This isn't legal advice; it's a question for the lawyer review that's already on the to-do list.
+
+**The concern with real names:**
+- Showing **simulated prices** under real names and tickers (e.g. "NVDA −35%") can mislead people.
+- A screenshot shared out of context could look like real market news about a real public company. There's risk around trademark and brand use (never use their logos), misleading information, and App Store review of financial content.
+
+**Options:**
+| Option | Risk | Feel |
+|---|---|---|
+| **A. Made-up companies** per sector (e.g. "Voltex Energy", "Nimbus Cloud") | Lowest | Fun and clearly a game; less "real" |
+| B. Real sector names only (Tech, Energy…) with made-up stocks inside | Low | Same as A, with real sector labels |
+| C. Real names and tickers, marked "SIM" (e.g. "NVDA·SIM"), with a disclaimer on every chart and share image | Higher; **needs the lawyer's OK first** | Most realistic |
+
+**Recommendation:**
+- **A + B for launch:** real sector names, made-up companies.
+- Ask the lawyer about **C** during the legal review, and switch later if they approve.
+- Made-up names also stop people mixing up War zone prices with the real-market Battles.
