@@ -1,6 +1,6 @@
 # War, challenges, Squad rulesets and Chaos Simulator: design for approval
 
-**Version 3.3 (2026-10-27): E1–E6 answered; the owner's idea of a separate Trade War realm (§24) is written up as a proposal.**
+**Version 3.4 (2026-10-27): F1–F8 (the Trade War realm) approved by the owner.** The whole spec still needs the owner's explicit final approval.
 **Status: DRAFT. Not approved as a whole.** The owner approved some decisions one by one (§0). The whole
 specification, including **Section 9**, stays **pending** until the owner explicitly approves it. No code until then.
 It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and §4c.
@@ -56,7 +56,7 @@ It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and �
 | E3 The Solo Chaos mode, 5% payout and paid sessions are dropped | **Owner-approved** |
 | E4 Chaos event rules; E5 quiet hours | **Owner-approved** |
 | E6 Squads stay on real prices; they compete against other squads, for a leaderboard place, or both | **Owner-approved** |
-| A separate Trade War realm: War profile, War balance, gold bars, level-based armies, open War zones | **Owner idea; proposal in §24.** It conflicts with D6 and the equal-start rule (F1–F8) |
+| A separate Trade War realm (§24), F1–F8 | **Owner-approved (2026-10-27: "everything sounds good")**, incl. **C18**: level armies (max 150) in open zones, equal armies the default in private Wars |
 | **Section 9 / the whole specification** | **NOT approved: pending** |
 
 ## 1. War in one paragraph
@@ -409,7 +409,7 @@ This isn't legal advice; it's a question for the lawyer review that's already on
 - Ask the lawyer about **C** during the legal review, and switch later if they approve.
 - Made-up names also stop people mixing up War zone prices with the real-market Battles.
 
-## 24. The Trade War realm (owner idea, 2026-10-27): PROPOSAL, kept simple
+## 24. The Trade War realm (owner idea, 2026-10-27): F1–F8 APPROVED
 **What the owner wants:**
 - Trade War is its own gamified, 24/7 simulated "realm", separate from real-market trading.
 - It has its own War profile, a bigger War balance, **gold bars** (earned, never bought), its own stats and balance chart.

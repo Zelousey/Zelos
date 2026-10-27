@@ -1699,6 +1699,19 @@ Full rules are in `docs/WAR_DESIGN.md` **v3**. All earlier approvals are kept.
 
 **The whole revised spec, including WAR_DESIGN Section 9, is still NOT approved.**
 
+### 4g. Owner answer (2026-10-27, eighth message)
+- "Everything sounds good": **F1–F8 approved.** That covers:
+  - the two worlds;
+  - War achievements → main XP within the caps;
+  - open zones with weekly seasons, 30 players, a 24 h shield and Rookie zones;
+  - armies of 100 + 10 per rank, up to 150, with equal armies the default in private Wars;
+  - a $100,000 War balance, $5,000 stakes, a weekly reset below $10,000;
+  - gold bars;
+  - the names "War balance", "gold bars", "War profile".
+- **C18 resolved by the owner:** level armies are a deliberate exception to D6 and the equal-start rule, limited to open zones and capped at 150.
+- **F7** (skipping the wait with gold bars too) is treated as approved as proposed. Tokens stay at 100.
+- **The final "approve the revised specification" is still pending.** Phase 1 waits for it.
+
 ### 5. Risks and breaking changes
 - **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.
 - **Short selling changes match accounting** (`tw_apply_trade`, `tw_mark`, knock-outs, LMS floors). It touches every mode, so it's limited to challenges unless decided otherwise.

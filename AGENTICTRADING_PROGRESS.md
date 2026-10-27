@@ -5,7 +5,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 ## Current phase
 **2026-10-27: Planning for update lists A–D + the War Mode rules update. Docs only. Waiting for the owner's approval.**
 - Plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27" (incl. §4b, the War Mode rules update). The checklist itself is unchanged.
-- War rules: `docs/WAR_DESIGN.md` **v3.3**. **The whole revised spec, including Section 9, is NOT approved** (pending the owner's explicit approval). The individually approved decisions are listed in WAR_DESIGN §0.
+- War rules: `docs/WAR_DESIGN.md` **v3.4**. **The whole revised spec, including Section 9, is NOT approved** (pending the owner's explicit approval). The individually approved decisions are listed in WAR_DESIGN §0.
 - Approved so far:
   - the v1 numbers;
   - the capture model;
@@ -13,7 +13,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
   - candles as the default, green/red;
   - the notification pictures;
   - the new logo.
-- Open decisions: **F1–F8** (the Trade War realm, spec §4f / WAR_DESIGN §24), approval of the whole revised spec; plus Q6, Q7, Q10, Q12–Q18 (plan). E1–E6 are answered.
+- Open decisions: the final **approval of the whole revised spec** (F1–F8 approved, spec §4g); plus Q6, Q7, Q10, Q12–Q18 (plan). E1–E6 are answered.
 - Recommended next: **Phase 1 (audits and reports, no app changes)**, then **Phase 2 (global header + Token Store)** as the first code phase.
 - Everything built through #121 is on main; `docs/HANDOFF.md` is the current done/to-do list.
 - Older status (kept for history): Phases 1–12 of the first plan are done. Their notes are below.
@@ -28,6 +28,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 | 2026-10-27 | Owner approved D1–D7, D9 (Battle Level), the soldier numbers, the contested bonus, Rally, the XP amounts, the one-day wait, Wars of a week at most. New: token skip of the wait (price open, conflict C16); Chaos sessions up to a week (confirm); market-mode pros and cons (leaning simulated, not decided). **Still not approved as a whole.** | spec §4d; `docs/WAR_DESIGN.md` v3.1 |
 | 2026-10-27 | Market mode decided: War mode only is simulated and always on (up to 7 days); everything else stays on real prices. Chaos = wild events in the War zone (the Solo Chaos mode and 5% payout superseded, to confirm). Quiet hours + morning summary. Company-name legal note. Skip price 10–15 (tokens assumed). E1–E6 open; conflict C17. **Still not approved as a whole.** | spec §4e; `docs/WAR_DESIGN.md` v3.2 |
 | 2026-10-27 | E1–E6 answered (made-up companies; skip = 100 tokens; Solo Chaos dropped; Chaos and quiet-hours rules; Squads real-price, vs squads/leaderboard). The owner's Trade War realm idea (War profile, War balance, gold bars, level armies, drop-in zones) written as a simple proposal; F1–F8 open; conflicts C18–C21. **Still not approved as a whole.** | spec §4f; `docs/WAR_DESIGN.md` v3.3 §24 |
+| 2026-10-27 | F1–F8 approved ("everything sounds good"); C18 decided by the owner. Final approval of the whole spec still pending. | spec §4g; `docs/WAR_DESIGN.md` v3.4 |
 
 ## 2026-10-07 — Project review, docs, CI, Marketstack merge, security fixes
 Current-state summary now lives in `PROJECT_STATE.md` (canonical handoff). This log keeps the detail.
@@ -592,30 +593,35 @@ The owner chose **Square** instead of Stripe (Square Developer app "AgenticTradi
 Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 `AGENTICTRADING_MASTER_SPEC.md` → ADDENDUM 2026-10-27.
 
+**Phase order, re-sorted 2026-10-27 after the War decisions.** The old numbers are in brackets.
+
 | # | Phase | IDs | Status | Likely files |
 |---|---|---|---|---|
-| 0 | Plan | all | **this PR** | the two AGENTICTRADING docs |
-| 1 | Audits and reports (no app changes) | N8, L1, U2 sheet, S2/S3/S9, U1 | waiting for go | reports in `docs/`; reads `firestore.rules`, `functions/main.py` (tw_*), `webapp/src/features/*` |
-| 2 | Global header + Token Store | N1, F18, S4 | — | `webapp/src/shell/AppShell.tsx`, `Shell.module.css`, `AppShell.test.tsx`, `features/tokens/TokenChip.tsx`, `features/strategies/Tokens.tsx`, `TokenHistory.tsx`, `lib/i18n.ts`, e2e |
-| 3 | Small safe fixes (U1 pictures **approved**) | U1, U3, M4, L2, N5 | — | `functions/main.py` (`_push_send` image), `images/alert-*.png`, `webapp/public/icons`; `features/minds/BookIntro.tsx` + CSS; `features/strategies/StrategyPage.tsx` / 3-leg chart; `features/learn/chapters.ts`, `LessonPlayer.tsx`, `features/charts` |
-| 4 | Mobile glitch fixes | N8 | needs the Phase 1 report | depends on the report |
-| 5 | Trade War hub | N2–N4, F9–F11, F13, M6, U4, U6, N7 | — | `features/tradewar/TradeWarPage.tsx` + CSS, `app/modules.ts`, `features/battles/BattlesPage.tsx`, `features/social`, `features/leaderboard`, `features/strategies` |
-| 6 | Dashboard 4 pages | F14–F17, M1–M3, S1, S7 | needs Q4, Q6, Q18 | `features/dashboard/*`, `features/practice/AccountSection.tsx`, `features/charts/ChartView.tsx`, `features/markets`, `features/missions`, `features/profile` |
-| 7 | Find a Stock modal | N6 | — | `features/markets/MarketsPage.tsx`, `SymbolPage.tsx`, `features/practice/TradePage.tsx`, `features/battles` |
-| 8 | Onboarding + help; invitation cards (coaching/battle/team-up) | F20–F23, N-R2 | — | `features/welcome/FirstSteps.tsx`, `features/practice/TradePage.tsx`, new help screen |
-| 9 | Battle rematch | F19, S8 | — | `functions/main.py` (new `tw_rematch`), `features/battles/BattlePage.tsx`, `tests/rules/functions.e2e.mjs` |
-| 10 | Squad ruleset layer (FFA, Fantasy Draft, LMS, Team) | F5–F8 | design first; Q14, Q16, Q17 | `functions/main.py` (`tw_validate_modes`, `tw_squad_rules`, draft, lms), `features/battles/settings.ts`, `features/social` |
-| 11 | War lifecycle + lobby | F1, F2, S6 | design first; Q1, Q12, Q13 | `functions/main.py`, `firestore.rules`, `docs/data-model.md`, new War screens |
-| 12 | War territories + hidden deployment + warnings/camouflage + reveal | F3, S2, S3, S9, W-R1, W-R8 | design first; Q1 | `functions/main.py`, `firestore.rules` (owner-only placements), rules tests |
-| 13 | Battles: contested battles, attacks, counter-pick, declines, neutral claims, soldiers, War Score, Hot zones, Respect, battle notifications | F4, S5, M5, W-R2–W-R15, N-R1 | design first; Q2, Q3, Q15 | `functions/main.py` (`tw_apply_trade` short side, resolution), rules, tests |
-| 14 | War rematch, notifications, leaderboards, docs | F19, S9, M6 | — | functions, `features/leaderboard`, notifications |
-| 14b | ~~Solo Chaos Simulator~~ **superseded** (owner, 2026-10-27; confirm E3): Chaos = events inside the War zone, built with 14c | W-R20 | — | — |
-| 14c | **Simulated War-zone market** (always on) + Chaos events + quiet hours + SIMULATED marking. Comes **before** Phase 11, because War runs on it | W-R16, W-R18–W-R22 | **decided** (D10); E1, E4, E5 open | `functions/` (new price engine + scheduler), `firestore.rules`, War screens, Settings (quiet hours), notifications (morning summary) |
-| 14d | Trade War realm: War profile, War balance + chart, gold bars, Battle Level, open zones with weekly seasons (**only after F1–F8**) | W-R23–W-R27 | proposal | new War profile screens, `functions/` (realm state, seasons, gold ledger), rules, `xp.py` table entries |
-| 15 | Content: Trading 101 Ch 3+, Hall of Minds pictures | L3, U2 | U2 waits for the owner's picture choice (Q8) | `features/learn/chapters.ts`, `quizzes.json`, `webapp/public/minds/` |
-| 16 | Release readiness | T4, T5 | — | tests, docs |
+| 0 | Plan (this PR) | all | waiting for final approval | AGENTICTRADING docs, `docs/WAR_DESIGN.md` |
+| **Stage A: the real-trading app** | | | | |
+| 1 | Checks and reports, no app changes: mobile glitches, Trading 101 inventory, Hall of Minds contact sheet, leak audit, current War/Squad code audit | N8, L1, U2, S2/S3/S9 | next, after approval | reports in `docs/` |
+| 2 | Top bar (Menu → Account → Tokens → Bell) + Token Store | N1, F18, S4 | — | `shell/AppShell.tsx`, `Shell.module.css`, `features/tokens`, `strategies/Tokens.tsx`, `TokenHistory.tsx` |
+| 3 | Small fixes: new notification pictures (approved), book ends on the red back cover, 3-Leg chart, "Why prices move" lesson, return to lesson, **candles by default, green/red, colour choice in Settings** | U1, U3, M4, L2, N5, M1 | — | `functions/main.py` (push image), `images/`, `minds/BookIntro`, strategies, `learn/chapters.ts`, `charts/*`, `settings` |
+| 4 | Mobile glitch fixes (from the Phase 1 report) | N8 | needs Phase 1 | per report |
+| 5 | Trade War hub: smart routing, mode grid, section menu | N2–N4, F9–F11, F13, M6 | — | `tradewar/TradeWarPage`, `modules.ts`, battles, social |
+| 6 | Dashboard as 4 swipe pages | F14–F17, M2–M3, S1, S7 | Q6, Q18 open | `features/dashboard`, practice, markets, missions, profile |
+| 7 | Find a Stock pop-up (Solo or Battle) | N6 | — | markets, trade ticket, battles |
+| 8 | Onboarding, help, invitation cards (coaching / battle / team-up) | F20–F23, N-R2 | — | `welcome/FirstSteps`, trade ticket, inbox |
+| 9 | Battle rematch | F19, S8 | — | `functions/main.py`, `battles/BattlePage` |
+| 10 | Squad rulesets (Free-for-all, Fantasy Draft, Last Man Standing, Team) + squad vs squad / leaderboard | F5–F9, E6 | Q14, Q16, Q17 | `functions/main.py`, `battles/settings.ts`, `features/social` |
+| **Stage B: the Trade War realm (simulated, 24/7)** | | | | |
+| 11 | War profile: War balance ($100,000) + chart, Battle Level, gold-bar ledger | W-R23, W-R24, W-R27 | approved (F1–F8) | new `features/war/*`, `functions/` realm state, rules |
+| 12 | Simulated market engine (made-up companies, real sectors) + Chaos events + quiet hours + morning summary + SIMULATED marking | W-R16, W-R18–W-R22 | approved | `functions/` price engine + scheduler, Settings, notifications |
+| 13 | Private War lobby (configure, recruit, ready, start once, deadlines) | F1, F2, S6, F11 | approved rules | `functions/main.py`, `firestore.rules`, War screens |
+| 14 | Territories: hidden claiming, enemy warnings, Camouflage, reveal, contested battles + Command | F3, S2, S3, S9, W-R1, W-R2, W-R8, W-R10 | approved | functions, rules (owner-only placements), leak tests |
+| 15 | Battles: attacks, eligibility, Counter-pick, declines, soldiers, Rally, neutral claims, Hot zones, War Score, battle notifications, one-day wait (+ 100-token skip) | F4, S5, W-R3–W-R7, W-R9, W-R11–W-R15, N-R1 | approved | functions, rules, notifications, War screens |
+| 16 | Open War zones: weekly seasons, drop-in, Rookie zones, 24 h shield, level armies (≤150) | W-R25, W-R26 | approved | functions (zones, seasons), War screens |
+| 17 | War rematch, leaderboards, War achievements → main XP | F19, M6, W-R27 | approved | functions, `xp.py`, leaderboard |
+| **Stage C: content and launch** | | | | |
+| 18 | Content: Trading 101 Ch 3+, Hall of Minds pictures (after the owner picks), swipe lessons for 6 figures, news/thesis posts, 3-Leg server scanner, options payoff drill | L3, U2, H | — | `learn/*`, `minds/*`, `functions/` |
+| 19 | Launch readiness: security audit, load test, full re-test, lawyer review, Square purchase test, Sign in with Apple | T4, T5, H | — | tests, docs |
 
-**Owner answered Q1–Q5, Q8, Q9 and Q11 on 2026-10-27** (recorded in the addendum). The War/challenges/Squad rulesets/Chaos Simulator design is in `docs/WAR_DESIGN.md`, **waiting for approval**. New notification pictures were proposed, also waiting for approval. Still open: Q6, Q7, Q10, Q12–Q18.
+The superseded Solo Chaos Simulator (old 14b) is dropped (E3). The iPhone app (#81) stays on hold.
 
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
