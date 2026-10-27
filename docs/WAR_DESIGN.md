@@ -1,336 +1,334 @@
 # War, challenges, Squad rulesets and Chaos Simulator: design for approval
 
-**Version 2 (2026-10-27, after the owner's "War Mode Rules, Balancing & Pre-Phase-One Updates").**
-**Status: DRAFT. Section 9 is NOT approved** (the owner withdrew the earlier approval; it stays pending
-until the owner explicitly approves it). No code until it's approved.
-It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27 (list A, Phases 10–13, and the
-"War Mode rules update" section there).
+**Version 3 (2026-10-27, after the owner's "War Mode — Decisions & Updates").**
+**Status: DRAFT. Not approved as a whole.** The owner approved some decisions one by one (§0). The whole
+specification, including **Section 9**, stays **pending** until the owner explicitly approves it. No code until then.
+It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and §4c.
 
 **How to read the labels:**
-- **Owner-approved:** the owner decided it. Don't change it without a specific reason, written here.
+- **Owner-approved:** the owner decided it. Don't change it without a specific, written reason.
 - **(proposed):** my recommendation, waiting for the owner.
+- **(explore):** the owner asked for options, not a final rule.
 - ⚖️ marks anything that affects fairness, money/accounting or security.
 
 ## 0. Approval status
 | Item | Status |
 |---|---|
-| The numbers in v1: 100 pieces, 2–10 players, sector territories, stake 5% of the buy-in, 1 + pieces÷20 wins to capture, Chaos 5% | **Owner-approved: keep these values** |
-| Capture model: battle wins earn attack progress; hidden deployment stays primary | **Owner-approved** |
-| Short side only in challenges, fixed max loss, Bull/Bear for new users, virtual only | **Owner-approved** |
-| Notification pictures (new-logo style, #120 design language) | **Owner-approved: don't redesign** |
-| New logo direction | **Owner-approved: keep it everywhere** |
-| Neutral territories (v1 item 2) | **Replaced** by §7 below, per the owner |
-| Tie battles, visibility, eligibility, counterplay, declines, comebacks, rewards | **Proposed:** this version |
-| **Section 9 (what to approve)** | **NOT approved: pending** |
+| v1 numbers: 100 pieces (now "soldiers"), 2–10 players, sector territories, map 6/8/10, stake 5% of the buy-in, capture after 1 + soldiers÷20 wins, Chaos 5% | **Owner-approved** |
+| Capture model; Bull/Bear short side only in battles, with a fixed max loss | **Owner-approved** |
+| Notification pictures; new logo | **Owner-approved** |
+| W1 Ownership hidden during claiming; enemy-presence warning without revealing positions or strength | **Owner-approved** (the details in §3 are proposed) |
+| W1 Pay to conceal positions; bonus points and hints for valuable stocks | **(explore)**: §3 |
+| W2 Ties trigger a battle (now, or at the next open); no money at stake; **the winner gets a bonus** | **Owner-approved** (the bonus amount is proposed) |
+| W2 Not too granular; soldiers give an advantage but contested spots are still battled | **Owner direction**: design in §4 |
+| W3 1% qualifying winning trade | **Owner: provisional** (definition in §5) |
+| W4 Counter-pick | **Owner-approved** |
+| W5 Decline policy | **Owner-approved** |
+| W6 Comeback rules | **Owner-approved** |
+| W7 Neutral-territory rules and reduced rewards | **Owner-approved** |
+| W8 Notification updates and invitation types | **Owner-approved** |
+| W9 Soldiers: show your counts; losing costs soldiers; capturing earns soldiers | **Owner direction**: terms and balance in §6 (proposed) |
+| W10 Redeploy pass | **Owner-approved** |
+| W11 Chaos Mode rules | **Owner-approved** |
+| W12 Chaos losses count in the 5% rule, with one paid session | **Owner-approved**: exact accounting in §14 |
+| Victory mainly from good trading; Respect / Battle Level; more uses for resources; fast matches | **Owner direction**: §10, §17–§19 (proposed) |
+| Real-market vs always-on simulated market | **Not decided:** both options kept (§20) |
+| XP values (v2 "W8": neutral 2, win 10, defence 10, Giant-slayer +5) | **Still open:** the owner's "W8" approved notifications, not these (see §21) |
+| Ping-pong rule (v2 "W11") | **Still open:** the owner's "W11" approved Chaos, not this (see §21) |
+| **Section 9 / the whole specification** | **NOT approved: pending** |
 
 ## 1. War in one paragraph
-A War is a Trade War match with a **map of sector territories** (owner-approved).
-- Each player gets **100 pieces** and places them **in secret** during the claiming stage.
-- When claiming ends, the server resolves every territory:
-  - the most pieces owns it;
-  - a **tie starts a tie battle** right away;
-  - a territory nobody placed pieces on is **neutral**.
-- Then **everyone sees who owns what** (never the piece counts).
-- During the War, everyone trades their equal virtual buy-in. They can **attack** owned territories through Bull/Bear battles (once eligible), **defend** with a limited counter-move, and **claim** neutral territories.
-- Territories earn **points**: battle-won land is worth more than a neutral claim. The most points at the end wins.
+A War is a short Trade War match (1–5 trading days, proposed) with a **map of sector territories**.
+- Each player gets **100 soldiers** and places them **in secret** during claiming. An **enemy-presence** warning hints where rivals are, without saying who or how many.
+- When claiming ends, the server resolves each territory:
+  - a **clear lead** takes it;
+  - **close or tied** claims go to a **contested battle**, where more soldiers gives an advantage but not the win;
+  - empty territories are **neutral**.
+- Owners are then revealed (counts stay private; you always see your own).
+- Players trade their equal virtual buy-in, attack and defend through Bull/Bear battles, claim neutral land, and win or lose soldiers.
+- **The final War Score is mostly trading performance (60%) plus strategy (40%: territory points).**
+- A persistent **Respect** level grows across Wars.
 
-## 2. The map (owner-approved numbers)
-- Territories are market sectors, each with a few stocks from the 30-stock list (Tech, Finance, Health, Energy, Consumer, Communication, Industrials, Index…).
-- Map size:
-  - 2–3 players: 6 territories;
-  - 4–6 players: 8 territories;
-  - 7–10 players: 10 territories.
-- Players: min 2, max 10.
-- No borders in the first version: any territory can be attacked.
+## 2. The map (owner-approved)
+- Sector territories (Tech, Finance, Health, Energy, Consumer, Communication, Industrials, Index…), each with stocks from the 30-stock list.
+- 2–3 players: 6 territories; 4–6 players: 8; 7–10 players: 10. Min 2, max 10 players. No borders in the first version.
 
-## 3. Claiming stage and visibility ⚖️ (owner rule 1)
-- **During claiming, nobody sees anyone else's choices.** You see only your own placement. **Owner-approved** (rule 1).
-- Placement rules (from v1, unchanged):
-  - place all 100 pieces;
-  - leave at least 1 territory empty;
-  - no more than 50 pieces in one territory.
-  - Then **Lock in**; a locked placement can't change.
-- **The claiming stage ends** when the War starts, either by the organizer pressing Start or at the lobby deadline (§8).
-- **After claiming:** everyone sees each territory's **owner**, which ones are **neutral**, and which ones are **in a tie battle**. Players use that to choose whom to attack and which neutral land to claim.
-- **Piece counts are never shown** to other players. **(Proposed:** not even after the War.)
-- **Conflict with list D (enemy-presence warning):** the yes/no "Enemy presence" hint during placement would show part of opponents' choices, which rule 1 forbids.
-  - **(Proposed:)** drop it during claiming.
-  - Keep a different, safe hint after the reveal: "Contested: a tie battle is running here." See the open decision **W1**.
-- **Storage (security):**
-  - Placements live in `tradeWars/{id}/deploy/{uid}`: readable only by that player, written only by the server.
-  - Totals are computed only inside the server's start transaction.
-  - Rules tests will prove opponents can't read placements, and no notification or ticker line contains counts.
+## 3. Claiming, visibility, warnings and concealment ⚖️
+**Placement (from v1):**
+- all 100 soldiers;
+- at least 1 territory left empty;
+- at most 50 soldiers in one territory;
+- then **Lock in**.
 
-## 4. Tie battles ⚖️ (owner rule 2)
-If the top claims on a territory tie, **a battle between the tied players starts at once.** The territory is never left unresolved. **Owner-approved** (rule 2); the details below are proposed.
+**Hidden during claiming (owner-approved):**
+- Nobody sees opponents' placements or the owners until claiming ends.
+- **You always see your own soldiers**, per territory and in total (owner W9).
 
-**Two players tied:**
-- **Stock:** the server picks one stock at random from the territory's list. Neither player chose it, so neither has an edge.
-- **Sides:** the server flips a coin for who picks first. That player chooses Bull or Bear, and the other gets the opposite. They have 30 minutes to pick; otherwise the server picks at random.
-- **Window:** the first full market hour of the War. If the War starts outside market hours, it's the first hour after the next open.
-- **Stake (proposed):** no money is at stake. The players didn't choose this battle, so nobody loses virtual cash to an automatic event. Only the territory is decided.
-- **Result:** the side that matches the price direction wins, even for a tiny move (there's no draw band, because the territory must be decided). If the price is exactly unchanged:
-  - the player with the higher War return at that moment wins;
-  - if that's still tied, whoever locked in first wins.
+**Enemy-presence warning (owner-approved; details proposed):**
+- While placing, a territory shows **"Enemy presence"** when at least one *locked-in* opponent has soldiers there.
+- It shows no names and no numbers. It updates only when someone locks in, so it never reveals who is still deciding.
+- Each player's warnings are worked out on the server and written where only that player can read them.
+- **Proposed:** a second level, **"Heavy enemy presence"**, when the opponents' total there is 30 or more. It's coarse, so it doesn't reveal exact strength. Open decision **D1**.
 
-**Three or more players tied (proposed):** a "best pick" battle.
-- Each tied player picks one stock from the territory's list and a side, all hidden until the window starts.
-- The best result over the window wins, with the same tie-breakers.
-
-**Ownership record:**
-- The territory shows "Tie battle" until it's settled. Then `owners[territory]` becomes `{uid, since, how: "tie-battle"}`, and a line is added to the War's territory log (`tradeWars/{id}/territoryLog`, which players can read and only the server writes).
-- The winner's defence on that territory = 1 + (their pieces there ÷ 20), the approved formula.
-
-**The loser:**
-- They get a **Redeploy pass** (proposed). Within the next trading day they can make **one attack without the eligibility check** (§5), **or one neutral claim that doesn't use their daily neutral limit** (§7). This fits the owner's "the loser must either challenge another player or claim a neutral territory".
-- The pass expires after one trading day, so it can't be saved for later.
-
-**Notifications:** "Tie on Tech! Battle vs Ana starts 9:30 am: Bull on NVDA (you picked)". Then: "You won Tech" / "Ana won Tech; you have a Redeploy pass".
-
-## 5. Attacking an owned territory ⚖️ (owner rule 3)
-The battle system is the same one used for tie battles, with a stake.
-
-**Eligibility to attack (proposed):** both must be true.
-1. **Money:** you have at least the stake in free War cash. The stake is **5% of the buy-in** (owner-approved), e.g. $500 on $10,000.
-2. **Performance, one of these:**
-   - your War account is **at or above its starting value** (return ≥ 0%); **or**
-   - you **closed a winning trade of at least +1%** in this War during the last 2 trading days.
-
-**Why these values:**
-- The money rule is the approved stake, nothing new.
-- The performance rule makes attacking something you earn by trading well, not something you can spam.
-- The "winning trade" route keeps the door open for a player who is behind: they can earn an attack by trading well now.
-- +1% is small enough for any active trader to reach in a day or two, but it can't be faked without a real profit.
-- I'd set the final number after the first test Wars (open decision **W3**).
-
-**The attack:**
-- The attacker picks one stock from the territory's list and a side (Bull/Bear). The defender gets the opposite side. Both stakes are set aside.
-- Window: 1 hour or until today's close (v1).
-- Result: the side matching the move wins, with the v1 **draw band of 0.10%**. In a draw, both stakes are returned and nothing changes.
-
-**Settlement:**
-- The winner gets both stakes; the loser loses exactly their stake, never more.
-- Money only moves between the two players, so the War's total doesn't change.
-
-**Consequences:**
-- **Attacker wins:** +1 attack progress. When progress reaches the defence (1 + pieces÷20, approved), the territory transfers.
-- **Defender wins:** the attacker loses 1 progress (never below 0), and the territory stays.
-- The new owner's defence = 1 + their own pieces there ÷ 20 (minimum 1).
-
-**Limits (from v1):**
-- 1 attack you started open at a time;
-- at most 2 incoming;
-- one open battle per territory;
-- the same attacker → defender pair at most 3 times a day;
-- no new attacks in the last hour;
-- knocked-out or surrendered players can't take part.
-
-**Ping-pong rule (proposed):** a player who just lost a territory can't attack it back for 1 trading day. This stops two friends trading land back and forth to farm points.
-
-## 6. Defender counterplay ⚖️ (owner rule 4)
-**The problem:** the attacker chooses the stock, the side and the moment. That's a real information edge, and the defender is stuck with the opposite side.
-
-**Options I looked at:**
-| Option | Fair? | Simple? | Verdict |
+**Concealment (explore) ⚖️:** the owner asked whether players could spend coins to hide their positions.
+| Option | What it does | Fairness | Recommendation |
 |---|---|---|---|
-| Defensive bonus on the result (e.g. the defender wins draws or gets +0.5%) | Tilts every battle toward defenders and can make attacks pointless | Simple | No |
-| Defensive resource (shields bought or earned) | Shields already exist in Whale mode; more currencies add confusion | Medium | No |
-| A once-per-period counter-ability | Limited and a real choice | Simple | **Yes** |
-| Contest the attack under conditions (re-vote, appeal) | Hard to make clear; risks endless loops | Complex | No |
+| A. Spend **tokens** (bought with real money) | Your soldiers on one territory don't trigger others' warnings | **Pay-to-win**: it breaks the master rule "preserve equal starting capital / fair competition"; the App Store and players may see it as buying an advantage | **No** |
+| B. Spend **soldiers** (earned in the match) | "Camouflage": spend 5 soldiers from your 100 to hide one territory from warnings (max 2 territories) | Same price for everyone; it's a real trade-off (5 fewer soldiers) | **Yes (proposed)** |
+| C. Free, once per War | One hidden territory each | Fair, but no decision cost | Fallback |
 
-**Recommendation: "Counter-pick", once per trading day per defender (proposed).**
-- When attacked, the defender can **swap the stock** for any other stock in the same territory's list. The attacker keeps their side (Bull/Bear), and the window doesn't change.
-- This takes away the attacker's cherry-picked stock without giving the defender a guaranteed edge. The defender must still read the market.
-- **Once per trading day**, the attacker can't re-pick after a counter-pick, and there's only one swap per battle, so there's no endless back-and-forth.
+Open decision **D2**.
 
-**Against the owner's principles:**
-1. **Skill matters:** both stock picks are skill.
-2. **Defenders get a meaningful choice:** the counter-pick.
-3. **Attackers get a real chance:** it's still a market call with no bonus against them.
-4. **No guaranteed edge:** neither side starts ahead.
-5. **Limited:** once a day, one swap, no loops.
+**Valuable stocks: bonuses and hints (explore; proposed):**
+- **Hot zones:** before claiming, and each trading day, the server marks the **1–2 territories** whose stocks are moving most (from public market data: biggest % move or volume vs normal). Each shows a short hint, e.g. "Hot zone: NVDA +6% on earnings".
+- Holding a Hot zone at the day's close is worth **+1 territory point**, and winning a battle there is worth **+1 more**.
+- The hints come from market data only, never from opponents' choices.
+- Open decision **D3**.
 
-## 7. Declining a challenge ⚖️ (owner rule 5)
-**Policy (proposed):** discourage dodging without punishing absence.
-- **Response deadline:** 2 market hours (v1). Only market hours count, so a challenge sent at night doesn't expire before the defender wakes up.
-- **Reminder:** a notification 30 minutes before the deadline.
-- **First decline each trading day: free.**
-  - Nothing changes hands, the territory stays, and the attacker's stake is returned.
-  - It doesn't count as a loss, and it doesn't use up the attacker's daily pair limit.
-- **Further declines the same day: "Concede the round".**
-  - The attacker gets +1 attack progress, as if they'd won, but **no stake money moves**.
-  - It's **not** a loss on the defender's battle record. The attacker gets progress only, with no battle points or XP (this blocks friends using declines to farm).
-  - The territory transfers only if the progress reaches the defence, exactly like a normal win. A decline never hands over the territory directly.
-- **No answer by the deadline: auto-accept.**
-  - The battle runs with the defender on the opposite side; the defender keeps their counter-pick unused.
-  - This is fair to someone who's simply away: the result is a real market outcome, not a penalty, and the most they can lose is the fixed stake.
-  - If the defender doesn't have the stake in cash, the battle runs with no money and only territory progress at stake.
+## 4. Resolving claims: clear wins vs contested battles ⚖️ (owner W2)
+The owner doesn't want a single soldier's difference to decide ownership automatically.
 
-## 8. Lobby and lifecycle (from v1, unchanged)
-The stored statuses stay `lobby / active / ended / cancelled`, and a new `stage` field adds configuring, recruiting and ready. The app shows the new names.
-- Start happens exactly once (one transaction with a guard).
-- Lobby deadline: 1 h, 6 h, 24 h or 72 h. At the deadline it starts with the locked-in players if there are at least 2; otherwise it's cancelled and battle slots are returned.
-- The organizer can Cancel up to the start; after that they're a normal player.
-- Disconnecting is harmless: everything runs on the server.
-- The existing slots, level locks, quiz lock and War lengths stay.
+**Rule (proposed):**
+- **Clear win:** the leader has **more than 25% more soldiers** than the runner-up there (e.g. 40 vs 31), and owns it outright.
+- **Contested:** the runner-up has **at least 80% of the leader's soldiers** (e.g. 40 vs 32, or an exact tie). The territory goes to a **contested battle**. With 3 or more players within the margin, it's a "best pick" battle (v2).
+- **Neutral:** nobody placed soldiers there.
+- The margin (80%) is open decision **D4**.
 
-## 9. What to approve — **NOT APPROVED (pending the owner's explicit approval)**
-1. Visibility (§3): hidden claiming, owners revealed after the start, counts never revealed; **W1**, the enemy-presence hint.
-2. Tie battles (§4): random stock, coin flip for first side pick, no stake, no draw, tie-breakers, Redeploy pass for the loser, "best pick" for 3 or more players.
-3. Attack eligibility (§5): stake in cash plus (return ≥ 0% or a +1% winning trade in the last 2 days); ping-pong rule.
-4. Counterplay (§6): Counter-pick once per trading day.
-5. Declines (§7): 1 free decline a day; after that a concession gives progress only; no answer means auto-accept; 30-minute reminder.
-6. Comebacks and scoring (§10).
-7. Neutral territories and rewards (§11).
-8. Notifications (§12).
-9. Squad rulesets (§13) and Chaos Simulator (§14), carried over from v1.
+**Contested battle (the v2 tie battle, updated):**
+- **When** (owner-approved): immediately if the market is open, otherwise at the next open, depending on the final timing system (§20).
+- **Stock:** random from the territory's list.
+- **Soldiers give an advantage, not the win:** the player with more soldiers there gets **Command**. They choose Bull or Bear first and win if the price is exactly unchanged. With equal soldiers, a coin flip decides Command. The market still decides the battle.
+- **Money:** none at stake (owner-approved).
+- **Draws:** no draw. The side matching the price direction wins, even for a tiny move. If the price is exactly unchanged, Command wins.
+- **Winner's bonus** (owner-approved; amounts proposed): **+5 soldiers** to their reserve and **+1 territory point**, on top of the 3 points for battle-won land.
+- **Loser:** they get the **Redeploy pass** (owner-approved, v2): one attack without the eligibility check, or one extra neutral claim, within the next trading day.
+- **Ownership record:**
+  - The territory shows "Contested" until it's settled.
+  - Then `owners[territory] = {uid, since, how: "contested-battle"}`, and a line is added to `tradeWars/{id}/territoryLog` (players can read it; only the server writes it).
+  - Both players' soldiers there stay; the defence uses the owner's soldiers (1 + soldiers÷20).
 
-## 10. Comeback mechanics and leaderboard balance ⚖️ (owner rule 6)
-**Ideas I looked at:**
-| Idea | Effect | Verdict |
+## 5. Attacking an owned territory ⚖️ (v2, with the W3 definition)
+**Eligibility:**
+1. You have the **stake (5% of the buy-in)** in free War cash.
+2. **And** one of these:
+   - your War return is ≥ 0%; **or**
+   - you made a **qualifying winning trade** in the last 2 trading days.
+
+**Qualifying winning trade (W3, provisional 1%):**
+- The existing code counts a **"win"** as any sale above your average buy price, of any size, with no percentage (`tw_apply_trade`: `gain > 0`). That stat stays as it is.
+- A *qualifying* winning trade is new and stricter, used only for War eligibility: **a sale in this War at least 1% above your average buy price for those shares, after any trading fee** (e.g. a storm fee). Partial sales count on the shares sold.
+- The 1% is provisional and should be tuned after test Wars.
+
+**The battle:**
+- The attacker picks a stock from the territory and a side; the defender gets the opposite side and may use **Counter-pick** (owner-approved).
+- Stakes are held; the window is 1 hour or until the close; the draw band is 0.10%.
+- The winner takes both stakes; nobody can lose more than their stake (owner-approved).
+- Progress, capture and the defence formula (1 + soldiers÷20) are owner-approved.
+- Soldiers won and lost are in §6.
+
+**Limits (v2):**
+- 1 attack you started open at a time; 2 incoming at most;
+- one battle per territory;
+- the same attacker → defender pair at most 3 a day;
+- no new attacks in the last hour.
+- The ping-pong rule is still open (§21).
+
+## 6. Soldiers (owner W9; terms and balance proposed) ⚖️
+- **Name:** **Soldiers** (instead of "pieces" or "chips"), to match "War". Open decision **D5**.
+- **What you see:** your soldiers on each territory, your **reserve** (soldiers not on the map), and your total. Opponents' counts stay hidden (the W1 principle).
+- **Start:** 100 each (approved), all placed during claiming, so the reserve starts at 0.
+
+**Earning soldiers (proposed):**
+- capture a territory: **+10**;
+- win a contested battle: **+5**;
+- successful defence: **+3**.
+
+**Losing soldiers (proposed):**
+- lose a battle: **−5** (taken from that territory if you have soldiers there, otherwise from your reserve; never below 0);
+- lose a territory: the soldiers left there **retreat to your reserve at half** (rounded down).
+
+**Reinforce:** once per trading day, move reserve soldiers onto your own territories. This is hidden from others and raises the defence (1 + soldiers÷20, approved).
+
+**Within one War only (proposed):**
+- Soldiers don't carry over to the next War.
+- Carrying them over would break the master rule of an **equal start** for every player. The persistent progress is **Respect** (§17), which gives no power inside a match.
+- "Losing wars can cost soldiers" is applied **within the War** (battles lost). Open decision **D6** if the owner meant across Wars.
+
+**Balance check:**
+- Captures pay more than losses cost, so attacking is worth it.
+- A captured territory only takes the attacker's own soldiers there as its defence, so a new owner is fragile until they reinforce. That keeps the map moving without a runaway leader.
+
+## 7. Declines (owner-approved, v2)
+- The defender has 2 market hours to answer, with a reminder at 30 minutes.
+- The first decline each trading day is free.
+- Later declines concede 1 progress only: no money, points, XP or soldiers.
+- No answer means auto-accept.
+- The leader (1st on War Score) gets no free declines (W6).
+
+## 8. Lobby and lifecycle (v2; length shortened, proposed)
+- The stored statuses stay `lobby / active / ended / cancelled`, with a new `stage` (configuring, recruiting, ready). Start happens once.
+- **War length (proposed, for fast matches):** **1, 2, 3 or 5 trading days**. War leaves out the 7/14/30-day lengths; normal Battles keep theirs.
+- **Lobby deadline (proposed):** 1 h, 6 h or 24 h (72 h dropped).
+- At the deadline it starts with the locked-in players if there are at least 2; otherwise it's cancelled and battle slots are returned. The organizer can cancel before the start.
+
+## 9. What to approve — **NOT APPROVED (pending the owner's explicit approval of the whole revised spec)**
+The individually approved items are in §0. Still needed:
+1. **D1–D10** and the leftovers in §21.
+2. The War Score formula (§10).
+3. Soldiers economy (§6).
+4. Respect (§17).
+5. Resource uses (§18).
+6. War length (§8).
+7. Then a final "approve the revised specification".
+
+## 10. Scoring: mostly trading, plus strategy ⚖️ (owner: "victory should primarily reward good trading")
+**War Score (0–100, proposed) = 60% Trading + 40% Strategy.**
+- **Trading (0–100):** your War return, on a straight scale: **−10% → 0, 0% → 50, +10% → 100** (capped at both ends). It uses the size of your return, not your rank, so a 0.1% edge isn't a big jump.
+- **Strategy (0–100):** your territory points ÷ the highest territory points in the War × 100.
+  - Territory points (owner-approved W7): neutral 1, deployed 2, battle-won or defended 3.
+  - Plus Hot zones, Giant-slayer (W6) and the contested-battle winner's bonus.
+- **Example:** a +6% trader holding half the leader's land scores 60%×80 + 40%×50 = **68**. A −2% trader holding the most land scores 60%×40 + 40%×100 = **64**. Good trading wins, but land still matters.
+- **Ties:** higher return %, then more battle wins.
+- The 60/40 split and the ±10% scale are open decision **D7** (to tune after test Wars).
+- **Comeback rules (owner-approved W6) still apply:** Giant-slayer bonuses, the leader can't use free declines, and points are counted at the end.
+
+## 11. Neutral territories (owner-approved W7)
+- Claim with no battle and no stake: **1 a day** (the Redeploy pass gives one extra). The same eligibility as attacking.
+- Worth 1 point; it becomes contested after its first battle. A defended or captured territory is worth 3.
+- **Anti-farming:**
+  - no release action;
+  - territory XP once per player per territory per War;
+  - land taken only through concessions is worth 1 point.
+
+## 12. Notifications and invitations (owner-approved W8)
+- **Pictures:** the approved ones, plus a "TERRITORY BATTLE" picture in the same style. No counts on any picture.
+- **War events:**
+  - challenged / attacked;
+  - contested battle starting (with "pick your side" when you have Command);
+  - accepted / declined / conceded;
+  - 30 minutes to the deadline;
+  - auto-accepted;
+  - resolved;
+  - territory won / lost;
+  - soldiers gained or lost;
+  - a new Hot zone (one a day at most).
+- **Invitations:** coaching, battle and team-up stay separate flows (existing invite kinds `coach`, `battle`, `squad`, plus `twInvites`). Each card says who, what, and only that flow's actions.
+
+## 13. Squad rulesets (v1; pending)
+One engine with a `ruleset` setting: Free-for-all, Fantasy Draft (draft + timer + optional bans), Last Man Standing (explicit thresholds, realized losses during the day unless "strict"), Team Cooperation (average return; teammates see trades).
+
+## 14. Chaos Simulator (owner-approved W11, W12): exact accounting ⚖️
+- A separate Solo mode with generated wild prices on real timeframes, labelled "Simulated prices". Prices are made bar by bar on the server.
+
+**Session:**
+- Each session starts a fresh **$10,000 Chaos account**, separate from Solo Real Market.
+- One open session at a time.
+
+**Paid session:** the **first session you close each day** (New York calendar day) is the paid one. Later sessions that day are practice: no transfer.
+
+**Settlement of the paid session:**
+- Result = final Chaos account value − $10,000.
+- **5% of the result** goes to your Solo Real Market account's **cash**:
+  - a profit adds to cash; a **loss is taken from cash** (owner W12);
+  - rounded to the cent;
+  - a loss can't push Solo cash below $0. If cash is short, only what's there is taken; nothing else is sold.
+- **One ledger line** in the Solo account history: "Chaos session: +$X / −$X (5% of +$Y / −$Y)".
+- Idempotent per session: it can't be paid twice.
+
+**No dodging:**
+- A session left open closes automatically at the end of its day **and still counts** as that day's paid session if it's the first.
+- Abandoning a losing session therefore doesn't avoid the 5% loss.
+
+XP: normal trade XP within the existing daily caps.
+
+**Still to set:** how long a session is (e.g. one simulated day of bars played in about 15 minutes). Open decision **D8**.
+
+## 15. Conflicts with earlier rules or code
+| # | Conflict | Resolution |
 |---|---|---|
-| Flat comeback bonus (free points or cash when behind) | Rewards losing; makes winning feel cheap | No |
-| Rubber-band money (the leader's trades count less) | Punishes skill | No |
-| Higher-risk underdog bets (bigger stakes for trailing players) | Can wipe out a trailing player faster; adds money rules | No |
-| **Giant-slayer reward:** beating a higher-ranked player is worth more | Rewards skill and gives trailing players a target | **Yes** |
-| **Leader exposure:** the top player can't hide (their territories can't be shielded by declines) | Stops snowballing without taking anything away | **Yes** |
-| Points counted at the end, not banked early | Keeps every War alive until the last day | **Yes** |
+| C1 | List A: "ties stay neutral" | Replaced: ties and close claims go to a contested battle (owner W2). |
+| C2 | v2 proposed dropping the enemy-presence warning | Reversed by the owner (W1): the warning stays, without names or numbers. |
+| C3 | v1 neutral challenges against the market | Replaced by direct neutral claims (W7). |
+| C4 | v2 "most points wins" | Replaced by the War Score: 60% trading + 40% strategy (owner direction). |
+| C5 | "Immediately" vs market hours | Now if open, else at the next open; it depends on the market-mode decision (§20). |
+| C6 | New War fields (`stage`, `owners`, `deploy`, `territoryLog`, `challenges`, soldiers) | Added only; old matches and the classic site are unaffected. |
+| C7 | New XP sources | Server XP tables with daily caps; values still open (§21). |
+| C8 | Whale-mode Shield Tokens | Not used in War. |
+| C9 | `shortSelling: False` | Unchanged: Bull/Bear battles aren't share short selling. |
+| C10 | Existing "wins" = any profitable sale | Kept; the 1% "qualifying win" is a new, separate War rule (W3). |
+| C11 | "Spend coins to conceal" vs the master rule of equal starting capital and fair competition | Recommend spending soldiers, not tokens (D2). |
+| C12 | Persistent soldiers vs an equal start | Soldiers stay within one War; Respect is the persistent part (D6). |
+| C13 | Existing War/Battle lengths 1/3/7/14/30 days vs "fast matches" | War uses 1/2/3/5 trading days; Battles unchanged. |
+| C14 | The checklist's §26/§36 "Trader Reputation: separate from XP, based only on actual statistics" | Respect is War-only and earned only from real results, so it fits as part of reputation (D9). |
+| C15 | Always-on simulated market vs "real market data" rules and labels | Kept as an option only; it must be labelled simulated and use server-generated prices (§20). |
 
-**Recommendation (proposed):**
-- **Giant-slayer:** win a battle against a player ranked **above** you on the War points table and you get **+1 bonus point**. Take a territory from the **current leader** and you get **+1 more**.
-  - It only pays on a real win with a stake. Concessions and neutral claims never pay it.
-- **Leader exposure:** the player currently 1st on points **can't use free declines**: every challenge to them is accepted or conceded. They keep their counter-pick, so they still have a real defence. Nothing is taken from them for being good.
-- **Points are counted at the end** from the territories held then (§11), so a strong last day can change the result. No new attacks in the final hour (v1) keeps the finish clean.
-- **Eligibility by trading (§5)** gives a trailing player a way back in by trading well, without a handout.
+## 16. Acceptance criteria and tests
+**Everything from v2, plus:**
+- **Warnings:**
+  - only from locked-in opponents, with no names or numbers;
+  - Camouflage hides it;
+  - rules tests show a player can read only their own warnings.
+- **Clear vs contested:**
+  - unit tests at the 80% and 125% edges, exact ties, and 3-way contests;
+  - Command goes to the player with more soldiers, or a coin flip when equal.
+- **Contested battle:** no money; no draw; the winner gets +5 soldiers and +1 point; the loser gets the Redeploy pass.
+- **Qualifying win:** ≥ 1% after fees on the shares sold, within 2 trading days; the old `wins` stat is unchanged.
+- **Soldiers:**
+  - +10 / +5 / +3 and −5 never go below 0;
+  - the retreat at half;
+  - reinforcing once a day, hidden;
+  - the defence recalculates.
+- **War Score:** the formula, the caps at −10% and +10%, the 60/40 weights, the tie-breakers.
+- **Hot zones:** at most 2 a day, from market data only; the points are added once.
+- **Chaos:**
+  - only the first close of the day pays;
+  - gains and losses at 5%;
+  - Solo cash never below 0;
+  - one ledger line; no double pay;
+  - an abandoned session auto-closes and counts.
+- **Respect:** only real results add to it; there's no in-match effect.
+- **Every PR:** lint, typecheck, unit, build, Playwright phone and desktop with axe, rules tests, functions e2e; screenshots or video.
 
-**Why it's balanced:**
-- Leaders still earn the most by holding the most valuable land.
-- Trailing players gain only by **winning real battles**, and they gain a little extra for beating stronger players.
-- Nobody gets points for losing, and nobody's money is scaled.
+## 17. Respect: persistent battle progression (explore; proposed)
+- **Name:** **Respect**, with ranks Recruit → Soldier → Sergeant → Captain → Commander → General. "Battle Level" is the alternative name (D9).
+- **Earned only from real results:**
+  - battle win +3;
+  - successful defence +3;
+  - capture +5;
+  - Giant-slayer +2;
+  - War win +10;
+  - top 3 +5.
+- **Never lost** (proposed), so nobody is punished for trying. Concessions and neutral claims give none.
+- **No power inside a match** (an equal start). It shows as a badge on profiles and leaderboards, and could unlock cosmetic map skins and frames and later matchmaking.
+- Server-written, like XP. It's separate from XP and fits the checklist's Trader Reputation (§26/§36).
 
-## 11. Neutral territories, points and XP ⚖️ (owner rule 7; replaces v1 item 2)
-**Neutral claim:**
-- Any player can claim an available neutral territory with **no battle and no stake**: **1 neutral claim per trading day** (proposed); a Redeploy pass gives one extra.
-- Eligibility: the same performance rule as attacking (§5), so it's earned.
-- The claimer becomes the owner with defence 1.
-
-**Points each territory is worth at the end (proposed):**
-| How you hold it | Points |
+## 18. More uses for earned resources (explore; proposed)
+| Resource | Uses |
 |---|---|
-| Neutral claim (never fought over) | **1** |
-| Won at the start by hidden deployment (most pieces) | **2** |
-| Won or **successfully defended** in a real battle (tie battle or attack, with a stake, or the no-stake tie battle) | **3** |
+| **War cash** (the trading account) | Trading; the **battle stake** (attacking costs money at risk). |
+| **Soldiers** | Defence; **Reinforce**; **Camouflage** (5 each, §3); **Rally**: spend 15 reserve soldiers for **one extra attack** that day (max 1 a day). |
+| **Territory points** | The score only: they can't be spent, so the score stays honest. |
+| **Respect** | Cosmetics and badges outside matches. |
+| **Tokens** | Not used for any in-match advantage (fairness); existing slots and revives are unchanged. |
 
-Giant-slayer bonuses (§10) come on top. **The winner is the player with the most points;** ties are broken by War return %, then by more battle wins.
+## 19. Keeping matches fast (proposed)
+- Wars run 1, 2, 3 or 5 trading days.
+- Lobby deadlines are at most 24 h; defenders have 2 market hours to answer.
+- Hot zones refresh daily, and Reinforce and the neutral claim reset daily, so there's always something to do.
+- The final-hour freeze keeps the finish clean.
 
-**Neutral → contested:**
-- The first time a battle is fought over a neutral-claimed territory, it becomes **contested**.
-- If the owner defends it, it goes up to 3 points for them; if it's taken, it's worth 3 to the attacker.
-- A territory taken through concessions only (§7) counts as 1 point (no real battle).
-
-**XP (proposed; all through the existing server `xp_award` tables and daily caps):**
-- neutral claim: 2 XP;
-- winning a battle: 10 XP;
-- successful defence: 10 XP;
-- Giant-slayer: +5 XP;
-- concessions and declines: 0.
-
-**Anti-farming:**
-- There's **no "release territory" action**, so you can't drop land and re-claim it.
-- Points are counted once, at the end, from land held then. Changing hands mid-War doesn't pile up points.
-- XP for a territory is paid **once per player per territory per War**: re-taking the same land pays no new XP.
-- The ping-pong rule (§5), the pair limit of 3 a day, and no XP for concessions all apply.
-
-## 12. Notifications and invitations (owner rule 8)
-**Pictures:**
-- The approved notification pictures are kept as they are.
-- A new **"TERRITORY BATTLE"** picture in the same design language (new logo, "NEW ALERT"-style kicker), not a redesign.
-- **The pictures carry no piece counts and no hidden information.**
-
-**War notifications (each opens the battle with the right action):**
-| Event | To | Example | Action |
-|---|---|---|---|
-| You were challenged / attacked | defender | "Ana is attacking your Tech territory: Bear on NVDA, $500, until 4:00 pm" | Accept · Counter-pick · Decline |
-| Tie battle started | both | "Tie on Tech! Battle vs Ana at 9:30 am" | Pick your side |
-| Challenge accepted / declined / conceded | attacker | "Ben accepted: battle on Tech is live" / "Ben declined (free decline)" | View |
-| Response deadline in 30 min | defender | "30 min left to answer Ana's attack on Tech" | Respond |
-| Auto-accepted at the deadline | both | "No answer: the battle on Tech is running" | View |
-| Battle resolved | both | "You won on Tech: +$500, attack progress 2" / "You held Tech" | View |
-| Territory won / lost | both | "Tech is yours" / "Tech fell to Ana" | View map |
-
-Rules for all of these:
-- Same inbox/bell and push system as today (`notify_users`, kind `battles`, inline actions like the existing Trade War challenge Accept/Decline).
-- One notification per event per person; no duplicates.
-
-**Invitations:** the three kinds the owner listed stay **separate flows**, because their actions differ. They already exist in the invite system (`functions/invites.py` kinds `battle`, `squad`, `join`, `coach`, plus direct challenges in `twInvites`).
-| Invitation | Existing flow | What it must show | Actions |
-|---|---|---|---|
-| **Coaching** | `coach` invite (coach needs Level 3) | who invited you; "coach you" or "be your coach"; what that means (they can see your practice account's trades) | Accept · Decline |
-| **Battle** | `battle` invite link / `twInvites` challenge | who; match name, buy-in, days, mode; that it uses a battle slot | Accept · Decline |
-| **Team-up** | `squad` invite (and Team Cooperation teams later) | who; which squad/team; what joining means | Join · Decline |
-
-Each card names the inviter, says what you're invited to, and offers only that flow's actions.
-
-## 13. Squad rulesets (v1, unchanged; pending)
-One match engine, with a `ruleset` setting:
-- **Free-for-all:** classic.
-- **Fantasy Draft:** the existing snake draft plus a timer and an optional ban phase.
-- **Last Man Standing:** the existing `lms`, with explicit thresholds and realized losses only during the day, unless the host turns on "strict".
-- **Team Cooperation:** the team score is the members' average return; teammates see each other's trades.
-
-The app groups them as Together (Team Cooperation) and Compete (the other three).
-
-## 14. Chaos Simulator (v1; 5% approved; the rest pending)
-- A separate Solo mode with its own virtual $10,000.
-- Generated wild charts on real timeframes (20% days), labelled "Simulated prices".
-- Prices are made bar by bar on the server, so nobody can see ahead.
-- **5% payout (owner-approved number)** to the Solo account when a session closes. **Proposed:** losses count at 5% too, and at most 1 paid session a day.
-
-## 15. Conflicts with what exists or was decided before
-| # | Conflict | Proposed resolution |
+## 20. Market mode: NOT DECIDED (both options kept)
+| | **A. Real market** | **B. Always-on simulated market** |
 |---|---|---|
-| C1 | List A said "ties stay neutral". | Rule 2 (newer, from the owner) wins: ties start a tie battle. |
-| C2 | List D's enemy-presence warning during deployment vs rule 1 (no seeing opponents' choices while claiming). | Drop it during claiming; offer a safe after-reveal hint instead (**W1**). |
-| C3 | v1 neutral challenges "against the market", with the stake removed. | Replaced by direct neutral claims (§11). |
-| C4 | v1 "most territories wins". | Most **points** wins (§11), because rule 7 needs neutral land to be worth less. |
-| C5 | Tie battles must start "immediately", but prices only move in market hours. | They start at once if the market is open, otherwise at the next open, with players notified right away. |
-| C6 | Existing matches use `status` only; the War needs `stage`, `owners`, `deploy`, `territoryLog`, `challenges`. | New fields and sub-collections only; existing matches and the classic site are unaffected. |
-| C7 | New XP sources. | Added to the server XP tables with daily caps (no client XP). |
-| C8 | Existing Whale-mode Shield Tokens. | Not used in War (to keep one defence mechanic, the counter-pick). |
-| C9 | Existing Trade War rules flag `shortSelling: False`. | Unchanged: Bull/Bear battles aren't share short selling; no shares are borrowed or sold. |
+| Prices | Real (Marketstack), market hours only | Generated on the server (the Chaos engine, calmer settings), 24/7 including nights and weekends |
+| Battles and ties | During market hours; at the next open otherwise | Any time, immediately |
+| Pace | Pauses overnight and on weekends | Always moving; good for fast Wars |
+| Skill | Real-market trading skill | Game skill on realistic but simulated prices |
+| Must | Use existing quotes within the Marketstack cap | Be labelled "Simulated prices"; the same prices for every player; no peeking ahead |
 
-## 16. Acceptance criteria and tests (for Phases 11–13)
-- **Visibility:**
-  - rules tests: a player can't read another player's `deploy`, before or after the start;
-  - the owners map appears only after the start;
-  - no count appears in the events ticker, notifications or the territory log (payload tests).
-- **Resolution:**
-  - unit tests for highest-wins, 2-way and 3-way ties, and empty territories becoming neutral;
-  - start happens once (a double Start or the deadline job running alongside Start changes nothing twice).
-- **Tie battles:**
-  - the random stock is from the territory's list;
-  - the coin-flip pick and the 30-minute auto-pick work;
-  - the no-draw rule and the tie-breakers are applied in order;
-  - the Redeploy pass is given, then used or expired.
-- **Attacks:**
-  - eligibility in both directions (refused without the cash or the performance);
-  - stake held then settled, zero-sum, and the loss never above the stake;
-  - the 0.10% draw refunds both stakes;
-  - progress and capture follow the approved formula;
-  - the ping-pong rule and all limits are enforced.
-- **Counter-pick:** only stocks from the territory's list, once per trading day, the attacker can't re-pick, one swap per battle.
-- **Declines:**
-  - the free decline returns the stake and counts no loss;
-  - the second decline concedes progress only, with no money, points or XP;
-  - no answer means auto-accept;
-  - the reminder is sent once, 30 minutes before;
-  - only market hours count toward the deadline.
-- **Scoring:**
-  - 1 / 2 / 3 points by how the land is held;
-  - Giant-slayer only on real wins;
-  - the leader can't use free declines;
-  - tie-breakers for the winner.
-- **Anti-farming:** no release action; territory XP once per player per territory per War; concession-only land is worth 1 point.
-- **Notifications:** one per event per person; the right action buttons; never counts; push picture uses the approved design.
-- **Invitations:** coaching, battle and team-up cards show who, what and the right actions; accepting one doesn't trigger another flow.
-- **Every PR:** lint, typecheck, unit, build, Playwright phone and desktop with axe, rules tests, functions e2e; screenshots or video for the owner.
+One possibility is an organizer setting per War. **Both stay in the specification until the owner decides (D10).**
+
+## 21. Leftovers from v2 (numbering mismatch)
+The owner's answers used the W-numbers differently from my v2 list:
+- v2 **W8** was **XP values**, but the owner's W8 approved notifications. → The XP values are **still open**: neutral 2, battle win 10, defence 10, Giant-slayer +5, all within the daily caps.
+- v2 **W11** was the **ping-pong rule**, but the owner's W11 approved Chaos. → The ping-pong rule is **still open**: you can't attack back land you just lost for 1 trading day.

@@ -1531,6 +1531,68 @@ The owner's "War Mode Rules, Balancing & Pre-Phase-One Updates". Full rules are 
 - **W11** Ping-pong rule: you can't attack back land you just lost for 1 trading day. Approve?
 - **W12** Chaos losses counted at 5% too, and 1 paid session a day (still pending from v1).
 
+### 4c. War Mode decisions (owner, 2026-10-27, fourth message)
+Full rules are in `docs/WAR_DESIGN.md` **v3**. All earlier approvals are kept.
+
+**The whole revised specification, including WAR_DESIGN Section 9, is still NOT approved;** Phase One waits for that approval.
+
+**Decided by the owner:**
+- **W1:** ownership stays hidden during claiming, and an enemy-presence warning is shown without revealing positions or strength.
+- **W2:** ties start a battle (now, or at the next open, depending on the timing system); no money is at stake; the winner gets a bonus.
+- **W3:** the qualifying winning trade is 1% (provisional).
+- **W4:** Counter-pick.
+- **W5:** the decline policy.
+- **W6:** the comeback rules.
+- **W7:** neutral-territory rules with reduced rewards.
+- **W8:** notification updates and invitation types.
+- **W10:** the Redeploy pass.
+- **W11:** the Chaos Mode rules.
+- **W12:** Chaos losses count in the 5% rule, with one paid session.
+
+**Owner directions turned into proposals (IDs continue §4b):**
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R8 | S/F | Enemy-presence warning without names or numbers. Explore concealing positions by paying (recommend in-match soldiers, not tokens: fairness). |
+| W-R9 | F | Bonus points and strategic hints for valuable stocks ("Hot zones" from public market data). |
+| W-R10 | F | Not too granular: only clear leads win outright; close claims go to a battle where more soldiers gives an advantage (Command), not the win. |
+| W-R11 | F/S | Soldiers: players see their own counts; losing battles costs soldiers; capturing earns soldiers; terms and balance defined before code. |
+| W-R12 | F | Victory mainly rewards trading: War Score = 60% trading + 40% strategy (proposed). |
+| W-R13 | F | A persistent progression meter ("Respect" / Battle Level) that grows with performance and gives no in-match power. |
+| W-R14 | F | More uses for points, cash and earned resources, including attacking. |
+| W-R15 | F | Fast matches: no weeks-long Wars or long idle periods (War lengths of 1/2/3/5 trading days, proposed). |
+| W-R16 | M | Market mode: real market **and** an always-on simulated market are both kept for evaluation. **Not decided:** don't remove either. |
+| W-R17 | S | Chaos accounting: the first closed session each day pays 5% of its gain **or loss** to Solo cash (never below $0), with one ledger line, idempotent; an abandoned session auto-closes and counts. |
+
+**Existing definition checked (W3):** the code counts a "win" as any sale above the average buy price (`tw_apply_trade`, `gain > 0`). The 1% qualifying win is a new, separate War-only rule (after fees, on the shares sold); the old stat is unchanged.
+
+**Unresolved decisions (need the owner):**
+- **D1:** add a coarse "Heavy enemy presence" level (opponents' total of 30+ soldiers)?
+- **D2:** concealment: spend soldiers ("Camouflage", 5 per territory, max 2; recommended), tokens (pay-to-win risk), or one free per War?
+- **D3:** Hot zones: 1–2 a day, +1 point for holding one at the close, +1 for a battle won there?
+- **D4:** contested margin: the runner-up has ≥ 80% of the leader's soldiers; and Command (more soldiers picks the side first and wins an exactly unchanged price)?
+- **D5:** the name "Soldiers"?
+- **D6:** soldiers count within one War only (recommended, equal start), or carry across Wars?
+- **D7:** War Score 60/40 and the −10%…+10% trading scale?
+- **D8:** Chaos session length (e.g. one simulated day in about 15 minutes)?
+- **D9:** the name "Respect" or "Battle Level"; ranks and point values; never lost?
+- **D10:** market mode, real vs always-on simulated, or an organizer choice per War: **not decided**.
+- **Also open:**
+  - the soldier numbers (+10 capture, +5 contested win, +3 defence, −5 loss, retreat at half);
+  - the contested-win bonus (+5 soldiers, +1 point);
+  - Rally (15 soldiers for an extra attack);
+  - War lengths 1/2/3/5 and lobby deadlines 1/6/24 h;
+  - the v2 XP values (neutral 2, win 10, defence 10, Giant-slayer +5);
+  - the v2 ping-pong rule.
+  - The owner's W8 and W11 approved notifications and Chaos, not these last two, because the numbering differed.
+
+**New conflicts** (full list C1–C15 in `docs/WAR_DESIGN.md` §15):
+- **C10:** the existing "wins" stat vs the 1% rule.
+- **C11:** token concealment vs equal, fair competition.
+- **C12:** persistent soldiers vs an equal start.
+- **C13:** War lengths vs the existing 7/14/30-day lengths.
+- **C14:** Respect vs the checklist's §26/§36 Trader Reputation (compatible).
+- **C15:** the always-on simulated market vs the real-data rules (it must be labelled simulated).
+
 ### 5. Risks and breaking changes
 - **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.
 - **Short selling changes match accounting** (`tw_apply_trade`, `tw_mark`, knock-outs, LMS floors). It touches every mode, so it's limited to challenges unless decided otherwise.
