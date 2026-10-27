@@ -29,7 +29,7 @@
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
 .stepLink { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--ink); text-decoration: none; background: var(--surface); }
 .stepLink:hover { border-color: var(--accent); }
-.stepIcon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); flex: none; }
+.stepIcon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 0; background: var(--accent-soft); color: var(--accent); flex: none; }
 .stepText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .stepText span { color: var(--ink-2); font-size: var(--text-sm); }
 
@@ -90,25 +90,25 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
 .go { justify-self: start; margin-top: var(--space-2); pointer-events: none; }
 
 /* ---------------------------------------------------------------- one lesson (LessonPlayer) */
-.player { display: grid; gap: var(--space-3); max-width: 480px; margin-inline: auto; padding: var(--space-4); border: 1px solid var(--border-soft); border-radius: 20px; background: var(--surface); }
+.player { display: grid; gap: var(--space-3); max-width: 480px; margin-inline: auto; padding: var(--space-4); border: 1px solid var(--border-soft); border-radius: 0; background: var(--surface); }
 .playerTop { display: flex; align-items: center; gap: var(--space-3); }
 .playerTop .pathBar { margin: 0; }
 .close { display: grid; place-items: center; width: var(--tap); height: var(--tap); margin: -8px; color: var(--muted); font-size: 26px; line-height: 1; text-decoration: none; border-radius: var(--radius); }
 .close:hover { color: var(--ink); }
 .stepCount { font-family: var(--mono); font-size: var(--text-xs); color: var(--muted); }
-.stage { aspect-ratio: 4 / 3; border-radius: 14px; background: var(--surface-2); overflow: hidden; }
+.stage { aspect-ratio: 4 / 3; border-radius: 0; background: var(--surface-2); overflow: hidden; }
 .say { display: grid; gap: var(--space-2); }
 .say h2 { margin: 0; font-size: var(--text-xl); line-height: 1.25; text-wrap: balance; }
 .say h2:focus { outline: none; }
 .say p { margin: 0; color: var(--ink-2); line-height: 1.55; }
 .say .tip { margin-top: var(--space-1); color: var(--ink-2); }
 .opts { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
-.opt { display: flex; justify-content: space-between; gap: var(--space-3); text-align: left; min-height: 52px; padding: var(--space-3) var(--space-4); border: 2px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.opt { display: flex; justify-content: space-between; gap: var(--space-3); text-align: left; min-height: 52px; padding: var(--space-3) var(--space-4); border: 2px solid var(--border); border-radius: 0; background: var(--surface-2); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
 .opt:hover:not(:disabled) { border-color: var(--accent); }
 .opt:disabled { cursor: default; }
 .optRight { border-color: var(--bull); background: color-mix(in srgb, var(--bull) 16%, var(--surface)); }
 .optWrong { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, var(--surface)); }
-.why { margin: 0; padding: var(--space-3); border-radius: 12px; font-size: var(--text-sm); }
+.why { margin: 0; padding: var(--space-3); border-radius: 0; font-size: var(--text-sm); }
 .whyOk { background: color-mix(in srgb, var(--bull) 16%, var(--surface)); }
 .whyNo { background: color-mix(in srgb, var(--danger) 14%, var(--surface)); }
 .finish { display: grid; gap: var(--space-3); justify-items: center; text-align: center; }

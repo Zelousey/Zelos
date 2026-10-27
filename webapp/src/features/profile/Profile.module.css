@@ -110,7 +110,7 @@
 .swName { font-weight: 800; font-size: 1.2rem; }
 .swBadge { display: inline-block; font-size: 1.4rem; line-height: 1; }
 .swRing { width: 30px; height: 30px; border-radius: 50%; box-shadow: inset 0 0 0 7px var(--surface-2); }
-.swBox { width: 46px; height: 26px; border-radius: 6px; }
+.swBox { width: 46px; height: 26px; border-radius: 0; }
 .lkBody { padding: var(--space-3) var(--space-4) var(--space-5); }
 .frameRing { display: block; padding: 4px; border-radius: 50%; } /* a photo frame bought with tokens */
 .frameRing .photo { border-color: var(--surface); }

@@ -39,14 +39,7 @@ and the topic doc for whatever you work on. Everything below is on `main` unless
 - Details: `docs/HALL_OF_MINDS.md`.
 
 ## Next up (owner's queue)
-- **Square UI look** (owner 2026-10-25): mock-ups in `docs/mockups/`, sent to the owner;
-  **waiting for their pick (A/B/C)**, build nothing before it.
-  - Square UI: `square-*.jpg` show real screens in A (today, 8/12px corners), B (2px) and C (0px).
-    Corners come from `--radius-sm/--radius/--radius-lg/--radius-pill` in
-    `webapp/src/styles/tokens.css`, plus about 30 one-off `border-radius` values in module CSS
-    (`grep -rn "border-radius" webapp/src`). The mock-up forced them with an injected stylesheet;
-    a real change should set the tokens and replace the one-offs, then re-check every screen
-    (avatars and round dots may stay round if the owner wants).
+- **Square UI**: decided (owner 2026-10-25: mostly fully square, round for naturally round things); PR `claude/square-ui`. The classic website pages still have rounded corners.
   - Logo: **decided** (owner 2026-10-25): their own bull vs bear picture, PR #117; master at
     `docs/brand/logo-master.png`. `logo-directions.*` are the earlier ideas, kept for reference.
     Not yet updated: the share image `og-image.png` and the arcade/demo favicons.

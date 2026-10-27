@@ -19,7 +19,7 @@
 .vs { width: 44px; height: 44px; border-radius: 50%; background: var(--danger); color: #fff; font-size: 15px; letter-spacing: 0.04em; box-shadow: 0 0 0 4px var(--surface-2), 0 0 24px var(--danger); margin: 0 -10px; }
 .plus { width: 36px; height: 36px; border-radius: 50%; background: var(--gold); color: #1a1300; font-size: 22px; margin: 0 -6px; }
 .badge { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-size: 26px; }
-.bubble { position: absolute; top: 12px; right: 28%; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 20px; }
+.bubble { position: absolute; top: 12px; right: 28%; width: 40px; height: 40px; border-radius: 0; background: var(--surface); border: 1px solid var(--border); font-size: 20px; }
 @media (hover: hover) {
   :global(button:hover) > .scene .left { transform: rotate(-8deg) translateY(-2px); }
   :global(button:hover) > .scene .right.flip { transform: scaleX(-1) rotate(-8deg) translateY(-2px); }

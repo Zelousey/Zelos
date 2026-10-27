@@ -63,6 +63,9 @@ test('Market: world markets, sectors, mini charts and the stock list', async ({ 
   await page.getByRole('tab', { name: 'Indexes & ETFs' }).click();
   await page.getByRole('list', { name: 'Indexes & ETFs' }).getByRole('link', { name: /^QQQ,/ }).click();
   await expect(page).toHaveURL(/\/app\/markets\/QQQ$/);
+  // the chart page remembers the symbol once it has loaded, so wait for it before leaving
+  // (the address changes first; leaving straight away failed on main CI after #115)
+  await expect(page.getByRole('heading', { name: 'QQQ', level: 1 })).toBeVisible();
   await page.goto('markets');
   await page.getByRole('link', { name: 'Open charts' }).click();
   await expect(page).toHaveURL(/\/app\/markets\/QQQ$/); // the last chart you looked at

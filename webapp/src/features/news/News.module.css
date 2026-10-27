@@ -33,7 +33,7 @@
     radial-gradient(120% 140% at 100% 0%, rgba(255, 255, 255, 0.16), transparent 55%),
     linear-gradient(135deg, #2563eb 0%, #1d4ed8 45%, #172554 100%);
 }
-.featuredArt img { display: block; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.featuredArt img { display: block; border-radius: 0; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
 .featuredBody { display: grid; gap: var(--space-2); justify-items: start; max-width: 70ch; }
 .featuredText { display: grid; gap: var(--space-2); }
 .featuredText p { margin: 0; line-height: 1.55; }

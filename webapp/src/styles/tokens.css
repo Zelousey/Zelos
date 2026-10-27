@@ -67,9 +67,11 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 12px;
+  /* owner 2026-10-25: square for most things; round only for things that are naturally round
+     (avatars, dots, round icon buttons) and capsules (tags, chips, progress bars, switches) */
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
   --radius-pill: 999px;
 
   --text-xs: 0.75rem;
