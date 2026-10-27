@@ -27,7 +27,7 @@
   transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 .tile:hover { border-color: var(--accent-line); background: var(--surface-2); }
-.tileIcon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--accent-soft); color: var(--link); }
+.tileIcon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 0; background: var(--accent-soft); color: var(--link); }
 .tileText { display: grid; gap: 2px; min-width: 0; }
 .tileText b { font-size: var(--text-md); }
 .tileText span { color: var(--ink-2); font-size: var(--text-sm); }

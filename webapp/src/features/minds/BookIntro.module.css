@@ -12,7 +12,7 @@
 }
 .cover, .page { position: absolute; top: 0; bottom: 0; width: 50%; }
 .cover {
-  left: 0; display: grid; place-items: center; border-radius: 10px 0 0 10px;
+  left: 0; display: grid; place-items: center; border-radius: 0 0 0 0;
   background: #d32014; box-shadow: inset -12px 0 24px rgb(0 0 0 / 0.35);
 }
 .coverTitle { color: #fff; font-weight: 900; font-size: clamp(1rem, 3vw, 1.6rem); letter-spacing: 0.06em; text-transform: uppercase; text-align: center; padding: 0 var(--space-3); }
@@ -23,7 +23,7 @@
 .flipped { transform: rotateY(-180deg); }
 .front, .back {
   position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  border-radius: 0 10px 10px 0; overflow: hidden;
+  border-radius: 0 0 0 0; overflow: hidden;
 }
 .front {
   background: #d32014; color: #fff; display: grid; grid-template-rows: 1fr auto auto; justify-items: center;
@@ -34,7 +34,7 @@
 .front span { font-size: var(--text-xs); opacity: 0.85; }
 .back {
   transform: rotateY(180deg); background: #f3ede2; color: #1d1a16; display: grid; place-items: center;
-  padding: var(--space-4); border-radius: 10px 0 0 10px; box-shadow: inset -10px 0 18px rgb(0 0 0 / 0.18);
+  padding: var(--space-4); border-radius: 0 0 0 0; box-shadow: inset -10px 0 18px rgb(0 0 0 / 0.18);
 }
 .back p { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(0.72rem, 1.9vw, 0.95rem); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
 .skip {

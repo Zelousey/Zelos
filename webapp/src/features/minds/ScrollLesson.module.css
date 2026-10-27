@@ -18,7 +18,7 @@
 .bar {
   position: sticky; top: var(--topbar-h); z-index: 6; height: var(--sl-bar);
   display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-3);
-  background: var(--sl-deep); border-radius: var(--radius-lg, 14px); box-shadow: 0 6px 18px rgb(0 0 0 / 0.3);
+  background: var(--sl-deep); border-radius: var(--radius-lg, 0); box-shadow: 0 6px 18px rgb(0 0 0 / 0.3);
 }
 @media (max-width: 760px) { .bar { top: calc(var(--topbar-h) + var(--safe-top, 0px)); } }
 .barBack { color: var(--sl-ink); text-decoration: none; font-size: 20px; padding: 4px 8px; border-radius: var(--radius); }
@@ -26,11 +26,11 @@
 .barText { display: grid; min-width: 0; line-height: 1.2; }
 .barText b { font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .barText span { font-size: var(--text-xs); color: var(--sl-soft); }
-.meter { flex: 1; min-width: 60px; height: 10px; border-radius: 99px; background: rgb(255 255 255 / 0.18); overflow: hidden; }
+.meter { flex: 1; min-width: 60px; height: 10px; border-radius: 0; background: rgb(255 255 255 / 0.18); overflow: hidden; }
 .meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #fde68a, #fbbf24); transition: width 500ms var(--ease-out, ease-out); }
 .pop { position: absolute; right: 64px; top: 6px; font-weight: 800; color: #fde68a; opacity: 0; pointer-events: none; }
 
-.cover { min-height: 100%; box-sizing: border-box; display: grid; align-content: center; justify-items: center; text-align: center; gap: var(--space-2); background: var(--sl-red); border-radius: var(--radius-lg, 14px); padding: var(--space-6) var(--space-4); }
+.cover { min-height: 100%; box-sizing: border-box; display: grid; align-content: center; justify-items: center; text-align: center; gap: var(--space-2); background: var(--sl-red); border-radius: var(--radius-lg, 0); padding: var(--space-6) var(--space-4); }
 .kicker { text-transform: uppercase; letter-spacing: 0.14em; font-size: var(--text-xs); font-weight: 700; color: var(--sl-soft); }
 .title { margin: 0; font-size: clamp(32px, 7vw, 56px); line-height: 1.05; font-weight: 800; letter-spacing: -0.02em; }
 .scrollHint { margin: var(--space-4) 0 0; color: var(--sl-soft); font-size: var(--text-sm); animation: nudge 1.6s ease-in-out infinite; }
@@ -39,12 +39,12 @@
 
 /* swipe pages (owner 2026-10-24): one page fills the deck; a story slides in sideways, a task comes
    up from below. A page taller than the deck scrolls inside itself. */
-.deck { position: relative; height: calc(var(--sl-stage) - var(--sl-nav) - var(--space-5)); margin-top: var(--space-3); overflow: hidden; border-radius: var(--radius-lg, 14px); overscroll-behavior: contain; }
+.deck { position: relative; height: calc(var(--sl-stage) - var(--sl-nav) - var(--space-5)); margin-top: var(--space-3); overflow: hidden; border-radius: var(--radius-lg, 0); overscroll-behavior: contain; }
 .page { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; will-change: transform; }
 /* a finished task's button is switched off; let a swipe that starts on it reach the page */
 .page button:disabled { pointer-events: none; }
 .nav { height: var(--sl-nav); display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.navBack, .navNext { min-height: 44px; border-radius: 999px; border: 1px solid rgb(255 255 255 / 0.4); background: var(--sl-deep); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.navBack, .navNext { min-height: 44px; border-radius: 0; border: 1px solid rgb(255 255 255 / 0.4); background: var(--sl-deep); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
 .navBack { width: 44px; font-size: 22px; line-height: 1; }
 .navNext { padding: 0 var(--space-5); }
 .navBack:disabled, .navNext:disabled { opacity: 0.45; cursor: default; }
@@ -59,9 +59,9 @@
 @media (prefers-reduced-motion: reduce) { .swipeHint { animation: none; } }
 .stage {
   min-height: 100%; box-sizing: border-box; display: grid; align-content: center; gap: var(--space-4);
-  background: var(--sl-red); border-radius: var(--radius-lg, 14px); padding: var(--space-5) var(--space-4); overflow: hidden;
+  background: var(--sl-red); border-radius: var(--radius-lg, 0); padding: var(--space-5) var(--space-4); overflow: hidden;
 }
-.picWrap { margin: 0; position: relative; border-radius: var(--radius, 10px); overflow: hidden; max-height: 42dvh; }
+.picWrap { margin: 0; position: relative; border-radius: var(--radius, 0); overflow: hidden; max-height: 42dvh; }
 /* the painting fills its box (owner 2026-10-24); a tall portrait is cut from the top so the face sits
    at the top of the box (it used to be cropped from the middle, which cut off Napoleon's head) */
 .pic { display: block; width: 100%; height: 42dvh; object-fit: cover; object-position: 50% 35%; transform-origin: 50% 35%; }
@@ -77,12 +77,12 @@
 .taskWrap { display: grid; }
 
 /* tasks */
-.task { display: grid; justify-items: center; gap: var(--space-3); margin: 0; padding: var(--space-4); border: 0; border-radius: var(--radius, 10px); background: var(--sl-deep); text-align: center; }
+.task { display: grid; justify-items: center; gap: var(--space-3); margin: 0; padding: var(--space-4); border: 0; border-radius: var(--radius, 0); background: var(--sl-deep); text-align: center; }
 .hint { margin: 0; font-size: var(--text-sm); color: var(--sl-soft); }
 /* the question is a plain paragraph inside the box (a fieldset legend sat on the border) */
 .question { width: 100%; padding: 0; font-weight: 700; font-size: var(--text-md, 17px); line-height: 1.35; margin: 0 0 var(--space-1); }
 .options { display: grid; gap: var(--space-2); width: 100%; }
-.option { min-height: 48px; padding: 10px 14px; border-radius: var(--radius, 10px); border: 2px solid rgb(255 255 255 / 0.35); background: transparent; color: #fff; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.option { min-height: 48px; padding: 10px 14px; border-radius: var(--radius, 0); border: 2px solid rgb(255 255 255 / 0.35); background: transparent; color: #fff; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .option:hover:not(:disabled) { border-color: #fff; }
 .option:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
 .right { border-color: #4ade80; background: rgb(74 222 128 / 0.18); }
@@ -99,7 +99,7 @@
 .army circle { fill: #2563eb; stroke: #fff; stroke-width: 2; }
 .wagons { fill: rgb(255 255 255 / 0.45); }
 .hold {
-  --p: 0; position: relative; min-height: 52px; min-width: 220px; padding: 0 22px; border-radius: 99px; border: 2px solid #fff; color: #fff; font: inherit; font-weight: 700; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none;
+  --p: 0; position: relative; min-height: 52px; min-width: 220px; padding: 0 22px; border-radius: 0; border: 2px solid #fff; color: #fff; font: inherit; font-weight: 700; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none;
   background: linear-gradient(90deg, #fbbf24 calc(var(--p) * 100%), rgb(255 255 255 / 0.08) calc(var(--p) * 100%));
 }
 .hold span { position: relative; text-shadow: 0 1px 2px rgb(0 0 0 / 0.5); }
@@ -113,7 +113,7 @@
 .snow { fill: #fff; }
 .river { width: 100%; height: 96px; fill: rgb(255 255 255 / 0.3); }
 .ripple { fill: none; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linecap: round; opacity: 0.7; }
-.drop { height: 96px; border: 2px dashed rgb(255 255 255 / 0.6); border-radius: var(--radius, 10px); display: grid; place-items: center; align-content: center; gap: 4px; transition: background 150ms; }
+.drop { height: 96px; border: 2px dashed rgb(255 255 255 / 0.6); border-radius: var(--radius, 0); display: grid; place-items: center; align-content: center; gap: 4px; transition: background 150ms; }
 .dropOver { background: rgb(255 255 255 / 0.2); border-style: solid; }
 .dropDone { border-color: #4ade80; border-style: solid; }
 .token { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; object-position: 50% 15%; background: #d32014; border: 2px solid #fff; }
@@ -131,42 +131,42 @@
 /* while a task waits, the page ends where its slide is fully shown: the screen's bottom padding
    would otherwise let the pinned slide scroll up under the XP bar */
 
-.finish { min-height: 100%; box-sizing: border-box; display: grid; justify-items: center; text-align: center; gap: var(--space-3); background: var(--sl-red); border-radius: var(--radius-lg, 14px); padding: var(--space-6) var(--space-4); align-content: center; }
+.finish { min-height: 100%; box-sizing: border-box; display: grid; justify-items: center; text-align: center; gap: var(--space-3); background: var(--sl-red); border-radius: var(--radius-lg, 0); padding: var(--space-6) var(--space-4); align-content: center; }
 .trading { text-align: left; max-width: 520px; padding: var(--space-3) var(--space-4); border-left: 3px solid #fde68a; background: var(--sl-deep); border-radius: 0 var(--radius) var(--radius) 0; }
 .trading p { margin: var(--space-1) 0 0; }
 .total { margin: 0; font-weight: 700; color: #fde68a; }
 
 /* rally: a morale meter instead of the march map */
 .morale { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-2); width: 100%; max-width: 420px; font-size: var(--text-xs); font-weight: 700; }
-.moraleBar { height: 14px; border-radius: 99px; background: rgb(255 255 255 / 0.18); overflow: hidden; }
+.moraleBar { height: 14px; border-radius: 0; background: rgb(255 255 255 / 0.18); overflow: hidden; }
 .moraleBar i { display: block; height: 100%; background: linear-gradient(90deg, #f87171, #fbbf24, #4ade80); }
 
 /* collect: chips you drag (or tap) into one place */
 .collect { width: 100%; max-width: 440px; display: grid; gap: var(--space-3); user-select: none; -webkit-user-select: none; }
 .tokens { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); min-height: 44px; }
-.chip { position: relative; z-index: 2; min-height: 44px; padding: 8px 14px; border-radius: 10px; border: 2px solid #fff; background: #fff; color: var(--sl-deep); font: inherit; font-weight: 800; cursor: grab; touch-action: none; }
+.chip { position: relative; z-index: 2; min-height: 44px; padding: 8px 14px; border-radius: 0; border: 2px solid #fff; background: #fff; color: var(--sl-deep); font: inherit; font-weight: 800; cursor: grab; touch-action: none; }
 .chip:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
 .dropWide { height: auto; min-height: 88px; padding: var(--space-2); }
 .placed { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.chipIn { padding: 6px 10px; border-radius: 8px; background: #fde68a; color: #3b0a07; font-weight: 800; font-size: var(--text-sm); }
+.chipIn { padding: 6px 10px; border-radius: 0; background: #fde68a; color: #3b0a07; font-weight: 800; font-size: var(--text-sm); }
 
 /* tap: find it in the painting */
-.tapPic { position: relative; margin: 0; display: inline-block; max-width: 100%; border-radius: var(--radius, 10px); overflow: hidden; cursor: crosshair; user-select: none; -webkit-user-select: none; }
+.tapPic { position: relative; margin: 0; display: inline-block; max-width: 100%; border-radius: var(--radius, 0); overflow: hidden; cursor: crosshair; user-select: none; -webkit-user-select: none; }
 /* on a find-it picture the credit sits under the painting, never over something to tap */
 .tapPic .credit { position: static; padding: 4px 2px 0; background: none; }
 .tapArea { position: relative; line-height: 0; }
 .tapPic img { display: block; max-width: 100%; max-height: 38dvh; width: auto; height: auto; }
-.spot { position: absolute; padding: 0; border: 2px dashed transparent; border-radius: 12px; background: transparent; cursor: pointer; }
+.spot { position: absolute; padding: 0; border: 2px dashed transparent; border-radius: 0; background: transparent; cursor: pointer; }
 .spot:focus-visible { border-color: #fde68a; outline: none; }
 .spotHit { border: 3px solid #4ade80; box-shadow: 0 0 0 4px rgb(74 222 128 / 0.35); }
 
 /* target: drag your troops to the right part of the field */
 .battle { position: relative; width: 100%; max-width: 440px; display: grid; gap: var(--space-3); padding-top: 56px; user-select: none; -webkit-user-select: none; }
 .zones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.zone { min-height: 96px; display: grid; align-content: center; justify-items: center; gap: 6px; padding: 8px; border: 2px dashed rgb(255 255 255 / 0.6); border-radius: var(--radius, 10px); background: rgb(0 0 0 / 0.12); color: #fff; font: inherit; font-weight: 700; font-size: var(--text-sm); cursor: pointer; }
+.zone { min-height: 96px; display: grid; align-content: center; justify-items: center; gap: 6px; padding: 8px; border: 2px dashed rgb(255 255 255 / 0.6); border-radius: var(--radius, 0); background: rgb(0 0 0 / 0.12); color: #fff; font: inherit; font-weight: 700; font-size: var(--text-sm); cursor: pointer; }
 .zone:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
 .zoneWrong { border-color: #fca5a5; border-style: solid; }
-.troops { display: inline-block; padding: 6px 10px; border-radius: 8px; background: #2563eb; color: #fff; font-weight: 800; font-size: var(--text-sm); border: 2px solid #fff; }
+.troops { display: inline-block; padding: 6px 10px; border-radius: 0; background: #2563eb; color: #fff; font-weight: 800; font-size: var(--text-sm); border: 2px solid #fff; }
 .troopsStart { position: absolute; top: 4px; left: 50%; translate: -50% 0; z-index: 2; cursor: grab; touch-action: none; }
 
 /* pick: choose the right few */
