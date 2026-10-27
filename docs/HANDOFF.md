@@ -21,11 +21,9 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
 - Look (2026-10-25): **square UI** (round only for naturally round things), the **bull vs bear logo**.
 
 ## Status right now
-- `main` is green and deployed through #119. All server deploys the owner was asked for are done
+- Everything through #120 (2026-10-27) is merged; check that main CI and the Pages deploy for #120 went green. All server deploys the owner was asked for are done
   (last one: `xp_award` for the Hall of Minds lesson steps, 2026-10-25).
 - **Open PRs**
-  - **#120** new share-link picture: owner said "merge all"; merge it once its re-run CI is green
-    (it was updated with main after #119), then check the deploy.
   - **#81** iPhone app shell (Codemagic): **on hold** by the owner. Don't merge.
   - **#94** "Boosts" (Oct 22): most likely **superseded** (XP booster, battle slots and quiz retake
     shipped later on main). Compare with main, then ask the owner whether to close it.
@@ -62,7 +60,7 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
   Alexander, Aristotle and Franklin (4 each, 5 tasks, 2 XP a step, Correct!/Not quite), paid daily
   quotes (15 tokens / 30 days), the **quote card** after 3 days away.
 - **Look** (2026-10-25): new **logo** everywhere (`docs/brand/logo-master.png`), **square UI** in the
-  app (#119), new **share-link picture** (#120, merging).
+  app (#119), new **share-link picture** (#120).
 
 ## To do
 **Waiting on the owner**
