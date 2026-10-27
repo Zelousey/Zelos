@@ -173,7 +173,7 @@ The owner doesn't want a single soldier's difference to decide ownership automat
 
 **Within one War only (proposed):**
 - Soldiers don't carry over to the next War.
-- Carrying them over would break the master rule of an **equal start** for every player. The persistent progress is **Respect** (§17), which gives no power inside a match.
+- Carrying them over would break the master rule of an **equal start** for every player. The persistent progress is **Battle Level** (§17), which gives no power inside a match.
 - **Owner-approved (D6):** everyone starts every War with the same 100 soldiers, and nothing carries over.
 
 **Balance check:**
@@ -199,7 +199,7 @@ The individually approved items are in §0. Still needed:
 1. **E1–E6** (spec §4e).
 2. The War Score formula (§10).
 3. Soldiers economy (§6).
-4. Respect (§17).
+4. Battle Level (§17).
 5. Resource uses (§18).
 6. War length (§8).
 7. Then a final "approve the revised specification".
@@ -276,9 +276,9 @@ The Solo section becomes Real Market only.
 | C9 | `shortSelling: False` | Unchanged: Bull/Bear battles aren't share short selling. |
 | C10 | Existing "wins" = any profitable sale | Kept; the 1% "qualifying win" is a new, separate War rule (W3). |
 | C11 | "Spend coins to conceal" vs the master rule of equal starting capital and fair competition | Recommend spending soldiers, not tokens (D2). |
-| C12 | Persistent soldiers vs an equal start | Soldiers stay within one War; Respect is the persistent part (D6). |
+| C12 | Persistent soldiers vs an equal start | Soldiers stay within one War; Battle Level is the persistent part (D6). |
 | C13 | Existing War/Battle lengths 1/3/7/14/30 days vs "fast matches" | War uses 1/2/3/5 trading days; Battles unchanged. |
-| C14 | The checklist's §26/§36 "Trader Reputation: separate from XP, based only on actual statistics" | Respect is War-only and earned only from real results, so it fits as part of reputation (D9). |
+| C14 | The checklist's §26/§36 "Trader Reputation: separate from XP, based only on actual statistics" | Battle Level is War-only and earned only from real results, so it fits as part of reputation (D9). |
 | C15 | Always-on simulated market vs "real market data" rules and labels | Kept as an option only; it must be labelled simulated and use server-generated prices (§20). |
 
 ## 16. Acceptance criteria and tests
@@ -331,7 +331,7 @@ The Solo section becomes Real Market only.
 | **War cash** (the trading account) | Trading; the **battle stake** (attacking costs money at risk). |
 | **Soldiers** | Defence; **Reinforce**; **Camouflage** (5 each, §3); **Rally**: spend 15 reserve soldiers for **one extra attack** that day (max 1 a day). |
 | **Territory points** | The score only: they can't be spent, so the score stays honest. |
-| **Respect** | Cosmetics and badges outside matches. |
+| **Battle Level** | Cosmetics and badges outside matches. |
 | **Tokens** | Not used for any in-match advantage (fairness); existing slots and revives are unchanged. |
 
 ## 19. Keeping matches fast (proposed)
