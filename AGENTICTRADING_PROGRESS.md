@@ -5,7 +5,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 ## Current phase
 **2026-10-27: Planning for update lists A–D + the War Mode rules update. Docs only. Waiting for the owner's approval.**
 - Plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27" (incl. §4b, the War Mode rules update). The checklist itself is unchanged.
-- War rules: `docs/WAR_DESIGN.md` **v3.2**. **The whole revised spec, including Section 9, is NOT approved** (pending the owner's explicit approval). The individually approved decisions are listed in WAR_DESIGN §0.
+- War rules: `docs/WAR_DESIGN.md` **v3.3**. **The whole revised spec, including Section 9, is NOT approved** (pending the owner's explicit approval). The individually approved decisions are listed in WAR_DESIGN §0.
 - Approved so far:
   - the v1 numbers;
   - the capture model;
@@ -13,7 +13,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
   - candles as the default, green/red;
   - the notification pictures;
   - the new logo.
-- Open decisions: E1–E6 (spec §4e), approval of the whole revised spec; plus Q6, Q7, Q10, Q12–Q18 (plan). Market mode is decided: simulated War zone only.
+- Open decisions: **F1–F8** (the Trade War realm, spec §4f / WAR_DESIGN §24), approval of the whole revised spec; plus Q6, Q7, Q10, Q12–Q18 (plan). E1–E6 are answered.
 - Recommended next: **Phase 1 (audits and reports, no app changes)**, then **Phase 2 (global header + Token Store)** as the first code phase.
 - Everything built through #121 is on main; `docs/HANDOFF.md` is the current done/to-do list.
 - Older status (kept for history): Phases 1–12 of the first plan are done. Their notes are below.
@@ -27,6 +27,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 | 2026-10-27 | Owner decisions W1–W12. New: enemy-presence warning kept; concealment options; Hot zones; contested margin + Command; soldiers economy; W3 definition checked against code; War Score 60% trading / 40% strategy; Respect; resource uses; fast Wars; market mode (real vs always-on simulated) kept open; exact Chaos accounting. D1–D10 open; conflicts C10–C15. **Still not approved as a whole.** | spec §4c; `docs/WAR_DESIGN.md` v3 |
 | 2026-10-27 | Owner approved D1–D7, D9 (Battle Level), the soldier numbers, the contested bonus, Rally, the XP amounts, the one-day wait, Wars of a week at most. New: token skip of the wait (price open, conflict C16); Chaos sessions up to a week (confirm); market-mode pros and cons (leaning simulated, not decided). **Still not approved as a whole.** | spec §4d; `docs/WAR_DESIGN.md` v3.1 |
 | 2026-10-27 | Market mode decided: War mode only is simulated and always on (up to 7 days); everything else stays on real prices. Chaos = wild events in the War zone (the Solo Chaos mode and 5% payout superseded, to confirm). Quiet hours + morning summary. Company-name legal note. Skip price 10–15 (tokens assumed). E1–E6 open; conflict C17. **Still not approved as a whole.** | spec §4e; `docs/WAR_DESIGN.md` v3.2 |
+| 2026-10-27 | E1–E6 answered (made-up companies; skip = 100 tokens; Solo Chaos dropped; Chaos and quiet-hours rules; Squads real-price, vs squads/leaderboard). The owner's Trade War realm idea (War profile, War balance, gold bars, level armies, drop-in zones) written as a simple proposal; F1–F8 open; conflicts C18–C21. **Still not approved as a whole.** | spec §4f; `docs/WAR_DESIGN.md` v3.3 §24 |
 
 ## 2026-10-07 — Project review, docs, CI, Marketstack merge, security fixes
 Current-state summary now lives in `PROJECT_STATE.md` (canonical handoff). This log keeps the detail.
@@ -610,6 +611,7 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 | 14 | War rematch, notifications, leaderboards, docs | F19, S9, M6 | — | functions, `features/leaderboard`, notifications |
 | 14b | ~~Solo Chaos Simulator~~ **superseded** (owner, 2026-10-27; confirm E3): Chaos = events inside the War zone, built with 14c | W-R20 | — | — |
 | 14c | **Simulated War-zone market** (always on) + Chaos events + quiet hours + SIMULATED marking. Comes **before** Phase 11, because War runs on it | W-R16, W-R18–W-R22 | **decided** (D10); E1, E4, E5 open | `functions/` (new price engine + scheduler), `firestore.rules`, War screens, Settings (quiet hours), notifications (morning summary) |
+| 14d | Trade War realm: War profile, War balance + chart, gold bars, Battle Level, open zones with weekly seasons (**only after F1–F8**) | W-R23–W-R27 | proposal | new War profile screens, `functions/` (realm state, seasons, gold ledger), rules, `xp.py` table entries |
 | 15 | Content: Trading 101 Ch 3+, Hall of Minds pictures | L3, U2 | U2 waits for the owner's picture choice (Q8) | `features/learn/chapters.ts`, `quizzes.json`, `webapp/public/minds/` |
 | 16 | Release readiness | T4, T5 | — | tests, docs |
 

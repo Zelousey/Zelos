@@ -1,6 +1,6 @@
 # War, challenges, Squad rulesets and Chaos Simulator: design for approval
 
-**Version 3.2 (2026-10-27): the market mode is decided (a simulated War zone), Chaos is redefined as events inside it, and quiet hours are added.**
+**Version 3.3 (2026-10-27): E1–E6 answered; the owner's idea of a separate Trade War realm (§24) is written up as a proposal.**
 **Status: DRAFT. Not approved as a whole.** The owner approved some decisions one by one (§0). The whole
 specification, including **Section 9**, stays **pending** until the owner explicitly approves it. No code until then.
 It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and §4c.
@@ -51,8 +51,12 @@ It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and �
 | Chaos | **Owner, redefined:** Chaos isn't a separate Solo mode; it's **wild-market events inside the simulated War zone** (e.g. weekends). §14 |
 | D10 Market mode | **Owner-decided:** **War mode only** runs on a **simulated, always-on market** for up to 7 days. Every other mode (Solo, head-to-head and other Battles, Squads) stays on **real prices**. §20 |
 | Quiet hours | **Owner-approved:** no night-time notifications; overnight moves are reported in the morning; battles against a sleeping player wait until they're awake. §22 |
-| Company names in the War zone | **Owner leaning:** made-up names are fine; real names were wanted but need a legal check first. §23 (E1) |
-| Skip the one-day wait | **Owner:** 10 or 15 (tokens assumed; see E2) |
+| Company names in the War zone (E1) | **Owner-approved:** made-up companies under real sector names |
+| Skip the one-day wait (E2) | **Owner-approved: 100 tokens** |
+| E3 The Solo Chaos mode, 5% payout and paid sessions are dropped | **Owner-approved** |
+| E4 Chaos event rules; E5 quiet hours | **Owner-approved** |
+| E6 Squads stay on real prices; they compete against other squads, for a leaderboard place, or both | **Owner-approved** |
+| A separate Trade War realm: War profile, War balance, gold bars, level-based armies, open War zones | **Owner idea; proposal in §24.** It conflicts with D6 and the equal-start rule (F1–F8) |
 | **Section 9 / the whole specification** | **NOT approved: pending** |
 
 ## 1. War in one paragraph
@@ -404,3 +408,84 @@ This isn't legal advice; it's a question for the lawyer review that's already on
 - **A + B for launch:** real sector names, made-up companies.
 - Ask the lawyer about **C** during the legal review, and switch later if they approve.
 - Made-up names also stop people mixing up War zone prices with the real-market Battles.
+
+## 24. The Trade War realm (owner idea, 2026-10-27): PROPOSAL, kept simple
+**What the owner wants:**
+- Trade War is its own gamified, 24/7 simulated "realm", separate from real-market trading.
+- It has its own War profile, a bigger War balance, **gold bars** (earned, never bought), its own stats and balance chart.
+- Higher ranks get a bigger army, but newcomers can still take them down.
+- A new player with no friends can **drop into a War zone** where land is already claimed and either find neutral land or fight for it.
+- It must stay simple.
+
+### 24.1 Two worlds, one app
+| | **Real trading** (unchanged) | **Trade War realm** (new) |
+|---|---|---|
+| Prices | Real market | Simulated, 24/7, Chaos events |
+| Modes | Solo, head-to-head and other Battles, Squads (vs squads and/or the leaderboard) | Open War zones + private Wars with friends |
+| Money | The $10,000 Solo account; each Battle has its own buy-in | **One War balance**, starting at **$100,000** (proposed), with its own chart |
+| Level | Main XP and level (everything) | **Battle Level** (War only) |
+| Currency | Tokens (bought) | **Gold bars** (earned only; can't be bought, sold or turned into tokens or money) |
+
+### 24.2 XP and levels: the simple rule (proposed)
+- **Battle Level** is the War profile's own level, from War results only (§17).
+- **War achievements also give main XP**, through the existing `xp_award` with the existing daily caps. A War achievement counts toward your main profile XP like any other achievement (the owner's idea), but the daily caps stop the War from swamping the main level.
+- Nothing flows the other way: main XP doesn't change your army or anything in the War.
+- **The result:** two levels, each easy to understand, with one small bridge.
+
+### 24.3 Where you play
+- **Open War zones (for anyone, including new players with no friends):**
+  - Always running, with **weekly seasons**: the land resets every 7 days, so no War lasts longer than a week (owner rule).
+  - You can join any time mid-season. You land with your army and can **claim neutral land** or **attack** owned land, using all the approved rules.
+  - Up to **30 players per zone** (proposed); a new zone opens when one is full.
+  - **New-player shield:** your land can't be attacked for your first 24 hours in a zone.
+- **Private Wars with friends:** the existing design (2–10 players, 1–7 days, hidden claiming at the start). The organizer chooses **Equal armies** (default) or **Level armies**.
+
+### 24.4 Bigger armies for higher levels, without making them unbeatable (proposed)
+- **Army size** = 100 soldiers + 10 per Battle Level rank above Recruit, **capped at 150**. A General has 1.5× a new player's army, not 10×.
+- **Why a newcomer can still win:**
+  - Battles are decided by **market calls** (Bull/Bear), not by army size.
+  - Soldiers only raise the defence slowly (1 + soldiers÷20): 150 soldiers means 8 wins to take a territory, 100 means 6.
+  - **Giant-slayer** bonuses (approved) pay extra for beating higher-ranked players, and a newcomer earns soldiers fast by capturing land.
+- **Matchmaking:** Recruit and Soldier ranks first join **Rookie zones** (lower ranks only) and can move to open zones whenever they want.
+
+### 24.5 War balance (proposed)
+- It starts at $100,000, and trading in any War or zone uses it. It carries over between seasons, so it keeps growing (or shrinking) with your skill.
+- **Fair scoring, even with different balances:**
+  - the War Score uses **return %** (approved);
+  - battle stakes are a **fixed $5,000** (5% of the $100,000 start; the approved 5% rule);
+  - so a rich player has no edge.
+- **Going broke:** below $10,000 you can reset to $100,000 once a week. That costs you your season score, and the balance chart shows the reset.
+
+### 24.6 Gold bars (proposed)
+- **Earned from:**
+  - capturing territory: 3;
+  - defending: 2;
+  - contested-battle win: 3;
+  - season finish: top 3 = 25 / 15 / 10;
+  - War achievements.
+- **Spent on:**
+  - War profile looks (banners, map skins);
+  - **Training camp**: +5 starting soldiers in the next season, still inside the 150 cap;
+  - an extra Camouflage slot for a season;
+  - early Hot zone hints (1 hour sooner).
+- **Never:** bought with money or tokens, sold, traded between players, or turned into anything outside the realm. That keeps it from being pay-to-win or anything like gambling.
+- Skipping the one-day wait stays **100 tokens** (owner-approved). A gold-bar price could be added too (F7).
+
+### 24.7 Conflicts this creates
+- **C18:** D6 ("everyone starts every War with the same soldiers") and the master rule "preserve equal configured starting capital" vs level-based armies and a persistent War balance.
+  - **Proposal:** equal armies stay the default for private Wars; level armies apply in open zones, capped at 1.5×.
+  - Capital fairness holds through return % scoring and fixed stakes.
+  - **This needs the owner's explicit decision.**
+- **C19:** "A War lasts at most a week" vs persistent zones. Solved with weekly seasons.
+- **C20:** "War = 2–10 players with hidden claiming" vs drop-in zones. Hidden claiming applies to private Wars and to each zone's season start; drop-ins after that see the map and claim neutral land or attack.
+- **C21:** the checklist's "Separate Trade War virtual accounts / equal buy-in" (§7–§8) still apply to **Battles**. The realm is a deliberate new design.
+
+### 24.8 Open decisions
+- **F1:** two worlds as in §24.1?
+- **F2:** War achievements also give main XP within the daily caps, and nothing flows back?
+- **F3:** open zones with weekly seasons, 30 players, a 24 h new-player shield, Rookie zones?
+- **F4:** army 100 + 10 per rank, capped at 150; equal armies the default in private Wars?
+- **F5:** War balance $100,000, fixed $5,000 stakes, a weekly reset below $10,000?
+- **F6:** gold bars: earned amounts and what they buy, never purchasable?
+- **F7:** should skipping the wait also be possible with gold bars?
+- **F8:** names: "War balance", "gold bars", "War profile".

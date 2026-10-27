@@ -1658,6 +1658,47 @@ Full rules are in `docs/WAR_DESIGN.md` **v3**. All earlier approvals are kept.
 
 **New conflict C17:** the checklist's live-price / FMP items for the Trade War chart. They still apply to real-market Battles; the War zone is simulated on purpose, by the owner's decision.
 
+### 4f. Owner answers (2026-10-27, seventh message): E1–E6, and the Trade War realm idea
+**Approved by the owner:**
+- **E1:** made-up companies under real sector names.
+- **E2:** skipping the one-day wait costs **100 tokens**.
+- **E3:** the Solo Chaos mode, the 5% payout and paid sessions are dropped (Chaos = War-zone events).
+- **E4:** the Chaos event rules.
+- **E5:** quiet hours.
+- **E6:** Squads stay on real prices; squads compete against other squads, for a leaderboard place, or both.
+
+**New owner idea: a separate Trade War realm.**
+- Trade War is its own gamified, 24/7 simulated realm.
+- It has a **War profile**, a separate, bigger **War balance** with its own chart, and **gold bars** (earned from territory, never bought) for upgrades.
+- Higher ranks get a bigger army, but newcomers can still beat them.
+- A drop-in **War zone** gives players without friends somewhere to play.
+- War achievements also count toward main XP.
+- The owner asked for help keeping this simple. The proposal is in `docs/WAR_DESIGN.md` **§24**:
+  - two worlds, one app;
+  - Battle Level is War-only, with one small bridge to main XP;
+  - open zones with weekly seasons, plus private Wars;
+  - armies capped at 1.5×;
+  - a $100,000 War balance with return-% scoring and fixed stakes;
+  - gold bars that can never be bought.
+
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R23 | F | A Trade War realm, separate from real trading: War profile, War balance and chart, War stats. |
+| W-R24 | F/S | Gold bars: an earned-only currency for War upgrades; never purchasable or convertible. |
+| W-R25 | F | Drop-in open War zones for players without friends (land already claimed; neutral or attack). |
+| W-R26 | F/S | Bigger armies for higher ranks, with a cap so newcomers can still win. |
+| W-R27 | F | War achievements count toward main XP (within the daily caps). |
+
+**Open decisions F1–F8** (`docs/WAR_DESIGN.md` §24.8).
+
+**Conflicts C18–C21:**
+- level armies and a persistent balance vs **D6** and the master **equal starting capital** rule: this needs an explicit owner decision;
+- persistent zones vs one-week Wars (weekly seasons);
+- drop-in vs hidden claiming;
+- the checklist's equal buy-in still applies to Battles.
+
+**The whole revised spec, including WAR_DESIGN Section 9, is still NOT approved.**
+
 ### 5. Risks and breaking changes
 - **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.
 - **Short selling changes match accounting** (`tw_apply_trade`, `tw_mark`, knock-outs, LMS floors). It touches every mode, so it's limited to challenges unless decided otherwise.
