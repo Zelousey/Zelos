@@ -1468,11 +1468,68 @@ One PR per item unless it says otherwise. Each phase waits for the owner's go, a
 - **Q3:** the short side exists **only inside challenges**, with a **fixed maximum loss** (a set amount, "more like a put"). It's shown as simple Bull/Bear sides for new users. Virtual money only.
 - **Q4:** **candles are the default on every chart, green up / red down,** unless the user picks other colours in Settings. (This changes the 2026-10-09 line default.)
 - **Q5:** Chaos Simulator: wild charts (generated, or real ones that went crazy) on the same timeframes, with 20% days instead of 2%. You keep only **5–10% of the profit**. Details are in `docs/WAR_DESIGN.md` §7.
-- **Q9:** the owner doesn't remember the approved notification picture, so I proposed new ones in the style of the new share picture (#120) for approval.
+- **Q9:** the owner didn't remember the approved picture, so new ones were proposed in the share-picture (#120) style. **Approved by the owner (2026-10-27, third message):** keep that design and add a Territory Battle picture in the same style.
 - **Q8:** yes, "Hall of Mines" is the Hall of Minds.
 - **Q11:** "Solo" means trading on your own (not on a team). A Solo account can stay open while you're in a head-to-head battle, and each keeps its own account value.
 
 Still open: Q6, Q7, Q10, Q12–Q18. Most of them get proposed answers in `docs/WAR_DESIGN.md` §9 for the owner to approve.
+
+### 4b. War Mode rules update (owner, 2026-10-27, third message)
+The owner's "War Mode Rules, Balancing & Pre-Phase-One Updates". Full rules are in `docs/WAR_DESIGN.md` **v2**.
+
+**Approved by the owner (keep; don't change without a specific, written reason):**
+- The v1 numbers:
+  - 100 pieces, 2–10 players, sector territories;
+  - map 6/8/10 territories;
+  - stake 5% of the buy-in;
+  - capture after 1 + pieces÷20 battle wins;
+  - Chaos payout 5%.
+- The capture model, and the short side only in challenges with a fixed max loss (Bull/Bear).
+- **Notification pictures** (new-logo style), and the **new logo** direction everywhere.
+- Approving the pictures and the logo does **not** approve any mechanic.
+
+**NOT approved:** `docs/WAR_DESIGN.md` **Section 9** stays pending until the owner explicitly approves it. The earlier approval was withdrawn.
+
+**New requirements (IDs continue §2):**
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R1 | S | During the claiming stage, nobody sees opponents' choices; owners are revealed after claiming ends; piece counts are never shown. |
+| W-R2 | F | A tie on a claim starts a tie battle at once between the tied players. The winner gets the territory, it's never left unresolved, the loser must attack or claim neutral, and both get notifications and results. Battle rules and the ownership-record update are documented. |
+| W-R3 | F/S | Attacking an owned territory requires a minimum of simulated money (the stake) and a performance condition. It uses the same battle system; the territory transfers on a win and stays on a loss. Entry, stakes, settlement and consequences are defined before code. |
+| W-R4 | F | Defender counterplay: limited, fair, no guaranteed edge, no endless battles. |
+| W-R5 | F | One consistent decline policy: response deadline, reminder, what a decline does, and what no response does. |
+| W-R6 | F | Comeback balance: struggling players can recover; no runaway leader; no handouts; skill isn't punished. |
+| W-R7 | F/S | Neutral territories can be claimed without a battle but are worth less XP and points than battle-won land. Neutral land becomes contested after a battle. No farming through repeated claims, releases or ownership changes. |
+| N-R1 | F | A territory-battle notification (challenged/attacked) plus states: accepted/declined, resolved, territory won/lost, deadline approaching. Uses the existing notification design system and the approved pictures. |
+| N-R2 | F | Invitations: coaching, battle and team-up each show who, what, and that flow's own actions. They stay separate flows (existing invite kinds `coach`, `battle`, `squad`, plus `twInvites`). |
+| U-R1 | U | Keep the approved logo and notification art; no generic replacements or redesigns. |
+
+**Proposed answers** are in `docs/WAR_DESIGN.md` v2 §3–§12:
+- tie battle on a random stock, coin flip for the first side pick, no stake, no draw;
+- attack eligibility = stake in cash + (return ≥ 0% or a +1% winning trade in 2 days);
+- Counter-pick once per trading day;
+- 1 free decline a day, then a concession (progress only), no answer = auto-accept, 30-minute reminder;
+- Giant-slayer bonus + leader exposure + points counted at the end;
+- 1/2/3 points for neutral/deployed/battle land; neutral claims 1 a day.
+
+**Conflicts with earlier specs or code:** listed in `docs/WAR_DESIGN.md` §15. Main ones:
+- list A's "ties neutral" is replaced by rule 2;
+- list D's enemy-presence warning conflicts with rule 1;
+- v1 "most territories wins" becomes "most points".
+
+**Unresolved decisions (need the owner):**
+- **W1** Enemy-presence warning: drop it during claiming (proposed) and show only "Contested: tie battle" after the reveal?
+- **W2** Tie battles: no stake (proposed) or the normal 5% stake? Do 3+ tied players use a "best pick" battle (proposed)?
+- **W3** Attack performance threshold: return ≥ 0% **or** a winning trade of +1% in the last 2 trading days (proposed). Is +1% right? Adjust after test Wars?
+- **W4** Defender counterplay: approve Counter-pick (swap the stock, once per trading day)?
+- **W5** Declines: 1 free a day, then a concession that gives the attacker progress only (no money, points or XP). No answer within 2 market hours = auto-accept. Approve?
+- **W6** Comebacks: Giant-slayer +1 point (+1 more for taking the leader's land), and the leader gets no free declines. Approve?
+- **W7** Points 1/2/3 and neutral claims limited to 1 a day. Approve? Should neutral claims need the attack performance rule (proposed: yes)?
+- **W8** XP values: neutral 2, battle win 10, defence 10, Giant-slayer +5 (all within the existing daily caps).
+- **W9** Piece counts never revealed, even after the War (proposed), or a reveal on the results screen?
+- **W10** Redeploy pass for the tie-battle loser (proposed). Approve?
+- **W11** Ping-pong rule: you can't attack back land you just lost for 1 trading day. Approve?
+- **W12** Chaos losses counted at 5% too, and 1 paid session a day (still pending from v1).
 
 ### 5. Risks and breaking changes
 - **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.

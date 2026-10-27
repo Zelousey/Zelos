@@ -3,13 +3,27 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**2026-10-27: Planning for update lists A–D. Docs only. Waiting for the owner's approval.**
-- The four lists the owner pasted are merged into one plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27".
-  The checklist itself is unchanged.
-- Recommended next: **Phase 1 (audits and reports, no app changes)**, then **Phase 2 (global header + Token Store)**
-  as the first code phase. See "2026-10-27 plan" below.
+**2026-10-27: Planning for update lists A–D + the War Mode rules update. Docs only. Waiting for the owner's approval.**
+- Plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27" (incl. §4b, the War Mode rules update). The checklist itself is unchanged.
+- War rules: `docs/WAR_DESIGN.md` **v2**. **Section 9 is NOT approved** (pending the owner's explicit approval).
+- Approved so far:
+  - the v1 numbers;
+  - the capture model;
+  - the short side only in challenges (Bull/Bear, fixed max loss);
+  - candles as the default, green/red;
+  - the notification pictures;
+  - the new logo.
+- Open decisions: W1–W12 (War) and Q6, Q7, Q10, Q12–Q18 (plan).
+- Recommended next: **Phase 1 (audits and reports, no app changes)**, then **Phase 2 (global header + Token Store)** as the first code phase.
 - Everything built through #121 is on main; `docs/HANDOFF.md` is the current done/to-do list.
 - Older status (kept for history): Phases 1–12 of the first plan are done. Their notes are below.
+
+### Change record for this planning round (traceable)
+| Date | What changed | Where |
+|---|---|---|
+| 2026-10-27 | Lists A–D consolidated; 17 phases; Q1–Q18 | spec addendum §1–§5 |
+| 2026-10-27 | Owner answers Q1–Q5, Q8, Q9, Q11; War design v1 | spec "Owner answers"; `docs/WAR_DESIGN.md` v1 |
+| 2026-10-27 | War Mode rules update: visibility, tie battles, attack eligibility, counterplay, declines, comebacks, neutral rewards, battle notifications, invitations; pictures and logo approved; v1 numbers kept; **Section 9 not approved**; W1–W12 open; conflicts C1–C9 | spec §4b; `docs/WAR_DESIGN.md` v2 |
 
 ## 2026-10-07 — Project review, docs, CI, Marketstack merge, security fixes
 Current-state summary now lives in `PROJECT_STATE.md` (canonical handoff). This log keeps the detail.
@@ -579,17 +593,17 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 | 0 | Plan | all | **this PR** | the two AGENTICTRADING docs |
 | 1 | Audits and reports (no app changes) | N8, L1, U2 sheet, S2/S3/S9, U1 | waiting for go | reports in `docs/`; reads `firestore.rules`, `functions/main.py` (tw_*), `webapp/src/features/*` |
 | 2 | Global header + Token Store | N1, F18, S4 | — | `webapp/src/shell/AppShell.tsx`, `Shell.module.css`, `AppShell.test.tsx`, `features/tokens/TokenChip.tsx`, `features/strategies/Tokens.tsx`, `TokenHistory.tsx`, `lib/i18n.ts`, e2e |
-| 3 | Small safe fixes | U1, U3, M4, L2, N5 | — | `functions/main.py` (`_push_send` image), `images/alert-*.png`, `webapp/public/icons`; `features/minds/BookIntro.tsx` + CSS; `features/strategies/StrategyPage.tsx` / 3-leg chart; `features/learn/chapters.ts`, `LessonPlayer.tsx`, `features/charts` |
+| 3 | Small safe fixes (U1 pictures **approved**) | U1, U3, M4, L2, N5 | — | `functions/main.py` (`_push_send` image), `images/alert-*.png`, `webapp/public/icons`; `features/minds/BookIntro.tsx` + CSS; `features/strategies/StrategyPage.tsx` / 3-leg chart; `features/learn/chapters.ts`, `LessonPlayer.tsx`, `features/charts` |
 | 4 | Mobile glitch fixes | N8 | needs the Phase 1 report | depends on the report |
 | 5 | Trade War hub | N2–N4, F9–F11, F13, M6, U4, U6, N7 | — | `features/tradewar/TradeWarPage.tsx` + CSS, `app/modules.ts`, `features/battles/BattlesPage.tsx`, `features/social`, `features/leaderboard`, `features/strategies` |
 | 6 | Dashboard 4 pages | F14–F17, M1–M3, S1, S7 | needs Q4, Q6, Q18 | `features/dashboard/*`, `features/practice/AccountSection.tsx`, `features/charts/ChartView.tsx`, `features/markets`, `features/missions`, `features/profile` |
 | 7 | Find a Stock modal | N6 | — | `features/markets/MarketsPage.tsx`, `SymbolPage.tsx`, `features/practice/TradePage.tsx`, `features/battles` |
-| 8 | Onboarding + help | F20–F23 | — | `features/welcome/FirstSteps.tsx`, `features/practice/TradePage.tsx`, new help screen |
+| 8 | Onboarding + help; invitation cards (coaching/battle/team-up) | F20–F23, N-R2 | — | `features/welcome/FirstSteps.tsx`, `features/practice/TradePage.tsx`, new help screen |
 | 9 | Battle rematch | F19, S8 | — | `functions/main.py` (new `tw_rematch`), `features/battles/BattlePage.tsx`, `tests/rules/functions.e2e.mjs` |
 | 10 | Squad ruleset layer (FFA, Fantasy Draft, LMS, Team) | F5–F8 | design first; Q14, Q16, Q17 | `functions/main.py` (`tw_validate_modes`, `tw_squad_rules`, draft, lms), `features/battles/settings.ts`, `features/social` |
 | 11 | War lifecycle + lobby | F1, F2, S6 | design first; Q1, Q12, Q13 | `functions/main.py`, `firestore.rules`, `docs/data-model.md`, new War screens |
-| 12 | War territories + hidden deployment | F3, S2, S3, S9 | design first; Q1 | `functions/main.py`, `firestore.rules` (owner-only placements), rules tests |
-| 13 | Direct trading challenges | F4, S5, M5 | design first; Q2, Q3, Q15 | `functions/main.py` (`tw_apply_trade` short side, resolution), rules, tests |
+| 12 | War territories + hidden deployment + reveal | F3, S2, S3, S9, W-R1 | design first; Q1 | `functions/main.py`, `firestore.rules` (owner-only placements), rules tests |
+| 13 | Battles: tie battles, attacks, counter-pick, declines, neutral claims, points, battle notifications | F4, S5, M5, W-R2–W-R7, N-R1 | design first; Q2, Q3, Q15 | `functions/main.py` (`tw_apply_trade` short side, resolution), rules, tests |
 | 14 | War rematch, notifications, leaderboards, docs | F19, S9, M6 | — | functions, `features/leaderboard`, notifications |
 | 15 | Content: Trading 101 Ch 3+, Hall of Minds pictures | L3, U2 | U2 waits for the owner's picture choice (Q8) | `features/learn/chapters.ts`, `quizzes.json`, `webapp/public/minds/` |
 | 16 | Release readiness | T4, T5 | — | tests, docs |
