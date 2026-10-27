@@ -3,10 +3,13 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**Phase 7: Dramatic challenges + interactive Trade War alerts (§14, §2). CODE DONE AND TESTED. Owner must deploy functions + rules, then merge.**
-- Phase 6 (PR #12) is merged. The Buy/Sell recolor (owner feedback) ships with this merge.
-- Next: **Phase 8: Last Man Standing / elimination (§10)**.
-- Phase 1 (FMP) still needs the live-price check at a market open.
+**2026-10-27: Planning for update lists A–D. Docs only. Waiting for the owner's approval.**
+- The four lists the owner pasted are merged into one plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27".
+  The checklist itself is unchanged.
+- Recommended next: **Phase 1 (audits and reports, no app changes)**, then **Phase 2 (global header + Token Store)**
+  as the first code phase. See "2026-10-27 plan" below.
+- Everything built through #121 is on main; `docs/HANDOFF.md` is the current done/to-do list.
+- Older status (kept for history): Phases 1–12 of the first plan are done. Their notes are below.
 
 ## 2026-10-07 — Project review, docs, CI, Marketstack merge, security fixes
 Current-state summary now lives in `PROJECT_STATE.md` (canonical handoff). This log keeps the detail.
@@ -566,6 +569,32 @@ The owner chose **Square** instead of Stripe (Square Developer app "AgenticTradi
 - Arcade leaderboard (Realtime DB) accepts unauthenticated score writes, capped by rules. Spam is possible; to be revisited with the moderation work.
 - Gumroad's ping secret travels in the URL query string, so it can appear in Cloud request logs. This goes away when Gumroad is retired (token phase).
 - Phase 1 blocker: this container has no Firebase CLI or credentials, so the owner has to run the deploy and live check.
+
+## 2026-10-27 plan (lists A–D)
+Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
+`AGENTICTRADING_MASTER_SPEC.md` → ADDENDUM 2026-10-27.
+
+| # | Phase | IDs | Status | Likely files |
+|---|---|---|---|---|
+| 0 | Plan | all | **this PR** | the two AGENTICTRADING docs |
+| 1 | Audits and reports (no app changes) | N8, L1, U2 sheet, S2/S3/S9, U1 | waiting for go | reports in `docs/`; reads `firestore.rules`, `functions/main.py` (tw_*), `webapp/src/features/*` |
+| 2 | Global header + Token Store | N1, F18, S4 | — | `webapp/src/shell/AppShell.tsx`, `Shell.module.css`, `AppShell.test.tsx`, `features/tokens/TokenChip.tsx`, `features/strategies/Tokens.tsx`, `TokenHistory.tsx`, `lib/i18n.ts`, e2e |
+| 3 | Small safe fixes | U1, U3, M4, L2, N5 | — | `functions/main.py` (`_push_send` image), `images/alert-*.png`, `webapp/public/icons`; `features/minds/BookIntro.tsx` + CSS; `features/strategies/StrategyPage.tsx` / 3-leg chart; `features/learn/chapters.ts`, `LessonPlayer.tsx`, `features/charts` |
+| 4 | Mobile glitch fixes | N8 | needs the Phase 1 report | depends on the report |
+| 5 | Trade War hub | N2–N4, F9–F11, F13, M6, U4, U6, N7 | — | `features/tradewar/TradeWarPage.tsx` + CSS, `app/modules.ts`, `features/battles/BattlesPage.tsx`, `features/social`, `features/leaderboard`, `features/strategies` |
+| 6 | Dashboard 4 pages | F14–F17, M1–M3, S1, S7 | needs Q4, Q6, Q18 | `features/dashboard/*`, `features/practice/AccountSection.tsx`, `features/charts/ChartView.tsx`, `features/markets`, `features/missions`, `features/profile` |
+| 7 | Find a Stock modal | N6 | — | `features/markets/MarketsPage.tsx`, `SymbolPage.tsx`, `features/practice/TradePage.tsx`, `features/battles` |
+| 8 | Onboarding + help | F20–F23 | — | `features/welcome/FirstSteps.tsx`, `features/practice/TradePage.tsx`, new help screen |
+| 9 | Battle rematch | F19, S8 | — | `functions/main.py` (new `tw_rematch`), `features/battles/BattlePage.tsx`, `tests/rules/functions.e2e.mjs` |
+| 10 | Squad ruleset layer (FFA, Fantasy Draft, LMS, Team) | F5–F8 | design first; Q14, Q16, Q17 | `functions/main.py` (`tw_validate_modes`, `tw_squad_rules`, draft, lms), `features/battles/settings.ts`, `features/social` |
+| 11 | War lifecycle + lobby | F1, F2, S6 | design first; Q1, Q12, Q13 | `functions/main.py`, `firestore.rules`, `docs/data-model.md`, new War screens |
+| 12 | War territories + hidden deployment | F3, S2, S3, S9 | design first; Q1 | `functions/main.py`, `firestore.rules` (owner-only placements), rules tests |
+| 13 | Direct trading challenges | F4, S5, M5 | design first; Q2, Q3, Q15 | `functions/main.py` (`tw_apply_trade` short side, resolution), rules, tests |
+| 14 | War rematch, notifications, leaderboards, docs | F19, S9, M6 | — | functions, `features/leaderboard`, notifications |
+| 15 | Content: Trading 101 Ch 3+, Hall of Minds pictures | L3, U2 | U2 waits for the owner's picture choice (Q8) | `features/learn/chapters.ts`, `quizzes.json`, `webapp/public/minds/` |
+| 16 | Release readiness | T4, T5 | — | tests, docs |
+
+**Blocked on the owner:** the questions Q1–Q18 in the addendum. Phases 11–13 need Q1 (no War/territory spec exists in the repo).
 
 ## Next phase
 1. Owner: deploy Phase 2 (steps above) and confirm Phase 1 live prices at the next market open.
