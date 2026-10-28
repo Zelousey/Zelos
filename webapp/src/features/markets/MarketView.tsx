@@ -64,7 +64,7 @@ function IndexChart() {
         </Link>
       </div>
       <div className={s.chart}>
-        <ChartView sym={sym} seriesKey={`mv:${sym}:${tf}`} bars={built.bars} live={built.live} intraday={built.intraday} range={tfDef.def} style="line" loading={loading} label={t('chart.label', { sym, tf: tfDef.label })} />
+        <ChartView sym={sym} seriesKey={`mv:${sym}:${tf}`} bars={built.bars} live={built.live} intraday={built.intraday} range={tfDef.def} style="candles" loading={loading} label={t('chart.label', { sym, tf: tfDef.label })} />
       </div>
     </div>
   );

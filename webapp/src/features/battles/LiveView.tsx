@@ -174,7 +174,7 @@ function Ticket({ b, uid, me, book, quotes, sym, setSym, syms, now }: { b: Battl
           </select>
         </label>
         <div className={s.chart}>
-          {built.bars.length === 0 && !loading ? <EmptyState icon="chart" body={t('chart.noIntraday')} compact /> : <ChartView sym={sym} seriesKey={`${sym}:15m:battle`} bars={built.bars} live={built.live} intraday={built.intraday} range={tf.def} style="line" loading={loading} label={t('chart.label', { sym, tf: tf.label })} tools />}
+          {built.bars.length === 0 && !loading ? <EmptyState icon="chart" body={t('chart.noIntraday')} compact /> : <ChartView sym={sym} seriesKey={`${sym}:15m:battle`} bars={built.bars} live={built.live} intraday={built.intraday} range={tf.def} style="candles" loading={loading} label={t('chart.label', { sym, tf: tf.label })} tools />}
         </div>
         <p className={s.priceLine}>
           <b className="num">{price ? formatPrice(price) : '—'}</b> <span className={s.muted}>{t('bt.youHold', { n: held })}</span>
