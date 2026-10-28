@@ -33,24 +33,37 @@ test.beforeAll(async () => {
   await put('practiceProfiles/topB', { name: 'Bo', equity: 52000, growthPct: 420, level: 4, source: 'server' });
 });
 
-test('signed out: welcome, missions, public leaderboard and the market', async ({ page }) => {
+const pages = (page: Page) => page.getByRole('navigation', { name: 'Dashboard pages' });
+const openPage = async (page: Page, name: string) => {
+  await pages(page).getByRole('link', { name, exact: true }).click();
+  await expect(pages(page).getByRole('link', { name, exact: true })).toHaveAttribute('aria-current', 'page');
+};
+
+test('signed out: welcome on Trading; missions and the public leaderboard on Profile; the market on Market', async ({ page }) => {
   await page.goto('dashboard');
   await expect(page.getByRole('heading', { name: 'Welcome to Zelos Trade War' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign in to start' })).toBeVisible();
+  await expect(page.getByText(/Challenge friends to a Trade War/)).toBeVisible();
+  await openPage(page, 'Profile');
+  await expect(page).toHaveURL(/\/dashboard\?p=profile$/);
   await expect(page.getByRole('heading', { name: 'Daily missions' })).toBeVisible();
   await expect(page.getByText('Make 1 Trade War trade')).toBeVisible();
   const board = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Leaderboard' }) });
   await expect(board.getByRole('listitem').first()).toContainText('Ada');
   await expect(board.getByRole('listitem').first()).toContainText('$91,000');
-  await expect(page.getByText(/Challenge friends to a Trade War/)).toBeVisible();
+  await openPage(page, 'Market');
   await expect(page.getByRole('heading', { name: 'US indexes' })).toBeVisible(); // chart first
   await page.getByRole('tab', { name: 'Globe' }).click();
   await expect(page.getByRole('heading', { name: 'World markets' })).toBeVisible();
   await expect(page.getByText(/exchanges open|All major exchanges are closed/).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /S&P 500 \(SPY\)/ })).toBeVisible();
+  await openPage(page, 'Strategies');
+  await expect(page.getByRole('link', { name: 'Open alerts →' })).toHaveAttribute('href', '/app/alerts');
+  await page.getByRole('button', { name: '← Back to Trading' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
 });
 
-test('signed in: trader card, account, missions, rank, Trade Wars and badges', async ({ page }, info) => {
+test('signed in: the Solo account and battles on Trading; trader card, missions and rank on Profile', async ({ page }, info) => {
   await page.goto('dashboard');
   const uid = await signIn(page, `dash-${info.project.name}-${Date.now()}`);
   const now = Date.now();
@@ -66,6 +79,19 @@ test('signed in: trader card, account, missions, rank, Trade Wars and badges', a
 
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeAttached();
   await expect(page.getByText('Welcome back, Casey')).toBeAttached();
+  // Trading: the account first (owner 2026-10-20), every list says it's Solo (S1, M2)
+  const acct = page.getByRole('region', { name: 'Solo · Your practice account' });
+  await expect(acct).toBeVisible();
+  await expect(acct.getByRole('link', { name: 'AAPL', exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(acct.getByText('No open orders.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Solo · Positions' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Battle · Your battles' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Friday Showdown/ })).toContainText(/Live · [56]h left/);
+  await page.waitForTimeout(600);
+  const axe = async () => (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+  expect(await axe()).toEqual([]);
+
+  await openPage(page, 'Profile');
   const card = page.getByRole('region', { name: 'Your trader card' });
   await expect(card).toContainText('Level 3 · Risk Manager');
   await expect(card).toContainText('275 XP');
@@ -73,28 +99,55 @@ test('signed in: trader card, account, missions, rank, Trade Wars and badges', a
   await expect(card).toContainText('🔥 4');
   await expect(card).toContainText('2/29'); // first-trade (progress) + centurion (public profile)
   await expect(card.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
-
-  // the account comes first (owner 2026-10-20: Practice merged into the Dashboard)
-  const acct = page.getByRole('region', { name: 'Your practice account' });
-  await expect(acct).toBeVisible();
-  await expect(acct.getByRole('link', { name: 'AAPL', exact: true }).filter({ visible: true })).toBeVisible();
-  await expect(acct.getByText('No open orders.')).toBeVisible();
-  expect((await acct.boundingBox())!.y).toBeLessThan((await card.boundingBox())!.y); // above the trader card
-
   const missions = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Daily missions' }) });
   await expect(missions.getByLabel('1 of 1, done')).toBeVisible();
   await expect(missions.getByLabel('2 of 3')).toBeVisible();
-
   // rank comes from a count query: two seeded accounts are worth more
   await expect(page.getByText(/You’re #\d+ overall/)).toBeVisible();
-  await expect(page.getByRole('link', { name: /Friday Showdown/ })).toContainText(/Live · [56]h left/);
-  await expect(page.getByRole('heading', { name: 'Watchlist' })).toBeVisible();
-
   await page.waitForTimeout(600);
-  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
-  expect(r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+  expect(await axe()).toEqual([]);
+
+  await openPage(page, 'Market');
+  await expect(page.getByRole('heading', { name: 'Watchlist' })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('pages: arrow keys move along the row; a reload keeps the page', async ({ page }) => {
+  await page.goto('dashboard');
+  await pages(page).getByRole('link', { name: 'Trading', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page).toHaveURL(/\?p=profile$/);
+  await expect(pages(page).getByRole('link', { name: 'Profile', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(page).toHaveURL(/\?p=market$/);
+  await page.reload();
+  await expect(pages(page).getByRole('link', { name: 'Market', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'US indexes' })).toBeVisible();
+  await page.keyboard.press('Tab'); // nothing breaks at the end of the row
+});
+
+test('phone swipe: sideways changes page, a scroll or a swipe on the chart does not', async ({ page }) => {
+  test.skip(!test.info().project.use.isMobile, 'touch screens only');
+  await page.goto('dashboard?p=profile');
+  await expect(page.getByRole('heading', { name: 'Daily missions' })).toBeVisible();
+  const swipe = (x0: number, x1: number, y0 = 420, y1 = 420) =>
+    page.evaluate(
+      ([x0, x1, y0, y1]) => {
+        const target = document.elementFromPoint(x0, y0) ?? document.body;
+        const ev = (type: string, x: number, y: number) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y }));
+        ev('pointerdown', x0, y0);
+        ev('pointerup', x1, y1);
+      },
+      [x0, x1, y0, y1],
+    );
+  await swipe(300, 120); // finger left → next page
+  await expect(page).toHaveURL(/\?p=market$/);
+  await swipe(120, 300); // finger right → back
+  await expect(page).toHaveURL(/\?p=profile$/);
+  await swipe(300, 260, 420, 600); // mostly down: a scroll
+  await swipe(8, 200); // from the edge: the phone's back gesture
+  await expect(page).toHaveURL(/\?p=profile$/);
 });
 
 test('missions are counted by the server: three charts in the app complete "Analyze 3 stocks"', async ({ page }, info) => {
@@ -108,7 +161,7 @@ test('missions are counted by the server: three charts in the app complete "Anal
     await expect(page.getByRole('heading', { level: 1, name: sym })).toBeVisible();
     await reported;
   }
-  await page.goto('dashboard');
+  await page.goto('dashboard?p=profile');
   const missions = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Daily missions' }) });
   await expect(missions.getByLabel('3 of 3, done')).toBeVisible({ timeout: 15_000 });
   await expect(missions.getByText('Missions count on the website for now.')).toHaveCount(0);

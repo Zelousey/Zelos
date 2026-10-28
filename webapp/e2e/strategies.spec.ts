@@ -26,7 +26,7 @@ test('find strategies from Trade War and the Dashboard; see what each looks for'
   await page.goto('trade-war');
   const promo = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Strategies', exact: true }) });
   await expect(promo.getByRole('link', { name: /Breakout Rider/ })).toBeVisible();
-  await page.goto('dashboard');
+  await page.goto('dashboard?p=strategies');
   await page.getByRole('link', { name: 'All strategies →' }).click();
   await expect(page.getByRole('heading', { name: 'Strategies', level: 1 })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Swing Trader', exact: true })).toBeVisible();

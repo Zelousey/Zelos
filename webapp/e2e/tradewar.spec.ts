@@ -79,6 +79,7 @@ test('a running battle: the tab opens the Overview, every number says its mode; 
   // A beats B: after Solo, the tab reopens Solo even with a battle running
   await row(page).getByRole('link', { name: 'Solo', exact: true }).click();
   await expect(page).toHaveURL(/\/trade-war\/solo$/);
+  await expect(row(page).getByRole('link', { name: 'Solo', exact: true })).toHaveAttribute('aria-current', 'page'); // the Solo screen is up (and has noted Solo) before the reload
   await page.goto('dashboard');
   await page.getByRole('navigation', { name: 'Main' }).filter({ visible: true }).getByRole('link', { name: 'Trade War' }).click();
   await expect(page).toHaveURL(/\/trade-war\/solo$/);
