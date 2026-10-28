@@ -2,9 +2,10 @@
  * A chapter's quiz (/learn/:chapter/quiz). Answer every question, then the server grades it
  * (learn_quiz): pass and the chapter is done, the next one opens, and the chapter's XP is paid
  * once. Anyone can take it straight away to test out. Results show the right answer for every
- * question, with why.
+ * question, with why. Answers so far are kept while you look at something else (this tab), and a
+ * "Back to your quiz" button on other screens brings you back (learnReturn.ts).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
@@ -12,6 +13,7 @@ import { Badge, Button, buttonClass, Card, EmptyState, PageHeader, useToast } fr
 import { useNow } from '../../lib/useNow';
 import { errorText } from '../invites/invites';
 import { CHAPTER_XP, CHAPTERS, chapterById, chapterState, gradeQuiz, RETAKE_COST, retakeAt, type QuizResult } from './chapters';
+import { noteLearnPlace, readQuizDraft, writeQuizDraft } from './learnReturn';
 import { useSkill } from './useSkill';
 import s from './Learn.module.css';
 
@@ -25,10 +27,20 @@ export function ChapterQuiz() {
   const { learnDone, learnPassed, learnFailed, loaded } = useSkill();
   const now = useNow(30_000);
   const toast = useToast();
-  const [answers, setAnswers] = useState<(number | null)[]>(() => (c ? c.quiz.map(() => null) : []));
+  const [answers, setAnswers] = useState<(number | null)[]>(() => (c ? (readQuizDraft(c.id, c.quiz.length) ?? c.quiz.map(() => null)) : []));
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
   const [payNow, setPayNow] = useState(false); // chose to retake within the 12-hour wait for tokens
+  // keep the answers and the way back while the quiz is open; drop them once it's graded
+  useEffect(() => {
+    if (!c) return;
+    if (result) {
+      writeQuizDraft(c.id, null);
+      return;
+    }
+    if (answers.some((a) => a != null)) writeQuizDraft(c.id, answers);
+    noteLearnPlace(`/learn/${c.id}/quiz${next ? `?next=${encodeURIComponent(next)}` : ''}`, t('ln.return.quiz', { n: c.n }));
+  }, [c, answers, result, next]);
   if (!c) return <EmptyState icon="learn" title={t('ln.missing')} actions={<Link to="/learn">{t('ln.back')}</Link>} />;
   // chapters go in order: no Chapter 2 quiz before Chapter 1 is passed (the server checks too)
   if (isReal && loaded && !chapterState(c, learnDone, learnPassed).unlocked) {
