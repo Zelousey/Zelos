@@ -1316,6 +1316,8 @@ const en = {
   'al.tl.unlimited': 'No limit',
   'al.tl.breakevens': 'Break-even',
   'al.tl.chart': 'Profit or loss at expiration, by stock price',
+  'al.tl.now': 'NOW ${p}',
+  'al.tl.axis': 'STOCK PRICE AT EXPIRATION →',
   'al.tl.how': 'One trade made of three option positions on the same stock and expiration. Prices are per share; one contract is 100 shares. It is held to expiration and judged on the stock’s close that day.',
   'al.tl.closeAt': 'Stock closed at ${p}',
   'al.plan': 'Trade plan',
