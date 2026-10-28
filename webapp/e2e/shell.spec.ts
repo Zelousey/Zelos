@@ -88,7 +88,7 @@ test.describe('phone', () => {
     await expect(page).toHaveURL(/\/app\/markets$/);
     await tabbar.getByRole('link', { name: 'Trade War' }).click();
     await expect(page).toHaveURL(/\/app\/trade-war$/);
-    await expect(page.getByRole('heading', { name: /Your practice account/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'How do you want to play?' })).toBeVisible(); // signed out, nothing running: the mode picker
 
     await page.getByRole('button', { name: 'Open menu' }).click();
     const sheet = page.getByRole('dialog', { name: 'Menu' });

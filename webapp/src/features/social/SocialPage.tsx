@@ -9,7 +9,7 @@ import { levelFor } from '../../data/levels';
 import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { formatMoney } from '../../lib/format';
-import { t } from '../../lib/i18n';
+import { t, type MessageKey } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Button, Card, EmptyState, Field, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
@@ -17,6 +17,7 @@ import { unlockQuietly } from '../missions/missions';
 import { addFriend, removeFriend } from '../profile/profile';
 import { createSquad, findRoomCode, uidForUsername, useMySquadList, useProfiles } from './squads';
 import s from './Social.module.css';
+import { TradeWarNav } from '../tradewar/TradeWarNav';
 
 type Tab = 'squads' | 'friends';
 
@@ -29,6 +30,7 @@ export default function SocialPage() {
   return (
     <>
       <PageHeader title={t('nav.social')} subtitle={t('sq.subtitle')} />
+      <TradeWarNav />
       <div className={s.tabs}>
         <Tabs label={t('nav.social')} value={tab} onChange={(v) => setParams(v === 'squads' ? {} : { tab: v }, { replace: true })} items={[{ value: 'squads', label: t('sq.tab.squads') }, { value: 'friends', label: t('sq.tab.friends') }]} />
       </div>
@@ -80,6 +82,7 @@ function Squads({ uid, displayName }: { uid: string; displayName: string | null 
         <h2 className={s.heroTitle}>{t('sq.hero.title')}</h2>
         <p className={s.muted}>{t('sq.hero.body')}</p>
       </Card>
+      <SquadWays />
       <div className={s.two}>
         <Card title={t('sq.create')}>
           <form
@@ -214,6 +217,42 @@ function Friends({ uid }: { uid: string }) {
         ) : (
           <EmptyState icon="social" body={t('sq.friends.none')} compact />
         )}
+      </Card>
+    </div>
+  );
+}
+
+/** F9: what a squad can do, split into playing together and competing. Only what exists today. */
+function SquadWays() {
+  return (
+    <div className={s.two} role="group" aria-label={t('sq.ways')}>
+      <Card title={t('sq.together')} subtitle={t('sq.together.sub')}>
+        <ul className={s.ways}>
+          <li>
+            <b>{t('sq.together.goal')}</b>
+            <span>{t('sq.together.goal.body')}</span>
+          </li>
+          <li>
+            <b>{t('sq.together.chat')}</b>
+            <span>{t('sq.together.chat.body')}</span>
+          </li>
+        </ul>
+      </Card>
+      <Card title={t('sq.compete')} subtitle={t('sq.compete.sub')}>
+        <ul className={s.ways}>
+          <li>
+            <b>{t('sq.compete.board')}</b>
+            <span>{t('sq.compete.board.body')}</span>
+          </li>
+          {(['classic', 'draft', 'lms'] as const).map((m) => (
+            <li key={m}>
+              <Link className="hit" to={`/invite?kind=battle&mode=${m}`}>
+                <b>{t(`sq.compete.${m}` as MessageKey)} →</b>
+              </Link>
+              <span>{t(`sq.compete.${m}.body` as MessageKey)}</span>
+            </li>
+          ))}
+        </ul>
       </Card>
     </div>
   );

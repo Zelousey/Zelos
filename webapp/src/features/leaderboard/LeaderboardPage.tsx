@@ -16,6 +16,7 @@ import { useMyProfile, type Ranked } from '../dashboard/social';
 import { boardField, SEASON_CATS, useBoard, useFriendsBoard, useRank, type BoardId, type SeasonCat } from './board';
 import { nyToday, seasonFor } from './periods';
 import s from './Leaderboard.module.css';
+import { TradeWarNav } from '../tradewar/TradeWarNav';
 
 const money = (v: number) => formatMoney(v, { digits: 0 });
 const signedMoney = (v: number) => `${v >= 0 ? '+' : '−'}${money(Math.abs(v))}`;
@@ -41,6 +42,7 @@ export default function LeaderboardPage() {
   return (
     <>
       <PageHeader title={t('nav.leaderboard')} subtitle={t('lb.subtitle')} />
+      <TradeWarNav />
       <div className={s.tabs}>
         <Tabs label={t('nav.leaderboard')} value={board} onChange={(b) => set(b)} items={boards.map((b) => ({ value: b, label: b === 'season' && season ? season.name : t(`lb.tab.${b}` as MessageKey) }))} />
       </div>

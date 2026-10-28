@@ -65,12 +65,17 @@ describe('AppShell', () => {
     expect(within(tabbar).getByRole('link', { name: 'Market' }).className).toMatch(/active/); // the chain sits under Market
   });
 
-  it('Trade War is a hub: practice account plus the competitive parts', async () => {
+  it('Trade War is a hub: with nothing running it asks how you want to play, and the section row links every part', async () => {
     renderAt('/trade-war');
-    expect(await screen.findByRole('heading', { name: /Your practice account/ })).toBeInTheDocument();
-    const main = screen.getByRole('main');
-    expect(within(main).getByRole('link', { name: /Battles/ })).toHaveAttribute('href', '/battles');
-    expect(within(main).getByRole('link', { name: /^Squads/ })).toHaveAttribute('href', '/social');
+    expect(await screen.findByRole('heading', { name: 'How do you want to play?' })).toBeInTheDocument();
+    const modes = screen.getByRole('list', { name: 'Ways to play' });
+    expect(within(modes).getByRole('link', { name: /^Solo/ })).toHaveAttribute('href', '/trade-war/solo');
+    expect(within(modes).getByRole('link', { name: /^Battle/ })).toHaveAttribute('href', '/battles');
+    expect(within(modes).getByRole('link', { name: /^Squad/ })).toHaveAttribute('href', '/social');
+    expect(within(modes).queryByRole('link', { name: /War|Chaos/ })).not.toBeInTheDocument(); // not built yet
+    const row = screen.getByRole('navigation', { name: 'Trade War sections' });
+    expect(within(row).getAllByRole('link').map((a) => a.textContent)).toEqual(['Overview', 'Solo', 'Battle', 'Squad', 'Leaderboards', 'Strategies']);
+    expect(within(row).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('/real is not part of the app', async () => {
