@@ -4,7 +4,7 @@
  * Last Man Standing, storms and the Bounty Board. The server prices and checks every trade.
  */
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import type { QuotesDoc } from '../../data/markets';
 import { instrument } from '../../data/universe';
 import { formatMoney, formatPercent, formatPrice, formatRelative, formatSignedMoney } from '../../lib/format';
@@ -23,7 +23,10 @@ type Props = { b: Battle; uid: string; accounts: Account[]; me: Account | null; 
 export function LiveView({ b, uid, accounts, me, book, events, quotes, now }: Props) {
   const qs = useMemo(() => quotes?.quotes ?? {}, [quotes]);
   const syms = useMemo(() => allowedSymbols(b, uid), [b, uid]);
-  const [sym, setSym] = useState(() => book.positions[0]?.sym ?? syms[0] ?? 'AAPL');
+  // ?sym= from Find a stock (Phase 7) opens the ticket on that stock, when this battle allows it
+  const [params] = useSearchParams();
+  const asked = params.get('sym')?.toUpperCase() ?? null;
+  const [sym, setSym] = useState(() => (asked && syms.includes(asked) ? asked : (book.positions[0]?.sym ?? syms[0] ?? 'AAPL')));
   const storm = stormNow(b.storm, now);
   const live = me ? liveEquity(me.cash, book.positions, qs) : 0;
   const pnl = me ? live - me.start : 0;

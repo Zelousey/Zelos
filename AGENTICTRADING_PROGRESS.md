@@ -608,7 +608,7 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 | 4 | Mobile glitch fixes (from the Phase 1 report) | N8 | needs Phase 1 | per report |
 | 5 | Trade War hub: smart routing, mode grid, section menu | N2–N4, F9–F11, F13, M6 | **built 2026-10-28** (PR after #131); War panel (F11) waits for Stage B | `tradewar/TradeWarPage`, `modules.ts`, battles, social |
 | 6 | Dashboard as 4 swipe pages | F14–F17, M2–M3, S1, S7 | Q6, Q18 open | `features/dashboard`, practice, markets, missions, profile |
-| 7 | Find a Stock pop-up (Solo or Battle) | N6 | — | markets, trade ticket, battles |
+| 7 | Find a Stock pop-up (Solo or Battle) | N6 | **built 2026-10-28** | markets, trade ticket, battles |
 | 8 | Onboarding, help, invitation cards (coaching / battle / team-up) | F20–F23, N-R2 | — | `welcome/FirstSteps`, trade ticket, inbox |
 | 9 | Battle rematch | F19, S8 | — | `functions/main.py`, `battles/BattlePage` |
 | 10 | Squad rulesets (Free-for-all, Fantasy Draft, Last Man Standing, Team) + squad vs squad / leaderboard | F5–F9, E6 | Q14, Q16, Q17 | `functions/main.py`, `battles/settings.ts`, `features/social` |
