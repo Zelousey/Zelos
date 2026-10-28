@@ -5,6 +5,7 @@
  * the sheet only shows how to earn tokens until that is added. Balances only change on the server.
  */
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { isNative } from '../../lib/platform';
 import { t } from '../../lib/i18n';
@@ -37,7 +38,8 @@ export function useTokens() {
   return { uid, wallet, info: mine, balance: wallet?.balance ?? mine?.balance ?? null, failed: failed === uid };
 }
 
-export function TokensSheet({ open, onClose, info, balance }: { open: boolean; onClose: () => void; info: WalletInfo | null; balance: number | null }) {
+/** The token packs at the server's prices; buying opens Square Checkout. Hidden inside the iPhone app (guideline 3.1.1). */
+export function TokenPacks({ info }: { info: WalletInfo | null }) {
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   async function buy(pack: string) {
@@ -51,6 +53,25 @@ export function TokensSheet({ open, onClose, info, balance }: { open: boolean; o
       setBusy(null);
     }
   }
+  if (!info) return <p className={s.muted}>{t('st.loading')}</p>;
+  if (!info.canBuy || isNative()) return <p className={s.note}>{t('st.buy.soon')}</p>;
+  return (
+    <ul className={s.packs}>
+      {info.packs.map((p) => (
+        <li key={p.id}>
+          <span>
+            <b>{p.tokens.toLocaleString('en-US')}</b> {t('st.tokens')}
+          </span>
+          <Button variant="primary" size="sm" disabled={!!busy} onClick={() => void buy(p.id)}>
+            {busy === p.id ? t('st.buy.opening') : `$${(p.cents / 100).toFixed(p.cents % 100 ? 2 : 0)}`}
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function TokensSheet({ open, onClose, info, balance }: { open: boolean; onClose: () => void; info: WalletInfo | null; balance: number | null }) {
   return (
     <Sheet open={open} onClose={onClose} title={t('st.getTokens')} labelledBy="tokens-sheet-title">
       <div className={s.sheet}>
@@ -58,26 +79,12 @@ export function TokensSheet({ open, onClose, info, balance }: { open: boolean; o
           <Coin size={20} /> <b>{balance ?? 0}</b> {t('st.tokens')}
         </p>
         <p className={s.muted}>{t('st.tokens.what', { pass: passPrice(info, 'swing-trader'), day: passPrice(info, 'swing-trader', 1), threeLeg: passPrice(info, 'three-leg'), days: info?.prices.passDays ?? 7, unlock: info?.prices.unlock ?? 25 })}</p>
-        {!info ? (
-          <p className={s.muted}>{t('st.loading')}</p>
-        ) : !info.canBuy || isNative() ? (
-          <p className={s.note}>{t('st.buy.soon')}</p>
-        ) : (
-          <ul className={s.packs}>
-            {info.packs.map((p) => (
-              <li key={p.id}>
-                <span>
-                  <b>{p.tokens.toLocaleString('en-US')}</b> {t('st.tokens')}
-                </span>
-                <Button variant="primary" size="sm" disabled={!!busy} onClick={() => void buy(p.id)}>
-                  {busy === p.id ? t('st.buy.opening') : `$${(p.cents / 100).toFixed(p.cents % 100 ? 2 : 0)}`}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <TokenPacks info={info} />
         <p className={s.fine}>{t('st.tokens.fine')}</p>
         <TokenHistory />
+        <Link className={s.storeLink} to="/tokens" onClick={onClose}>
+          {t('tok.storeLink')} →
+        </Link>
       </div>
     </Sheet>
   );

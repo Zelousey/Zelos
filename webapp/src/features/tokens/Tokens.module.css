@@ -3,3 +3,10 @@
 .chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 :global(:root[data-theme='white']) .chip { color: #7a5208; background: #fff7e0; }
 .num { font-variant-numeric: tabular-nums; }
+.store { display: grid; gap: var(--space-4); max-width: 720px; }
+.storeBalance { display: grid; gap: var(--space-2); }
+.storeNum { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-2xl); }
+.storeNum b { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.storeBody { display: grid; gap: var(--space-3); }
+/* the history in the store sits in its own card: no divider line above it */
+.storeHistory > section { border-top: 0; padding-top: 0; }

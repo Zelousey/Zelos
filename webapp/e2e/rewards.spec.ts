@@ -3,6 +3,7 @@
  * coins flying in when tokens arrive, the wallet sheet; and the level-up celebration with the
  * framed badge that changes with your level.
  */
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 test.describe.configure({ timeout: 90_000 });
@@ -29,16 +30,28 @@ test('the token chip sits in the top bar and counts up when tokens arrive', asyn
   await expect(chip).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => getBalance(uid), { timeout: 30_000 }).not.toBeNull();
   const before = (await getBalance(uid))!;
-  await expect(chip).toHaveAccessibleName(`Your tokens: ${before}. Open wallet`, { timeout: 20_000 });
+  await expect(chip).toHaveAccessibleName(`Your tokens: ${before}. Open the Token Store`, { timeout: 20_000 });
   await put(`wallets/${uid}`, { balance: { integerValue: String(before + 25) } });
   await expect(chip).toContainText(String(before + 25), { timeout: 15_000 }); // after the coins land
-  await fetch(`${BASE}/wallets/${uid}/ledger/e2eLine`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { type: { stringValue: 'earn' }, note: { stringValue: 'Daily check-in' }, amount: { integerValue: '5' }, at: { integerValue: String(Date.now()) } } }) });
+  // 30 history lines: the Token Store shows 25, then the rest after "Show more"
+  const t0 = Date.now();
+  for (let i = 0; i < 30; i++) {
+    await fetch(`${BASE}/wallets/${uid}/ledger/e2eLine${i}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { type: { stringValue: 'earn' }, note: { stringValue: i === 29 ? 'Daily check-in' : `Line ${i}` }, amount: { integerValue: '5' }, at: { integerValue: String(t0 - (29 - i) * 60_000) } } }) });
+  }
+  // tap the chip: the Token Store (owner list D)
   await chip.click();
-  const sheet = page.getByRole('dialog', { name: 'Get tokens' });
-  await expect(sheet).toBeVisible();
-  const history = sheet.getByRole('region', { name: 'Recent activity' });
+  await expect(page).toHaveURL(/\/app\/tokens$/);
+  await expect(page.getByRole('heading', { name: 'Token Store', level: 1 })).toBeVisible();
+  await expect(page.getByTestId('store-balance')).toContainText(String(before + 25));
+  const history = page.getByRole('region', { name: 'Token history' });
   await expect(history).toContainText('Daily check-in');
   await expect(history).toContainText('+5');
+  await expect(history.getByRole('listitem')).toHaveCount(25);
+  await expect(history).not.toContainText('Line 0');
+  await history.getByRole('button', { name: 'Show more' }).click();
+  await expect(history).toContainText('Line 0');
+  await expect(history.getByRole('button', { name: 'Show more' })).toBeHidden();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
 });
 
 test('reaching a new level celebrates once with the new framed badge', async ({ page }, info) => {
