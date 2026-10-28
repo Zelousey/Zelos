@@ -44,11 +44,11 @@ test('news categories hint that more are hidden; a row that fits shows no fade',
   await page.setViewportSize({ width: 320, height: 700 });
   await page.goto('news');
   await expect(page.getByRole('group', { name: /filter/i })).toHaveAttribute('data-fade', 'end');
-  await page.goto('dashboard');
-  await expect(page.getByRole('tablist').first()).not.toHaveAttribute('data-fade', /.+/);
+  await page.goto('dashboard?p=market');
+  await expect(page.getByRole('tablist', { name: 'Top movers' })).not.toHaveAttribute('data-fade', /.+/);
 });
 
-for (const path of ['dashboard', 'markets', 'markets/AAPL', 'news', 'training', 'strategies', 'missions', 'leaderboard', 'alerts', 'social', 'learn', 'minds', 'settings']) {
+for (const path of ['dashboard', 'dashboard?p=profile', 'dashboard?p=market', 'dashboard?p=strategies', 'markets', 'markets/AAPL', 'news', 'training', 'strategies', 'missions', 'leaderboard', 'alerts', 'social', 'learn', 'minds', 'settings']) {
   test(`touch areas on ${path} are finger-sized`, async ({ page }) => {
     await page.goto(path);
     await expect(page.getByRole('main')).toBeVisible();

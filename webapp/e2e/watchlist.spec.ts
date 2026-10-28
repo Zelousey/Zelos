@@ -23,7 +23,7 @@ test('watch a stock, then add and remove on the Dashboard', async ({ page }, inf
   await expect(page.getByRole('button', { name: '★ Watching' })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => watchlist(uid)).toEqual(['AAPL']);
 
-  await page.goto('dashboard');
+  await page.goto('dashboard?p=market'); // the watchlist is on the Market page
   await page.getByRole('button', { name: 'Edit' }).click();
   const sheet = page.getByRole('dialog', { name: 'Edit your watchlist' });
   await sheet.getByLabel('Add a stock (symbol)').fill('zzzz');
