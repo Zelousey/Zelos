@@ -111,6 +111,22 @@ describe('AppShell', () => {
     expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
   });
 
+  it('top bar order is Menu → Account → Tokens → Bell (owner list C); the token chip opens the Token Store', async () => {
+    authState.user = { uid: 'u1', isAnonymous: false, displayName: 'Ada', email: 'a@x.io', photoURL: null };
+    authState.isReal = true;
+    const router = renderAt('/dashboard');
+    const bar = (await screen.findByRole('button', { name: 'Open menu' })).closest('header')!;
+    const names = within(bar).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? '');
+    const at = (re: RegExp) => names.findIndex((n) => re.test(n));
+    expect(at(/^Open menu$/)).toBe(0);
+    expect(at(/^Profile$/)).toBeGreaterThan(at(/^Open menu$/));
+    expect(at(/^Your tokens/)).toBeGreaterThan(at(/^Profile$/));
+    expect(at(/^Open notifications/)).toBeGreaterThan(at(/^Your tokens/));
+    await userEvent.click(within(bar).getByRole('button', { name: /^Your tokens/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tokens'));
+    expect(await screen.findByRole('heading', { name: 'Token Store', level: 1 })).toBeInTheDocument();
+  });
+
   it('the ☰ menu opens a sheet listing everything that is not a tab', async () => {
     renderAt('/dashboard');
     await userEvent.click(await screen.findByRole('button', { name: 'Open menu' }));

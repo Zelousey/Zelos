@@ -70,8 +70,10 @@ test.describe('signed in', () => {
     // 3-Leg Options costs more (owner 2026-10-15)
     const three = page.locator('section').filter({ has: page.getByRole('link', { name: '3-Leg Options', exact: true }) });
     await expect(three.getByRole('button', { name: '1-day pass · 45 tokens' })).toBeVisible();
-    // the tokens sheet
+    // the token chip opens the Token Store
     await page.getByRole('button', { name: /Your tokens: 50/ }).click();
-    await expect(page.getByRole('dialog', { name: 'Get tokens' }).getByText(/Earn free tokens every day|\$3/)).toBeVisible();
+    await expect(page).toHaveURL(/\/app\/tokens$/);
+    await expect(page.getByTestId('store-balance')).toContainText('50');
+    await expect(page.getByText(/Earn free tokens every day/).first()).toBeVisible();
   });
 });

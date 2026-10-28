@@ -65,14 +65,22 @@ test.describe('phone', () => {
     await expect(tabbar.getByRole('link')).toHaveText(['Dashboard', 'Market', 'Trade War', 'Alerts', /^News/]);
     await expect(tabbar.getByRole('link', { name: /^News\s*, new posts$/ })).toBeVisible();
 
-    // top bar: Profile, Notifications, then the menu, in that order on the right
-    const [p, b, m] = await Promise.all([
+    // top bar, one order everywhere (owner list C): Menu → Account → (Tokens, when signed in) → Bell
+    const [m, p, b] = await Promise.all([
+      page.getByRole('button', { name: 'Open menu' }).boundingBox(),
       page.getByRole('button', { name: 'Profile' }).boundingBox(),
       page.getByRole('button', { name: /Open notifications/ }).boundingBox(),
-      page.getByRole('button', { name: 'Open menu' }).boundingBox(),
     ]);
+    expect(m!.x).toBeLessThan(p!.x);
     expect(p!.x).toBeLessThan(b!.x);
-    expect(b!.x).toBeLessThan(m!.x);
+    expect(m!.x).toBeLessThan(40); // ☰ is the first thing on the left
+
+    // the smallest phones (Phase 1 M-1): the logo makes room so the screen name isn't cut to a few letters
+    await page.setViewportSize({ width: 320, height: 700 });
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Zelos Trade War' })).toBeHidden();
+    const title = await page.getByRole('banner').getByText('Dashboard', { exact: true }).evaluate((el) => ({ cut: el.scrollWidth > el.clientWidth + 1 }));
+    expect(title.cut).toBe(false);
+    await page.setViewportSize({ width: 390, height: 844 });
 
     // a marker on window survives client-side navigation but not a reload
     await page.evaluate(() => ((window as unknown as { __marker: number }).__marker = 1));
