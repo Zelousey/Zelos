@@ -9,8 +9,8 @@ import fixture from './fixtures/markets.json' with { type: 'json' };
 const quotes = (fixture as { quotes: { quotes: Record<string, { c: number }> } }).quotes.quotes;
 const price = (sym: string) => quotes[sym]!.c.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-test('dashboard shows index tiles, movers and sectors from live data', async ({ page }) => {
-  await page.goto('dashboard');
+test('dashboard Market page shows index tiles, movers and sectors from live data', async ({ page }) => {
+  await page.goto('dashboard?p=market');
   const spy = page.getByRole('link', { name: /S&P 500 \(SPY\)/ });
   await expect(spy).toContainText(price('SPY'));
   await expect(page.getByRole('list', { name: 'Gainers' }).getByRole('link').first()).toBeVisible();
@@ -21,7 +21,7 @@ test('dashboard shows index tiles, movers and sectors from live data', async ({ 
 });
 
 test('full flow: dashboard → markets → search → chart → practice trade', async ({ page }) => {
-  await page.goto('dashboard');
+  await page.goto('dashboard?p=market');
   await page.getByRole('link', { name: 'All markets →' }).click();
   await expect(page).toHaveURL(/\/app\/markets$/);
   await page.getByRole('searchbox').fill('nvi');
