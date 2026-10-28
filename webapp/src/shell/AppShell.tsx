@@ -36,6 +36,7 @@ import { NotificationsSheet } from './NotificationsSheet';
 import { ProfileSheet } from './ProfileSheet';
 import { TokenChip } from '../features/tokens/TokenChip';
 import { LevelUpWatcher } from '../features/levels/LevelUp';
+import { LearnReturn } from '../features/learn/LearnReturn';
 import { MindsQuoteCard } from '../features/minds/QuoteCard';
 import { useInbox } from './useInbox';
 import { useOnline } from './useOnline';
@@ -192,6 +193,7 @@ export function AppShell() {
       <ProfileSheet open={sheet === 'profile'} onClose={() => setSheet(null)} />
       <LevelUpWatcher />
       <MindsQuoteCard />
+      <LearnReturn />
       <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} />
     </div>
   );

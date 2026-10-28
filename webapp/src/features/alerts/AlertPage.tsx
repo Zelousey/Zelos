@@ -4,7 +4,7 @@
  * picked. A live alert is locked until the 4 pm close (after it, cheaper) unless you hold a
  * pass for that strategy or unlock it with tokens; finished trades are free for everyone.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useId } from 'react';
 import { Link, useParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatPrice, formatRelative } from '../../lib/format';
@@ -16,7 +16,7 @@ import { PassButton } from '../strategies/StrategiesPage';
 import { StrategyArt } from '../strategies/StrategyArt';
 import { strategy } from '../strategies/strategies';
 import { TokensSheet, useTokens } from '../strategies/Tokens';
-import { awardOpen, hasTrade, ID_RE, isClosedForUnlock, isShort, unlockAlert, useAlertDoc, useFullAlert, type Alert } from './alerts';
+import { awardOpen, hasTrade, ID_RE, isClosedForUnlock, isShort, payoffAt, unlockAlert, useAlertDoc, useFullAlert, type Alert } from './alerts';
 import { ResultBadge, StatusBadge } from './Badges';
 import { ResearchCard } from '../markets/Research';
 import s from './Alerts.module.css';
@@ -253,27 +253,81 @@ function LegsCard({ a }: { a: Alert }) {
   );
 }
 
-/** Profit or loss at expiration across stock prices (display only; the numbers above come from the server). */
+/**
+ * Profit or loss at expiration across stock prices (display only; the numbers above come from the
+ * server). Drawn like the other strategy charts (owner list D): dashed grid with dollar labels on the
+ * right, the strikes marked, green where the trade makes money and red where it loses, today's price
+ * and the breakevens. The maths is the same as functions/three_leg.py payoff().
+ */
 function Payoff({ a }: { a: Alert }) {
+  const clip = useId().replace(/:/g, '');
   const strikes = a.legs.map((l) => l.strike);
   const lo = Math.min(...strikes) * 0.85;
   const hi = Math.max(...strikes) * 1.15;
-  const pnl = (px: number) => a.legs.reduce((sum, l) => sum + (l.side === 'buy' ? 1 : -1) * l.qty * 100 * Math.max(0, l.type === 'call' ? px - l.strike : l.strike - px), 0) - (a.netCost ?? 0);
-  const xs = Array.from({ length: 61 }, (_, i) => lo + ((hi - lo) * i) / 60);
+  const pnl = (px: number) => payoffAt(a.legs, a.netCost, px);
+  // even steps plus every strike, so the peaks and corners (which sit on strikes) are drawn exactly
+  const xs = [...Array.from({ length: 121 }, (_, i) => lo + ((hi - lo) * i) / 120), ...strikes].sort((p, q) => p - q);
   const ys = xs.map(pnl);
   const top = Math.max(...ys, 1);
   const bot = Math.min(...ys, -1);
-  const W = 300;
-  const H = 90;
-  const x = (v: number) => ((v - lo) / (hi - lo)) * W;
-  const y = (v: number) => ((top - v) / (top - bot)) * H;
-  const line = xs.map((v, i) => `${i ? 'L' : 'M'}${x(v).toFixed(1)},${y(pnl(v)).toFixed(1)}`).join('');
+  // plot area like the strategy art: 8..328 across, labels from 336
+  const L = 8;
+  const R = 328;
+  const T = 22;
+  const B = 196;
+  const x = (v: number) => L + ((v - lo) / (hi - lo)) * (R - L);
+  const y = (v: number) => T + ((top - v) / (top - bot)) * (B - T);
+  const y0 = y(0);
+  const line = xs.map((v, i) => `${i ? 'L' : 'M'}${x(v).toFixed(1)},${y(ys[i]!).toFixed(1)}`).join('');
+  const area = `${line}L${x(hi).toFixed(1)},${y0.toFixed(1)}L${x(lo).toFixed(1)},${y0.toFixed(1)}Z`;
+  const money = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}$${Math.abs(Math.round(v)).toLocaleString('en-US')}`;
+  const grid = [top, 0, bot, top / 2, bot / 2].filter((v, i, all) => all.findIndex((w) => Math.abs(y(w) - y(v)) < 22) === i);
+  const strikeLabel = (k: number) => `$${Number.isInteger(k) ? k.toLocaleString('en-US') : formatPrice(k)}`;
+  const uniq = [...new Set(strikes)].sort((p, q) => p - q);
   return (
     <figure className={s.payoff}>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('al.tl.chart')} preserveAspectRatio="none">
-        <line x1="0" x2={W} y1={y(0)} y2={y(0)} className={s.zero} />
-        {a.entry != null && a.entry > lo && a.entry < hi && <line x1={x(a.entry)} x2={x(a.entry)} y1="0" y2={H} className={s.now} />}
+      <svg viewBox="0 0 400 236" role="img" aria-label={t('al.tl.chart')}>
+        <defs>
+          <clipPath id={`${clip}up`}>
+            <rect x={L} y={0} width={R - L} height={y0} />
+          </clipPath>
+          <clipPath id={`${clip}dn`}>
+            <rect x={L} y={y0} width={R - L} height={236 - y0} />
+          </clipPath>
+        </defs>
+        {grid.map((v) => (
+          <g key={v}>
+            <line x1={L} x2={R} y1={y(v)} y2={y(v)} className={v === 0 ? s.zero : s.gridLine} />
+            <text x={336} y={y(v) + 3.5} className={s.axis}>
+              {money(v)}
+            </text>
+          </g>
+        ))}
+        {uniq.map((k) => (
+          <g key={k}>
+            <line x1={x(k)} x2={x(k)} y1={T} y2={B} className={s.strike} />
+            <text x={x(k)} y={214} textAnchor="middle" className={s.axis}>
+              {strikeLabel(k)}
+            </text>
+          </g>
+        ))}
+        <path d={area} className={s.profitArea} clipPath={`url(#${clip}up)`} />
+        <path d={area} className={s.lossArea} clipPath={`url(#${clip}dn)`} />
         <path d={line} className={s.curve} />
+        {a.breakevens.filter((b) => b > lo && b < hi).map((b) => (
+          <circle key={b} cx={x(b)} cy={y0} r={3.5} className={s.breakeven} />
+        ))}
+        {a.entry != null && a.entry > lo && a.entry < hi && (
+          <g>
+            <line x1={x(a.entry)} x2={x(a.entry)} y1={T - 8} y2={B} className={s.now} />
+            <text x={x(a.entry)} y={T - 11} textAnchor="middle" className={s.nowLabel}>
+              {t('al.tl.now', { p: formatPrice(a.entry) })}
+            </text>
+          </g>
+        )}
+        <text x={L} y={232} className={s.axis}>
+          {t('al.tl.axis')}
+        </text>
       </svg>
       <figcaption className={s.muted}>{t('al.tl.chart')}</figcaption>
     </figure>
