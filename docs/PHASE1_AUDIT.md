@@ -23,7 +23,26 @@ Every screen was screenshotted.
 - Hall of Minds, Napoleon's page, a swipe lesson;
 - Training Ground, Invite, Profile, Settings, the Buy/Sell ticket, Options, Charts.
 
-SWEEP_RESULTS
+**Result: no broken screens.** At all three widths:
+- **no screen scrolls sideways**;
+- **no script errors**;
+- nothing important runs off the screen.
+
+The automatic "cut off" flags were checked one by one. All were deliberate:
+- the hidden "Skip to content" link;
+- screen-reader-only labels;
+- Napoleon's quote card, which is trimmed to 3 lines with "…" on purpose.
+
+**Real findings** (pictures: `docs/audit-2026-10-28/mobile-findings.jpg`):
+| # | Finding | Where | Fix in |
+|---|---|---|---|
+| M-1 | On the smallest phones (320 px) the top bar is crowded and the screen name is cut off ("Dashbo…", "Leader…", "Hall of …") | every screen, 320 px | **Phase 2** (top-bar rework) |
+| M-2 | Chart timeframe buttons run off the edge on small phones (3M, 6M hidden) | stock pages, Charts, 320 px | Phase 4 |
+| M-3 | Tab rows that scroll sideways give no hint that more is hidden ("Frien…") | Leaderboard tabs, Alerts filters, News categories | Phase 4 |
+| M-4 | The profile menu shows the email twice when no name is set | ☰/profile sheet | Phase 2 |
+| M-5 | About 80 buttons and links are 20–30 px tall. Apple recommends at least 44 px for touch (it doesn't block review, but it's easy to mis-tap) | small buttons and "→" text links on most screens | Phase 4 (shared button sizes, so it's one change in the design system) |
+
+What the sweep can't see: real-device behaviour such as the iPhone keyboard, the notch, swipe-back, and sound. If the owner has seen a specific glitch on a phone, a screenshot or a short description would let it be reproduced exactly.
 
 ## 2. Trading 101 inventory
 | Chapter | Lessons | Quiz |
@@ -88,7 +107,16 @@ A numbered contact sheet of all 47 pictures (11 portraits + 36 lesson/story pict
 | Rematch | **None** | New (Phase 9) |
 
 ## 5. Hall of Minds portraits cleaned up (owner request, 2026-10-28)
-PORTRAIT_RESULTS
+| Portrait | Problem | What was done | Status |
+|---|---|---|---|
+| #1 Alexander | Small, soft source (441×800, a full statue cropped to the head) | **New public-domain source:** the head of Alexander from Pergamon (Istanbul Archaeology Museums), photographed by Marie-Lan Nguyen, 1920×2560. Same black-and-white look; highlights toned so the marble doesn't wash out | ✅ done |
+| #4 Dow | The only free photo of him is 234×300 and already very high-contrast | **Enlarged 4× with Real-ESRGAN** (sharpens without inventing features), extra contrast left off, the light fringe on his hair trimmed. The face stays slightly flat because the original is | ✅ done (best possible from the only free photo) |
+| #7 Livermore | The source is a scan of a newspaper print (print dots, scratches), so the portrait looks blotchy | The original download is being rate-limited by Wikimedia (HTTP 429). It will be re-made from the original with dot removal + upscale as soon as it downloads | ⏳ in progress |
+
+`scripts/minds/portraits.py` was updated (new Alexander source, upscale step, per-portrait tone) and `webapp/public/minds/CREDITS.txt` records the sources.
 
 ## 6. Recommendations (for the owner to pick)
-RECS
+1. **Next: Phase 2 (top bar + Token Store)**, as planned. It also fixes M-1 and M-4.
+2. **A small security PR for S-1** (match listing). It can go before or alongside Phase 2. It needs the owner's OK because it changes security rules, and the owner deploys the rules.
+3. Phase 3 small fixes as planned. M-2, M-3 and M-5 go into Phase 4 (mobile fixes).
+4. Trading 101 Chapter 3 topics will be proposed in Phase 18.

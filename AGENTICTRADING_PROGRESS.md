@@ -3,7 +3,9 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**2026-10-27: Planning for update lists A–D + the War Mode rules update. Docs only. Waiting for the owner's approval.**
+**2026-10-28: the owner said "lets start" (the plan is approved). Phase 1 (checks and reports) is done: `docs/PHASE1_AUDIT.md`. Next: Phase 2 (top bar + Token Store), plus the S-1 rules fix if the owner OKs it.**
+
+**2026-10-27: Planning for update lists A–D + the War Mode rules update.**
 - Plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27" (incl. §4b, the War Mode rules update). The checklist itself is unchanged.
 - War rules: `docs/WAR_DESIGN.md` **v3.4**. **The whole revised spec, including Section 9, is NOT approved** (pending the owner's explicit approval). The individually approved decisions are listed in WAR_DESIGN §0.
 - Approved so far:
@@ -29,6 +31,7 @@ Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 | 2026-10-27 | Market mode decided: War mode only is simulated and always on (up to 7 days); everything else stays on real prices. Chaos = wild events in the War zone (the Solo Chaos mode and 5% payout superseded, to confirm). Quiet hours + morning summary. Company-name legal note. Skip price 10–15 (tokens assumed). E1–E6 open; conflict C17. **Still not approved as a whole.** | spec §4e; `docs/WAR_DESIGN.md` v3.2 |
 | 2026-10-27 | E1–E6 answered (made-up companies; skip = 100 tokens; Solo Chaos dropped; Chaos and quiet-hours rules; Squads real-price, vs squads/leaderboard). The owner's Trade War realm idea (War profile, War balance, gold bars, level armies, drop-in zones) written as a simple proposal; F1–F8 open; conflicts C18–C21. **Still not approved as a whole.** | spec §4f; `docs/WAR_DESIGN.md` v3.3 §24 |
 | 2026-10-27 | F1–F8 approved ("everything sounds good"); C18 decided by the owner. Final approval of the whole spec still pending. | spec §4g; `docs/WAR_DESIGN.md` v3.4 |
+| 2026-10-28 | The owner said "lets start": plan approved, Phase 1 run. Findings M-1…M-5 (mobile), S-1 (match listing readable by any signed-in user), Trading 101 inventory, Hall of Minds contact sheet; Alexander and Dow portraits cleaned up (owner request). | `docs/PHASE1_AUDIT.md` |
 
 ## 2026-10-07 — Project review, docs, CI, Marketstack merge, security fixes
 Current-state summary now lives in `PROJECT_STATE.md` (canonical handoff). This log keeps the detail.
@@ -599,7 +602,7 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 |---|---|---|---|---|
 | 0 | Plan (this PR) | all | waiting for final approval | AGENTICTRADING docs, `docs/WAR_DESIGN.md` |
 | **Stage A: the real-trading app** | | | | |
-| 1 | Checks and reports, no app changes: mobile glitches, Trading 101 inventory, Hall of Minds contact sheet, leak audit, current War/Squad code audit | N8, L1, U2, S2/S3/S9 | next, after approval | reports in `docs/` |
+| 1 | Checks and reports, no app changes: mobile glitches, Trading 101 inventory, Hall of Minds contact sheet, leak audit, current War/Squad code audit | N8, L1, U2, S2/S3/S9 | **done 2026-10-28** (`docs/PHASE1_AUDIT.md`); the owner's portrait clean-up: Alexander + Dow done, Livermore waiting on a download | reports in `docs/` |
 | 2 | Top bar (Menu → Account → Tokens → Bell) + Token Store | N1, F18, S4 | — | `shell/AppShell.tsx`, `Shell.module.css`, `features/tokens`, `strategies/Tokens.tsx`, `TokenHistory.tsx` |
 | 3 | Small fixes: new notification pictures (approved), book ends on the red back cover, 3-Leg chart, "Why prices move" lesson, return to lesson, **candles by default, green/red, colour choice in Settings** | U1, U3, M4, L2, N5, M1 | — | `functions/main.py` (push image), `images/`, `minds/BookIntro`, strategies, `learn/chapters.ts`, `charts/*`, `settings` |
 | 4 | Mobile glitch fixes (from the Phase 1 report) | N8 | needs Phase 1 | per report |
