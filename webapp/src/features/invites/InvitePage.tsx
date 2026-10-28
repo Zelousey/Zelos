@@ -15,7 +15,7 @@ import { Choices } from './Choices';
 import { BattleSettings, BuyInChoices } from '../battles/BattleSettings';
 import { useSkill } from '../learn/useSkill';
 import { BattleLock, useBattlesOpen } from '../learn/BattleLock';
-import { DEFAULT_SETTINGS, fitDays, settingsError, toPayload } from '../battles/settings';
+import { DEFAULT_SETTINGS, fitDays, presetSettings, settingsError, toPayload } from '../battles/settings';
 import { InviteScene } from './InviteScene';
 import { useSlotGate } from '../battles/slots';
 import s from './Invites.module.css';
@@ -120,7 +120,8 @@ function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string;
   const toast = useToast();
   const me = useUserDoc(uid);
   const xp = me.status === 'ready' ? me.data.xp : me.status === 'loading' ? null : 0;
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [params] = useSearchParams();
+  const [settings, setSettings] = useState(() => presetSettings(params.get('mode')));
   const [title, setTitle] = useState(() => (name ? t('inv.battle.nameDefault', { name }) : 'Trade War'));
   const [buyIn, setBuyIn] = useState(1000);
   const [days, setDays] = useState(3);
@@ -160,7 +161,7 @@ function BattleForm({ uid, name, onBack, onReady }: { uid: string; name: string;
         <BuyInChoices value={buyIn} onChange={setBuyIn} xp={xp} />
         <Choices label={t('inv.battle.days')} value={days} options={DAYS} onChange={pickDays} format={(v) => (v === 1 ? t('inv.battle.day1') : t('inv.battle.daysN', { n: v }))} />
         <Choices label={t('inv.battle.players')} value={players} options={[2, 4, 6, 10]} onChange={setPlayers} format={(v) => String(v)} />
-        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setError(null); }} days={days} simple={level === 'beginner'} />
+        <BattleSettings value={settings} onChange={(v) => { setSettings(v); setError(null); }} days={days} simple={level === 'beginner' && settings === DEFAULT_SETTINGS} />
         {error && (
           <p className={s.error} role="alert">
             {error}

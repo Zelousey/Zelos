@@ -606,7 +606,7 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 | 2 | Top bar (Menu → Account → Tokens → Bell) + Token Store | N1, F18, S4 | **done 2026-10-28 (#124)**; S-1 rules fix merged (#123), **owner deploy pending** | `shell/AppShell.tsx`, `Shell.module.css`, `features/tokens`, `strategies/Tokens.tsx`, `TokenHistory.tsx` |
 | 3 | Small fixes: new notification pictures (approved), book ends on the red back cover, 3-Leg chart, "Why prices move" lesson, return to lesson, **candles by default, green/red, colour choice in Settings** | U1, U3, M4, L2, N5, M1 | — | `functions/main.py` (push image), `images/`, `minds/BookIntro`, strategies, `learn/chapters.ts`, `charts/*`, `settings` |
 | 4 | Mobile glitch fixes (from the Phase 1 report) | N8 | needs Phase 1 | per report |
-| 5 | Trade War hub: smart routing, mode grid, section menu | N2–N4, F9–F11, F13, M6 | — | `tradewar/TradeWarPage`, `modules.ts`, battles, social |
+| 5 | Trade War hub: smart routing, mode grid, section menu | N2–N4, F9–F11, F13, M6 | **built 2026-10-28** (PR after #131); War panel (F11) waits for Stage B | `tradewar/TradeWarPage`, `modules.ts`, battles, social |
 | 6 | Dashboard as 4 swipe pages | F14–F17, M2–M3, S1, S7 | Q6, Q18 open | `features/dashboard`, practice, markets, missions, profile |
 | 7 | Find a Stock pop-up (Solo or Battle) | N6 | — | markets, trade ticket, battles |
 | 8 | Onboarding, help, invitation cards (coaching / battle / team-up) | F20–F23, N-R2 | — | `welcome/FirstSteps`, trade ticket, inbox |

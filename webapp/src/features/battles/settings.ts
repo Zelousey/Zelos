@@ -47,6 +47,15 @@ export const DEFAULT_SETTINGS: Settings = {
   stops: false,
 };
 
+/** Battle formats you can start straight from a link (/invite?kind=battle&mode=…; Squad → Compete). */
+export const PRESETS = ['classic', 'draft', 'lms'] as const;
+export type Preset = (typeof PRESETS)[number];
+export function presetSettings(mode: string | null): Settings {
+  if (mode === 'lms') return { ...DEFAULT_SETTINGS, mode: 'lms' };
+  if (mode === 'draft') return { ...DEFAULT_SETTINGS, draftPicks: 3 };
+  return DEFAULT_SETTINGS;
+}
+
 /** Timed cuts must come more often than the battle lasts. */
 export const cutOptions = (days: number) => LMS_OPTS.cutHours.filter((h) => h < days * 24);
 

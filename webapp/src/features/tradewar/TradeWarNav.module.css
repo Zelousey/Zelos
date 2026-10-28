@@ -1,0 +1,7 @@
+.nav { display: flex; gap: 2px; margin: 0 0 var(--space-4); padding: 3px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius); overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.link { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-3); border-radius: calc(var(--radius) - 2px); color: var(--muted); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+.link:hover { color: var(--ink); }
+.link[aria-current='page'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+/* touch screens: finger-sized (the row scrolls, so a hidden touch area would be clipped) */
+@media (pointer: coarse) { .link { min-height: var(--tap); } }

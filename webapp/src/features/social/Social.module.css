@@ -95,3 +95,8 @@
 .delBody { display: grid; gap: var(--space-3); }
 .delBody p { margin: 0; }
 .more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
+.ways { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.ways li { display: grid; gap: 2px; font-size: var(--text-sm); }
+.ways b { color: var(--ink); }
+.ways a b { color: var(--link); }
+.ways span { color: var(--ink-2); }
