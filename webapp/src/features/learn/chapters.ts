@@ -54,14 +54,17 @@ const BASICS: Lesson[] = [
   {
     id: 'prices',
     title: 'Why prices move',
-    sub: 'Buyers, sellers and news',
-    minutes: 2,
+    sub: 'Buyers, sellers, news and market hours',
+    minutes: 3,
     steps: [
       { art: { k: 'scale', heavy: 'buyers' }, title: 'More buyers: the price goes up', text: 'A price is just what someone will pay right now. When more people want to buy than sell, buyers have to offer more, and the price climbs.' },
       { art: { k: 'scale', heavy: 'sellers' }, title: 'More sellers: the price goes down', text: 'When more people want to sell than buy, sellers have to accept less, and the price falls.' },
       { art: { k: 'news', head: 'Apple sells a record number of iPhones', good: true }, title: 'Good news brings buyers', text: 'Strong sales, a hit product or a big deal make people want to own the company, so more buyers show up.' },
       { art: { k: 'news', head: 'Company misses its sales goal', good: false }, title: 'Bad news brings sellers', text: 'Weak sales or a problem make owners want out, so more sellers show up and the price drops.' },
       { art: { k: 'clock' }, title: 'It moves all day', text: 'US stocks trade Monday to Friday, 9:30 am to 4:00 pm New York time. Prices change every second while the market is open.', tip: 'In Zelos, prices update every minute during the market day.' },
+      { art: { k: 'session' }, title: 'Before and after the bell', text: 'Some trading also happens before the open (pre-market, from 4:00 am) and after the close (after-hours, until 8:00 pm). Fewer people trade then, so prices can jump more and buying or selling can cost you more.', tip: 'In Zelos, orders fill during regular hours: 9:30 am to 4:00 pm New York time.' },
+      { art: { k: 'world' }, title: 'The world takes turns', text: 'Markets open around the globe one after another: Tokyo first (evening in New York), then London (early morning New York time), then New York. What happens overnight often sets the mood for the US open, and big news after the close can make a stock open far from where it closed. That jump is called a gap.' },
+      { art: { k: 'big', top: 'ET', bottom: 'NEW YORK TIME' }, title: 'Mind the clock', text: 'US market times are always New York time (ET). If you live somewhere else, convert them to your own time. Clocks change for daylight saving in March and November, and Europe changes on different dates, so for a few weeks a year London and New York are 4 hours apart instead of 5.', tip: 'Zelos shows times in New York time, like "prices as of 4:10 PM EDT".' },
     ],
     check: {
       art: { k: 'news', head: 'Sales twice as big as expected', good: true },

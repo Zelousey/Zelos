@@ -3,13 +3,18 @@
  * then a finish screen. Finishing ticks the lesson on your account (users/{uid}.learnDone)
  * and asks the server for its 10 XP (paid once). Signed out, you can still take every
  * lesson; the finish screen asks you to sign in to keep your progress.
+ *
+ * Your step is kept in the address (?step=), so leaving for a chart and coming back (or the back
+ * button) returns to the same step; a "Back to your lesson" button on other screens (LearnReturn)
+ * takes you there too.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { Button, buttonClass, EmptyState, useToast } from '../../ui';
 import { chapterById, chapterState, LESSON_XP, lessonOpen, lessonXp, markLesson } from './chapters';
+import { noteLearnPlace } from './learnReturn';
 import { Scene } from './Scene';
 import { useSkill } from './useSkill';
 import s from './Learn.module.css';
@@ -36,13 +41,24 @@ function Player({ chapterId, idx }: { chapterId: string; idx: number }) {
   const { learnDone } = useSkill();
   const toast = useToast();
   const total = lesson.steps.length + 1; // the scenes, then the quick check
-  const [at, setAt] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const [at, setAt] = useState(() => {
+    const n = Number(params.get('step'));
+    return Number.isInteger(n) && n > 0 && n < total ? n : 0; // never straight to the finish (no XP from a link)
+  });
   const [picked, setPicked] = useState<number | null>(null);
   const [xpState, setEarned] = useState<'pending' | 'xp' | 'already' | 'none'>('pending');
   const earned = isReal && user ? xpState : 'none'; // signed out: nothing to save
   const finished = at === total;
   const headRef = useRef<HTMLHeadingElement>(null);
   const wasDone = useRef(learnDone.includes(lesson.id));
+
+  // remember the step: in the address (back button, reload) and for the "Back to your lesson" button
+  useEffect(() => {
+    const step = Math.min(at, total - 1);
+    setParams(step > 0 ? { step: String(step) } : {}, { replace: true });
+    noteLearnPlace(`/learn/${c.id}/${lesson.id}${step > 0 ? `?step=${step}` : ''}`, t('ln.return.where', { title: lesson.title, n: step + 1, total }));
+  }, [at, total, c.id, lesson.id, lesson.title, setParams]);
 
   // move focus to each new step's heading, so screen readers hear it and keyboard users start there
   useEffect(() => {

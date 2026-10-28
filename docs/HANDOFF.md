@@ -21,12 +21,20 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
 - Look (2026-10-25): **square UI** (round only for naturally round things), the **bull vs bear logo**.
 
 ## Status right now
-- Everything through #120 (2026-10-27) is merged; check that main CI and the Pages deploy for #120 went green. All server deploys the owner was asked for are done
+- Everything through #121 (2026-10-27) is merged and deployed. **New plan for the owner's update lists A–D:** `AGENTICTRADING_MASTER_SPEC.md` → ADDENDUM 2026-10-27 and `AGENTICTRADING_PROGRESS.md` (waiting for the owner to approve a phase). War rules: `docs/WAR_DESIGN.md` v3.3, **not approved as a whole yet (incl. Section 9)**. All server deploys the owner was asked for are done
   (last one: `xp_award` for the Hall of Minds lesson steps, 2026-10-25).
 - **Open PRs**
   - **#81** iPhone app shell (Codemagic): **on hold** by the owner. Don't merge.
   - **#94** "Boosts" (Oct 22): most likely **superseded** (XP booster, battle slots and quiz retake
     shipped later on main). Compare with main, then ask the owner whether to close it.
+
+## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
+Run them in order whenever there's time. The site keeps working without them, but the change isn't live until they run.
+1. **Trade War match listing rule (#123, merged 2026-10-28).** Until it's deployed, the old rule (anyone signed in can list every match) is still live.
+   ```
+   cd ~/Zelos && git pull && firebase deploy --only firestore:rules
+   ```
+After running one, tell Claude "deployed", and it will be ticked off here.
 
 ## Done (all on main)
 **Platform**

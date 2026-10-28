@@ -1,10 +1,11 @@
-/** Settings: theme, your account (profile, notifications, tokens), the Privacy Policy and Terms, and deleting your account. */
+/** Settings: theme, candle colours, your account (profile, notifications, tokens), the Privacy Policy and Terms, and deleting your account. */
 import { useState } from 'react';
 import { t } from '../../lib/i18n';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/platform';
 import { Link } from 'react-router';
 import { getTheme, setTheme, THEMES, type Theme } from '../../lib/theme';
 import { Card, Icon, PageHeader, Tabs } from '../../ui';
+import { ChartColors } from './ChartColors';
 import { DeleteAccount } from './DeleteAccount';
 import { BlockedList } from '../safety/BlockedList';
 import s from './SettingsPage.module.css';
@@ -27,6 +28,9 @@ export default function SettingsPage() {
               setThemeState(v);
             }}
           />
+        </Card>
+        <Card title={t('settings.candles')} subtitle={t('settings.candles.help')}>
+          <ChartColors />
         </Card>
         <Card title={t('settings.account')} flush>
           <ul className={s.links}>
