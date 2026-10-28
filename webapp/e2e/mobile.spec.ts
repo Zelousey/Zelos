@@ -29,11 +29,15 @@ test('chart controls on a 320 px phone fade at the edge until you swipe to the e
   await page.goto('markets/AAPL');
   const row = page.getByRole('tablist', { name: 'Timeframe' }).locator('..');
   await expect(row).toHaveAttribute('data-fade', 'end');
+  if (process.env.SHOTS) {
+    await expect(page.getByRole('img', { name: /AAPL .* price chart/ })).toBeVisible();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${process.env.SHOTS}/controls-320.png`, clip: { x: 0, y: 0, width: 320, height: 520 } });
+  }
   await row.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
   await expect(row).toHaveAttribute('data-fade', 'start');
   await row.evaluate((el) => el.scrollTo({ left: 40 }));
   await expect(row).toHaveAttribute('data-fade', 'both');
-  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/controls-320.png`, clip: { x: 0, y: 0, width: 320, height: 420 } });
 });
 
 test('news categories hint that more are hidden; a row that fits shows no fade', async ({ page }) => {
