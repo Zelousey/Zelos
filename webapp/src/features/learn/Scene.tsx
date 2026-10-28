@@ -14,6 +14,8 @@ export type Art =
   | { k: 'scale'; heavy: 'buyers' | 'sellers' }
   | { k: 'news'; head: string; good: boolean }
   | { k: 'clock' }
+  | { k: 'session' }
+  | { k: 'world' }
   | { k: 'wallet' }
   | { k: 'split'; cash: number; stocks: number; hide?: boolean }
   | { k: 'big'; top: string; bottom?: string; tone?: 'up' | 'down' }
@@ -240,6 +242,60 @@ function Clock() {
       <Label x={200} y={262}>
         NEW YORK TIME
       </Label>
+    </>
+  );
+}
+
+/** One trading day in New York time: pre-market, the regular session, after-hours. */
+function Session() {
+  // 4:00 am → 8:00 pm on a line from x=40 to x=360 (20 px an hour)
+  const x = (h: number) => 40 + (h - 4) * 20;
+  const parts: { from: number; to: number; cls: string | undefined; label: string; sub: string; tone: 'mut' | 'up' }[] = [
+    { from: 4, to: 9.5, cls: s.f_accs, label: 'PRE-MARKET', sub: '4:00–9:30', tone: 'mut' },
+    { from: 9.5, to: 16, cls: s.f_up, label: 'REGULAR', sub: '9:30–4:00', tone: 'up' },
+    { from: 16, to: 20, cls: s.f_accs, label: 'AFTER-HOURS', sub: '4:00–8:00', tone: 'mut' },
+  ];
+  return (
+    <>
+      {parts.map((p, i) => (
+        <g key={p.label} className={s.fade} style={d(0.2 + i * 0.35)}>
+          <rect x={x(p.from)} y={i === 1 ? 98 : 112} width={x(p.to) - x(p.from) - 3} height={i === 1 ? 64 : 36} rx={6} className={p.cls} />
+          <text x={(x(p.from) + x(p.to)) / 2} y={i === 1 ? 192 : 178} textAnchor="middle" className={[s.lbl, s[`t_${p.tone === 'up' ? 'up' : 'ink'}`]].join(' ')}>
+            {p.label}
+          </text>
+          <text x={(x(p.from) + x(p.to)) / 2} y={i === 1 ? 210 : 196} textAnchor="middle" className={[s.lbl, s.t_mut].join(' ')}>
+            {p.sub}
+          </text>
+        </g>
+      ))}
+      <Label x={200} y={262} delay={1.3}>
+        NEW YORK TIME · MON – FRI
+      </Label>
+    </>
+  );
+}
+
+/** The world's big markets take turns: Tokyo, then London, then New York (New York time). */
+function World() {
+  const rows: { city: string; local: string; ny: string }[] = [
+    { city: 'TOKYO', local: '9:00–3:30 there', ny: 'NY evening' },
+    { city: 'LONDON', local: '8:00–4:30 there', ny: '3:00–11:30 am NY' },
+    { city: 'NEW YORK', local: '9:30 am – 4:00 pm', ny: 'the US market' },
+  ];
+  return (
+    <>
+      {rows.map((r, i) => (
+        <g key={r.city} className={s.fade} style={d(0.2 + i * 0.4)}>
+          <rect x={50} y={52 + i * 70} width={300} height={56} rx={10} className={i === 2 ? s.f_accs : s.field} />
+          <circle cx={80} cy={80 + i * 70} r={10} className={i === 2 ? s.f_acc : s.f_border} />
+          <text x={102} y={76 + i * 70} className={[s.head, s.t_ink].join(' ')}>
+            {r.city}
+          </text>
+          <text x={102} y={96 + i * 70} className={[s.lbl, s.t_mut].join(' ')}>
+            {r.local} · {r.ny}
+          </text>
+        </g>
+      ))}
     </>
   );
 }
@@ -749,6 +805,12 @@ export function Scene({ art }: { art: Art }) {
       break;
     case 'clock':
       body = <Clock />;
+      break;
+    case 'session':
+      body = <Session />;
+      break;
+    case 'world':
+      body = <World />;
       break;
     case 'wallet':
       body = <Wallet />;
