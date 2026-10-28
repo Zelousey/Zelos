@@ -1,0 +1,13 @@
+.pill {
+  position: fixed; z-index: 24; left: 50%; transform: translateX(-50%); bottom: var(--space-5);
+  display: flex; align-items: stretch; max-width: calc(100vw - 2 * var(--space-3));
+  background: var(--accent-fill); color: var(--on-fill); box-shadow: 0 10px 28px rgb(0 0 0 / 0.4);
+  animation: lr-in 300ms var(--ease-out, ease-out);
+}
+.go { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3) 0 var(--space-4); color: inherit; font-weight: 600; font-size: var(--text-sm); text-decoration: none; min-width: 0; }
+.go span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.close { display: grid; place-items: center; width: var(--tap); min-height: var(--tap); border: 0; border-left: 1px solid rgb(255 255 255 / 0.3); background: transparent; color: inherit; cursor: pointer; }
+.go:focus-visible, .close:focus-visible { outline: 2px solid var(--on-fill); outline-offset: -4px; }
+@media (max-width: 760px) { .pill { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--space-3)); } }
+@keyframes lr-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+@media (prefers-reduced-motion: reduce) { .pill { animation: none; } }

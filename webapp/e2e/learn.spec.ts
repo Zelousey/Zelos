@@ -192,3 +192,45 @@ test.describe('signed in', () => {
     await expect(page.getByText(/Last Man Standing/).first()).toBeVisible();
   });
 });
+
+test('leave a lesson or the quiz for a chart, then come straight back to the same step (owner list D)', async ({ page }) => {
+  const nav = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
+  await page.goto('learn/basics/stocks');
+  for (const next of ['Cut it into pieces', 'Buy one share']) {
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('heading', { name: next })).toBeVisible();
+  }
+  await expect(page).toHaveURL(/\/learn\/basics\/stocks\?step=2$/);
+  // the step survives a reload (and the back button) because it's in the address
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Buy one share' })).toBeVisible();
+
+  // off to a chart; a button brings you back to that exact step
+  await nav.getByRole('link', { name: 'Market' }).click();
+  const back = page.getByTestId('learn-return');
+  await expect(back).toContainText('What is a stock?');
+  await expect(back).toContainText('step 3 of');
+  await page.waitForFunction(() => document.getAnimations().every((x) => x.playState !== 'running' || x.effect?.getTiming().iterations === Infinity), null, { timeout: 2000 }).catch(() => undefined);
+  expect((await new AxeBuilder({ page }).include('[data-testid="learn-return"]').withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  await back.getByRole('link').click();
+  await expect(page).toHaveURL(/\/learn\/basics\/stocks\?step=2$/);
+  await expect(page.getByRole('heading', { name: 'Buy one share' })).toBeVisible();
+  await expect(back).toHaveCount(0); // never shown inside Trading 101
+
+  // the chapter quiz keeps your answers while you look at something else
+  await page.goto('learn/basics/quiz');
+  const qs = page.getByRole('group');
+  await qs.nth(0).getByRole('radio').nth(1).check();
+  await qs.nth(1).getByRole('radio').nth(2).check();
+  await nav.getByRole('link', { name: 'Market' }).click();
+  await expect(back).toContainText('Chapter 1 quiz');
+  await back.getByRole('link').click();
+  await expect(page.getByRole('heading', { name: 'Chapter 1 quiz: The basics', level: 1 })).toBeVisible();
+  await expect(page.getByRole('group').nth(0).getByRole('radio').nth(1)).toBeChecked();
+  await expect(page.getByRole('group').nth(1).getByRole('radio').nth(2)).toBeChecked();
+
+  // closing the button hides it
+  await nav.getByRole('link', { name: 'Market' }).click();
+  await back.getByRole('button', { name: 'Hide' }).click();
+  await expect(back).toHaveCount(0);
+});
