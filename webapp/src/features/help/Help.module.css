@@ -1,0 +1,25 @@
+.stack { display: grid; gap: var(--space-5); }
+.h2 { margin: 0 0 var(--space-3); font-size: var(--text-md); font-weight: 600; color: var(--ink); }
+.faq { display: grid; gap: var(--space-2); }
+.item { border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); padding: 0 var(--space-4); }
+.item summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--ink); }
+.item[open] { padding-bottom: var(--space-4); }
+.item p { margin: 0 0 var(--space-2); color: var(--ink-2); font-size: var(--text-sm); max-width: 70ch; }
+.item a { font-size: var(--text-sm); }
+.form { display: grid; gap: var(--space-3); }
+.topics { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; border: 0; }
+.topics legend { margin-bottom: var(--space-2); font-size: var(--text-sm); color: var(--ink-2); }
+.topic { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }
+.topic:has(input:checked) { border-color: var(--accent-fill); background: var(--accent-soft); }
+.label { font-size: var(--text-sm); color: var(--ink-2); }
+.text { width: 100%; min-height: 120px; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--ink); font: inherit; resize: vertical; }
+.text:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.row p { margin: 0; }
+.muted { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.fine { margin: 0; color: var(--muted); font-size: var(--text-xs); }
+.error { margin: 0; color: var(--down-ink); font-size: var(--text-sm); }
+.inbox { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.msg { margin: var(--space-2) 0 var(--space-3); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.done { opacity: 0.6; }

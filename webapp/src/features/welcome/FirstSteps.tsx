@@ -1,6 +1,7 @@
 /**
  * First steps (Dashboard): what a new player does first, with the website's XP for each step.
  * Hidden once every required step is done, or with Hide (shared with the website's checklist).
+ * Help shows it even when hidden (`inHelp`, Phase 8 F22), with a button to bring it back to the Dashboard.
  */
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -11,17 +12,22 @@ import { useAsStudent } from '../coach/coach';
 import { DONE_KEY, firstSteps, HIDE_KEY, lsGet, lsSet } from './welcome';
 import s from './Welcome.module.css';
 
-export function FirstSteps({ uid, me, hasUsername, hasAccount }: { uid: string; me: UserDoc; hasUsername: boolean; hasAccount: boolean }) {
+export function FirstSteps({ uid, me, hasUsername, hasAccount, inHelp = false }: { uid: string; me: UserDoc; hasUsername: boolean; hasAccount: boolean; inHelp?: boolean }) {
   const [hidden, setHidden] = useState(() => lsGet(HIDE_KEY) === '1' || lsGet(DONE_KEY) === '1');
   const coach = useAsStudent(me.experience === 'new' && !hidden ? uid : null);
   const hasCoach = coach.status === 'ready' && coach.data.length > 0;
   const steps = firstSteps({ onboard: me.onboard, hasUsername, hasAccount, experience: me.experience, hasCoach });
   const required = steps.filter((x) => !x.optional);
   const done = required.filter((x) => x.done).length;
-  if (hidden || done === required.length) return null;
+  if (done === required.length) return inHelp ? <Card pad><p className={s.allDone}>{t('fs.allDone')}</p></Card> : null;
+  if (hidden && !inHelp) return null;
   const hide = () => {
     lsSet(HIDE_KEY, '1');
     setHidden(true);
+  };
+  const unhide = () => {
+    lsSet(HIDE_KEY, '0');
+    setHidden(false);
   };
   return (
     <Card
@@ -30,9 +36,17 @@ export function FirstSteps({ uid, me, hasUsername, hasAccount }: { uid: string; 
       subtitle={t('fs.progress', { done, of: required.length })}
       flush
       actions={
-        <button type="button" className={s.hide} onClick={hide}>
-          {t('fs.hide')}
-        </button>
+        inHelp ? (
+          hidden && (
+            <button type="button" className={s.hide} onClick={unhide}>
+              {t('fs.unhide')}
+            </button>
+          )
+        ) : (
+          <button type="button" className={s.hide} onClick={hide}>
+            {t('fs.hide')}
+          </button>
+        )
       }
     >
       <div className={s.bar} role="progressbar" aria-label={t('fs.title')} aria-valuemin={0} aria-valuemax={required.length} aria-valuenow={done}>
