@@ -69,7 +69,19 @@ type EngineGlobal = {
   /** chart themes bought with tokens (cosmetics/{uid}.chart); null switches back to the plain look */
   setTheme(id: string | null): void;
   loadTheme(): unknown;
+  /** free candle colours (Settings): Green / Red is the default */
+  PRESETS: CandlePreset[];
+  loadColors(): { id: string; up: string; down: string };
+  saveColors(c: { id: string; up: string; down: string }): void;
 };
+
+export type CandlePreset = { id: string; name: string; up: string; down: string };
+
+/** Save the free candle colours and repaint every open chart (the engine listens for zelos:theme). */
+export function setCandleColors(p: CandlePreset) {
+  engine().saveColors({ id: p.id, up: p.up, down: p.down });
+  window.dispatchEvent(new Event('zelos:theme'));
+}
 
 export function engine(): EngineGlobal {
   const g = (window as unknown as { ZelosTradeChart?: EngineGlobal }).ZelosTradeChart;
