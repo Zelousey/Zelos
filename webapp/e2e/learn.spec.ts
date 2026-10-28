@@ -52,6 +52,13 @@ test('Trading 101: chapter 1 path, an animated lesson with a quick check, old li
   await expect(page.getByRole('link', { name: 'Look at real stocks' })).toHaveAttribute('href', /\/markets$/);
   await page.getByRole('link', { name: 'Next: Why prices move' }).click();
   await expect(page.getByRole('heading', { name: 'More buyers: the price goes up' })).toBeVisible();
+  // lesson 2 also covers market hours (owner list D): pre-market / after-hours, world markets, time zones
+  for (const next of ['More sellers: the price goes down', 'Good news brings buyers', 'Bad news brings sellers', 'It moves all day', 'Before and after the bell', 'The world takes turns', 'Mind the clock']) {
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('heading', { name: next })).toBeVisible();
+  }
+  await expect(page.getByText(/London and New York are 4 hours apart instead of 5/)).toBeVisible();
+  await axe(page);
 
   // chapter 2: charts & volume (signed out, every lesson is open to read)
   await page.goto('learn');
