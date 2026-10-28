@@ -3,7 +3,7 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**2026-10-28: the owner said "lets start" (the plan is approved). Phase 1 (checks and reports) is done: `docs/PHASE1_AUDIT.md`. Next: Phase 2 (top bar + Token Store), plus the S-1 rules fix if the owner OKs it.**
+**2026-10-28: the owner said "lets start" (the plan is approved). Phase 1 (checks and reports) is done: `docs/PHASE1_AUDIT.md`. Phase 2 (top bar + Token Store) merged as #124 and the S-1 rules fix as #123 (rules deploy pending, see `docs/HANDOFF.md`). Next: Phase 3 (small fixes).**
 
 **2026-10-27: Planning for update lists A–D + the War Mode rules update.**
 - Plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27" (incl. §4b, the War Mode rules update). The checklist itself is unchanged.
@@ -603,7 +603,7 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 | 0 | Plan (this PR) | all | waiting for final approval | AGENTICTRADING docs, `docs/WAR_DESIGN.md` |
 | **Stage A: the real-trading app** | | | | |
 | 1 | Checks and reports, no app changes: mobile glitches, Trading 101 inventory, Hall of Minds contact sheet, leak audit, current War/Squad code audit | N8, L1, U2, S2/S3/S9 | **done 2026-10-28** (`docs/PHASE1_AUDIT.md`); the owner's portrait clean-up: Alexander + Dow done, Livermore waiting on a download | reports in `docs/` |
-| 2 | Top bar (Menu → Account → Tokens → Bell) + Token Store | N1, F18, S4 | — | `shell/AppShell.tsx`, `Shell.module.css`, `features/tokens`, `strategies/Tokens.tsx`, `TokenHistory.tsx` |
+| 2 | Top bar (Menu → Account → Tokens → Bell) + Token Store | N1, F18, S4 | **done 2026-10-28 (#124)**; S-1 rules fix merged (#123), **owner deploy pending** | `shell/AppShell.tsx`, `Shell.module.css`, `features/tokens`, `strategies/Tokens.tsx`, `TokenHistory.tsx` |
 | 3 | Small fixes: new notification pictures (approved), book ends on the red back cover, 3-Leg chart, "Why prices move" lesson, return to lesson, **candles by default, green/red, colour choice in Settings** | U1, U3, M4, L2, N5, M1 | — | `functions/main.py` (push image), `images/`, `minds/BookIntro`, strategies, `learn/chapters.ts`, `charts/*`, `settings` |
 | 4 | Mobile glitch fixes (from the Phase 1 report) | N8 | needs Phase 1 | per report |
 | 5 | Trade War hub: smart routing, mode grid, section menu | N2–N4, F9–F11, F13, M6 | — | `tradewar/TradeWarPage`, `modules.ts`, battles, social |
