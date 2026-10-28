@@ -71,10 +71,10 @@ describe('AppShell', () => {
     const modes = screen.getByRole('list', { name: 'Ways to play' });
     expect(within(modes).getByRole('link', { name: /^Solo/ })).toHaveAttribute('href', '/trade-war/solo');
     expect(within(modes).getByRole('link', { name: /^Battle/ })).toHaveAttribute('href', '/battles');
-    expect(within(modes).getByRole('link', { name: /^Squad/ })).toHaveAttribute('href', '/social');
-    expect(within(modes).queryByRole('link', { name: /War|Chaos/ })).not.toBeInTheDocument(); // not built yet
+    expect(within(modes).getAllByRole('link')).toHaveLength(2); // Squad is inside Battle; the simulated war zone shows once built (owner 2026-10-28)
+    expect(within(modes).getByRole('link', { name: /^Solo/ })).toHaveTextContent('real stocks at live market prices');
     const row = screen.getByRole('navigation', { name: 'Trade War sections' });
-    expect(within(row).getAllByRole('link').map((a) => a.textContent)).toEqual(['Overview', 'Solo', 'Battle', 'Squad', 'Leaderboards', 'Strategies']);
+    expect(within(row).getAllByRole('link').map((a) => a.textContent)).toEqual(['Overview', 'Solo', 'Battle', 'Leaderboards', 'Strategies']);
     expect(within(row).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
   });
 

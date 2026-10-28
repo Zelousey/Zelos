@@ -33,7 +33,7 @@ test('nothing running: the tab asks how you want to play; the section row switch
   await page.goto('trade-war');
   await expect(page.getByRole('heading', { name: 'How do you want to play?' })).toBeVisible();
   const modes = page.getByRole('list', { name: 'Ways to play' });
-  await expect(modes.getByRole('link')).toHaveCount(3); // Solo, Battle, Squad; War waits until it's built
+  await expect(modes.getByRole('link')).toHaveCount(2); // Solo and Battle (Squad is inside Battle); the war zone shows once built
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/modes-${test.info().project.name}.png`, fullPage: true });
   expect(await axe(page)).toEqual([]);
 
@@ -41,7 +41,6 @@ test('nothing running: the tab asks how you want to play; the section row switch
   const stops: [string, RegExp, string | RegExp][] = [
     ['Solo', /\/trade-war\/solo$/, 'Solo: your practice account'],
     ['Battle', /\/battles$/, 'Battles'],
-    ['Squad', /\/social$/, 'Squads & friends'],
     ['Leaderboards', /\/leaderboard$/, 'Leaderboard'],
     ['Strategies', /\/strategies$/, 'Strategies'],
     ['Overview', /\/trade-war\/overview$/, 'Trade War'],
@@ -98,9 +97,18 @@ test('Squad: Together and Compete; a Compete format opens the battle form with i
   const ways = page.getByRole('group', { name: 'Ways to play as a squad' });
   await expect(ways.getByRole('heading', { name: 'Together' })).toBeVisible();
   await expect(ways.getByRole('heading', { name: 'Compete' })).toBeVisible();
-  await expect(row(page).getByRole('link', { name: 'Squad', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(row(page).getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute('aria-current', 'page'); // squads live under Battle
   expect(await axe(page)).toEqual([]);
   await ways.getByRole('link', { name: /Last Man Standing battle/ }).click();
   await expect(page).toHaveURL(/\/invite\?kind=battle&mode=lms$/);
   await expect(page.getByText('Elimination rules')).toBeVisible();
+});
+
+test('Battle starts with a choice: a head-to-head Duel, or Squad', async ({ page }) => {
+  await page.goto('battles');
+  const kinds = page.getByRole('region', { name: 'How do you want to battle?' });
+  await expect(kinds.getByRole('link', { name: /^Duel/ })).toHaveAttribute('href', '/app/invite?kind=battle');
+  await kinds.getByRole('link', { name: /^Squad/ }).click();
+  await expect(page).toHaveURL(/\/social$/);
+  await expect(row(page).getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute('aria-current', 'page');
 });

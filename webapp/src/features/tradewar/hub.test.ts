@@ -41,7 +41,7 @@ describe('sectionFor', () => {
     expect(sectionFor('/trade-war/solo')).toBe('solo');
     expect(sectionFor('/battles')).toBe('battle');
     expect(sectionFor('/battles/abc')).toBe(null); // a battle room is not a hub page
-    expect(sectionFor('/social')).toBe('squad');
+    expect(sectionFor('/social')).toBe('battle'); // squads are part of Battle
     expect(sectionFor('/leaderboard')).toBe('leaderboards');
     expect(sectionFor('/strategies')).toBe('strategies');
     expect(sectionFor('/dashboard')).toBe(null);
