@@ -49,6 +49,11 @@ export default function SettingsPage() {
                 {t('settings.tokens')} <Icon name="chevronRight" size={16} />
               </Link>
             </li>
+            <li>
+              <Link to="/help">
+                {t('nav.help')} <Icon name="chevronRight" size={16} />
+              </Link>
+            </li>
           </ul>
         </Card>
         <Card title={t('settings.legal')} flush>
