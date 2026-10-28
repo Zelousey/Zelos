@@ -80,6 +80,12 @@ function parseContract(v: unknown): OptionContract | null {
 
 export type Leg = { type: 'call' | 'put'; side: 'buy' | 'sell'; strike: number; qty: number; price: number };
 
+/** A 3-Leg trade's profit or loss at expiration if the stock closes at px: the same sum as
+ *  functions/three_leg.py payoff() (each leg's value at expiration, minus what it cost to open). */
+export function payoffAt(legs: Leg[], netCost: number | null, px: number): number {
+  return legs.reduce((sum, l) => sum + (l.side === 'buy' ? 1 : -1) * l.qty * 100 * Math.max(0, l.type === 'call' ? px - l.strike : l.strike - px), 0) - (netCost ?? 0);
+}
+
 function parseLegs(v: unknown): Leg[] {
   if (!Array.isArray(v)) return [];
   const out: Leg[] = [];

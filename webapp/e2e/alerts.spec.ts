@@ -81,7 +81,11 @@ test('the list, the track record and a finished alert', async ({ page }) => {
   await expect(card.getByText('$180.00').first()).toBeVisible();
   await expect(card.getByText('$820.00')).toBeVisible();
   await expect(card.getByText('$181.80 · $198.20')).toBeVisible();
-  await expect(card.getByRole('img', { name: 'Profit or loss at expiration, by stock price' })).toBeVisible();
+  const chart = card.getByRole('img', { name: 'Profit or loss at expiration, by stock price' });
+  await expect(chart).toBeVisible();
+  // drawn like the other strategy charts: dollar labels, the three strikes, today's price
+  await expect(chart.locator('text')).toContainText(['+$820', '$0', '−$180', '$180', '$190', '$200', 'NOW $188.50']);
+  if (process.env.SHOTS) await card.screenshot({ path: process.env.SHOTS + '/alert-' + test.info().project.name + '.png' });
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   // an Options Scanner idea: the contract it points at, and one tap to that contract on the ticket
   await page.goto('alerts/options-scanner-2026-10-06');

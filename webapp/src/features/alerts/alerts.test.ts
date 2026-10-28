@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasTrade, isClosedForUnlock, isOn, isShort, parseAlert, parsePrefs, toggle, trackRecord } from './alerts';
+import { hasTrade, isClosedForUnlock, isOn, isShort, parseAlert, parsePrefs, payoffAt, toggle, trackRecord, type Leg } from './alerts';
 
 const base = { strategy: 'swing-trader', createdAt: '2026-10-08T14:00:00Z', status: 'qualified' };
 
@@ -51,5 +51,34 @@ describe('alerts', () => {
     expect(a.legs).toHaveLength(3);
     expect(parseAlert('three-leg-y', { strategy: 'three-leg', ticker: 'AAPL', legs: legs.slice(0, 2), expiration: 'soon' })).toMatchObject({ legs: [], expiration: null });
     expect(parseAlert('three-leg-z', { strategy: 'three-leg', ticker: 'AAPL', legs: [...legs.slice(0, 2), { type: 'stock', side: 'buy', strike: 1, qty: 1, price: 1 }] })!.legs).toEqual([]);
+  });
+});
+
+describe('3-Leg payoff (same numbers as functions/three_leg.py)', () => {
+  const at = (legs: Leg[], cost: number, pts: number[]) => pts.map((p) => Math.round(payoffAt(legs, cost, p) * 100) / 100);
+  const pts = [150, 170, 180, 185, 190, 195, 200, 230];
+  it('bull call butterfly: a tent over the middle strike', () => {
+    const legs: Leg[] = [
+      { type: 'call', side: 'buy', strike: 180, qty: 1, price: 6 },
+      { type: 'call', side: 'sell', strike: 190, qty: 2, price: 2.5 },
+      { type: 'call', side: 'buy', strike: 200, qty: 1, price: 0.8 },
+    ];
+    expect(at(legs, 180, pts)).toEqual([-180, -180, -180, 320, 820, 320, -180, -180]);
+  });
+  it('bear put butterfly: the same tent, built from puts', () => {
+    const legs: Leg[] = [
+      { type: 'put', side: 'buy', strike: 200, qty: 1, price: 7 },
+      { type: 'put', side: 'sell', strike: 190, qty: 2, price: 3 },
+      { type: 'put', side: 'buy', strike: 180, qty: 1, price: 1 },
+    ];
+    expect(at(legs, 200, pts)).toEqual([-200, -200, -200, 300, 800, 300, -200, -200]);
+  });
+  it('jade lizard: a credit, with the risk below the short put', () => {
+    const legs: Leg[] = [
+      { type: 'put', side: 'sell', strike: 170, qty: 1, price: 3 },
+      { type: 'call', side: 'sell', strike: 195, qty: 1, price: 2.2 },
+      { type: 'call', side: 'buy', strike: 200, qty: 1, price: 1 },
+    ];
+    expect(at(legs, -420, pts)).toEqual([-1580, 420, 420, 420, 420, 420, -80, -80]);
   });
 });
