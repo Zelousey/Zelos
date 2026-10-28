@@ -120,8 +120,13 @@ export function AppShell() {
         </nav>
       </aside>
 
-      {/* ---------- top bar ---------- */}
+      {/* ---------- top bar ----------
+          One order everywhere (owner list C, 2026-10-27): Menu → Account → Tokens → Bell. On a phone ☰
+          comes first; on a computer the sidebar is the menu, so the bar shows Account → Tokens → Bell. */}
       <header className={s.topbar}>
+        <Button variant="ghost" iconOnly size="lg" aria-label={t('nav.openMenu')} aria-haspopup="dialog" onClick={() => setSheet('menu')} className={s.menuBtn}>
+          <Icon name="menu" />
+        </Button>
         <Link to="/dashboard" className={s.topBrand} aria-label={t('app.name')}>
           <img src={BRAND_ICON} alt="" width={26} height={26} />
         </Link>
@@ -132,10 +137,10 @@ export function AppShell() {
               {t('auth.signIn')}
             </Button>
           )}
-          <TokenChip />
           <button type="button" className={s.avatarBtn} aria-label={t('nav.profile')} onClick={() => setSheet('profile')}>
             <Avatar user={user} />
           </button>
+          <TokenChip />
           <Button variant="ghost" iconOnly size="lg" aria-label={inbox.unread ? `${t('notifications.open')} (${t('notifications.unread', { count: inbox.unread })})` : t('notifications.open')} onClick={() => setSheet('notifications')} className={s.bellBtn}>
             <Icon name="bell" />
             {inbox.unread > 0 && (
@@ -143,9 +148,6 @@ export function AppShell() {
                 {inbox.unread > 9 ? '9+' : inbox.unread}
               </Badge>
             )}
-          </Button>
-          <Button variant="ghost" iconOnly size="lg" aria-label={t('nav.openMenu')} aria-haspopup="dialog" onClick={() => setSheet('menu')} className={s.menuBtn}>
-            <Icon name="menu" />
           </Button>
         </div>
       </header>

@@ -70,6 +70,8 @@ export const MODULES: AppModule[] = [
   { id: 'arcade', path: 'arcade', label: 'nav.training', icon: 'arcade', group: 'play', parent: 'training', nav: false, load: () => import('../features/training/ArcadeRedirect') },
 
   { id: 'profile', path: 'profile', label: 'nav.profile', icon: 'profile', group: 'account', load: () => import('../features/profile/ProfileModule') },
+  // the Token Store (owner list D, 2026-10-27): tap the token chip in the top bar
+  { id: 'tokens', path: 'tokens', label: 'nav.tokens', icon: 'profile', group: 'account', nav: false, load: () => import('../features/tokens/TokenStorePage') },
   { id: 'settings', path: 'settings', label: 'nav.settings', icon: 'settings', group: 'account', load: () => import('../features/settings/SettingsPage') },
 
   // Routes without a nav entry: /charts opens the last symbol you looked at in Market.

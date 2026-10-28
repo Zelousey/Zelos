@@ -15,7 +15,7 @@ export function ProfileSheet({ open, onClose }: { open: boolean; onClose: () => 
         <Avatar user={user} size={48} />
         <div>
           <div className={s.profileName}>{isReal ? user?.displayName || user?.email : t('auth.guest')}</div>
-          {isReal && user?.email && <div className={s.profileSub}>{user.email}</div>}
+          {isReal && user?.displayName && user.email && <div className={s.profileSub}>{user.email}</div>}
         </div>
       </div>
       <nav className={s.sheetList} aria-label={t('nav.group.account')}>

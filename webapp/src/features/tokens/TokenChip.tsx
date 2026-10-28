@@ -1,17 +1,17 @@
 /**
  * Your tokens in the top bar, next to your picture and the bell (owner 2026-10-09), like the
  * website's nav chip: the Z coin and your balance. When tokens arrive (daily check-in, Trade War
- * reward, purchase) coins burst and fly into it while it counts up. Tap it for your wallet.
+ * reward, purchase) coins burst and fly into it while it counts up. Tap it for the Token Store (/tokens).
  * Also does the website's once-a-day check-in reward (rewards_checkin), sharing its
  * "done today" mark so you're never asked twice.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { callFunction } from '../../lib/firebase';
 import { t } from '../../lib/i18n';
 import { useToast } from '../../ui';
-import { openWallet, useWalletDoc, type WalletInfo } from '../strategies/strategies';
-import { TokensSheet } from '../strategies/Tokens';
+import { openWallet, useWalletDoc } from '../strategies/strategies';
 import { lsGet, lsSet } from '../welcome/welcome';
 import { playCoinReward } from './coin';
 import { Coin } from './Coin';
@@ -30,9 +30,8 @@ function Chip({ uid }: { uid: string }) {
   const toast = useToast();
   const doc = useWalletDoc(uid);
   const balance = doc.status === 'ready' ? doc.data.balance : null;
+  const navigate = useNavigate();
   const [shown, setShown] = useState<number | null>(null);
-  const [sheet, setSheet] = useState(false);
-  const [info, setInfo] = useState<WalletInfo | null>(null);
   const ref = useRef<HTMLButtonElement>(null);
   const prev = useRef<number | null>(null);
   const made = useRef(false);
@@ -43,7 +42,6 @@ function Chip({ uid }: { uid: string }) {
     made.current = true;
     openWallet()
       .then((w) => {
-        setInfo(w);
         if (w.welcomed) toast.show(t('tk.welcome', { n: w.prices.welcome }));
       })
       .catch(() => {});
@@ -78,18 +76,11 @@ function Chip({ uid }: { uid: string }) {
     return () => clearTimeout(id);
   }, [uid, toast]);
 
-  function open() {
-    setSheet(true);
-    if (!info) openWallet().then(setInfo).catch(() => {});
-  }
   const n = shown ?? balance;
   return (
-    <>
-      <button ref={ref} type="button" className={s.chip} onClick={open} aria-label={t('tk.chip', { n: balance ?? 0 })}>
-        <Coin size={16} />
-        <span className={s.num}>{n == null ? '…' : n.toLocaleString('en-US')}</span>
-      </button>
-      <TokensSheet open={sheet} onClose={() => setSheet(false)} info={info} balance={balance} />
-    </>
+    <button ref={ref} type="button" className={s.chip} onClick={() => navigate('/tokens')} aria-label={t('tk.chip', { n: balance ?? 0 })}>
+      <Coin size={16} />
+      <span className={s.num}>{n == null ? '…' : n.toLocaleString('en-US')}</span>
+    </button>
   );
 }

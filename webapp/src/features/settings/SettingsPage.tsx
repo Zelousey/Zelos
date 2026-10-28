@@ -41,7 +41,7 @@ export default function SettingsPage() {
               </Link>
             </li>
             <li>
-              <Link to="/strategies">
+              <Link to="/tokens">
                 {t('settings.tokens')} <Icon name="chevronRight" size={16} />
               </Link>
             </li>
