@@ -28,6 +28,14 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
   - **#94** "Boosts" (Oct 22): most likely **superseded** (XP booster, battle slots and quiz retake
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
+## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
+Run them in order whenever there's time. The site keeps working without them, but the change isn't live until they run.
+1. **Trade War match listing rule (#123, merged 2026-10-28).** Until it's deployed, the old rule (anyone signed in can list every match) is still live.
+   ```
+   cd ~/Zelos && git pull && firebase deploy --only firestore:rules
+   ```
+After running one, tell Claude "deployed", and it will be ticked off here.
+
 ## Done (all on main)
 **Platform**
 - Classic static site at the root + the React/TypeScript app at `/app/` (`webapp/`), Python Cloud

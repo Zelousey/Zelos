@@ -281,8 +281,11 @@ service cloud.firestore {
     // the leaderboard numbers only by players in that match; a player's
     // positions and fills only by that player (or by all players in a squad
     // match whose owner turned on "view everyone's trades").
+    // Listing (a query) only returns matches you play in: "read" used to allow
+    // listing every match, names and players included (Phase 1 audit S-1, 2026-10-28).
     match /tradeWars/{warId} {
-      allow read: if request.auth != null;
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && request.auth.uid in resource.data.players;
       allow write: if false;
       match /accounts/{uid} {
         allow read: if request.auth != null
