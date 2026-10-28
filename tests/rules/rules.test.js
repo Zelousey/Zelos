@@ -222,6 +222,27 @@ test('referrals: browsers can no longer create them; the two people involved can
   await assertFails(getDoc(doc(real('carol').firestore(), 'referrals/bob')));
 });
 
+// ---------------------------------------------------------------- Trade War matches: open by id, list only your own
+test('tradeWars: a match opens by its id, but a list only returns matches you play in', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'tradeWars/war111111111'), { name: 'A vs B', host: 'alice', status: 'active', players: ['alice', 'bob'], names: { alice: 'Alice', bob: 'Bob' } });
+    await setDoc(doc(c.firestore(), 'tradeWars/war222222222'), { name: 'Private', host: 'dave', status: 'lobby', players: ['dave'], names: { dave: 'Dave' } });
+  });
+  const carol = real('carol').firestore();
+  // anyone signed in can open a match from its (unguessable) invite link
+  await assertSucceeds(getDoc(doc(carol, 'tradeWars/war111111111')));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'tradeWars/war111111111')));
+  // nobody can list every match any more
+  await assertFails(getDocs(collection(carol, 'tradeWars')));
+  await assertFails(getDocs(query(collection(carol, 'tradeWars'), where('players', 'array-contains', 'alice'))));
+  // the app's own query (my matches) still works
+  const mine = await assertSucceeds(getDocs(query(collection(real('alice').firestore(), 'tradeWars'), where('players', 'array-contains', 'alice'))));
+  assert.deepStrictEqual(mine.docs.map((d) => d.id), ['war111111111']);
+  await assertSucceeds(getDocs(query(collection(carol, 'tradeWars'), where('players', 'array-contains', 'carol'))));
+  // still nobody writes from a browser
+  await assertFails(updateDoc(doc(real('alice').firestore(), 'tradeWars/war111111111'), { status: 'ended' }));
+});
+
 (async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-zelos',
