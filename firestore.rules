@@ -78,6 +78,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    // Help & feedback messages and each account's daily limit: server only. feedback_send
+    // writes them; admins read them through feedback_list (functions/main.py).
+    match /feedback/{id} {
+      allow read, write: if false;
+    }
+    match /feedbackLimits/{uid} {
+      allow read, write: if false;
+    }
     // Site owner accounts (sales.html). Added by hand in the Firebase console; server only.
     match /admins/{uid} {
       allow read, write: if false;
