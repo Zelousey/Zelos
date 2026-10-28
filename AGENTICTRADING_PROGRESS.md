@@ -3,7 +3,7 @@
 Spec: `AGENTICTRADING_MASTER_SPEC.md` (source of truth).
 
 ## Current phase
-**2026-10-28: the owner said "lets start" (the plan is approved). Phase 1 (checks and reports) is done: `docs/PHASE1_AUDIT.md`. Phase 2 (top bar + Token Store) merged as #124 and the S-1 rules fix as #123 (rules deploy pending, see `docs/HANDOFF.md`). Next: Phase 3 (small fixes).**
+**2026-10-28: the owner said "lets start" (the plan is approved). Phase 1 (checks and reports) is done: `docs/PHASE1_AUDIT.md`. Phase 2 (top bar + Token Store) merged as #124 and the S-1 rules fix as #123 (rules deploy pending, see `docs/HANDOFF.md`). Phase 3 (small fixes) went in as #125–#130, one PR each. Phase 4 (phone fixes M-2, M-3, M-5 from the Phase 1 report) is the next PR.**
 
 **2026-10-27: Planning for update lists A–D + the War Mode rules update.**
 - Plan: `AGENTICTRADING_MASTER_SPEC.md` → "ADDENDUM 2026-10-27" (incl. §4b, the War Mode rules update). The checklist itself is unchanged.
