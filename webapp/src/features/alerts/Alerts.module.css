@@ -78,3 +78,4 @@
 .zero { stroke: var(--border); stroke-width: 1; }
 .now { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
 .curve { fill: none; stroke: var(--violet); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

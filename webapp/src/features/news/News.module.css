@@ -114,3 +114,6 @@ textarea.input { resize: vertical; line-height: 1.5; }
   .postLayout { grid-template-columns: minmax(0, 1fr); }
   .row2 { grid-template-columns: minmax(0, 1fr); }
 }
+.sym { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
+/* touch screens: finger-sized chips (the row scrolls, so a hidden touch area would be clipped). Phase 4 M-5 */
+@media (pointer: coarse) { .chip { min-height: var(--tap); } }

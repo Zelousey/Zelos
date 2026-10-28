@@ -10,3 +10,4 @@
 .storeBody { display: grid; gap: var(--space-3); }
 /* the history in the store sits in its own card: no divider line above it */
 .storeHistory > section { border-top: 0; padding-top: 0; }
+.chip { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

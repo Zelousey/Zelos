@@ -57,7 +57,7 @@ function Drills() {
         {FUN.map((f, i) => (
           <span key={f.id}>
             {i > 0 && ' · '}
-            <Link to={`/training/${f.id}`}>
+            <Link className="hit" to={`/training/${f.id}`}>
               {f.icon} {f.name}
             </Link>
           </span>

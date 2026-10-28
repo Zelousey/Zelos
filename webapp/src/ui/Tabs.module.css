@@ -4,3 +4,5 @@
 .tab:hover { color: var(--ink); }
 .tab[aria-selected='true'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
 .stretch .tab { flex: 1 1 0; }
+/* touch screens: taller tabs (the row scrolls, so a hidden touch area would be clipped). Phase 4 M-5 */
+@media (pointer: coarse) { .tab { min-height: var(--tap); min-width: var(--tap); } }

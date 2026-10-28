@@ -69,3 +69,5 @@
 .passChoices { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .storeLink { font-size: var(--text-sm); font-weight: 600; color: var(--accent); text-decoration: none; }
 .storeLink:hover { text-decoration: underline; }
+.more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
+.name { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

@@ -4,12 +4,12 @@
  * A featured post on top of "All"; posts newer than your last visit get a "New" badge.
  */
 import { reportMission } from '../../data/missionEvent';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatRelative } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
-import { Badge, buttonClass, Card, EmptyState, Icon, PageHeader, SkeletonRows } from '../../ui';
+import { Badge, buttonClass, Card, EmptyState, Icon, PageHeader, SkeletonRows, useScrollFade } from '../../ui';
 import { useWatchlist } from '../dashboard/useWatchlist';
 import { readSeen, useCanPost, useOfficialNews, usePosts, type NewsPost, type NewsSection, type OfficialItem } from './news';
 import s from './News.module.css';
@@ -35,6 +35,8 @@ export default function NewsPage() {
   const [seen] = useState(readSeen);
   const [tab, setTab] = useState<Tab>('all');
   const [mine, setMine] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
+  useScrollFade(filtersRef);
   const { status, posts } = usePosts();
   const official = useOfficialNews();
   const watch = useWatchlist(uid);
@@ -65,7 +67,7 @@ export default function NewsPage() {
           ) : undefined
         }
       />
-      <div className={s.filters} role="group" aria-label={t('news.filter')}>
+      <div ref={filtersRef} className={s.filters} role="group" aria-label={t('news.filter')}>
         {(['all', 'zelos', 'tradewar', 'market', 'voices'] as const).map((c) => (
           <button key={c} type="button" className={s.chip} aria-pressed={tab === c} onClick={() => setTab(c)}>
             {c === 'all' ? t('news.all') : t(SECTION_LABEL[c])}

@@ -50,3 +50,4 @@
 .ticket .sheet { padding: 0; }
 .row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); }
 @media (max-width: 480px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+.stockSym { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

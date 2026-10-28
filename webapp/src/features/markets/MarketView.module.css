@@ -7,3 +7,4 @@
 .price { font-family: var(--mono); font-weight: 600; }
 .open { margin-left: auto; color: var(--accent); font-family: var(--mono); font-size: var(--text-xs); white-space: nowrap; }
 .chart { --chart-h: 340px; --chart-h-phone: 260px; }
+.open { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

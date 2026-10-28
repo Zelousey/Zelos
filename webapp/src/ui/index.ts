@@ -14,4 +14,5 @@ export { Sparkline } from './Sparkline';
 export { Stat } from './StatCard';
 export { EmptyState, ErrorState, LoadingState } from './States';
 export { Tabs, type TabItem } from './Tabs';
+export { useScrollFade } from './useScrollFade';
 export { ToastProvider, useToast } from './Toast';
