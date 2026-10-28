@@ -5,7 +5,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-test.beforeEach(({}, info) => test.skip(info.project.name !== 'phone', 'touch screens only'));
+test.skip(({ isMobile }) => !isMobile, 'touch screens only');
 
 /** The touch area of every visible button and link: its box, grown by its ::after hit area. */
 function smallTargets(page: Page) {
