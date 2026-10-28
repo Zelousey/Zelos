@@ -86,3 +86,4 @@
 .breakeven { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
 .now { stroke: var(--gold); stroke-width: 1.5; stroke-dasharray: 4 3; }
 .nowLabel { font-family: var(--mono); font-size: 10px; fill: var(--gold); }
+.more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

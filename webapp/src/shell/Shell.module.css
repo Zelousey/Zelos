@@ -211,3 +211,4 @@ a.notifItem:hover { background: var(--surface-hover); }
   .topBrand { display: none; }
   .topbar { gap: var(--space-1); }
 }
+.topBrand { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

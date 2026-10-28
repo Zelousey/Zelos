@@ -186,7 +186,7 @@ function MissionList({ list }: { list: MissionView[] }) {
           <span className={s.check} aria-hidden="true">
             {x.done ? '✓' : ''}
           </span>
-          <span className={s.label}>{x.href?.startsWith('/') ? <Link to={x.href}>{x.label}</Link> : x.href ? <a href={classicUrl(x.href)}>{x.label}</a> : x.label}</span>
+          <span className={s.label}>{x.href?.startsWith('/') ? <Link className="hit" to={x.href}>{x.label}</Link> : x.href ? <a className="hit" href={classicUrl(x.href)}>{x.label}</a> : x.label}</span>
           <span className={s.count} aria-label={t('ms.count', { n: x.count, of: x.goal }) + (x.done ? `, ${t('ms.done')}` : '')}>
             {x.count}/{x.goal}
           </span>

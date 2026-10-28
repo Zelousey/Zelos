@@ -75,6 +75,37 @@ textarea {
   border: 0;
 }
 
+/* Small links ("All markets →", a symbol pill) get a finger-sized touch area on touch screens
+   (at least --tap) without changing how they look or moving anything. Buttons and tabs
+   already have it. Phase 4 M-5. */
+@media (pointer: coarse) {
+  .hit {
+    position: relative;
+  }
+  .hit::after {
+    content: '';
+    position: absolute;
+    top: min(0px, calc((100% - var(--tap)) / 2));
+    bottom: min(0px, calc((100% - var(--tap)) / 2));
+    left: min(0px, calc((100% - var(--tap)) / 2));
+    right: min(0px, calc((100% - var(--tap)) / 2));
+  }
+}
+
+/* A row that scrolls sideways fades where more is hidden (set by ui/useScrollFade). */
+[data-fade='end'] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+}
+[data-fade='start'] {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent);
+}
+[data-fade='both'] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -113,7 +113,7 @@ export function MissionsCard({ progress, xpLog }: { progress: Progress | null; x
             <span className={s.check} aria-hidden>
               {x.done ? '✓' : ''}
             </span>
-            {x.href?.startsWith('/') ? <Link to={x.href}>{x.label}</Link> : x.href ? <a href={classicUrl(x.href)}>{x.label}</a> : <span>{x.label}</span>}
+            {x.href?.startsWith('/') ? <Link className="hit" to={x.href}>{x.label}</Link> : x.href ? <a className="hit" href={classicUrl(x.href)}>{x.label}</a> : <span>{x.label}</span>}
             <span className={s.count} aria-label={`${x.count} of ${x.goal}${x.done ? ', done' : ''}`}>
               {x.count}/{x.goal}
             </span>
@@ -287,7 +287,7 @@ export function MoversCard() {
       )}
       <div className={s.foot}>
         <span />
-        <Link to="/markets">{t('dash.allMarkets')} →</Link>
+        <Link className="hit" to="/markets">{t('dash.allMarkets')} →</Link>
       </div>
     </Card>
   );

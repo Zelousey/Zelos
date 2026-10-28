@@ -62,3 +62,5 @@
 .full { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); font-size: var(--text-sm); text-decoration: underline; }
 .frame { width: 100%; height: calc(100dvh - var(--topbar-h) - var(--tabbar-h) - 120px); min-height: 520px; border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--bg); }
 @media (min-width: 900px) { .frame { height: calc(100dvh - var(--topbar-h) - 140px); min-height: 620px; } }
+.more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
+.skill { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

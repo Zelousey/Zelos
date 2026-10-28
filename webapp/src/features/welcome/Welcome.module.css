@@ -51,3 +51,6 @@ a.row:hover { background: var(--surface-hover); }
 @media (prefers-reduced-motion: reduce) {
   .panel, .money { animation: none; }
 }
+.hide { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
+/* rows sit edge to edge, so on touch screens they grow to finger size instead of overlapping touch areas */
+@media (pointer: coarse) { .row { min-height: var(--tap); } }

@@ -23,3 +23,4 @@
 .youTag { font-family: var(--mono); font-size: 0.65rem; padding: 1px 6px; border-radius: var(--radius-pill); background: var(--accent-fill); color: var(--on-fill); }
 .value { font-family: var(--mono); font-weight: 700; font-size: var(--text-md); white-space: nowrap; }
 .fine a { color: var(--link); text-decoration: underline; }
+.more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

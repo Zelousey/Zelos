@@ -125,3 +125,6 @@
 .tiles { display: grid; gap: var(--space-2); }
 .tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--ink); }
 .tile:hover { background: var(--surface-2); }
+.more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
+/* rows sit edge to edge, so on touch screens they grow to finger size (Phase 4 M-5) */
+@media (pointer: coarse) { .boardRow, .warRow { min-height: var(--tap); } }

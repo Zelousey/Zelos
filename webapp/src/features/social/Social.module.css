@@ -94,3 +94,4 @@
 .danger h3 { color: var(--down-ink); }
 .delBody { display: grid; gap: var(--space-3); }
 .delBody p { margin: 0; }
+.more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */

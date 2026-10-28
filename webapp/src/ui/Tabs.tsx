@@ -5,11 +5,13 @@
  */
 import { useRef, type KeyboardEvent } from 'react';
 import s from './Tabs.module.css';
+import { useScrollFade } from './useScrollFade';
 
 export type TabItem<T extends string> = { value: T; label: string };
 
 export function Tabs<T extends string>({ items, value, onChange, label, stretch }: { items: TabItem<T>[]; value: T; onChange: (v: T) => void; label: string; stretch?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  useScrollFade(ref);
   function onKey(e: KeyboardEvent) {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const i = items.findIndex((it) => it.value === value);

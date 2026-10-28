@@ -5,7 +5,7 @@
  * Prices come from markets/quotes (live, every minute in market hours), bars from
  * markets/intraday_SYM and the daily history.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { SYMBOL_RE, useQuotes } from '../../data/markets';
 import { instrument, INDEX_ETFS, searchUniverse, UNIVERSE } from '../../data/universe';
@@ -14,7 +14,7 @@ import { useAuth } from '../../lib/auth';
 import { formatCompact, formatMarketTime, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs } from '../../ui';
+import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
@@ -60,6 +60,8 @@ export default function SymbolPage() {
 
 function SymbolView({ sym, name }: { sym: string; name: string }) {
   const [tf, setTfState] = useState<Timeframe>(initialTf);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  useScrollFade(controlsRef);
   const tfDef = TIMEFRAMES.find((x) => x.id === tf)!;
   const [range, setRange] = useState<number | 'all'>(tfDef.def);
   // owner 2026-10-09: every chart opens as a line; candles apply only to the chart you switch
@@ -122,7 +124,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
 
       <div className={s.layout}>
         <Card>
-          <div className={s.controls}>
+          <div ref={controlsRef} className={s.controls}>
             <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.map((x) => ({ value: x.id, label: x.label }))} />
             <div>
               <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
