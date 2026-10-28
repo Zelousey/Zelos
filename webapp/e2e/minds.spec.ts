@@ -20,6 +20,12 @@ test('the opening book flips through every great mind each time you come in, and
   // every page turns (owner 2026-10-24: it used to look stuck on the first quote)
   await expect(book.locator('[data-page]')).toHaveCount(11);
   await expect(book.locator('[data-page="10"]')).toHaveClass(/flipped/, { timeout: 6000 });
+  // it ends on the red back cover with a closing quote, not on a pale page (owner list D)
+  await expect(book.locator('[data-ending]')).toHaveCount(1, { timeout: 3000 });
+  const back = book.getByTestId('book-back-cover');
+  await expect(back).toContainText('standing on the shoulders of Giants');
+  await expect(back).toContainText('Isaac Newton');
+  expect(await back.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(211, 32, 20)');
   await expect(book).toHaveCount(0, { timeout: 6000 }); // then fades into the grid
   // back to the grid from a figure: no book again
   await page.getByRole('link', { name: /^Napoleon Bonaparte/ }).click();

@@ -156,6 +156,8 @@ const en = {
   'settings.profile': 'Your profile',
   'settings.notifications': 'Notifications',
   'settings.tokens': 'Token Store',
+  'settings.candles': 'Candle colours',
+  'settings.candles.help': 'Up and down candles on every chart. Saved on this device. A chart theme from the shop uses its own colours.',
   'settings.legal': 'Legal',
   'settings.privacy': 'Privacy Policy',
   'settings.terms': 'Terms of Use',

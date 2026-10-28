@@ -1183,3 +1183,543 @@ Do not create abstractions for hypothetical future features.
 Do not create unnecessary files.
 Do not rewrite working systems simply to make them "cleaner."
 ```
+
+---
+
+## ADDENDUM 2026-10-27: consolidated update lists A–D
+
+Added on 2026-10-27 from four lists the owner pasted. **The checklist above is unchanged and still
+the source of truth;** this addendum only adds to it. Where an item repeats something in the checklist
+or something already built, it says so and points to it instead of restating it as new.
+
+**Sources (each item below is tagged with where it came from):**
+- **A**: Zelos Trade Wars — Additional gameplay requirements (War lobby, territories, challenges, Squad rulesets)
+- **B**: Zelos Trade Wars — Main hub, navigation and dashboard
+- **C**: Zelos — Dashboard redesign, swipeable pages and global navigation
+- **D**: Zelos — Website and app bug fixes, polish and onboarding
+- **H**: still-open items from `docs/HANDOFF.md` (2026-10-27)
+
+**Ground rules from these lists (they apply to every phase below):**
+- Preserve existing working functionality; additions only; reuse existing systems, names and components (A, B, C, D).
+- Server-authoritative for everything that matters: match state, deployments, challenges, balances, tokens, missions, XP (A, C, D; checklist Security).
+- Never mix portfolios between Solo, Battle, Squad and War; every number on screen says which one it belongs to (B, C).
+- No new paid data provider; delayed data is labelled as delayed (C).
+- No invented token prices or rules: anything unspecified goes to the owner as a question (A, D).
+- Restrained motion (GSAP only where it already fits), always with a reduced-motion version (B, C, D; checklist Motion).
+- Reproduce and report before broad fixes (mobile glitches, D); inventory before writing (Trading 101, D); ask before editing (Hall of Minds pictures, D).
+
+### 1. What exists today (inspection, 2026-10-27)
+So the plan builds on what's there instead of rebuilding it:
+- **Trade War matches** (`functions/main.py`, `tw_*`; app `features/battles`):
+  - statuses `lobby | draft | active | ended | cancelled`;
+  - equal buy-in; long-only trades on the server quote;
+  - Last Man Standing (`lms`), snake draft (`modes.draftPicks`), whale/shields, storms, bounties, stops, ticker events;
+  - revive, battle slots, surrender, buy-in level locks;
+  - locked until the Chapter 1 quiz is passed.
+  - The classic site's `practice/` pages use the same functions.
+- **Squads** (`features/social`): squad Trade Wars with allowed-stock lists and a "view trades" option (`tw_squad_rules`).
+- **Solo:** the server-run $10,000 practice account (`features/practice`), shown on the Dashboard since 2026-10-20 and in the Trade War tab.
+  - There is no "Chaos Simulator".
+  - The checklist's "Practice Mode must NOT be reintroduced" refers to the old classic-site mode; Solo is the existing account and must stay one account.
+- **War with territories / deployment pieces / enemy presence:** **does not exist** in code or in any repo doc. The A list says "preserve the existing spec", but no such spec is in the repo (see Q1).
+- **Header (phone):** logo, then Tokens · Profile · Bell · ☰ (`shell/AppShell.tsx`). The desktop has a sidebar. The token chip opens a sheet with buy options and the last 15 ledger lines (`strategies/Tokens.tsx`, `TokenHistory.tsx`).
+- **Charts** (`features/charts`): line **and** candlestick styles already exist; line is the default (owner, 2026-10-09).
+- **Dashboard** (`features/dashboard`): one page of panels, with the Solo account inside it.
+- **Strategies** (`features/strategies`):
+  - Swing Trader, Breakout Rider, Options Scanner and 3-Leg Options (paid passes);
+  - no "Position Builder" and no "saved strategies" (the Position Builder is only an idea in `MASTER_PLAN.md`).
+- **Learning:**
+  - Trading 101 has 2 chapters (`learn/chapters.ts`); Chapter 1 lesson 2 "Why prices move" mentions 9:30–4:00 New York time in one step only.
+  - First steps / onboarding is in `features/welcome` (`FirstSteps.tsx`).
+- **Hall of Minds** (`features/minds`):
+  - `BookIntro.tsx` flips every figure page, then fades out; it has no closing back cover.
+  - 48 picture files are in `webapp/public/minds/`.
+- **Push notifications** use `icons/icon-192.png` plus `images/alert-*.png` (`_push_send`, `functions/main.py`). Those images predate the new logo.
+- **Rematch:** none exists.
+
+### 2. Consolidated requirements (deduplicated, classified)
+Each ID is used by the phases in §3. **Cat** gives the class:
+- **S**: critical security or data integrity;
+- **N**: core functionality or broken navigation;
+- **M**: market data and calculations;
+- **F**: feature implementation;
+- **U**: UI/UX and visual polish;
+- **T**: testing and release readiness.
+
+#### S: security and data integrity
+| ID | Requirement | From |
+|---|---|---|
+| S1 | Portfolio isolation: Solo, Battle, Squad and War positions, orders, cash and P&L never mix; every list and metric carries its context label. | B, C |
+| S2 | War: opponents' deployment placements and chip counts stay hidden. They're stored where only the server and the owner can read them, are never in shared docs, the events ticker, notifications or subscriptions, and are revealed only by the server when the rules say so. | A, D |
+| S3 | War enemy-presence warning: the server computes a safe yes/no (or coarse) indicator; it never sends counts. Audit the existing rules and listeners for leaks first. | D |
+| S4 | Token Store: the balance shown is the server's; buying uses the existing Square flow (hidden on iOS, rule 3.1.1); purchases are idempotent; the full ledger history comes from the server ledger. | D |
+| S5 | Challenges: locked parameters (stake, symbol, side, window) are set at creation and can't be changed by either side afterwards; the server resolves them from its own prices; no double resolution. | A |
+| S6 | Match lifecycle: a match starts exactly once (idempotent start), and joins, leaves and readiness are checked on the server against the state. | A |
+| S7 | Daily missions shown on the Profile page are server-validated (reuse the existing missions/XP backend). | C |
+| S8 | Rematch makes a new match document; it never reopens or duplicates an old one, and a double tap creates one rematch. | D |
+| S9 | Notifications never leak hidden information (deployments, opponents' private choices). | A, D |
+
+#### N: core functionality and navigation
+| ID | Requirement | From |
+|---|---|---|
+| N1 | Global header, same order on every screen: **Menu → Account/profile → Tokens (balance) → Notification bell (unread badge)**. | C |
+| N2 | Trade War icon smart routing, in deterministic priority: (A) in a Solo session → Solo; (B) has active competitions → Trade Wars Dashboard; (C) none → Mode Selection. | B |
+| N3 | Mode Selection: compact grid of Solo / Battle / Squad / War with the bull/bear art. | B |
+| N4 | Trade War section nav: Overview / Solo / Battle / Squad / War / Leaderboards / Strategies, switching without page reloads. | B |
+| N5 | Return to the exact lesson or test step after opening a chart from it. | D |
+| N6 | Find a Stock → "How do you want to trade this stock?" modal (Solo Trade / Battle), carrying the ticker. Shown only at the Find a Stock entry point; inside an active mode, keep that mode's context. | C |
+| N7 | Session and state rules: resume where you were in each mode; back navigation behaves; nothing lost on page switch. | B, C |
+| N8 | Mobile glitches: reproduce, list and report first, then fix in targeted PRs. | D |
+
+#### M: market data and calculations
+| ID | Requirement | From |
+|---|---|---|
+| M1 | Dashboard primary chart in candlesticks/OHLC with a timeframe switch, real data, delayed data labelled. Reuse `ChartView` candles. | C |
+| M2 | P&L, portfolio value, buying power and cash, scoped per mode and labelled. | C |
+| M3 | Market page: U.S. indices (via the index ETFs already quoted: SPY, QQQ, DIA if added to the list), top movers, overview, watchlist. No new provider; respect the Marketstack cap. | C |
+| M4 | Three-Leg Strategy chart in the existing strategy-chart style with the correct payoff for each strategy; the calculations themselves don't change. | D |
+| M5 | Challenge resolution math (long vs short over a fixed window, from server prices). Needs **short selling** inside the match book, which the server doesn't support today (long only). | A |
+| M6 | Leaderboard/summary metrics clearly scoped (per match, per mode, overall). | B |
+
+#### F: features
+| ID | Requirement | From |
+|---|---|---|
+| F1 | War creation flow: the organizer places their deployments, which then lock; the match goes to a queued/recruiting lobby. | A |
+| F2 | War lobby states (configuring, queued, recruiting, ready, starting, active, completed, cancelled), mapped onto the existing status names; readiness UI; min/max players; deadline outcomes; the organizer leaving; disconnect/rejoin. | A |
+| F3 | Hidden deployment-piece claims on territories: higher total wins, ties stay neutral. | A |
+| F4 | Direct stock-trading challenges between territory owners (one long, one short). Covers the challenge flow and rules, defender options, a limit on active challenges, surrender during a challenge, and notifications without leaks. **Recommended capture model:** a won challenge earns attack progress on the territory, and hidden deployment stays the main way to capture. | A |
+| F5 | Squad rulesets as a layer on the one match engine (no separate engines): Free-for-all, Team Cooperation, Fantasy Draft, Last Man Standing. | A |
+| F6 | Fantasy Draft: draft order, pick count, pick timer, optional ban phase. Reuses the existing snake draft. | A |
+| F7 | Last Man Standing (Squad ruleset): explicit thresholds; no elimination on a temporary unrealized loss unless the ruleset says so. Reuses `lms`. | A |
+| F8 | Future squad modes are **listed only, not built** (no unfinished UI). | A |
+| F9 | Squad section split: Together (Team Cooperation…) / Compete (FFA, Fantasy Draft, Last Man Standing). | B |
+| F10 | Battle panel: create, join, invites, public, active, completed, resume. Mostly exists in `/battles`; regroup it. | B |
+| F11 | War panel: create, join, public, private codes, queued, active, completed. | B |
+| F12 | Solo section: Real Market and Chaos Simulator, resume; never mixes portfolios. **Chaos Simulator doesn't exist** (Q5). | B |
+| F13 | Trade Wars Dashboard: summary strip, Open Matches grouped by mode, Create/Join, leaderboard preview, strategies panel (reuse), recent activity, empty states. | B |
+| F14 | Dashboard as 4 pages: Trading / Profile / Market / Strategies. Persistent page nav row and phone swipe that doesn't fight vertical scroll, charts or the OS back gesture. Reduced motion. Shortcut back to Trading. | C |
+| F15 | Trading page: positions and orders labelled by context, with View All. | C |
+| F16 | Profile page: avatar, XP/level, rank, streaks, achievements, leaderboard preview, daily missions. | C |
+| F17 | Strategies page: links to the scanners and strategies that exist, with no duplicate token charges. Position Builder and saved strategies **don't exist** (Q6). | C |
+| F18 | Token icon → Token Store: balance, bundles at the existing prices, the full ledger history (paged). | D |
+| F19 | Battle and War Rematch: a new instance with editable settings and no duplicates. | D |
+| F20 | Short contextual animated tutorials: skip and replay, never place trades, one framework for all. | D |
+| F21 | First-trade visual walkthrough: highlight the controls; the trade needs an explicit confirm. | D |
+| F22 | Onboarding checklist discoverability (reuse `FirstSteps`, no second checklist). | D |
+| F23 | Help and notification visibility: easy to find, not intrusive. Links with the queued "Help & feedback" screen (H). | D, H |
+
+#### U: UI/UX and polish
+| ID | Requirement | From |
+|---|---|---|
+| U1 | Replace the outdated notification image with the approved one; check caching (service worker, CDN, `?v=`). | D |
+| U2 | Hall of Minds ("Hall of Mines" in the list) picture polish. **Make a contact sheet first and ask the owner which pictures; no edits before they choose.** | D |
+| U3 | Hall of Minds opening: the final frame is the red book's back cover with a quote (no white page, no flash); reduced motion respected. | D |
+| U4 | Responsive desktop and phone layouts for the hub and the dashboard. | B, C |
+| U5 | Visual rules: square UI, bull/bear logo, tokens.css colours. Readable numbers, consistent labels. | C, owner |
+| U6 | Empty states for every new list (no matches, no positions, no challenges…). | B |
+
+#### Content (part of F/U)
+| ID | Requirement | From |
+|---|---|---|
+| L1 | Inventory Trading 101: list what's incomplete before writing anything. | D |
+| L2 | Chapter 1 lesson 2 "Why prices move": U.S. hours 9:30–4:00 ET, pre-market and after-hours, global sessions, time zones and daylight saving time, why it matters. Check other lessons so nothing is said twice. | D |
+| L3 | Finish Trading 101 (Chapter 3+, already queued). | D, H |
+
+#### T: testing and release readiness
+| ID | Requirement | From |
+|---|---|---|
+| T1 | A's list of tests: lifecycle transitions, start-once, min/max, deadlines, organizer leaving, rejoin, hidden-info leak tests (rules + payloads), claim ties, challenge resolution, surrender, limits, every ruleset. | A |
+| T2 | Navigation tests: routing priority A/B/C, header order on every screen, swipe and reduced motion, Find a Stock modal, return-to-lesson. | B, C, D |
+| T3 | Data tests: per-mode isolation, Token Store balance and ledger, idempotent purchases (reusing the Square e2e). | C, D |
+| T4 | Security audit and load test before launch. | H |
+| T5 | Every PR: lint, typecheck, unit, build, Playwright phone and desktop with axe, rules tests, functions e2e; screenshots or video for the owner. | owner |
+
+Also still open from H (unchanged):
+- swipe lessons for the other 6 figures;
+- news/thesis posts;
+- the 3-Leg server scanner;
+- the options payoff drill;
+- the iPhone app (#81, on hold);
+- the loose ends (classic-site look, favicons, README, Dependabot, Node 20 actions, stale PROJECT_STATE sections).
+
+### 3. Phases (safest order)
+One PR per item unless it says otherwise. Each phase waits for the owner's go, and its PR waits for "merge".
+
+**Phase 0: Plan (this document).** Docs only.
+
+**Phase 1: Audits and reports (no app changes).** N8, L1, U2-sheet, S2/S3/S9 leak audit, A's audit step, U1 inventory.
+- Deliverables:
+  - a mobile glitch report with screenshots and video;
+  - a Trading 101 inventory;
+  - a Hall of Minds contact sheet (every picture, numbered);
+  - a rules/listener leak audit of `tradeWars/*` (what every player can read);
+  - a current-image list for notifications;
+  - an audit of existing Trade War/Squad modes against list A.
+- Accept when: the owner has the reports and has answered the open questions that block later phases.
+- Tests: none change; the reports cite files and lines.
+
+**Phase 2: Global header + Token Store.** N1, F18, S4.
+- Accept when:
+  - the order is Menu → Account → Tokens → Bell on every screen, phone and desktop top bar, with the bell badge;
+  - the token icon opens the Store: server balance, the existing bundles, and the full paged ledger;
+  - buying uses the existing flow (hidden on iOS); no price is invented.
+- Tests: AppShell unit tests updated; e2e header order on several routes; ledger paging; axe; Square e2e still green.
+
+**Phase 3: Small, safe fixes.** U1, U3, M4, L2, N5. One PR each, in any order.
+- Accept when:
+  - the new notification image shows (cache-busted);
+  - the book ends on the red back cover with a quote and no white flash, and reduced motion skips it;
+  - the 3-Leg chart matches the existing strategy chart and shows each strategy's correct payoff;
+  - the lesson covers hours, sessions, time zones and DST without repeating other lessons;
+  - closing a chart returns you to the same lesson step.
+- Tests: unit tests for the payoff shapes; e2e for return-to-lesson and the book's end frame; axe.
+
+**Phase 4: Mobile glitch fixes** from the Phase 1 report, in the order the owner picks. N8.
+- Accept when: each reproduced glitch is fixed on 375px and 390px phones with a before/after.
+- Tests: an e2e case per glitch where practical.
+
+**Phase 5: Trade War hub.** N2, N3, N4, F9–F11, F13, M6, U4, U6, N7. Uses only modes that exist; War and Chaos stay hidden until built.
+- Accept when:
+  - routing follows A > B > C deterministically;
+  - the mode grid and section nav switch without reloads;
+  - the dashboard summary strip is scoped; empty states are in place;
+  - layouts work on phone and desktop.
+- Tests: unit tests for the routing function (every combination); e2e per section; reduced motion; axe.
+
+**Phase 6: Dashboard 4 pages.** F14–F17, M1–M3, S1, S7, U4.
+- Accept when:
+  - there are 4 pages with a nav row; swipe works on phones without breaking scroll, charts or back;
+  - the primary chart is candles with timeframes and a delayed label;
+  - every metric and position shows its mode;
+  - the Market page uses existing data within the cap;
+  - Strategies links only to things that exist.
+- Tests: e2e swipe and keyboard, isolation (a Solo trade never appears in a Battle list and the reverse), chart style, axe; check the Marketstack call count.
+
+**Phase 7: Find a Stock modal.** N6. Small; after Phase 6 because it routes into the new pages.
+- Accept when: the modal appears only from Find a Stock, carries the ticker into Solo or Battle, and doesn't appear inside an active mode.
+- Tests: e2e for both choices and for the no-modal case.
+
+**Phase 8: Onboarding and help.** F22, F23, F21, F20 (in that order; one tutorial framework).
+- Accept when:
+  - the checklist is easy to find (and is the existing one);
+  - the first-trade walkthrough highlights controls and never trades without the confirm tap;
+  - tutorials can be skipped and replayed and have a reduced-motion version.
+- Tests: e2e walkthrough (no order is placed until confirm); skip/replay persistence; axe.
+
+**Phase 9: Rematch** for Battles. F19, S8. (War rematch follows Phase 11.)
+- Accept when: one tap gives one new match with copied, editable settings; the old match is untouched.
+- Tests: functions e2e (double call gives one match); app e2e.
+
+**Phase 10: Squad ruleset layer.** F5, F8, then F6 (Fantasy Draft), then F7 (Squad Last Man Standing), then Team Cooperation. Design first (needs owner approval).
+- Accept when: rulesets are a config on the existing match engine; existing squad wars and battles behave exactly as before.
+- Tests: the existing 90 unit + 30 advanced + 27 squad e2e stay green; new tests per ruleset.
+
+**Phase 11: War: queued lifecycle and lobby.** F1, F2, S6, F11. Design first (Q1, Q13).
+- Accept when: every state transition is server-checked; start happens once; deadlines, organizer leaving and rejoin follow the approved rules.
+- Tests: T1 lifecycle set; rules tests.
+
+**Phase 12: War: territories and hidden deployment.** F3, S2, S3, S9.
+- Accept when: placements are invisible to opponents in every read path; claims resolve on the server; ties stay neutral; the presence warning shows no counts.
+- Tests: rules tests proving opponents can't read placements; payload tests on events and notifications.
+
+**Phase 13: Direct trading challenges.** F4, S5, M5 (short selling in match books).
+- Accept when: parameters lock at creation; the server resolves from its own prices once; the capture effect follows the approved model; limits and surrender work.
+- Tests: math unit tests for long and short; double-resolution test; leak tests; e2e.
+
+**Phase 14: War rematch, notifications, leaderboards and docs for War and Squads.** F19 (War), S9, M6.
+
+**Phase 15: Content.** L3 (Trading 101 Chapter 3+), U2 (Hall of Minds pictures, only after the owner's selection), the remaining HANDOFF queue.
+
+**Phase 16: Release readiness.** T4 security audit and load test, a full regression on phone and desktop, docs.
+
+**Dependencies:**
+- Phase 2 (header) comes before Phases 5–8, which all sit under the header.
+- Phase 5 (hub) comes before 9–14, which add panels to it.
+- Phase 6 must land before Phase 7.
+- Phase 10 (ruleset layer) comes before Fantasy Draft and Last Man Standing.
+- Phase 11 → 12 → 13 → 14.
+- Short selling (M5) is needed only by Phase 13.
+- U2 waits on the owner's picture selection.
+- Phase 1's answers unblock Phases 4, 11, 12 and 15.
+
+### 4. Open questions for the owner
+- **Q1** War with territories: no War/territory spec or code exists in the repo. Is there a document to paste, or should a design be written for approval? This covers map size, territory count, piece budget, reveal timing and win condition.
+- **Q2** Capture model: approve "challenges earn attack progress; hidden deployment stays primary"? How much progress does a win give, and does progress decay?
+- **Q3** Short selling in challenges: the max loss on a short, whether a cash or margin requirement applies, and whether shorting is allowed only inside challenges.
+- **Q4** Dashboard chart: candles on the Dashboard's main chart only, or change the app-wide default from line (2026-10-09 decision)?
+- **Q5** Chaos Simulator: build it (what is it: random or synthetic prices?) or leave it out until designed? Rule: nothing unfinished in the app.
+- **Q6** Position Builder and saved strategies don't exist: link only to what exists now, or build them (separate phase)?
+- **Q7** Header on desktop: the same top-bar order there too, with the sidebar kept?
+- **Q8** "Hall of Mines" = Hall of Minds? Which pictures (from the contact sheet)?
+- **Q9** The approved notification image: which file? Please send or point to it.
+- **Q10** Book back cover: which quote, or a rotating one?
+- **Q11** Naming: is "Solo" the existing $10,000 account under a new name (one account, not a new Practice Mode)?
+- **Q12** Min and max players for War, the lobby deadline, and what happens at the deadline (start with who's ready, or cancel and refund).
+- **Q13** Status names: keep the stored `lobby/draft/active/ended/cancelled` and show the new names as labels? (Recommended: renaming stored values breaks the classic site and old matches.)
+- **Q14** Last Man Standing squad thresholds (percent drop, check times) and whether unrealized losses count.
+- **Q15** Limits: active challenges per player, a challenge stake (virtual cash or tokens? Tokens would be a payments decision), and the challenge window length.
+- **Q16** Fantasy Draft: pick count, timer and whether the ban phase is on by default.
+- **Q17** Team Cooperation: how a team score is made (sum, average) and whether teammates see each other's trades.
+- **Q18** Market page indices: OK to show SPY/QQQ/DIA ETFs labelled as "index ETFs" (true index levels would need another provider)?
+
+**Owner answers (2026-10-27, second message):**
+- **Q1:** write a War design for approval. Done: `docs/WAR_DESIGN.md` (draft, waiting for approval).
+- **Q2:** approved. Challenges earn attack progress; hidden deployment stays the main way to hold territory.
+- **Q3:** the short side exists **only inside challenges**, with a **fixed maximum loss** (a set amount, "more like a put"). It's shown as simple Bull/Bear sides for new users. Virtual money only.
+- **Q4:** **candles are the default on every chart, green up / red down,** unless the user picks other colours in Settings. (This changes the 2026-10-09 line default.)
+- **Q5:** Chaos Simulator: wild charts (generated, or real ones that went crazy) on the same timeframes, with 20% days instead of 2%. You keep only **5–10% of the profit**. Details are in `docs/WAR_DESIGN.md` §7.
+- **Q9:** the owner didn't remember the approved picture, so new ones were proposed in the share-picture (#120) style. **Approved by the owner (2026-10-27, third message):** keep that design and add a Territory Battle picture in the same style.
+- **Q8:** yes, "Hall of Mines" is the Hall of Minds.
+- **Q11:** "Solo" means trading on your own (not on a team). A Solo account can stay open while you're in a head-to-head battle, and each keeps its own account value.
+
+Still open: Q6, Q7, Q10, Q12–Q18. Most of them get proposed answers in `docs/WAR_DESIGN.md` §9 for the owner to approve.
+
+### 4b. War Mode rules update (owner, 2026-10-27, third message)
+The owner's "War Mode Rules, Balancing & Pre-Phase-One Updates". Full rules are in `docs/WAR_DESIGN.md` **v2**.
+
+**Approved by the owner (keep; don't change without a specific, written reason):**
+- The v1 numbers:
+  - 100 pieces, 2–10 players, sector territories;
+  - map 6/8/10 territories;
+  - stake 5% of the buy-in;
+  - capture after 1 + pieces÷20 battle wins;
+  - Chaos payout 5%.
+- The capture model, and the short side only in challenges with a fixed max loss (Bull/Bear).
+- **Notification pictures** (new-logo style), and the **new logo** direction everywhere.
+- Approving the pictures and the logo does **not** approve any mechanic.
+
+**NOT approved:** `docs/WAR_DESIGN.md` **Section 9** stays pending until the owner explicitly approves it. The earlier approval was withdrawn.
+
+**New requirements (IDs continue §2):**
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R1 | S | During the claiming stage, nobody sees opponents' choices; owners are revealed after claiming ends; piece counts are never shown. |
+| W-R2 | F | A tie on a claim starts a tie battle at once between the tied players. The winner gets the territory, it's never left unresolved, the loser must attack or claim neutral, and both get notifications and results. Battle rules and the ownership-record update are documented. |
+| W-R3 | F/S | Attacking an owned territory requires a minimum of simulated money (the stake) and a performance condition. It uses the same battle system; the territory transfers on a win and stays on a loss. Entry, stakes, settlement and consequences are defined before code. |
+| W-R4 | F | Defender counterplay: limited, fair, no guaranteed edge, no endless battles. |
+| W-R5 | F | One consistent decline policy: response deadline, reminder, what a decline does, and what no response does. |
+| W-R6 | F | Comeback balance: struggling players can recover; no runaway leader; no handouts; skill isn't punished. |
+| W-R7 | F/S | Neutral territories can be claimed without a battle but are worth less XP and points than battle-won land. Neutral land becomes contested after a battle. No farming through repeated claims, releases or ownership changes. |
+| N-R1 | F | A territory-battle notification (challenged/attacked) plus states: accepted/declined, resolved, territory won/lost, deadline approaching. Uses the existing notification design system and the approved pictures. |
+| N-R2 | F | Invitations: coaching, battle and team-up each show who, what, and that flow's own actions. They stay separate flows (existing invite kinds `coach`, `battle`, `squad`, plus `twInvites`). |
+| U-R1 | U | Keep the approved logo and notification art; no generic replacements or redesigns. |
+
+**Proposed answers** are in `docs/WAR_DESIGN.md` v2 §3–§12:
+- tie battle on a random stock, coin flip for the first side pick, no stake, no draw;
+- attack eligibility = stake in cash + (return ≥ 0% or a +1% winning trade in 2 days);
+- Counter-pick once per trading day;
+- 1 free decline a day, then a concession (progress only), no answer = auto-accept, 30-minute reminder;
+- Giant-slayer bonus + leader exposure + points counted at the end;
+- 1/2/3 points for neutral/deployed/battle land; neutral claims 1 a day.
+
+**Conflicts with earlier specs or code:** listed in `docs/WAR_DESIGN.md` §15. Main ones:
+- list A's "ties neutral" is replaced by rule 2;
+- list D's enemy-presence warning conflicts with rule 1;
+- v1 "most territories wins" becomes "most points".
+
+**Unresolved decisions (need the owner):**
+- **W1** Enemy-presence warning: drop it during claiming (proposed) and show only "Contested: tie battle" after the reveal?
+- **W2** Tie battles: no stake (proposed) or the normal 5% stake? Do 3+ tied players use a "best pick" battle (proposed)?
+- **W3** Attack performance threshold: return ≥ 0% **or** a winning trade of +1% in the last 2 trading days (proposed). Is +1% right? Adjust after test Wars?
+- **W4** Defender counterplay: approve Counter-pick (swap the stock, once per trading day)?
+- **W5** Declines: 1 free a day, then a concession that gives the attacker progress only (no money, points or XP). No answer within 2 market hours = auto-accept. Approve?
+- **W6** Comebacks: Giant-slayer +1 point (+1 more for taking the leader's land), and the leader gets no free declines. Approve?
+- **W7** Points 1/2/3 and neutral claims limited to 1 a day. Approve? Should neutral claims need the attack performance rule (proposed: yes)?
+- **W8** XP values: neutral 2, battle win 10, defence 10, Giant-slayer +5 (all within the existing daily caps).
+- **W9** Piece counts never revealed, even after the War (proposed), or a reveal on the results screen?
+- **W10** Redeploy pass for the tie-battle loser (proposed). Approve?
+- **W11** Ping-pong rule: you can't attack back land you just lost for 1 trading day. Approve?
+- **W12** Chaos losses counted at 5% too, and 1 paid session a day (still pending from v1).
+
+### 4c. War Mode decisions (owner, 2026-10-27, fourth message)
+Full rules are in `docs/WAR_DESIGN.md` **v3**. All earlier approvals are kept.
+
+**The whole revised specification, including WAR_DESIGN Section 9, is still NOT approved;** Phase One waits for that approval.
+
+**Decided by the owner:**
+- **W1:** ownership stays hidden during claiming, and an enemy-presence warning is shown without revealing positions or strength.
+- **W2:** ties start a battle (now, or at the next open, depending on the timing system); no money is at stake; the winner gets a bonus.
+- **W3:** the qualifying winning trade is 1% (provisional).
+- **W4:** Counter-pick.
+- **W5:** the decline policy.
+- **W6:** the comeback rules.
+- **W7:** neutral-territory rules with reduced rewards.
+- **W8:** notification updates and invitation types.
+- **W10:** the Redeploy pass.
+- **W11:** the Chaos Mode rules.
+- **W12:** Chaos losses count in the 5% rule, with one paid session.
+
+**Owner directions turned into proposals (IDs continue §4b):**
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R8 | S/F | Enemy-presence warning without names or numbers. Explore concealing positions by paying (recommend in-match soldiers, not tokens: fairness). |
+| W-R9 | F | Bonus points and strategic hints for valuable stocks ("Hot zones" from public market data). |
+| W-R10 | F | Not too granular: only clear leads win outright; close claims go to a battle where more soldiers gives an advantage (Command), not the win. |
+| W-R11 | F/S | Soldiers: players see their own counts; losing battles costs soldiers; capturing earns soldiers; terms and balance defined before code. |
+| W-R12 | F | Victory mainly rewards trading: War Score = 60% trading + 40% strategy (proposed). |
+| W-R13 | F | A persistent progression meter ("Respect" / Battle Level) that grows with performance and gives no in-match power. |
+| W-R14 | F | More uses for points, cash and earned resources, including attacking. |
+| W-R15 | F | Fast matches: no weeks-long Wars or long idle periods (War lengths of 1/2/3/5 trading days, proposed). |
+| W-R16 | M | Market mode: real market **and** an always-on simulated market are both kept for evaluation. **Not decided:** don't remove either. |
+| W-R17 | S | Chaos accounting: the first closed session each day pays 5% of its gain **or loss** to Solo cash (never below $0), with one ledger line, idempotent; an abandoned session auto-closes and counts. |
+
+**Existing definition checked (W3):** the code counts a "win" as any sale above the average buy price (`tw_apply_trade`, `gain > 0`). The 1% qualifying win is a new, separate War-only rule (after fees, on the shares sold); the old stat is unchanged.
+
+**Unresolved decisions (need the owner):**
+- **D1:** add a coarse "Heavy enemy presence" level (opponents' total of 30+ soldiers)?
+- **D2:** concealment: spend soldiers ("Camouflage", 5 per territory, max 2; recommended), tokens (pay-to-win risk), or one free per War?
+- **D3:** Hot zones: 1–2 a day, +1 point for holding one at the close, +1 for a battle won there?
+- **D4:** contested margin: the runner-up has ≥ 80% of the leader's soldiers; and Command (more soldiers picks the side first and wins an exactly unchanged price)?
+- **D5:** the name "Soldiers"?
+- **D6:** soldiers count within one War only (recommended, equal start), or carry across Wars?
+- **D7:** War Score 60/40 and the −10%…+10% trading scale?
+- **D8:** Chaos session length (e.g. one simulated day in about 15 minutes)?
+- **D9:** the name "Respect" or "Battle Level"; ranks and point values; never lost?
+- **D10:** market mode, real vs always-on simulated, or an organizer choice per War: **not decided**.
+- **Also open:**
+  - the soldier numbers (+10 capture, +5 contested win, +3 defence, −5 loss, retreat at half);
+  - the contested-win bonus (+5 soldiers, +1 point);
+  - Rally (15 soldiers for an extra attack);
+  - War lengths 1/2/3/5 and lobby deadlines 1/6/24 h;
+  - the v2 XP values (neutral 2, win 10, defence 10, Giant-slayer +5);
+  - the v2 ping-pong rule.
+  - The owner's W8 and W11 approved notifications and Chaos, not these last two, because the numbering differed.
+
+**New conflicts** (full list C1–C15 in `docs/WAR_DESIGN.md` §15):
+- **C10:** the existing "wins" stat vs the 1% rule.
+- **C11:** token concealment vs equal, fair competition.
+- **C12:** persistent soldiers vs an equal start.
+- **C13:** War lengths vs the existing 7/14/30-day lengths.
+- **C14:** Respect vs the checklist's §26/§36 Trader Reputation (compatible).
+- **C15:** the always-on simulated market vs the real-data rules (it must be labelled simulated).
+
+### 4d. Owner answers (2026-10-27, fifth message)
+**Approved by the owner:**
+- the one-day wait (no attacking back land you just lost for 1 trading day);
+- the XP amounts (neutral 2, win 10, defence 10, Giant-slayer +5);
+- **D1** "Heavy enemy presence";
+- **D2** Camouflage paid in soldiers;
+- **D3** Hot zones;
+- **D4** 80% contested margin + Command;
+- **D5** "Soldiers";
+- **D6** everyone starts every War the same (no carry-over);
+- **D7** War Score 60/40;
+- **D9** "Battle Level" (for now);
+- the soldier numbers, the contested-win bonus and Rally;
+- **War lengths: no longer than a week.**
+
+**Owner directions to settle:**
+- **Chaos "a week at most":** read as a session lasting up to 7 days (confirm, **E3**).
+- **Paying tokens to skip or shorten the one-day wait:** wanted by the owner. Proposed: once per War, only shortens the wait, logged, hidden on iOS until in-app purchase exists. **E2:** the price (no token price is invented).
+- **D10 market mode: still not decided.** The owner is leaning towards a simulated War zone. Pros and cons are in `docs/WAR_DESIGN.md` §20; both options stay in the spec.
+
+**Open decisions:**
+- **E1** (only if simulated is chosen): made-up company names per sector (recommended) or "SIM-" versions of real tickers. Fake prices on real names could mislead.
+- **E2:** the token price for skipping the wait. Once per War?
+- **E3:** confirm the Chaos reading: sessions last up to 7 days, auto-close and still count.
+- **D10:** the final market mode.
+- **Approval of the whole revised spec, including WAR_DESIGN Section 9.** It is **still NOT approved**.
+
+**New conflict C16:**
+- Paying tokens to skip the wait vs the master rule of fair competition and an equal start.
+- It's kept to a timing shortcut that changes no result. The owner has decided to allow it; it's flagged here so it's a known, deliberate exception.
+
+### 4e. Owner answers (2026-10-27, sixth message): market mode decided, Chaos redefined
+- **D10 decided:**
+  - **only War mode (territories)** runs on a **simulated, always-on market**, up to 7 days, so it's fast and players come back;
+  - **every other mode stays on real prices** (Solo, head-to-head and other Battles, Squads).
+  - The War zone must be clearly marked as simulated, so nobody confuses it with real-market trading.
+  - Details: `docs/WAR_DESIGN.md` §20.
+- **Chaos is redefined:** Chaos isn't a separate mode or session. It's **random wild-market events inside the simulated War zone** (e.g. weekends), see §14. This **supersedes** the Solo "Chaos Simulator", the 5% payout and the one paid session a day (W11/W12), pending confirmation **E3**. List B's Solo section becomes Real Market only.
+- **Quiet hours:**
+  - no night-time notifications;
+  - overnight moves are reported in a morning summary;
+  - attacks and contested battles involving a sleeping player wait until they're awake (§22).
+- **Company names:** the owner wanted real companies but is fine with made-up ones, and asked whether real names are legal. Recommendation: made-up companies under real sector names for launch; ask the lawyer about real names marked "SIM" (§23).
+- **Skipping the one-day wait:** "$10 or $15", which **assumes 10–15 tokens** (about $0.30–$0.45). In dollars it would be roughly 350–500 tokens.
+
+**New requirements:**
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R18 | M/S | Server-made simulated prices for the War zone, the same for every player, secret settings, nothing visible ahead. |
+| W-R19 | U | "SIMULATED WAR ZONE" marking on every War screen, chart and notification; a one-time explainer pointing to real-market Battles. |
+| W-R20 | F | Chaos events: random wild-market periods (more on weekends), announced 30 min ahead, create Hot zones. |
+| W-R21 | F/S | Quiet hours (default 10 pm–8 am, max 10 h), a morning summary, attacks and deadlines paused for sleeping players. |
+| W-R22 | S | War "days" are 24-hour periods from the War's start, for every per-day limit. |
+
+**Open decisions:**
+- **E1:** company names: made-up companies plus real sector names (recommended), or real names after the lawyer's OK?
+- **E2:** is the skip price **10 or 15 tokens**, or $10–15? Once per War?
+- **E3:** confirm the Solo Chaos Simulator, the 5% payout and paid sessions are **dropped** (Chaos = War-zone events only).
+- **E4:** Chaos event frequency (at most 1 a day, 1–3 hours, more on weekends) and the 30-minute warning?
+- **E5:** quiet hours default 10 pm–8 am, max 10 hours?
+- **E6:** do Squad matches stay real-market (assumed yes, since "all those modes" stay real)?
+- **Approval of the whole revised spec (incl. WAR_DESIGN Section 9): still NOT approved.**
+
+**New conflict C17:** the checklist's live-price / FMP items for the Trade War chart. They still apply to real-market Battles; the War zone is simulated on purpose, by the owner's decision.
+
+### 4f. Owner answers (2026-10-27, seventh message): E1–E6, and the Trade War realm idea
+**Approved by the owner:**
+- **E1:** made-up companies under real sector names.
+- **E2:** skipping the one-day wait costs **100 tokens**.
+- **E3:** the Solo Chaos mode, the 5% payout and paid sessions are dropped (Chaos = War-zone events).
+- **E4:** the Chaos event rules.
+- **E5:** quiet hours.
+- **E6:** Squads stay on real prices; squads compete against other squads, for a leaderboard place, or both.
+
+**New owner idea: a separate Trade War realm.**
+- Trade War is its own gamified, 24/7 simulated realm.
+- It has a **War profile**, a separate, bigger **War balance** with its own chart, and **gold bars** (earned from territory, never bought) for upgrades.
+- Higher ranks get a bigger army, but newcomers can still beat them.
+- A drop-in **War zone** gives players without friends somewhere to play.
+- War achievements also count toward main XP.
+- The owner asked for help keeping this simple. The proposal is in `docs/WAR_DESIGN.md` **§24**:
+  - two worlds, one app;
+  - Battle Level is War-only, with one small bridge to main XP;
+  - open zones with weekly seasons, plus private Wars;
+  - armies capped at 1.5×;
+  - a $100,000 War balance with return-% scoring and fixed stakes;
+  - gold bars that can never be bought.
+
+| ID | Cat | Requirement |
+|---|---|---|
+| W-R23 | F | A Trade War realm, separate from real trading: War profile, War balance and chart, War stats. |
+| W-R24 | F/S | Gold bars: an earned-only currency for War upgrades; never purchasable or convertible. |
+| W-R25 | F | Drop-in open War zones for players without friends (land already claimed; neutral or attack). |
+| W-R26 | F/S | Bigger armies for higher ranks, with a cap so newcomers can still win. |
+| W-R27 | F | War achievements count toward main XP (within the daily caps). |
+
+**Open decisions F1–F8** (`docs/WAR_DESIGN.md` §24.8).
+
+**Conflicts C18–C21:**
+- level armies and a persistent balance vs **D6** and the master **equal starting capital** rule: this needs an explicit owner decision;
+- persistent zones vs one-week Wars (weekly seasons);
+- drop-in vs hidden claiming;
+- the checklist's equal buy-in still applies to Battles.
+
+**The whole revised spec, including WAR_DESIGN Section 9, is still NOT approved.**
+
+### 4g. Owner answer (2026-10-27, eighth message)
+- "Everything sounds good": **F1–F8 approved.** That covers:
+  - the two worlds;
+  - War achievements → main XP within the caps;
+  - open zones with weekly seasons, 30 players, a 24 h shield and Rookie zones;
+  - armies of 100 + 10 per rank, up to 150, with equal armies the default in private Wars;
+  - a $100,000 War balance, $5,000 stakes, a weekly reset below $10,000;
+  - gold bars;
+  - the names "War balance", "gold bars", "War profile".
+- **C18 resolved by the owner:** level armies are a deliberate exception to D6 and the equal-start rule, limited to open zones and capped at 150.
+- **F7** (skipping the wait with gold bars too) is treated as approved as proposed. Tokens stay at 100.
+- **The final "approve the revised specification" is still pending.** Phase 1 waits for it.
+
+### 5. Risks and breaking changes
+- **Hidden-information leaks (high).** Today `tradeWars/{id}/accounts` is readable by all players and the ticker is player-readable. Deployments need new owner-only docs plus server-only reveal. Rules tests are required before any War UI.
+- **Short selling changes match accounting** (`tw_apply_trade`, `tw_mark`, knock-outs, LMS floors). It touches every mode, so it's limited to challenges unless decided otherwise.
+- **Status renames** would break existing matches, the classic site's `practice/` pages and tests. The plan is to map labels, not rename stored values.
+- **Dashboard restructure** changes a screen users know (Practice moved there on 2026-10-20). Many e2e tests and selectors change; Solo must remain one account.
+- **Header reorder** touches every screen and the AppShell tests; the phone top bar is tight at 375px.
+- **Swipe** can conflict with chart pan, horizontal lists and the iOS back gesture. Swipe should be limited to the page body outside charts.
+- **Data costs:** more live charts and movers mean more Marketstack calls and Firestore reads. Keep the 95k cap and reuse `markets/quotes`.
+- **Payments and iOS:** the Token Store must stay hidden for purchase on iOS (3.1.1). Bundles must use the existing approved prices.
+- **Scope:** lists A–D are many PRs. War (Phases 11–14) is a new game system and the largest risk to fairness. Its design needs approval before code.
+- **Nothing unfinished:** War, Chaos Simulator and future squad modes must not appear until they work.
