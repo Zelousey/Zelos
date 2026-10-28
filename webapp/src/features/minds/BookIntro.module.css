@@ -42,6 +42,22 @@
   padding: var(--space-2) var(--space-5); font: inherit; font-size: var(--text-sm); min-height: var(--tap); cursor: pointer;
 }
 .skip:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+/* the back cover: under the pages on the right; once every page has turned, the turned pages and the
+   front cover fade and the back cover slides to the middle */
+.backCover {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 50%; z-index: 0;
+  display: grid; grid-template-rows: 1fr auto; align-items: center; justify-items: center; gap: var(--space-3);
+  padding: var(--space-5) var(--space-4) var(--space-4); background: #d32014; color: #fff;
+  box-shadow: inset 12px 0 24px rgb(0 0 0 / 0.35);
+  transition: transform 0.6s cubic-bezier(0.45, 0, 0.3, 1), box-shadow 0.6s ease;
+}
+.backCover figure { margin: 0; display: grid; gap: var(--space-2); text-align: center; }
+.backCover blockquote { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(0.8rem, 2.3vw, 1.15rem); line-height: 1.4; }
+.backCover figcaption { font-size: clamp(0.7rem, 1.8vw, 0.85rem); font-weight: 700; letter-spacing: 0.04em; opacity: 0.9; }
+.backMark { font-weight: 900; font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; }
+.cover, .page { transition: opacity 0.25s ease, transform 0.5s cubic-bezier(0.45, 0, 0.3, 1); }
+.ending .cover, .ending .page { opacity: 0; }
+.ending .backCover { transform: translateX(-50%); box-shadow: 0 20px 50px rgb(0 0 0 / 0.5); }
 @keyframes open { from { transform: scale(0.7) rotateX(18deg); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } }
 @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
