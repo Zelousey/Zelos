@@ -65,7 +65,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   const tfDef = TIMEFRAMES.find((x) => x.id === tf)!;
   const [range, setRange] = useState<number | 'all'>(tfDef.def);
   // owner 2026-10-09: every chart opens as a line; candles apply only to the chart you switch
-  const [style, setStyle] = useState<'line' | 'candles'>('line');
+  const [style, setStyle] = useState<'line' | 'candles'>('candles');
   const [showTable, setShowTable] = useState(false);
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);

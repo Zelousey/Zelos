@@ -160,7 +160,8 @@
     var self0 = this; INDICATORS.forEach(function (d) { self0.show[d.id] = saved ? !!saved[d.id] : !!DEFAULT_ON[d.id]; });
     this.lines = []; this.lastPrice = null; this.marks = []; this.colors = loadColors(); this.empty = null;
     // 'line' (Robinhood-style live line, the default) or 'candles'; refPrice = previous close (line color + dotted line)
-    this.style = 'line'; try { this.style = localStorage.getItem('zelosChartStyle') || 'line'; } catch (e) {}
+    // candles are the default everywhere (owner 2026-10-27); a saved choice still wins
+    this.style = 'candles'; try { this.style = localStorage.getItem('zelosChartStyle') === 'line' ? 'line' : 'candles'; } catch (e) {}
     this.refPrice = null; this.anim = null; this.pulse = null;
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
     this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
@@ -214,7 +215,8 @@
       self.zoom(e.deltaY > 0 ? 1.15 : 1 / 1.15, pos(e).x);
     }, { passive: false });
     this._onResize = function () { self.resize(); };
-    this._onTheme = function () { self.draw(); };
+    // a theme or candle-colour change (Settings, the token shop) repaints every open chart
+    this._onTheme = function () { self.colors = loadColors(); self.draw(); };
     if ('ResizeObserver' in global) { this._ro = new ResizeObserver(this._onResize); this._ro.observe(canvas); }
     else global.addEventListener('resize', this._onResize);
     global.addEventListener('zelos:theme', this._onTheme);
