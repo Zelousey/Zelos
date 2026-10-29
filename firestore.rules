@@ -312,10 +312,14 @@ service cloud.firestore {
         allow write: if false;
       }
       match /books/{uid} {
-        // your own always; everyone's when the match allows it (squad setting "view everyone's trades")
+        // your own always; everyone's when the match allows it (squad setting "view everyone's trades");
+        // in Team Cooperation (Phase 10c) your teammates' too, never the other team's
         allow read: if request.auth != null && (request.auth.uid == uid
           || (get(/databases/$(database)/documents/tradeWars/$(warId)).data.get('rules', {}).get('viewTrades', false) == true
-            && request.auth.uid in get(/databases/$(database)/documents/tradeWars/$(warId)).data.players));
+            && request.auth.uid in get(/databases/$(database)/documents/tradeWars/$(warId)).data.players)
+          || (get(/databases/$(database)/documents/tradeWars/$(warId)).data.get('ruleset', '') == 'team'
+            && get(/databases/$(database)/documents/tradeWars/$(warId)).data.get('teams', {}).get(request.auth.uid, 'none')
+              == get(/databases/$(database)/documents/tradeWars/$(warId)).data.get('teams', {}).get(uid, 'other')));
         allow write: if false;
       }
     }

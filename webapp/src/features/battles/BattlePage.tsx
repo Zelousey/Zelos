@@ -16,6 +16,7 @@ import { Badge, Button, buttonClass, Card, Confirm, EmptyState, LoadingState, Pa
 import { createInvite, errorText, shareLink } from '../invites/invites';
 import { BATTLE_ID_RE, cancelBattle, joinBattle, leaveBattle, OUT_REASON, startBattle, surrender, useAccounts, useBattle, useBook, useEvents, useMyRematch, type Battle } from './battle';
 import { BattleClash } from './BattleClash';
+import { LobbyTeams, TeamResult } from './Teams';
 import { DraftView } from './DraftView';
 import { LiveView } from './LiveView';
 import { clock, RulesBox } from './parts';
@@ -205,7 +206,10 @@ function Lobby({ b, uid, busy, onJoin, onStart }: { b: Battle; uid: string; busy
           {player && b.host !== uid && <span className={s.muted}>{t('bt.waitHost', { name: b.hostName })}</span>}
         </div>
       </Card>
-      <RulesBox b={b} />
+      <div className={s.stack}>
+        {b.ruleset === 'team' && <LobbyTeams b={b} uid={uid} />}
+        <RulesBox b={b} />
+      </div>
     </div>
   );
 }
@@ -216,6 +220,7 @@ function Results({ b, uid }: { b: Battle; uid: string }) {
   return (
     <div className={s.cols}>
       <div className={s.stack}>
+        <TeamResult b={b} uid={uid} />
         <Card pad className={s.winner}>
           <span className={s.trophy} aria-hidden="true">
             🏆

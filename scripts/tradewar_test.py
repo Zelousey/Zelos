@@ -515,8 +515,6 @@ class BattleSlots(unittest.TestCase):
         self.assertEqual(w0, {"balance": 40})
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class NotifySurrender(unittest.TestCase):
@@ -654,7 +652,8 @@ class SquadRulesets(unittest.TestCase):
         for data, squad, lms, modes in (
             ({"ruleset": "ffa"}, None, None, {}),                     # not a squad battle
             ({"ruleset": "chaos"}, self.SQ, None, {}),                # unknown
-            ({"ruleset": "team"}, self.SQ, None, {}),                 # not built yet
+            ({"ruleset": "team"}, self.SQ, None, {"draft": {"picks": 3}}),  # teams don't draft
+            ({"ruleset": "team"}, self.SQ, {"floorPct": 10}, {}),
             ({"ruleset": "lms"}, self.SQ, None, {}),                  # Last Man Standing needs a rule
             ({"ruleset": "lms"}, self.SQ, {"floorPct": 10}, {"draft": {"picks": 3}}),
             ({"ruleset": "ffa"}, self.SQ, None, {"draft": {"picks": 3}}),
@@ -709,3 +708,33 @@ class SquadLastManStanding(unittest.TestCase):
         self.assertEqual(m.tw_pick_outs(["a", "b"], accts, m.tw_elim_now(self.war(lms={"floorPct": 10}), None), T0, None), [])
         self.assertEqual(m.tw_pick_outs(["a", "b"], accts, m.tw_elim_now(self.war(lms={"floorPct": 10}), "2026-10-28"), T0, None), [("a", "floor")])
 
+
+class TeamCooperation(unittest.TestCase):
+    """Phase 10c (owner Q17): two teams balanced by XP, scored by average % return."""
+    def test_valid(self):
+        self.assertEqual(m.tw_validate_ruleset({"ruleset": "team"}, "abcdefghijkm", None, {"storms": "rare"}), "team")
+
+    def test_balanced_by_xp(self):
+        xps = {"a": 900, "b": 700, "c": 500, "d": 300, "e": 100}
+        self.assertEqual(m.tw_balance_teams(list(xps), xps), {"a": "A", "b": "B", "c": "B", "d": "A", "e": "A"})
+        t = m.tw_balance_teams(["x", "y"], {})
+        self.assertEqual(sorted(t.values()), ["A", "B"])
+
+    def test_newcomers_and_start(self):
+        self.assertEqual(m.tw_newcomer_team({"a": "A", "b": "A", "c": "B"}), "B")
+        self.assertEqual(m.tw_newcomer_team({}), "A")
+        war = {"players": ["a", "b", "c", "d"], "teams": {"a": "A", "b": "B", "gone": "A"}}
+        self.assertEqual(m.tw_start_teams(war, {}), {"a": "A", "b": "B", "c": "A", "d": "B"})
+        one_sided = {"players": ["a", "b"], "teams": {"a": "A", "b": "A"}}
+        self.assertEqual(sorted(m.tw_start_teams(one_sided, {"a": 5, "b": 1}).values()), ["A", "B"])
+        self.assertEqual(m.tw_start_fields({"players": ["a", "b"], "ruleset": "team", "days": 1}, T0, {"a": 5, "b": 1})["teams"], {"a": "A", "b": "B"})
+
+    def test_team_results_are_averages(self):
+        rows = [{"uid": "a", "pnlPct": 4.0}, {"uid": "b", "pnlPct": -2.0}, {"uid": "c", "pnlPct": 1.5}]
+        res = m.tw_team_results(rows, {"a": "A", "b": "A", "c": "B"})
+        self.assertEqual(res, {"teams": [{"team": "A", "avgPct": 1.0, "players": 2}, {"team": "B", "avgPct": 1.5, "players": 1}], "winner": "B"})
+        self.assertIsNone(m.tw_team_results([{"uid": "a", "pnlPct": 1}, {"uid": "b", "pnlPct": 1}], {"a": "A", "b": "B"})["winner"])
+
+
+if __name__ == "__main__":
+    unittest.main()

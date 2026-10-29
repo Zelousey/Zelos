@@ -9,7 +9,7 @@ without a ruleset (every battle so far, and every non-squad battle) plays exactl
 | Free-for-all (`ffa`) | Compete | Everyone for themselves with the same money; best % return wins. Classic rules. | Built (10a) |
 | Fantasy Draft (`draft`) | Compete | Snake draft before the start; trade only your picks. | Built (10a) |
 | Last Man Standing (`lms`) | Compete | Elimination rules, checked once a day at the market close. | Built (10b) |
-| Team Cooperation | Together | Two teams inside the squad. | After that (10c) |
+| Team Cooperation (`team`) | Together | Two XP-balanced teams inside the squad, scored by average return. | Built (10c) |
 
 ## Owner decisions (2026-10-29)
 - **Fantasy Draft (Q16):** 3 picks each, 45 seconds per pick, **no ban round**. The person starting
@@ -30,5 +30,11 @@ without a ruleset (every battle so far, and every non-squad battle) plays exactl
   losing-trades rules only on its first run after 4:00 pm New York on a weekday the battle was already
   running (`tw_close_check_day`, recorded as `lmsCheckedDay`); in between, only timed cuts run
   (`tw_elim_now`), and a trade never knocks anyone out (the check waits for the close).
+- Team Cooperation (`team`): the host makes the teams in the lobby (`tw_teams` balance: by XP, highest
+  first, A-B-B-A) and can move anyone (`tw_teams` swap); people who join later go to the smaller team;
+  at the start missing players are added and an empty team is rebalanced (`tw_start_teams`). When the
+  battle ends, `teamResults` holds each team's average % return and the winner (`tw_team_results`).
+  `firestore.rules` let teammates read each other's books (positions and fills), never the other
+  team's. Token rewards stay per player, as in every battle.
 - App: the squad's **Start a squad Trade War** sheet asks for the ruleset first; the ruleset fixes the
   mode and the draft (`applyRuleset`), and the battle room shows it as a badge.

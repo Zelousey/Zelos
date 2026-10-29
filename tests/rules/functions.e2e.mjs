@@ -345,6 +345,16 @@ const lmw = (await getDoc(doc(db, 'tradeWars', r.warId))).data();
 ok(lmw.ruleset === 'lms' && lmw.lms.floorPct === 10, 'a squad Last Man Standing battle (rules checked at the market close)');
 re1 = null; try { await call('tw_challenge', { squadId: rsSquad, ruleset: 'lms', name: 'No rules', buyIn: 1000, days: 3 }); } catch (x) { re1 = x; }
 ok(re1 && /at least one elimination rule/.test(re1.message), 'squad Last Man Standing needs a rule');
+await admin('wallets/' + troll.uid, { balance: { integerValue: 50 } });
+r = await call('tw_challenge', { squadId: rsSquad, ruleset: 'team', name: 'Team night', buyIn: 1000, days: 3, extraSlot: true });
+const teamWar = r.warId;
+ok((await getDoc(doc(db, 'tradeWars', teamWar))).data().ruleset === 'team', 'a Team Cooperation squad battle');
+r = await call('tw_teams', { warId: teamWar, action: 'balance' });
+ok(r.teams[troll.uid] === 'A', 'the host makes the teams (balanced by XP)');
+r = await call('tw_teams', { warId: teamWar, action: 'swap', uid: troll.uid });
+ok(r.teams[troll.uid] === 'B' && (await getDoc(doc(db, 'tradeWars', teamWar))).data().teams[troll.uid] === 'B', 'and can move a player to the other team');
+re1 = null; try { await call('tw_teams', { warId: lmsWar, action: 'balance' }); } catch (x) { re1 = x; }
+ok(re1, 'only the host of a Team Cooperation lobby can make teams');
 re1 = null; try { await call('tw_challenge', { to: foe, ruleset: 'ffa', name: 'Duel', buyIn: 1000, days: 3 }); } catch (x) { re1 = x; }
 ok(re1 && /for squad battles/.test(re1.message), 'rulesets are only for squad battles');
 

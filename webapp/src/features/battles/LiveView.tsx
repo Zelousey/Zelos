@@ -15,6 +15,7 @@ import { TIMEFRAMES } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { errorText } from '../invites/invites';
 import { allowedSymbols, canRevive, liveEquity, OUT_REASON, placeBounty, revive, REVIVE_COST, setBracket, spendShield, standings, stormNow, trade, tradable, type Account, type Battle, type Book, type Position, type TickerEvent } from './battle';
+import { TeammateTrades, TeamScores } from './Teams';
 import { clock, RulesBox } from './parts';
 import s from './Battles.module.css';
 
@@ -67,8 +68,10 @@ export function LiveView({ b, uid, accounts, me, book, events, quotes, now }: Pr
           </Card>
           {!me?.out && <Ticket b={b} uid={uid} me={me} book={book} quotes={quotes} sym={sym} setSym={setSym} syms={syms} now={now} />}
           <Positions b={b} book={book} quotes={quotes} now={now} disabled={!!me?.out} onPick={setSym} />
+          <TeammateTrades b={b} uid={uid} />
         </div>
         <div className={s.stack}>
+          <TeamScores b={b} uid={uid} accounts={accounts} />
           <Card title={t('bt.leaderboard')} subtitle={t('bt.leaderboardSub')} flush>
             <ol className={s.board}>
               {rows.map((r) => (
@@ -78,6 +81,7 @@ export function LiveView({ b, uid, accounts, me, book, events, quotes, now }: Pr
                     {r.name}
                   </Link>
                   <span className={s.tags}>
+                    {b.teams?.[r.uid] && <Badge>{t('tm.tag', { team: b.teams[r.uid]! })}</Badge>}
                     {r.out && <Badge tone="down">{t('bt.outTag')}</Badge>}
                     {b.whales.includes(r.uid) && <Badge tone="violet">{t('bt.whaleTag')}</Badge>}
                     {(b.shields[r.uid] ?? 0) > 0 && <Badge>{t('bt.shieldTag', { n: b.shields[r.uid]! })}</Badge>}

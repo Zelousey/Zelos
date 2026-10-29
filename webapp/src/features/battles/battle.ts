@@ -66,7 +66,11 @@ export type Battle = {
   ruleset: Ruleset | null;
   /** The finished battle this one is a rematch of. */
   rematchOf: string | null;
+  /** Team Cooperation (Phase 10c): each player's team, once the host has made them. */
+  teams: Record<string, Team> | null;
+  teamResults: { teams: { team: Team; avgPct: number; players: number }[]; winner: Team | null } | null;
 };
+export type Team = 'A' | 'B';
 
 export type Account = { uid: string; name: string; start: number; cash: number; equity: number; pnl: number; pnlPct: number; trades: number; wins: number; losses: number; out: boolean; outReason: string | null; place: number | null };
 export type Position = { sym: string; qty: number; avg: number; sl: number | null; tp: number | null };
@@ -79,6 +83,15 @@ const str = (v: unknown, n = 80) => (typeof v === 'string' ? v.slice(0, n) : '')
 const arr = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
 const STATUSES: Status[] = ['lobby', 'draft', 'active', 'ended', 'cancelled'];
+
+function parseTeamResults(v: unknown): Battle['teamResults'] {
+  const r = rec(v);
+  if (!Array.isArray(r.teams)) return null;
+  const teams = arr<Record<string, unknown>>(r.teams)
+    .filter((x) => x.team === 'A' || x.team === 'B')
+    .map((x) => ({ team: x.team as Team, avgPct: num(x.avgPct), players: num(x.players) }));
+  return { teams, winner: r.winner === 'A' || r.winner === 'B' ? r.winner : null };
+}
 
 export function parseBattle(id: string, d: DocumentData): Battle {
   const rules = rec(d.rules);
@@ -117,6 +130,8 @@ export function parseBattle(id: string, d: DocumentData): Battle {
     squadId: str(d.squadId, 40) || null,
     ruleset: RULESETS.find((r) => r === d.ruleset) ?? null,
     rematchOf: typeof d.rematchOf === 'string' && BATTLE_ID_RE.test(d.rematchOf) ? d.rematchOf : null,
+    teams: d.teams && typeof d.teams === 'object' ? (Object.fromEntries(Object.entries(rec(d.teams)).filter(([, v]) => v === 'A' || v === 'B')) as Record<string, Team>) : null,
+    teamResults: parseTeamResults(d.teamResults),
     whales: arr<string>(d.whales),
     shields: Object.fromEntries(Object.entries(rec(d.shields)).map(([k, v]) => [k, num(v)])),
     revived: arr<string>(d.revived).filter((x) => typeof x === 'string'),
@@ -249,3 +264,14 @@ export const useMyRematch = (id: string | null, uid: string | null) =>
 export type RematchReq = { warId: string; name: string; buyIn: number; days: number; extraSlot?: boolean } & Payload;
 /** A new match challenging the same opponents (or squad); a second call returns the first one's match. */
 export const rematch = (req: RematchReq) => callFunction<RematchReq, { warId: string; again: boolean; charged: number }>('tw_rematch', req);
+
+// ---------------------------------------------------------------- Team Cooperation (Phase 10c)
+/** Each team's live average % return (owner Q17: average, so a smaller team isn't behind). */
+export function teamAverages(rows: { uid: string; pnlPct: number }[], teams: Record<string, Team>): { team: Team; avgPct: number; players: number }[] {
+  return (['A', 'B'] as const).flatMap((team) => {
+    const pcts = rows.filter((r) => teams[r.uid] === team).map((r) => r.pnlPct);
+    return pcts.length ? [{ team, avgPct: pcts.reduce((a, b) => a + b, 0) / pcts.length, players: pcts.length }] : [];
+  });
+}
+/** The host makes the teams (balanced by XP) or moves a player to the other team, before the start. */
+export const setTeams = (warId: string, action: 'balance' | 'swap', uid?: string) => callFunction<{ warId: string; action: string; uid?: string }, { teams: Record<string, Team> }>('tw_teams', { warId, action, ...(uid && { uid }) });

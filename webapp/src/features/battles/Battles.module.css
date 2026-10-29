@@ -68,3 +68,7 @@
 /* rematch (Phase 9) */
 .rematchForm { display: grid; gap: var(--space-4); }
 .error { margin: 0; color: var(--down-ink); font-size: var(--text-sm); }
+
+/* Team Cooperation (Phase 10c) */
+.teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.teamName { margin: 0 0 var(--space-1); font-size: var(--text-sm); color: var(--accent); }

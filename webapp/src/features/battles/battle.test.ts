@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Quote, QuotesDoc } from '../../data/markets';
-import { allowedSymbols, liveEquity, onClock, parseAccount, parseBattle, parseBook, standings, stormNow, tradable } from './battle';
+import { allowedSymbols, liveEquity, onClock, parseAccount, parseBattle, parseBook, standings, stormNow, teamAverages, tradable } from './battle';
 
 const q = (c: number): Quote => ({ c, pc: c, o: c, h: c, l: c, t: 0, v: 0, chPct: null });
 const doc = (open: boolean, agoS: number): QuotesDoc => ({ quotes: {}, marketOpen: open, updatedAt: new Date(1_000_000_000 - agoS * 1000).toISOString(), source: 'x', error: null, every: null, everySlow: null, interval: null, paused: null });
@@ -51,3 +51,18 @@ describe('battles', () => {
     expect(rows.map((r) => [r.uid, r.rank])).toEqual([['b', 1], ['a', 2], ['d', 3], ['c', 4]]);
   });
 });
+
+describe('Team Cooperation (Phase 10c)', () => {
+  it('averages each team, so a smaller team is not behind', () => {
+    const rows = [{ uid: 'a', pnlPct: 4 }, { uid: 'b', pnlPct: -2 }, { uid: 'c', pnlPct: 1.5 }];
+    expect(teamAverages(rows, { a: 'A', b: 'A', c: 'B' })).toEqual([{ team: 'A', avgPct: 1, players: 2 }, { team: 'B', avgPct: 1.5, players: 1 }]);
+  });
+  it('reads teams and team results, ignoring junk', () => {
+    const b = parseBattle('abcdefghijkl', { ruleset: 'team', teams: { a: 'A', b: 'B', c: 'Z' }, teamResults: { teams: [{ team: 'A', avgPct: 1, players: 2 }, { team: 'Q' }], winner: 'A' } });
+    expect(b.ruleset).toBe('team');
+    expect(b.teams).toEqual({ a: 'A', b: 'B' });
+    expect(b.teamResults).toEqual({ teams: [{ team: 'A', avgPct: 1, players: 2 }], winner: 'A' });
+    expect(parseBattle('abcdefghijkl', {}).teams).toBeNull();
+  });
+});
+
