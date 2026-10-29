@@ -34,6 +34,10 @@ Run them in order whenever there's time. The site keeps working without them, bu
    ```
    cd ~/Zelos && git pull && firebase deploy --only firestore:rules
    ```
+2. **Help & feedback (Phase 8a).** After it merges: the feedback functions and their rules. The Help screen works without it, but Send feedback shows an error until it's deployed.
+   ```
+   cd ~/Zelos && git pull && firebase deploy --only functions:feedback_send,functions:feedback_list,functions:feedback_mark,functions:account_delete,firestore:rules
+   ```
 After running one, tell Claude "deployed", and it will be ticked off here.
 
 ## Done (all on main)

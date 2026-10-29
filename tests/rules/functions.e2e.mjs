@@ -4,7 +4,7 @@
 import assert from 'assert';
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, doc, getDoc, setDoc, updateDoc, getDocs, query, collection, where } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 
 const P = 'demo-zelos';
@@ -166,6 +166,29 @@ ok(nwrite, 'browsers cannot write news directly');
 await signInAnonymously(auth);
 ne = null; try { await call('news_delete', { id: v.id }); } catch (x) { ne = x; }
 ok(ne, 'guests cannot delete news');
+
+// --- Help & feedback: signed-in players send (5 a day); only admins read; account deletion removes them
+await signOut(auth);
+await signInAnonymously(auth);
+let fe = null; try { await call('feedback_send', { topic: 'idea', text: 'Guest idea here' }); } catch (x) { fe = x; }
+ok(fe && /Sign in/.test(fe.message), 'guests cannot send feedback');
+await signOut(auth);
+const fbu = (await createUserWithEmailAndPassword(auth, `fb${Date.now()}@example.com`, 'secret123')).user;
+fe = null; try { await call('feedback_send', { topic: 'idea', text: 'hi' }); } catch (x) { fe = x; }
+ok(fe && /a little more/.test(fe.message), 'too-short feedback refused');
+for (let i = 0; i < 5; i++) ok((await call('feedback_send', { topic: 'idea', text: `Idea number ${i + 1} for Zelos`, page: '/help' })).sent === true, `feedback ${i + 1} sent`);
+fe = null; try { await call('feedback_send', { topic: 'idea', text: 'One more idea please' }); } catch (x) { fe = x; }
+ok(fe && /Try again tomorrow/.test(fe.message), 'sixth message the same day refused');
+fe = null; try { await call('feedback_list', {}); } catch (x) { fe = x; }
+ok(fe && /Zelos team/.test(fe.message), 'players cannot read feedback');
+let fread = 0; try { await getDocs(query(collection(db, 'feedback'), where('uid', '==', fbu.uid))); } catch (x) { fread = 1; }
+ok(fread, 'browsers cannot read feedback directly');
+await admin('admins/' + fbu.uid, { since: { integerValue: 1 } });
+const fl = await call('feedback_list', {});
+const mine = fl.items.filter((x) => x.text.startsWith('Idea number'));
+ok(mine.length === 5 && mine[0].status === 'new' && mine[0].page === '/help' && mine[0].topic === 'idea', 'admin lists the messages, newest first');
+ok((await call('feedback_mark', { id: mine[0].id, status: 'done' })).ok === true, 'admin marks one done');
+ok((await call('feedback_list', {})).items.find((x) => x.id === mine[0].id).status === 'done', 'done shows in the list');
 
 // --- safety (App Store 1.2): chat filter, report, block
 await signOut(auth);

@@ -5065,7 +5065,7 @@ def mission_event(req: https_fn.CallableRequest):
 # the match (other players' standings depend on them) but the account behind them is gone.
 
 ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "practiceAccounts", "practiceArchive", "traders", "strategyVotes", "referrals",
-                "cosmetics", "twRecords", "xpState", "inviteState", "coaches")
+                "cosmetics", "twRecords", "xpState", "inviteState", "coaches", "feedbackLimits")
 ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",), "practiceAccounts": ("history",)}
 
 
@@ -5139,6 +5139,8 @@ def account_delete(req: https_fn.CallableRequest):
         for snap in db.collection("usernames").where("uid", "==", uid).stream():
             snap.reference.delete()
         for snap in db.collection("pushTokens").where("uid", "==", uid).stream():
+            snap.reference.delete()
+        for snap in db.collection("feedback").where("uid", "==", uid).stream():  # Help & feedback messages
             snap.reference.delete()
         for col in ACCOUNT_DOCS:
             ref = db.collection(col).document(uid)
@@ -5668,6 +5670,92 @@ def news_delete(req: https_fn.CallableRequest):
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Which post?")
     db.collection("news").document(pid).delete()
     return {"deleted": True}
+
+
+# ---------------------------------------------------------------------------
+# Help & feedback (functions/feedback.py; owner 2026-10-28: feedback is saved in the app)
+#
+# feedback/{id} and feedbackLimits/{uid} are server only. feedback_send stores a signed-in
+# player's message (5 a day); admins (admins/{uid}) read them with feedback_list and tick
+# them off with feedback_mark. account_delete removes a player's messages.
+# ---------------------------------------------------------------------------
+import feedback as FB
+
+
+def _feedback_admin(req):
+    """(uid, db) for a signed-in owner account (admins/{uid}), else an error."""
+    a = req.auth
+    if not a or not a.uid or ((a.token or {}).get("firebase") or {}).get("sign_in_provider") == "anonymous":
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in first.")
+    db = firestore.client()
+    if not db.collection("admins").document(a.uid).get().exists:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.PERMISSION_DENIED, "Only the Zelos team can read feedback.")
+    return a.uid, db
+
+
+@https_fn.on_call()
+def feedback_send(req: https_fn.CallableRequest):
+    """{topic, text, page?} -> {sent: true}. Signed-in accounts only, FB.MAX_PER_DAY a day."""
+    a = req.auth
+    if not a or not a.uid or ((a.token or {}).get("firebase") or {}).get("sign_in_provider") == "anonymous":
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to send feedback.")
+    try:
+        msg = FB.validate(req.data)
+    except FB.FeedbackError as e:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, str(e))
+    db = firestore.client()
+    now = datetime.now(NY)
+    day = now.strftime("%Y-%m-%d")
+    lim_ref = db.collection("feedbackLimits").document(a.uid)
+    fb_ref = db.collection("feedback").document()
+
+    @firestore.transactional
+    def send(t):
+        snap = lim_ref.get(transaction=t)
+        allowed, lim = FB.take_slot(snap.to_dict() if snap.exists else None, day)
+        if not allowed:
+            return False
+        t.set(lim_ref, lim)
+        t.set(fb_ref, dict(msg, uid=a.uid, createdAt=int(now.timestamp() * 1000), status="new"))
+        return True
+
+    if not send(db.transaction()):
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.RESOURCE_EXHAUSTED, "That's all the feedback for today. Thank you! Try again tomorrow.")
+    return {"sent": True}
+
+
+@https_fn.on_call()
+def feedback_list(req: https_fn.CallableRequest):
+    """-> {items: [...newest 100, with the sender's public name]} for admins."""
+    _uid, db = _feedback_admin(req)
+    docs = list(db.collection("feedback").order_by("createdAt", direction=firestore.Query.DESCENDING).limit(100).stream())
+    uids = sorted({(d.to_dict() or {}).get("uid") for d in docs} - {None})
+    names = {}
+    if uids:
+        for t in db.get_all([db.collection("traders").document(u) for u in uids]):
+            if t.exists:
+                names[t.id] = str((t.to_dict() or {}).get("name") or "")[:24]
+    items = []
+    for d in docs:
+        x = d.to_dict() or {}
+        items.append({"id": d.id, "topic": x.get("topic"), "text": x.get("text"), "page": x.get("page"),
+                      "createdAt": x.get("createdAt"), "status": x.get("status") or "new", "name": names.get(x.get("uid")) or "Trader"})
+    return {"items": items}
+
+
+@https_fn.on_call()
+def feedback_mark(req: https_fn.CallableRequest):
+    """{id, status: 'new' | 'done'} -> {ok: true} for admins."""
+    _uid, db = _feedback_admin(req)
+    data = req.data if isinstance(req.data, dict) else {}
+    fid, status = data.get("id"), data.get("status")
+    if not (isinstance(fid, str) and _re.fullmatch(r"[A-Za-z0-9_-]{6,40}", fid)) or status not in ("new", "done"):
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Which message?")
+    ref = db.collection("feedback").document(fid)
+    if not ref.get().exists:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.NOT_FOUND, "That message is gone.")
+    ref.update({"status": status})
+    return {"ok": True}
 
 
 def _sec_cik_to_sym(db, now):

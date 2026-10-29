@@ -28,6 +28,9 @@ const axe = async (page: Page) => {
   return (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(' ')).join(', ')}`);
 };
 const row = (page: Page) => page.getByRole('navigation', { name: 'Trade War sections' });
+/** Wait until this tab has noted the Trade War section (hub.ts noteSection, sessionStorage). */
+const remembered = (page: Page, section: string) =>
+  page.waitForFunction((x) => (JSON.parse(sessionStorage.getItem('zelosTradeWarSection') ?? 'null') as { section?: string } | null)?.section === x, section);
 
 test('nothing running: the tab asks how you want to play; the section row switches without a reload', async ({ page }) => {
   await page.goto('trade-war');
@@ -79,13 +82,13 @@ test('a running battle: the tab opens the Overview, every number says its mode; 
   // A beats B: after Solo, the tab reopens Solo even with a battle running
   await row(page).getByRole('link', { name: 'Solo', exact: true }).click();
   await expect(page).toHaveURL(/\/trade-war\/solo$/);
-  await expect(row(page).getByRole('link', { name: 'Solo', exact: true })).toHaveAttribute('aria-current', 'page'); // the Solo screen is up (and has noted Solo) before the reload
+  await remembered(page, 'solo'); // the tab remembers Solo before we leave (a reload right away could beat it)
   await page.goto('dashboard');
   await page.getByRole('navigation', { name: 'Main' }).filter({ visible: true }).getByRole('link', { name: 'Trade War' }).click();
   await expect(page).toHaveURL(/\/trade-war\/solo$/);
   // another section ends the Solo session: back to the Overview
   await row(page).getByRole('link', { name: 'Battle', exact: true }).click();
-  await expect(row(page).getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute('aria-current', 'page');
+  await remembered(page, 'battle');
   await page.goto('trade-war');
   await expect(page.getByRole('region', { name: 'Your Trade War at a glance' })).toBeVisible();
 });
