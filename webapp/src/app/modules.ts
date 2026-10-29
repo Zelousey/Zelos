@@ -49,6 +49,9 @@ export const MODULES: AppModule[] = [
   // ticket, so neither has a menu entry; /practice/trade/:sym (the ticket) and /options/:sym (the
   // full option chain, one tap from the ticket) stay as routes
   { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', parent: 'dashboard', nav: false, load: () => import('../features/practice/PracticeModule') },
+  // the War zone (the Trade War realm, docs/WAR_DESIGN.md): hidden until all of War is built (owner
+  // 2026-10-29), so a route only; the server lets only admins in for now, anyone else gets Not found
+  { id: 'war', path: 'war', label: 'nav.war', icon: 'war', group: 'play', parent: 'trade-war', nav: false, load: () => import('../features/war/WarPage') },
   { id: 'battles', path: 'battles', label: 'nav.battles', icon: 'war', group: 'play', parent: 'trade-war', load: () => import('../features/battles/BattlesModule') },
   { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'play', parent: 'markets', nav: false, load: () => import('../features/options/OptionsModule') },
   { id: 'invite', path: 'invite', label: 'nav.invite', icon: 'invite', group: 'play', load: () => import('../features/invites/InviteModule').then((m) => ({ default: m.InviteMakeModule })) },

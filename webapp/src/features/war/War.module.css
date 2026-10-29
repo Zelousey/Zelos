@@ -1,0 +1,44 @@
+/* The War zone looks different from real-market screens on purpose (owner D10, §20):
+   a gold SIMULATED stamp and a striped chart background. */
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.simBadge {
+  display: inline-block; padding: 2px 8px; border: 1px solid var(--gold); border-radius: var(--radius);
+  color: var(--gold); font-family: var(--mono); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.08em;
+}
+.cols { display: grid; gap: var(--space-4); }
+@media (min-width: 1000px) { .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; } }
+.cols > *, .stack > * { min-width: 0; }
+.stack { display: grid; gap: var(--space-4); }
+.muted { color: var(--muted); font-size: var(--text-sm); }
+.warn { margin: 0; color: var(--gold); font-size: var(--text-sm); }
+.balance { display: grid; gap: 4px; }
+.kicker { color: var(--muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; }
+.big { font-family: var(--mono); font-size: var(--text-2xl); font-weight: 600; }
+.sector + .sector { border-top: 1px solid var(--border-soft); }
+.sectorName { margin: 0; padding: var(--space-3) var(--space-4) 0; color: var(--accent); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.06em; }
+.rows { list-style: none; margin: 0; padding: var(--space-1) 0; }
+.row {
+  composes: hit from global;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-3);
+  width: 100%; padding: var(--space-2) var(--space-4); border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer;
+}
+.row:hover { background: var(--surface-hover); }
+.on { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent-fill); }
+.who { display: grid; min-width: 0; }
+.who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); }
+.who small { color: var(--muted); font-family: var(--mono); font-size: var(--text-xs); }
+.chg { min-width: 4.5em; text-align: right; font-size: var(--text-sm); }
+.coHead { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+.coName { margin: 0; font-size: var(--text-lg); }
+.simChart {
+  margin: var(--space-3) 0; border: 1px dashed var(--gold); border-radius: var(--radius);
+  background: repeating-linear-gradient(135deg, transparent 0 14px, rgba(201, 162, 39, 0.05) 14px 28px);
+}
+.chartTag {
+  display: block; padding: var(--space-1) var(--space-2) 0; text-align: right;
+  color: var(--gold); font-family: var(--mono); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.08em;
+}
+.ticket { display: grid; gap: var(--space-3); }
+.ticket p { margin: 0; }
+.explain { display: grid; gap: var(--space-3); padding: var(--space-4); }
+.explain p { margin: 0; }

@@ -5278,8 +5278,9 @@ def mission_event(req: https_fn.CallableRequest):
 # the match (other players' standings depend on them) but the account behind them is gone.
 
 ACCOUNT_DOCS = ("users", "wallets", "practiceProfiles", "practiceAccounts", "practiceArchive", "traders", "strategyVotes", "referrals",
-                "cosmetics", "twRecords", "xpState", "inviteState", "coaches", "feedbackLimits")
-ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",), "practiceAccounts": ("history",)}
+                "cosmetics", "twRecords", "xpState", "inviteState", "coaches", "feedbackLimits", "warProfiles")
+ACCOUNT_SUBCOLLECTIONS = {"users": ("activity", "inbox", "realTrades"), "wallets": ("ledger",), "traders": ("realLog",), "practiceAccounts": ("history",),
+                          "warProfiles": ("fills",)}
 
 
 def _delete_collection(ref, batch_size=200):
@@ -7053,3 +7054,123 @@ def minds_quote_pass(db, now):
 @scheduler_fn.on_schedule(schedule="5 9 * * *", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=300, memory=256)
 def minds_daily_quote(event: scheduler_fn.ScheduledEvent) -> None:
     print("[minds] daily quotes sent:", minds_quote_pass(firestore.client(), datetime.now(NY)))
+
+
+# ---------------------------------------------------------------- the Trade War realm (War zone)
+# docs/WAR_DESIGN.md §20, §24 (whole spec approved by the owner 2026-10-29). The War zone runs on a
+# simulated, always-on market (functions/warmarket.py). It stays hidden until all of War is built
+# (owner 2026-10-29): while WAR_OPEN is False only admins (admins/{uid}) can open a War profile
+# or trade, so the owner can preview it.
+import random as _random  # noqa: E402
+import warmarket as WM  # noqa: E402
+
+WAR_OPEN = False
+
+
+def _war_user(db, req):
+    a = req.auth
+    if not a or not a.uid:
+        raise WM.WarError("UNAUTHENTICATED", "Sign in to enter the War zone.")
+    if not WAR_OPEN and not db.collection("admins").document(a.uid).get().exists:
+        raise WM.WarError("PERMISSION_DENIED", "The War zone isn't open yet.")
+    return a.uid
+
+
+def _war_call(fn):
+    """Runs fn(req, db, uid, now_ms), turning WarError into a clean HttpsError."""
+    def wrapper(req):
+        db = firestore.client()
+        try:
+            return fn(req, db, _war_user(db, req), int(_time.time() * 1000))
+        except WM.WarError as e:
+            raise https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), str(e))
+        except https_fn.HttpsError:
+            raise
+        except Exception as e:
+            print("[war] %s failed: %s" % (fn.__name__, type(e).__name__))
+            raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+def war_market_pass(db, now_ms, rng=None):
+    """One run of the War zone market: step the engine to now (a minute at a time), publish the
+    prices, and when a 5-minute bar has started since the last save, save every stock's bars.
+    Returns how many minutes it made."""
+    ref = db.collection("warEngine").document("state")
+    snap = ref.get()
+    state = snap.to_dict() if snap.exists else WM.new_state(now_ms - 60000)
+    state, minutes, closed = WM.step(state, now_ms, rng or _random.SystemRandom())
+    if not minutes:
+        return 0
+    market = db.collection("warMarket")
+    refs = dict(state.get("refs") or {})
+    if closed or state.get("barsAt") is None:
+        for sym in WM.SYMS:
+            bref = market.document("bars_" + sym)
+            bsnap = bref.get()
+            bars = WM.bars_in((bsnap.to_dict() or {}).get("bars") if bsnap.exists else [])
+            for b in closed.get(sym, []) + [state["stocks"][sym]["bar"]]:
+                bars = WM.append_bar(bars, b)
+            bref.set({"bars": WM.bars_out(bars), "updatedAt": now_ms, "note": WM.SIM_NOTE})
+            refs[sym] = WM.ref_price(bars, now_ms)
+        state["barsAt"] = WM.bar_start(state["t"])
+    state["refs"] = refs
+    ref.set(state)
+    market.document("quotes").set({
+        "updatedAt": now_ms, "note": WM.SIM_NOTE,
+        "prices": {s: {"p": state["stocks"][s]["p"], "ref": refs.get(s) or WM.BY_SYM[s][3]} for s in WM.SYMS}})
+    return minutes
+
+
+@scheduler_fn.on_schedule(schedule="* * * * *", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=60, memory=256)
+def war_market_tick(event: scheduler_fn.ScheduledEvent) -> None:
+    war_market_pass(firestore.client(), int(_time.time() * 1000))
+
+
+def _war_prices(db, now_ms):
+    snap = db.collection("warMarket").document("quotes").get()
+    q = snap.to_dict() if snap.exists else None
+    if not q or now_ms - (q.get("updatedAt") or 0) > WM.QUOTE_MAX_AGE_MS:
+        raise WM.WarError("UNAVAILABLE", "War zone prices are updating. Try again in a minute.")
+    return {s: v["p"] for s, v in (q.get("prices") or {}).items() if isinstance(v, dict) and isinstance(v.get("p"), (int, float))}
+
+
+# war_open {} -> {profile}: your War profile, made with a $100,000 War balance the first time.
+@https_fn.on_call()
+@_war_call
+def war_open(req, db, uid, now_ms):
+    ref = db.collection("warProfiles").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if snap.exists:
+            return snap.to_dict()
+        prof = WM.new_profile(now_ms)
+        t.set(ref, prof)
+        return prof
+    return {"profile": txn(db.transaction())}
+
+
+# war_trade {sym, side, qty} -> {fill, profile}: buy or sell whole shares at the War zone price.
+@https_fn.on_call()
+@_war_call
+def war_trade(req, db, uid, now_ms):
+    sym, side, qty = WM.validate_trade(req.data)
+    prices = _war_prices(db, now_ms)
+    if sym not in prices:
+        raise WM.WarError("UNAVAILABLE", "No War zone price for %s yet. Try again in a minute." % sym)
+    ref = db.collection("warProfiles").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if not snap.exists:
+            raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
+        prof, fill = WM.apply_trade(snap.to_dict(), sym, side, qty, prices[sym], prices, now_ms)
+        t.set(ref, prof)
+        t.set(ref.collection("fills").document(), fill)
+        return prof, fill
+    prof, fill = txn(db.transaction())
+    return {"fill": fill, "profile": prof}

@@ -29,11 +29,12 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-1. **Squad rulesets (Phase 10a–10c).** After they merge: the battle functions (rulesets, draft pick timer, market-close check, teams) and the rule that lets teammates see each other's trades. One command covers all three.
+1. **War zone, step W1 (hidden; admins only).** After it merges: the War functions, the once-a-minute War market job and the War rules.
    ```
-   cd ~/Zelos && git pull && firebase deploy --only functions,firestore:rules
+   cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_open,functions:war_trade,functions:account_delete,firestore:rules
    ```
-Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a) and Battle rematch (Phase 9).
+   Cost: one more scheduled job (Cloud Scheduler gives 3 jobs free, then about $0.10 a month each) and about 9,000 database writes a day for the market (prices every minute, chart bars every 5 minutes): a few cents a month at most. To preview it, open `/app/war` signed in as an admin.
+Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9) and squad rulesets (Phase 10a–10c).
 
 After running one, tell Claude "deployed", and it will be ticked off here.
 
