@@ -29,11 +29,12 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-1. **War zone, step W2 (hidden; admins only): Chaos events, quiet hours, morning summary.** After it merges:
+The owner is saving these up and will deploy from a computer at home (2026-10-29: a W2 deploy from the phone failed and the reason wasn't seen yet; if it fails again, run `grep -i -B2 -A8 "error" firebase-debug.log | tail -40` and send Claude a photo).
+1. **War zone, steps W2 + W3 (hidden; admins only): Chaos events, quiet hours, morning summary, private War lobbies.** One command covers both:
    ```
-   cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_open,functions:war_quiet
+   cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_open,functions:war_quiet,functions:war_lobby,firestore:rules
    ```
-   No new scheduled job and no rules change (`warMarket/chaos` is covered by the existing War zone market rule). To preview, open `/app/war` signed in as an admin.
+   No new scheduled job (lobby deadlines run inside the existing once-a-minute War market job). The rules add `wars/{id}`. To preview, open `/app/war` signed in as an admin.
 Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9), squad rulesets (Phase 10a–10c, re-sent in small groups after a full deploy hit Google's update limit) and War W1.
 Tip: never run a bare `firebase deploy --only functions` (about 80 functions at once hits Google's update limit and fails part-way); deploy the named functions, in groups of about 8.
 

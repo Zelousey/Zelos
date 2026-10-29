@@ -59,9 +59,18 @@
 .times { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .select { display: grid; gap: var(--space-1); font-size: var(--text-sm); color: var(--ink-2); font-weight: 600; min-width: 0; }
 .select select { min-height: var(--tap); width: 100%; font: inherit; font-weight: 400; color: var(--ink); background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 var(--space-3); }
-/* On a phone it's one column: balance, the chart and ticket, your positions, quiet hours, then the
+.back { display: inline-block; margin-bottom: var(--space-2); color: var(--muted); font-size: var(--text-sm); }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: var(--space-2) var(--space-4); margin: 0; font-size: var(--text-sm); }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; text-align: right; }
+.actionsRow { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.player { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-4); }
+.note { margin: 0; padding: var(--space-2) var(--space-4) var(--space-3); color: var(--muted); font-size: var(--text-sm); }
+.timeline { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--gold); background: var(--surface-2); font-size: var(--text-sm); }
+.inviteForm { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); }
+/* On a phone it's one column: balance, the chart and ticket, your positions, your private Wars, quiet hours, then the
    long market list (so the Buy button isn't under 21 companies). */
 @media (max-width: 999px) {
   .stack { display: contents; }
-  .balanceSlot { order: 1; } .companySlot { order: 2; } .holdingsSlot { order: 3; } .quietSlot { order: 4; } .marketSlot { order: 5; }
+  .balanceSlot { order: 1; } .companySlot { order: 2; } .holdingsSlot { order: 3; } .warsSlot { order: 4; } .quietSlot { order: 5; } .marketSlot { order: 6; }
 }

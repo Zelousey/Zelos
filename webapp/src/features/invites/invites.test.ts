@@ -14,6 +14,8 @@ describe('invites', () => {
   it('bell actions: only well-formed ones', () => {
     expect(parseAction({ type: 'invite', code: 'Abcdefgh23', kind: 'join' })).toEqual({ type: 'invite', code: 'Abcdefgh23' });
     expect(parseAction({ type: 'tw', id: 'AbCdEf0123456789xyzQ' })).toEqual({ type: 'tw', id: 'AbCdEf0123456789xyzQ' });
+    expect(parseAction({ type: 'war', id: 'AbCdEf0123456789xyzQ' })).toEqual({ type: 'war', id: 'AbCdEf0123456789xyzQ' });
+    expect(parseAction({ type: 'war', id: '../x' })).toBeUndefined();
     expect(parseAction({ type: 'invite', code: '../x' })).toBeUndefined();
     expect(parseAction({ type: 'delete-account' })).toBeUndefined();
     expect(parseAction(null)).toBeUndefined();

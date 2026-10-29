@@ -384,5 +384,43 @@ ok(re1 && /at most 10 hours/.test(re1.message), 'but never longer than 10 hours,
 re1 = null; try { await call('war_quiet', { start: 1380, end: 425, tz: 'Europe/London' }); } catch (x) { re1 = x; }
 ok(re1 && /quarter hour/.test(re1.message), 'times are on the quarter hour');
 
+// --- private Wars (W3): configure, open, invite by @username, join, ready, start once
+let wr = await call('war_lobby', { action: 'create', name: 'Sector clash', days: 3, lobbyHours: 6, maxPlayers: 4 });
+const wid = wr.warId;
+ok(wr.war.stage === 'configuring' && wr.war.organizer === troll.uid && wr.war.soldiers === 100, 'a private War starts as a draft, 100 soldiers each');
+re1 = null; try { await call('war_lobby', { action: 'create', name: 'x', days: 3, lobbyHours: 6, maxPlayers: 4 }); } catch (x) { re1 = x; }
+ok(re1 && /name/.test(re1.message), 'settings are checked on the server');
+wr = await call('war_lobby', { action: 'config', warId: wid, name: 'Sector clash', days: 5, lobbyHours: 6, maxPlayers: 4 });
+ok(wr.war.days === 5, 'the organizer can change the draft');
+wr = await call('war_lobby', { action: 'open', warId: wid });
+ok(wr.war.stage === 'recruiting' && wr.war.deadline > Date.now() + 5 * 3600e3, 'opening the lobby starts its 6-hour deadline');
+await signOut(auth);
+const pal = (await createUserWithEmailAndPassword(auth, `warpal${Date.now()}@example.com`, 'secret123')).user;
+await admin('usernames/warpal', { uid: { stringValue: pal.uid } });
+await signInWithEmailAndPassword(auth, troll.email, 'secret123');
+re1 = null; try { await call('war_lobby', { action: 'invite', warId: wid, username: '@warpal' }); } catch (x) { re1 = x; }
+ok(re1 && /can.t enter the War zone yet/.test(re1.message), 'while War is hidden, only admins can be invited');
+await admin('admins/' + pal.uid, { addedAt: { integerValue: 1 } });
+wr = await call('war_lobby', { action: 'invite', warId: wid, username: '@warpal' });
+ok(wr.war.invited.includes(pal.uid), 'the organizer invites a friend by @username');
+await signOut(auth);
+await signInWithEmailAndPassword(auth, pal.email, 'secret123');
+const palInbox = (await getDocs(collection(db, 'users', pal.uid, 'inbox'))).docs.map((d) => d.data());
+ok(palInbox.some((n) => n.kind === 'war' && n.action?.type === 'war' && n.action.id === wid && /simulated/.test(n.body)), 'they get a War invite card in the bell');
+ok((await getDoc(doc(db, 'wars', wid))).data().name === 'Sector clash', 'and can see the War they were invited to');
+await call('war_open', { tz: 'UTC' });
+wr = await call('war_lobby', { action: 'join', warId: wid });
+ok(wr.war.players.length === 2 && wr.war.stage === 'recruiting', 'joining puts them in the lobby, not ready yet');
+re1 = null; try { await call('war_lobby', { action: 'start', warId: wid }); } catch (x) { re1 = x; }
+ok(re1 && /organizer/.test(re1.message), 'only the organizer can start');
+wr = await call('war_lobby', { action: 'ready', warId: wid, ready: true });
+ok(wr.war.stage === 'ready', 'when everyone is locked in, the lobby is ready');
+await signOut(auth);
+await signInWithEmailAndPassword(auth, troll.email, 'secret123');
+wr = await call('war_lobby', { action: 'start', warId: wid });
+ok(wr.war.status === 'active' && wr.war.mapSize === 6 && wr.war.endsAt - wr.war.startedAt === 5 * 864e5, 'the organizer starts it: 2 players get a 6-territory map, 5 days');
+re1 = null; try { await call('war_lobby', { action: 'start', warId: wid }); } catch (x) { re1 = x; }
+ok(re1 && /already started/.test(re1.message), 'a War starts once');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);
