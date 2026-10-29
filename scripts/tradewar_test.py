@@ -655,6 +655,8 @@ class SquadRulesets(unittest.TestCase):
             ({"ruleset": "ffa"}, None, None, {}),                     # not a squad battle
             ({"ruleset": "chaos"}, self.SQ, None, {}),                # unknown
             ({"ruleset": "team"}, self.SQ, None, {}),                 # not built yet
+            ({"ruleset": "lms"}, self.SQ, None, {}),                  # Last Man Standing needs a rule
+            ({"ruleset": "lms"}, self.SQ, {"floorPct": 10}, {"draft": {"picks": 3}}),
             ({"ruleset": "ffa"}, self.SQ, None, {"draft": {"picks": 3}}),
             ({"ruleset": "draft"}, self.SQ, None, {}),
             ({"ruleset": "ffa"}, self.SQ, {"floorPct": 10}, {}),
@@ -668,4 +670,42 @@ class SquadRulesets(unittest.TestCase):
         d2, _ = m.tw_draft_apply(d, "AAPL", ["AAPL", "MSFT"], T0 + 5000)
         self.assertEqual(d2["deadline"], T0 + 35000)
         self.assertEqual(m.tw_pick_ms({"deadline": 1}), 45000)  # a draft from before the option
+
+    def test_last_man_standing_ruleset(self):
+        self.assertEqual(m.tw_validate_ruleset({"ruleset": "lms"}, self.SQ, {"floorPct": 10}, {"storms": "rare"}), "lms")
+
+
+class SquadLastManStanding(unittest.TestCase):
+    """Phase 10b (owner Q14): a squad Last Man Standing battle checks its rules once a day at the
+    market close, so a dip during the day doesn't knock anyone out."""
+    @staticmethod
+    def ny(y, mo, d, h, mi):
+        from zoneinfo import ZoneInfo
+        return int(datetime(y, mo, d, h, mi, tzinfo=ZoneInfo("America/New_York")).timestamp() * 1000)
+
+    def war(self, **kw):
+        w = {"ruleset": "lms", "lms": {"floorPct": 10, "cutHours": 24}, "startAt": self.ny(2026, 10, 26, 10, 0)}
+        w.update(kw)
+        return w
+
+    def test_due_once_after_the_close_on_weekdays(self):
+        wed = (2026, 10, 28)
+        self.assertIsNone(m.tw_close_check_day(self.war(), self.ny(*wed, 15, 59)))
+        self.assertEqual(m.tw_close_check_day(self.war(), self.ny(*wed, 16, 0)), "2026-10-28")
+        self.assertEqual(m.tw_close_check_day(self.war(), self.ny(*wed, 23, 55)), "2026-10-28")
+        self.assertIsNone(m.tw_close_check_day(self.war(lmsCheckedDay="2026-10-28"), self.ny(*wed, 16, 5)))
+        self.assertIsNone(m.tw_close_check_day(self.war(), self.ny(2026, 10, 31, 17, 0)))  # Saturday
+        self.assertIsNone(m.tw_close_check_day(self.war(startAt=self.ny(*wed, 16, 30)), self.ny(*wed, 17, 0)))  # started after it
+        self.assertIsNone(m.tw_close_check_day(self.war(ruleset=None), self.ny(*wed, 17, 0)))  # other battles: always checked
+
+    def test_between_checks_only_timed_cuts_run(self):
+        self.assertEqual(m.tw_elim_now(self.war(), None), {"cutHours": 24})
+        self.assertEqual(m.tw_elim_now(self.war(), "2026-10-28"), {"floorPct": 10, "cutHours": 24})
+        plain = {"lms": {"floorPct": 10}}
+        self.assertEqual(m.tw_elim_now(plain, None), {"floorPct": 10})
+
+    def test_a_dip_during_the_day_does_not_knock_out(self):
+        accts = {"a": {"equity": 850, "start": 1000, "pnlPct": -15, "pnl": -150}, "b": {"equity": 1010, "start": 1000, "pnlPct": 1, "pnl": 10}}
+        self.assertEqual(m.tw_pick_outs(["a", "b"], accts, m.tw_elim_now(self.war(lms={"floorPct": 10}), None), T0, None), [])
+        self.assertEqual(m.tw_pick_outs(["a", "b"], accts, m.tw_elim_now(self.war(lms={"floorPct": 10}), "2026-10-28"), T0, None), [("a", "floor")])
 

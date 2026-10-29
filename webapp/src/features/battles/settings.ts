@@ -77,11 +77,13 @@ export function settingsOf(lms: Partial<Record<LmsKey, number>> | null, modes: {
 /**
  * Squad rulesets (Phase 10, F5): presets on the same battle settings, chosen when a squad battle
  * starts. TW_RULESETS in functions/main.py. Fantasy Draft defaults (owner 2026-10-29): 3 picks,
- * 45 seconds a pick, no ban round. Last Man Standing and Team Cooperation come next.
+ * 45 seconds a pick, no ban round. Last Man Standing checks its rules once a day at the market
+ * close (owner Q14). Team Cooperation comes next.
  */
-export const RULESETS = ['ffa', 'draft'] as const;
+export const RULESETS = ['ffa', 'draft', 'lms'] as const;
 export type Ruleset = (typeof RULESETS)[number];
 export function applyRuleset(s: Settings, r: Ruleset): Settings {
+  if (r === 'lms') return { ...s, mode: 'lms', draftPicks: 0, lms: LMS_KEYS.some((k) => s.lms[k]) ? s.lms : DEFAULT_SETTINGS.lms };
   return r === 'draft' ? { ...s, mode: 'classic', draftPicks: s.draftPicks || 3 } : { ...s, mode: 'classic', draftPicks: 0 };
 }
 

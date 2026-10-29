@@ -34,8 +34,9 @@ export function useOverdueNudge(due: number | null, now: number, fire: () => voi
 }
 
 /** The rules that change from battle to battle: Last Man Standing and the game options. */
-export function modeLines(b: Pick<Battle, 'lms' | 'modes' | 'symbols'>): string[] {
+export function modeLines(b: Pick<Battle, 'lms' | 'modes' | 'symbols'> & { ruleset?: Battle['ruleset'] }): string[] {
   const rows: string[] = [];
+  if (b.ruleset === 'lms') rows.push(t('bt.rule.atClose'));
   if (b.lms?.floorPct) rows.push(t('bt.rule.floor', { n: b.lms.floorPct }));
   if (b.lms?.maxLossPct) rows.push(t('bt.rule.bigLoss', { n: b.lms.maxLossPct }));
   if (b.lms?.maxLosses) rows.push(t('bt.rule.losses', { n: b.lms.maxLosses }));

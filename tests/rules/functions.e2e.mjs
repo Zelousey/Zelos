@@ -339,6 +339,12 @@ r = await call('tw_challenge', { squadId: rsSquad, ruleset: 'ffa', name: 'Open n
 ok((await getDoc(doc(db, 'tradeWars', r.warId))).data().ruleset === 'ffa', 'and a Free-for-all one');
 re1 = null; try { await call('tw_challenge', { squadId: rsSquad, ruleset: 'ffa', name: 'Mixed', buyIn: 1000, days: 3, modes: { draftPicks: 3 } }); } catch (x) { re1 = x; }
 ok(re1 && /Free-for-all needs it off/.test(re1.message), 'a ruleset must agree with the settings');
+await admin('wallets/' + troll.uid, { balance: { integerValue: 50 } });
+r = await call('tw_challenge', { squadId: rsSquad, ruleset: 'lms', name: 'Last night', buyIn: 1000, days: 3, lms: { floorPct: 10 }, extraSlot: true });
+const lmw = (await getDoc(doc(db, 'tradeWars', r.warId))).data();
+ok(lmw.ruleset === 'lms' && lmw.lms.floorPct === 10, 'a squad Last Man Standing battle (rules checked at the market close)');
+re1 = null; try { await call('tw_challenge', { squadId: rsSquad, ruleset: 'lms', name: 'No rules', buyIn: 1000, days: 3 }); } catch (x) { re1 = x; }
+ok(re1 && /at least one elimination rule/.test(re1.message), 'squad Last Man Standing needs a rule');
 re1 = null; try { await call('tw_challenge', { to: foe, ruleset: 'ffa', name: 'Duel', buyIn: 1000, days: 3 }); } catch (x) { re1 = x; }
 ok(re1 && /for squad battles/.test(re1.message), 'rulesets are only for squad battles');
 
