@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BUYIN_TIERS, buyInLock, DRAFT_PICKS, LMS_OPTS, WHALE_CAPS, WHALE_SHIELDS, cutOptions, DEFAULT_SETTINGS, fitDays, optionsOn, settingsError, toPayload, type Settings } from './settings';
+import { BUYIN_TIERS, buyInLock, DRAFT_PICKS, LMS_OPTS, WHALE_CAPS, WHALE_SHIELDS, cutOptions, DEFAULT_SETTINGS, fitDays, optionsOn, settingsError, settingsOf, toPayload, type Settings } from './settings';
 
 describe('battle settings', () => {
   it('locks bigger buy-ins by XP like TW_BUYIN_TIERS', () => {
@@ -44,4 +44,15 @@ describe('battle settings', () => {
     expect(line('TW_LMS_OPTS')).toBe(`{${Object.entries(LMS_OPTS).map(([k, v]) => `"${k}": ${tuple(v)}`).join(', ')}}`);
     expect(line('TW_MODE_OPTS')).toBe(`{"draftPicks": ${tuple(DRAFT_PICKS)}, "whaleCap": ${tuple(WHALE_CAPS)}, "whaleShields": ${tuple(WHALE_SHIELDS)}, "storms": ("rare", "often")}`);
   });
+
+  it('a rematch copies a finished battle\'s settings back into the form (Phase 9)', () => {
+    expect(settingsOf(null, {})).toEqual(DEFAULT_SETTINGS);
+    const s: Settings = { ...DEFAULT_SETTINGS, mode: 'lms', lms: { floorPct: 10, maxLossPct: 0, maxLosses: 3, cutHours: 12 }, draftPicks: 3, whaleCap: 50, whaleShields: 2, storms: 'rare', bounties: true, stops: true };
+    // as the server stores it (tw_validate_lms / tw_validate_modes) and the app reads it back
+    const p = toPayload(s);
+    const modes = { draft: { picks: p.modes!.draftPicks! }, whale: { capPct: p.modes!.whaleCap!, shields: p.modes!.whaleShields! }, storms: p.modes!.storms, bounties: true, stops: true };
+    expect(settingsOf(p.lms ?? null, modes)).toEqual(s);
+    expect(toPayload(settingsOf(p.lms ?? null, modes))).toEqual(p);
+  });
 });
+

@@ -3369,8 +3369,46 @@ class _TwTxnBatch:
 @https_fn.on_call()
 @_tw_call
 def tw_challenge(req, db, uid, now_ms):
-    targets, buy_in, days, name, squad_id, lms = tw_validate_challenge(req.data, uid)
-    modes = tw_validate_modes(req.data, days)
+    return _tw_challenge(req, db, uid, now_ms, req.data)
+
+
+def tw_rematch_target(old, uid):
+    """Who a rematch of this battle challenges ({"squadId"} or {"to": [uids]}), or raises TWError."""
+    if not old or uid not in (old.get("players") or []):
+        raise TWError("PERMISSION_DENIED", "Only the players in a battle can ask for a rematch.")
+    if old.get("status") != "ended":
+        raise TWError("FAILED_PRECONDITION", "A rematch can start once this battle has ended.")
+    if old.get("squadId"):
+        return {"squadId": old["squadId"]}
+    others = [p for p in old.get("players") or [] if p != uid][:TW_MAX_INVITEES]
+    if not others:
+        raise TWError("FAILED_PRECONDITION", "Nobody else played in this battle.")
+    return {"to": others}
+
+
+# tw_rematch {warId, name, buyIn, days, lms?, modes?, extraSlot?} -> {warId, again, charged}
+# A finished battle's players can challenge the same opponents (or the same squad) again,
+# with the old settings copied into the form and editable (Phase 9, F19 / S8). It always makes
+# a new match: the old one is never reopened or changed. Each player gets one rematch per
+# battle (tradeWars/{old}/rematches/{uid}, written in the same transaction), so a double tap
+# or a retry returns the match the first call made.
+@https_fn.on_call()
+@_tw_call
+def tw_rematch(req, db, uid, now_ms):
+    old_ref = db.collection("tradeWars").document(_tw_war_id(req.data))
+    snap = old_ref.get()
+    target = tw_rematch_target(snap.to_dict() if snap.exists else None, uid)
+    mark = old_ref.collection("rematches").document(uid)
+    m = mark.get()
+    if m.exists:
+        return {"warId": (m.to_dict() or {}).get("warId"), "again": True, "charged": 0}
+    data = {k: v for k, v in (req.data or {}).items() if k in ("name", "buyIn", "days", "lms", "modes", "extraSlot")}
+    return _tw_challenge(req, db, uid, now_ms, dict(data, **target), rematch=(old_ref.id, mark))
+
+
+def _tw_challenge(req, db, uid, now_ms, data, rematch=None):
+    targets, buy_in, days, name, squad_id, lms = tw_validate_challenge(data, uid)
+    modes = tw_validate_modes(data, days)
     _tw_check_learned(db, uid)
     _tw_check_buyin(db, uid, buy_in)
     extra_rules = {}
@@ -3401,7 +3439,7 @@ def tw_challenge(req, db, uid, now_ms):
     alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     wid = "".join(_secrets.choice(alphabet) for _ in range(12))
     war_ref = db.collection("tradeWars").document(wid)
-    open_count, extra = _tw_open_count(db, uid), (req.data or {}).get("extraSlot") is True
+    open_count, extra = _tw_open_count(db, uid), (data or {}).get("extraSlot") is True
     batch = _TwTxnBatch()
     batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
                         "maxPlayers": 1 + len(targets), "status": "lobby", "players": [uid], "names": {uid: pname},
@@ -3420,20 +3458,31 @@ def tw_challenge(req, db, uid, now_ms):
             "symbols": extra_rules.get("symbols"),
             "status": "pending", "createdAt": now_ms, "respondedAt": None})
 
+    if rematch:
+        batch.ops[0][1]["rematchOf"] = rematch[0]
+
     @firestore.transactional
     def txn(t):
+        if rematch:  # a second tap that raced the first one gets the first one's match
+            m = rematch[1].get(transaction=t)
+            if m.exists:
+                return (m.to_dict() or {}).get("warId"), False
         pay = _tw_slot_txn(t, db, uid, open_count, extra, now_ms, wid)
         batch.apply(t)
+        if rematch:
+            t.set(rematch[1], {"warId": wid, "at": now_ms})
         if pay:
             pay()
-        return bool(pay)
+        return None, bool(pay)
 
-    paid = txn(db.transaction())
+    existing, paid = txn(db.transaction())
+    if existing:
+        return {"warId": existing, "again": True, "charged": 0}
     for to in targets:
         notify_users(db, [to], "challenges", "%s challenged you to a Trade War" % pname,
                      "%s · %s virtual buy-in · %d day%s. Tap to accept or decline." % (name, _tw_money(buy_in).split(".")[0], days, "" if days == 1 else "s")
                      + (" Last Man Standing." if lms else ""), "practice/index.html", "inv-" + wid, action={"type": "tw", "id": inv_ids[to]})
-    return {"warId": wid, "invited": len(targets), "mode": mode, "charged": TOKENS["slot"] if paid else 0}
+    return {"warId": wid, "invited": len(targets), "mode": mode, "again": False, "charged": TOKENS["slot"] if paid else 0}
 
 
 @https_fn.on_call()

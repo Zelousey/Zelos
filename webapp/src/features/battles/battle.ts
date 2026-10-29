@@ -14,6 +14,7 @@ import { useLiveQuery } from '../../data/liveQuery';
 import type { Quote, QuotesDoc } from '../../data/markets';
 import { UNIVERSE } from '../../data/universe';
 import { callFunction, db } from '../../lib/firebase';
+import type { Payload } from './settings';
 
 export const BATTLE_ID_RE = /^[A-Za-z0-9]{12}$/;
 export const QUOTE_MAX_AGE_S = 180; // same as TW_QUOTE_MAX_AGE_S: older prices can't be traded on
@@ -60,6 +61,9 @@ export type Battle = {
   results: Result[];
   rewards: Reward[];
   rewardsPaid: boolean;
+  squadId: string | null;
+  /** The finished battle this one is a rematch of. */
+  rematchOf: string | null;
 };
 
 export type Account = { uid: string; name: string; start: number; cash: number; equity: number; pnl: number; pnlPct: number; trades: number; wins: number; losses: number; out: boolean; outReason: string | null; place: number | null };
@@ -108,6 +112,8 @@ export function parseBattle(id: string, d: DocumentData): Battle {
     alive: Array.isArray(d.alive) ? (d.alive as string[]) : null,
     outs: arr<Record<string, unknown>>(d.outs).map((o) => ({ uid: str(o.uid), name: str(o.name, 24), reason: str(o.reason), at: num(o.at), pnlPct: num(o.pnlPct), place: num(o.place) })),
     nextCutAt: typeof d.nextCutAt === 'number' ? d.nextCutAt : null,
+    squadId: str(d.squadId, 40) || null,
+    rematchOf: typeof d.rematchOf === 'string' && BATTLE_ID_RE.test(d.rematchOf) ? d.rematchOf : null,
     whales: arr<string>(d.whales),
     shields: Object.fromEntries(Object.entries(rec(d.shields)).map(([k, v]) => [k, num(v)])),
     revived: arr<string>(d.revived).filter((x) => typeof x === 'string'),
@@ -232,3 +238,11 @@ export const trade = (req: TradeReq) => callFunction<TradeReq, { fill: { price: 
 export const setBracket = (warId: string, sym: string, sl: number | null, tp: number | null) => callFunction<{ warId: string; sym: string; sl: number | null; tp: number | null }, { sl: number | null; tp: number | null }>('tw_bracket', { warId, sym, sl, tp });
 export const placeBounty = (warId: string, target: string, pct: 2 | 5 | 10, hours: 6 | 24) => callFunction<{ warId: string; target: string; pct: number; hours: number }, { id: string; amount: number; end: number }>('tw_bounty', { warId, target, pct, hours });
 export const spendShield = (warId: string, bountyId: string) => callFunction<{ warId: string; bountyId: string }, Ok>('tw_shield', { warId, bountyId });
+
+// ---------------------------------------------------------------- rematch (Phase 9, F19 / S8)
+/** The match your rematch of this battle made (tradeWars/{id}/rematches/{uid}; only you can read it). */
+export const useMyRematch = (id: string | null, uid: string | null) =>
+  useLiveDoc(id && uid ? `tradeWars/${id}/rematches/${uid}` : null, (d) => (typeof d.warId === 'string' && BATTLE_ID_RE.test(d.warId) ? d.warId : null));
+export type RematchReq = { warId: string; name: string; buyIn: number; days: number; extraSlot?: boolean } & Payload;
+/** A new match challenging the same opponents (or squad); a second call returns the first one's match. */
+export const rematch = (req: RematchReq) => callFunction<RematchReq, { warId: string; again: boolean; charged: number }>('tw_rematch', req);

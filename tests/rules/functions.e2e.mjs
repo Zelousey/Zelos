@@ -307,5 +307,26 @@ for (const w of [lmsWar, slot2]) await admin(`tradeWars/${w}?updateMask.fieldPat
 r = await call('tw_join', { warId: slotWar });
 ok(r.charged === 0 && (await getDoc(doc(db, 'tradeWars', slotWar))).data().players.includes(troll.uid), 'finished and cancelled battles free their slots');
 
+// --- Rematch (Phase 9, F19 / S8): challenge the same opponents again with edited settings; one per player, old battle untouched
+const oldWar = 'rematchold12';
+const foe = 'rematchFoe0001';
+await seed('tradeWars/' + oldWar, { name: 'Old fight', host: troll.uid, status: 'ended', players: [troll.uid, foe], names: { [troll.uid]: 'Troll', [foe]: 'Foe' }, buyIn: 1000, days: 1, maxPlayers: 2, rules: {}, modes: {}, results: [] });
+const oldBefore = JSON.stringify((await adminGet('tradeWars/' + oldWar)).fields);
+await admin('wallets/' + troll.uid, { balance: { integerValue: 30 } });
+const ask = { warId: oldWar, name: 'Old fight rematch', buyIn: 1000, days: 3, lms: { floorPct: 10 }, extraSlot: true };
+const [rm1, rm2] = await Promise.all([call('tw_rematch', ask), call('tw_rematch', ask)]);
+ok(rm1.warId && rm1.warId === rm2.warId && [rm1.again, rm2.again].filter(Boolean).length === 1, 'a double tap makes one rematch');
+const rmw = (await getDoc(doc(db, 'tradeWars', rm1.warId))).data();
+ok(rmw.status === 'lobby' && rmw.rematchOf === oldWar && rmw.invited.join() === foe && rmw.days === 3 && rmw.lms.floorPct === 10 && rmw.name === 'Old fight rematch', 'it is a new match challenging the same opponent, with the edited settings');
+ok(JSON.stringify((await adminGet('tradeWars/' + oldWar)).fields) === oldBefore, 'the old battle is untouched');
+ok((await getDoc(doc(db, 'tradeWars', oldWar, 'rematches', troll.uid))).data().warId === rm1.warId, 'the room can find your rematch');
+r = await call('tw_rematch', ask);
+ok(r.again && r.warId === rm1.warId && r.charged === 0, 'asking again opens the same rematch and charges nothing');
+re1 = null; try { await call('tw_rematch', { ...ask, warId: slotWar }); } catch (x) { re1 = x; }
+ok(re1 && /once this battle has ended/.test(re1.message), 'no rematch before a battle ends');
+await seed('tradeWars/rematchnot12', { name: 'Not mine', host: foe, status: 'ended', players: [foe, 'rematchFoe0002'], buyIn: 1000, days: 1, maxPlayers: 2, rules: {}, modes: {} });
+re1 = null; try { await call('tw_rematch', { ...ask, warId: 'rematchnot12' }); } catch (x) { re1 = x; }
+ok(re1 && /Only the players/.test(re1.message), 'only its players can ask for a rematch');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

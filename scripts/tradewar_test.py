@@ -606,3 +606,32 @@ class Revive(unittest.TestCase):
         before = (repr(war), repr(acct))
         m.tw_revive_fields(war, acct, "a", T0)
         self.assertEqual(before, (repr(war), repr(acct)))
+
+
+class Rematch(unittest.TestCase):
+    """tw_rematch_target: who a rematch challenges (Phase 9, F19 / S8)."""
+    PLAYERS = ["playerAAA1", "playerBBB2", "playerCCC3"]
+
+    def war(self, **kw):
+        w = {"status": "ended", "players": list(self.PLAYERS), "squadId": None}
+        w.update(kw)
+        return w
+
+    def test_challenges_everyone_else(self):
+        self.assertEqual(m.tw_rematch_target(self.war(), "playerAAA1"), {"to": ["playerBBB2", "playerCCC3"]})
+
+    def test_a_squad_match_challenges_the_squad_again(self):
+        self.assertEqual(m.tw_rematch_target(self.war(squadId="abcdefghijkm"), "playerBBB2"), {"squadId": "abcdefghijkm"})
+
+    def test_only_players_of_a_finished_battle(self):
+        for war, uid in ((self.war(), "outsider99"), (None, "playerAAA1"), (self.war(status="active"), "playerAAA1"),
+                         (self.war(status="lobby"), "playerAAA1"), (self.war(status="cancelled"), "playerAAA1"),
+                         (self.war(players=["playerAAA1"]), "playerAAA1")):
+            with self.assertRaises(m.TWError, msg=repr((war, uid))):
+                m.tw_rematch_target(war, uid)
+
+    def test_the_old_battle_is_not_changed(self):
+        w = self.war()
+        before = repr(w)
+        m.tw_rematch_target(w, "playerAAA1")
+        self.assertEqual(before, repr(w))
