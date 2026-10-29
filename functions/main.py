@@ -4604,10 +4604,11 @@ def notify_wants(prefs, kind):
     return ((prefs or {}).get("types") or {}).get(kind) is not False
 
 
-def notify_users(db, uids, kind, title, body, path, tag, action=None):
+def notify_users(db, uids, kind, title, body, path, tag, action=None, push=True):
     """Inbox + push for each uid. Never raises: a notification must never break the action that caused it.
     action (optional): what the bell can do inline, e.g. {"type": "invite", "code": ...} (Accept in
-    the app) or {"type": "tw", "id": twInviteId} (Accept / Decline a Trade War challenge)."""
+    the app) or {"type": "tw", "id": twInviteId} (Accept / Decline a Trade War challenge).
+    push=False: the bell only (War quiet hours)."""
     sent, now_ms = 0, int(_time.time() * 1000)
     for uid in dict.fromkeys(u for u in (uids or []) if u):
         try:
@@ -4617,7 +4618,7 @@ def notify_users(db, uids, kind, title, body, path, tag, action=None):
             if isinstance(action, dict):
                 item["action"] = action
             uref.collection("inbox").add(item)
-            if not notify_wants((u.to_dict() or {}).get("notificationPrefs") if u.exists else None, kind):
+            if not push or not notify_wants((u.to_dict() or {}).get("notificationPrefs") if u.exists else None, kind):
                 continue
             toks = [(x.id, (x.to_dict() or {}).get("token")) for x in db.collection("pushTokens").where("uid", "==", uid).stream()]
             toks = [t for t in toks if t[1]]
@@ -7138,20 +7139,24 @@ def war_market_pass(db, now_ms, rng=None):
         if first and phase != "over":
             war_chaos_notify(db, chaos, phase, now_ms)
     war_morning_summaries(db, now_ms)
+    war_lobby_pass(db, now_ms)
     return minutes
 
 
-def war_notify(db, players, title, body, line, tag, now_ms):
+def war_notify(db, players, title, body, line, tag, now_ms, path="app/war", action=None, bell_when_quiet=False):
     """A War notification to [(uid, quiet hours)]: a push and the bell now, or, for anyone in
-    their quiet hours, a line in their morning summary instead (§22). Never raises."""
+    their quiet hours, a line in their morning summary instead (§22), plus the bell without a
+    push when bell_when_quiet (e.g. an invite they can answer later). Never raises."""
     sent = 0
     for uid, quiet in players:
         try:
             ends = WM.quiet_ends_at(quiet, now_ms)
             if ends:
                 db.collection("warProfiles").document(uid).update({"overnight": firestore.ArrayUnion([line]), "summaryAt": ends})
+                if bell_when_quiet:
+                    notify_users(db, [uid], "war", title, body, path, tag, action=action, push=False)
             else:
-                sent += notify_users(db, [uid], "war", title, body, "app/war", tag)
+                sent += notify_users(db, [uid], "war", title, body, path, tag, action=action)
         except Exception as e:
             print("[war] notify failed: %s" % type(e).__name__)
     return sent
@@ -7268,3 +7273,150 @@ def war_trade(req, db, uid, now_ms):
         return prof, fill
     prof, fill = txn(db.transaction())
     return {"fill": fill, "profile": prof}
+
+
+# ---------------------------------------------------------------- private Wars: the lobby (W3)
+# functions/warlobby.py has the rules. One callable for every lobby action (fewer functions to
+# deploy). wars/{id} is written here only; its players and the people invited can read it.
+import warlobby as WL  # noqa: E402
+
+
+def _war_quiet_of(db, uids):
+    out = []
+    for uid in uids:
+        snap = db.collection("warProfiles").document(uid).get()
+        out.append((uid, (snap.to_dict() or {}).get("quiet") if snap.exists else None))
+    return out
+
+
+def _war_open_count(db, uid):
+    return sum(1 for s in db.collection("wars").where("players", "array_contains", uid).select(["status"]).stream()
+               if (s.to_dict() or {}).get("status") in ("lobby", "active"))
+
+
+def _war_announce(db, before, war, wid, now_ms):
+    """Tell the players when a War starts or is cancelled (simulated, quiet hours respected)."""
+    name = war.get("name") or "Your War"
+    if before.get("status") == "lobby" and war.get("status") == "active":
+        others = [p for p in war["players"]]
+        body = "%d players, %d day%s. Prices in the War zone are simulated." % (len(war["players"]), war["days"], "" if war["days"] == 1 else "s")
+        war_notify(db, _war_quiet_of(db, others), "%s has started" % name, body, "%s started." % name, "war-" + wid, now_ms, path="app/war/" + wid)
+        for uid in war.get("dropped") or []:
+            war_notify(db, _war_quiet_of(db, [uid]), "%s started without you" % name, "You weren't ready by the lobby deadline.",
+                       "%s started without you." % name, "war-" + wid, now_ms, path="app/war/" + wid)
+    elif before.get("status") == "lobby" and war.get("status") == "cancelled" and war.get("why") != "never-opened":
+        why = "Not enough players were ready by the deadline." if war.get("why") == "not-enough-players" else "The organizer cancelled it."
+        war_notify(db, _war_quiet_of(db, [p for p in war["players"] if p != war["organizer"] or war.get("why") != "organizer"]),
+                   "%s was cancelled" % name, why, "%s was cancelled." % name, "war-" + wid, now_ms, path="app/war/" + wid)
+
+
+# war_lobby {action, warId?, ...} -> {warId, war}
+#   create {name, days, lobbyHours, maxPlayers}   a draft War, you as organizer
+#   config {warId, name, days, lobbyHours, maxPlayers} / open {warId}   while it's a draft
+#   invite {warId, username}   the organizer invites a friend (they get a bell card)
+#   join / decline {warId}     answer an invite
+#   ready {warId, ready}       lock in, or step back
+#   leave / cancel / start {warId}
+@https_fn.on_call()
+@_war_call
+def war_lobby(req, db, uid, now_ms):
+    data = req.data if isinstance(req.data, dict) else {}
+    action = data.get("action")
+    name = _tw_name(db, uid, req.auth.token)
+    if action == "create":
+        cfg = WL.validate_config(data)
+        if _war_open_count(db, uid) >= WL.MAX_OPEN:
+            raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
+        ref = db.collection("wars").document()
+        war = WL.new_war(uid, name, cfg, now_ms)
+        ref.set(WL.stored(war))
+        return {"warId": ref.id, "war": war}
+    wid = str(data.get("warId") or "")
+    if not _re.match(r"^[A-Za-z0-9]{10,40}$", wid):
+        raise WM.WarError("INVALID_ARGUMENT", "That War isn't valid.")
+    to = None
+    if action == "invite":
+        uname = str(data.get("username") or "").strip().lstrip("@").lower()
+        if not INV.USERNAME_RE.match(uname):
+            raise WM.WarError("INVALID_ARGUMENT", "Type their Zelos username, like @trader_jo.")
+        u = db.collection("usernames").document(uname).get()
+        to = (u.to_dict() or {}).get("uid") if u.exists else None
+        if not to:
+            raise WM.WarError("NOT_FOUND", "Nobody on Zelos has the username @%s." % uname)
+        if to in blocked_of(db, uid) or uid in blocked_of(db, to):
+            raise WM.WarError("FAILED_PRECONDITION", "You can't invite @%s." % uname)
+        if not WAR_OPEN and not db.collection("admins").document(to).get().exists:
+            raise WM.WarError("FAILED_PRECONDITION", "@%s can't enter the War zone yet: it's still being built." % uname)
+    elif action == "join" and _war_open_count(db, uid) >= WL.MAX_OPEN:
+        raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
+    ref = db.collection("wars").document(wid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if not snap.exists:
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        before = snap.to_dict()
+        if uid not in before.get("players", []) and uid not in before.get("invited", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        war = WL.at_deadline(before, now_ms)
+        if war is before:
+            if action == "config":
+                war = WL.configure(before, uid, WL.validate_config(data), now_ms)
+            elif action == "open":
+                war = WL.open_lobby(before, uid, now_ms)
+            elif action == "invite":
+                war = WL.invite(before, uid, to, now_ms)
+            elif action == "join":
+                war = WL.join(before, uid, name, now_ms)
+            elif action == "decline":
+                war = WL.decline(before, uid, now_ms)
+            elif action == "ready":
+                war = WL.set_ready(before, uid, data.get("ready") is True, now_ms)
+            elif action == "leave":
+                war = WL.leave(before, uid, now_ms)
+            elif action == "cancel":
+                war = WL.cancel(before, uid, now_ms)
+            elif action == "start":
+                war = WL.start(before, uid, now_ms)
+            else:
+                raise WM.WarError("INVALID_ARGUMENT", "Unknown War action.")
+        t.set(ref, WL.stored(war))
+        return before, war
+    before, war = txn(db.transaction())
+    if action == "invite" and war.get("invited") and to in war["invited"]:
+        wname = war.get("name") or "a War"
+        war_notify(db, _war_quiet_of(db, [to]), "%s invited you to a War" % name,
+                   "%s: %d day%s, up to %d players. Prices in the War zone are simulated." % (wname, war["days"], "" if war["days"] == 1 else "s", war["maxPlayers"]),
+                   "%s invited you to %s." % (name, wname), "war-inv-" + wid, now_ms, path="app/war/" + wid,
+                   action={"type": "war", "id": wid}, bell_when_quiet=True)
+    elif action == "join" and war.get("status") == "lobby":
+        war_notify(db, _war_quiet_of(db, [war["organizer"]]), "%s joined %s" % (name, war.get("name") or "your War"),
+                   "%d of %d players are in." % (len(war["players"]), war["maxPlayers"]), "%s joined %s." % (name, war.get("name") or "your War"),
+                   "war-" + wid, now_ms, path="app/war/" + wid)
+    _war_announce(db, before, war, wid, now_ms)
+    if before.get("status") == "lobby" and war.get("status") != "lobby" and action not in ("start", "cancel"):
+        raise WM.WarError("FAILED_PRECONDITION", "The lobby deadline has passed.")
+    return {"warId": wid, "war": war}
+
+
+def war_lobby_pass(db, now_ms):
+    """Lobby deadlines (start with who's ready, or cancel) and Wars reaching their end."""
+    n = 0
+    for snap in db.collection("wars").where("due", "<=", now_ms).limit(100).stream():
+        ref = snap.reference
+
+        @firestore.transactional
+        def txn(t):
+            s2 = ref.get(transaction=t)
+            before = s2.to_dict() or {}
+            war = WL.at_end(WL.at_deadline(before, now_ms), now_ms)
+            t.set(ref, WL.stored(war))
+            return before, war
+        try:
+            before, war = txn(db.transaction())
+            _war_announce(db, before, war, ref.id, now_ms)
+            n += 1
+        except Exception as e:
+            print("[war] lobby pass failed for one War: %s" % type(e).__name__)
+    return n

@@ -1,8 +1,9 @@
 /**
  * Invitation cards in the bell (Phase 8, N-R2): coaching, battle, team-up and friend invites
- * and Trade War challenges each show who sent it, what it is, and that flow's own actions.
- * They stay separate flows: invite links (invites/{code}, invite_accept) and challenges
- * (twInvites/{id}, tw_respond). The server decides everything; this only shows and calls.
+ * Trade War challenges and private War invites each show who sent it, what it is, and that flow's
+ * own actions. They stay separate flows: invite links (invites/{code}, invite_accept), challenges
+ * (twInvites/{id}, tw_respond) and Wars (wars/{id}, war_lobby). The server decides everything;
+ * this only shows and calls.
  */
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -12,6 +13,8 @@ import { parseBattle } from '../features/battles/battle';
 import { modeLines } from '../features/battles/parts';
 import { useSlotGate } from '../features/battles/slots';
 import { acceptInvite, errorText, respondChallenge, useInvite, type InviteKind } from '../features/invites/invites';
+import { useWar, warLobby } from '../features/war/lobby';
+import { useAuth } from '../lib/auth';
 import { formatMoney } from '../lib/format';
 import { t, type MessageKey } from '../lib/i18n';
 import { useNow } from '../lib/useNow';
@@ -19,10 +22,11 @@ import { Badge, Button, Icon, type IconName } from '../ui';
 import type { InboxAction } from './useInbox';
 import s from './Shell.module.css';
 
-type Kind = InviteKind | 'challenge';
+type Kind = InviteKind | 'challenge' | 'war';
 const KIND: Record<Kind, { icon: IconName; label: MessageKey; accept: MessageKey }> = {
   battle: { icon: 'war', label: 'card.kind.battle', accept: 'card.accept.battle' },
   challenge: { icon: 'war', label: 'card.kind.challenge', accept: 'bell.accept' },
+  war: { icon: 'war', label: 'card.kind.war', accept: 'warl.join' },
   squad: { icon: 'social', label: 'card.kind.squad', accept: 'card.accept.squad' },
   coach: { icon: 'missions', label: 'card.kind.coach', accept: 'card.accept.coach' },
   join: { icon: 'invite', label: 'card.kind.join', accept: 'bell.accept' },
@@ -65,6 +69,7 @@ function Card({ view, children }: { view: View; children?: React.ReactNode }) {
 }
 
 export function InviteCard({ action, onClose }: { action: InboxAction; onClose: () => void }) {
+  if (action.type === 'war') return <WarInvite id={action.id} onClose={onClose} />;
   return action.type === 'invite' ? <LinkInvite code={action.code} onClose={onClose} /> : <Challenge id={action.id} />;
 }
 
@@ -170,6 +175,58 @@ function Challenge({ id }: { id: string }) {
         <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(false)}>
           {t('bell.decline')}
         </Button>
+        {error && (
+          <p className={s.inviteError} role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/** A private War invite (war_lobby): Join or Decline here; the War's page has the rest. */
+function WarInvite({ id, onClose }: { id: string; onClose: () => void }) {
+  const { user } = useAuth();
+  const w = useWar(id);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (w.status === 'loading') return null;
+  if (w.status !== 'ready' || !w.data) return <p className={s.notifDone}>{t('land.missing')}</p>;
+  const war = w.data;
+  const uid = user?.uid ?? '';
+  const joined = war.players.includes(uid);
+  const view: View = {
+    kind: 'war',
+    who: war.names[war.organizer] ?? 'A friend',
+    username: null,
+    what: t('card.war.what', { name: war.name, days: days(war.days) }),
+    modes: [],
+    closed: joined ? 'bell.accepted' : war.status !== 'lobby' ? 'land.expired' : !war.invited.includes(uid) ? 'bell.declined' : null,
+  };
+  async function run(join: boolean) {
+    setBusy(true);
+    setError(null);
+    try {
+      await warLobby({ action: join ? 'join' : 'decline', warId: id }); // the card follows wars/{id}
+    } catch (e) {
+      setError(errorText(e, t('land.failed')));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Card view={view}>
+      <div className={s.notifActions}>
+        <Button size="sm" variant="primary" disabled={busy} onClick={() => void run(true)}>
+          {t('warl.join')}
+        </Button>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(false)}>
+          {t('bell.decline')}
+        </Button>
+        <Link className={s.inviteMore} to={`/war/${id}`} onClick={onClose}>
+          {t('card.details')}
+        </Link>
         {error && (
           <p className={s.inviteError} role="alert">
             {error}

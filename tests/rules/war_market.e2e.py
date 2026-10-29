@@ -95,4 +95,23 @@ ok(len(sl) == 1 and sl[0]["title"] == "Your War zone morning summary" and sl[0][
 ok("overnight" not in sp and "summaryAt" not in sp, "and the summary is cleared")
 main.war_market_pass(db, B + 300 * M, random.Random(10))
 ok(len(inbox("warSleep01")) == 1, "it isn't sent twice")
+
+# ---- private War deadlines (W3): the same job starts or cancels lobbies at their deadline, and ends Wars
+WL = main.WL
+now = B + 301 * M
+base = dict(WL.new_war("warAwake01", "Ann", {"name": "Deadline War", "days": 1, "lobbyHours": 1, "maxPlayers": 4}, now - 2 * 3600 * 1000))
+w1 = WL.open_lobby(base, "warAwake01", now - 2 * 3600 * 1000)
+w1 = dict(w1, players=["warAwake01", "warSleep01", "warLate01"], ready={"warAwake01": True, "warSleep01": True, "warLate01": False})
+w2 = WL.open_lobby(base, "warAwake01", now - 2 * 3600 * 1000)
+db.collection("wars").document("deadlineWar01").set(WL.stored(w1))
+db.collection("wars").document("deadlineWar02").set(WL.stored(w2))
+main.war_market_pass(db, now, random.Random(11))
+a = db.collection("wars").document("deadlineWar01").get().to_dict()
+ok(a["status"] == "active" and a["players"] == ["warAwake01", "warSleep01"] and a["dropped"] == ["warLate01"] and a["due"] == a["endsAt"],
+   "at the lobby deadline a War starts with the players who are ready")
+b = db.collection("wars").document("deadlineWar02").get().to_dict()
+ok(b["status"] == "cancelled" and b["why"] == "not-enough-players" and "due" not in b, "and one without 2 ready players is cancelled")
+ok(any(n["title"] == "Deadline War has started" for n in inbox("warAwake01")), "the players are told it started")
+main.war_market_pass(db, a["endsAt"] + M, random.Random(12))
+ok(db.collection("wars").document("deadlineWar01").get().to_dict()["status"] == "ended", "and it ends after its days")
 print("\n%d War zone market checks passed" % passed)

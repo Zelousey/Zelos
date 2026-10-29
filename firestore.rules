@@ -332,6 +332,12 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if false;
     }
+    // Private Wars (W3): written by the server only; its players and the people invited can read it.
+    match /wars/{warId} {
+      allow read: if request.auth != null
+        && (request.auth.uid in resource.data.players || request.auth.uid in resource.data.invited);
+      allow write: if false;
+    }
     match /warProfiles/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;

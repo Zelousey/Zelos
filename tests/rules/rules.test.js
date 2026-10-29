@@ -299,6 +299,20 @@ test('War zone: prices for anyone signed in, the engine for nobody, a War profil
   await assertFails(setDoc(doc(real('alice').firestore(), 'warProfiles/alice'), { cash: 1e9 }));
 });
 
+test('private Wars: its players and the people invited can read it; nobody writes it', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'wars/w1'), { status: 'lobby', players: ['alice'], invited: ['bob'], name: 'Sector clash' });
+  });
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'wars/w1')));
+  await assertSucceeds(getDoc(doc(real('bob').firestore(), 'wars/w1'))); // invited: can see what they're invited to
+  await assertFails(getDoc(doc(real('carol').firestore(), 'wars/w1')));
+  await assertSucceeds(getDocs(query(collection(real('alice').firestore(), 'wars'), where('players', 'array-contains', 'alice'))));
+  await assertSucceeds(getDocs(query(collection(real('bob').firestore(), 'wars'), where('invited', 'array-contains', 'bob'))));
+  await assertFails(getDocs(collection(real('carol').firestore(), 'wars')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'wars/w1'), { status: 'active', players: ['alice'], invited: [] }));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'wars/w2'), { status: 'lobby', players: ['alice'], invited: [] }));
+});
+
 (async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-zelos',

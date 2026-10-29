@@ -9,7 +9,7 @@ import { db } from '../lib/firebase';
 
 const EMPTY: InboxItem[] = [];
 
-export type InboxAction = { type: 'invite'; code: string } | { type: 'tw'; id: string };
+export type InboxAction = { type: 'invite'; code: string } | { type: 'tw'; id: string } | { type: 'war'; id: string };
 export type InboxItem = { id: string; kind: string; title: string; body: string; link?: string; at: number; read: boolean; action?: InboxAction };
 
 /** What the bell can do inline (server-written; anything unexpected is ignored). */
@@ -17,6 +17,7 @@ export function parseAction(v: unknown): InboxAction | undefined {
   const a = v as { type?: unknown; code?: unknown; id?: unknown } | null;
   if (a?.type === 'invite' && typeof a.code === 'string' && /^[A-Za-z0-9]{10}$/.test(a.code)) return { type: 'invite', code: a.code };
   if (a?.type === 'tw' && typeof a.id === 'string' && /^[A-Za-z0-9]{10,40}$/.test(a.id)) return { type: 'tw', id: a.id };
+  if (a?.type === 'war' && typeof a.id === 'string' && /^[A-Za-z0-9]{10,40}$/.test(a.id)) return { type: 'war', id: a.id }; // a private War invite
   return undefined;
 }
 

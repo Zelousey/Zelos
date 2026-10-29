@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { mapSize, parseWar } from './lobby';
 import { chaosNow, chartBars, COMPANIES, HOT_MS, parseBars, parseChaos, parseProfile, parseQuotes, QUIET_MAX_MIN, quietLength, SECTORS, warEquity } from './war';
 
 describe('War zone', () => {
@@ -49,5 +50,17 @@ describe('War zone', () => {
     expect(quietLength({ start: 1320, end: 495 }) > QUIET_MAX_MIN).toBe(true);
     expect(parseProfile({ quiet: { start: 1320, end: 480, tz: 'Europe/London' } }).quiet).toEqual({ start: 1320, end: 480, tz: 'Europe/London' });
     expect(parseProfile({ quiet: { start: 'x' } }).quiet).toBeNull();
+  });
+  it('reads a private War and sizes its map like the server', () => {
+    expect(parseWar('w1', { status: 'secret' })).toBeNull();
+    const w = parseWar('w1', { status: 'lobby', stage: 'ready', organizer: 'a', players: ['a', 'b', 3], names: { a: 'Ann', b: 7 }, ready: { a: true, b: 'yes' }, invited: ['c'], days: 5 })!;
+    expect(w.players).toEqual(['a', 'b']);
+    expect(w.names).toEqual({ a: 'Ann' });
+    expect(w.ready).toEqual({ a: true, b: false });
+    expect([w.days, w.maxPlayers, w.soldiers]).toEqual([5, 10, 100]);
+    expect([2, 3, 4, 6, 7, 10].map(mapSize)).toEqual([6, 6, 8, 8, 10, 10]);
+    const py = readFileSync(resolve(__dirname, '../../../../functions/warlobby.py'), 'utf8');
+    expect(py).toContain('DAYS = (1, 2, 3, 5, 7)');
+    expect(py).toContain('LOBBY_HOURS = (1, 6, 24)');
   });
 });

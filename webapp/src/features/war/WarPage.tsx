@@ -5,8 +5,7 @@
  * here says "live" (owner D10, §20). Hidden until all of War is built (owner 2026-10-29): it's
  * not in any menu, and anyone the server doesn't let in (not an admin yet) gets "Page not found".
  */
-import { useEffect, useId, useMemo, useState } from 'react';
-import { useAuth } from '../../lib/auth';
+import { useId, useMemo, useState } from 'react';
 import { useNow } from '../../lib/useNow';
 import { formatMoney, formatPercent } from '../../lib/format';
 import { t } from '../../lib/i18n';
@@ -14,7 +13,8 @@ import { readString, writeString } from '../../lib/storage';
 import { Badge, Button, Card, Change, EmptyState, Field, Icon, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
-import NotFoundPage from '../notfound/NotFoundPage';
+import { WarGate } from './Gate';
+import { PrivateWars } from './PrivateWars';
 import {
   browserTz,
   BY_SYM,
@@ -22,7 +22,6 @@ import {
   chartBars,
   clock,
   COMPANIES,
-  openWar,
   QUIET_MAX_MIN,
   QUIET_TIMES,
   QUOTE_MAX_AGE_MS,
@@ -46,22 +45,7 @@ import s from './War.module.css';
 const SEEN = 'zelosWarExplained';
 
 export default function WarPage() {
-  const { user, isReal, ready } = useAuth();
-  const uid = ready && user && isReal ? user.uid : null;
-  const [access, setAccess] = useState<{ uid: string; ok: boolean } | null>(null);
-  useEffect(() => {
-    if (!uid) return;
-    let live = true;
-    openWar()
-      .then(() => live && setAccess({ uid, ok: true }))
-      .catch(() => live && setAccess({ uid, ok: false }));
-    return () => {
-      live = false;
-    };
-  }, [uid]);
-  if (!ready || (uid && access?.uid !== uid)) return <LoadingState rows={6} />;
-  if (!uid || !access?.ok) return <NotFoundPage />;
-  return <WarZone uid={uid} />;
+  return <WarGate>{(uid) => <WarZone uid={uid} />}</WarGate>;
 }
 
 function WarZone({ uid }: { uid: string }) {
@@ -104,6 +88,9 @@ function WarZone({ uid }: { uid: string }) {
               <Holdings p={p} q={q} onPick={setSym} />
             </div>
           )}
+          <div className={s.warsSlot}>
+            <PrivateWars uid={uid} />
+          </div>
           {p && (
             <div className={s.quietSlot}>
               <QuietHours quiet={p.quiet} />
