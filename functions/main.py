@@ -1994,6 +1994,8 @@ def tw_live_fields(war, now_ms):
 def tw_start_fields(war, now_ms, xps=None, rng=None):
     """Fields that start a lobby: Whale vs Minnow roles, then the draft (if on) or the live match."""
     modes, f = war.get("modes") or {}, {}
+    if war.get("ruleset") == "team":
+        f["teams"] = tw_start_teams(war, xps or {})
     if modes.get("whale"):
         whales = tw_whales(war["players"], xps or {})
         f.update({"whales": whales, "shields": {u: modes["whale"]["shields"] for u in war["players"] if u not in whales}})
@@ -2588,7 +2590,10 @@ def _tw_join(db, wid, uid, pname, now_ms, extra=False):
         if len(war["players"]) >= war["maxPlayers"]:
             raise TWError("FAILED_PRECONDITION", "This Trade War is full.")
         pay = _tw_slot_txn(t, db, uid, open_count, extra, now_ms, wid)
-        t.update(war_ref, {"players": war["players"] + [uid], "names.%s" % uid: pname})
+        upd = {"players": war["players"] + [uid], "names.%s" % uid: pname}
+        if war.get("teams") is not None:
+            upd["teams.%s" % uid] = tw_newcomer_team(war["teams"])
+        t.update(war_ref, upd)
         t.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, war["buyIn"], now_ms))
         t.set(war_ref.collection("books").document(uid), tw_new_book())
         if pay:
@@ -2618,7 +2623,10 @@ def tw_leave(req, db, uid, now_ms):
             raise TWError("FAILED_PRECONDITION", "The host can cancel the Trade War instead of leaving.")
         names = dict(war.get("names") or {})
         names.pop(uid, None)
-        t.update(war_ref, {"players": [p for p in war["players"] if p != uid], "names": names})
+        upd = {"players": [p for p in war["players"] if p != uid], "names": names}
+        if war.get("teams") is not None:
+            upd["teams"] = {u: tm for u, tm in war["teams"].items() if u != uid}
+        t.update(war_ref, upd)
         t.delete(war_ref.collection("accounts").document(uid))
         t.delete(war_ref.collection("books").document(uid))
 
@@ -2644,7 +2652,7 @@ def tw_start(req, db, uid, now_ms):
             raise TWError("FAILED_PRECONDITION", "This Trade War has already started.")
         if len(war["players"]) < 2:
             raise TWError("FAILED_PRECONDITION", "You need at least one opponent. Share the invite link first.")
-        xps = _tw_xps(db, war["players"]) if (war.get("modes") or {}).get("whale") else {}
+        xps = _tw_xps(db, war["players"]) if (war.get("modes") or {}).get("whale") or war.get("ruleset") == "team" else {}
         fields = tw_start_fields(war, now_ms, xps)
         t.update(war_ref, fields)
         for ev in _tw_start_events(war, fields, now_ms):
@@ -2656,6 +2664,46 @@ def tw_start(req, db, uid, now_ms):
     notify_users(db, [p for p in w.get("players") or [] if p != uid], "battles", "%s has started" % (w.get("name") or "Your Trade War"),
                  "The clock is running: %d day%s. Good luck." % (w.get("days") or 0, "" if w.get("days") == 1 else "s"), "practice/war.html?w=" + wid, "war-" + wid)
     return {"ok": True}
+
+
+# tw_teams {warId, action: "balance" | "swap", uid?} -> {teams}
+# Team Cooperation lobby (Phase 10c): the host makes the two teams (balanced by XP) and can move
+# a player to the other team before the battle starts. Players who join later go to the smaller
+# team; at the start, missing players are added and an empty team is rebalanced (tw_start_teams).
+@https_fn.on_call()
+@_tw_call
+def tw_teams(req, db, uid, now_ms):
+    data = req.data or {}
+    war_ref = db.collection("tradeWars").document(_tw_war_id(data))
+    action, who = data.get("action"), data.get("uid")
+    if action not in ("balance", "swap"):
+        raise TWError("INVALID_ARGUMENT", "Pick balance or swap.")
+    snap0 = war_ref.get()
+    xps = _tw_xps(db, (snap0.to_dict() or {}).get("players") or []) if snap0.exists and action == "balance" else {}
+
+    @firestore.transactional
+    def txn(t):
+        snap = war_ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war:
+            raise TWError("NOT_FOUND", "That Trade War doesn't exist.")
+        if war.get("host") != uid:
+            raise TWError("PERMISSION_DENIED", "Only the host can make the teams.")
+        if war.get("ruleset") != "team":
+            raise TWError("FAILED_PRECONDITION", "Only Team Cooperation battles have teams.")
+        if war["status"] != "lobby":
+            raise TWError("FAILED_PRECONDITION", "Teams are locked once the battle starts.")
+        if action == "balance":
+            teams = tw_balance_teams(war["players"], xps)
+        else:
+            teams = dict(war.get("teams") or tw_balance_teams(war["players"], xps))
+            if who not in war["players"]:
+                raise TWError("INVALID_ARGUMENT", "That player isn't in this battle.")
+            teams[who] = "B" if teams.get(who) == "A" else "A"
+        t.update(war_ref, {"teams": teams})
+        return teams
+
+    return {"teams": txn(db.transaction())}
 
 
 @https_fn.on_call()
@@ -3143,6 +3191,8 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
                      "pnlPct": a["pnlPct"], "trades": a.get("trades", 0), "wins": a.get("wins", 0), "losses": a.get("losses", 0),
                      "out": bool(a.get("out")), "outReason": a.get("outReason"), "place": a.get("place")} for uid, a in accts.items()]
             update.update({"status": "ended", "results": tw_rank(rows), "endedAt": now_ms, "rewardsPaid": False})
+            if war.get("ruleset") == "team" and war.get("teams"):
+                update["teamResults"] = tw_team_results(rows, war["teams"])
             win = update["results"][0] if update["results"] else None
             if win:
                 events.append(tw_event("win", "%s wins the Trade War (%+.2f%%)" % (win["name"] or "Trader", win["pnlPct"]), now_ms, uid=win["uid"]))
@@ -3345,8 +3395,10 @@ def tw_validate_challenge(data, uid):
 # started. "ffa" Free-for-all (classic rules), "draft" Fantasy Draft (the snake draft; owner
 # 2026-10-29: 3 picks, 45 s, no ban round by default), "lms" Last Man Standing whose rules are
 # checked once a day at the market close (owner 2026-10-29, Q14: a dip during the day doesn't
-# knock anyone out). Team Cooperation comes next. A battle without one plays exactly as before.
-TW_RULESETS = ("ffa", "draft", "lms")
+# knock anyone out), "team" Team Cooperation (owner Q17: two teams balanced by XP that the host
+# can swap, scored by their players' average % return; teammates see each other's trades).
+# A battle without one plays exactly as before.
+TW_RULESETS = ("ffa", "draft", "lms", "team")
 TW_CLOSE_MIN = 16 * 60  # 4:00 pm New York: the squad Last Man Standing check
 
 
@@ -3367,6 +3419,10 @@ def tw_validate_ruleset(data, squad_id, lms, modes):
         return r
     if lms:
         raise TWError("INVALID_ARGUMENT", "Last Man Standing rules don't go with this ruleset.")
+    if r == "team":
+        if "draft" in modes:
+            raise TWError("INVALID_ARGUMENT", "Team Cooperation doesn't use the draft.")
+        return r
     if (r == "draft") != ("draft" in modes):
         raise TWError("INVALID_ARGUMENT", "Fantasy Draft needs the draft on, and Free-for-all needs it off.")
     return r
@@ -3394,6 +3450,45 @@ def tw_elim_now(war, close_day):
     if war.get("ruleset") == "lms" and not close_day:
         return {k: v for k, v in lms.items() if k == "cutHours"}
     return lms
+
+
+def tw_balance_teams(players, xps):
+    """Team Cooperation: two teams balanced by XP. Players by XP (highest first) go A, B, B, A,
+    A, B, ... so each team gets a share of the strongest; returns {uid: "A" | "B"}."""
+    order = sorted(players, key=lambda u: (-(xps.get(u) or 0), u))
+    pattern = ("A", "B", "B", "A")
+    return {u: pattern[i % 4] for i, u in enumerate(order)}
+
+
+def tw_newcomer_team(teams):
+    """The team someone joining after the teams were made goes to: the smaller one (A on a tie)."""
+    a = sum(1 for t in teams.values() if t == "A")
+    return "A" if a <= len(teams) - a else "B"
+
+
+def tw_start_teams(war, xps):
+    """The teams a Team Cooperation battle starts with: the host's (with anyone missing added
+    to the smaller team), or balanced by XP if there are none yet or one team is empty."""
+    players = war["players"]
+    teams = {u: t for u, t in (war.get("teams") or {}).items() if u in players and t in ("A", "B")}
+    for u in players:
+        if u not in teams:
+            teams[u] = tw_newcomer_team(teams)
+    if len(set(teams.values())) < 2:
+        teams = tw_balance_teams(players, xps)
+    return teams
+
+
+def tw_team_results(rows, teams):
+    """Each team's average % return (owner Q17) and the winner (None on a tie)."""
+    out = []
+    for t in ("A", "B"):
+        pcts = [r["pnlPct"] for r in rows if teams.get(r["uid"]) == t]
+        if pcts:
+            out.append({"team": t, "avgPct": round(sum(pcts) / len(pcts), 2), "players": len(pcts)})
+    best = sorted(out, key=lambda x: -x["avgPct"])
+    winner = best[0]["team"] if len(best) == 2 and best[0]["avgPct"] != best[1]["avgPct"] else None
+    return {"teams": out, "winner": winner}
 
 
 def tw_squad_rules(config):
@@ -3597,6 +3692,8 @@ def tw_respond(req, db, uid, now_ms):
                 pay()
                 paid = True
             upd = {"players": war["players"] + [uid], "names.%s" % uid: pname}
+            if war.get("teams") is not None:
+                upd["teams.%s" % uid] = tw_newcomer_team(war["teams"])
             started = None
             if war.get("mode") == "duel":
                 w2 = dict(war, players=upd["players"], names=dict(war.get("names") or {}, **{uid: pname}))

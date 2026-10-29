@@ -267,6 +267,20 @@ test('tradeWars rematches: you read only your own rematch link, and nobody write
   await assertFails(setDoc(doc(real('alice').firestore(), 'tradeWars/war333333333/rematches/alice'), { warId: 'war555555555', at: 2 }));
 });
 
+test('Team Cooperation: teammates read each other\'s trades, the other team can\'t', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'tradeWars/war666666666'), { name: 'Teams', host: 'alice', status: 'active', ruleset: 'team', players: ['alice', 'bob', 'carol', 'dave'], teams: { alice: 'A', bob: 'A', carol: 'B', dave: 'B' } });
+    await setDoc(doc(c.firestore(), 'tradeWars/war666666666/books/bob'), { positions: {}, fills: [] });
+    await setDoc(doc(c.firestore(), 'tradeWars/war777777777'), { name: 'Plain', host: 'alice', status: 'active', players: ['alice', 'bob'], teams: { alice: 'A', bob: 'A' } });
+    await setDoc(doc(c.firestore(), 'tradeWars/war777777777/books/bob'), { positions: {}, fills: [] });
+  });
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'tradeWars/war666666666/books/bob')));
+  await assertFails(getDoc(doc(real('carol').firestore(), 'tradeWars/war666666666/books/bob')));
+  await assertFails(getDoc(doc(real('eve').firestore(), 'tradeWars/war666666666/books/bob')));
+  await assertFails(getDoc(doc(real('alice').firestore(), 'tradeWars/war777777777/books/bob'))); // only Team Cooperation shares
+  await assertFails(setDoc(doc(real('alice').firestore(), 'tradeWars/war666666666/books/bob'), { positions: {}, fills: [] }));
+});
+
 (async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-zelos',

@@ -404,3 +404,52 @@ test('squad Last Man Standing: the rules are checked once a day at the market cl
   await expect(page.getByRole('list').filter({ hasText: 'Everyone starts with' })).toContainText('checked once a day at the market close');
 });
 
+test('Team Cooperation: the host makes XP-balanced teams; scores are team averages; teammates see each other\'s trades (Phase 10c)', async ({ page }, info) => {
+  await page.goto('battles');
+  const uid = await signIn(page, `teams-${info.project.name}${Date.now()}@example.com`);
+  await passBasics(uid);
+  const sq = rid();
+  const mate = `mate${rid()}`;
+  const rival = `rival${rid()}`;
+  await put(`squads/${sq}`, { name: 'Team desk', owner: uid, members: [uid, mate, rival], names: { [uid]: 'Me', [mate]: 'Max', [rival]: 'Rex' }, createdAt: Date.now(), config: {} });
+  await page.goto(`social/${sq}`);
+  await page.getByRole('button', { name: /Start a squad Trade War/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Challenge Team desk' });
+  await sheet.getByText('Team Cooperation', { exact: true }).first().click();
+  await expect(sheet.getByText(/the squad splits into two teams balanced by XP/)).toBeVisible();
+  await sheet.getByLabel('Battle name').fill('Team night');
+  await sheet.getByRole('button', { name: 'Send challenge' }).click();
+  await expect(page).toHaveURL(/\/battles\/[A-Za-z0-9]{12}$/, { timeout: 30_000 });
+  // the lobby: make teams, then move yourself
+  const teams = page.locator('section, div').filter({ has: page.getByRole('heading', { name: 'Teams' }) }).last();
+  await page.getByRole('button', { name: 'Make teams' }).click();
+  await expect(page.getByRole('heading', { name: 'Team A' })).toBeVisible();
+  await page.getByRole('button', { name: /^Move .+ to Team B$/ }).click();
+  await expect(page.getByRole('button', { name: /^Move .+ to Team A$/ })).toBeVisible();
+  await expect(teams).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+
+  // a live team battle: team scores are averages; your teammate's positions show, the other team's don't
+  const now = Date.now();
+  const id = rid();
+  await put(`tradeWars/${id}`, {
+    name: 'Live teams', host: uid, hostName: 'Me', buyIn: 1000, days: 3, maxPlayers: 3, status: 'active', ruleset: 'team', squadId: sq,
+    players: [uid, mate, rival], names: { [uid]: 'Me', [mate]: 'Max', [rival]: 'Rex' }, teams: { [uid]: 'A', [mate]: 'A', [rival]: 'B' },
+    rules: {}, modes: {}, startAt: now - 60_000, endAt: now + 864e5, createdAt: now - 120_000,
+  });
+  await page.addInitScript(() => localStorage.setItem('zelosClashOff', '1'));
+  for (const [u, name, pct] of [[uid, 'Me', 4], [mate, 'Max', -2], [rival, 'Rex', 1.5]] as const)
+    await put(`tradeWars/${id}/accounts/${u}`, { name, start: 1000, cash: 1000, equity: 1000 + pct * 10, pnl: pct * 10, pnlPct: pct });
+  await put(`tradeWars/${id}/books/${mate}`, { positions: { NVDA: { qty: 3, avg: 100 } }, fills: [] });
+  await put(`tradeWars/${id}/books/${rival}`, { positions: { TSLA: { qty: 9, avg: 100 } }, fills: [] });
+  await page.goto(`battles/${id}`);
+  await expect(page.getByText('Team scores', { exact: true })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: /Team A.*player/ })).toContainText('+1.00%'); // (4 - 2) / 2
+  await expect(page.getByRole('listitem').filter({ hasText: /Team B.*player/ })).toContainText('+1.50%');
+  await expect(page.getByText('Your teammates’ trades', { exact: true })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: '3 NVDA' })).toContainText('Max');
+  await expect(page.getByText('9 TSLA')).toHaveCount(0);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/teams-${info.project.name}.png`, fullPage: true });
+  expect(await axe(page)).toEqual([]);
+});
+
