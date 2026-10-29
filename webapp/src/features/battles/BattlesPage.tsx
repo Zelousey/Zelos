@@ -8,7 +8,7 @@ import { Badge, Button, buttonClass, Card, EmptyState, LoadingState, PageHeader,
 import { sortWars, useMyWars } from '../dashboard/social';
 import { clock } from './parts';
 import s from './Battles.module.css';
-import { TradeWarNav } from '../tradewar/TradeWarNav';
+import { BattleKinds, TradeWarNav } from '../tradewar/TradeWarNav';
 
 export default function BattlesPage() {
   const { user, isReal, ready, openSignIn } = useAuth();
@@ -25,6 +25,7 @@ export default function BattlesPage() {
     <>
       <PageHeader title={t('nav.battles')} subtitle={t('bt.listSub')} actions={uid ? start : undefined} />
       <TradeWarNav />
+      <BattleKinds />
       {!ready ? (
         <LoadingState rows={4} />
       ) : !uid ? (

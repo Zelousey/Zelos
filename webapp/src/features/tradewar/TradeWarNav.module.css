@@ -5,3 +5,11 @@
 .link[aria-current='page'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
 /* touch screens: finger-sized (the row scrolls, so a hidden touch area would be clipped) */
 @media (pointer: coarse) { .link { min-height: var(--tap); } }
+.kinds { display: grid; gap: var(--space-3); margin: 0 0 var(--space-5); }
+.kindsTitle { margin: 0; font-size: var(--text-md); font-weight: 600; color: var(--ink); }
+.kindGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.kind { display: grid; gap: 4px; align-content: start; padding: var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); }
+.kind:hover { border-color: var(--accent-line); background: var(--surface-2); }
+.kind b { font-size: var(--text-md); }
+.kind span { color: var(--ink-2); font-size: var(--text-sm); }
+@media (max-width: 560px) { .kindGrid { grid-template-columns: 1fr; } }
