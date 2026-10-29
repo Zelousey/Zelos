@@ -4597,7 +4597,7 @@ def alert_push(db, alert_id, alert):
 # in users/{uid}/inbox (the bell on every page) and, if that kind is switched on in
 # Alerts -> Notifications (users/{uid}.notificationPrefs.types; missing = on), as a
 # push to every device the person turned notifications on for.
-NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price", "minds")
+NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price", "minds", "war")
 
 
 def notify_wants(prefs, kind):
@@ -7097,11 +7097,17 @@ def war_market_pass(db, now_ms, rng=None):
     """One run of the War zone market: step the engine to now (a minute at a time), publish the
     prices, and when a 5-minute bar has started since the last save, save every stock's bars.
     Returns how many minutes it made."""
+    rng = rng or _random.SystemRandom()
     ref = db.collection("warEngine").document("state")
     snap = ref.get()
     state = snap.to_dict() if snap.exists else WM.new_state(now_ms - 60000)
-    state, minutes, closed = WM.step(state, now_ms, rng or _random.SystemRandom())
+    planned = (state.get("chaos") or {}).get("day") != WM.day_key(now_ms)
+    if planned:
+        state["chaos"] = WM.plan_chaos(now_ms, rng)  # today's secret plan, made once
+    state, minutes, closed = WM.step(state, now_ms, rng)
     if not minutes:
+        if planned:
+            ref.set(state)
         return 0
     market = db.collection("warMarket")
     refs = dict(state.get("refs") or {})
@@ -7116,11 +7122,73 @@ def war_market_pass(db, now_ms, rng=None):
             refs[sym] = WM.ref_price(bars, now_ms)
         state["barsAt"] = WM.bar_start(state["t"])
     state["refs"] = refs
+    chaos = state.get("chaos") or {}
+    phase = WM.chaos_phase(chaos, now_ms)
+    shown = "%s:%s" % (chaos.get("day"), phase) if phase else None
+    announce = phase and shown != state.get("chaosShown")
+    if announce:
+        first = not str(state.get("chaosShown") or "").startswith(str(chaos.get("day")) + ":")
+        state["chaosShown"] = shown
     ref.set(state)
     market.document("quotes").set({
         "updatedAt": now_ms, "note": WM.SIM_NOTE,
         "prices": {s: {"p": state["stocks"][s]["p"], "ref": refs.get(s) or WM.BY_SYM[s][3]} for s in WM.SYMS}})
+    if announce:
+        market.document("chaos").set(WM.chaos_public(chaos, phase))
+        if first and phase != "over":
+            war_chaos_notify(db, chaos, phase, now_ms)
+    war_morning_summaries(db, now_ms)
     return minutes
+
+
+def war_notify(db, players, title, body, line, tag, now_ms):
+    """A War notification to [(uid, quiet hours)]: a push and the bell now, or, for anyone in
+    their quiet hours, a line in their morning summary instead (§22). Never raises."""
+    sent = 0
+    for uid, quiet in players:
+        try:
+            ends = WM.quiet_ends_at(quiet, now_ms)
+            if ends:
+                db.collection("warProfiles").document(uid).update({"overnight": firestore.ArrayUnion([line]), "summaryAt": ends})
+            else:
+                sent += notify_users(db, [uid], "war", title, body, "app/war", tag)
+        except Exception as e:
+            print("[war] notify failed: %s" % type(e).__name__)
+    return sent
+
+
+def war_chaos_notify(db, chaos, phase, now_ms):
+    """Tell every War player about today's Chaos event (once): 30 minutes ahead, or now if the
+    warning window was missed."""
+    name = "the whole market" if chaos["scope"] == "all" else WM.SECTOR_NAMES[chaos["scope"]]
+    short = "Everything" if chaos["scope"] == "all" else WM.SECTOR_NAMES[chaos["scope"]]
+    if phase == "warned":
+        title, body = "Chaos incoming: %s in 30 min" % short, "War zone prices for %s are about to swing hard. Simulated prices, not real market data." % name
+    else:
+        title, body = "Chaos now: %s" % short, "War zone prices for %s are swinging hard right now. Simulated prices, not real market data." % name
+    players = [(s.id, (s.to_dict() or {}).get("quiet")) for s in db.collection("warProfiles").select(["quiet"]).stream()]
+    return war_notify(db, players, title, body, "Chaos hit %s in the War zone." % name, "war-chaos-" + chaos["day"], now_ms)
+
+
+def war_morning_summaries(db, now_ms):
+    """Send each player whose quiet hours have ended one notification with what happened
+    overnight (or move it to the end of quiet hours they're still in)."""
+    n = 0
+    for snap in db.collection("warProfiles").where("summaryAt", "<=", now_ms).limit(200).stream():
+        p = snap.to_dict() or {}
+        try:
+            ends = WM.quiet_ends_at(p.get("quiet"), now_ms)
+            if ends:
+                snap.reference.update({"summaryAt": ends})
+                continue
+            body = WM.summary_body(p.get("overnight"))
+            snap.reference.update({"overnight": firestore.DELETE_FIELD, "summaryAt": firestore.DELETE_FIELD})
+            if body:
+                notify_users(db, [snap.id], "war", "Your War zone morning summary", body + " (Simulated War zone.)", "app/war", "war-summary")
+                n += 1
+        except Exception as e:
+            print("[war] summary failed: %s" % type(e).__name__)
+    return n
 
 
 @scheduler_fn.on_schedule(schedule="* * * * *", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=60, memory=256)
@@ -7136,21 +7204,47 @@ def _war_prices(db, now_ms):
     return {s: v["p"] for s, v in (q.get("prices") or {}).items() if isinstance(v, dict) and isinstance(v.get("p"), (int, float))}
 
 
-# war_open {} -> {profile}: your War profile, made with a $100,000 War balance the first time.
+# war_open {tz} -> {profile}: your War profile, made with a $100,000 War balance the first time
+# (and quiet hours of 10 pm-8 am in your time zone, tz from the browser).
 @https_fn.on_call()
 @_war_call
 def war_open(req, db, uid, now_ms):
+    tz = (req.data or {}).get("tz") if isinstance(req.data, dict) else None
     ref = db.collection("warProfiles").document(uid)
 
     @firestore.transactional
     def txn(t):
         snap = ref.get(transaction=t)
         if snap.exists:
-            return snap.to_dict()
-        prof = WM.new_profile(now_ms)
+            prof = snap.to_dict()
+            if not prof.get("quiet"):  # profiles made before quiet hours existed
+                prof["quiet"] = WM.default_quiet(tz)
+                t.update(ref, {"quiet": prof["quiet"]})
+            return prof
+        prof = WM.new_profile(now_ms, tz)
         t.set(ref, prof)
         return prof
     return {"profile": txn(db.transaction())}
+
+
+# war_quiet {start, end, tz} -> {quiet}: your quiet hours (at most 10 hours; start == end = off).
+@https_fn.on_call()
+@_war_call
+def war_quiet(req, db, uid, now_ms):
+    q = WM.validate_quiet(req.data)
+    ref = db.collection("warProfiles").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if not snap.exists:
+            raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
+        upd = {"quiet": q}
+        if (snap.to_dict() or {}).get("overnight"):  # a summary waiting: send it when these quiet hours allow
+            upd["summaryAt"] = WM.quiet_ends_at(q, now_ms) or now_ms
+        t.update(ref, upd)
+    txn(db.transaction())
+    return {"quiet": q}
 
 
 # war_trade {sym, side, qty} -> {fill, profile}: buy or sell whole shares at the War zone price.

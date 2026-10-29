@@ -5,7 +5,8 @@
  *
  *   warMarket/quotes        current prices + the price 24 hours ago (every minute)
  *   warMarket/bars_<SYM>    5-minute bars, the last 7 days
- *   warProfiles/{uid}       your War profile (War balance, positions, balance chart)
+ *   warMarket/chaos         today's Chaos event once it's announced: warned / live / over (W2, §14)
+ *   warProfiles/{uid}       your War profile (War balance, positions, balance chart, quiet hours)
  *
  * Hidden until all of War is built (owner 2026-10-29): only admins can open it for now.
  */
@@ -105,8 +106,53 @@ export function chartBars(raw: Raw[], step: number, live?: number): Bar[] {
   return out;
 }
 
+/** A Chaos event (§14): the server publishes it 30 minutes ahead, never its size or direction. */
+export type WarChaos = { phase: 'warned' | 'live' | 'over'; scope: string; scopeName: string; startsAt: number; endsAt: number | null; syms: string[]; hotUntil: number | null };
+export function parseChaos(d: DocumentData): WarChaos | null {
+  if (!['warned', 'live', 'over'].includes(d.phase) || typeof d.scopeName !== 'string' || typeof d.startsAt !== 'number') return null;
+  return {
+    phase: d.phase,
+    scope: typeof d.scope === 'string' ? d.scope : '',
+    scopeName: d.scopeName.slice(0, 40),
+    startsAt: d.startsAt,
+    endsAt: typeof d.endsAt === 'number' ? d.endsAt : null,
+    syms: (Array.isArray(d.syms) ? d.syms : []).filter((x: unknown): x is string => typeof x === 'string' && !!BY_SYM[x]),
+    hotUntil: typeof d.hotUntil === 'number' ? d.hotUntil : null,
+  };
+}
+/** What to show now: the banner (warned or live, until it ends) and the Hot stocks (live, then a day after). */
+export const HOT_MS = 24 * 3600000;
+export function chaosNow(c: WarChaos | null, now: number): { banner: 'warned' | 'live' | null; hot: Set<string> } {
+  if (!c) return { banner: null, hot: new Set() };
+  const ended = c.phase === 'over' || (c.endsAt != null && now >= c.endsAt);
+  const banner = ended ? null : c.phase === 'live' || now >= c.startsAt ? 'live' : 'warned';
+  const hotTill = c.hotUntil ?? (c.endsAt != null ? c.endsAt + HOT_MS : 0);
+  return { banner, hot: !ended || now < hotTill ? new Set(c.syms) : new Set() };
+}
+
+/** Quiet hours (§22): minutes after midnight in tz; start === end means off. Never longer than 10 hours. */
+export type Quiet = { start: number; end: number; tz: string };
+export const QUIET_MAX_MIN = 600;
+export const quietLength = (q: Pick<Quiet, 'start' | 'end'>) => (((q.end - q.start) % 1440) + 1440) % 1440;
+export const QUIET_TIMES = Array.from({ length: 96 }, (_, i) => i * 15);
+export function clock(min: number): string {
+  return new Date(2000, 0, 1, Math.floor(min / 60), min % 60).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+export const browserTz = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+};
+function parseQuiet(v: unknown): Quiet | null {
+  const q = rec(v);
+  const okMin = (x: unknown) => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x < 1440;
+  return okMin(q.start) && okMin(q.end) && typeof q.tz === 'string' ? { start: q.start as number, end: q.end as number, tz: q.tz } : null;
+}
+
 export type WarPosition = { sym: string; qty: number; avg: number };
-export type WarProfile = { start: number; cash: number; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[] };
+export type WarProfile = { start: number; cash: number; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
 export function parseProfile(d: DocumentData): WarProfile {
   return {
     start: num(d.start, START_BALANCE),
@@ -117,6 +163,7 @@ export function parseProfile(d: DocumentData): WarProfile {
       .sort((a, b) => a.sym.localeCompare(b.sym)),
     trades: num(d.trades),
     createdAt: num(d.createdAt),
+    quiet: parseQuiet(d.quiet),
     chart: (Array.isArray(d.chart) ? d.chart : []).map((x: unknown) => rec(x)).filter((x: Record<string, unknown>) => typeof x.t === 'number' && typeof x.eq === 'number').map((x: Record<string, unknown>) => ({ t: x.t as number, eq: x.eq as number })),
   };
 }
@@ -128,8 +175,10 @@ export function warEquity(p: WarProfile, prices: Record<string, WarQuote>): numb
 
 export const useWarQuotes = () => useLiveDoc('warMarket/quotes', parseQuotes);
 export const useWarBars = (sym: string | null) => useLiveDoc(sym && BY_SYM[sym] ? `warMarket/bars_${sym}` : null, parseBars);
+export const useWarChaos = () => useLiveDoc('warMarket/chaos', parseChaos);
 export const useWarProfile = (uid: string | null) => useLiveDoc(uid ? `warProfiles/${uid}` : null, parseProfile);
 
-export const openWar = () => callFunction<Record<string, never>, { profile: DocumentData }>('war_open', {});
+export const openWar = () => callFunction<{ tz: string }, { profile: DocumentData }>('war_open', { tz: browserTz() });
+export const setQuiet = (q: Quiet) => callFunction<Quiet, { quiet: Quiet }>('war_quiet', q);
 export type WarTradeReq = { sym: string; side: 'buy' | 'sell'; qty: number };
 export const warTrade = (req: WarTradeReq) => callFunction<WarTradeReq, { fill: { price: number; qty: number; pnl: number | null } }>('war_trade', req);

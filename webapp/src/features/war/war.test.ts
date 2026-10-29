@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { chartBars, COMPANIES, parseBars, parseProfile, parseQuotes, SECTORS, warEquity } from './war';
+import { chaosNow, chartBars, COMPANIES, HOT_MS, parseBars, parseChaos, parseProfile, parseQuotes, QUIET_MAX_MIN, quietLength, SECTORS, warEquity } from './war';
 
 describe('War zone', () => {
   it('lists the same made-up companies and sectors as the server (functions/warmarket.py)', () => {
@@ -29,5 +29,25 @@ describe('War zone', () => {
     expect(Object.keys(q.prices)).toEqual(['NIMBC']);
     expect(warEquity(p, q.prices)).toBe(100100);
     expect(warEquity(p, {})).toBe(100000); // no price: valued at cost
+  });
+  it('shows a Chaos warning, then the live banner, then Hot stocks for a day', () => {
+    expect(parseChaos({ phase: 'secret', scopeName: 'Energy', startsAt: 1 })).toBeNull();
+    const warned = parseChaos({ phase: 'warned', scope: 'energy', scopeName: 'Energy', startsAt: 1000, moves: { VOLTX: 0.1 } })!;
+    expect(warned).not.toHaveProperty('moves');
+    expect(chaosNow(warned, 0)).toEqual({ banner: 'warned', hot: new Set() });
+    expect(chaosNow(warned, 1000).banner).toBe('live'); // the start time passed before the next server update
+    const live = parseChaos({ phase: 'live', scope: 'energy', scopeName: 'Energy', startsAt: 1000, endsAt: 5000, syms: ['VOLTX', 'PETRA', 'AAPL'] })!;
+    expect(chaosNow(live, 2000)).toEqual({ banner: 'live', hot: new Set(['VOLTX', 'PETRA']) });
+    expect(chaosNow(live, 5000).banner).toBeNull();
+    const over = parseChaos({ phase: 'over', scope: 'energy', scopeName: 'Energy', startsAt: 1000, endsAt: 5000, syms: ['VOLTX'], hotUntil: 5000 + HOT_MS })!;
+    expect(chaosNow(over, 6000)).toEqual({ banner: null, hot: new Set(['VOLTX']) });
+    expect(chaosNow(over, 5000 + HOT_MS).hot.size).toBe(0);
+  });
+  it('measures quiet hours across midnight and reads them from the profile', () => {
+    expect(quietLength({ start: 1320, end: 480 })).toBe(600);
+    expect(quietLength({ start: 60, end: 360 })).toBe(300);
+    expect(quietLength({ start: 1320, end: 495 }) > QUIET_MAX_MIN).toBe(true);
+    expect(parseProfile({ quiet: { start: 1320, end: 480, tz: 'Europe/London' } }).quiet).toEqual({ start: 1320, end: 480, tz: 'Europe/London' });
+    expect(parseProfile({ quiet: { start: 'x' } }).quiet).toBeNull();
   });
 });

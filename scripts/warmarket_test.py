@@ -112,5 +112,107 @@ class Profiles(unittest.TestCase):
         self.assertEqual(before, repr(p))
 
 
+def utc_ms(y, mo, d, h=0, mi=0):
+    from datetime import datetime, timezone
+    return int(datetime(y, mo, d, h, mi, tzinfo=timezone.utc).timestamp() * 1000)
+
+
+class Chaos(unittest.TestCase):
+    def plans(self, day_ms, n=400):
+        return [W.plan_chaos(day_ms, random.Random(i)) for i in range(n)]
+
+    def test_at_most_one_event_a_day_more_on_weekends(self):
+        weekday = [p for p in self.plans(utc_ms(2026, 10, 29)) if p.get("startsAt")]  # a Thursday
+        weekend = [p for p in self.plans(utc_ms(2026, 10, 31)) if p.get("startsAt")]  # a Saturday
+        self.assertTrue(0.12 < len(weekday) / 400 < 0.28, len(weekday))
+        self.assertTrue(0.4 < len(weekend) / 400 < 0.6, len(weekend))
+
+    def test_event_shape_1_to_3_hours_10_to_20_percent_within_the_day(self):
+        day = utc_ms(2026, 10, 31)
+        for p in self.plans(day):
+            if not p.get("startsAt"):
+                self.assertEqual(p, {"day": "2026-10-31"})
+                continue
+            self.assertTrue(60 <= p["minutes"] <= 180)
+            self.assertEqual(p["endsAt"] - p["startsAt"], p["minutes"] * M)
+            self.assertTrue(day + 30 * M <= p["startsAt"] and p["endsAt"] <= day + 1440 * M)
+            for sym, lm in p["moves"].items():
+                self.assertTrue(p["scope"] in ("all", W.BY_SYM[sym][2]))
+                self.assertTrue(0.079 <= abs(math.exp(lm) - 1) <= 0.241, (sym, lm))
+            n = len(W.SYMS) if p["scope"] == "all" else 3
+            self.assertEqual(len(p["moves"]), n)
+
+    def test_a_late_plan_still_leaves_time_for_the_warning(self):
+        now = utc_ms(2026, 10, 31, 20, 0)
+        for p in self.plans(now, 200):
+            if p.get("startsAt"):
+                self.assertGreaterEqual(p["startsAt"] - now, 30 * M)
+        self.assertTrue(all(not p.get("startsAt") for p in self.plans(utc_ms(2026, 10, 31, 23, 0), 100)))
+
+    def test_phases_and_what_is_public(self):
+        c = {"day": "2026-10-31", "startsAt": 100 * M, "endsAt": 220 * M, "minutes": 120, "scope": "energy", "moves": {"VOLTX": 0.15, "SOLRN": 0.12, "PETRA": 0.14}}
+        self.assertEqual([W.chaos_phase(c, t * M) for t in (0, 69, 70, 100, 101, 219, 220)], [None, None, "warned", "warned", "live", "live", "over"])
+        warned = W.chaos_public(c, "warned")
+        self.assertEqual((warned["scopeName"], warned["startsAt"]), ("Energy", 100 * M))
+        self.assertNotIn("endsAt", warned)
+        for ph in ("warned", "live", "over"):
+            self.assertNotIn("moves", W.chaos_public(c, ph))  # never the size or direction
+        self.assertEqual(W.chaos_public(c, "over")["syms"], ["PETRA", "SOLRN", "VOLTX"])
+        self.assertEqual(W.chaos_public(c, "over")["hotUntil"], 220 * M + 24 * 3600 * 1000)
+        self.assertIsNone(W.chaos_phase({"day": "x"}, 0))
+
+    def test_a_live_event_moves_the_hit_stocks_by_about_its_size(self):
+        start = utc_ms(2026, 10, 31)
+        c = {"day": "2026-10-31", "startsAt": start, "endsAt": start + 120 * M, "minutes": 120, "scope": "energy",
+             "moves": {"VOLTX": math.log(1.15), "SOLRN": math.log(1.15), "PETRA": math.log(1.15)}}
+        hit, calm = [], []
+        for seed in range(30):
+            st = dict(W.new_state(start), chaos=c)
+            rng = random.Random(seed)
+            for k in range(2):
+                st, _, _ = W.step(st, start + (k + 1) * 60 * M, rng)
+            hit.append(st["stocks"]["VOLTX"]["p"] / W.BY_SYM["VOLTX"][3] - 1)
+            calm.append(abs(st["stocks"]["BRWLY"]["p"] / W.BY_SYM["BRWLY"][3] - 1))
+        self.assertTrue(0.10 < statistics.median(hit) < 0.20, statistics.median(hit))
+        self.assertLess(statistics.median(calm), 0.02)
+
+
+class Quiet(unittest.TestCase):
+    def test_default_10pm_to_8am_in_your_time_zone(self):
+        q = W.default_quiet("America/New_York")
+        self.assertEqual(q, {"start": 1320, "end": 480, "tz": "America/New_York"})
+        self.assertEqual(W.default_quiet("Mars/Base")["tz"], "UTC")
+        # 2026-10-29 03:00 UTC = 23:00 in New York (EDT): quiet, ends 08:00 EDT = 12:00 UTC
+        now = utc_ms(2026, 10, 29, 3)
+        self.assertTrue(W.in_quiet(q, now))
+        self.assertEqual(W.quiet_ends_at(q, now), utc_ms(2026, 10, 29, 12))
+        self.assertFalse(W.in_quiet(q, utc_ms(2026, 10, 29, 12)))
+        self.assertIsNone(W.quiet_ends_at(q, utc_ms(2026, 10, 29, 15)))
+
+    def test_same_day_window_and_off(self):
+        q = {"start": 60, "end": 360, "tz": "UTC"}
+        self.assertTrue(W.in_quiet(q, utc_ms(2026, 10, 29, 2)))
+        self.assertEqual(W.quiet_ends_at(q, utc_ms(2026, 10, 29, 2)), utc_ms(2026, 10, 29, 6))
+        self.assertFalse(W.in_quiet({"start": 60, "end": 60, "tz": "UTC"}, utc_ms(2026, 10, 29, 1)))
+
+    def test_capped_at_10_hours_and_checked(self):
+        ok = W.validate_quiet({"start": 1380, "end": 540, "tz": "Europe/London"})
+        self.assertEqual(ok["end"], 540)
+        self.assertEqual(W.validate_quiet({"start": 0, "end": 0, "tz": "UTC"})["start"], 0)
+        for bad in ({"start": 1320, "end": 555, "tz": "UTC"}, {"start": 1320, "end": 545, "tz": "UTC"}, {"start": 1320, "end": 480, "tz": "Nowhere/X"},
+                    {"start": True, "end": 480, "tz": "UTC"}, {"start": 1440, "end": 480, "tz": "UTC"}, None):
+            with self.assertRaises(W.WarError):
+                W.validate_quiet(bad)
+
+    def test_morning_summary_text(self):
+        self.assertEqual(W.summary_body([]), "")
+        lines = ["Chaos hit Energy in the War zone.", "Chaos hit Energy in the War zone."] + ["L%d." % i for i in range(10)]
+        body = W.summary_body(lines)
+        self.assertTrue(body.startswith("While you slept: "))
+        self.assertNotIn("Chaos", body)  # only the newest 8, duplicates once
+        self.assertIn("L9.", body)
+        self.assertEqual(W.new_profile(0, "Asia/Tokyo")["quiet"]["tz"], "Asia/Tokyo")
+
+
 if __name__ == "__main__":
     unittest.main()
