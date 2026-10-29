@@ -143,6 +143,18 @@ test('news: anyone can read posts; nobody can write them from the browser', asyn
   await assertFails(getDoc(doc(real('alice').firestore(), 'admins/alice')));
 });
 
+test('feedback: server only, even your own message and limit', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'feedback/f1'), { uid: 'alice', topic: 'idea', text: 'Dark charts please', createdAt: 1, status: 'new' });
+    await setDoc(doc(c.firestore(), 'feedbackLimits/alice'), { day: '2026-10-28', count: 1 });
+  });
+  const db = real('alice').firestore();
+  await assertFails(getDoc(doc(db, 'feedback/f1')));
+  await assertFails(setDoc(doc(db, 'feedback/f2'), { uid: 'alice', topic: 'idea', text: 'spam', createdAt: 2, status: 'new' }));
+  await assertFails(getDoc(doc(db, 'feedbackLimits/alice')));
+  await assertFails(setDoc(doc(db, 'feedbackLimits/alice'), { day: '2026-10-28', count: 0 })); // can't reset your own limit
+});
+
 test('block list and terms: your own, capped; reports are server only', async () => {
   const db = real('alice').firestore();
   await assertSucceeds(setDoc(doc(db, 'users/alice'), { xp: 0, blocked: ['bob'], termsAt: 1 }));

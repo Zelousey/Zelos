@@ -80,10 +80,9 @@ function Start() {
 const MODES: { id: string; icon: IconName; title: MessageKey; body: MessageKey; to: string }[] = [
   { id: 'solo', icon: 'practice', title: 'hub.mode.solo', body: 'hub.mode.solo.body', to: '/trade-war/solo' },
   { id: 'battle', icon: 'war', title: 'hub.mode.battle', body: 'hub.mode.battle.body', to: '/battles' },
-  { id: 'squad', icon: 'social', title: 'hub.mode.squad', body: 'hub.mode.squad.body', to: '/social' },
 ];
 
-/** Solo / Battle / Squad (N3). */
+/** Solo / Battle (N3; owner 2026-10-28: Squad lives inside Battle, the War zone shows once it's built). */
 function ModeGrid() {
   return (
     <ul className={s.modes} aria-label={t('hub.modes')}>

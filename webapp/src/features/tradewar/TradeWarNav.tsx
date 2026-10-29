@@ -34,3 +34,24 @@ export function TradeWarNav() {
     </nav>
   );
 }
+
+/** Battle's first choice (owner 2026-10-28): a head-to-head duel, or team up as a squad. */
+export function BattleKinds() {
+  return (
+    <section className={s.kinds} aria-labelledby="bt-kinds">
+      <h2 id="bt-kinds" className={s.kindsTitle}>
+        {t('hub.battle.pick')}
+      </h2>
+      <div className={s.kindGrid}>
+        <Link to="/invite?kind=battle" className={s.kind}>
+          <b>{t('hub.battle.duel')}</b>
+          <span>{t('hub.battle.duel.body')}</span>
+        </Link>
+        <Link to="/social" className={s.kind}>
+          <b>{t('hub.battle.squad')}</b>
+          <span>{t('hub.battle.squad.body')}</span>
+        </Link>
+      </div>
+    </section>
+  );
+}

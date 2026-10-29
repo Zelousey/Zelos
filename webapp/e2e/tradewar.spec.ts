@@ -28,12 +28,15 @@ const axe = async (page: Page) => {
   return (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(' ')).join(', ')}`);
 };
 const row = (page: Page) => page.getByRole('navigation', { name: 'Trade War sections' });
+/** Wait until this tab has noted the Trade War section (hub.ts noteSection, sessionStorage). */
+const remembered = (page: Page, section: string) =>
+  page.waitForFunction((x) => (JSON.parse(sessionStorage.getItem('zelosTradeWarSection') ?? 'null') as { section?: string } | null)?.section === x, section);
 
 test('nothing running: the tab asks how you want to play; the section row switches without a reload', async ({ page }) => {
   await page.goto('trade-war');
   await expect(page.getByRole('heading', { name: 'How do you want to play?' })).toBeVisible();
   const modes = page.getByRole('list', { name: 'Ways to play' });
-  await expect(modes.getByRole('link')).toHaveCount(3); // Solo, Battle, Squad; War waits until it's built
+  await expect(modes.getByRole('link')).toHaveCount(2); // Solo and Battle (Squad is inside Battle); the war zone shows once built
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/modes-${test.info().project.name}.png`, fullPage: true });
   expect(await axe(page)).toEqual([]);
 
@@ -41,7 +44,6 @@ test('nothing running: the tab asks how you want to play; the section row switch
   const stops: [string, RegExp, string | RegExp][] = [
     ['Solo', /\/trade-war\/solo$/, 'Solo: your practice account'],
     ['Battle', /\/battles$/, 'Battles'],
-    ['Squad', /\/social$/, 'Squads & friends'],
     ['Leaderboards', /\/leaderboard$/, 'Leaderboard'],
     ['Strategies', /\/strategies$/, 'Strategies'],
     ['Overview', /\/trade-war\/overview$/, 'Trade War'],
@@ -80,12 +82,13 @@ test('a running battle: the tab opens the Overview, every number says its mode; 
   // A beats B: after Solo, the tab reopens Solo even with a battle running
   await row(page).getByRole('link', { name: 'Solo', exact: true }).click();
   await expect(page).toHaveURL(/\/trade-war\/solo$/);
+  await remembered(page, 'solo'); // the tab remembers Solo before we leave (a reload right away could beat it)
   await page.goto('dashboard');
   await page.getByRole('navigation', { name: 'Main' }).filter({ visible: true }).getByRole('link', { name: 'Trade War' }).click();
   await expect(page).toHaveURL(/\/trade-war\/solo$/);
   // another section ends the Solo session: back to the Overview
   await row(page).getByRole('link', { name: 'Battle', exact: true }).click();
-  await expect(row(page).getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute('aria-current', 'page');
+  await remembered(page, 'battle');
   await page.goto('trade-war');
   await expect(page.getByRole('region', { name: 'Your Trade War at a glance' })).toBeVisible();
 });
@@ -98,9 +101,18 @@ test('Squad: Together and Compete; a Compete format opens the battle form with i
   const ways = page.getByRole('group', { name: 'Ways to play as a squad' });
   await expect(ways.getByRole('heading', { name: 'Together' })).toBeVisible();
   await expect(ways.getByRole('heading', { name: 'Compete' })).toBeVisible();
-  await expect(row(page).getByRole('link', { name: 'Squad', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(row(page).getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute('aria-current', 'page'); // squads live under Battle
   expect(await axe(page)).toEqual([]);
   await ways.getByRole('link', { name: /Last Man Standing battle/ }).click();
   await expect(page).toHaveURL(/\/invite\?kind=battle&mode=lms$/);
   await expect(page.getByText('Elimination rules')).toBeVisible();
+});
+
+test('Battle starts with a choice: a head-to-head Duel, or Squad', async ({ page }) => {
+  await page.goto('battles');
+  const kinds = page.getByRole('region', { name: 'How do you want to battle?' });
+  await expect(kinds.getByRole('link', { name: /^Duel/ })).toHaveAttribute('href', '/app/invite?kind=battle');
+  await kinds.getByRole('link', { name: /^Squad/ }).click();
+  await expect(page).toHaveURL(/\/social$/);
+  await expect(row(page).getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute('aria-current', 'page');
 });

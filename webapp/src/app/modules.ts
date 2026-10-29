@@ -73,6 +73,8 @@ export const MODULES: AppModule[] = [
   // the Token Store (owner list D, 2026-10-27): tap the token chip in the top bar
   { id: 'tokens', path: 'tokens', label: 'nav.tokens', icon: 'profile', group: 'account', nav: false, load: () => import('../features/tokens/TokenStorePage') },
   { id: 'settings', path: 'settings', label: 'nav.settings', icon: 'settings', group: 'account', load: () => import('../features/settings/SettingsPage') },
+  // Help & feedback (Phase 8, owner 2026-10-28: feedback is saved in the app)
+  { id: 'help', path: 'help', label: 'nav.help', icon: 'inbox', group: 'account', load: () => import('../features/help/HelpModule') },
 
   // Routes without a nav entry: /charts opens the last symbol you looked at in Market.
   { id: 'charts', path: 'charts', label: 'nav.charts', icon: 'chart', group: 'main', parent: 'markets', nav: false, load: () => import('../features/charts/ChartsRedirect') },

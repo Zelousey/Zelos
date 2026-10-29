@@ -178,16 +178,23 @@ function Lesson({ f, l, sc }: { f: Figure; l: MindLesson; sc: ScrollLesson }) {
     if (finished && signedIn) void markMind(user.uid, lessonRef(f.id, l.id)).catch(() => {});
   }, [finished, signedIn, user, f.id, l.id]);
 
-  async function complete(task: ScrollTask) {
+  // Step XP goes to the server one request at a time: two quick tasks used to send two awards at
+  // once for the same account, and the loser of that race could fail and lose its 2 XP (2026-10-28).
+  // A failed award is tried once more; the server never pays a step twice.
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  function complete(task: ScrollTask) {
     if (done.includes(task.id)) return;
     setDone((d) => [...d, task.id]);
     if (!signedIn) return;
-    const r = await stepXp(stepRef(f.id, l.id, task.id)).catch(() => null);
-    const gained = (r?.xp ?? 0) - (r?.before ?? 0); // double while an XP booster runs
-    if (r?.awarded && gained > 0) {
-      setEarned((e) => e + gained);
-      if (pop.current && !reduced) gsap.fromTo(pop.current, { opacity: 1, y: 0, scale: 1 }, { opacity: 0, y: -26, scale: 1.25, duration: 1.1, ease: 'power2.out' });
-    }
+    const ref = stepRef(f.id, l.id, task.id);
+    queue.current = queue.current.then(async () => {
+      const r = await stepXp(ref).catch(() => stepXp(ref)).catch(() => null);
+      const gained = (r?.xp ?? 0) - (r?.before ?? 0); // double while an XP booster runs
+      if (r?.awarded && gained > 0) {
+        setEarned((e) => e + gained);
+        if (pop.current && !reduced) gsap.fromTo(pop.current, { opacity: 1, y: 0, scale: 1 }, { opacity: 0, y: -26, scale: 1.25, duration: 1.1, ease: 'power2.out' });
+      }
+    });
   }
 
   const portrait = portraitUrl(f);
