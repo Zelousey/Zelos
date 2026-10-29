@@ -16,6 +16,7 @@ It starts once. At the lobby deadline it starts with the locked-in players if th
 """
 import re
 
+import warbattle as WB
 from warmap import CLAIM_MS
 from warmarket import WarError
 
@@ -200,7 +201,10 @@ def due_at(war):
     if war.get("status") == "lobby":
         return war.get("deadline")
     if war.get("status") == "active":
-        return war.get("claimEnds") if war.get("phase") == "claiming" else war.get("endsAt")
+        if war.get("phase") == "claiming":
+            return war.get("claimEnds")
+        dues = [war.get("endsAt")] + [WB.due(b) for b in (war.get("battles") or {}).values()]
+        return min(d for d in dues if d is not None)
     return None
 
 

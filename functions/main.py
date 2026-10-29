@@ -7280,6 +7280,7 @@ def war_trade(req, db, uid, now_ms):
 # deploy). wars/{id} is written here only; its players and the people invited can read it.
 import warlobby as WL  # noqa: E402
 import warmap as WMAP  # noqa: E402
+import warbattle as WB  # noqa: E402
 
 
 def _war_quiet_of(db, uids):
@@ -7350,6 +7351,8 @@ def war_lobby(req, db, uid, now_ms):
             raise WM.WarError("FAILED_PRECONDITION", "@%s can't enter the War zone yet: it's still being built." % uname)
     elif action == "place":
         return _war_place(db, wid, uid, data, now_ms)
+    elif action == "pick":
+        return _war_pick(db, wid, uid, data, now_ms)
     elif action == "join" and _war_open_count(db, uid) >= WL.MAX_OPEN:
         raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
     ref = db.collection("wars").document(wid)
@@ -7414,19 +7417,24 @@ def war_lobby_pass(db, now_ms):
         def txn(t):
             s2 = ref.get(transaction=t)
             before = s2.to_dict() or {}
-            places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)} if before.get("phase") == "claiming" else {}
+            battling = before.get("phase") == "holding" and any((WB.due(b) or float("inf")) <= now_ms for b in (before.get("battles") or {}).values())
+            places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)} if before.get("phase") == "claiming" or battling else {}
             war = _war_with_map(WL.at_deadline(before, now_ms))
-            lines = []
+            lines, events = [], []
             if WMAP.claiming_over(war, places, now_ms):
                 war, lines = _war_reveal(t, ref, war, places, now_ms)
+                events = [("new", b) for b in war["battles"].values() if b["stage"] == "picking"]
+            elif battling and war.get("status") == "active":
+                war, events = _war_step_battles(t, ref, war, places, now_ms)
             war = WL.at_end(war, now_ms)
             t.set(ref, WL.stored(war))
-            return before, war, lines
+            return before, war, lines, events
         try:
-            before, war, lines = txn(db.transaction())
+            before, war, lines, events = txn(db.transaction())
             _war_announce(db, before, war, ref.id, now_ms)
             if lines:
                 _war_revealed_notify(db, war, ref.id, now_ms)
+            _war_battle_notify(db, war, ref.id, events, now_ms)
             n += 1
         except Exception as e:
             print("[war] lobby pass failed for one War: %s" % type(e).__name__)
@@ -7452,7 +7460,14 @@ def _war_reveal(t, ref, war, places, now_ms):
                                                                   auto=not (places.get(uid) or {}).get("locked")))
     for i, line in enumerate(lines):
         t.set(ref.collection("log").document("%d-%02d" % (now_ms, i)), {"at": now_ms, "text": line})
-    return dict(war, map=board, phase="holding", lockedCount=len(war["players"]), revealedAt=now_ms, updatedAt=now_ms), lines
+    rng = _random.SystemRandom()
+    quiet = dict(_war_quiet_of(db_client(), war["players"]))
+    battles = {}
+    for terr, cell in board.items():
+        if cell["state"] == "contested":
+            awake = max([WM.quiet_ends_at(quiet.get(u), now_ms) or now_ms for u in cell["contenders"]])
+            battles[terr] = WB.new_battle(terr, cell["contenders"], {u: final[u]["soldiers"].get(terr, 0) for u in cell["contenders"]}, now_ms, rng, awake)
+    return dict(war, map=board, battles=battles, phase="holding", lockedCount=len(war["players"]), revealedAt=now_ms, updatedAt=now_ms), lines
 
 
 def _war_revealed_notify(db, war, wid, now_ms):
@@ -7476,6 +7491,7 @@ def _war_place(db, wid, uid, data, now_ms):
         war = snap.to_dict() if snap.exists else None
         if not war or uid not in war.get("players", []):
             raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        events.clear()  # a retried transaction starts over
         if war.get("status") != "active" or war.get("phase") != "claiming" or now_ms >= war.get("claimEnds", 0):
             raise WM.WarError("FAILED_PRECONDITION", "Claiming is over.")
         places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)}
@@ -7487,6 +7503,7 @@ def _war_place(db, wid, uid, data, now_ms):
         lines = []
         if lock and WMAP.claiming_over(war, places, now_ms):
             war, lines = _war_reveal(t, ref, war, places, now_ms)
+            events.extend(("new", b) for b in war["battles"].values() if b["stage"] == "picking")
         else:
             t.set(ref.collection("placements").document(uid), places[uid])
             if lock:  # warnings only change when someone locks in
@@ -7495,7 +7512,113 @@ def _war_place(db, wid, uid, data, now_ms):
                 war = dict(war, lockedCount=sum(1 for x in war["players"] if (places.get(x) or {}).get("locked")), updatedAt=now_ms)
         t.set(ref, WL.stored(war))
         return war, lines
+    events = []
     war, lines = txn(db.transaction())
     if lines:
         _war_revealed_notify(db, war, wid, now_ms)
+    _war_battle_notify(db, war, wid, events, now_ms)
     return {"warId": wid, "war": war}
+
+
+# ---------------------------------------------------------------- contested battles (W4b)
+# functions/warbattle.py has the rules; battles live on the War (battles[territory]); best-pick
+# choices stay in each player's private placement doc (picks) until the battle starts.
+def db_client():
+    return firestore.client()
+
+
+def _war_live_prices(db, now_ms):
+    try:
+        return _war_prices(db, now_ms)
+    except WM.WarError:
+        return None  # prices are updating: battles wait for the next run
+
+
+def _war_step_battles(t, ref, war, places, now_ms, prices=None):
+    """Move every due battle on (inside a transaction, after its reads). Returns (war, events)."""
+    db = db_client()
+    rng = _random.SystemRandom()
+    battles = dict(war.get("battles") or {})
+    events, dirty = [], {}
+    prices = prices if prices is not None else _war_live_prices(db, now_ms)
+    quiet = None
+    for terr, b in list(battles.items()):
+        if b["stage"] == "waiting" and b.get("wakeAt") and now_ms >= b["wakeAt"]:
+            quiet = quiet or dict(_war_quiet_of(db, war["players"]))
+            b = WB.wake(b, now_ms, max([WM.quiet_ends_at(quiet.get(u), now_ms) or now_ms for u in b["players"]]))
+            if b["stage"] == "picking":
+                events.append(("new", b))
+        picks = {u: ((places.get(u) or {}).get("picks") or {}).get(terr) for u in b["players"]}
+        picks = {u: p for u, p in picks.items() if p}
+        priced = prices and all(x in prices for x in WB.stocks_of(terr))
+        if priced and WB.ready_to_start(b, picks, now_ms):
+            b = WB.start(b, picks, prices, now_ms, rng)
+            events.append(("start", b))
+        elif priced and b["stage"] == "running" and now_ms >= b["endsAt"]:
+            b = WB.finish(b, prices, now_ms)
+            war = WB.apply_result(war, b, now_ms)
+            w = b["winner"]
+            dirty[w] = dict(dirty.get(w) or places.get(w) or {})
+            dirty[w]["reserve"] = (dirty[w].get("reserve") or 0) + WB.BONUS_SOLDIERS
+            line = WB.result_line(b, war.get("names") or {})
+            t.set(ref.collection("log").document("%d-b-%s" % (now_ms, terr)), {"at": now_ms, "text": line})
+            events.append(("done", b))
+        battles[terr] = b
+    for uid, p in dirty.items():
+        t.set(ref.collection("placements").document(uid), p)
+    return dict(war, battles=battles, updatedAt=now_ms), events
+
+
+def _war_pick(db, wid, uid, data, now_ms):
+    """Your pick in a contested battle: Command's side in a 2-player battle, or your stock and side
+    in a best-pick battle (kept secret until it starts). The battle starts once the picks are in."""
+    terr = data.get("territory")
+    ref = db.collection("wars").document(wid)
+    prices = _war_live_prices(db, now_ms)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        b = (war.get("battles") or {}).get(terr) if isinstance(terr, str) else None
+        if not b or war.get("status") != "active":
+            raise WM.WarError("NOT_FOUND", "There's no battle for that territory.")
+        places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)}
+        side, sym = WB.validate_pick(b, uid, data)
+        if b["kind"] == "duel":
+            b = dict(b, sides={uid: side})
+        else:
+            mine = dict(places.get(uid) or {})
+            mine["picks"] = dict(mine.get("picks") or {}, **{terr: {"side": side, "sym": sym, "at": now_ms}})
+            places[uid] = mine
+            t.set(ref.collection("placements").document(uid), mine)
+        war = dict(war, battles=dict(war["battles"], **{terr: b}))
+        war, events = _war_step_battles(t, ref, war, places, now_ms, prices)
+        t.set(ref, WL.stored(war))
+        return war, events
+    war, events = txn(db.transaction())
+    _war_battle_notify(db, war, wid, events, now_ms)
+    return {"warId": wid, "war": war}
+
+
+def _war_battle_notify(db, war, wid, events, now_ms):
+    names, wname = war.get("names") or {}, war.get("name") or "Your War"
+    for kind, b in events or []:
+        terr = WMAP.NAMES[b["territory"]]
+        if kind == "new":
+            if b["kind"] == "duel":
+                war_notify(db, _war_quiet_of(db, [b["command"]]), "Battle for %s: pick your side" % terr,
+                           "You have Command. Pick Bull or Bear within 10 minutes. Simulated War zone.", "A battle for %s started." % terr,
+                           "war-b-" + wid + b["territory"], now_ms, path="app/war/" + wid)
+            else:
+                war_notify(db, _war_quiet_of(db, b["players"]), "Battle for %s: pick a stock and side" % terr,
+                           "Pick within 10 minutes; the biggest move your way wins. Simulated War zone.", "A battle for %s started." % terr,
+                           "war-b-" + wid + b["territory"], now_ms, path="app/war/" + wid)
+        elif kind == "start":
+            war_notify(db, _war_quiet_of(db, b["players"]), "The battle for %s is on" % terr, "It runs for 1 hour on simulated War zone prices.",
+                       "The battle for %s ran." % terr, "war-b-" + wid + b["territory"], now_ms, path="app/war/" + wid)
+        elif kind == "done":
+            war_notify(db, _war_quiet_of(db, b["players"]), "%s won the battle for %s" % (names.get(b["winner"], "Trader"), terr),
+                       "%s · %s" % (wname, "Simulated War zone."), WB.result_line(b, names), "war-b-" + wid + b["territory"], now_ms, path="app/war/" + wid)

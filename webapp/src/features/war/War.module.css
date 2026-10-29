@@ -84,6 +84,16 @@
 .tileHot { border-color: var(--gold); border-style: dashed; }
 .logList { list-style: none; margin: 0; padding: var(--space-2) var(--space-4) var(--space-3); display: grid; gap: var(--space-2); font-size: var(--text-sm); }
 .logList li { display: flex; justify-content: space-between; gap: var(--space-3); }
+.battleList { list-style: none; margin: 0; padding: 0; }
+.battleList > li + li { border-top: 1px solid var(--border-soft); }
+.battle { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+.battle p { margin: 0; }
+.battleHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.pick { display: grid; gap: var(--space-2); }
+.chipsRow { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.fight { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.fight li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-1) var(--space-2); border-radius: var(--radius); background: var(--surface-2); }
+.winner { box-shadow: inset 3px 0 0 var(--up-ink, var(--accent)); }
 /* On a phone it's one column: balance, the chart and ticket, your positions, your private Wars, quiet hours, then the
    long market list (so the Buy button isn't under 21 companies). */
 @media (max-width: 999px) {

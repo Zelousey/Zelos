@@ -8,8 +8,10 @@ import { formatRelative } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Badge, Button, Card, Confirm, LoadingState, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
+import { Battles } from './Battles';
 import { warLobby, type PrivateWar } from './lobby';
 import { CAMO_COST, CAMO_MAX, companiesOf, MAX_PER_TERRITORY, placementProblem, SECTOR_NAME, useIntel, usePlacement, useWarLog, type Placement, type Warning } from './map';
+import { useWarQuotes } from './war';
 import s from './War.module.css';
 
 export function WarMap({ w, uid, now }: { w: PrivateWar; uid: string; now: number }) {
@@ -127,6 +129,7 @@ function Claiming({ w, saved, warnings, now }: { w: PrivateWar; saved: Placement
 
 function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: string; placement: Placement | null; warnings: Record<string, Warning>; now: number }) {
   const log = useWarLog(w.phase === 'holding' ? w.id : null);
+  const quotes = useWarQuotes();
   const name = (p: string) => (p === uid ? t('wmap.you') : (w.names[p] ?? 'Trader'));
   const claiming = w.phase === 'claiming';
   return (
@@ -160,7 +163,13 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           })}
         </ul>
         {placement?.auto && <p className={s.note}>{t('wmap.autoNote')}</p>}
+        {!claiming && placement && (placement.reserve > 0 || (w.redeployPasses[uid] ?? 0) > 0) && (
+          <p className={s.note}>
+            {[placement.reserve > 0 && t('wmap.reserve', { n: placement.reserve }), (w.redeployPasses[uid] ?? 0) > 0 && t('wmap.passes', { n: w.redeployPasses[uid] ?? 0 })].filter(Boolean).join(' · ')}
+          </p>
+        )}
       </Card>
+      {!claiming && <Battles w={w} uid={uid} placement={placement} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
       {!claiming && log.status === 'ready' && log.data.length > 0 && (
         <Card title={t('wmap.logTitle')} flush>
           <ul className={s.logList}>

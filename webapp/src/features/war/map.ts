@@ -15,14 +15,24 @@ export const CAMO_MAX = 2;
 export const SECTOR_NAME: Record<string, string> = Object.fromEntries(SECTORS);
 export const companiesOf = (t: string) => COMPANIES.filter((c) => c.sector === t);
 
-export type Placement = { soldiers: Record<string, number>; camo: string[]; locked: boolean; auto: boolean };
+export type Placement = { soldiers: Record<string, number>; camo: string[]; locked: boolean; auto: boolean; reserve: number; picks: Record<string, { side: 'bull' | 'bear'; sym: string }> };
 const counts = (v: unknown): Record<string, number> => {
   const out: Record<string, number> = {};
   for (const [k, n] of Object.entries((v && typeof v === 'object' ? v : {}) as Record<string, unknown>)) if (SECTOR_NAME[k] && typeof n === 'number' && Number.isInteger(n) && n > 0) out[k] = n;
   return out;
 };
 export function parsePlacement(d: DocumentData): Placement {
-  return { soldiers: counts(d.soldiers), camo: (Array.isArray(d.camo) ? d.camo : []).filter((x: unknown): x is string => typeof x === 'string' && !!SECTOR_NAME[x]), locked: d.locked === true, auto: d.auto === true };
+  const picks: Placement['picks'] = {};
+  for (const [k, v] of Object.entries((d.picks && typeof d.picks === 'object' ? d.picks : {}) as Record<string, { side?: unknown; sym?: unknown }>))
+    if (SECTOR_NAME[k] && (v?.side === 'bull' || v?.side === 'bear') && typeof v.sym === 'string') picks[k] = { side: v.side, sym: v.sym };
+  return {
+    soldiers: counts(d.soldiers),
+    camo: (Array.isArray(d.camo) ? d.camo : []).filter((x: unknown): x is string => typeof x === 'string' && !!SECTOR_NAME[x]),
+    locked: d.locked === true,
+    auto: d.auto === true,
+    reserve: typeof d.reserve === 'number' && d.reserve > 0 ? d.reserve : 0,
+    picks,
+  };
 }
 export type Warning = 'enemy' | 'heavy';
 export function parseIntel(d: DocumentData): Record<string, Warning> {

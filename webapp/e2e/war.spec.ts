@@ -54,12 +54,43 @@ async function signIn(page: Page, email: string): Promise<string> {
     email,
   );
 }
+// every other War zone company at $100, so a battle on any territory has prices
+const OTHERS = [
+  'QUBTR',
+  'SYNAP',
+  'VAULT',
+  'LEDGR',
+  'ORBCP',
+  'HELIX',
+  'CURAM',
+  'PULSV',
+  'SOLRN',
+  'PETRA',
+  'BRWLY',
+  'STRDE',
+  'CARTO',
+  'SIGNL',
+  'ECHON',
+  'STRMR',
+  'FORGE',
+  'AEROV',
+  'RAILX',
+  'HAVEN',
+  'BRIKX',
+  'TOWRS',
+  'ALLOY',
+  'POLYM',
+  'QUARZ',
+  'GRIDX',
+  'AQUAV',
+  'WATSN',
+];
 async function seedMarket() {
   const now = Date.now();
   const M = 60000;
   await put('warMarket/quotes', {
     updatedAt: now,
-    prices: { NIMBC: { p: 190.5, ref: 182 }, VOLTX: { p: 85.25, ref: 88 } },
+    prices: { NIMBC: { p: 190.5, ref: 182 }, VOLTX: { p: 85.25, ref: 88 }, ...Object.fromEntries(OTHERS.map((x) => [x, { p: 100, ref: 100 }])) },
   });
   const start = now - (now % (5 * M)) - 60 * 5 * M;
   // the same live Chaos event for every test (they run side by side)
@@ -251,7 +282,9 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
     .then((r) => r.json())
     .then((d: { fields: { territories: { arrayValue: { values: { stringValue: string }[] } } } }) => d.fields.territories.arrayValue.values.map((x) => x.stringValue));
   const pid = `${pal}Uid0`;
-  const map = Object.fromEntries(terr.map((x, i) => [x, i === 0 ? { state: 'contested', contenders: [uid, pid] } : i === 1 ? { state: 'owned', owner: uid } : i === 2 ? { state: 'owned', owner: pid } : { state: 'neutral' }]));
+  const map = Object.fromEntries(
+    terr.map((x, i) => [x, i === 0 ? { state: 'contested', contenders: [uid, pid] } : i === 1 ? { state: 'owned', owner: uid } : i === 2 ? { state: 'owned', owner: pid } : { state: 'neutral' }]),
+  );
   await patch(`wars/${id}`, { phase: 'holding', map });
   await expect(page.getByRole('heading', { name: 'The map' })).toBeVisible();
   await expect(page.getByText('Contested: You vs Pal')).toBeVisible();
@@ -259,6 +292,18 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(page.getByText('Yours', { exact: true })).toBeVisible();
   await expect(page.getByText('Neutral', { exact: true })).toHaveCount(3);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-map-${info.project.name}.png`, fullPage: true });
+  // W4b: the contested territory is a battle; you have Command and pick Bear, and it starts
+  await patch(`wars/${id}`, {
+    battles: { [terr[0]!]: { territory: terr[0]!, kind: 'duel', players: [uid, pid], command: uid, stage: 'picking', createdAt: Date.now(), pickBy: Date.now() + 600_000, sides: {}, picks: {} } },
+    due: Date.now() + 600_000,
+  });
+  await expect(page.getByRole('heading', { name: 'Contested battles' })).toBeVisible();
+  await expect(page.getByText(/You have Command: pick Bull/)).toBeVisible();
+  await page.getByRole('button', { name: 'Bear (price down)' }).click();
+  await expect(page.getByText('Under way')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/started at \$100\.00, now \$100\.00 \(simulated\)/)).toBeVisible();
+  await expect(page.getByText(/Ends in 1 hour/)).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-battle-${info.project.name}.png`, fullPage: true });
   await page
     .getByRole('link', { name: /War zone/ })
     .first()
