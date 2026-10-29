@@ -29,7 +29,11 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-None right now. Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a) and Battle rematch (Phase 9).
+1. **Squad rulesets (Phase 10a).** After it merges: the battle functions (rulesets and the draft pick timer are shared code).
+   ```
+   cd ~/Zelos && git pull && firebase deploy --only functions
+   ```
+Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a) and Battle rematch (Phase 9).
 
 After running one, tell Claude "deployed", and it will be ticked off here.
 

@@ -103,6 +103,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
         subtitle={
           <span className={s.meta}>
             <Badge tone={b.status === 'active' ? 'up' : b.status === 'ended' ? 'neutral' : 'accent'}>{statusBadge}</Badge>
+            {b.ruleset && <Badge tone="accent">{t(`rs.${b.ruleset}`)}</Badge>}
             {b.lms && <Badge tone="gold">{t('bt.lms')}</Badge>}
             <span>{t('bt.metaLine', { host: b.hostName, buyIn: formatMoney(b.buyIn, { digits: 0 }), days: b.days, n: b.players.length, max: b.maxPlayers })}</span>
             {b.status === 'active' && <b className="num">{t('bt.endsIn', { t: clock(b.endAt - now) })}</b>}

@@ -9,7 +9,7 @@ import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { Choices } from '../invites/Choices';
 import { BUY_INS } from '../invites/invites';
-import { buyInLock, BUYIN_TIERS, cutOptions, DRAFT_PICKS, LMS_KEYS, LMS_OPTS, optionsOn, WHALE_CAPS, WHALE_SHIELDS, type LmsKey, type Settings } from './settings';
+import { buyInLock, BUYIN_TIERS, cutOptions, DRAFT_PICKS, DRAFT_SECS, LMS_KEYS, LMS_OPTS, optionsOn, WHALE_CAPS, WHALE_SHIELDS, type LmsKey, type Ruleset, type Settings } from './settings';
 import s from './BattleSettings.module.css';
 
 const money = (v: number) => formatMoney(v, { digits: 0 });
@@ -64,13 +64,16 @@ const LMS_LABEL: Record<LmsKey, (n: number) => string> = {
 /**
  * simple (beginners): show "Quick battle" (classic rules, no extras) with a button to open
  * every game mode, so the first battle has nothing to figure out.
+ * ruleset (squad battles, Phase 10): the ruleset fixes the mode and the draft; only its own
+ * settings (Fantasy Draft: picks and the pick timer) and the extra options can be changed.
  */
-export function BattleSettings({ value, onChange, days, simple = false }: { value: Settings; onChange: (v: Settings) => void; days: number; simple?: boolean }) {
+export function BattleSettings({ value, onChange, days, simple = false, ruleset }: { value: Settings; onChange: (v: Settings) => void; days: number; simple?: boolean; ruleset?: Ruleset }) {
   const [more, setMore] = useState(false);
   const open = !simple || more;
   const set = (p: Partial<Settings>) => onChange({ ...value, ...p });
-  const on = optionsOn(value);
-  if (!open)
+  const on = optionsOn(ruleset ? { ...value, draftPicks: 0 } : value); // a ruleset's own draft isn't an extra option
+  const timer = <Pick label={t('bs.draftSecs')} value={value.draftSecs} options={DRAFT_SECS} onChange={(draftSecs) => set({ draftSecs })} format={(n) => t('bs.draftSecsOpt', { n })} />;
+  if (!open && !ruleset)
     return (
       <div className={s.quick}>
         <b>{t('bs.quickTitle')}</b>
@@ -82,7 +85,17 @@ export function BattleSettings({ value, onChange, days, simple = false }: { valu
     );
   return (
     <>
-      <Choices label={t('bs.mode')} value={value.mode} options={MODES} onChange={(mode) => set({ mode })} format={(m) => t(m === 'lms' ? 'bs.mode.lms' : 'bs.mode.classic')} />
+      {!ruleset && <Choices label={t('bs.mode')} value={value.mode} options={MODES} onChange={(mode) => set({ mode })} format={(m) => t(m === 'lms' ? 'bs.mode.lms' : 'bs.mode.classic')} />}
+      {ruleset === 'draft' && (
+        <fieldset className={s.lms}>
+          <legend>{t('bs.draftTitle')}</legend>
+          <p className={s.note}>{t('bs.draftBody')}</p>
+          <div className={s.grid}>
+            <Pick label={t('bs.draft')} value={value.draftPicks} options={DRAFT_PICKS} onChange={(draftPicks) => set({ draftPicks })} format={(n) => t('bs.draftOpt', { n })} />
+            {timer}
+          </div>
+        </fieldset>
+      )}
       {value.mode === 'lms' && (
         <fieldset className={s.lms}>
           <legend>{t('bs.lms.title')}</legend>
@@ -106,7 +119,8 @@ export function BattleSettings({ value, onChange, days, simple = false }: { valu
           {t('bs.options')} <small>{on ? t('bs.optionsOn', { n: on }) : t('bs.optionsHint')}</small>
         </summary>
         <div className={s.grid}>
-          <Pick label={t('bs.draft')} value={value.draftPicks} options={[0, ...DRAFT_PICKS]} onChange={(draftPicks) => set({ draftPicks })} format={(n) => (n ? t('bs.draftOpt', { n }) : t('bs.off'))} />
+          {!ruleset && <Pick label={t('bs.draft')} value={value.draftPicks} options={[0, ...DRAFT_PICKS]} onChange={(draftPicks) => set({ draftPicks })} format={(n) => (n ? t('bs.draftOpt', { n }) : t('bs.off'))} />}
+          {!ruleset && value.draftPicks > 0 && timer}
           <Pick label={t('bs.storms')} value={value.storms} options={STORMS} onChange={(storms) => set({ storms })} format={(v) => (v ? t(`bs.storms.${v}`) : t('bs.off'))} />
           <Pick label={t('bs.whale')} value={value.whaleCap} options={[0, ...WHALE_CAPS]} onChange={(whaleCap) => set({ whaleCap })} format={(n) => (n ? t('bs.whaleOpt', { n }) : t('bs.off'))} />
           {value.whaleCap > 0 && <Pick label={t('bs.shields')} value={value.whaleShields} options={WHALE_SHIELDS} onChange={(whaleShields) => set({ whaleShields })} format={(n) => t('bs.shieldsOpt', { n })} />}

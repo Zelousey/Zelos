@@ -328,5 +328,19 @@ await seed('tradeWars/rematchnot12', { name: 'Not mine', host: foe, status: 'end
 re1 = null; try { await call('tw_rematch', { ...ask, warId: 'rematchnot12' }); } catch (x) { re1 = x; }
 ok(re1 && /Only the players/.test(re1.message), 'only its players can ask for a rematch');
 
+// --- Squad rulesets (Phase 10): a squad battle starts from Free-for-all or Fantasy Draft (pick timer 30/45/60 s)
+const rsSquad = 'rulesquad123';
+await seed('squads/' + rsSquad, { name: 'Rule desk', owner: troll.uid, members: [troll.uid, foe], names: { [troll.uid]: 'Troll', [foe]: 'Foe' }, config: {} });
+await admin('wallets/' + troll.uid, { balance: { integerValue: 50 } });
+r = await call('tw_challenge', { squadId: rsSquad, ruleset: 'draft', name: 'Draft night', buyIn: 1000, days: 3, modes: { draftPicks: 3, draftSecs: 30 }, extraSlot: true });
+const rsw = (await getDoc(doc(db, 'tradeWars', r.warId))).data();
+ok(rsw.ruleset === 'draft' && rsw.modes.draft.picks === 3 && rsw.modes.draft.secs === 30 && rsw.squadId === rsSquad, 'a Fantasy Draft squad battle keeps its ruleset and a 30-second pick timer');
+r = await call('tw_challenge', { squadId: rsSquad, ruleset: 'ffa', name: 'Open night', buyIn: 1000, days: 3, extraSlot: true });
+ok((await getDoc(doc(db, 'tradeWars', r.warId))).data().ruleset === 'ffa', 'and a Free-for-all one');
+re1 = null; try { await call('tw_challenge', { squadId: rsSquad, ruleset: 'ffa', name: 'Mixed', buyIn: 1000, days: 3, modes: { draftPicks: 3 } }); } catch (x) { re1 = x; }
+ok(re1 && /Free-for-all needs it off/.test(re1.message), 'a ruleset must agree with the settings');
+re1 = null; try { await call('tw_challenge', { to: foe, ruleset: 'ffa', name: 'Duel', buyIn: 1000, days: 3 }); } catch (x) { re1 = x; }
+ok(re1 && /for squad battles/.test(re1.message), 'rulesets are only for squad battles');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

@@ -346,3 +346,38 @@ test('rematch: a finished battle challenges the same rival again with copied, ed
   await expect(page).toHaveURL(new RegExp(`/battles/${newId}$`));
 });
 
+
+test('a squad battle starts from a ruleset: Fantasy Draft with its own pick timer (Phase 10)', async ({ page }, info) => {
+  await page.goto('battles');
+  const uid = await signIn(page, `rules-${info.project.name}${Date.now()}@example.com`);
+  await passBasics(uid);
+  const sq = rid();
+  const mate = `mate${rid()}`;
+  await put(`squads/${sq}`, { name: 'Rule desk', owner: uid, members: [uid, mate], names: { [uid]: 'Me', [mate]: 'Max' }, createdAt: Date.now(), config: {} });
+  await page.goto(`social/${sq}`);
+  await page.getByRole('button', { name: /Start a squad Trade War/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Challenge Rule desk' });
+  // Free-for-all first: no mode picker and no draft (the ruleset fixes them)
+  await expect(sheet.getByRole('radio', { name: 'Free-for-all' })).toBeChecked();
+  await expect(sheet.getByText('Everyone for themselves with the same money.')).toBeVisible();
+  await expect(sheet.getByRole('radio', { name: 'Last Man Standing' })).toHaveCount(0);
+  await sheet.getByText('Fantasy Draft', { exact: true }).first().click();
+  await expect(sheet.getByRole('radio', { name: 'Fantasy Draft' })).toBeChecked();
+  await expect(sheet.getByLabel('Stock draft')).toHaveValue('3'); // owner's default: 3 picks, 45 s
+  await expect(sheet.getByLabel('Time per pick')).toHaveValue('45');
+  await expect(sheet.getByText('Game options')).not.toContainText(/\d on/); // the draft belongs to the ruleset, not the extras
+  await sheet.getByLabel('Time per pick').selectOption('30');
+  await sheet.getByLabel('Battle name').fill('Draft night');
+  expect(await axe(page)).toEqual([]);
+  if (process.env.SHOTS) {
+    await sheet.getByLabel('Time per pick').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${process.env.SHOTS}/ruleset-${info.project.name}.png` });
+  }
+  await sheet.getByRole('button', { name: 'Send challenge' }).click();
+  await expect(page).toHaveURL(/\/battles\/[A-Za-z0-9]{12}$/, { timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Draft night', level: 1 })).toBeVisible();
+  await expect(page.getByText('Fantasy Draft', { exact: true }).first()).toBeVisible();
+  const rules = page.getByRole('list').filter({ hasText: 'Everyone starts with' });
+  await expect(rules).toContainText('picks 3 stocks');
+  await expect(rules).toContainText('30 seconds per pick.');
+});

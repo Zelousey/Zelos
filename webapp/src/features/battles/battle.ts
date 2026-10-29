@@ -14,15 +14,15 @@ import { useLiveQuery } from '../../data/liveQuery';
 import type { Quote, QuotesDoc } from '../../data/markets';
 import { UNIVERSE } from '../../data/universe';
 import { callFunction, db } from '../../lib/firebase';
-import type { Payload } from './settings';
+import { RULESETS, type Payload, type Ruleset } from './settings';
 
 export const BATTLE_ID_RE = /^[A-Za-z0-9]{12}$/;
 export const QUOTE_MAX_AGE_S = 180; // same as TW_QUOTE_MAX_AGE_S: older prices can't be traded on
-export const DRAFT_PICK_MS = 45000;
+export const DRAFT_PICK_MS = 45000; // the default pick timer (a draft can pick 30, 45 or 60 seconds)
 
 export type Status = 'lobby' | 'draft' | 'active' | 'ended' | 'cancelled';
 export type Lms = { floorPct?: number; maxLossPct?: number; maxLosses?: number; cutHours?: number };
-export type Modes = { draft?: { picks: number }; whale?: { capPct: number; shields: number }; storms?: 'rare' | 'often'; bounties?: boolean; stops?: boolean };
+export type Modes = { draft?: { picks: number; secs: number }; whale?: { capPct: number; shields: number }; storms?: 'rare' | 'often'; bounties?: boolean; stops?: boolean };
 export type Out = { uid: string; name: string; reason: string; at: number; pnlPct: number; place: number };
 export type Draft = { order: string[]; per: number; picks: Record<string, string[]>; taken: string[]; turn: number; total: number; deadline: number; done?: boolean };
 export type Storm = { kind: 'double' | 'fee' | 'halt'; start: number; end: number; sym?: string };
@@ -62,6 +62,8 @@ export type Battle = {
   rewards: Reward[];
   rewardsPaid: boolean;
   squadId: string | null;
+  /** A squad battle's ruleset (Phase 10): Free-for-all or Fantasy Draft; null for every other battle. */
+  ruleset: Ruleset | null;
   /** The finished battle this one is a rematch of. */
   rematchOf: string | null;
 };
@@ -98,7 +100,7 @@ export function parseBattle(id: string, d: DocumentData): Battle {
     invited: arr<string>(d.invited).filter((x) => typeof x === 'string'),
     lms,
     modes: {
-      draft: modes.draft ? { picks: num(rec(modes.draft).picks, 3) } : undefined,
+      draft: modes.draft ? { picks: num(rec(modes.draft).picks, 3), secs: num(rec(modes.draft).secs, DRAFT_PICK_MS / 1000) } : undefined,
       whale: modes.whale ? { capPct: num(rec(modes.whale).capPct, 50), shields: num(rec(modes.whale).shields, 1) } : undefined,
       storms: modes.storms === 'rare' || modes.storms === 'often' ? modes.storms : undefined,
       bounties: modes.bounties === true,
@@ -113,6 +115,7 @@ export function parseBattle(id: string, d: DocumentData): Battle {
     outs: arr<Record<string, unknown>>(d.outs).map((o) => ({ uid: str(o.uid), name: str(o.name, 24), reason: str(o.reason), at: num(o.at), pnlPct: num(o.pnlPct), place: num(o.place) })),
     nextCutAt: typeof d.nextCutAt === 'number' ? d.nextCutAt : null,
     squadId: str(d.squadId, 40) || null,
+    ruleset: RULESETS.find((r) => r === d.ruleset) ?? null,
     rematchOf: typeof d.rematchOf === 'string' && BATTLE_ID_RE.test(d.rematchOf) ? d.rematchOf : null,
     whales: arr<string>(d.whales),
     shields: Object.fromEntries(Object.entries(rec(d.shields)).map(([k, v]) => [k, num(v)])),
