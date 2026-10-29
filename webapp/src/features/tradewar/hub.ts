@@ -4,18 +4,17 @@
  * The tab opens, in this order (N2):
  *   A. Solo, when Solo was the last Trade War section you used in this tab (2 hours);
  *   B. the Overview, when you're in a battle that hasn't finished (lobby, draft or running);
- *   C. otherwise the mode picker (Solo / Battle / Squad).
- * War and Chaos stay out until they're built.
+ *   C. otherwise the mode picker (Solo / Battle; Battle then offers Duel or Squad).
+ * The simulated Trade War zone, War and Chaos stay out until they're built (owner 2026-10-28).
  */
 import type { MessageKey } from '../../lib/i18n';
 
-export type Section = 'overview' | 'solo' | 'battle' | 'squad' | 'leaderboards' | 'strategies';
+export type Section = 'overview' | 'solo' | 'battle' | 'leaderboards' | 'strategies';
 
 export const SECTIONS: { id: Section; label: MessageKey; to: string }[] = [
   { id: 'overview', label: 'hub.overview', to: '/trade-war/overview' },
   { id: 'solo', label: 'hub.solo', to: '/trade-war/solo' },
   { id: 'battle', label: 'hub.battle', to: '/battles' },
-  { id: 'squad', label: 'hub.squad', to: '/social' },
   { id: 'leaderboards', label: 'hub.leaderboards', to: '/leaderboard' },
   { id: 'strategies', label: 'hub.strategies', to: '/strategies' },
 ];
@@ -26,7 +25,7 @@ export function sectionFor(pathname: string): Section | null {
   if (p === '/trade-war' || p === '/trade-war/overview') return 'overview';
   if (p === '/trade-war/solo') return 'solo';
   if (p === '/battles') return 'battle';
-  if (p === '/social') return 'squad';
+  if (p === '/social') return 'battle'; // squads are part of Battle (owner 2026-10-28)
   if (p === '/leaderboard') return 'leaderboards';
   if (p === '/strategies') return 'strategies';
   return null;
