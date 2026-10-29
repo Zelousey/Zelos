@@ -313,6 +313,24 @@ test('private Wars: its players and the people invited can read it; nobody write
   await assertFails(setDoc(doc(real('alice').firestore(), 'wars/w2'), { status: 'lobby', players: ['alice'], invited: [] }));
 });
 
+test('War map: placements and warnings are private to each player, even from opponents in the same War', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'wars/w1'), { status: 'active', players: ['alice', 'bob'], invited: [] });
+    await setDoc(doc(c.firestore(), 'wars/w1/placements/alice'), { soldiers: { tech: 50, energy: 50 }, camo: [] });
+    await setDoc(doc(c.firestore(), 'wars/w1/intel/alice'), { warnings: { tech: 'heavy' } });
+    await setDoc(doc(c.firestore(), 'wars/w1/log/1'), { text: 'Alice took Tech.' });
+  });
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'wars/w1/placements/alice')));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'wars/w1/placements/alice'))); // the whole point of hidden claiming
+  await assertFails(getDocs(collection(real('bob').firestore(), 'wars/w1/placements')));
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'wars/w1/intel/alice')));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'wars/w1/intel/alice')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'wars/w1/placements/alice'), { soldiers: { tech: 100 } }));
+  await assertSucceeds(getDoc(doc(real('bob').firestore(), 'wars/w1/log/1')));
+  await assertFails(getDoc(doc(real('carol').firestore(), 'wars/w1/log/1')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'wars/w1/log/2'), { text: 'I win' }));
+});
+
 (async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-zelos',

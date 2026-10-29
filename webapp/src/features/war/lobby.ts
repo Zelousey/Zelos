@@ -36,7 +36,14 @@ export type PrivateWar = {
   endsAt: number | null;
   mapSize: number | null;
   why: string | null;
+  phase: 'claiming' | 'holding' | null;
+  claimEnds: number | null;
+  lockedCount: number;
+  territories: string[];
+  map: Record<string, Territory>;
 };
+/** A territory on the revealed map: owners are public, soldier counts never are. */
+export type Territory = { state: 'owned' | 'neutral' | 'contested'; owner: string | null; contenders: string[] };
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
@@ -65,7 +72,21 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     endsAt: num(d.endsAt),
     mapSize: num(d.mapSize),
     why: typeof d.why === 'string' ? d.why : null,
+    phase: d.phase === 'claiming' || d.phase === 'holding' ? d.phase : null,
+    claimEnds: num(d.claimEnds),
+    lockedCount: num(d.lockedCount) ?? 0,
+    territories: strs(d.territories),
+    map: parseMap(d.map),
   };
+}
+function parseMap(v: unknown): Record<string, Territory> {
+  const out: Record<string, Territory> = {};
+  for (const [k, raw] of Object.entries((v && typeof v === 'object' ? v : {}) as Record<string, unknown>)) {
+    const x = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    if (x.state === 'owned' || x.state === 'neutral' || x.state === 'contested')
+      out[k] = { state: x.state, owner: typeof x.owner === 'string' ? x.owner : null, contenders: strs(x.contenders) };
+  }
+  return out;
 }
 
 /** Territories on the map for this many players (the server sets it at the start). */
@@ -84,5 +105,6 @@ type LobbyReq =
   | ({ action: 'config'; warId: string } & WarConfig)
   | { action: 'open' | 'join' | 'decline' | 'leave' | 'cancel' | 'start'; warId: string }
   | { action: 'invite'; warId: string; username: string }
-  | { action: 'ready'; warId: string; ready: boolean };
+  | { action: 'ready'; warId: string; ready: boolean }
+  | { action: 'place'; warId: string; soldiers: Record<string, number>; camo: string[]; lock: boolean };
 export const warLobby = (req: LobbyReq) => callFunction<LobbyReq, { warId: string; war: DocumentData }>('war_lobby', req);

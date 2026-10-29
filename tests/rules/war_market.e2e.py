@@ -107,11 +107,19 @@ db.collection("wars").document("deadlineWar01").set(WL.stored(w1))
 db.collection("wars").document("deadlineWar02").set(WL.stored(w2))
 main.war_market_pass(db, now, random.Random(11))
 a = db.collection("wars").document("deadlineWar01").get().to_dict()
-ok(a["status"] == "active" and a["players"] == ["warAwake01", "warSleep01"] and a["dropped"] == ["warLate01"] and a["due"] == a["endsAt"],
+ok(a["status"] == "active" and a["players"] == ["warAwake01", "warSleep01"] and a["dropped"] == ["warLate01"],
    "at the lobby deadline a War starts with the players who are ready")
+ok(a["phase"] == "claiming" and a["due"] == a["claimEnds"] and len(a["territories"]) == 6, "on a 6-territory map, with an hour of claiming")
 b = db.collection("wars").document("deadlineWar02").get().to_dict()
 ok(b["status"] == "cancelled" and b["why"] == "not-enough-players" and "due" not in b, "and one without 2 ready players is cancelled")
 ok(any(n["title"] == "Deadline War has started" for n in inbox("warAwake01")), "the players are told it started")
-main.war_market_pass(db, a["endsAt"] + M, random.Random(12))
+main.war_market_pass(db, a["claimEnds"], random.Random(12))
+a = db.collection("wars").document("deadlineWar01").get().to_dict()
+p1 = db.collection("wars").document("deadlineWar01").collection("placements").document("warAwake01").get().to_dict()
+ok(a["phase"] == "holding" and a["due"] == a["endsAt"] and p1["auto"] and sum(p1["soldiers"].values()) == 100,
+   "when claiming time is up, anyone who didn't lock in gets an even spread and the map is revealed")
+ok(sum(1 for v in a["map"].values() if v["state"] == "contested") == 5 and sum(1 for v in a["map"].values() if v["state"] == "neutral") == 1,
+   "(two even spreads tie on 5 territories and leave one neutral)")
+main.war_market_pass(db, a["endsAt"] + M, random.Random(13))
 ok(db.collection("wars").document("deadlineWar01").get().to_dict()["status"] == "ended", "and it ends after its days")
 print("\n%d War zone market checks passed" % passed)

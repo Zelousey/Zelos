@@ -69,7 +69,7 @@ class Recruiting(unittest.TestCase):
             L.start(w, "bob", 51)  # only the organizer starts
         w = L.start(w, "org", 60)
         self.assertEqual((w["status"], w["mapSize"], w["startedAt"], w["endsAt"], w["dropped"]), ("active", 6, 60, 60 + 3 * 24 * H, []))
-        self.assertEqual(L.due_at(w), w["endsAt"])
+        self.assertEqual((w["phase"], L.due_at(w)), ("claiming", 60 + 3600000))  # claiming first (W4)
         with self.assertRaises(WarError):
             L.start(w, "org", 61)  # starts once
         with self.assertRaises(WarError):

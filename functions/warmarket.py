@@ -24,7 +24,8 @@ SIM_NOTE = "Simulated War zone prices, not real market data."
 # Real sector names, made-up companies (E1). Tickers are invented, five letters, and always shown
 # with the "SIMULATED" marking; a match with a real listing is a coincidence.
 SECTORS = (("tech", "Tech"), ("finance", "Finance"), ("health", "Health"), ("energy", "Energy"),
-           ("consumer", "Consumer"), ("comms", "Communication"), ("industrials", "Industrials"))
+           ("consumer", "Consumer"), ("comms", "Communication"), ("industrials", "Industrials"),
+           ("realestate", "Real Estate"), ("materials", "Materials"), ("utilities", "Utilities"))  # last 3: owner 2026-10-29 (10-territory maps)
 # (sym, name, sector, start price, daily volatility)
 COMPANIES = (
     ("NIMBC", "Nimbus Cloud", "tech", 182.0, 0.024),
@@ -48,6 +49,15 @@ COMPANIES = (
     ("FORGE", "Forgeline Industrial", "industrials", 99.0, 0.016),
     ("AEROV", "Aerovance", "industrials", 167.0, 0.021),
     ("RAILX", "Railmax Logistics", "industrials", 52.0, 0.015),
+    ("HAVEN", "Havenstone Realty", "realestate", 44.0, 0.014),
+    ("BRIKX", "Brickline Properties", "realestate", 87.0, 0.016),
+    ("TOWRS", "Towerpoint Spaces", "realestate", 129.0, 0.018),
+    ("ALLOY", "Alloycore Metals", "materials", 61.0, 0.021),
+    ("POLYM", "Polymora Chemicals", "materials", 104.0, 0.017),
+    ("QUARZ", "Quarzite Mining", "materials", 33.0, 0.026),
+    ("GRIDX", "Gridwell Utilities", "utilities", 72.0, 0.011),
+    ("AQUAV", "Aquavera Water", "utilities", 49.0, 0.012),
+    ("WATSN", "Wattson Power", "utilities", 96.0, 0.013),
 )
 SYMS = tuple(c[0] for c in COMPANIES)
 BY_SYM = {c[0]: c for c in COMPANIES}

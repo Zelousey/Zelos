@@ -422,5 +422,31 @@ ok(wr.war.status === 'active' && wr.war.mapSize === 6 && wr.war.endsAt - wr.war.
 re1 = null; try { await call('war_lobby', { action: 'start', warId: wid }); } catch (x) { re1 = x; }
 ok(re1 && /already started/.test(re1.message), 'a War starts once');
 
+// --- the War map (W4a): secret placement, Camouflage, warnings from locked-in opponents, the reveal
+const T = wr.war.territories;
+ok(wr.war.phase === 'claiming' && T.length === 6 && wr.war.claimEnds - wr.war.startedAt === 3600e3, 'the War starts with an hour of secret claiming on a 6-territory map');
+re1 = null; try { await call('war_lobby', { action: 'place', warId: wid, soldiers: { [T[0]]: 60, [T[1]]: 40 } }); } catch (x) { re1 = x; }
+ok(re1 && /At most 50/.test(re1.message), 'at most 50 soldiers on one territory');
+await call('war_lobby', { action: 'place', warId: wid, soldiers: { [T[0]]: 50, [T[1]]: 45 }, camo: [T[1]], lock: true });
+ok((await getDoc(doc(db, 'wars', wid, 'placements', troll.uid))).data().locked === true, 'a placement with one Camouflage (95 soldiers + 5 spent) locks in');
+re1 = null; try { await call('war_lobby', { action: 'place', warId: wid, soldiers: { [T[0]]: 50, [T[2]]: 50 } }); } catch (x) { re1 = x; }
+ok(re1 && /already locked in/.test(re1.message), 'a locked-in placement can\'t change');
+await signOut(auth);
+await signInWithEmailAndPassword(auth, pal.email, 'secret123');
+re1 = null; try { await getDoc(doc(db, 'wars', wid, 'placements', troll.uid)); } catch (x) { re1 = x; }
+ok(re1, 'an opponent can\'t read your placement');
+const intel = (await getDoc(doc(db, 'wars', wid, 'intel', pal.uid))).data().warnings;
+ok(intel[T[0]] === 'heavy' && !(T[1] in intel), 'they see "Heavy enemy presence" where you have 50, nothing where you used Camouflage');
+wr = await call('war_lobby', { action: 'place', warId: wid, soldiers: { [T[0]]: 41, [T[2]]: 50, [T[3]]: 9 }, lock: true });
+ok(wr.war.phase === 'holding', 'when the last player locks in, the map is revealed');
+const map = wr.war.map;
+ok(map[T[0]].state === 'contested' && map[T[1]].owner === troll.uid && map[T[2]].owner === pal.uid && map[T[5]].state === 'neutral',
+   '50 vs 41 is contested, single claims are owned, empty land is neutral');
+ok(!JSON.stringify(map).match(/"(soldiers|camo)"/), 'the public map shows owners, never soldier counts');
+const log = (await getDocs(collection(db, 'wars', wid, 'log'))).docs.map((d) => d.data().text);
+ok(log.length === 6 && log.some((x) => /is contested/.test(x)), 'the map log tells everyone what happened');
+await signOut(auth);
+await signInWithEmailAndPassword(auth, troll.email, 'secret123');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);
