@@ -25,6 +25,8 @@ import {
   LoadingState,
   Tabs,
   useToast,
+  Tour,
+  tourSeen,
 } from "../../ui";
 import { ChartView } from "../charts/ChartView";
 import type { Forecast } from "../charts/engine";
@@ -34,6 +36,7 @@ import { StatusLine } from "../markets/StatusLine";
 import { marketStatus } from "../../data/marketStatus";
 import { ORDER_EXPLAIN, TermHelp } from "../learn/Glossary";
 import { useSkill } from "../learn/useSkill";
+import { FIRST_TRADE_TOUR } from "../tutorials/tours";
 import ls from "../learn/Learn.module.css";
 import { useVolMap } from "../options/model";
 import { OptionTicket } from "../options/OptionTicket";
@@ -135,13 +138,23 @@ function Ticket({
   const held = acct?.positions.find((p) => p.sym === sym)?.qty ?? 0;
   // beginner help: a guided first trade until the first one, and a note when the market is closed
   const { level } = useSkill();
-  const firstTrade = level === "beginner" && !!acct && acct.stats.trades === 0 && acct.orders.length === 0;
+  const noTradesYet = !!acct && acct.stats.trades === 0 && acct.orders.length === 0;
+  const firstTrade = level === "beginner" && noTradesYet;
   const closed = quotes.status === "ready" && !marketStatus(quotes.data).open;
 
   // /practice/trade/AAPL?side=sell&mode=options: the chart's Buy / Sell buttons pick the side
   const [params, setParams] = useSearchParams();
   const mode = params.get("mode") === "options" && !retired ? "options" : "stock";
   const contractId = params.get("contract");
+  // the first-trade walkthrough (Phase 8, F21): opens by itself before your first trade, or from
+  // Help / "Show me how" (?tour=first-trade). It only points at the controls; Place order is still yours.
+  const asked = params.get("tour") === FIRST_TRADE_TOUR.id;
+  const [tourOpen, setTourOpen] = useState(false);
+  const [autoTried, setAutoTried] = useState(false);
+  if (!autoTried && mode === "stock" && !retired && acct && (asked || (noTradesYet && !tourSeen(FIRST_TRADE_TOUR.id)))) {
+    setAutoTried(true);
+    setTourOpen(true);
+  }
   const startContract = useMemo(() => contractParam(contractId, sym), [contractId, sym]);
   const setMode = (m: "stock" | "options") =>
     setParams(
@@ -300,6 +313,7 @@ function Ticket({
             </p>
           ) : (
           <div className={s.ticketTop}>
+            <div data-tour="side">
             <Tabs
               stretch
               label={t("trade.side")}
@@ -310,6 +324,7 @@ function Ticket({
                 { value: "sell", label: t("trade.sell") },
               ]}
             />
+            </div>
             <Tabs
               stretch
               label={t("trade.mode")}
@@ -344,6 +359,11 @@ function Ticket({
                 </ol>
               </div>
             )}
+            <p className={s.note}>
+              <button type="button" className={["hit", s.linkBtn].join(" ")} onClick={() => setTourOpen(true)}>
+                {t("tour.firstTrade.replay")}
+              </button>
+            </p>
             {closed && <p className={ls.closed}>{t("tk.closed")}</p>}
             <form
               className={s.ticket}
@@ -353,6 +373,7 @@ function Ticket({
               }}
               noValidate
             >
+              <div data-tour="type">
               <Tabs
                 stretch
                 label={t("trade.type")}
@@ -376,11 +397,12 @@ function Ticket({
                   { value: "stop", label: t("trade.stop") },
                 ]}
               />
+              </div>
               <p className={ls.explainLine}>
                 {ORDER_EXPLAIN[input.type]}
                 <TermHelp term={input.type} />
               </p>
-              <div className={s.qtyRow}>
+              <div className={s.qtyRow} data-tour="qty">
                 <Field
                   label={t("trade.qty")}
                   inputMode="numeric"
@@ -509,6 +531,7 @@ function Ticket({
                 size="lg"
                 block
                 disabled={!check.ok}
+                data-tour="review"
               >
                 {t("trade.review")}
               </Button>
@@ -519,6 +542,12 @@ function Ticket({
         </Card>
       </div>
 
+      <Tour
+        id={FIRST_TRADE_TOUR.id}
+        steps={FIRST_TRADE_TOUR.steps}
+        open={tourOpen && mode === "stock" && !confirming}
+        onClose={() => setTourOpen(false)}
+      />
       <Confirm
         open={confirming}
         title={t("trade.confirmTitle")}
