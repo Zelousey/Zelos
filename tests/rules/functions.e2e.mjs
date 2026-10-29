@@ -424,6 +424,7 @@ ok(re1 && /already started/.test(re1.message), 'a War starts once');
 
 // --- the War map (W4a): secret placement, Camouflage, warnings from locked-in opponents, the reveal
 const T = wr.war.territories;
+await call('war_quiet', { start: 0, end: 0, tz: 'UTC' }); // quiet hours off so the battle below starts now, whatever the time
 ok(wr.war.phase === 'claiming' && T.length === 6 && wr.war.claimEnds - wr.war.startedAt === 3600e3, 'the War starts with an hour of secret claiming on a 6-territory map');
 re1 = null; try { await call('war_lobby', { action: 'place', warId: wid, soldiers: { [T[0]]: 60, [T[1]]: 40 } }); } catch (x) { re1 = x; }
 ok(re1 && /At most 50/.test(re1.message), 'at most 50 soldiers on one territory');
@@ -437,6 +438,7 @@ re1 = null; try { await getDoc(doc(db, 'wars', wid, 'placements', troll.uid)); }
 ok(re1, 'an opponent can\'t read your placement');
 const intel = (await getDoc(doc(db, 'wars', wid, 'intel', pal.uid))).data().warnings;
 ok(intel[T[0]] === 'heavy' && !(T[1] in intel), 'they see "Heavy enemy presence" where you have 50, nothing where you used Camouflage');
+await call('war_quiet', { start: 0, end: 0, tz: 'UTC' });
 wr = await call('war_lobby', { action: 'place', warId: wid, soldiers: { [T[0]]: 41, [T[2]]: 50, [T[3]]: 9 }, lock: true });
 ok(wr.war.phase === 'holding', 'when the last player locks in, the map is revealed');
 const map = wr.war.map;
@@ -445,8 +447,21 @@ ok(map[T[0]].state === 'contested' && map[T[1]].owner === troll.uid && map[T[2]]
 ok(!JSON.stringify(map).match(/"(soldiers|camo)"/), 'the public map shows owners, never soldier counts');
 const log = (await getDocs(collection(db, 'wars', wid, 'log'))).docs.map((d) => d.data().text);
 ok(log.length === 6 && log.some((x) => /is contested/.test(x)), 'the map log tells everyone what happened');
+
+// --- contested battles (W4b): Command picks the side, the battle runs on War zone prices
+const bt = wr.war.battles[T[0]];
+ok(bt && bt.kind === 'duel' && bt.command === troll.uid && bt.stage === 'picking' && bt.pickBy - Date.now() <= 600e3,
+   'a contested territory becomes a battle; more soldiers (50 vs 41) gets Command and 10 minutes to pick');
+re1 = null; try { await call('war_lobby', { action: 'pick', warId: wid, territory: T[0], side: 'bull' }); } catch (x) { re1 = x; }
+ok(re1 && /Command picks/.test(re1.message), 'only the player with Command picks the side');
 await signOut(auth);
 await signInWithEmailAndPassword(auth, troll.email, 'secret123');
+const allQuotes = Object.fromEntries(['NIMBC','QUBTR','SYNAP','VAULT','LEDGR','ORBCP','HELIX','CURAM','PULSV','VOLTX','SOLRN','PETRA','BRWLY','STRDE','CARTO','SIGNL','ECHON','STRMR','FORGE','AEROV','RAILX','HAVEN','BRIKX','TOWRS','ALLOY','POLYM','QUARZ','GRIDX','AQUAV','WATSN'].map((x) => [x, { p: 100, ref: 100 }]));
+await seed('warMarket/quotes', { updatedAt: Date.now(), prices: allQuotes });
+wr = await call('war_lobby', { action: 'pick', warId: wid, territory: T[0], side: 'bear' });
+const run = wr.war.battles[T[0]];
+ok(run.stage === 'running' && run.sides[troll.uid] === 'bear' && run.sides[pal.uid] === 'bull' && run.start[run.sym] === 100 && run.endsAt - run.startsAt === 3600e3,
+   'Command picks Bear, the other side is Bull, and a 1-hour battle starts on a stock from that territory');
 
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

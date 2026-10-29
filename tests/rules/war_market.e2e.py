@@ -116,10 +116,42 @@ ok(any(n["title"] == "Deadline War has started" for n in inbox("warAwake01")), "
 main.war_market_pass(db, a["claimEnds"], random.Random(12))
 a = db.collection("wars").document("deadlineWar01").get().to_dict()
 p1 = db.collection("wars").document("deadlineWar01").collection("placements").document("warAwake01").get().to_dict()
-ok(a["phase"] == "holding" and a["due"] == a["endsAt"] and p1["auto"] and sum(p1["soldiers"].values()) == 100,
+ok(a["phase"] == "holding" and a["due"] == min(WL.WB.due(b) for b in a["battles"].values()) and p1["auto"] and sum(p1["soldiers"].values()) == 100,
    "when claiming time is up, anyone who didn't lock in gets an even spread and the map is revealed")
 ok(sum(1 for v in a["map"].values() if v["state"] == "contested") == 5 and sum(1 for v in a["map"].values() if v["state"] == "neutral") == 1,
    "(two even spreads tie on 5 territories and leave one neutral)")
+ok(len(a["battles"]) == 5 and all(b["kind"] == "duel" for b in a["battles"].values()), "each contested territory gets a battle")
 main.war_market_pass(db, a["endsAt"] + M, random.Random(13))
 ok(db.collection("wars").document("deadlineWar01").get().to_dict()["status"] == "ended", "and it ends after its days")
+
+# ---- contested battles (W4b): picks time out to a random side; a finished battle settles the territory
+WB = main.WB
+now2 = a["endsAt"] + 2 * M
+bw = dict(WL.new_war("warAwake01", "Ann", {"name": "Battle War", "days": 1, "lobbyHours": 1, "maxPlayers": 4}, now2 - 3 * 3600 * 1000))
+bw = dict(bw, status="active", stage=None, phase="holding", players=["warAwake01", "warSleep01"], names={"warAwake01": "Ann", "warSleep01": "Ben"},
+          territories=["tech", "energy"], startedAt=now2 - 2 * 3600 * 1000, endsAt=now2 + 20 * 3600 * 1000,
+          map={"tech": {"state": "contested", "contenders": ["warAwake01", "warSleep01"]}, "energy": {"state": "contested", "contenders": ["warAwake01", "warSleep01"]}})
+q = db.collection("warMarket").document("quotes").get().to_dict()["prices"]
+tech = WB.new_battle("tech", ["warAwake01", "warSleep01"], {"warAwake01": 40, "warSleep01": 40}, now2 - 20 * M, random.Random(1), 0)  # its 10 minutes are up
+energy = WB.start(dict(WB.new_battle("energy", ["warAwake01", "warSleep01"], {"warAwake01": 50, "warSleep01": 41}, now2 - 90 * M, random.Random(2), 0), sides={"warAwake01": "bull"}),
+                  {}, {s: v["p"] for s, v in q.items()}, now2 - 80 * M, random.Random(3))  # its hour is up
+bw["battles"] = {"tech": tech, "energy": energy}
+db.collection("wars").document("battleWar01").set(WL.stored(bw))
+db.collection("wars").document("battleWar01").collection("placements").document("warAwake01").set({"soldiers": {"energy": 50, "tech": 40}, "camo": [], "locked": True})
+db.collection("wars").document("battleWar01").collection("placements").document("warSleep01").set({"soldiers": {"energy": 41, "tech": 40}, "camo": [], "locked": True})
+main.war_market_pass(db, now2, random.Random(14))
+bw2 = db.collection("wars").document("battleWar01").get().to_dict()
+t2 = bw2["battles"]["tech"]
+ok(t2["stage"] == "running" and t2["randomSide"] and set(t2["sides"].values()) == {"bull", "bear"}, "when Command doesn't pick in 10 minutes, a side is picked at random and the battle runs")
+e2 = bw2["battles"]["energy"]
+won = e2["winner"]
+moved = e2["end"][e2["sym"]] - e2["start"][e2["sym"]]
+ok(e2["stage"] == "done" and won == (("warAwake01" if moved >= 0 else "warSleep01") if moved else "warAwake01"),
+   "after its hour the side that matched the price move wins (Command on no move)")
+ok(bw2["map"]["energy"] == {"state": "owned", "owner": won, "how": "contested-battle", "since": now2}, "and takes the territory")
+lost = "warSleep01" if won == "warAwake01" else "warAwake01"
+ok(bw2["bonusPoints"] == {won: 1} and bw2["redeployPasses"] == {lost: 1}, "the winner gets +1 point, the loser a Redeploy pass")
+ok(db.collection("wars").document("battleWar01").collection("placements").document(won).get().to_dict()["reserve"] == 5, "and +5 soldiers to the winner's reserve")
+ok(bw2["due"] == t2["endsAt"], "the War is next due when the running battle ends")
+ok(any("won the battle for Energy" in d.to_dict()["text"] for d in db.collection("wars").document("battleWar01").collection("log").stream()), "the map log says who won")
 print("\n%d War zone market checks passed" % passed)
