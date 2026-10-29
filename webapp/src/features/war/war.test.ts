@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { mapSize, parseWar } from './lobby';
+import { parseIntel, parsePlacement, placementProblem } from './map';
 import { chaosNow, chartBars, COMPANIES, HOT_MS, parseBars, parseChaos, parseProfile, parseQuotes, QUIET_MAX_MIN, quietLength, SECTORS, warEquity } from './war';
 
 describe('War zone', () => {
@@ -10,7 +11,7 @@ describe('War zone', () => {
     const rows = [...py.matchAll(/\("([A-Z]{5})", "([^"]+)", "([a-z]+)", [\d.]+, [\d.]+\)/g)].map((m) => ({ sym: m[1], name: m[2], sector: m[3] }));
     expect(rows).toEqual(COMPANIES);
     const block = py.slice(py.indexOf('SECTORS = ('), py.indexOf('# (sym, name'));
-    const secs = [...block.matchAll(/\("([a-z]+)", "([A-Za-z]+)"\)/g)].map((m) => [m[1], m[2]]);
+    const secs = [...block.matchAll(/\("([a-z]+)", "([A-Za-z ]+)"\)/g)].map((m) => [m[1], m[2]]);
     expect(secs).toEqual(SECTORS.map(([a, b]) => [a, b]));
   });
   it('groups 5-minute bars into chart bars, moving the last with the newest price', () => {
@@ -62,5 +63,16 @@ describe('War zone', () => {
     const py = readFileSync(resolve(__dirname, '../../../../functions/warlobby.py'), 'utf8');
     expect(py).toContain('DAYS = (1, 2, 3, 5, 7)');
     expect(py).toContain('LOBBY_HOURS = (1, 6, 24)');
+  });
+  it('reads your placement and warnings, and checks a placement like the server', () => {
+    const T = ['tech', 'finance', 'health', 'energy', 'consumer', 'comms'];
+    expect(parsePlacement({ soldiers: { tech: 50, mars: 3, health: -1 }, camo: ['tech', 'mars'], locked: true })).toEqual({ soldiers: { tech: 50 }, camo: ['tech'], locked: true, auto: false });
+    expect(parseIntel({ warnings: { tech: 'heavy', energy: 'enemy', health: 12, mars: 'enemy' } })).toEqual({ tech: 'heavy', energy: 'enemy' });
+    expect(placementProblem({ soldiers: { tech: 50, energy: 50 }, camo: [] }, T, 100)).toBeNull();
+    expect(placementProblem({ soldiers: { tech: 50, energy: 45 }, camo: ['energy'] }, T, 100)).toBeNull();
+    expect(placementProblem({ soldiers: { tech: 60, energy: 40 }, camo: [] }, T, 100)?.key).toBe('over');
+    expect(placementProblem({ soldiers: { tech: 50, energy: 30 }, camo: [] }, T, 100)).toEqual({ key: 'left', n: 20 });
+    expect(placementProblem({ soldiers: { tech: 20, finance: 20, health: 20, energy: 20, consumer: 10, comms: 10 }, camo: [] }, T, 100)?.key).toBe('empty');
+    expect(placementProblem({ soldiers: { tech: 50, energy: 45 }, camo: ['health'] }, T, 100)?.key).toBe('camo');
   });
 });

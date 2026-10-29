@@ -68,6 +68,22 @@
 .note { margin: 0; padding: var(--space-2) var(--space-4) var(--space-3); color: var(--muted); font-size: var(--text-sm); }
 .timeline { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--gold); background: var(--surface-2); font-size: var(--text-sm); }
 .inviteForm { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-2); }
+.mapArea { display: grid; gap: var(--space-4); margin-bottom: var(--space-4); }
+.terr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2) var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); }
+.terr + .terr { border-top: 1px solid var(--border-soft); }
+.terr .who b { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); white-space: normal; }
+.stepper { display: flex; align-items: center; gap: var(--space-1); }
+.count { width: 4.5em; min-height: var(--tap); padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-soft); color: var(--ink); font: inherit; font-family: var(--mono); text-align: center; }
+.camo { grid-column: 1 / -1; display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-2); font-size: var(--text-sm); }
+.camo input { width: 18px; height: 18px; }
+.claimFoot { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--border-soft); }
+.claimFoot p { margin: 0; }
+.board { list-style: none; margin: 0; padding: var(--space-3); display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.tile { display: grid; gap: var(--space-1); align-content: start; justify-items: start; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.tileMine { border-color: var(--up-ink, var(--accent)); }
+.tileHot { border-color: var(--gold); border-style: dashed; }
+.logList { list-style: none; margin: 0; padding: var(--space-2) var(--space-4) var(--space-3); display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+.logList li { display: flex; justify-content: space-between; gap: var(--space-3); }
 /* On a phone it's one column: balance, the chart and ticket, your positions, your private Wars, quiet hours, then the
    long market list (so the Buy button isn't under 21 companies). */
 @media (max-width: 999px) {

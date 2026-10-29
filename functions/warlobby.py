@@ -16,6 +16,7 @@ It starts once. At the lobby deadline it starts with the locked-in players if th
 """
 import re
 
+from warmap import CLAIM_MS
 from warmarket import WarError
 
 DAYS = (1, 2, 3, 5, 7)              # War length (owner: never longer than a week)
@@ -163,7 +164,7 @@ def _begin(war, players, now_ms):
     return dict(war, status="active", stage=None, players=players, ready={p: True for p in players},
                 names={p: (war.get("names") or {}).get(p, "Trader") for p in players},
                 invited=[], mapSize=map_size(len(players)), startedAt=now_ms, endsAt=now_ms + war["days"] * DAY_MS,
-                dropped=[p for p in war["players"] if not ready.get(p)], updatedAt=now_ms)
+                phase="claiming", claimEnds=now_ms + CLAIM_MS, lockedCount=0, dropped=[p for p in war["players"] if not ready.get(p)], updatedAt=now_ms)
 
 
 def start(war, uid, now_ms):
@@ -196,7 +197,11 @@ def at_end(war, now_ms):
 
 def due_at(war):
     """When the deadline job next has to look at this War (stored as `due`, so one query finds them)."""
-    return war.get("deadline") if war.get("status") == "lobby" else war.get("endsAt") if war.get("status") == "active" else None
+    if war.get("status") == "lobby":
+        return war.get("deadline")
+    if war.get("status") == "active":
+        return war.get("claimEnds") if war.get("phase") == "claiming" else war.get("endsAt")
+    return None
 
 
 def stored(war):

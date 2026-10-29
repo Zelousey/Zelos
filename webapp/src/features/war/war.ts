@@ -24,6 +24,9 @@ export const SECTORS = [
   ['consumer', 'Consumer'],
   ['comms', 'Communication'],
   ['industrials', 'Industrials'],
+  ['realestate', 'Real Estate'],
+  ['materials', 'Materials'],
+  ['utilities', 'Utilities'],
 ] as const;
 export type SectorId = (typeof SECTORS)[number][0];
 export type Company = { sym: string; name: string; sector: SectorId };
@@ -49,6 +52,15 @@ export const COMPANIES: Company[] = [
   { sym: 'FORGE', name: 'Forgeline Industrial', sector: 'industrials' },
   { sym: 'AEROV', name: 'Aerovance', sector: 'industrials' },
   { sym: 'RAILX', name: 'Railmax Logistics', sector: 'industrials' },
+  { sym: 'HAVEN', name: 'Havenstone Realty', sector: 'realestate' },
+  { sym: 'BRIKX', name: 'Brickline Properties', sector: 'realestate' },
+  { sym: 'TOWRS', name: 'Towerpoint Spaces', sector: 'realestate' },
+  { sym: 'ALLOY', name: 'Alloycore Metals', sector: 'materials' },
+  { sym: 'POLYM', name: 'Polymora Chemicals', sector: 'materials' },
+  { sym: 'QUARZ', name: 'Quarzite Mining', sector: 'materials' },
+  { sym: 'GRIDX', name: 'Gridwell Utilities', sector: 'utilities' },
+  { sym: 'AQUAV', name: 'Aquavera Water', sector: 'utilities' },
+  { sym: 'WATSN', name: 'Wattson Power', sector: 'utilities' },
 ];
 export const BY_SYM: Record<string, Company> = Object.fromEntries(COMPANIES.map((c) => [c.sym, c]));
 export const START_BALANCE = 100000;

@@ -14,6 +14,7 @@ import NotFoundPage from '../notfound/NotFoundPage';
 import { WarGate } from './Gate';
 import { useWar, warLobby, WAR_ID_RE, type PrivateWar, type WarConfig } from './lobby';
 import { statusKey } from './PrivateWars';
+import { WarMap } from './WarMap';
 import { WarSettingsForm } from './WarSettingsForm';
 import s from './War.module.css';
 
@@ -68,6 +69,11 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
           </span>
         }
       />
+      {(w.status === 'active' || w.status === 'ended') && inIt && w.territories.length > 0 && (
+        <div className={s.mapArea}>
+          <WarMap w={w} uid={uid} now={now} />
+        </div>
+      )}
       <div className={s.cols}>
         <div className={s.stack}>
           <Card title={t('warl.about')} pad>
@@ -181,7 +187,7 @@ function TimeLine({ w, now }: { w: PrivateWar; now: number }) {
   let line: string;
   if (w.status === 'lobby' && w.stage === 'configuring') line = t('warl.tl.draft');
   else if (w.status === 'lobby') line = t('warl.tl.lobby', { when: w.deadline ? formatRelative(w.deadline, now) : '' });
-  else if (w.status === 'active') line = t('warl.tl.active', { started: formatRelative(w.startedAt ?? now, now), ends: formatRelative(w.endsAt ?? now, now) });
+  else if (w.status === 'active') line = t('warl.tl.active', { started: formatRelative(Math.min(w.startedAt ?? now, now), now), ends: formatRelative(w.endsAt ?? now, now) });
   else if (w.status === 'ended') line = t('warl.tl.ended');
   else line = w.why === 'not-enough-players' ? t('warl.tl.cancelledDeadline') : w.why === 'never-opened' ? t('warl.tl.cancelledDraft') : t('warl.tl.cancelled');
   return (

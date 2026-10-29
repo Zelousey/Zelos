@@ -7279,6 +7279,7 @@ def war_trade(req, db, uid, now_ms):
 # functions/warlobby.py has the rules. One callable for every lobby action (fewer functions to
 # deploy). wars/{id} is written here only; its players and the people invited can read it.
 import warlobby as WL  # noqa: E402
+import warmap as WMAP  # noqa: E402
 
 
 def _war_quiet_of(db, uids):
@@ -7299,7 +7300,7 @@ def _war_announce(db, before, war, wid, now_ms):
     name = war.get("name") or "Your War"
     if before.get("status") == "lobby" and war.get("status") == "active":
         others = [p for p in war["players"]]
-        body = "%d players, %d day%s. Prices in the War zone are simulated." % (len(war["players"]), war["days"], "" if war["days"] == 1 else "s")
+        body = "Place your soldiers in secret within the hour. %d players, %d day%s; simulated War zone." % (len(war["players"]), war["days"], "" if war["days"] == 1 else "s")
         war_notify(db, _war_quiet_of(db, others), "%s has started" % name, body, "%s started." % name, "war-" + wid, now_ms, path="app/war/" + wid)
         for uid in war.get("dropped") or []:
             war_notify(db, _war_quiet_of(db, [uid]), "%s started without you" % name, "You weren't ready by the lobby deadline.",
@@ -7347,6 +7348,8 @@ def war_lobby(req, db, uid, now_ms):
             raise WM.WarError("FAILED_PRECONDITION", "You can't invite @%s." % uname)
         if not WAR_OPEN and not db.collection("admins").document(to).get().exists:
             raise WM.WarError("FAILED_PRECONDITION", "@%s can't enter the War zone yet: it's still being built." % uname)
+    elif action == "place":
+        return _war_place(db, wid, uid, data, now_ms)
     elif action == "join" and _war_open_count(db, uid) >= WL.MAX_OPEN:
         raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
     ref = db.collection("wars").document(wid)
@@ -7381,6 +7384,7 @@ def war_lobby(req, db, uid, now_ms):
                 war = WL.start(before, uid, now_ms)
             else:
                 raise WM.WarError("INVALID_ARGUMENT", "Unknown War action.")
+        war = _war_with_map(war)
         t.set(ref, WL.stored(war))
         return before, war
     before, war = txn(db.transaction())
@@ -7410,13 +7414,88 @@ def war_lobby_pass(db, now_ms):
         def txn(t):
             s2 = ref.get(transaction=t)
             before = s2.to_dict() or {}
-            war = WL.at_end(WL.at_deadline(before, now_ms), now_ms)
+            places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)} if before.get("phase") == "claiming" else {}
+            war = _war_with_map(WL.at_deadline(before, now_ms))
+            lines = []
+            if WMAP.claiming_over(war, places, now_ms):
+                war, lines = _war_reveal(t, ref, war, places, now_ms)
+            war = WL.at_end(war, now_ms)
             t.set(ref, WL.stored(war))
-            return before, war
+            return before, war, lines
         try:
-            before, war = txn(db.transaction())
+            before, war, lines = txn(db.transaction())
             _war_announce(db, before, war, ref.id, now_ms)
+            if lines:
+                _war_revealed_notify(db, war, ref.id, now_ms)
             n += 1
         except Exception as e:
             print("[war] lobby pass failed for one War: %s" % type(e).__name__)
     return n
+
+
+# ---------------------------------------------------------------- the War map (W4a)
+# functions/warmap.py has the rules. Placements and warnings are per player and private
+# (wars/{id}/placements/{uid}, wars/{id}/intel/{uid}); the map on wars/{id} shows owners only.
+def _war_with_map(war):
+    """A War that has just started gets its territories (6, 8 or 10 of the 10 sectors)."""
+    if war.get("status") == "active" and not war.get("territories"):
+        war = dict(war, territories=WMAP.pick_territories(war.get("mapSize") or 6, _random.SystemRandom()))
+    return war
+
+
+def _war_reveal(t, ref, war, places, now_ms):
+    """End of claiming, inside a transaction (after its reads): fix every placement, reveal owners."""
+    final = WMAP.final_placements(war["players"], war["territories"], war.get("soldiers") or WL.SOLDIERS, places)
+    board, lines = WMAP.resolve(war["territories"], final, war.get("names") or {}, now_ms)
+    for uid, p in final.items():
+        t.set(ref.collection("placements").document(uid), dict(p, lockedAt=(places.get(uid) or {}).get("lockedAt") or now_ms,
+                                                                  auto=not (places.get(uid) or {}).get("locked")))
+    for i, line in enumerate(lines):
+        t.set(ref.collection("log").document("%d-%02d" % (now_ms, i)), {"at": now_ms, "text": line})
+    return dict(war, map=board, phase="holding", lockedCount=len(war["players"]), revealedAt=now_ms, updatedAt=now_ms), lines
+
+
+def _war_revealed_notify(db, war, wid, now_ms):
+    name = war.get("name") or "Your War"
+    mine = lambda u: sum(1 for v in (war.get("map") or {}).values() if v.get("owner") == u)  # noqa: E731
+    for uid in war["players"]:
+        n = mine(uid)
+        war_notify(db, _war_quiet_of(db, [uid]), "The map of %s is revealed" % name,
+                   "You hold %d territor%s. Simulated War zone." % (n, "y" if n == 1 else "ies"),
+                   "The map of %s was revealed: you hold %d." % (name, n), "war-map-" + wid, now_ms, path="app/war/" + wid)
+
+
+def _war_place(db, wid, uid, data, now_ms):
+    """Save (and with lock: true, lock in) your secret placement while claiming is open. Locking
+    in updates every player's warnings; when the last player locks in, the map is revealed."""
+    ref = db.collection("wars").document(wid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        if war.get("status") != "active" or war.get("phase") != "claiming" or now_ms >= war.get("claimEnds", 0):
+            raise WM.WarError("FAILED_PRECONDITION", "Claiming is over.")
+        places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)}
+        if (places.get(uid) or {}).get("locked"):
+            raise WM.WarError("FAILED_PRECONDITION", "You've already locked in.")
+        p = WMAP.validate_placement(data, war["territories"], war.get("soldiers") or WL.SOLDIERS)
+        lock = data.get("lock") is True
+        places[uid] = dict(p, locked=lock, savedAt=now_ms, **({"lockedAt": now_ms} if lock else {}))
+        lines = []
+        if lock and WMAP.claiming_over(war, places, now_ms):
+            war, lines = _war_reveal(t, ref, war, places, now_ms)
+        else:
+            t.set(ref.collection("placements").document(uid), places[uid])
+            if lock:  # warnings only change when someone locks in
+                for other in war["players"]:
+                    t.set(ref.collection("intel").document(other), {"warnings": WMAP.warnings_for(other, places), "at": now_ms})
+                war = dict(war, lockedCount=sum(1 for x in war["players"] if (places.get(x) or {}).get("locked")), updatedAt=now_ms)
+        t.set(ref, WL.stored(war))
+        return war, lines
+    war, lines = txn(db.transaction())
+    if lines:
+        _war_revealed_notify(db, war, wid, now_ms)
+    return {"warId": wid, "war": war}
