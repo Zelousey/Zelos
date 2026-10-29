@@ -12,9 +12,9 @@ import { useAuth } from '../../lib/auth';
 import { formatMoney, formatPercent } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Badge, Button, Card, Confirm, EmptyState, LoadingState, PageHeader, useToast } from '../../ui';
+import { Badge, Button, buttonClass, Card, Confirm, EmptyState, LoadingState, PageHeader, useToast } from '../../ui';
 import { createInvite, errorText, shareLink } from '../invites/invites';
-import { BATTLE_ID_RE, cancelBattle, joinBattle, leaveBattle, OUT_REASON, startBattle, surrender, useAccounts, useBattle, useBook, useEvents, type Battle } from './battle';
+import { BATTLE_ID_RE, cancelBattle, joinBattle, leaveBattle, OUT_REASON, startBattle, surrender, useAccounts, useBattle, useBook, useEvents, useMyRematch, type Battle } from './battle';
 import { BattleClash } from './BattleClash';
 import { DraftView } from './DraftView';
 import { LiveView } from './LiveView';
@@ -63,6 +63,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
   const host = b.host === uid;
   const accounts = accts.status === 'ready' ? accts.data : [];
   const me = accounts.find((a) => a.uid === uid) ?? null;
+  const mine = useMyRematch(player && b.status === 'ended' ? b.id : null, uid);
 
   async function run(fn: () => Promise<unknown>, ok?: string) {
     setBusy(true);
@@ -124,6 +125,11 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
                 {t('bt.cancel')}
               </Button>
             )}
+            {b.status === 'ended' && player && mine.status !== 'loading' && (
+              <Link className={buttonClass({ variant: 'primary' })} to={mine.status === 'ready' && mine.data ? `/battles/${mine.data}` : `/battles/${b.id}/rematch`}>
+                {mine.status === 'ready' && mine.data ? t('bt.rematch.open') : t('bt.rematch')}
+              </Link>
+            )}
             {b.status === 'active' && me && !me.out && (
               <Button variant="ghost" disabled={busy} onClick={() => setConfirm('surrender')}>
                 {t('bt.surrender')}
@@ -177,6 +183,11 @@ function Lobby({ b, uid, busy, onJoin, onStart }: { b: Battle; uid: string; busy
           ))}
         </ul>
         {waiting > 0 && <p className={s.note}>{t('bt.waitingFor', { n: waiting })}</p>}
+        {b.rematchOf && (
+          <p className={s.note}>
+            <Link to={`/battles/${b.rematchOf}`}>{t('bt.rematch.of')}</Link>
+          </p>
+        )}
         <div className={s.actions}>
           {!player && battles.loaded && !battles.open && <BattleLock next={`/battles/${b.id}`} flat />}
           {!player && (battles.open || !battles.loaded) && (

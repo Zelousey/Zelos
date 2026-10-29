@@ -38,6 +38,10 @@ Run them in order whenever there's time. The site keeps working without them, bu
    ```
    cd ~/Zelos && git pull && firebase deploy --only functions:feedback_send,functions:feedback_list,functions:feedback_mark,functions:account_delete,firestore:rules
    ```
+3. **Battle rematch (Phase 9).** After it merges: the new `tw_rematch` function, the shared challenge code and the rule that lets you read your own rematch link. Until then the Rematch button shows an error.
+   ```
+   cd ~/Zelos && git pull && firebase deploy --only functions:tw_rematch,functions:tw_challenge,firestore:rules
+   ```
 After running one, tell Claude "deployed", and it will be ticked off here.
 
 ## Done (all on main)

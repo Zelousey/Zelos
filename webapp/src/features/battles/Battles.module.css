@@ -64,3 +64,7 @@
 .battleRow > :not(:last-child) { grid-column: 1; }
 .battleRow > :last-child { grid-column: 2; grid-row: 1 / span 2; }
 .battleRow:hover { background: var(--surface-2); }
+
+/* rematch (Phase 9) */
+.rematchForm { display: grid; gap: var(--space-4); }
+.error { margin: 0; color: var(--down-ink); font-size: var(--text-sm); }

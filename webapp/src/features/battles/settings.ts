@@ -56,6 +56,20 @@ export function presetSettings(mode: string | null): Settings {
   return DEFAULT_SETTINGS;
 }
 
+/** A finished battle's settings, copied into its rematch form (Phase 9). */
+export function settingsOf(lms: Partial<Record<LmsKey, number>> | null, modes: { draft?: { picks: number }; whale?: { capPct: number; shields: number }; storms?: 'rare' | 'often'; bounties?: boolean; stops?: boolean }): Settings {
+  return {
+    mode: lms ? 'lms' : 'classic',
+    lms: lms ? { floorPct: lms.floorPct ?? 0, maxLossPct: lms.maxLossPct ?? 0, maxLosses: lms.maxLosses ?? 0, cutHours: lms.cutHours ?? 0 } : DEFAULT_SETTINGS.lms,
+    draftPicks: modes.draft?.picks ?? 0,
+    whaleCap: modes.whale?.capPct ?? 0,
+    whaleShields: modes.whale?.shields ?? DEFAULT_SETTINGS.whaleShields,
+    storms: modes.storms ?? '',
+    bounties: !!modes.bounties,
+    stops: !!modes.stops,
+  };
+}
+
 /** Timed cuts must come more often than the battle lasts. */
 export const cutOptions = (days: number) => LMS_OPTS.cutHours.filter((h) => h < days * 24);
 

@@ -610,7 +610,7 @@ Full detail (requirement IDs, acceptance criteria, tests, questions, risks):
 | 6 | Dashboard as 4 swipe pages | F14–F17, M2–M3, S1, S7 | **built 2026-10-28**; Q6 and Q18 taken with the safe defaults (link only what exists; index ETFs labelled as funds), owner to confirm | `features/dashboard`, practice, markets, missions, profile |
 | 7 | Find a Stock pop-up (Solo or Battle) | N6 | **built 2026-10-28** | markets, trade ticket, battles |
 | 8 | Onboarding, help, invitation cards (coaching / battle / team-up) | F20–F23, N-R2 | **8a (Help & feedback, F22–F23) and 8b (first-trade walkthrough, F20–F21) built 2026-10-28**; invitation cards (N-R2) still to do | `welcome/FirstSteps`, trade ticket, inbox |
-| 9 | Battle rematch | F19, S8 | — | `functions/main.py`, `battles/BattlePage` |
+| 9 | Battle rematch | F19, S8 | **built 2026-10-29** (`tw_rematch`, Rematch in the battle room); needs a functions + rules deploy | `functions/main.py`, `battles/BattlePage` |
 | 10 | Squad rulesets (Free-for-all, Fantasy Draft, Last Man Standing, Team) + squad vs squad / leaderboard | F5–F9, E6 | Q14, Q16, Q17 | `functions/main.py`, `battles/settings.ts`, `features/social` |
 | **Stage B: the Trade War realm (simulated, 24/7)** | | | | |
 | 11 | War profile: War balance ($100,000) + chart, Battle Level, gold-bar ledger | W-R23, W-R24, W-R27 | approved (F1–F8) | new `features/war/*`, `functions/` realm state, rules |

@@ -255,6 +255,18 @@ test('tradeWars: a match opens by its id, but a list only returns matches you pl
   await assertFails(updateDoc(doc(real('alice').firestore(), 'tradeWars/war111111111'), { status: 'ended' }));
 });
 
+test('tradeWars rematches: you read only your own rematch link, and nobody writes one', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'tradeWars/war333333333'), { name: 'Done', host: 'alice', status: 'ended', players: ['alice', 'bob'] });
+    await setDoc(doc(c.firestore(), 'tradeWars/war333333333/rematches/alice'), { warId: 'war444444444', at: 1 });
+  });
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'tradeWars/war333333333/rematches/alice')));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'tradeWars/war333333333/rematches/alice')));
+  await assertFails(getDocs(collection(real('bob').firestore(), 'tradeWars/war333333333/rematches')));
+  await assertFails(setDoc(doc(real('bob').firestore(), 'tradeWars/war333333333/rematches/bob'), { warId: 'war555555555', at: 2 }));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'tradeWars/war333333333/rematches/alice'), { warId: 'war555555555', at: 2 }));
+});
+
 (async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-zelos',

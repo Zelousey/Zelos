@@ -294,3 +294,55 @@ test('the sword clash plays once when a battle goes live and once before the res
   await page.getByRole('button', { name: 'Skip' }).click();
   await expect(clash).toBeHidden();
 });
+
+test('rematch: a finished battle challenges the same rival again with copied, editable settings; once', async ({ page }, info) => {
+  await page.goto('battles');
+  const uid = await signIn(page, `rematch-${info.project.name}${Date.now()}@example.com`);
+  await passBasics(uid);
+  const now = Date.now();
+  const id = rid();
+  const rival = `rival${rid()}`;
+  const old = {
+    name: 'Old grudge', host: uid, hostName: 'Me', buyIn: 500, days: 1, maxPlayers: 2, status: 'ended',
+    players: [uid, rival], names: { [uid]: 'Me', [rival]: 'Rex' }, rules: {}, modes: { stops: true }, lms: { floorPct: 10 },
+    startAt: now - 2 * 86400_000, endAt: now - 86400_000, createdAt: now - 3 * 86400_000, rewardsPaid: true, rewards: [],
+    results: [
+      { uid, name: 'Me', start: 500, final: 480, pnl: -20, pnlPct: -4, trades: 3, out: false, outReason: null, rank: 2 },
+      { uid: rival, name: 'Rex', start: 500, final: 530, pnl: 30, pnlPct: 6, trades: 2, out: false, outReason: null, rank: 1 },
+    ],
+  };
+  await put(`tradeWars/${id}`, old);
+  await page.addInitScript(() => localStorage.setItem('zelosClashOff', '1'));
+  await page.goto(`battles/${id}`);
+  await page.getByRole('link', { name: 'Rematch', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/battles/${id}/rematch$`));
+  await expect(page.getByRole('heading', { name: 'Rematch' })).toBeVisible();
+  await expect(page.getByText('Challenge Rex again.')).toBeVisible();
+  // copied: the name, the buy-in, Last Man Standing with its floor, stops on
+  await expect(page.getByLabel('Battle name')).toHaveValue('Old grudge rematch');
+  await expect(page.getByRole('radio', { name: '$500' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Last Man Standing' })).toBeChecked();
+  expect(await axe(page)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/rematch-${info.project.name}.png`, fullPage: true });
+  // ...and editable: a longer battle
+  await page.getByText('3 days', { exact: true }).click();
+  await expect(page.getByRole('radio', { name: '3 days' })).toBeChecked();
+  await page.getByRole('button', { name: 'Send the rematch challenge' }).dblclick();
+  await expect(page).toHaveURL(/\/battles\/[A-Za-z0-9]{12}$/, { timeout: 30_000 }); // a cold start
+  const newId = page.url().split('/').pop()!;
+  expect(newId).not.toBe(id);
+  await expect(page.getByRole('link', { name: 'A rematch of an earlier battle' })).toBeVisible();
+  const w = await fetch(`${BASE}/tradeWars/${newId}`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json() as Promise<{ fields: F }>);
+  const f = w.fields as Record<string, { stringValue?: string; integerValue?: string; arrayValue?: { values?: { stringValue: string }[] } }>;
+  expect([f.rematchOf?.stringValue, f.days?.integerValue, f.buyIn?.integerValue, f.invited?.arrayValue?.values?.map((x) => x.stringValue)]).toEqual([id, '3', '500', [rival]]);
+  // one rematch each, and the old battle is as it was
+  const mine = await fetch(`${BASE}/tradeWars?pageSize=300`, { headers: { Authorization: 'Bearer owner' } }).then((r) => r.json() as Promise<{ documents?: { fields: Record<string, { stringValue?: string }> }[] }>);
+  expect((mine.documents ?? []).filter((d) => d.fields.rematchOf?.stringValue === id)).toHaveLength(1);
+  await page.goto(`battles/${id}`);
+  await expect(page.getByText('Old grudge', { exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Open your rematch' }).click();
+  await expect(page).toHaveURL(new RegExp(`/battles/${newId}$`));
+  await page.goto(`battles/${id}/rematch`);
+  await expect(page).toHaveURL(new RegExp(`/battles/${newId}$`));
+});
+
