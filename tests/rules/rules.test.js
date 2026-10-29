@@ -281,6 +281,24 @@ test('Team Cooperation: teammates read each other\'s trades, the other team can\
   await assertFails(setDoc(doc(real('alice').firestore(), 'tradeWars/war666666666/books/bob'), { positions: {}, fills: [] }));
 });
 
+test('War zone: prices for anyone signed in, the engine for nobody, a War profile for its owner only', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'warMarket/quotes'), { updatedAt: 1, prices: { NIMBC: { p: 182, ref: 180 } } });
+    await setDoc(doc(c.firestore(), 'warEngine/state'), { t: 1, stocks: {} });
+    await setDoc(doc(c.firestore(), 'warProfiles/alice'), { cash: 100000 });
+    await setDoc(doc(c.firestore(), 'warProfiles/alice/fills/f1'), { sym: 'NIMBC' });
+  });
+  await assertSucceeds(getDoc(doc(real('bob').firestore(), 'warMarket/quotes')));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'warMarket/quotes')));
+  await assertFails(setDoc(doc(real('bob').firestore(), 'warMarket/quotes'), { prices: {} }));
+  await assertFails(getDoc(doc(real('alice').firestore(), 'warEngine/state'))); // nobody sees the engine
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'warProfiles/alice')));
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'warProfiles/alice/fills/f1')));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'warProfiles/alice')));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'warProfiles/alice/fills/f1')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'warProfiles/alice'), { cash: 1e9 }));
+});
+
 (async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-zelos',

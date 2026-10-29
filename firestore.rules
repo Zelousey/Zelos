@@ -324,6 +324,23 @@ service cloud.firestore {
       }
     }
 
+    // The Trade War realm (docs/WAR_DESIGN.md §20, §24): the War zone's simulated prices and
+    // bars are written by the server's market job and readable by anyone signed in; the engine
+    // (warEngine) stays server-only. A War profile and its trades are only their owner's;
+    // every change goes through war_open / war_trade.
+    match /warMarket/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /warProfiles/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+      match /fills/{fillId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
     // Trade War challenge invites (tw_challenge / tw_respond). Only the two
     // people involved can see an invite; only the server can create or answer one.
     match /twInvites/{inviteId} {

@@ -358,5 +358,24 @@ ok(re1, 'only the host of a Team Cooperation lobby can make teams');
 re1 = null; try { await call('tw_challenge', { to: foe, ruleset: 'ffa', name: 'Duel', buyIn: 1000, days: 3 }); } catch (x) { re1 = x; }
 ok(re1 && /for squad battles/.test(re1.message), 'rulesets are only for squad battles');
 
+// --- The War zone (hidden until War is complete: admins only): a $100,000 War profile, trades at the simulated price
+re1 = null; try { await call('war_open', {}); } catch (x) { re1 = x; }
+ok(re1 && /isn.t open yet/.test(re1.message), 'the War zone is closed to everyone but admins for now');
+await admin('admins/' + troll.uid, { addedAt: { integerValue: 1 } });
+r = await call('war_open', {});
+ok(r.profile.cash === 100000 && r.profile.equity === 100000, 'an admin gets a War profile with a $100,000 War balance');
+ok((await call('war_open', {})).profile.createdAt === r.profile.createdAt, 'opening it again keeps the same profile');
+re1 = null; try { await call('war_trade', { sym: 'NIMBC', side: 'buy', qty: 10 }); } catch (x) { re1 = x; }
+ok(re1 && /prices are updating/.test(re1.message), 'no trade without fresh War zone prices');
+await seed('warMarket/quotes', { updatedAt: Date.now(), prices: { NIMBC: { p: 200, ref: 190 }, VOLTX: { p: 88, ref: 90 } } });
+r = await call('war_trade', { sym: 'NIMBC', side: 'buy', qty: 10 });
+ok(r.fill.price === 200 && r.profile.cash === 98000 && r.profile.positions.NIMBC.qty === 10, 'a buy fills at the War zone price');
+re1 = null; try { await call('war_trade', { sym: 'VOLTX', side: 'sell', qty: 1 }); } catch (x) { re1 = x; }
+ok(re1 && /hold 0 shares/.test(re1.message), 'no short selling in the War zone (only in Bull/Bear battles)');
+re1 = null; try { await call('war_trade', { sym: 'AAPL', side: 'buy', qty: 1 }); } catch (x) { re1 = x; }
+ok(re1 && /isn.t in the War zone/.test(re1.message), 'real stocks are not in the War zone');
+const fills = await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/warProfiles/${troll.uid}/fills`, { headers: { Authorization: 'Bearer owner' } }).then((x) => x.json());
+ok((fills.documents || []).length === 1, 'the trade is kept in the War profile');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

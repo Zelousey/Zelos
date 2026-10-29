@@ -1,8 +1,11 @@
 # War, challenges, Squad rulesets and Chaos Simulator: design for approval
 
-**Version 3.4 (2026-10-27): F1–F8 (the Trade War realm) approved by the owner.** The whole spec still needs the owner's explicit final approval.
-**Status: DRAFT. Not approved as a whole.** The owner approved some decisions one by one (§0). The whole
-specification, including **Section 9**, stays **pending** until the owner explicitly approves it. No code until then.
+**Version 3.5 (2026-10-29): APPROVED.** The owner approved the whole specification on 2026-10-29 ("approve it all"),
+including the details marked *(proposed)*: Battle Level (§17), resource uses (§18), War lengths 1/2/3/5/7 days (§8),
+lobby deadlines 1/6/24 h (§8), the realm (§24) and Section 9. Owner also decided (2026-10-29): **War stays hidden from
+players until all of it is built** (admins can preview it), and **stored statuses keep their names**
+(`lobby/active/ended/cancelled`) with friendlier labels on screen (master spec Q13). Small details still get checked
+with the owner as they come up.
 It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and §4c.
 
 **How to read the labels:**
@@ -57,7 +60,7 @@ It belongs with `AGENTICTRADING_MASTER_SPEC.md`, ADDENDUM 2026-10-27, §4b and �
 | E4 Chaos event rules; E5 quiet hours | **Owner-approved** |
 | E6 Squads stay on real prices; they compete against other squads, for a leaderboard place, or both | **Owner-approved** |
 | A separate Trade War realm (§24), F1–F8 | **Owner-approved (2026-10-27: "everything sounds good")**, incl. **C18**: level armies (max 150) in open zones, equal armies the default in private Wars |
-| **Section 9 / the whole specification** | **NOT approved: pending** |
+| **Section 9 / the whole specification** | **Owner-approved 2026-10-29** |
 
 ## 1. War in one paragraph
 A War is a short Trade War match (1–5 trading days, proposed) with a **map of sector territories**.
@@ -198,7 +201,7 @@ The owner doesn't want a single soldier's difference to decide ownership automat
 - **Lobby deadline (proposed):** 1 h, 6 h or 24 h (72 h dropped).
 - At the deadline it starts with the locked-in players if there are at least 2; otherwise it's cancelled and battle slots are returned. The organizer can cancel before the start.
 
-## 9. What to approve — **NOT APPROVED (pending the owner's explicit approval of the whole revised spec)**
+## 9. What to approve — **APPROVED by the owner on 2026-10-29 (the whole revised spec)**
 The individually approved items are in §0. Still needed:
 1. **E1–E6** (spec §4e).
 2. The War Score formula (§10).
@@ -489,3 +492,15 @@ This isn't legal advice; it's a question for the lawyer review that's already on
 - **F6:** gold bars: earned amounts and what they buy, never purchasable?
 - **F7:** should skipping the wait also be possible with gold bars?
 - **F8:** names: "War balance", "gold bars", "War profile".
+
+## 25. Build progress (hidden until complete; admins preview)
+| Step | What | Status |
+|---|---|---|
+| W1 | Simulated market engine (21 made-up companies, 7 real sectors, a step a minute, 5-minute bars for 7 days), War profile with a $100,000 War balance and its chart, War zone trading (long only), SIMULATED marking + one-time explainer | Built 2026-10-29 (`functions/warmarket.py`, `war_market_tick`, `war_open`, `war_trade`, `features/war/`) |
+| W2 | Chaos events, quiet hours, morning summary | Next |
+| W3 | Private War lobby (configure, recruit, ready, start once, deadlines) | |
+| W4 | Territories: hidden claiming, enemy warnings, Camouflage, reveal, contested battles | |
+| W5 | Attacks (Bull/Bear), soldiers, Rally, neutral claims, Hot zones, War Score, one-day wait | |
+| W6 | Open War zones: weekly seasons, drop-in, Rookie zones, shield, level armies | |
+| W7 | Battle Level, gold bars, War leaderboards, achievements → main XP, rematch; then War goes live (`WAR_OPEN = True`, a Trade War card and menu entry) | |
+
