@@ -29,12 +29,13 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-1. **War zone, step W1 (hidden; admins only).** After it merges: the War functions, the once-a-minute War market job and the War rules.
+1. **War zone, step W2 (hidden; admins only): Chaos events, quiet hours, morning summary.** After it merges:
    ```
-   cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_open,functions:war_trade,functions:account_delete,firestore:rules
+   cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_open,functions:war_quiet
    ```
-   Cost: one more scheduled job (Cloud Scheduler gives 3 jobs free, then about $0.10 a month each) and about 9,000 database writes a day for the market (prices every minute, chart bars every 5 minutes): a few cents a month at most. To preview it, open `/app/war` signed in as an admin.
-Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9) and squad rulesets (Phase 10a–10c).
+   No new scheduled job and no rules change (`warMarket/chaos` is covered by the existing War zone market rule). To preview, open `/app/war` signed in as an admin.
+Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9), squad rulesets (Phase 10a–10c, re-sent in small groups after a full deploy hit Google's update limit) and War W1.
+Tip: never run a bare `firebase deploy --only functions` (about 80 functions at once hits Google's update limit and fails part-way); deploy the named functions, in groups of about 8.
 
 After running one, tell Claude "deployed", and it will be ticked off here.
 

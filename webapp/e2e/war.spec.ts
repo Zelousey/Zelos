@@ -2,7 +2,8 @@
  * The War zone (Trade War realm, docs/WAR_DESIGN.md §20, §24): hidden until all of War is built,
  * so it's "Page not found" for everyone but admins; an admin gets the one-time "prices are
  * simulated" explainer, a $100,000 War balance, the SIMULATED marking on the screen and the
- * chart, and can buy at the War zone price.
+ * chart, and can buy at the War zone price. W2: a Chaos event shows its banner and Hot stocks, and
+ * quiet hours can be changed but never past 10 hours.
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -24,6 +25,8 @@ async function seedMarket() {
   const M = 60000;
   await put('warMarket/quotes', { updatedAt: now, prices: { NIMBC: { p: 190.5, ref: 182 }, VOLTX: { p: 85.25, ref: 88 } } });
   const start = now - (now % (5 * M)) - 60 * 5 * M;
+  // the same live Chaos event for every test (they run side by side)
+  await put('warMarket/chaos', { phase: 'live', day: 'x', scope: 'energy', scopeName: 'Energy', startsAt: now - 10 * M, endsAt: now + 50 * M, syms: ['PETRA', 'SOLRN', 'VOLTX'] });
   await put('warMarket/bars_NIMBC', { bars: Array.from({ length: 60 }, (_, i) => ({ t: start + i * 5 * M, o: 182 + i * 0.1, h: 183 + i * 0.1, l: 181 + i * 0.1, c: 182.5 + i * 0.1 })) });
 }
 
@@ -55,6 +58,9 @@ test('an admin previews the War zone: simulated marking, $100,000 War balance, b
   await expect(page.getByText('SIMULATED WAR ZONE').first()).toBeVisible();
   await expect(page.getByText('$100,000.00').first()).toBeVisible();
   await expect(page.getByRole('region', { name: 'Tech' })).toContainText('Nimbus Cloud');
+  await expect(page.getByRole('status').filter({ hasText: 'Chaos now: Energy' })).toContainText('swinging hard');
+  await expect(page.getByRole('region', { name: 'Energy' }).getByRole('button', { name: /Voltex Energy/ })).toContainText('Hot');
+  await expect(page.getByRole('region', { name: 'Tech' }).getByText('Hot')).toHaveCount(0);
   await expect(page.getByText('live', { exact: false }).filter({ hasText: /\blive\b/i })).toHaveCount(0); // nothing in the War zone says "live"
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-${info.project.name}.png`, fullPage: true });
@@ -67,4 +73,26 @@ test('an admin previews the War zone: simulated marking, $100,000 War balance, b
   await page.reload();
   await expect(page.getByRole('heading', { name: 'War zone', level: 1 })).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Prices here are simulated' })).toHaveCount(0);
+});
+
+test('quiet hours: 10 pm-8 am to start, can be changed, never longer than 10 hours', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `warq-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  await page.goto('war');
+  await expect(page.getByText('10:00 PM – 8:00 AM (your time)')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Change quiet hours' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Quiet hours' });
+  await sheet.getByLabel('From').selectOption({ label: '9:00 PM' });
+  await expect(sheet.getByRole('alert')).toHaveText('Quiet hours can be at most 10 hours.');
+  await expect(sheet.getByRole('button', { name: 'Save quiet hours' })).toBeDisabled();
+  await sheet.getByLabel('From').selectOption({ label: '11:00 PM' });
+  await sheet.getByLabel('Until').selectOption({ label: '7:00 AM' });
+  await expect(sheet).toContainText('8h 00m of quiet hours');
+  expect((await new AxeBuilder({ page }).include('dialog').withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  await sheet.getByRole('button', { name: 'Save quiet hours' }).click();
+  await expect(page.getByText('Quiet hours saved')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('11:00 PM – 7:00 AM (your time)')).toBeVisible();
 });

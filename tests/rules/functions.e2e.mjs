@@ -362,8 +362,9 @@ ok(re1 && /for squad battles/.test(re1.message), 'rulesets are only for squad ba
 re1 = null; try { await call('war_open', {}); } catch (x) { re1 = x; }
 ok(re1 && /isn.t open yet/.test(re1.message), 'the War zone is closed to everyone but admins for now');
 await admin('admins/' + troll.uid, { addedAt: { integerValue: 1 } });
-r = await call('war_open', {});
+r = await call('war_open', { tz: 'Europe/London' });
 ok(r.profile.cash === 100000 && r.profile.equity === 100000, 'an admin gets a War profile with a $100,000 War balance');
+ok(r.profile.quiet.start === 1320 && r.profile.quiet.end === 480 && r.profile.quiet.tz === 'Europe/London', 'with quiet hours of 10 pm-8 am in their own time zone');
 ok((await call('war_open', {})).profile.createdAt === r.profile.createdAt, 'opening it again keeps the same profile');
 re1 = null; try { await call('war_trade', { sym: 'NIMBC', side: 'buy', qty: 10 }); } catch (x) { re1 = x; }
 ok(re1 && /prices are updating/.test(re1.message), 'no trade without fresh War zone prices');
@@ -376,6 +377,12 @@ re1 = null; try { await call('war_trade', { sym: 'AAPL', side: 'buy', qty: 1 });
 ok(re1 && /isn.t in the War zone/.test(re1.message), 'real stocks are not in the War zone');
 const fills = await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/warProfiles/${troll.uid}/fills`, { headers: { Authorization: 'Bearer owner' } }).then((x) => x.json());
 ok((fills.documents || []).length === 1, 'the trade is kept in the War profile');
+r = await call('war_quiet', { start: 1380, end: 420, tz: 'Europe/London' });
+ok(r.quiet.start === 1380 && r.quiet.end === 420, 'quiet hours can be changed (11 pm-7 am)');
+re1 = null; try { await call('war_quiet', { start: 1260, end: 480, tz: 'Europe/London' }); } catch (x) { re1 = x; }
+ok(re1 && /at most 10 hours/.test(re1.message), 'but never longer than 10 hours, so nobody can hide from battles');
+re1 = null; try { await call('war_quiet', { start: 1380, end: 425, tz: 'Europe/London' }); } catch (x) { re1 = x; }
+ok(re1 && /quarter hour/.test(re1.message), 'times are on the quarter hour');
 
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

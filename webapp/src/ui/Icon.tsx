@@ -33,6 +33,7 @@ const PATHS = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
   alertTriangle: '<path d="M12 4 2.5 20h19z"/><path d="M12 10v4M12 17v.5"/>',
   inbox: '<path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   wifiOff: '<path d="M2 8.5a15 15 0 0 1 5-2.8M10.5 5a15 15 0 0 1 11.5 3.5M5 12a10 10 0 0 1 4-2M14.5 9.7A10 10 0 0 1 19 12M8.5 15.5a5 5 0 0 1 7 0M12 19h.01M3 3l18 18"/>',
 } as const;
 

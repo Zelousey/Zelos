@@ -6,7 +6,9 @@ The War zone runs on a simulated, always-on market (owner decision D10): made-up
 real sector names (E1), the same prices for everyone, made one minute at a time on the server so
 nobody can see ahead. Every other mode stays on real prices.
 
-    warEngine/state          the engine (server only): price, trend and the current 5-minute bar per stock
+    warEngine/state          the engine (server only): price, trend and the current 5-minute bar per stock,
+                             and today's Chaos plan (secret until its warning)
+    warMarket/chaos          the Chaos event people may know about: warned / live / over (§14)
     warMarket/quotes         {updatedAt, prices: {sym: {p, ref}}}: every minute (any signed-in reader)
     warMarket/bars_<SYM>     {bars: [{t, o, h, l, c}, ...]}: 5-minute bars, the last 7 days (Firestore
                              can't hold lists in lists, so bars are stored as maps: bars_out / bars_in)
@@ -14,6 +16,8 @@ nobody can see ahead. Every other mode stays on real prices.
       fills/{id}             their War zone trades
 """
 import math
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 SIM_NOTE = "Simulated War zone prices, not real market data."
 
@@ -78,18 +82,24 @@ def step(state, now_ms, rng):
     for s in SYMS:  # a stock added to the list later starts at its start price
         stocks.setdefault(s, {"p": BY_SYM[s][3], "trend": 0.0, "trendUntil": 0, "bar": None})
     closed = {s: [] for s in SYMS}
+    chaos = state.get("chaos") if isinstance(state.get("chaos"), dict) else {}
     for i in range(minutes):
         t = last + (i + 1) * 60000
         shocks = {sec: rng.gauss(0, 1) for sec, _ in SECTORS}
+        wild = chaos_phase(chaos, t) == "live"
         for sym, name, sec, start, vol in COMPANIES:
             st = stocks[sym]
             if t >= st.get("trendUntil", 0):
                 st["trend"] = _trend(vol, rng.random())
                 st["trendUntil"] = t + int((1 + rng.random() * 2) * MIN_PER_DAY * 60000)  # 1-3 days
             sigma = vol / math.sqrt(MIN_PER_DAY)
+            extra = 0.0
+            if wild and sym in (chaos.get("moves") or {}):
+                sigma *= CHAOS_VOL
+                extra = chaos["moves"][sym] / chaos["minutes"]  # the event's whole move, spread over its minutes
             z = SECTOR_WEIGHT * shocks[sec] + math.sqrt(1 - SECTOR_WEIGHT ** 2) * rng.gauss(0, 1)
             pull = -REVERT * math.log(st["p"] / start)
-            st["p"] = round(max(0.5, st["p"] * math.exp(st["trend"] + sigma * z + pull)), 4)
+            st["p"] = round(max(0.5, st["p"] * math.exp(st["trend"] + extra + sigma * z + pull)), 4)
             bar = add_to_bar(st.get("bar"), t, st["p"])
             if st.get("bar") and st["bar"][0] != bar[0]:
                 closed[sym].append(st["bar"])
@@ -140,6 +150,148 @@ def ref_price(bars, now_ms):
     return older[-1][4] if older else (bars[0][1] if bars else None)
 
 
+# ---------------------------------------------------------------- Chaos events (§14)
+# Random wild-market events: on random days (more often on weekends), at most one a day, lasting
+# 1-3 hours, hitting one sector or the whole market with a 10-20% move. The plan is made on the
+# server at the start of each UTC day and stays secret (warEngine) until its 30-minute warning;
+# the size and direction are never published. The stocks it hits are Hot for a day after.
+CHAOS_CHANCE_WEEKDAY = 0.2
+CHAOS_CHANCE_WEEKEND = 0.5
+CHAOS_ALL_CHANCE = 0.25           # how often an event hits the whole market instead of one sector
+CHAOS_WARN_MS = 30 * 60000
+CHAOS_HOT_MS = 24 * 3600000
+CHAOS_VOL = 4.0                   # how much wilder minute-to-minute moves are during an event
+SECTOR_NAMES = dict(SECTORS)
+
+
+def day_key(ms):
+    return datetime.fromtimestamp(ms / 1000, timezone.utc).strftime("%Y-%m-%d")
+
+
+def plan_chaos(now_ms, rng):
+    """Pure: today's (UTC) Chaos plan, made at the first run of the day. {"day"} alone means no
+    event today. An event always starts at least 30 minutes after the plan is made, so its
+    warning can go out on time."""
+    day = day_key(now_ms)
+    day_ms = now_ms - now_ms % (MIN_PER_DAY * 60000)
+    weekend = datetime.fromtimestamp(now_ms / 1000, timezone.utc).weekday() >= 5
+    if rng.random() >= (CHAOS_CHANCE_WEEKEND if weekend else CHAOS_CHANCE_WEEKDAY):
+        return {"day": day}
+    minutes = 60 + int(rng.random() * 121)  # 1-3 hours
+    first = max(30, (now_ms - day_ms) // 60000 + 31)
+    last = MIN_PER_DAY - minutes
+    if first > last:
+        return {"day": day}
+    start = day_ms + (first + int(rng.random() * (last - first + 1))) * 60000
+    ids = [sec for sec, _ in SECTORS]
+    scope = "all" if rng.random() < CHAOS_ALL_CHANCE else ids[int(rng.random() * len(ids)) % len(ids)]
+    signs = {sec: (1 if rng.random() < 0.5 else -1) for sec in ids}
+    size = 0.10 + rng.random() * 0.10  # 10-20%
+    moves = {}
+    for sym, _, sec, _, _ in COMPANIES:
+        if scope in ("all", sec):
+            pct = signs[sec] * size * (0.8 + rng.random() * 0.4)
+            moves[sym] = round(math.log(1 + pct), 6)
+    return {"day": day, "startsAt": start, "endsAt": start + minutes * 60000, "minutes": minutes, "scope": scope, "moves": moves}
+
+
+def chaos_phase(chaos, now_ms):
+    """None (no event, or not announced yet), "warned", "live" or "over"."""
+    if not chaos or not chaos.get("startsAt"):
+        return None
+    if now_ms >= chaos["endsAt"]:
+        return "over"
+    if now_ms > chaos["startsAt"]:
+        return "live"
+    if now_ms >= chaos["startsAt"] - CHAOS_WARN_MS:
+        return "warned"
+    return None
+
+
+def chaos_public(chaos, phase):
+    """What warMarket/chaos says in each phase: the scope and start once warned, the end and the
+    stocks once live, and how long they stay Hot once over. Never the size or direction."""
+    scope = chaos["scope"]
+    out = {"phase": phase, "day": chaos["day"], "scope": scope, "scopeName": "the whole market" if scope == "all" else SECTOR_NAMES[scope],
+           "startsAt": chaos["startsAt"], "note": SIM_NOTE}
+    if phase in ("live", "over"):
+        out.update(endsAt=chaos["endsAt"], syms=sorted(chaos["moves"]))
+    if phase == "over":
+        out["hotUntil"] = chaos["endsAt"] + CHAOS_HOT_MS
+    return out
+
+
+# ---------------------------------------------------------------- quiet hours (§22)
+# Each player's quiet hours (default 10 pm-8 am in their own time zone, never longer than 10
+# hours): no War push notifications then; what happened goes into one morning summary.
+QUIET_DEFAULT = (22 * 60, 8 * 60)
+QUIET_MAX_MIN = 600
+QUIET_STEP_MIN = 15
+SUMMARY_MAX_LINES = 8
+
+
+def valid_tz(tz):
+    if not isinstance(tz, str) or not 1 <= len(tz) <= 64:
+        return False
+    try:
+        ZoneInfo(tz)
+        return True
+    except Exception:
+        return False
+
+
+def default_quiet(tz):
+    return {"start": QUIET_DEFAULT[0], "end": QUIET_DEFAULT[1], "tz": tz if valid_tz(tz) else "UTC"}
+
+
+def quiet_length(q):
+    return (q["end"] - q["start"]) % MIN_PER_DAY
+
+
+def validate_quiet(data):
+    """{start, end, tz} from the browser (minutes after midnight, 15-minute steps) -> quiet
+    hours, or WarError. start == end turns them off."""
+    data = data if isinstance(data, dict) else {}
+    start, end, tz = data.get("start"), data.get("end"), data.get("tz")
+    for v in (start, end):
+        if isinstance(v, bool) or not isinstance(v, int) or not 0 <= v < MIN_PER_DAY or v % QUIET_STEP_MIN:
+            raise WarError("INVALID_ARGUMENT", "Pick times on the quarter hour.")
+    if not valid_tz(tz):
+        raise WarError("INVALID_ARGUMENT", "That time zone isn't valid.")
+    q = {"start": start, "end": end, "tz": tz}
+    if quiet_length(q) > QUIET_MAX_MIN:
+        raise WarError("INVALID_ARGUMENT", "Quiet hours can be at most 10 hours a day.")
+    return q
+
+
+def _local(now_ms, tz):
+    return datetime.fromtimestamp(now_ms / 1000, ZoneInfo(tz))
+
+
+def in_quiet(q, now_ms):
+    if not q or not quiet_length(q):
+        return False
+    d = _local(now_ms, q["tz"])
+    return (d.hour * 60 + d.minute - q["start"]) % MIN_PER_DAY < quiet_length(q)
+
+
+def quiet_ends_at(q, now_ms):
+    """When the quiet hours you're in now end (ms), or None if you're not in quiet hours."""
+    if not in_quiet(q, now_ms):
+        return None
+    d = _local(now_ms, q["tz"])
+    end = d.replace(hour=q["end"] // 60, minute=q["end"] % 60, second=0, microsecond=0)
+    if end <= d:
+        end = (d + timedelta(days=1)).replace(hour=q["end"] // 60, minute=q["end"] % 60, second=0, microsecond=0)
+    return int(end.timestamp() * 1000)
+
+
+def summary_body(lines):
+    """The morning summary's text: what happened while you slept, newest last."""
+    lines = list(dict.fromkeys(lines or []))[-SUMMARY_MAX_LINES:]
+    return "While you slept: " + " ".join(lines) if lines else ""
+
+
 # ---------------------------------------------------------------- War profiles (§24.5)
 START_BALANCE = 100000.0
 QUOTE_MAX_AGE_MS = 3 * 60000
@@ -153,8 +305,8 @@ class WarError(ValueError):
         self.code = code
 
 
-def new_profile(now_ms):
-    return {"start": START_BALANCE, "cash": START_BALANCE, "positions": {}, "equity": START_BALANCE,
+def new_profile(now_ms, tz=None):
+    return {"quiet": default_quiet(tz), "start": START_BALANCE, "cash": START_BALANCE, "positions": {}, "equity": START_BALANCE,
             "pnl": 0.0, "pnlPct": 0.0, "trades": 0, "createdAt": now_ms, "updatedAt": now_ms,
             "chart": [{"t": now_ms, "eq": START_BALANCE}]}
 

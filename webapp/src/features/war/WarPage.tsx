@@ -5,17 +5,42 @@
  * here says "live" (owner D10, §20). Hidden until all of War is built (owner 2026-10-29): it's
  * not in any menu, and anyone the server doesn't let in (not an admin yet) gets "Page not found".
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useAuth } from '../../lib/auth';
 import { useNow } from '../../lib/useNow';
 import { formatMoney, formatPercent } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { Badge, Button, Card, Change, EmptyState, Field, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
+import { Badge, Button, Card, Change, EmptyState, Field, Icon, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import NotFoundPage from '../notfound/NotFoundPage';
-import { BY_SYM, chartBars, COMPANIES, openWar, QUOTE_MAX_AGE_MS, SECTORS, START_BALANCE, useWarBars, useWarProfile, useWarQuotes, warEquity, warTrade, type WarProfile, type WarQuotes } from './war';
+import {
+  browserTz,
+  BY_SYM,
+  chaosNow,
+  chartBars,
+  clock,
+  COMPANIES,
+  openWar,
+  QUIET_MAX_MIN,
+  QUIET_TIMES,
+  QUOTE_MAX_AGE_MS,
+  quietLength,
+  SECTORS,
+  setQuiet,
+  START_BALANCE,
+  useWarBars,
+  useWarChaos,
+  useWarProfile,
+  useWarQuotes,
+  warEquity,
+  warTrade,
+  type Quiet,
+  type WarChaos,
+  type WarProfile,
+  type WarQuotes,
+} from './war';
 import s from './War.module.css';
 
 const SEEN = 'zelosWarExplained';
@@ -44,7 +69,12 @@ function WarZone({ uid }: { uid: string }) {
   const quotes = useWarQuotes();
   const [sym, setSym] = useState(COMPANIES[0]!.sym);
   const [explain, setExplain] = useState(() => readString(SEEN) !== '1');
+  const chaosDoc = useWarChaos();
+  const now = useNow(30000);
+  const chaos = chaosDoc.status === 'ready' ? chaosDoc.data : null;
+  const { banner, hot } = chaosNow(chaos, now);
   const q = quotes.status === 'ready' ? quotes.data : null;
+  const p = profile.status === 'ready' ? profile.data : null;
   return (
     <>
       <PageHeader
@@ -57,14 +87,28 @@ function WarZone({ uid }: { uid: string }) {
           </span>
         }
       />
+      {chaos && banner && <ChaosBanner c={chaos} live={banner === 'live'} />}
       <div className={s.cols}>
         <div className={s.stack}>
-          {profile.status === 'ready' ? <Balance p={profile.data} q={q} /> : <LoadingState rows={2} />}
-          <Market q={q} sym={sym} onPick={setSym} />
+          <div className={s.balanceSlot}>{p ? <Balance p={p} q={q} /> : <LoadingState rows={2} />}</div>
+          <div className={s.marketSlot}>
+            <Market q={q} sym={sym} onPick={setSym} hot={hot} />
+          </div>
         </div>
         <div className={s.stack}>
-          <Company sym={sym} q={q} profile={profile.status === 'ready' ? profile.data : null} />
-          {profile.status === 'ready' && <Holdings p={profile.data} q={q} onPick={setSym} />}
+          <div className={s.companySlot}>
+            <Company sym={sym} q={q} profile={p} hot={hot.has(sym)} />
+          </div>
+          {p && (
+            <div className={s.holdingsSlot}>
+              <Holdings p={p} q={q} onPick={setSym} />
+            </div>
+          )}
+          {p && (
+            <div className={s.quietSlot}>
+              <QuietHours quiet={p.quiet} />
+            </div>
+          )}
         </div>
       </div>
       <Sheet
@@ -113,7 +157,20 @@ function Balance({ p, q }: { p: WarProfile; q: WarQuotes | null }) {
   );
 }
 
-function Market({ q, sym, onPick }: { q: WarQuotes | null; sym: string; onPick: (s: string) => void }) {
+function ChaosBanner({ c, live }: { c: WarChaos; live: boolean }) {
+  const at = (ms: number) => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return (
+    <div className={[s.chaos, live && s.chaosLive].filter(Boolean).join(' ')} role="status">
+      <Icon name="signal" size={18} />
+      <div>
+        <b>{live ? t('war.chaos.liveTitle', { scope: c.scopeName }) : t('war.chaos.warnTitle', { scope: c.scopeName, time: at(c.startsAt) })}</b>
+        <p>{live ? t('war.chaos.liveBody', { time: c.endsAt ? at(c.endsAt) : '' }) : t('war.chaos.warnBody')}</p>
+      </div>
+    </div>
+  );
+}
+
+function Market({ q, sym, onPick, hot }: { q: WarQuotes | null; sym: string; onPick: (s: string) => void; hot: Set<string> }) {
   return (
     <Card title={t('war.market')} subtitle={t('war.marketSub')} flush>
       {!q ? (
@@ -130,7 +187,10 @@ function Market({ q, sym, onPick }: { q: WarQuotes | null; sym: string; onPick: 
                   <li key={c.sym}>
                     <button type="button" className={[s.row, c.sym === sym && s.on].filter(Boolean).join(' ')} aria-pressed={c.sym === sym} onClick={() => onPick(c.sym)}>
                       <span className={s.who}>
-                        <b>{c.name}</b>
+                        <b>
+                          {c.name}
+                          {hot.has(c.sym) && <span className={s.hot}>{t('war.hot')}</span>}
+                        </b>
                         <small>{c.sym}</small>
                       </span>
                       <span className="num">{x ? formatMoney(x.p) : '–'}</span>
@@ -152,7 +212,7 @@ const TFS = [
   { value: '60', label: '1H', step: 60, range: 120 },
 ] as const;
 
-function Company({ sym, q, profile }: { sym: string; q: WarQuotes | null; profile: WarProfile | null }) {
+function Company({ sym, q, profile, hot }: { sym: string; q: WarQuotes | null; profile: WarProfile | null; hot: boolean }) {
   const c = BY_SYM[sym]!;
   const bars = useWarBars(sym);
   const [tf, setTf] = useState<(typeof TFS)[number]['value']>('15');
@@ -166,6 +226,7 @@ function Company({ sym, q, profile }: { sym: string; q: WarQuotes | null; profil
           <h2 className={s.coName}>{c.name}</h2>
           <span className={s.muted}>
             {c.sym} · {SECTORS.find(([id]) => id === c.sector)?.[1]}
+            {hot && <span className={s.hot}>{t('war.hot')}</span>}
           </span>
         </div>
         <span className={s.big}>{price ? formatMoney(price) : '–'}</span>
@@ -251,5 +312,89 @@ function Holdings({ p, q, onPick }: { p: WarProfile; q: WarQuotes | null; onPick
         </ul>
       )}
     </Card>
+  );
+}
+
+/** Your quiet hours (§22): no War notifications then, and one morning summary of what happened. */
+function QuietHours({ quiet }: { quiet: Quiet | null }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const cur = quiet ?? { start: 1320, end: 480, tz: browserTz() };
+  const [start, setStart] = useState(cur.start);
+  const [end, setEnd] = useState(cur.end);
+  const [busy, setBusy] = useState(false);
+  const off = quietLength(cur) === 0;
+  const len = quietLength({ start, end });
+  const tooLong = len > QUIET_MAX_MIN;
+  const tz = browserTz();
+  async function save(next: { start: number; end: number }) {
+    setBusy(true);
+    try {
+      await setQuiet({ ...next, tz });
+      toast.show(t('war.quiet.saved'), 'success');
+      setOpen(false);
+    } catch (err) {
+      toast.show(errorText(err, t('war.quiet.failed')), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Card title={t('war.quiet.title')} subtitle={t('war.quiet.sub')} pad>
+      <div className={s.quiet}>
+        <p className={s.quietLine}>
+          <Icon name="moon" size={16} />
+          {off ? t('war.quiet.off') : t('war.quiet.line', { from: clock(cur.start), to: clock(cur.end) })}
+        </p>
+        {cur.tz !== tz && <p className={s.muted}>{t('war.quiet.tz', { tz: cur.tz })}</p>}
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setStart(cur.start);
+            setEnd(cur.end);
+            setOpen(true);
+          }}
+        >
+          {t('war.quiet.change')}
+        </Button>
+      </div>
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('war.quiet.title')} labelledBy="war-quiet">
+        <form
+          className={s.explain}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!tooLong) void save({ start, end });
+          }}
+        >
+          <p className={s.muted}>{t('war.quiet.help')}</p>
+          <div className={s.times}>
+            <TimePick label={t('war.quiet.from')} value={start} onChange={setStart} />
+            <TimePick label={t('war.quiet.to')} value={end} onChange={setEnd} />
+          </div>
+          <p className={tooLong ? s.warn : s.muted} role={tooLong ? 'alert' : undefined}>
+            {tooLong ? t('war.quiet.tooLong') : len === 0 ? t('war.quiet.offNote') : t('war.quiet.length', { h: Math.floor(len / 60), m: String(len % 60).padStart(2, '0') })}
+          </p>
+          <Button type="submit" variant="primary" block disabled={busy || tooLong}>
+            {t('war.quiet.save')}
+          </Button>
+        </form>
+      </Sheet>
+    </Card>
+  );
+}
+
+function TimePick({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const id = useId();
+  return (
+    <div className={s.select}>
+      <label htmlFor={id}>{label}</label>
+      <select id={id} value={value} onChange={(e) => onChange(Number(e.target.value))}>
+        {QUIET_TIMES.map((m) => (
+          <option key={m} value={m}>
+            {clock(m)}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

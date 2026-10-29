@@ -497,7 +497,7 @@ This isn't legal advice; it's a question for the lawyer review that's already on
 | Step | What | Status |
 |---|---|---|
 | W1 | Simulated market engine (21 made-up companies, 7 real sectors, a step a minute, 5-minute bars for 7 days), War profile with a $100,000 War balance and its chart, War zone trading (long only), SIMULATED marking + one-time explainer | Built 2026-10-29 (`functions/warmarket.py`, `war_market_tick`, `war_open`, `war_trade`, `features/war/`) |
-| W2 | Chaos events, quiet hours, morning summary | Next |
+| W2 | Chaos events (secret daily plan; 20% of weekdays, 50% of weekend days; one sector or, 1 in 4, the whole market; 10–20% over 1–3 hours; 30-minute warning; Hot for a day after), quiet hours (default 10 pm–8 am in your time zone, at most 10 hours, editable on the War zone page until War goes live, then in Settings), morning summary (one notification when quiet hours end); phone layout puts the chart and ticket first | Built 2026-10-29 (`plan_chaos`, `war_quiet`, `war_notify`, `war_morning_summaries`, `warMarket/chaos`) |
 | W3 | Private War lobby (configure, recruit, ready, start once, deadlines) | |
 | W4 | Territories: hidden claiming, enemy warnings, Camouflage, reveal, contested battles | |
 | W5 | Attacks (Bull/Bear), soldiers, Rally, neutral claims, Hot zones, War Score, one-day wait | |
