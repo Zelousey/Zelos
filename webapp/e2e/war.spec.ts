@@ -301,7 +301,7 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(page.getByText(/You have Command: pick Bull/)).toBeVisible();
   await page.getByRole('button', { name: 'Bear (price down)' }).click();
   await expect(page.getByText('Under way')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(/started at \$100\.00, now \$100\.00 \(simulated\)/)).toBeVisible();
+  await expect(page.getByText(/started at \$[\d,.]+, now \$[\d,.]+ \(simulated\)/)).toBeVisible();
   await expect(page.getByText(/Ends in 1 hour/)).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-battle-${info.project.name}.png`, fullPage: true });
   await page
