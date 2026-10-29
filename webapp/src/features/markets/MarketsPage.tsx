@@ -6,7 +6,7 @@
  * (SymbolPage), which is where charting happens: Market is for looking around.
  */
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useMovers, useQuotes } from '../../data/markets';
 import { bySpeed, groups, instrument, searchUniverse, UNIVERSE } from '../../data/universe';
 import { readString, writeString } from '../../lib/storage';
@@ -20,6 +20,7 @@ import { useMinis } from './miniSeries';
 import { SectorBars } from './Sectors';
 import { StatusLine } from './StatusLine';
 import { MarketView } from './MarketView';
+import { TradeChoice } from './TradeChoice';
 import s from './MarketsPage.module.css';
 
 type Glance = 'indexes' | 'watchlist' | 'gainers' | 'losers' | 'actives';
@@ -27,6 +28,18 @@ const INDEXES = UNIVERSE.filter((i) => i.group === 'ETF').map((i) => i.sym);
 
 export default function MarketsPage() {
   const quotes = useQuotes();
+  // Find a stock (Phase 7): from a "Find a stock" button, picking a stock asks Solo or Battle
+  const [params] = useSearchParams();
+  const find = params.get('find') === '1';
+  const [picked, setPicked] = useState<string | null>(null);
+  if (find)
+    return (
+      <>
+        <PageHeader title={t('find.page')} subtitle={t('find.page.sub')} />
+        <AllStocks onPick={setPicked} />
+        <TradeChoice sym={picked} onClose={() => setPicked(null)} />
+      </>
+    );
   return (
     <>
       <PageHeader
@@ -96,7 +109,7 @@ const SPEED_KEY = 'zelosAppMarketSpeed';
 
 /** Every stock, in two sections (owner, 2026-10-22): day trading (prices every minute) and
  * long-term (every 15 minutes), so the data plan lasts the month. */
-function AllStocks() {
+function AllStocks({ onPick }: { onPick?: (sym: string) => void }) {
   const quotes = useQuotes();
   const [q, setQ] = useState('');
   const [group, setGroup] = useState('all');
@@ -153,7 +166,7 @@ function AllStocks() {
           compact
         />
       ) : (
-        <MarketList rows={rows} label={t('nav.market')} />
+        <MarketList rows={rows} label={t('nav.market')} onPick={onPick} />
       )}
       <p className={s.scope}>{t('markets.scope', { count: UNIVERSE.length })}</p>
     </Card>

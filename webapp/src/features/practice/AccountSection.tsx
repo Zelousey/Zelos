@@ -99,7 +99,7 @@ function AccountView({ uid }: { uid: string }) {
           {t('acct.title')}
         </h2>
         <Badge tone="accent">{t('practice.virtual')}</Badge>
-        <Link className={[buttonClass({ variant: 'primary', size: 'sm' }), s.sectionAction].join(' ')} to="/markets">
+        <Link className={[buttonClass({ variant: 'primary', size: 'sm' }), s.sectionAction].join(' ')} to="/markets?find=1">
           {t('practice.findStock')}
         </Link>
       </div>
@@ -117,7 +117,7 @@ function AccountView({ uid }: { uid: string }) {
         <div className={s.grid}>
           <Card title={t('practice.positions')} flush>
             {v.rows.length === 0 ? (
-              <EmptyState icon="markets" body={t('practice.positions.empty')} compact actions={<Link className={buttonClass({ variant: 'secondary' })} to="/markets">{t('practice.findStock')}</Link>} />
+              <EmptyState icon="markets" body={t('practice.positions.empty')} compact actions={<Link className={buttonClass({ variant: 'secondary' })} to="/markets?find=1">{t('practice.findStock')}</Link>} />
             ) : (
               <>
                 <div className={[s.desktopOnly, s.tableWrap].join(' ')}>

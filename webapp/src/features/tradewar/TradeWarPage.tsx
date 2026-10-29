@@ -330,7 +330,7 @@ function PracticeCard() {
         <div className={s.practiceFoot}>
           <span className={s.muted}>{t('tw.holdings', { positions: data.positions.length, orders: data.orders.length })}</span>
           <span className={s.actions}>
-            <Link className={buttonClass({ variant: 'secondary' })} to="/markets">
+            <Link className={buttonClass({ variant: 'secondary' })} to="/markets?find=1">
               {t('tw.practice.trade')}
             </Link>
             <Link className={buttonClass({ variant: 'primary' })} to="/dashboard">
