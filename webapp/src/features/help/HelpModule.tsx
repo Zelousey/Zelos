@@ -12,10 +12,11 @@ import { useAuth } from '../../lib/auth';
 import { callFunction } from '../../lib/firebase';
 import { formatRelative } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
-import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, PageHeader, useToast } from '../../ui';
+import { Badge, Button, buttonClass, Card, EmptyState, ErrorState, LoadingState, PageHeader, tourSeen, useToast } from '../../ui';
 import { useIdentity } from '../dashboard/social';
 import { useCanPost } from '../news/news';
 import { usePracticeAccount } from '../practice/account';
+import { TOURS } from '../tutorials/tours';
 import { FirstSteps } from '../welcome/FirstSteps';
 import s from './Help.module.css';
 
@@ -63,6 +64,28 @@ function HelpPage() {
               </details>
             ))}
           </div>
+        </section>
+        <section aria-labelledby="help-tours">
+          <h2 id="help-tours" className={s.h2}>
+            {t('help.tours')}
+          </h2>
+          <ul className={s.tours}>
+            {TOURS.map((x) => (
+              <li key={x.id}>
+                <Card pad>
+                  <div className={s.row}>
+                    <span>
+                      <b>{t(x.title)}</b> {tourSeen(x.id) && <Badge tone="up">{t('help.tours.seen')}</Badge>}
+                      <span className={s.tourBody}>{t(x.body)}</span>
+                    </span>
+                    <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to={x.replay} aria-label={`${t('help.tours.replay')}: ${t(x.title)}`}>
+                      {t('help.tours.replay')}
+                    </Link>
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
         </section>
         <Feedback uid={uid} />
         {admin && (
