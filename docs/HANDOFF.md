@@ -29,19 +29,8 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-Run them in order whenever there's time. The site keeps working without them, but the change isn't live until they run.
-1. **Trade War match listing rule (#123, merged 2026-10-28).** Until it's deployed, the old rule (anyone signed in can list every match) is still live.
-   ```
-   cd ~/Zelos && git pull && firebase deploy --only firestore:rules
-   ```
-2. **Help & feedback (Phase 8a).** After it merges: the feedback functions and their rules. The Help screen works without it, but Send feedback shows an error until it's deployed.
-   ```
-   cd ~/Zelos && git pull && firebase deploy --only functions:feedback_send,functions:feedback_list,functions:feedback_mark,functions:account_delete,firestore:rules
-   ```
-3. **Battle rematch (Phase 9).** After it merges: the new `tw_rematch` function, the shared challenge code and the rule that lets you read your own rematch link. Until then the Rematch button shows an error.
-   ```
-   cd ~/Zelos && git pull && firebase deploy --only functions:tw_rematch,functions:tw_challenge,firestore:rules
-   ```
+None right now. Deployed by the owner on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a) and Battle rematch (Phase 9).
+
 After running one, tell Claude "deployed", and it will be ticked off here.
 
 ## Done (all on main)

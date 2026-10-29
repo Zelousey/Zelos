@@ -1,14 +1,8 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
-import { acceptInvite, errorText, respondChallenge } from '../features/invites/invites';
-import { parseBattle } from '../features/battles/battle';
-import { useSlotGate } from '../features/battles/slots';
-import { modeLines } from '../features/battles/parts';
-import { useLiveDoc } from '../data/liveDoc';
-import type { DocumentData } from 'firebase/firestore';
 import { t } from '../lib/i18n';
 import { formatRelative } from '../lib/format';
-import { Button, EmptyState, ErrorState, Sheet, useToast } from '../ui';
+import { Button, EmptyState, ErrorState, Sheet } from '../ui';
+import { InviteCard } from './InviteCard';
 import type { InboxItem } from './useInbox';
 import s from './Shell.module.css';
 
@@ -68,7 +62,7 @@ export function NotificationsSheet({ open, onClose, signedIn, items, error, onSi
                 ) : (
                   <div className={s.notifItem}>{content}</div>
                 )}
-                {n.action && <Actions item={n} onClose={onClose} />}
+                {n.action && <InviteCard action={n.action} onClose={onClose} />}
               </li>
             );
           })}
@@ -77,73 +71,3 @@ export function NotificationsSheet({ open, onClose, signedIn, items, error, onSi
     </Sheet>
   );
 }
-
-/** Accept (and for Trade War challenges, Decline) right from the bell. */
-function Actions({ item, onClose }: { item: InboxItem; onClose: () => void }) {
-  const toast = useToast();
-  const [state, setState] = useState<'idle' | 'busy' | 'accepted' | 'declined'>('idle');
-  const slot = useSlotGate();
-  const a = item.action!;
-  async function run(accept: boolean) {
-    setState('busy');
-    try {
-      if (a.type === 'invite') {
-        setState((await slot.gate((x) => acceptInvite(a.code, x))) ? 'accepted' : 'idle');
-      } else {
-        const r = await slot.gate((x) => respondChallenge(a.id, accept, x));
-        if (!r) return setState('idle'); // they said no to a paid battle slot
-        setState(r.status === 'accepted' ? 'accepted' : 'declined');
-        if (r.status === 'expired') toast.show(t('land.expired'));
-      }
-    } catch (e) {
-      setState('idle');
-      toast.show(errorText(e, t('land.failed')), 'error');
-    }
-  }
-  if (state === 'accepted' || state === 'declined')
-    return (
-      <p className={s.notifDone} role="status">
-        {state === 'accepted' ? t('bell.accepted') : t('bell.declined')}
-        {state === 'accepted' && a.type === 'invite' && (
-          <>
-            {' · '}
-            <Link to={`/i/${a.code}`} onClick={onClose}>
-              {t('bell.open')} →
-            </Link>
-          </>
-        )}
-      </p>
-    );
-  return (
-    <div className={s.notifActions}>
-      {slot.dialog}
-      {a.type === 'tw' && <ChallengeModes id={a.id} />}
-      <Button size="sm" variant="primary" disabled={state === 'busy'} onClick={() => void run(true)}>
-        {t('bell.accept')}
-      </Button>
-      {a.type === 'tw' && (
-        <Button size="sm" variant="ghost" disabled={state === 'busy'} onClick={() => void run(false)}>
-          {t('bell.decline')}
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// a challenge stores its modes like a battle (lms, modes) and squad battles' allowed stocks as `symbols`
-const parseChallenge = (d: DocumentData) => parseBattle('', { ...d, rules: { symbols: d.symbols } });
-
-/** What a Trade War challenge's game modes are, before you accept it (nothing for a classic battle). */
-function ChallengeModes({ id }: { id: string }) {
-  const inv = useLiveDoc(`twInvites/${id}`, parseChallenge);
-  const lines = inv.status === 'ready' ? modeLines(inv.data) : [];
-  if (!lines.length) return null;
-  return (
-    <ul className={s.notifModes} aria-label={t('bell.modes')}>
-      {lines.map((l) => (
-        <li key={l}>{l}</li>
-      ))}
-    </ul>
-  );
-}
-

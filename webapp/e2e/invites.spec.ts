@@ -103,3 +103,54 @@ test('a broken invite link explains itself', async ({ page }) => {
   await page.goto('i/bad');
   await expect(page.getByText('This invite link doesn’t exist')).toBeVisible();
 });
+
+test('invitation cards in the bell: each kind shows who, what and its own actions (N-R2)', async ({ page }, info) => {
+  await page.goto('dashboard');
+  const uid = await signIn(page, `cards-${info.project.name}${Date.now()}@example.com`);
+  const s = (v: string) => ({ stringValue: v });
+  const n = (v: number) => ({ integerValue: String(v) });
+  const now = Date.now();
+  const code = (k: string) => `${k}${info.project.name === 'phone' ? 'P' : 'D'}${String(now).slice(-6)}`.slice(0, 10).padEnd(10, 'x');
+  const base = { from: s('hostUid000001'), fromName: s('Ada'), fromUsername: s('ada_trades'), status: s('open'), uses: n(0), createdAt: n(now), expiresAt: n(now + 864e5) };
+  const invites = {
+    battle: { ...base, kind: s('battle'), warId: s('abcdefghijkm'), warName: s('Friday fight'), buyIn: n(500), days: n(3) },
+    squad: { ...base, kind: s('squad'), squadId: s('squadid0001'), squadName: s('Desk Ten') },
+    coach: { ...base, kind: s('coach') },
+  };
+  const codes: Record<string, string> = {};
+  let i = 0;
+  for (const [k, fields] of Object.entries(invites)) {
+    codes[k] = code(k.slice(0, 2));
+    await put(`invites/${codes[k]}`, fields);
+    await put(`users/${uid}/inbox/inv${k}`, { kind: s('friends'), title: s(`Ada invited you (${k})`), body: s(''), at: n(now - ++i * 1000), read: { booleanValue: false }, action: { mapValue: { fields: { type: s('invite'), code: s(codes[k]), kind: s(k) } } } });
+  }
+  const ch = `ch${String(now).slice(-8)}`;
+  const war = `w${info.project.name === 'phone' ? 'P' : 'D'}${String(now).slice(-10)}`;
+  await put(`tradeWars/${war}`, { name: s('Night fight'), host: s('hostUid000001'), status: s('lobby'), players: { arrayValue: { values: [s('hostUid000001')] } }, invited: { arrayValue: { values: [s(uid)] } }, buyIn: n(1000), days: n(1), maxPlayers: n(2) });
+  await put(`twInvites/${ch}`, { to: s(uid), from: s('hostUid000001'), fromName: s('Rex'), fromUsername: s('rex_wins'), warId: s(war), warName: s('Night fight'), buyIn: n(1000), days: n(1), mode: s('duel'), status: s('pending'), createdAt: n(now) });
+  await put(`users/${uid}/inbox/chal`, { kind: s('challenges'), title: s('Rex challenged you to a Trade War'), body: s(''), at: n(now), read: { booleanValue: false }, action: { mapValue: { fields: { type: s('tw'), id: s(ch) } } } });
+
+  await page.getByRole('button', { name: /Open notifications/ }).filter({ visible: true }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'Notifications' });
+  const card = (label: string) => dialog.locator('li').filter({ hasText: label });
+  // a battle invite: who, the battle, Join the battle
+  await expect(card('Battle invite')).toContainText('From Ada @ada_trades');
+  await expect(card('Battle invite')).toContainText('Friday fight · $500 virtual buy-in · 3 days');
+  await expect(card('Battle invite').getByRole('button', { name: 'Join the battle' })).toBeVisible();
+  await expect(card('Battle invite').getByRole('link', { name: 'See details' })).toHaveAttribute('href', `/app/i/${codes.battle}`);
+  // team-up: the squad, Join the squad
+  await expect(card('Team-up invite')).toContainText('Desk Ten');
+  await expect(card('Team-up invite').getByRole('button', { name: 'Join the squad' })).toBeVisible();
+  // coaching: what the coach sees, Start coaching
+  await expect(card('Coaching offer')).toContainText('Your coach will see your level');
+  await expect(card('Coaching offer').getByRole('button', { name: 'Start coaching' })).toBeVisible();
+  // a challenge: Accept or Decline
+  const c = card('Battle challenge');
+  await expect(c).toContainText('From Rex @rex_wins');
+  await expect(c).toContainText('Night fight · $1,000 virtual buy-in · 1 day');
+  expect(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze().then((r) => r.violations.map((v) => v.id))).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/cards-${info.project.name}.png` });
+  await c.getByRole('button', { name: 'Decline' }).click();
+  await expect(c.getByRole('status')).toHaveText('Declined');
+  await expect(c.getByRole('button', { name: 'Accept' })).toHaveCount(0);
+});
