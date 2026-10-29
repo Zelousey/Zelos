@@ -55,7 +55,7 @@ function RematchForm({ b, uid }: { b: Battle; uid: string }) {
     setBusy(true);
     setError(null);
     try {
-      const r = await slot.gate((x) => rematch({ warId: b.id, name: title.trim(), buyIn, days, ...toPayload(settings), ...(x && { extraSlot: true }) }));
+      const r = await slot.gate((x) => rematch({ warId: b.id, name: title.trim(), buyIn, days, ...toPayload(settings), ...(b.ruleset && { ruleset: b.ruleset }), ...(x && { extraSlot: true }) }));
       if (!r) return;
       if (!r.again) toast.show(t('bt.rematch.sent'), 'success');
       navigate(`/battles/${r.warId}`, { replace: true });
@@ -97,6 +97,7 @@ function RematchForm({ b, uid }: { b: Battle; uid: string }) {
               setError(null);
             }}
             days={days}
+            ruleset={b.ruleset ?? undefined}
           />
           {error && (
             <p className={s.error} role="alert">

@@ -22,6 +22,7 @@ export const LMS_OPTS = { floorPct: [5, 10, 15, 20, 30], maxLossPct: [2, 5, 10],
 export type LmsKey = keyof typeof LMS_OPTS;
 export const LMS_KEYS: LmsKey[] = ['floorPct', 'maxLossPct', 'maxLosses', 'cutHours'];
 export const DRAFT_PICKS = [2, 3, 5];
+export const DRAFT_SECS = [30, 45, 60]; // seconds per pick; 45 unless changed
 export const WHALE_CAPS = [25, 50, 75];
 export const WHALE_SHIELDS = [1, 2, 3];
 
@@ -29,6 +30,7 @@ export type Settings = {
   mode: 'classic' | 'lms';
   lms: Record<LmsKey, number>; // 0 = off
   draftPicks: number; // 0 = off
+  draftSecs: number;
   whaleCap: number; // 0 = off
   whaleShields: number;
   storms: '' | 'rare' | 'often';
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: 'classic',
   lms: { floorPct: 10, maxLossPct: 0, maxLosses: 0, cutHours: 0 },
   draftPicks: 0,
+  draftSecs: 45,
   whaleCap: 0,
   whaleShields: 1,
   storms: '',
@@ -57,17 +60,29 @@ export function presetSettings(mode: string | null): Settings {
 }
 
 /** A finished battle's settings, copied into its rematch form (Phase 9). */
-export function settingsOf(lms: Partial<Record<LmsKey, number>> | null, modes: { draft?: { picks: number }; whale?: { capPct: number; shields: number }; storms?: 'rare' | 'often'; bounties?: boolean; stops?: boolean }): Settings {
+export function settingsOf(lms: Partial<Record<LmsKey, number>> | null, modes: { draft?: { picks: number; secs?: number }; whale?: { capPct: number; shields: number }; storms?: 'rare' | 'often'; bounties?: boolean; stops?: boolean }): Settings {
   return {
     mode: lms ? 'lms' : 'classic',
     lms: lms ? { floorPct: lms.floorPct ?? 0, maxLossPct: lms.maxLossPct ?? 0, maxLosses: lms.maxLosses ?? 0, cutHours: lms.cutHours ?? 0 } : DEFAULT_SETTINGS.lms,
     draftPicks: modes.draft?.picks ?? 0,
+    draftSecs: modes.draft?.secs ?? 45,
     whaleCap: modes.whale?.capPct ?? 0,
     whaleShields: modes.whale?.shields ?? DEFAULT_SETTINGS.whaleShields,
     storms: modes.storms ?? '',
     bounties: !!modes.bounties,
     stops: !!modes.stops,
   };
+}
+
+/**
+ * Squad rulesets (Phase 10, F5): presets on the same battle settings, chosen when a squad battle
+ * starts. TW_RULESETS in functions/main.py. Fantasy Draft defaults (owner 2026-10-29): 3 picks,
+ * 45 seconds a pick, no ban round. Last Man Standing and Team Cooperation come next.
+ */
+export const RULESETS = ['ffa', 'draft'] as const;
+export type Ruleset = (typeof RULESETS)[number];
+export function applyRuleset(s: Settings, r: Ruleset): Settings {
+  return r === 'draft' ? { ...s, mode: 'classic', draftPicks: s.draftPicks || 3 } : { ...s, mode: 'classic', draftPicks: 0 };
 }
 
 /** Timed cuts must come more often than the battle lasts. */
@@ -86,7 +101,8 @@ export function settingsError(s: Settings, days: number): MessageKey | null {
 
 export type Payload = {
   lms?: Partial<Record<LmsKey, number>>;
-  modes?: { draftPicks?: number; whaleCap?: number; whaleShields?: number; storms?: 'rare' | 'often'; bounties?: true; stops?: true };
+  ruleset?: Ruleset;
+  modes?: { draftPicks?: number; draftSecs?: number; whaleCap?: number; whaleShields?: number; storms?: 'rare' | 'often'; bounties?: true; stops?: true };
 };
 
 /** What tw_create / tw_challenge take for these settings (nothing extra for a classic match). */
@@ -95,6 +111,7 @@ export function toPayload(s: Settings): Payload {
   if (s.mode === 'lms') out.lms = Object.fromEntries(LMS_KEYS.filter((k) => s.lms[k]).map((k) => [k, s.lms[k]]));
   const modes: NonNullable<Payload['modes']> = {};
   if (s.draftPicks) modes.draftPicks = s.draftPicks;
+  if (s.draftPicks && s.draftSecs !== 45) modes.draftSecs = s.draftSecs;
   if (s.whaleCap) Object.assign(modes, { whaleCap: s.whaleCap, whaleShields: s.whaleShields });
   if (s.storms) modes.storms = s.storms;
   if (s.bounties) modes.bounties = true;

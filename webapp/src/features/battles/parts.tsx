@@ -41,6 +41,7 @@ export function modeLines(b: Pick<Battle, 'lms' | 'modes' | 'symbols'>): string[
   if (b.lms?.maxLosses) rows.push(t('bt.rule.losses', { n: b.lms.maxLosses }));
   if (b.lms?.cutHours) rows.push(t('bt.rule.cut', { n: b.lms.cutHours }));
   if (b.modes.draft) rows.push(t('bt.rule.draft', { n: b.modes.draft.picks }));
+  if (b.modes.draft && b.modes.draft.secs !== 45) rows.push(t('bt.rule.draftSecs', { n: b.modes.draft.secs }));
   if (b.modes.whale) rows.push(t('bt.rule.whale', { cap: b.modes.whale.capPct, n: b.modes.whale.shields }));
   if (b.modes.storms) rows.push(t(b.modes.storms === 'often' ? 'bt.rule.stormsOften' : 'bt.rule.storms'));
   if (b.modes.bounties) rows.push(t('bt.rule.bounties'));

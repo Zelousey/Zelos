@@ -2001,7 +2001,7 @@ def tw_start_fields(war, now_ms, xps=None, rng=None):
         universe = tw_draft_universe(war)
         if len(war["players"]) * modes["draft"]["picks"] > len(universe):
             raise TWError("FAILED_PRECONDITION", "Too many players for a %d-pick draft: there are only %d stocks to go around." % (modes["draft"]["picks"], len(universe)))
-        f.update({"status": "draft", "draft": tw_draft_new(war["players"], modes["draft"]["picks"], now_ms, rng)})
+        f.update({"status": "draft", "draft": tw_draft_new(war["players"], modes["draft"]["picks"], now_ms, rng, modes["draft"].get("secs"))})
         return f
     f.update(tw_live_fields(war, now_ms))
     return f
@@ -2021,8 +2021,8 @@ def tw_start_fields(war, now_ms, xps=None, rng=None):
 #            target keeps it. Limits stop farming (see tw_new_bounty).
 # The Battlefield Ticker (tradeWars/{id}/events) is always on.
 # ---------------------------------------------------------------------------
-TW_MODE_OPTS = {"draftPicks": (2, 3, 5), "whaleCap": (25, 50, 75), "whaleShields": (1, 2, 3), "storms": ("rare", "often")}
-TW_DRAFT_PICK_MS = 45000
+TW_MODE_OPTS = {"draftPicks": (2, 3, 5), "draftSecs": (30, 45, 60), "whaleCap": (25, 50, 75), "whaleShields": (1, 2, 3), "storms": ("rare", "often")}
+TW_DRAFT_PICK_MS = 45000  # the default pick timer (draftSecs picks 30, 45 or 60 seconds)
 # Stop loss / take profit is a game option ("stops"), off unless the host turns it on.
 # Exits already set on open positions keep working and can still be cleared.
 
@@ -2057,7 +2057,7 @@ def tw_validate_modes(data, days):
             raise bad
         return v
     if raw.get("draftPicks"):
-        out["draft"] = {"picks": num("draftPicks")}
+        out["draft"] = {"picks": num("draftPicks"), "secs": num("draftSecs") if raw.get("draftSecs") else TW_DRAFT_PICK_MS // 1000}
     if raw.get("whaleCap"):
         out["whale"] = {"capPct": num("whaleCap"), "shields": num("whaleShields")}
     if raw.get("storms"):
@@ -2080,11 +2080,18 @@ def tw_draft_universe(war):
     return sorted(syms) if syms else sorted(PRACTICE_SYMBOLS)
 
 
-def tw_draft_new(players, per, now_ms, rng=None):
+def tw_pick_ms(draft):
+    """How long each pick may take in this draft (drafts from before the timer option: 45 s)."""
+    return int(draft.get("secs") or TW_DRAFT_PICK_MS // 1000) * 1000
+
+
+def tw_draft_new(players, per, now_ms, rng=None, secs=None):
     order = list(players)
     (rng or _secrets.SystemRandom()).shuffle(order)
-    return {"order": order, "per": per, "picks": {u: [] for u in order}, "taken": [], "turn": 0,
-            "total": len(order) * per, "deadline": now_ms + TW_DRAFT_PICK_MS}
+    d = {"order": order, "per": per, "picks": {u: [] for u in order}, "taken": [], "turn": 0,
+         "total": len(order) * per, "secs": int(secs or TW_DRAFT_PICK_MS // 1000)}
+    d["deadline"] = now_ms + tw_pick_ms(d)
+    return d
 
 
 def tw_draft_on_clock(draft):
@@ -2106,7 +2113,7 @@ def tw_draft_apply(draft, sym, universe, now_ms):
     d = dict(draft, picks={u: list(v) for u, v in draft["picks"].items()}, taken=draft["taken"] + [sym])
     d["picks"][uid].append(sym)
     d["turn"] = draft["turn"] + 1
-    d["deadline"] = now_ms + TW_DRAFT_PICK_MS
+    d["deadline"] = now_ms + tw_pick_ms(draft)
     return d, uid
 
 
@@ -3217,7 +3224,7 @@ def tw_draft_step(db, ref, now_ms, uid=None, sym=None, rng=None):
             events.append(tw_event("draft", "%s drafts %s" % (names.get(who, "Trader"), sym), now_ms, uid=who))
         else:
             overdue = now_ms >= draft["deadline"]
-            idle = now_ms >= draft["deadline"] - TW_DRAFT_PICK_MS + TW_DRAFT_IDLE_MS
+            idle = now_ms >= draft["deadline"] - tw_pick_ms(draft) + TW_DRAFT_IDLE_MS
             if not overdue:
                 if uid is None:
                     return None
@@ -3330,6 +3337,29 @@ def tw_validate_challenge(data, uid):
     return targets, buy_in, days, name, squad_id, lms
 
 
+# Squad rulesets (Phase 10, F5): presets on the one match engine, chosen when a squad battle is
+# started. "ffa" Free-for-all (classic rules), "draft" Fantasy Draft (the snake draft; owner
+# 2026-10-29: 3 picks, 45 s, no ban round by default). Last Man Standing and Team Cooperation
+# come next. A battle without one plays exactly as before.
+TW_RULESETS = ("ffa", "draft")
+
+
+def tw_validate_ruleset(data, squad_id, lms, modes):
+    """None, or the squad battle's ruleset when it agrees with the settings; else TWError."""
+    r = (data or {}).get("ruleset")
+    if r is None:
+        return None
+    if not squad_id:
+        raise TWError("INVALID_ARGUMENT", "Rulesets are for squad battles.")
+    if r not in TW_RULESETS:
+        raise TWError("INVALID_ARGUMENT", "That ruleset isn't available.")
+    if lms:
+        raise TWError("INVALID_ARGUMENT", "Last Man Standing rules don't go with this ruleset.")
+    if (r == "draft") != ("draft" in modes):
+        raise TWError("INVALID_ARGUMENT", "Fantasy Draft needs the draft on, and Free-for-all needs it off.")
+    return r
+
+
 def tw_squad_rules(config):
     """Match rules a squad's owner set for its Trade Wars: allowed stocks and
     whether players can see each other's trades. Unknown symbols are dropped."""
@@ -3402,13 +3432,14 @@ def tw_rematch(req, db, uid, now_ms):
     m = mark.get()
     if m.exists:
         return {"warId": (m.to_dict() or {}).get("warId"), "again": True, "charged": 0}
-    data = {k: v for k, v in (req.data or {}).items() if k in ("name", "buyIn", "days", "lms", "modes", "extraSlot")}
+    data = {k: v for k, v in (req.data or {}).items() if k in ("name", "buyIn", "days", "lms", "modes", "ruleset", "extraSlot")}
     return _tw_challenge(req, db, uid, now_ms, dict(data, **target), rematch=(old_ref.id, mark))
 
 
 def _tw_challenge(req, db, uid, now_ms, data, rematch=None):
     targets, buy_in, days, name, squad_id, lms = tw_validate_challenge(data, uid)
     modes = tw_validate_modes(data, days)
+    ruleset = tw_validate_ruleset(data, squad_id, lms, modes)
     _tw_check_learned(db, uid)
     _tw_check_buyin(db, uid, buy_in)
     extra_rules = {}
@@ -3443,7 +3474,7 @@ def _tw_challenge(req, db, uid, now_ms, data, rematch=None):
     batch = _TwTxnBatch()
     batch.set(war_ref, {"name": name, "host": uid, "hostName": pname, "buyIn": buy_in, "days": days,
                         "maxPlayers": 1 + len(targets), "status": "lobby", "players": [uid], "names": {uid: pname},
-                        "invited": targets, "mode": mode, "squadId": squad_id or None, "lms": lms, "modes": modes,
+                        "invited": targets, "mode": mode, "squadId": squad_id or None, "ruleset": ruleset, "lms": lms, "modes": modes,
                         "createdAt": now_ms, "startAt": None, "endAt": None, "results": None, "markedAt": None,
                         "rules": dict({"deposits": False, "withdrawals": False, "shortSelling": False, "assets": "stocks"}, **extra_rules)})
     batch.set(war_ref.collection("accounts").document(uid), tw_new_account(pname, buy_in, now_ms))
@@ -3454,7 +3485,7 @@ def _tw_challenge(req, db, uid, now_ms, data, rematch=None):
         inv_ids[to] = iref.id
         batch.set(iref, {
             "to": to, "toName": _tw_name(db, to, None), "from": uid, "fromName": pname, "fromUsername": t.get("username"), "fromPhoto": photo,
-            "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode, "lms": lms, "modes": modes,
+            "warId": wid, "warName": name, "buyIn": buy_in, "days": days, "mode": mode, "ruleset": ruleset, "lms": lms, "modes": modes,
             "symbols": extra_rules.get("symbols"),
             "status": "pending", "createdAt": now_ms, "respondedAt": None})
 

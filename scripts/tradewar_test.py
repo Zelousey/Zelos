@@ -301,8 +301,9 @@ class AdvancedGameplay(unittest.TestCase):
     def test_modes_validation(self):
         self.assertEqual(m.tw_validate_modes({}, 7), {})
         self.assertEqual(m.tw_validate_modes({"modes": {"draftPicks": 3, "whaleCap": 50, "whaleShields": 2, "storms": "rare", "bounties": True}}, 7),
-                         {"draft": {"picks": 3}, "whale": {"capPct": 50, "shields": 2}, "storms": "rare", "bounties": True})
-        for bad in ({"draftPicks": 4}, {"whaleCap": 50}, {"whaleCap": 50, "whaleShields": 9}, {"storms": "always"}, {"bounties": "yes"}, "on"):
+                         {"draft": {"picks": 3, "secs": 45}, "whale": {"capPct": 50, "shields": 2}, "storms": "rare", "bounties": True})
+        self.assertEqual(m.tw_validate_modes({"modes": {"draftPicks": 5, "draftSecs": 30}}, 7), {"draft": {"picks": 5, "secs": 30}})
+        for bad in ({"draftPicks": 4}, {"draftPicks": 3, "draftSecs": 20}, {"whaleCap": 50}, {"whaleCap": 50, "whaleShields": 9}, {"storms": "always"}, {"bounties": "yes"}, "on"):
             with self.assertRaises(m.TWError):
                 m.tw_validate_modes({"modes": bad}, 7)
 
@@ -635,3 +636,36 @@ class Rematch(unittest.TestCase):
         before = repr(w)
         m.tw_rematch_target(w, "playerAAA1")
         self.assertEqual(before, repr(w))
+
+
+class SquadRulesets(unittest.TestCase):
+    """Phase 10: rulesets are presets on the one match engine, only for squad battles."""
+    SQ = "abcdefghijkm"
+
+    def test_none_keeps_every_battle_as_before(self):
+        self.assertIsNone(m.tw_validate_ruleset({}, None, None, {}))
+        self.assertIsNone(m.tw_validate_ruleset({}, self.SQ, {"floorPct": 10}, {"draft": {"picks": 3}}))
+
+    def test_free_for_all_and_fantasy_draft(self):
+        self.assertEqual(m.tw_validate_ruleset({"ruleset": "ffa"}, self.SQ, None, {"storms": "rare"}), "ffa")
+        self.assertEqual(m.tw_validate_ruleset({"ruleset": "draft"}, self.SQ, None, {"draft": {"picks": 3, "secs": 45}}), "draft")
+
+    def test_refused(self):
+        for data, squad, lms, modes in (
+            ({"ruleset": "ffa"}, None, None, {}),                     # not a squad battle
+            ({"ruleset": "chaos"}, self.SQ, None, {}),                # unknown
+            ({"ruleset": "team"}, self.SQ, None, {}),                 # not built yet
+            ({"ruleset": "ffa"}, self.SQ, None, {"draft": {"picks": 3}}),
+            ({"ruleset": "draft"}, self.SQ, None, {}),
+            ({"ruleset": "ffa"}, self.SQ, {"floorPct": 10}, {}),
+        ):
+            with self.assertRaises(m.TWError, msg=repr(data)):
+                m.tw_validate_ruleset(data, squad, lms, modes)
+
+    def test_pick_timer(self):
+        d = m.tw_draft_new(["a", "b"], 2, T0, secs=30)
+        self.assertEqual((d["secs"], d["deadline"]), (30, T0 + 30000))
+        d2, _ = m.tw_draft_apply(d, "AAPL", ["AAPL", "MSFT"], T0 + 5000)
+        self.assertEqual(d2["deadline"], T0 + 35000)
+        self.assertEqual(m.tw_pick_ms({"deadline": 1}), 45000)  # a draft from before the option
+
