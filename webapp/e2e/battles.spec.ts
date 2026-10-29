@@ -360,7 +360,7 @@ test('a squad battle starts from a ruleset: Fantasy Draft with its own pick time
   // Free-for-all first: no mode picker and no draft (the ruleset fixes them)
   await expect(sheet.getByRole('radio', { name: 'Free-for-all' })).toBeChecked();
   await expect(sheet.getByText('Everyone for themselves with the same money.')).toBeVisible();
-  await expect(sheet.getByRole('radio', { name: 'Last Man Standing' })).toHaveCount(0);
+  await expect(sheet.getByRole('radio', { name: /^Classic/ })).toHaveCount(0);
   await sheet.getByText('Fantasy Draft', { exact: true }).first().click();
   await expect(sheet.getByRole('radio', { name: 'Fantasy Draft' })).toBeChecked();
   await expect(sheet.getByLabel('Stock draft')).toHaveValue('3'); // owner's default: 3 picks, 45 s
@@ -381,3 +381,26 @@ test('a squad battle starts from a ruleset: Fantasy Draft with its own pick time
   await expect(rules).toContainText('picks 3 stocks');
   await expect(rules).toContainText('30 seconds per pick.');
 });
+
+test('squad Last Man Standing: the rules are checked once a day at the market close (Phase 10b)', async ({ page }, info) => {
+  await page.goto('battles');
+  const uid = await signIn(page, `sqlms-${info.project.name}${Date.now()}@example.com`);
+  await passBasics(uid);
+  const sq = rid();
+  const mate = `mate${rid()}`;
+  await put(`squads/${sq}`, { name: 'Last desk', owner: uid, members: [uid, mate], names: { [uid]: 'Me', [mate]: 'Max' }, createdAt: Date.now(), config: {} });
+  await page.goto(`social/${sq}`);
+  await page.getByRole('button', { name: /Start a squad Trade War/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Challenge Last desk' });
+  await sheet.getByText('Last Man Standing', { exact: true }).first().click();
+  await expect(sheet.getByRole('radio', { name: 'Last Man Standing' })).toBeChecked();
+  await expect(sheet.getByText(/Checked once a day at the market close/)).toBeVisible();
+  await expect(sheet.getByLabel('P&L floor')).toHaveValue('10');
+  await sheet.getByLabel('Battle name').fill('Last one standing');
+  expect(await axe(page)).toEqual([]);
+  await sheet.getByRole('button', { name: 'Send challenge' }).click();
+  await expect(page).toHaveURL(/\/battles\/[A-Za-z0-9]{12}$/, { timeout: 30_000 });
+  await expect(page.getByText('Last Man Standing', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('list').filter({ hasText: 'Everyone starts with' })).toContainText('checked once a day at the market close');
+});
+

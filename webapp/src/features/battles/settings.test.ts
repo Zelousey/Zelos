@@ -64,5 +64,9 @@ describe('battle settings', () => {
     expect(toPayload(applyRuleset(DEFAULT_SETTINGS, 'draft'))).toEqual({ modes: { draftPicks: 3 } });
     expect(toPayload({ ...applyRuleset(DEFAULT_SETTINGS, 'draft'), draftSecs: 30 })).toEqual({ modes: { draftPicks: 3, draftSecs: 30 } });
     expect(settingsOf(null, { draft: { picks: 3, secs: 60 } }).draftSecs).toBe(60);
+    // Last Man Standing (10b): the mode is on, the draft off, and a floor if no rule was set
+    expect(applyRuleset({ ...DEFAULT_SETTINGS, draftPicks: 3 }, 'lms')).toMatchObject({ mode: 'lms', draftPicks: 0, lms: DEFAULT_SETTINGS.lms });
+    const kept = { ...DEFAULT_SETTINGS, lms: { floorPct: 0, maxLossPct: 5, maxLosses: 0, cutHours: 0 } };
+    expect(applyRuleset(kept, 'lms').lms).toEqual(kept.lms);
   });
 });

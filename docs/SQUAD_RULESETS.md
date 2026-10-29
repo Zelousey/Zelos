@@ -8,7 +8,7 @@ without a ruleset (every battle so far, and every non-squad battle) plays exactl
 |---|---|---|---|
 | Free-for-all (`ffa`) | Compete | Everyone for themselves with the same money; best % return wins. Classic rules. | Built (10a) |
 | Fantasy Draft (`draft`) | Compete | Snake draft before the start; trade only your picks. | Built (10a) |
-| Last Man Standing | Compete | Elimination rules, checked at the market close. | Next (10b) |
+| Last Man Standing (`lms`) | Compete | Elimination rules, checked once a day at the market close. | Built (10b) |
 | Team Cooperation | Together | Two teams inside the squad. | After that (10c) |
 
 ## Owner decisions (2026-10-29)
@@ -26,5 +26,9 @@ without a ruleset (every battle so far, and every non-squad battle) plays exactl
   battles take one. The ruleset is stored on the battle and on each challenge invite; a rematch keeps it.
 - Draft pick timer: `modes.draft.secs` (30/45/60), copied into the draft as `secs`; drafts from before
   the option keep 45 seconds (`tw_pick_ms`).
+- Last Man Standing (`lms`): the 5-minute job (`tw_mark_war`) applies the floor, biggest-loss and
+  losing-trades rules only on its first run after 4:00 pm New York on a weekday the battle was already
+  running (`tw_close_check_day`, recorded as `lmsCheckedDay`); in between, only timed cuts run
+  (`tw_elim_now`), and a trade never knocks anyone out (the check waits for the close).
 - App: the squad's **Start a squad Trade War** sheet asks for the ruleset first; the ruleset fixes the
   mode and the draft (`applyRuleset`), and the battle room shows it as a badge.

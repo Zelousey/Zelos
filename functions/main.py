@@ -2866,7 +2866,8 @@ def tw_trade(req, db, uid, now_ms):
             _tw_log(t, war_ref, tw_event("big", "%s went big: %s" % (name, what), now_ms, uid=uid))
         if fill.get("storm") == "double" and abs(fill.get("pnl") or 0) >= 1:
             _tw_log(t, war_ref, tw_event("storm", "%s rode the storm: %s, doubled" % (name, _tw_money(fill["pnl"], signed=True)), now_ms, uid=uid))
-        reason, alive = tw_out_reason(acct, war.get("lms")), None
+        # a squad Last Man Standing battle only checks its rules at the market close
+        reason, alive = (None if war.get("ruleset") == "lms" else tw_out_reason(acct, war.get("lms"))), None
         if reason:
             alive = [u for u in (war.get("alive") or war["players"]) if u != uid]
             acct, book = tw_knock_out(acct, book, prices, reason, len(alive) + 1, now_ms)
@@ -3092,7 +3093,10 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
         alive = [u for u in (war.get("alive") or war["players"]) if u in accts and not accts[u].get("out")]
         if lms:
             outs, used, shields = list(war.get("outs") or []), [], dict(war.get("shields") or {})
-            picks = tw_pick_outs(alive, accts, lms, now_ms, war.get("nextCutAt"), shields, used, set(war.get("reviveSafe") or []))
+            close_day = tw_close_check_day(war, now_ms)
+            if close_day:
+                update["lmsCheckedDay"] = close_day
+            picks = tw_pick_outs(alive, accts, tw_elim_now(war, close_day), now_ms, war.get("nextCutAt"), shields, used, set(war.get("reviveSafe") or []))
             for u in used:
                 shields[u] -= 1
                 events.append(tw_event("shield", "%s used a Shield Token to survive the cut" % names.get(u, "Trader"), now_ms, uid=u))
@@ -3339,9 +3343,11 @@ def tw_validate_challenge(data, uid):
 
 # Squad rulesets (Phase 10, F5): presets on the one match engine, chosen when a squad battle is
 # started. "ffa" Free-for-all (classic rules), "draft" Fantasy Draft (the snake draft; owner
-# 2026-10-29: 3 picks, 45 s, no ban round by default). Last Man Standing and Team Cooperation
-# come next. A battle without one plays exactly as before.
-TW_RULESETS = ("ffa", "draft")
+# 2026-10-29: 3 picks, 45 s, no ban round by default), "lms" Last Man Standing whose rules are
+# checked once a day at the market close (owner 2026-10-29, Q14: a dip during the day doesn't
+# knock anyone out). Team Cooperation comes next. A battle without one plays exactly as before.
+TW_RULESETS = ("ffa", "draft", "lms")
+TW_CLOSE_MIN = 16 * 60  # 4:00 pm New York: the squad Last Man Standing check
 
 
 def tw_validate_ruleset(data, squad_id, lms, modes):
@@ -3353,11 +3359,41 @@ def tw_validate_ruleset(data, squad_id, lms, modes):
         raise TWError("INVALID_ARGUMENT", "Rulesets are for squad battles.")
     if r not in TW_RULESETS:
         raise TWError("INVALID_ARGUMENT", "That ruleset isn't available.")
+    if r == "lms":
+        if not lms:
+            raise TWError("INVALID_ARGUMENT", "Pick at least one elimination rule for Last Man Standing.")
+        if "draft" in modes:
+            raise TWError("INVALID_ARGUMENT", "Last Man Standing squad battles don't use the draft.")
+        return r
     if lms:
         raise TWError("INVALID_ARGUMENT", "Last Man Standing rules don't go with this ruleset.")
     if (r == "draft") != ("draft" in modes):
         raise TWError("INVALID_ARGUMENT", "Fantasy Draft needs the draft on, and Free-for-all needs it off.")
     return r
+
+
+def tw_close_check_day(war, now_ms):
+    """The New York day whose market-close check a squad Last Man Standing battle is due now
+    (the first mark after 4:00 pm on a weekday the battle was already running), else None."""
+    if war.get("ruleset") != "lms":
+        return None
+    ny = datetime.fromtimestamp(now_ms / 1000, NY)
+    if ny.weekday() >= 5 or ny.hour * 60 + ny.minute < TW_CLOSE_MIN:
+        return None
+    day = ny.date().isoformat()
+    close_ms = int(ny.replace(hour=TW_CLOSE_MIN // 60, minute=TW_CLOSE_MIN % 60, second=0, microsecond=0).timestamp() * 1000)
+    if war.get("lmsCheckedDay") == day or (war.get("startAt") or 0) >= close_ms:
+        return None
+    return day
+
+
+def tw_elim_now(war, close_day):
+    """The elimination rules to apply on this mark: all of them, except in a squad Last Man
+    Standing battle between close checks, where only timed cuts run."""
+    lms = war.get("lms") or {}
+    if war.get("ruleset") == "lms" and not close_day:
+        return {k: v for k, v in lms.items() if k == "cutHours"}
+    return lms
 
 
 def tw_squad_rules(config):

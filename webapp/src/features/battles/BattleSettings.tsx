@@ -99,7 +99,7 @@ export function BattleSettings({ value, onChange, days, simple = false, ruleset 
       {value.mode === 'lms' && (
         <fieldset className={s.lms}>
           <legend>{t('bs.lms.title')}</legend>
-          <p className={s.note}>{t('bs.lms.body')}</p>
+          <p className={s.note}>{t(ruleset === 'lms' ? 'bs.lms.bodyClose' : 'bs.lms.body')}</p>
           <div className={s.grid}>
             {LMS_KEYS.map((k) => (
               <Pick
