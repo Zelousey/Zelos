@@ -24,6 +24,7 @@ same attacker -> defender at most 3 a War day, none in the War's last hour, and 
 lost in the last War day (skip that wait once per War for 100 tokens).
 """
 from warmap import NAMES
+from warmoves import extra_attacks
 from warmarket import BY_SYM, COMPANIES, WarError
 
 STAKE = 5000.0
@@ -95,7 +96,7 @@ def check_attack(war, uid, data, now_ms, cash, performance_ok):
         raise WarError("INVALID_ARGUMENT", "Pick Bull or Bear.")
     defender = cell["owner"]
     opened = _open(war)
-    if sum(1 for a in opened if a["attacker"] == uid) >= MAX_OPEN:
+    if sum(1 for a in opened if a["attacker"] == uid) >= MAX_OPEN + extra_attacks(war, uid, now_ms):
         raise WarError("FAILED_PRECONDITION", "You already have an attack under way. Finish it first.")
     if sum(1 for a in opened if a["defender"] == defender) >= MAX_INCOMING:
         raise WarError("FAILED_PRECONDITION", "%s is already defending 2 attacks." % ((war.get("names") or {}).get(defender) or "That player"))

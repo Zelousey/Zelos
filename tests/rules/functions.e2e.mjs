@@ -490,5 +490,23 @@ await signInWithEmailAndPassword(auth, troll.email, 'secret123');
 re1 = null; try { await call('war_lobby', { action: 'skipWait', warId: wid, territory: T[2] }); } catch (x) { re1 = x; }
 ok(re1 && /no wait to skip/.test(re1.message), 'there\'s nothing to pay for when there\'s no wait');
 
+// --- neutral claims, Reinforce, Rally, Hot zones (W5b)
+let wd = (await getDoc(doc(db, 'wars', wid))).data();
+// (only NIMBC and VOLTX had prices at the reveal here, so only their territories could be picked; war_market.e2e.py checks the full 2)
+ok(wd.hot && Object.keys(wd.hot).length <= 2 && Object.keys(wd.hot).every((x) => T.includes(x) && /^Hot zone: /.test(wd.hot[x])) && wd.hotDay === 0, 'the reveal marks the Hot zones on the map');
+const neutral = T.filter((x) => wd.map[x].state === 'neutral');
+wr = await call('war_lobby', { action: 'claim', warId: wid, territory: neutral[0] });
+ok(wr.war.map[neutral[0]].owner === troll.uid && wr.war.map[neutral[0]].how === 'neutral', 'a player claims neutral land with no battle and no stake');
+re1 = null; try { await call('war_lobby', { action: 'claim', warId: wid, territory: neutral[1] }); } catch (x) { re1 = x; }
+ok(re1 && /claimed neutral land today/.test(re1.message), 'once a War day');
+re1 = null; try { await call('war_lobby', { action: 'claim', warId: wid, territory: T[2] }); } catch (x) { re1 = x; }
+ok(re1 && /only claim a neutral/.test(re1.message), 'owned land has to be attacked, not claimed');
+re1 = null; try { await call('war_lobby', { action: 'rally', warId: wid }); } catch (x) { re1 = x; }
+ok(re1 && /Rally needs 15 soldiers in reserve/.test(re1.message), 'Rally costs 15 reserve soldiers');
+re1 = null; try { await call('war_lobby', { action: 'reinforce', warId: wid, soldiers: { [T[1]]: 5 } }); } catch (x) { re1 = x; }
+ok(re1 && /0 soldiers in reserve/.test(re1.message), 'Reinforce moves only soldiers you have in reserve');
+re1 = null; try { await call('war_lobby', { action: 'reinforce', warId: wid, soldiers: { [T[2]]: 1 } }); } catch (x) { re1 = x; }
+ok(re1 && /your own territories/.test(re1.message), 'and only onto your own land');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

@@ -8,6 +8,7 @@ import { formatRelative } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Badge, Button, Card, Confirm, LoadingState, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
+import { Army } from './Army';
 import { Attacks, AttackSheet } from './Attacks';
 import { Battles } from './Battles';
 import { warLobby, type PrivateWar } from './lobby';
@@ -162,11 +163,18 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
                   {placement?.camo.includes(x) && ` · ${t('wmap.hidden')}`}
                   {(w.progress[x]?.[uid] ?? 0) > 0 && ` · ${t('watk.yourWins', { n: w.progress[x]![uid]! })}`}
                 </small>
+                {w.hot[x] && (
+                  <Badge tone="gold">
+                    {t('war.hot')}
+                  </Badge>
+                )}
+                {w.hot[x] && <small className={s.muted}>{w.hot[x]}</small>}
                 {canAttack && cell?.state === 'owned' && cell.owner !== uid && (
                   <Button size="sm" variant="secondary" onClick={() => setTarget(x)}>
                     {t('watk.attack')}
                   </Button>
                 )}
+                {canAttack && cell?.state === 'neutral' && <ClaimButton w={w} territory={x} />}
               </li>
             );
           })}
@@ -178,6 +186,7 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           </p>
         )}
       </Card>
+      {!claiming && w.status === 'active' && <Army w={w} uid={uid} placement={placement} now={now} />}
       {!claiming && <Attacks w={w} uid={uid} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
       {!claiming && <Battles w={w} uid={uid} placement={placement} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
       {target && <AttackSheet key={target} w={w} territory={target} onClose={() => setTarget(null)} />}
@@ -194,5 +203,33 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
         </Card>
       )}
     </>
+  );
+}
+
+/** Claim a neutral territory (once a War day; a Redeploy pass gives one more). */
+function ClaimButton({ w, territory }: { w: PrivateWar; territory: string }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [offerPass, setOfferPass] = useState(false);
+  async function claim(usePass = false) {
+    setBusy(true);
+    try {
+      await warLobby({ action: 'claim', warId: w.id, territory, ...(usePass && { usePass: true }) });
+      toast.show(t('wmap.claimed', { t: SECTOR_NAME[territory] ?? territory }), 'success');
+    } catch (err) {
+      if ((err as { details?: { pass?: boolean } })?.details?.pass) setOfferPass(true);
+      toast.show(errorText(err, t('warl.failed')), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return offerPass ? (
+    <Button size="sm" variant="secondary" disabled={busy} onClick={() => void claim(true)}>
+      {t('wmap.claimPass')}
+    </Button>
+  ) : (
+    <Button size="sm" variant="secondary" disabled={busy} onClick={() => void claim()}>
+      {t('wmap.claim')}
+    </Button>
   );
 }

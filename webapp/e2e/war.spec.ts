@@ -54,6 +54,7 @@ async function signIn(page: Page, email: string): Promise<string> {
     email,
   );
 }
+const SECTOR: Record<string, string> = { tech: 'Tech', finance: 'Finance', health: 'Health', energy: 'Energy', consumer: 'Consumer', comms: 'Communication', industrials: 'Industrials', realestate: 'Real Estate', materials: 'Materials', utilities: 'Utilities' };
 // every other War zone company at $100, so a battle on any territory has prices
 const OTHERS = [
   'QUBTR',
@@ -320,6 +321,22 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-attack-${info.project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: 'Decline', exact: true }).click();
   await expect(page.getByText('You declined (the free decline for the day).')).toBeVisible({ timeout: 30_000 });
+  // W5b: a Hot zone, claiming neutral land, Rally and Reinforce
+  await patch(`wars/${id}`, { hot: { [terr[3]!]: 'Hot zone: test +4.0% in 24 hours' }, hotDay: 0 });
+  await patch(`wars/${id}/placements/${uid}`, { reserve: 20 });
+  await expect(page.getByText('Hot zone: test +4.0% in 24 hours')).toBeVisible();
+  await page.getByRole('listitem').filter({ hasText: SECTOR[terr[4]!]! }).getByRole('button', { name: 'Claim' }).click();
+  await expect(page.getByText(`You claimed ${SECTOR[terr[4]!]}.`)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('20 soldiers in reserve')).toBeVisible();
+  await page.getByRole('button', { name: 'Rally (−15 soldiers)' }).click();
+  await expect(page.getByText('Rallied: you can have one more attack open today.')).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Reinforce' }).click();
+  const rf = page.getByRole('dialog', { name: 'Reinforce' });
+  await rf.getByRole('spinbutton').first().fill('5');
+  await rf.getByRole('button', { name: 'Move 5 soldiers' }).click();
+  await expect(page.getByText('Reinforced. Only you can see it.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Today: claim used · Reinforce used · Rally used')).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-army-${info.project.name}.png`, fullPage: true });
   await page
     .getByRole('link', { name: /War zone/ })
     .first()

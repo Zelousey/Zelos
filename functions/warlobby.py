@@ -18,6 +18,7 @@ import re
 
 import warattack as WA
 import warbattle as WB
+import warmoves as WMV
 from warmap import CLAIM_MS
 from warmarket import WarError
 
@@ -204,7 +205,7 @@ def due_at(war):
     if war.get("status") == "active":
         if war.get("phase") == "claiming":
             return war.get("claimEnds")
-        dues = [war.get("endsAt")] + [WB.due(b) for b in (war.get("battles") or {}).values()] + [WA.due(a) for a in (war.get("attacks") or {}).values()]
+        dues = [war.get("endsAt"), WMV.next_day_at(war)] + [WB.due(b) for b in (war.get("battles") or {}).values()] + [WA.due(a) for a in (war.get("attacks") or {}).values()]
         return min(d for d in dues if d is not None)
     return None
 

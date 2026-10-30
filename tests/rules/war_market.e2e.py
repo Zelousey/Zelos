@@ -185,4 +185,17 @@ ok(pb["cash"] == 55000.0 and pb["held"] == 5000 and pa["held"] == 5000 and pa["c
 pl = db.collection("wars").document("attackWar01").collection("placements").document("warAwake01").get().to_dict()
 ok(pl["soldiers"]["energy"] == 40, "and the defender loses 5 soldiers there")
 ok(any("won a battle for Energy" in d.to_dict()["text"] for d in db.collection("wars").document("attackWar01").collection("log").stream()), "the map log says so")
+
+# ---- Hot zones (W5b): at the end of a War day the holder of each Hot zone gets +1 point, then new Hot zones
+WMV = main.WMV
+now4 = now3 + 10 * M
+hw = dict(aw, attacks={}, battles={}, startedAt=now4 - 25 * 3600 * 1000, endsAt=now4 + 40 * 3600 * 1000, hot={"tech": "x", "energy": "y"}, hotDay=0)
+db.collection("wars").document("hotWar01").set(WL.stored(hw))
+ok(WL.stored(hw)["due"] == hw["startedAt"] + 24 * 3600 * 1000, "the War is due when its first War day ends")
+main.war_market_pass(db, now4, random.Random(16))
+hw2 = db.collection("wars").document("hotWar01").get().to_dict()
+ok(hw2["hotPoints"] == {"warSleep01": 1, "warAwake01": 1} and hw2["hotDay"] == 1 and len(hw2["hot"]) == 2,
+   "each Hot zone's holder gets +1 point at the end of the day, and the new day gets 2 Hot zones")
+ok(sum(1 for d in db.collection("wars").document("hotWar01").collection("log").stream() if "Hot zone" in d.to_dict()["text"]) == 2, "the map log records it")
+ok(any(n["title"].startswith("Hot zones today:") for n in inbox("warAwake01")), "players are told the new Hot zones")
 print("\n%d War zone market checks passed" % passed)
