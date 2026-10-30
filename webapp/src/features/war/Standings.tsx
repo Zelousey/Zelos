@@ -39,7 +39,8 @@ export function Standings({ w, uid, now }: { w: PrivateWar; uid: string; now: nu
               <tr key={r.uid} className={r.uid === uid ? s.meRow : undefined}>
                 <td>{r.rank}</td>
                 <th scope="row">
-                  {name(r.uid)} {r.rank === 1 && rows.length > 1 && <Badge tone="gold">{final ? t('wscore.winner') : t('wscore.leader')}</Badge>}
+                  {name(r.uid)} {w.ranks[r.uid] && <small className={s.muted}>{w.ranks[r.uid]}</small>}{' '}
+                  {r.rank === 1 && rows.length > 1 && <Badge tone="gold">{final ? t('wscore.winner') : t('wscore.leader')}</Badge>}
                 </th>
                 <td className="num">{r.score.toFixed(1)}</td>
                 <td className="num">{formatPercent(r.ret)}</td>

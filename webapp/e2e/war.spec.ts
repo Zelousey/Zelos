@@ -145,6 +145,10 @@ test('an admin previews the War zone: simulated marking, $100,000 War balance, b
   await expect(page.getByText('SIMULATED WAR ZONE').first()).toBeVisible();
   await expect(page.getByText('$100,000.00').first()).toBeVisible();
   await expect(page.getByRole('region', { name: 'Tech' })).toContainText('Nimbus Cloud');
+  await expect(page.getByText('Battle Level')).toBeVisible(); // W6a: a new War player starts as a Recruit
+  await expect(page.getByText('Recruit', { exact: true })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Progress to the next rank' })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByText('0 points · 20 more for Soldier', { exact: false })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Chaos now: Energy' })).toContainText('swinging hard');
   await expect(page.getByRole('region', { name: 'Energy' }).getByRole('button', { name: /Voltex Energy/ })).toContainText('Hot');
   await expect(page.getByRole('region', { name: 'Tech' }).getByText('Hot')).toHaveCount(0);

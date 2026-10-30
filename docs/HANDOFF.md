@@ -29,7 +29,9 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-1. **War zone, step W5c (hidden; admins only): War Score and results.** After it merges:
+1. **War zone, steps W5c and W6a (hidden; admins only): War Score and results, then Battle Level.**
+   One deploy covers both (same two functions). W5c (#152) merged after the earlier "deployed", so
+   run this once W6a merges, even if W5c was already deployed:
    ```
    cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_lobby
    ```
