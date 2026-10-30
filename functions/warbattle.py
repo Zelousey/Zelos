@@ -140,10 +140,12 @@ def apply_result(war, b, now_ms):
     bonus = dict(war.get("bonusPoints") or {})
     bonus[b["winner"]] = bonus.get(b["winner"], 0) + BONUS_POINTS
     passes = dict(war.get("redeployPasses") or {})
+    expiry = dict(war.get("passExpiry") or {})
     for u in b["players"]:
         if u != b["winner"]:
             passes[u] = passes.get(u, 0) + 1
-    return dict(war, map=board, bonusPoints=bonus, redeployPasses=passes, updatedAt=now_ms)
+            expiry[u] = now_ms + 24 * 3600000  # used within the next War day (§4)
+    return dict(war, map=board, bonusPoints=bonus, redeployPasses=passes, passExpiry=expiry, updatedAt=now_ms)
 
 
 def side_name(side):

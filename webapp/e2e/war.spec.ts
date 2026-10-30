@@ -304,6 +304,22 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(page.getByText(/started at \$[\d,.]+, now \$[\d,.]+ \(simulated\)/)).toBeVisible();
   await expect(page.getByText(/Ends in 1 hour/)).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-battle-${info.project.name}.png`, fullPage: true });
+  // W5a: attack Pal's territory, then answer Pal's attack on yours
+  await page.getByRole('listitem').filter({ hasText: 'Held by Pal' }).getByRole('button', { name: 'Attack' }).click();
+  const atk = page.getByRole('dialog', { name: /^Attack / });
+  await atk.getByRole('radio', { name: 'Bear (price down)' }).click();
+  await atk.getByRole('button', { name: /^Attack: Bear on / }).click();
+  await expect(page.getByText(/Attack sent\. Pal has 2 hours to answer/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Waiting for Pal to answer/)).toBeVisible();
+  const mine = terr[1]!;
+  await patch(`wars/${id}`, {
+    attacks: { inc1: { id: 'inc1', attacker: pid, defender: uid, territory: mine, sym: 'VAULT', side: 'bull', stage: 'answering', createdAt: Date.now(), answerBy: Date.now() + 7_200_000, stakes: { [pid]: 5000 } } },
+  });
+  await expect(page.getByRole('button', { name: 'Counter-pick' })).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-attack-${info.project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Decline', exact: true }).click();
+  await expect(page.getByText('You declined (the free decline for the day).')).toBeVisible({ timeout: 30_000 });
   await page
     .getByRole('link', { name: /War zone/ })
     .first()

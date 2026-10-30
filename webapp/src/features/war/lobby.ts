@@ -5,7 +5,7 @@
  *
  *   configuring → recruiting → ready → (start, once) active → ended;  or cancelled
  */
-import { collection, limit, query, where, type DocumentData } from 'firebase/firestore';
+import { collection, limit, orderBy, query, where, type DocumentData } from 'firebase/firestore';
 import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
@@ -44,7 +44,61 @@ export type PrivateWar = {
   battles: Record<string, Battle>;
   bonusPoints: Record<string, number>;
   redeployPasses: Record<string, number>;
+  passExpiry: Record<string, number>;
+  attacks: Record<string, Attack>;
+  progress: Record<string, Record<string, number>>;
+  lostAt: Record<string, Record<string, number>>;
+  waitSkips: Record<string, number>;
+  startEquity: Record<string, number>;
 };
+/** An attack on owned territory (W5a): open ones live on the War, finished ones in wars/{id}/attacks. */
+export type Attack = {
+  id: string;
+  attacker: string;
+  defender: string;
+  territory: string;
+  sym: string;
+  side: Side;
+  stage: 'answering' | 'running' | 'done';
+  answerBy: number;
+  startsAt: number | null;
+  endsAt: number | null;
+  start: number | null;
+  end: number | null;
+  stakes: Record<string, number>;
+  counterPicked: boolean;
+  result: string | null;
+  captured: boolean;
+  doneAt: number | null;
+};
+export function parseAttack(id: string, d: DocumentData): Attack | null {
+  const b = rec(d);
+  if (!['answering', 'running', 'done'].includes(b.stage as string) || !isSide(b.side) || typeof b.sym !== 'string' || typeof b.territory !== 'string') return null;
+  return {
+    id,
+    attacker: typeof b.attacker === 'string' ? b.attacker : '',
+    defender: typeof b.defender === 'string' ? b.defender : '',
+    territory: b.territory,
+    sym: b.sym,
+    side: b.side,
+    stage: b.stage as Attack['stage'],
+    answerBy: num(b.answerBy) ?? 0,
+    startsAt: num(b.startsAt),
+    endsAt: num(b.endsAt),
+    start: num(b.start),
+    end: num(b.end),
+    stakes: nums(b.stakes),
+    counterPicked: b.counterPicked === true,
+    result: typeof b.result === 'string' ? b.result : null,
+    captured: b.captured === true,
+    doneAt: num(b.doneAt),
+  };
+}
+function nested(v: unknown): Record<string, Record<string, number>> {
+  const out: Record<string, Record<string, number>> = {};
+  for (const [k, x] of Object.entries(rec(v))) out[k] = nums(x);
+  return out;
+}
 export type Side = 'bull' | 'bear';
 /** A contested battle (W4b): best-pick choices only appear here once it's running. */
 export type Battle = {
@@ -102,6 +156,16 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     battles: parseBattles(d.battles),
     bonusPoints: nums(d.bonusPoints),
     redeployPasses: nums(d.redeployPasses),
+    passExpiry: nums(d.passExpiry),
+    attacks: Object.fromEntries(
+      Object.entries(rec(d.attacks))
+        .map(([k, v]) => [k, parseAttack(k, rec(v))] as const)
+        .filter((x): x is readonly [string, Attack] => !!x[1]),
+    ),
+    progress: nested(d.progress),
+    lostAt: nested(d.lostAt),
+    waitSkips: nums(d.waitSkips),
+    startEquity: nums(d.startEquity),
   };
 }
 const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
@@ -160,6 +224,8 @@ export const isOpen = (w: PrivateWar) => w.status === 'lobby' || w.status === 'a
 export const useWar = (id: string | null) => useLiveDoc(id && WAR_ID_RE.test(id) ? `wars/${id}` : null, (d) => parseWar(id!, d));
 export const useMyWars = (uid: string | null) =>
   useLiveQuery(uid ? `wars:${uid}` : null, () => query(collection(db(), 'wars'), where('players', 'array-contains', uid), limit(20)), parseWar);
+export const useWarAttackLog = (warId: string | null) =>
+  useLiveQuery(warId ? `warAtk:${warId}` : null, () => query(collection(db(), 'wars', warId!, 'attacks'), orderBy('doneAt', 'desc'), limit(10)), parseAttack);
 export const useWarInvites = (uid: string | null) =>
   useLiveQuery(uid ? `warInv:${uid}` : null, () => query(collection(db(), 'wars'), where('invited', 'array-contains', uid), limit(20)), parseWar);
 
@@ -171,5 +237,8 @@ type LobbyReq =
   | { action: 'invite'; warId: string; username: string }
   | { action: 'ready'; warId: string; ready: boolean }
   | { action: 'place'; warId: string; soldiers: Record<string, number>; camo: string[]; lock: boolean }
-  | { action: 'pick'; warId: string; territory: string; side: Side; sym?: string };
+  | { action: 'pick'; warId: string; territory: string; side: Side; sym?: string }
+  | { action: 'attack'; warId: string; territory: string; sym: string; side: Side; usePass?: boolean }
+  | { action: 'answer'; warId: string; attackId: string; accept: boolean; counter?: string }
+  | { action: 'skipWait'; warId: string; territory: string };
 export const warLobby = (req: LobbyReq) => callFunction<LobbyReq, { warId: string; war: DocumentData }>('war_lobby', req);

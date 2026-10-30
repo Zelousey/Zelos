@@ -7084,7 +7084,7 @@ def _war_call(fn):
         try:
             return fn(req, db, _war_user(db, req), int(_time.time() * 1000))
         except WM.WarError as e:
-            raise https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), str(e))
+            raise https_fn.HttpsError(getattr(https_fn.FunctionsErrorCode, e.code), str(e), e.details)
         except https_fn.HttpsError:
             raise
         except Exception as e:
@@ -7281,6 +7281,7 @@ def war_trade(req, db, uid, now_ms):
 import warlobby as WL  # noqa: E402
 import warmap as WMAP  # noqa: E402
 import warbattle as WB  # noqa: E402
+import warattack as WA  # noqa: E402
 
 
 def _war_quiet_of(db, uids):
@@ -7353,6 +7354,12 @@ def war_lobby(req, db, uid, now_ms):
         return _war_place(db, wid, uid, data, now_ms)
     elif action == "pick":
         return _war_pick(db, wid, uid, data, now_ms)
+    elif action == "attack":
+        return _war_attack(db, wid, uid, data, now_ms)
+    elif action == "answer":
+        return _war_answer(db, wid, uid, data, now_ms)
+    elif action == "skipWait":
+        return _war_skip_wait(db, wid, uid, data, now_ms)
     elif action == "join" and _war_open_count(db, uid) >= WL.MAX_OPEN:
         raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
     ref = db.collection("wars").document(wid)
@@ -7418,7 +7425,10 @@ def war_lobby_pass(db, now_ms):
             s2 = ref.get(transaction=t)
             before = s2.to_dict() or {}
             battling = before.get("phase") == "holding" and any((WB.due(b) or float("inf")) <= now_ms for b in (before.get("battles") or {}).values())
-            places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)} if before.get("phase") == "claiming" or battling else {}
+            attacking = before.get("phase") == "holding" and (any((WA.due(a) or float("inf")) <= now_ms for a in (before.get("attacks") or {}).values())
+                                                              or (before.get("attacks") and now_ms >= before.get("endsAt", float("inf"))))
+            places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)} if before.get("phase") == "claiming" or battling or attacking else {}
+            profiles = _war_profiles_txn(t, db, before.get("players") or []) if attacking else {}
             war = _war_with_map(WL.at_deadline(before, now_ms))
             lines, events = [], []
             if WMAP.claiming_over(war, places, now_ms):
@@ -7426,11 +7436,15 @@ def war_lobby_pass(db, now_ms):
                 events = [("new", b) for b in war["battles"].values() if b["stage"] == "picking"]
             elif battling and war.get("status") == "active":
                 war, events = _war_step_battles(t, ref, war, places, now_ms)
+            att_events = []
+            if attacking and war.get("status") == "active":
+                war, att_events = _war_step_attacks(t, ref, war, places, profiles, now_ms)
             war = WL.at_end(war, now_ms)
             t.set(ref, WL.stored(war))
-            return before, war, lines, events
+            return before, war, lines, events, att_events
         try:
-            before, war, lines, events = txn(db.transaction())
+            before, war, lines, events, att_events = txn(db.transaction())
+            _war_attack_notify(db, war, ref.id, att_events, now_ms)
             _war_announce(db, before, war, ref.id, now_ms)
             if lines:
                 _war_revealed_notify(db, war, ref.id, now_ms)
@@ -7445,9 +7459,18 @@ def war_lobby_pass(db, now_ms):
 # functions/warmap.py has the rules. Placements and warnings are per player and private
 # (wars/{id}/placements/{uid}, wars/{id}/intel/{uid}); the map on wars/{id} shows owners only.
 def _war_with_map(war):
-    """A War that has just started gets its territories (6, 8 or 10 of the 10 sectors)."""
+    """A War that has just started gets its territories (6, 8 or 10 of the 10 sectors) and each
+    player's War balance at the start (the War's trading return is measured from it; owner 2026-10-30)."""
     if war.get("status") == "active" and not war.get("territories"):
         war = dict(war, territories=WMAP.pick_territories(war.get("mapSize") or 6, _random.SystemRandom()))
+    if war.get("status") == "active" and not war.get("startEquity"):
+        db = db_client()
+        prices = _war_live_prices(db, int(_time.time() * 1000)) or {}
+        start = {}
+        for uid in war["players"]:
+            snap = db.collection("warProfiles").document(uid).get()
+            start[uid] = WM.equity(snap.to_dict(), prices) if snap.exists else WM.START_BALANCE
+        war = dict(war, startEquity=start)
     return war
 
 
@@ -7622,3 +7645,218 @@ def _war_battle_notify(db, war, wid, events, now_ms):
         elif kind == "done":
             war_notify(db, _war_quiet_of(db, b["players"]), "%s won the battle for %s" % (names.get(b["winner"], "Trader"), terr),
                        "%s · %s" % (wname, "Simulated War zone."), WB.result_line(b, names), "war-b-" + wid + b["territory"], now_ms, path="app/war/" + wid)
+
+
+# ---------------------------------------------------------------- attacks (W5a)
+# functions/warattack.py has the rules. Open attacks live on the War (attacks[id]); finished ones
+# are archived in wars/{id}/attacks/{id}. Stakes come out of War cash into the War profile's
+# `held` until the battle ends; soldiers change in each player's private placement doc.
+def _war_profiles_txn(t, db, uids):
+    out = {}
+    for uid in uids:
+        snap = db.collection("warProfiles").document(uid).get(transaction=t)
+        out[uid] = snap.to_dict() if snap.exists else None
+    return out
+
+
+def _war_soldiers(place, uid_place_delta):
+    """A placement after a soldier change: losses come off the territory if you have soldiers
+    there, otherwise off your reserve (never below 0); gains go to your reserve."""
+    terr, delta = uid_place_delta
+    p = dict(place or {}, soldiers=dict((place or {}).get("soldiers") or {}))
+    if delta >= 0:
+        p["reserve"] = (p.get("reserve") or 0) + delta
+    elif terr and p["soldiers"].get(terr):
+        p["soldiers"][terr] = max(0, p["soldiers"][terr] + delta)
+        if not p["soldiers"][terr]:
+            p["soldiers"].pop(terr)
+    else:
+        p["reserve"] = max(0, (p.get("reserve") or 0) + delta)
+    return p
+
+
+def _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms):
+    """Money and soldiers after an attack (inside the transaction, after its reads)."""
+    for uid, stake in (a.get("stakes") or {}).items():
+        p = profiles.get(uid)
+        if not p:
+            continue
+        p = dict(p, held=round(max(0.0, (p.get("held") or 0) - stake), 2), cash=round(p["cash"] + fx["cash"].get(uid, 0), 2), updatedAt=now_ms)
+        profiles[uid] = p
+        t.set(db.collection("warProfiles").document(uid), p)
+    touched = set()
+    for uid, terr, delta in fx["soldiers"]:
+        places[uid] = _war_soldiers(places.get(uid), (terr, delta))
+        touched.add(uid)
+    if fx.get("retreat"):
+        uid, terr = fx["retreat"]
+        p = dict(places.get(uid) or {}, soldiers=dict((places.get(uid) or {}).get("soldiers") or {}))
+        p["reserve"] = (p.get("reserve") or 0) + p["soldiers"].pop(terr, 0) // 2
+        places[uid] = p
+        touched.add(uid)
+    for uid in touched:
+        t.set(ref.collection("placements").document(uid), places[uid])
+
+
+def _war_finish_attack(t, ref, db, war, a, outcome, places, profiles, now_ms):
+    dfd_there = ((places.get(a["defender"]) or {}).get("soldiers") or {}).get(a["territory"], 0)
+    war, done, fx = WA.settle(war, a, outcome, dfd_there, now_ms)
+    _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms)
+    t.set(ref.collection("attacks").document(a["id"]), done)
+    t.set(ref.collection("log").document("%d-a-%s" % (now_ms, a["id"])), {"at": now_ms, "text": WA.line(done, war.get("names") or {})})
+    return war, done
+
+
+def _war_start_attack(t, db, a, prices, profiles, now_ms):
+    """Accepted (or auto-accepted): hold the defender's stake and start the hour."""
+    dp = profiles.get(a["defender"]) or {"cash": 0}
+    a = WA.start(a, prices, dp.get("cash") or 0, now_ms)
+    stake = a["stakes"][a["defender"]]
+    if profiles.get(a["defender"]):
+        p = dict(dp, cash=round(dp["cash"] - stake, 2), held=round((dp.get("held") or 0) + stake, 2), updatedAt=now_ms)
+        profiles[a["defender"]] = p
+        t.set(db.collection("warProfiles").document(a["defender"]), p)
+    return a
+
+
+def _war_step_attacks(t, ref, war, places, profiles, now_ms, prices=None):
+    """Reminders, auto-accepts, finished battles and the War's end for open attacks."""
+    db = db_client()
+    prices = prices if prices is not None else _war_live_prices(db, now_ms)
+    events = []
+    for aid, a in list((war.get("attacks") or {}).items()):
+        if a["stage"] == "answering" and now_ms >= war.get("endsAt", float("inf")):
+            war, done = _war_finish_attack(t, ref, db, war, dict(a, result="cancelled"), "draw", places, profiles, now_ms)
+            events.append(("done", done))
+            continue
+        if a["stage"] == "answering" and not a.get("reminded") and now_ms >= a["answerBy"] - WA.REMIND_MS and now_ms < a["answerBy"]:
+            a = dict(a, reminded=True)
+            events.append(("remind", a))
+        if a["stage"] == "answering" and now_ms >= a["answerBy"] and prices and a["sym"] in prices:
+            a = _war_start_attack(t, db, WA.auto_accept(a, now_ms), prices, profiles, now_ms)
+            events.append(("auto", a))
+        elif a["stage"] == "running" and now_ms >= a["endsAt"] and prices and a["sym"] in prices:
+            outcome = WA.result(a, prices[a["sym"]])
+            war, done = _war_finish_attack(t, ref, db, war, dict(a, end=prices[a["sym"]], result=outcome), outcome, places, profiles, now_ms)
+            events.append(("done", done))
+            continue
+        war = dict(war, attacks=dict(war.get("attacks") or {}, **{aid: a}))
+    return war, events
+
+
+def _war_attack(db, wid, uid, data, now_ms):
+    """Attack a territory another player holds (warattack.check_attack has the rules)."""
+    ref = db.collection("wars").document(wid)
+    prices = _war_prices(db, now_ms)
+    since = now_ms - WA.QUALIFY_WINDOW_MS
+    sales = [d.to_dict() for d in db.collection("warProfiles").document(uid).collection("fills").where("at", ">=", since).stream()]
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        pref = db.collection("warProfiles").document(uid)
+        ps = pref.get(transaction=t)
+        if not ps.exists:
+            raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
+        prof = ps.to_dict()
+        start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
+        ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, war.get("startedAt") or 0)
+        terr, sym, side, use_pass = WA.check_attack(war, uid, data, now_ms, prof.get("cash") or 0, ok)
+        defender = war["map"][terr]["owner"]
+        dq = db.collection("warProfiles").document(defender).get(transaction=t)
+        wake = WM.quiet_ends_at((dq.to_dict() or {}).get("quiet") if dq.exists else None, now_ms) or now_ms
+        aid = ref.collection("attacks").document().id
+        war = WA.new_attack(war, aid, uid, terr, sym, side, now_ms, wake, use_pass)
+        t.set(pref, dict(prof, cash=round(prof["cash"] - WA.STAKE, 2), held=round((prof.get("held") or 0) + WA.STAKE, 2), updatedAt=now_ms))
+        t.set(ref, WL.stored(war))
+        return war, war["attacks"][aid]
+    war, a = txn(db.transaction())
+    _war_attack_notify(db, war, wid, [("new", a)], now_ms)
+    return {"warId": wid, "war": war, "attackId": a["id"]}
+
+
+def _war_answer(db, wid, uid, data, now_ms):
+    """The defender accepts (optionally with Counter-pick) or declines an attack."""
+    ref = db.collection("wars").document(wid)
+    prices = _war_live_prices(db, now_ms)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)}
+        profiles = _war_profiles_txn(t, db, war["players"])
+        war, a, kind = WA.answer(war, data.get("attackId"), uid, data, now_ms)
+        if kind == "accepted":
+            if not prices or a["sym"] not in prices:
+                raise WM.WarError("UNAVAILABLE", "War zone prices are updating. Try again in a minute.")
+            a = _war_start_attack(t, db, a, prices, profiles, now_ms)
+            war = dict(war, attacks=dict(war["attacks"], **{a["id"]: a}))
+        else:
+            war, a = _war_finish_attack(t, ref, db, war, a, "draw" if kind == "declined" else "conceded", places, profiles, now_ms)
+        t.set(ref, WL.stored(war))
+        return war, a, kind
+    war, a, kind = txn(db.transaction())
+    _war_attack_notify(db, war, wid, [(kind, a)], now_ms)
+    return {"warId": wid, "war": war}
+
+
+def _war_skip_wait(db, wid, uid, data, now_ms):
+    """Skip the one-day wait on land you lost: 100 tokens, once per War (the one place tokens touch a War)."""
+    terr = data.get("territory")
+    ref = db.collection("wars").document(wid)
+    wallet_ref = db.collection("wallets").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        lost = ((war.get("lostAt") or {}).get(uid) or {}).get(terr) if isinstance(terr, str) else None
+        if not lost or now_ms - lost >= WA.WAIT_MS:
+            raise WM.WarError("FAILED_PRECONDITION", "There's no wait to skip there.")
+        if (war.get("waitSkips") or {}).get(uid):
+            raise WM.WarError("FAILED_PRECONDITION", "You've already skipped a wait in this War.")
+        w = wallet_ref.get(transaction=t)
+        wallet = w.to_dict() if w.exists else tk_new_wallet(now_ms)
+        cost = WA.SKIP_WAIT_TOKENS
+        if wallet.get("balance", 0) < cost:
+            raise WM.WarError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet.get("balance", 0)))
+        wallet = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+        t.set(wallet_ref, wallet)
+        t.set(wallet_ref.collection("ledger").document(), tk_ledger("war-wait", -cost, wallet["balance"], now_ms,
+                                                                    "Skipped the wait in %s" % (war.get("name") or "a War"), snap.id))
+        lost_at = {k: dict(v) for k, v in (war.get("lostAt") or {}).items()}
+        lost_at[uid].pop(terr, None)
+        war = dict(war, lostAt=lost_at, waitSkips=dict(war.get("waitSkips") or {}, **{uid: now_ms}), updatedAt=now_ms)
+        t.set(ref, WL.stored(war))
+        return war, wallet
+    war, wallet = txn(db.transaction())
+    return {"warId": wid, "war": war, "balance": wallet["balance"]}
+
+
+def _war_attack_notify(db, war, wid, events, now_ms):
+    names = war.get("names") or {}
+    for kind, a in events or []:
+        who, them, terr = names.get(a["attacker"], "Trader"), names.get(a["defender"], "Trader"), WMAP.NAMES[a["territory"]]
+        tag, path = "war-a-" + a["id"], "app/war/" + wid
+        if kind == "new":
+            war_notify(db, _war_quiet_of(db, [a["defender"]]), "%s is attacking %s" % (who, terr),
+                       "Accept (Counter-pick allowed) or decline within 2 hours; no answer means it's accepted. $5,000 War stake; simulated War zone.",
+                       "%s attacked %s (waiting for you)." % (who, terr), tag, now_ms, path=path)
+        elif kind == "remind":
+            war_notify(db, _war_quiet_of(db, [a["defender"]]), "30 minutes to answer %s" % who, "%s's attack on %s is accepted automatically if you don't answer." % (who, terr),
+                       "%s's attack on %s is waiting." % (who, terr), tag, now_ms, path=path)
+        elif kind in ("accepted", "auto"):
+            war_notify(db, _war_quiet_of(db, [a["attacker"], a["defender"]] if kind == "auto" else [a["attacker"]]),
+                       "The battle for %s is on" % terr, "%s · 1 hour on simulated War zone prices." % ("Accepted automatically" if kind == "auto" else "%s accepted" % them),
+                       "The battle for %s ran." % terr, tag, now_ms, path=path)
+        elif kind in ("declined", "conceded", "done"):
+            text = WA.line(a, names)
+            war_notify(db, _war_quiet_of(db, [a["attacker"], a["defender"]]), text, "Simulated War zone.", text, tag, now_ms, path=path)

@@ -29,12 +29,12 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-1. **War zone, step W4b (hidden; admins only): contested battles.** After it merges:
+1. **War zone, step W5a (hidden; admins only): attacks.** After it merges:
    ```
-   cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_lobby
+   cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_lobby,functions:war_trade,firestore:rules
    ```
-   No rules change and no new job (battles run inside the once-a-minute War market job).
-Deployed by the owner on 2026-10-29 (from home): War W2, W3 and W4a. Earlier on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9), squad rulesets (Phase 10a–10c, re-sent in small groups after a full deploy hit Google's update limit) and War W1.
+   No new job. The rules add `wars/{id}/attacks` (finished attacks, readable by the War's players). `war_trade` is included because the War balance now counts attack stakes held.
+Deployed by the owner on 2026-10-29 (from home): War W2, W3 and W4a; on 2026-10-30: War W4b. Earlier on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9), squad rulesets (Phase 10a–10c, re-sent in small groups after a full deploy hit Google's update limit) and War W1.
 Tip: never run a bare `firebase deploy --only functions` (about 80 functions at once hits Google's update limit and fails part-way); deploy the named functions, in groups of about 8.
 
 After running one, tell Claude "deployed", and it will be ticked off here.
