@@ -7282,6 +7282,7 @@ import warlobby as WL  # noqa: E402
 import warmap as WMAP  # noqa: E402
 import warbattle as WB  # noqa: E402
 import warattack as WA  # noqa: E402
+import warmoves as WMV  # noqa: E402
 
 
 def _war_quiet_of(db, uids):
@@ -7360,6 +7361,8 @@ def war_lobby(req, db, uid, now_ms):
         return _war_answer(db, wid, uid, data, now_ms)
     elif action == "skipWait":
         return _war_skip_wait(db, wid, uid, data, now_ms)
+    elif action in ("claim", "reinforce", "rally"):
+        return _war_move(db, wid, uid, action, data, now_ms)
     elif action == "join" and _war_open_count(db, uid) >= WL.MAX_OPEN:
         raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
     ref = db.collection("wars").document(wid)
@@ -7439,11 +7442,21 @@ def war_lobby_pass(db, now_ms):
             att_events = []
             if attacking and war.get("status") == "active":
                 war, att_events = _war_step_attacks(t, ref, war, places, profiles, now_ms)
+            new_hot = None
+            nd = WMV.next_day_at(war)
+            if war.get("status") == "active" and war.get("phase") == "holding" and nd and now_ms >= nd:
+                war, held = WMV.day_change(war, now_ms, _war_hot_now(war["territories"]))
+                for terr, owner in held.items():
+                    t.set(ref.collection("log").document("%d-h-%s" % (now_ms, terr)),
+                          {"at": now_ms, "text": "%s held the Hot zone %s at the end of the day (+1 point)." % ((war.get("names") or {}).get(owner, "Trader"), WMAP.NAMES[terr])})
+                new_hot = war["hot"]
             war = WL.at_end(war, now_ms)
             t.set(ref, WL.stored(war))
-            return before, war, lines, events, att_events
+            return before, war, lines, events, att_events, new_hot
         try:
-            before, war, lines, events, att_events = txn(db.transaction())
+            before, war, lines, events, att_events, new_hot = txn(db.transaction())
+            if new_hot:
+                _war_hot_notify(db, war, ref.id, now_ms)
             _war_attack_notify(db, war, ref.id, att_events, now_ms)
             _war_announce(db, before, war, ref.id, now_ms)
             if lines:
@@ -7490,7 +7503,9 @@ def _war_reveal(t, ref, war, places, now_ms):
         if cell["state"] == "contested":
             awake = max([WM.quiet_ends_at(quiet.get(u), now_ms) or now_ms for u in cell["contenders"]])
             battles[terr] = WB.new_battle(terr, cell["contenders"], {u: final[u]["soldiers"].get(terr, 0) for u in cell["contenders"]}, now_ms, rng, awake)
-    return dict(war, map=board, battles=battles, phase="holding", lockedCount=len(war["players"]), revealedAt=now_ms, updatedAt=now_ms), lines
+    hot = _war_hot_now(war["territories"])
+    return dict(war, map=board, battles=battles, phase="holding", lockedCount=len(war["players"]), revealedAt=now_ms, updatedAt=now_ms,
+                hot=hot, hotDay=WMV.war_day(war, now_ms)), lines
 
 
 def _war_revealed_notify(db, war, wid, now_ms):
@@ -7579,7 +7594,7 @@ def _war_step_battles(t, ref, war, places, now_ms, prices=None):
             events.append(("start", b))
         elif priced and b["stage"] == "running" and now_ms >= b["endsAt"]:
             b = WB.finish(b, prices, now_ms)
-            war = WB.apply_result(war, b, now_ms)
+            war = WMV.hot_win(WB.apply_result(war, b, now_ms), terr, b["winner"])
             w = b["winner"]
             dirty[w] = dict(dirty.get(w) or places.get(w) or {})
             dirty[w]["reserve"] = (dirty[w].get("reserve") or 0) + WB.BONUS_SOLDIERS
@@ -7701,6 +7716,7 @@ def _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms):
 def _war_finish_attack(t, ref, db, war, a, outcome, places, profiles, now_ms):
     dfd_there = ((places.get(a["defender"]) or {}).get("soldiers") or {}).get(a["territory"], 0)
     war, done, fx = WA.settle(war, a, outcome, dfd_there, now_ms)
+    war = WMV.hot_win(war, a["territory"], {"attacker": a["attacker"], "defender": a["defender"]}.get(outcome))
     _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms)
     t.set(ref.collection("attacks").document(a["id"]), done)
     t.set(ref.collection("log").document("%d-a-%s" % (now_ms, a["id"])), {"at": now_ms, "text": WA.line(done, war.get("names") or {})})
@@ -7860,3 +7876,64 @@ def _war_attack_notify(db, war, wid, events, now_ms):
         elif kind in ("declined", "conceded", "done"):
             text = WA.line(a, names)
             war_notify(db, _war_quiet_of(db, [a["attacker"], a["defender"]]), text, "Simulated War zone.", text, tag, now_ms, path=path)
+
+
+# ---------------------------------------------------------------- claims, Reinforce, Rally, Hot zones (W5b)
+# functions/warmoves.py has the rules.
+def _war_hot_now(territories):
+    """Today's Hot zones from the public War zone quotes and any Chaos event (live or just over)."""
+    db = db_client()
+    qs = db.collection("warMarket").document("quotes").get()
+    quotes = ((qs.to_dict() or {}).get("prices") or {}) if qs.exists else {}
+    cs = db.collection("warMarket").document("chaos").get()
+    chaos = (cs.to_dict() or {}) if cs.exists else {}
+    now_ms = int(_time.time() * 1000)
+    hot_chaos = chaos.get("phase") in ("live", "over") and now_ms < (chaos.get("hotUntil") or chaos.get("endsAt") or 0)
+    syms = (chaos.get("syms") or []) if hot_chaos else []
+    return WMV.pick_hot(territories, quotes, syms)
+
+
+def _war_hot_notify(db, war, wid, now_ms):
+    names = [WMAP.NAMES[t] for t in (war.get("hot") or {})]
+    if names:
+        war_notify(db, _war_quiet_of(db, war["players"]), "Hot zones today: %s" % " and ".join(names),
+                   "Hold one at the end of the day for +1 point; win a battle there for +1 more. Simulated War zone.",
+                   "Today's Hot zones: %s." % " and ".join(names), "war-hot-" + wid, now_ms, path="app/war/" + wid)
+
+
+def _war_move(db, wid, uid, action, data, now_ms):
+    """claim {territory, usePass?} · reinforce {soldiers: {territory: n}} · rally {}"""
+    ref = db.collection("wars").document(wid)
+    prices = _war_prices(db, now_ms) if action == "claim" else None
+    sales = [d.to_dict() for d in db.collection("warProfiles").document(uid).collection("fills").where("at", ">=", now_ms - WA.QUALIFY_WINDOW_MS).stream()] if action == "claim" else []
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        pref = ref.collection("placements").document(uid)
+        ps = pref.get(transaction=t)
+        place = ps.to_dict() if ps.exists else {}
+        line = None
+        if action == "claim":
+            prof_snap = db.collection("warProfiles").document(uid).get(transaction=t)
+            prof = prof_snap.to_dict() if prof_snap.exists else {"cash": 0}
+            start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
+            ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, war.get("startedAt") or 0)
+            terr = data.get("territory")
+            war = WMV.claim(war, uid, terr, now_ms, ok, data.get("usePass") is True)
+            line = "%s claimed %s." % ((war.get("names") or {}).get(uid, "Trader"), WMAP.NAMES[terr])
+        elif action == "reinforce":
+            war, place = WMV.reinforce(war, uid, place, data, now_ms)
+            t.set(pref, place)
+        else:
+            war, place = WMV.rally(war, uid, place, now_ms)
+            t.set(pref, place)
+        if line:
+            t.set(ref.collection("log").document("%d-c-%s" % (now_ms, uid[:8])), {"at": now_ms, "text": line})
+        t.set(ref, WL.stored(war))
+        return war
+    war = txn(db.transaction())
+    return {"warId": wid, "war": war}

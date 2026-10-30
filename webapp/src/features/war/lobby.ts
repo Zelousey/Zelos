@@ -50,7 +50,15 @@ export type PrivateWar = {
   lostAt: Record<string, Record<string, number>>;
   waitSkips: Record<string, number>;
   startEquity: Record<string, number>;
+  hot: Record<string, string>;
+  hotDay: number | null;
+  hotPoints: Record<string, number>;
+  claims: Record<string, number>;
+  reinforced: Record<string, number>;
+  rallies: Record<string, number>;
 };
+/** A War day: 24 hours counted from the War's start (daily limits reset then). */
+export const warDay = (w: PrivateWar, now: number) => (w.startedAt != null ? Math.max(0, Math.floor((now - w.startedAt) / 86400000)) : 0); // the screen clock can lag the server
 /** An attack on owned territory (W5a): open ones live on the War, finished ones in wars/{id}/attacks. */
 export type Attack = {
   id: string;
@@ -166,6 +174,12 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     lostAt: nested(d.lostAt),
     waitSkips: nums(d.waitSkips),
     startEquity: nums(d.startEquity),
+    hot: Object.fromEntries(Object.entries(rec(d.hot)).filter((x): x is [string, string] => typeof x[1] === 'string').map(([k, v]) => [k, v.slice(0, 80)])),
+    hotDay: num(d.hotDay),
+    hotPoints: nums(d.hotPoints),
+    claims: nums(d.claims),
+    reinforced: nums(d.reinforced),
+    rallies: nums(d.rallies),
   };
 }
 const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
@@ -240,5 +254,8 @@ type LobbyReq =
   | { action: 'pick'; warId: string; territory: string; side: Side; sym?: string }
   | { action: 'attack'; warId: string; territory: string; sym: string; side: Side; usePass?: boolean }
   | { action: 'answer'; warId: string; attackId: string; accept: boolean; counter?: string }
-  | { action: 'skipWait'; warId: string; territory: string };
+  | { action: 'skipWait'; warId: string; territory: string }
+  | { action: 'claim'; warId: string; territory: string; usePass?: boolean }
+  | { action: 'reinforce'; warId: string; soldiers: Record<string, number> }
+  | { action: 'rally'; warId: string };
 export const warLobby = (req: LobbyReq) => callFunction<LobbyReq, { warId: string; war: DocumentData }>('war_lobby', req);
