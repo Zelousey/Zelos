@@ -56,7 +56,18 @@ export type PrivateWar = {
   claims: Record<string, number>;
   reinforced: Record<string, number>;
   rallies: Record<string, number>;
+  standings: Standing[];
+  standingsAt: number | null;
+  results: Standing[] | null;
 };
+/** One row of the War Score table (W5c): 60% trading (return, ±10% → 0–100) + 40% land points. */
+export type Standing = { uid: string; rank: number; score: number; trading: number; strategy: number; ret: number; points: number; wins: number };
+function parseStandings(v: unknown): Standing[] {
+  return (Array.isArray(v) ? v : [])
+    .map((x) => rec(x))
+    .filter((r) => typeof r.uid === 'string' && typeof r.score === 'number')
+    .map((r) => ({ uid: r.uid as string, rank: num(r.rank) ?? 0, score: num(r.score) ?? 0, trading: num(r.trading) ?? 0, strategy: num(r.strategy) ?? 0, ret: num(r.ret) ?? 0, points: num(r.points) ?? 0, wins: num(r.wins) ?? 0 }));
+}
 /** A War day: 24 hours counted from the War's start (daily limits reset then). */
 export const warDay = (w: PrivateWar, now: number) => (w.startedAt != null ? Math.max(0, Math.floor((now - w.startedAt) / 86400000)) : 0); // the screen clock can lag the server
 /** An attack on owned territory (W5a): open ones live on the War, finished ones in wars/{id}/attacks. */
@@ -180,6 +191,9 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     claims: nums(d.claims),
     reinforced: nums(d.reinforced),
     rallies: nums(d.rallies),
+    standings: parseStandings(d.standings),
+    standingsAt: num(d.standingsAt),
+    results: d.results && typeof d.results === 'object' ? parseStandings((d.results as Record<string, unknown>).standings) : null,
   };
 }
 const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});

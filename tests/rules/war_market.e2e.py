@@ -198,4 +198,14 @@ ok(hw2["hotPoints"] == {"warSleep01": 1, "warAwake01": 1} and hw2["hotDay"] == 1
    "each Hot zone's holder gets +1 point at the end of the day, and the new day gets 2 Hot zones")
 ok(sum(1 for d in db.collection("wars").document("hotWar01").collection("log").stream() if "Hot zone" in d.to_dict()["text"]) == 2, "the map log records it")
 ok(any(n["title"].startswith("Hot zones today:") for n in inbox("warAwake01")), "players are told the new Hot zones")
+
+# ---- War Score and results (W5c): live standings on the War, final results when it ends
+ok(len(hw2.get("standings") or []) == 2 and hw2["standingsDue"] == hw2["standingsAt"] + 3600 * 1000, "live standings are kept on the War and refreshed hourly")
+db.collection("wars").document("hotWar01").update({"endsAt": now4 + M, "due": now4 + M})
+main.war_market_pass(db, now4 + 2 * M, random.Random(17))
+ew = db.collection("wars").document("hotWar01").get().to_dict()
+rows = ew["results"]["standings"]
+ok(ew["status"] == "ended" and [r["rank"] for r in rows] == [1, 2] and all(0 <= r["score"] <= 100 for r in rows), "when the War ends, the final War Scores rank everyone")
+ok(rows[0]["score"] >= rows[1]["score"] and set(rows[0]) >= {"trading", "strategy", "ret", "points", "wins"}, "with the trading and land parts of each score")
+ok(any(" is over: you finished " in n["title"] for n in inbox("warAwake01")), "everyone is told where they finished")
 print("\n%d War zone market checks passed" % passed)
