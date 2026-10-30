@@ -59,6 +59,7 @@ export type PrivateWar = {
   standings: Standing[];
   standingsAt: number | null;
   results: Standing[] | null;
+  ranks: Record<string, string>;
 };
 /** One row of the War Score table (W5c): 60% trading (return, ±10% → 0–100) + 40% land points. */
 export type Standing = { uid: string; rank: number; score: number; trading: number; strategy: number; ret: number; points: number; wins: number };
@@ -194,6 +195,7 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     standings: parseStandings(d.standings),
     standingsAt: num(d.standingsAt),
     results: d.results && typeof d.results === 'object' ? parseStandings((d.results as Record<string, unknown>).standings) : null,
+    ranks: Object.fromEntries(Object.entries(rec(d.ranks)).filter((x): x is [string, string] => typeof x[1] === 'string').map(([k, v]) => [k, v.slice(0, 20)])),
   };
 }
 const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});

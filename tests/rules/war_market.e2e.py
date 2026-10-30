@@ -208,4 +208,10 @@ rows = ew["results"]["standings"]
 ok(ew["status"] == "ended" and [r["rank"] for r in rows] == [1, 2] and all(0 <= r["score"] <= 100 for r in rows), "when the War ends, the final War Scores rank everyone")
 ok(rows[0]["score"] >= rows[1]["score"] and set(rows[0]) >= {"trading", "strategy", "ret", "points", "wins"}, "with the trading and land parts of each score")
 ok(any(" is over: you finished " in n["title"] for n in inbox("warAwake01")), "everyone is told where they finished")
+
+# ---- Battle Level (W6a): points for the battle won above (Ben's Bear call), and for the War results
+pts = {u: (db.collection("warProfiles").document(u).get().to_dict() or {}).get("battlePoints", 0) for u in ("warAwake01", "warSleep01")}
+ok(pts["warSleep01"] >= 3, "a battle win adds Battle Level points")
+ok(sum(pts.values()) >= 3 + 10 + 5, "and the War's results add +10 for the win and +5 for 2nd")
+ok(set(ew.get("ranks") or {}) == {"warAwake01", "warSleep01"}, "the standings carry each player's rank")
 print("\n%d War zone market checks passed" % passed)

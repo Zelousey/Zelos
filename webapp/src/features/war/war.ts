@@ -164,12 +164,13 @@ function parseQuiet(v: unknown): Quiet | null {
 }
 
 export type WarPosition = { sym: string; qty: number; avg: number };
-export type WarProfile = { start: number; cash: number; held: number; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
+export type WarProfile = { start: number; cash: number; held: number; battlePoints: number; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
 export function parseProfile(d: DocumentData): WarProfile {
   return {
     start: num(d.start, START_BALANCE),
     cash: num(d.cash),
     held: num(d.held),
+    battlePoints: num(d.battlePoints),
     positions: Object.entries(rec(d.positions))
       .map(([sym, v]) => ({ sym, qty: num(rec(v).qty), avg: num(rec(v).avg) }))
       .filter((p) => p.qty > 0 && BY_SYM[p.sym])
@@ -195,3 +196,21 @@ export const openWar = () => callFunction<{ tz: string }, { profile: DocumentDat
 export const setQuiet = (q: Quiet) => callFunction<Quiet, { quiet: Quiet }>('war_quiet', q);
 export type WarTradeReq = { sym: string; side: 'buy' | 'sell'; qty: number };
 export const warTrade = (req: WarTradeReq) => callFunction<WarTradeReq, { fill: { price: number; qty: number; pnl: number | null } }>('war_trade', req);
+
+/** RANKS in functions/warlevel.py: Battle Level ranks and the points each needs (proposed 2026-10-30). */
+export const RANKS = [
+  ['Recruit', 0],
+  ['Soldier', 20],
+  ['Sergeant', 60],
+  ['Captain', 120],
+  ['Commander', 200],
+  ['General', 300],
+] as const;
+export function battleRank(points: number): { name: string; index: number; next: { name: string; need: number; at: number } | null; from: number } {
+  let i = 0;
+  RANKS.forEach(([, need], n) => {
+    if (points >= need) i = n;
+  });
+  const nx = RANKS[i + 1];
+  return { name: RANKS[i]![0], index: i, from: RANKS[i]![1], next: nx ? { name: nx[0], need: nx[1] - points, at: nx[1] } : null };
+}

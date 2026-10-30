@@ -25,6 +25,7 @@ import {
   QUIET_MAX_MIN,
   QUIET_TIMES,
   QUOTE_MAX_AGE_MS,
+  battleRank,
   quietLength,
   SECTORS,
   setQuiet,
@@ -140,7 +141,26 @@ function Balance({ p, q }: { p: WarProfile; q: WarQuotes | null }) {
         <span className={s.muted}>{t('war.balanceLine', { cash: formatMoney(p.cash), start: formatMoney(START_BALANCE, { digits: 0 }) })}</span>
         {points.length > 1 && <Sparkline values={points} width={280} height={48} label={t('war.balanceChart')} />}
       </div>
+      <BattleLevel points={p.battlePoints} />
     </Card>
+  );
+}
+
+/** Battle Level (W6a): War-only ranks from War results; never goes down. */
+function BattleLevel({ points }: { points: number }) {
+  const r = battleRank(points);
+  const pct = r.next ? Math.round(((points - r.from) / (r.next.at - r.from)) * 100) : 100;
+  return (
+    <div className={s.level}>
+      <div className={s.levelHead}>
+        <span className={s.kicker}>{t('wlvl.title')}</span>
+        <b>{r.name}</b>
+      </div>
+      <div className={s.levelBar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t('wlvl.progress')}>
+        <span style={{ width: `${pct}%` }} />
+      </div>
+      <span className={s.muted}>{r.next ? t('wlvl.next', { n: points, need: r.next.need, name: r.next.name }) : t('wlvl.top', { n: points })}</span>
+    </div>
   );
 }
 

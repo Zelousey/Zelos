@@ -7284,6 +7284,7 @@ import warbattle as WB  # noqa: E402
 import warattack as WA  # noqa: E402
 import warmoves as WMV  # noqa: E402
 import warscore as WS  # noqa: E402
+import warlevel as WLV  # noqa: E402
 
 
 def _war_quiet_of(db, uids):
@@ -7465,6 +7466,8 @@ def war_lobby_pass(db, now_ms):
                 _war_hot_notify(db, war, ref.id, now_ms)
             if before.get("status") == "active" and war.get("status") == "ended":
                 _war_results_notify(db, war, ref.id, now_ms)
+                _war_level_awards(db, war, WLV.result_awards((war.get("results") or {}).get("standings") or []), now_ms)
+            _war_level_awards(db, war, _war_event_awards(events, att_events), now_ms)
             _war_attack_notify(db, war, ref.id, att_events, now_ms)
             _war_announce(db, before, war, ref.id, now_ms)
             if lines:
@@ -7604,8 +7607,10 @@ def _war_step_battles(t, ref, war, places, now_ms, prices=None):
             b = WB.finish(b, prices, now_ms)
             war = WMV.hot_win(WB.apply_result(war, b, now_ms), terr, b["winner"])
             war = WS.add_win(war, b["winner"])
+            slain = (war.get("slayerPoints") or {}).get(b["winner"], 0)
             for loser in [u for u in b["players"] if u != b["winner"]]:
                 war = WS.slayer(war, b["winner"], loser, False)
+            b = dict(b, slayer=(war.get("slayerPoints") or {}).get(b["winner"], 0) > slain)
             w = b["winner"]
             dirty[w] = dict(dirty.get(w) or places.get(w) or {})
             dirty[w]["reserve"] = (dirty[w].get("reserve") or 0) + WB.BONUS_SOLDIERS
@@ -7649,6 +7654,7 @@ def _war_pick(db, wid, uid, data, now_ms):
         return war, events
     war, events = txn(db.transaction())
     _war_battle_notify(db, war, wid, events, now_ms)
+    _war_level_awards(db, war, _war_event_awards(events, []), now_ms)
     return {"warId": wid, "war": war}
 
 
@@ -7731,7 +7737,9 @@ def _war_finish_attack(t, ref, db, war, a, outcome, places, profiles, now_ms):
     war = WMV.hot_win(war, a["territory"], winner)
     if winner:
         loser = a["defender"] if winner == a["attacker"] else a["attacker"]
+        slain = (war.get("slayerPoints") or {}).get(winner, 0)
         war = WS.slayer(WS.add_win(war, winner), winner, loser, done.get("captured"))
+        done = dict(done, slayer=(war.get("slayerPoints") or {}).get(winner, 0) > slain)
     _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms)
     t.set(ref.collection("attacks").document(a["id"]), done)
     t.set(ref.collection("log").document("%d-a-%s" % (now_ms, a["id"])), {"at": now_ms, "text": WA.line(done, war.get("names") or {})})
@@ -7964,22 +7972,26 @@ STANDINGS_EVERY_MS = 3600000
 
 
 def _war_returns(db, war, prices):
-    out = {}
+    """({uid: % return}, {uid: Battle Level rank}) from the players' War profiles."""
+    out, ranks = {}, {}
     for uid in war["players"]:
         snap = db.collection("warProfiles").document(uid).get()
         if not snap.exists:
             continue
+        prof = snap.to_dict()
         start = (war.get("startEquity") or {}).get(uid) or WM.START_BALANCE
-        out[uid] = (WM.equity(snap.to_dict(), prices) / start - 1) * 100
-    return out
+        out[uid] = (WM.equity(prof, prices) / start - 1) * 100
+        ranks[uid] = WLV.rank(prof.get("battlePoints") or 0)
+    return out, ranks
 
 
 def _war_scored(db, war, now_ms, final=False):
     prices = _war_live_prices(db, now_ms)
     if prices is None and not final:
         return war  # prices are updating: try again on the next run
-    rows = WS.standings(war, _war_returns(db, war, prices or {}))
-    war = dict(war, standings=rows, standingsAt=now_ms, standingsDue=now_ms + STANDINGS_EVERY_MS)
+    returns, ranks = _war_returns(db, war, prices or {})
+    rows = WS.standings(war, returns)
+    war = dict(war, standings=rows, ranks=ranks, standingsAt=now_ms, standingsDue=now_ms + STANDINGS_EVERY_MS)
     if final:
         war = dict(war, results={"standings": rows, "at": now_ms}, standingsDue=None)
     return war
@@ -7997,3 +8009,39 @@ def _war_results_notify(db, war, wid, now_ms):
 
 def _ordinal(n):
     return "%d%s" % (n, "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th"))
+
+
+# ---------------------------------------------------------------- Battle Level (W6a)
+# functions/warlevel.py has the rules. Points go on the War profile (battlePoints) after the
+# transaction that settled the result has committed, so a retried transaction can't pay twice.
+def _war_event_awards(battle_events, attack_events):
+    out = []
+    for kind, b in battle_events or []:
+        if kind == "done":
+            out += WLV.battle_awards(b)
+    for kind, a in attack_events or []:
+        if kind == "done":
+            out += WLV.attack_awards(a)
+    return out
+
+
+def _war_level_awards(db, war, awards, now_ms):
+    """Add Battle Level points; tell a player who reaches a new rank. Never raises."""
+    total = {}
+    for uid, pts, _ in awards or []:
+        total[uid] = total.get(uid, 0) + pts
+    for uid, pts in total.items():
+        try:
+            ref = db.collection("warProfiles").document(uid)
+            snap = ref.get()
+            if not snap.exists:
+                continue
+            before = (snap.to_dict() or {}).get("battlePoints") or 0
+            ref.update({"battlePoints": firestore.Increment(pts)})
+            if WLV.rank_index(before + pts) > WLV.rank_index(before):
+                rank = WLV.rank(before + pts)
+                war_notify(db, _war_quiet_of(db, [uid]), "You're now a %s" % rank,
+                           "Your Battle Level went up in %s. Battle Level comes only from War results; it never goes down." % (war.get("name") or "a War"),
+                           "You reached the rank of %s." % rank, "war-rank", now_ms, path="app/war")
+        except Exception as e:
+            print("[war] Battle Level award failed: %s" % type(e).__name__)
