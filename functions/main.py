@@ -7283,6 +7283,7 @@ import warmap as WMAP  # noqa: E402
 import warbattle as WB  # noqa: E402
 import warattack as WA  # noqa: E402
 import warmoves as WMV  # noqa: E402
+import warscore as WS  # noqa: E402
 
 
 def _war_quiet_of(db, uids):
@@ -7450,6 +7451,11 @@ def war_lobby_pass(db, now_ms):
                     t.set(ref.collection("log").document("%d-h-%s" % (now_ms, terr)),
                           {"at": now_ms, "text": "%s held the Hot zone %s at the end of the day (+1 point)." % ((war.get("names") or {}).get(owner, "Trader"), WMAP.NAMES[terr])})
                 new_hot = war["hot"]
+            if war.get("status") == "active" and war.get("phase") == "holding":
+                if now_ms >= war.get("endsAt", float("inf")):
+                    war = _war_scored(db, war, now_ms, final=True)
+                elif now_ms >= (war.get("standingsDue") or 0) or att_events or events:
+                    war = _war_scored(db, war, now_ms)
             war = WL.at_end(war, now_ms)
             t.set(ref, WL.stored(war))
             return before, war, lines, events, att_events, new_hot
@@ -7457,6 +7463,8 @@ def war_lobby_pass(db, now_ms):
             before, war, lines, events, att_events, new_hot = txn(db.transaction())
             if new_hot:
                 _war_hot_notify(db, war, ref.id, now_ms)
+            if before.get("status") == "active" and war.get("status") == "ended":
+                _war_results_notify(db, war, ref.id, now_ms)
             _war_attack_notify(db, war, ref.id, att_events, now_ms)
             _war_announce(db, before, war, ref.id, now_ms)
             if lines:
@@ -7505,7 +7513,7 @@ def _war_reveal(t, ref, war, places, now_ms):
             battles[terr] = WB.new_battle(terr, cell["contenders"], {u: final[u]["soldiers"].get(terr, 0) for u in cell["contenders"]}, now_ms, rng, awake)
     hot = _war_hot_now(war["territories"])
     return dict(war, map=board, battles=battles, phase="holding", lockedCount=len(war["players"]), revealedAt=now_ms, updatedAt=now_ms,
-                hot=hot, hotDay=WMV.war_day(war, now_ms)), lines
+                hot=hot, hotDay=WMV.war_day(war, now_ms), standingsDue=now_ms), lines
 
 
 def _war_revealed_notify(db, war, wid, now_ms):
@@ -7595,6 +7603,9 @@ def _war_step_battles(t, ref, war, places, now_ms, prices=None):
         elif priced and b["stage"] == "running" and now_ms >= b["endsAt"]:
             b = WB.finish(b, prices, now_ms)
             war = WMV.hot_win(WB.apply_result(war, b, now_ms), terr, b["winner"])
+            war = WS.add_win(war, b["winner"])
+            for loser in [u for u in b["players"] if u != b["winner"]]:
+                war = WS.slayer(war, b["winner"], loser, False)
             w = b["winner"]
             dirty[w] = dict(dirty.get(w) or places.get(w) or {})
             dirty[w]["reserve"] = (dirty[w].get("reserve") or 0) + WB.BONUS_SOLDIERS
@@ -7716,7 +7727,11 @@ def _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms):
 def _war_finish_attack(t, ref, db, war, a, outcome, places, profiles, now_ms):
     dfd_there = ((places.get(a["defender"]) or {}).get("soldiers") or {}).get(a["territory"], 0)
     war, done, fx = WA.settle(war, a, outcome, dfd_there, now_ms)
-    war = WMV.hot_win(war, a["territory"], {"attacker": a["attacker"], "defender": a["defender"]}.get(outcome))
+    winner = {"attacker": a["attacker"], "defender": a["defender"]}.get(outcome)
+    war = WMV.hot_win(war, a["territory"], winner)
+    if winner:
+        loser = a["defender"] if winner == a["attacker"] else a["attacker"]
+        war = WS.slayer(WS.add_win(war, winner), winner, loser, done.get("captured"))
     _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms)
     t.set(ref.collection("attacks").document(a["id"]), done)
     t.set(ref.collection("log").document("%d-a-%s" % (now_ms, a["id"])), {"at": now_ms, "text": WA.line(done, war.get("names") or {})})
@@ -7807,6 +7822,8 @@ def _war_answer(db, wid, uid, data, now_ms):
             raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
         places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)}
         profiles = _war_profiles_txn(t, db, war["players"])
+        lead = WS.leader(war)
+        war = dict(war, noFreeDecline={lead: True} if lead else {})
         war, a, kind = WA.answer(war, data.get("attackId"), uid, data, now_ms)
         if kind == "accepted":
             if not prices or a["sym"] not in prices:
@@ -7937,3 +7954,46 @@ def _war_move(db, wid, uid, action, data, now_ms):
         return war
     war = txn(db.transaction())
     return {"warId": wid, "war": war}
+
+
+# ---------------------------------------------------------------- War Score and results (W5c)
+# functions/warscore.py has the rules. Live standings are kept on the War (refreshed every hour and
+# after battles) so the app can show them without reading anyone's War profile; the final ones go
+# into `results` when the War ends.
+STANDINGS_EVERY_MS = 3600000
+
+
+def _war_returns(db, war, prices):
+    out = {}
+    for uid in war["players"]:
+        snap = db.collection("warProfiles").document(uid).get()
+        if not snap.exists:
+            continue
+        start = (war.get("startEquity") or {}).get(uid) or WM.START_BALANCE
+        out[uid] = (WM.equity(snap.to_dict(), prices) / start - 1) * 100
+    return out
+
+
+def _war_scored(db, war, now_ms, final=False):
+    prices = _war_live_prices(db, now_ms)
+    if prices is None and not final:
+        return war  # prices are updating: try again on the next run
+    rows = WS.standings(war, _war_returns(db, war, prices or {}))
+    war = dict(war, standings=rows, standingsAt=now_ms, standingsDue=now_ms + STANDINGS_EVERY_MS)
+    if final:
+        war = dict(war, results={"standings": rows, "at": now_ms}, standingsDue=None)
+    return war
+
+
+def _war_results_notify(db, war, wid, now_ms):
+    rows = (war.get("results") or {}).get("standings") or []
+    names, n = war.get("names") or {}, len(rows)
+    first = names.get(rows[0]["uid"], "Trader") if rows else "Nobody"
+    for r in rows:
+        war_notify(db, _war_quiet_of(db, [r["uid"]]), "%s is over: you finished %s of %d" % (war.get("name") or "Your War", _ordinal(r["rank"]), n),
+                   "War Score %.1f (trading %+.1f%%, %d points). %s won. Simulated War zone." % (r["score"], r["ret"], r["points"], first),
+                   "%s ended: you finished %s." % (war.get("name") or "Your War", _ordinal(r["rank"])), "war-end-" + wid, now_ms, path="app/war/" + wid)
+
+
+def _ordinal(n):
+    return "%d%s" % (n, "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th"))

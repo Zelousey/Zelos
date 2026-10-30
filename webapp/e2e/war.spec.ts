@@ -337,6 +337,20 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(page.getByText('Reinforced. Only you can see it.')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('Today: claim used · Reinforce used · Rally used')).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-army-${info.project.name}.png`, fullPage: true });
+  // W5c: live War Score, then the final results
+  const rows = [
+    { uid, rank: 1, score: 68, trading: 80, strategy: 50, ret: 6, points: 4, wins: 1 },
+    { uid: pid, rank: 2, score: 64, trading: 40, strategy: 100, ret: -2, points: 8, wins: 0 },
+  ];
+  await patch(`wars/${id}`, { standings: rows, standingsAt: Date.now() });
+  await expect(page.getByRole('heading', { name: 'War Score' })).toBeVisible();
+  await expect(page.getByRole('row', { name: /You Leader 68\.0/ })).toBeVisible();
+  await patch(`wars/${id}`, { status: 'ended', results: { standings: rows, at: Date.now() } });
+  await expect(page.getByRole('heading', { name: 'Final results' })).toBeVisible();
+  await expect(page.getByText('You won. You finished 1 of 2.')).toBeVisible();
+  await expect(page.getByText('Finished', { exact: true })).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-results-${info.project.name}.png`, fullPage: true });
   await page
     .getByRole('link', { name: /War zone/ })
     .first()

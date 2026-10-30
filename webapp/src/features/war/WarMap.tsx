@@ -11,6 +11,7 @@ import { errorText } from '../invites/invites';
 import { Army } from './Army';
 import { Attacks, AttackSheet } from './Attacks';
 import { Battles } from './Battles';
+import { Standings } from './Standings';
 import { warLobby, type PrivateWar } from './lobby';
 import { CAMO_COST, CAMO_MAX, companiesOf, MAX_PER_TERRITORY, placementProblem, SECTOR_NAME, useIntel, usePlacement, useWarLog, type Placement, type Warning } from './map';
 import { useWarQuotes } from './war';
@@ -186,6 +187,7 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           </p>
         )}
       </Card>
+      {!claiming && <Standings w={w} uid={uid} now={now} />}
       {!claiming && w.status === 'active' && <Army w={w} uid={uid} placement={placement} now={now} />}
       {!claiming && <Attacks w={w} uid={uid} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
       {!claiming && <Battles w={w} uid={uid} placement={placement} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
@@ -196,7 +198,7 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
             {log.data.map((l) => (
               <li key={l.id}>
                 <span>{l.text}</span>
-                <small className={s.muted}>{formatRelative(l.at, now)}</small>
+                <small className={s.muted}>{formatRelative(Math.min(l.at, now), now)}</small>
               </li>
             ))}
           </ul>
