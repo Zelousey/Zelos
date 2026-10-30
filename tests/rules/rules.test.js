@@ -329,6 +329,10 @@ test('War map: placements and warnings are private to each player, even from opp
   await assertSucceeds(getDoc(doc(real('bob').firestore(), 'wars/w1/log/1')));
   await assertFails(getDoc(doc(real('carol').firestore(), 'wars/w1/log/1')));
   await assertFails(setDoc(doc(real('alice').firestore(), 'wars/w1/log/2'), { text: 'I win' }));
+  await env.withSecurityRulesDisabled(async (c) => setDoc(doc(c.firestore(), 'wars/w1/attacks/a1'), { attacker: 'alice', result: 'attacker' }));
+  await assertSucceeds(getDoc(doc(real('bob').firestore(), 'wars/w1/attacks/a1')));
+  await assertFails(getDoc(doc(real('carol').firestore(), 'wars/w1/attacks/a1')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'wars/w1/attacks/a2'), { attacker: 'alice', result: 'attacker' }));
 });
 
 (async () => {

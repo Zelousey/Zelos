@@ -463,5 +463,32 @@ const run = wr.war.battles[T[0]];
 ok(run.stage === 'running' && run.sides[troll.uid] === 'bear' && run.sides[pal.uid] === 'bull' && run.start[run.sym] === 100 && run.endsAt - run.startsAt === 3600e3,
    'Command picks Bear, the other side is Bull, and a 1-hour battle starts on a stock from that territory');
 
+// --- attacks (W5a): eligibility, the $5,000 stake, one open attack, the defender's Counter-pick
+const FIRST = { tech: 'NIMBC', finance: 'VAULT', health: 'HELIX', energy: 'VOLTX', consumer: 'BRWLY', comms: 'SIGNL', industrials: 'FORGE', realestate: 'HAVEN', materials: 'ALLOY', utilities: 'GRIDX' };
+const SECOND = { tech: 'QUBTR', finance: 'LEDGR', health: 'CURAM', energy: 'SOLRN', consumer: 'STRDE', comms: 'ECHON', industrials: 'AEROV', realestate: 'BRIKX', materials: 'POLYM', utilities: 'AQUAV' };
+re1 = null; try { await call('war_lobby', { action: 'attack', warId: wid, territory: T[2], sym: FIRST[T[2]], side: 'bull' }); } catch (x) { re1 = x; }
+ok(re1 && /War return must be 0% or better/.test(re1.message), 'a player whose War return is below 0% (NIMBC fell to $100) can\'t attack');
+await seed('warMarket/quotes', { updatedAt: Date.now(), prices: { ...allQuotes, NIMBC: { p: 200, ref: 100 } } });
+re1 = null; try { await call('war_lobby', { action: 'attack', warId: wid, territory: T[1], sym: FIRST[T[1]], side: 'bull' }); } catch (x) { re1 = x; }
+ok(re1 && /another player holds/.test(re1.message), 'you can\'t attack your own land');
+wr = await call('war_lobby', { action: 'attack', warId: wid, territory: T[2], sym: FIRST[T[2]], side: 'bull' });
+const atk = wr.war.attacks[wr.attackId];
+ok(atk.stage === 'answering' && atk.defender === pal.uid && atk.answerBy - atk.createdAt === 7200e3, 'back at 0%, the attack goes in: the defender has 2 hours to answer');
+const tp = (await getDoc(doc(db, 'warProfiles', troll.uid))).data();
+ok(tp.held === 5000 && tp.cash === 93000, 'the $5,000 stake is held from War cash');
+re1 = null; try { await call('war_lobby', { action: 'attack', warId: wid, territory: T[2], sym: FIRST[T[2]], side: 'bear' }); } catch (x) { re1 = x; }
+ok(re1 && /already have an attack/.test(re1.message), 'one attack you started open at a time');
+await signOut(auth);
+await signInWithEmailAndPassword(auth, pal.email, 'secret123');
+ok((await getDocs(collection(db, 'users', pal.uid, 'inbox'))).docs.some((d) => /is attacking/.test(d.data().title)), 'the defender is told they\'re under attack');
+wr = await call('war_lobby', { action: 'answer', warId: wid, attackId: atk.id, accept: true, counter: SECOND[T[2]] });
+const fight = wr.war.attacks[atk.id];
+ok(fight.stage === 'running' && fight.sym === SECOND[T[2]] && fight.counterPicked && fight.stakes[pal.uid] === 5000 && fight.endsAt - fight.startsAt === 3600e3,
+   'the defender accepts with Counter-pick: a 1-hour battle on the stock they chose, both stakes held');
+await signOut(auth);
+await signInWithEmailAndPassword(auth, troll.email, 'secret123');
+re1 = null; try { await call('war_lobby', { action: 'skipWait', warId: wid, territory: T[2] }); } catch (x) { re1 = x; }
+ok(re1 && /no wait to skip/.test(re1.message), 'there\'s nothing to pay for when there\'s no wait');
+
 console.log(`\n${pass} end-to-end checks passed`);
 process.exit(0);

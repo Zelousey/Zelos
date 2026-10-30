@@ -346,6 +346,12 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid == uid;
         allow write: if false;
       }
+      // finished attacks (W5): everyone in the War
+      match /attacks/{attackId} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/wars/$(warId)).data.players;
+        allow write: if false;
+      }
       // what happened on the map: everyone in the War
       match /log/{entry} {
         allow read: if request.auth != null

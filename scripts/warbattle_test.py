@@ -92,7 +92,7 @@ class Results(unittest.TestCase):
         b = dict(B.finish(B.start(duel(), {}, P, 0, random.Random(5)), P, 0))
         out = B.apply_result(war, b, 9)
         self.assertEqual(out["map"]["tech"], {"state": "owned", "owner": "a", "how": "contested-battle", "since": 9})
-        self.assertEqual((out["bonusPoints"], out["redeployPasses"]), ({"a": 2}, {"b": 1}))
+        self.assertEqual((out["bonusPoints"], out["redeployPasses"], out["passExpiry"]), ({"a": 2}, {"b": 1}, {"b": 9 + 24 * 3600000}))
         self.assertIn("won the battle for Tech", B.result_line(b, {"a": "Ann"}))
 
 

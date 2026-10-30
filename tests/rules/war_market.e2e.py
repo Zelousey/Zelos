@@ -154,4 +154,35 @@ ok(bw2["bonusPoints"] == {won: 1} and bw2["redeployPasses"] == {lost: 1}, "the w
 ok(db.collection("wars").document("battleWar01").collection("placements").document(won).get().to_dict()["reserve"] == 5, "and +5 soldiers to the winner's reserve")
 ok(bw2["due"] == t2["endsAt"], "the War is next due when the running battle ends")
 ok(any("won the battle for Energy" in d.to_dict()["text"] for d in db.collection("wars").document("battleWar01").collection("log").stream()), "the map log says who won")
+
+# ---- attacks (W5a): an unanswered attack starts by itself; a finished one moves money, soldiers and progress
+WA = main.WA
+now3 = now2 + 5 * M
+aw = dict(bw2, battles={}, attacks={}, map={"tech": {"state": "owned", "owner": "warSleep01", "how": "claimed"}, "energy": {"state": "owned", "owner": "warAwake01", "how": "claimed"}},
+          startEquity={"warAwake01": 100000, "warSleep01": 100000})
+q = {s: v["p"] for s, v in db.collection("warMarket").document("quotes").get().to_dict()["prices"].items()}
+waiting = WA.new_attack(dict(aw, map=dict(aw["map"])), "atkWait01", "warAwake01", "tech", "NIMBC", "bull", now3 - 3 * 3600 * 1000, now3 - 3 * 3600 * 1000, False)["attacks"]["atkWait01"]
+ran = WA.start(dict(WA.new_attack(aw, "atkRun01", "warSleep01", "energy", "VOLTX", "bear", now3 - 2 * 3600 * 1000, 0, False)["attacks"]["atkRun01"]),
+               {"VOLTX": q["VOLTX"] * 1.05}, 50000, now3 - 70 * M)  # it started 5% higher than now: Bear wins
+aw["attacks"] = {"atkWait01": waiting, "atkRun01": ran}
+db.collection("wars").document("attackWar01").set(WL.stored(aw))
+for uid, place in (("warAwake01", {"soldiers": {"energy": 45}, "reserve": 0}), ("warSleep01", {"soldiers": {"tech": 50}, "reserve": 5})):
+    db.collection("wars").document("attackWar01").collection("placements").document(uid).set(dict(place, camo=[], locked=True))
+for uid, held in (("warAwake01", 10000), ("warSleep01", 5000)):
+    db.collection("warProfiles").document(uid).update({"cash": 50000.0, "held": float(held)})
+main.war_market_pass(db, now3, random.Random(15))
+aw2 = db.collection("wars").document("attackWar01").get().to_dict()
+ok(aw2["attacks"]["atkWait01"]["stage"] == "running" and aw2["attacks"]["atkWait01"]["accepted"] == "auto", "an attack nobody answered in 2 hours is accepted and starts")
+done = db.collection("wars").document("attackWar01").collection("attacks").document("atkRun01").get().to_dict()
+ok(done and done["result"] == "attacker" and "atkRun01" not in aw2["attacks"], "a finished battle is archived: the attacker's Bear call won")
+ok(aw2["progress"]["energy"]["warSleep01"] == 1 and aw2["map"]["energy"]["owner"] == "warAwake01", "+1 progress; 45 - 5 = 40 soldiers need 3 wins, so the land holds for now")
+pa = db.collection("warProfiles").document("warAwake01").get().to_dict()
+pb = db.collection("warProfiles").document("warSleep01").get().to_dict()
+# Ben: 50,000 - 5,000 (his stake as defender of the auto-accepted attack) + 10,000 (both stakes he won) = 55,000; 5,000 still held
+# Ann: her 5,000 stake on the lost battle is gone; her 5,000 for the new attack stays held
+ok(pb["cash"] == 55000.0 and pb["held"] == 5000 and pa["held"] == 5000 and pa["cash"] == 50000.0,
+   "the winner takes both $5,000 stakes, and each side of the new battle has its stake held")
+pl = db.collection("wars").document("attackWar01").collection("placements").document("warAwake01").get().to_dict()
+ok(pl["soldiers"]["energy"] == 40, "and the defender loses 5 soldiers there")
+ok(any("won a battle for Energy" in d.to_dict()["text"] for d in db.collection("wars").document("attackWar01").collection("log").stream()), "the map log says so")
 print("\n%d War zone market checks passed" % passed)

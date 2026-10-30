@@ -8,6 +8,7 @@ import { formatRelative } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Badge, Button, Card, Confirm, LoadingState, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
+import { Attacks, AttackSheet } from './Attacks';
 import { Battles } from './Battles';
 import { warLobby, type PrivateWar } from './lobby';
 import { CAMO_COST, CAMO_MAX, companiesOf, MAX_PER_TERRITORY, placementProblem, SECTOR_NAME, useIntel, usePlacement, useWarLog, type Placement, type Warning } from './map';
@@ -130,6 +131,8 @@ function Claiming({ w, saved, warnings, now }: { w: PrivateWar; saved: Placement
 function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: string; placement: Placement | null; warnings: Record<string, Warning>; now: number }) {
   const log = useWarLog(w.phase === 'holding' ? w.id : null);
   const quotes = useWarQuotes();
+  const [target, setTarget] = useState<string | null>(null);
+  const canAttack = w.status === 'active' && w.phase === 'holding' && !!w.endsAt && now < w.endsAt - 3600000;
   const name = (p: string) => (p === uid ? t('wmap.you') : (w.names[p] ?? 'Trader'));
   const claiming = w.phase === 'claiming';
   return (
@@ -157,7 +160,13 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
                 <small className={s.muted}>
                   {n ? t('wmap.yourSoldiers', { n }) : t('wmap.noSoldiers')}
                   {placement?.camo.includes(x) && ` · ${t('wmap.hidden')}`}
+                  {(w.progress[x]?.[uid] ?? 0) > 0 && ` · ${t('watk.yourWins', { n: w.progress[x]![uid]! })}`}
                 </small>
+                {canAttack && cell?.state === 'owned' && cell.owner !== uid && (
+                  <Button size="sm" variant="secondary" onClick={() => setTarget(x)}>
+                    {t('watk.attack')}
+                  </Button>
+                )}
               </li>
             );
           })}
@@ -169,7 +178,9 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           </p>
         )}
       </Card>
+      {!claiming && <Attacks w={w} uid={uid} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
       {!claiming && <Battles w={w} uid={uid} placement={placement} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
+      {target && <AttackSheet key={target} w={w} territory={target} onClose={() => setTarget(null)} />}
       {!claiming && log.status === 'ready' && log.data.length > 0 && (
         <Card title={t('wmap.logTitle')} flush>
           <ul className={s.logList}>

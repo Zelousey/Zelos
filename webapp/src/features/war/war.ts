@@ -164,11 +164,12 @@ function parseQuiet(v: unknown): Quiet | null {
 }
 
 export type WarPosition = { sym: string; qty: number; avg: number };
-export type WarProfile = { start: number; cash: number; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
+export type WarProfile = { start: number; cash: number; held: number; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
 export function parseProfile(d: DocumentData): WarProfile {
   return {
     start: num(d.start, START_BALANCE),
     cash: num(d.cash),
+    held: num(d.held),
     positions: Object.entries(rec(d.positions))
       .map(([sym, v]) => ({ sym, qty: num(rec(v).qty), avg: num(rec(v).avg) }))
       .filter((p) => p.qty > 0 && BY_SYM[p.sym])
@@ -180,9 +181,9 @@ export function parseProfile(d: DocumentData): WarProfile {
   };
 }
 
-/** Your War balance at these prices (a stock without a price counts at its cost). */
+/** Your War balance at these prices: cash, attack stakes held, positions (a stock without a price counts at its cost). */
 export function warEquity(p: WarProfile, prices: Record<string, WarQuote>): number {
-  return p.cash + p.positions.reduce((t, x) => t + x.qty * (prices[x.sym]?.p ?? x.avg), 0);
+  return p.cash + p.held + p.positions.reduce((t, x) => t + x.qty * (prices[x.sym]?.p ?? x.avg), 0);
 }
 
 export const useWarQuotes = () => useLiveDoc('warMarket/quotes', parseQuotes);

@@ -310,9 +310,10 @@ CHART_KEPT = 400
 
 
 class WarError(ValueError):
-    def __init__(self, code, msg):
+    def __init__(self, code, msg, details=None):
         super().__init__(msg)
         self.code = code
+        self.details = details  # what the app needs to offer a way out (e.g. a token price)
 
 
 def new_profile(now_ms, tz=None):
@@ -322,9 +323,10 @@ def new_profile(now_ms, tz=None):
 
 
 def equity(profile, prices):
-    """Cash plus positions at these prices (a position without a price counts at its cost)."""
+    """Cash, held stakes and positions at these prices (a position without a price counts at its cost)."""
     pos = profile.get("positions") or {}
-    return round(profile["cash"] + sum(p["qty"] * (prices.get(s) or p["avg"]) for s, p in pos.items()), 2)
+    held = profile.get("held") or 0  # War attack stakes held until the battle ends (W5)
+    return round(profile["cash"] + held + sum(p["qty"] * (prices.get(s) or p["avg"]) for s, p in pos.items()), 2)
 
 
 def validate_trade(data):
