@@ -37,7 +37,7 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
   const now = useNow(30000);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const [confirm, setConfirm] = useState<'cancel' | 'leave' | 'zoneLeave' | null>(null);
+  const [confirm, setConfirm] = useState<'cancel' | 'leave' | 'zoneLeave' | 'moveUp' | null>(null);
   const zone = w.kind === 'zone';
   const org = w.organizer === uid;
   const inIt = w.players.includes(uid);
@@ -118,6 +118,11 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
                 </dl>
               )}
               {zone && inIt && shieldedUntil(w, uid, now) && <p className={s.muted}>{t('wzone.shieldYou', { when: formatRelative(shieldedUntil(w, uid, now)!, now) })}</p>}
+              {zone && inIt && w.status === 'active' && w.rookie && (
+                <Button variant="secondary" disabled={busy} onClick={() => setConfirm('moveUp')}>
+                  {t('wzone.moveUp')}
+                </Button>
+              )}
               {zone && inIt && w.status === 'active' && (
                 <Button variant="ghost" disabled={busy} onClick={() => setConfirm('zoneLeave')}>
                   {t('wzone.leave')}
@@ -195,13 +200,20 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
       </div>
       <Confirm
         open={confirm != null}
-        title={confirm === 'cancel' ? t('warl.cancelQ') : confirm === 'zoneLeave' ? t('wzone.leaveQ') : t('warl.leaveQ')}
-        action={confirm === 'cancel' ? t('warl.cancel') : confirm === 'zoneLeave' ? t('wzone.leave') : t('warl.leave')}
+        title={confirm === 'cancel' ? t('warl.cancelQ') : confirm === 'zoneLeave' ? t('wzone.leaveQ') : confirm === 'moveUp' ? t('wzone.moveUpQ') : t('warl.leaveQ')}
+        action={confirm === 'cancel' ? t('warl.cancel') : confirm === 'zoneLeave' ? t('wzone.leave') : confirm === 'moveUp' ? t('wzone.moveUp') : t('warl.leave')}
         variant="danger"
         busy={busy}
         onClose={() => setConfirm(null)}
         onConfirm={() =>
-          confirm === 'zoneLeave'
+          confirm === 'moveUp'
+            ? void act(async () => {
+                await warLobby({ action: 'zoneLeave', warId: w.id });
+                const r = await warLobby({ action: 'zoneJoin', open: true });
+                toast.show(t('wzone.moved', { name: String(r.war.name ?? '') }), 'success');
+                navigate(`/war/${r.warId}`);
+              })
+            : confirm === 'zoneLeave'
             ? void act(async () => {
                 await warLobby({ action: 'zoneLeave', warId: w.id });
                 navigate('/war');
@@ -209,7 +221,7 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
             : void act(() => warLobby({ action: confirm === 'cancel' ? 'cancel' : 'leave', warId: w.id }))
         }
       >
-        <p>{confirm === 'cancel' ? t('warl.cancelBody') : confirm === 'zoneLeave' ? t('wzone.leaveBody') : t('warl.leaveBody')}</p>
+        <p>{confirm === 'cancel' ? t('warl.cancelBody') : confirm === 'zoneLeave' ? t('wzone.leaveBody') : confirm === 'moveUp' ? t('wzone.moveUpBody') : t('warl.leaveBody')}</p>
       </Confirm>
     </>
   );

@@ -7339,7 +7339,9 @@ def war_lobby(req, db, uid, now_ms):
         ref.set(WL.stored(war))
         return {"warId": ref.id, "war": war}
     if action == "zoneJoin":
-        return _zone_join(db, uid, name, now_ms)
+        return _zone_join(db, uid, name, now_ms, data.get("open"))
+    if action == "reset":
+        return _war_reset(db, uid, now_ms)
     wid = str(data.get("warId") or "")
     if not _re.match(r"^[A-Za-z0-9]{10,40}$", wid):
         raise WM.WarError("INVALID_ARGUMENT", "That War isn't valid.")
@@ -8021,7 +8023,15 @@ def _war_results_notify(db, war, wid, now_ms):
     rows = (war.get("results") or {}).get("standings") or []
     names, n = war.get("names") or {}, len(rows)
     first = names.get(rows[0]["uid"], "Trader") if rows else "Nobody"
+    zone = war.get("kind") == "zone"
     for r in rows:
+        if zone:
+            title = ("Top 3! You finished %s of %d in %s this season" if r["rank"] <= 3 and n >= 2 and not r.get("forfeit")
+                     else "The season is over: you finished %s of %d in %s") % (_ordinal(r["rank"]), n, war.get("name") or "your zone")
+            war_notify(db, _war_quiet_of(db, [r["uid"]]), title,
+                       "War Score %.1f (trading %+.1f%%, %d points). %s won. A new season starts now. Simulated War zone." % (r["score"], r["ret"], r["points"], first),
+                       "%s: you finished %s." % (war.get("name") or "Your zone", _ordinal(r["rank"])), "war-end-" + wid, now_ms, path="app/war")
+            continue
         war_notify(db, _war_quiet_of(db, [r["uid"]]), "%s is over: you finished %s of %d" % (war.get("name") or "Your War", _ordinal(r["rank"]), n),
                    "War Score %.1f (trading %+.1f%%, %d points). %s won. Simulated War zone." % (r["score"], r["ret"], r["points"], first),
                    "%s ended: you finished %s." % (war.get("name") or "Your War", _ordinal(r["rank"])), "war-end-" + wid, now_ms, path="app/war/" + wid)
@@ -8070,10 +8080,11 @@ def _war_level_awards(db, war, awards, now_ms):
 # ---------------------------------------------------------------- open War zones (W6b1)
 # functions/warzone.py has the rules. Zones are Wars (wars/{zoneId}, kind "zone") with fixed ids per
 # season, so finding a seat is a few document reads and needs no query or index.
-def _zone_seat(db, uid, name, now_ms, carried=False):
-    """Put uid in the first zone of this season (Rookie or open, by rank) that has room."""
-    pref = db.collection("warProfiles").document(uid)
-    ps = pref.get()
+def _zone_seat(db, uid, name, now_ms, carried=False, pref=None, was_rookie=False):
+    """Put uid in the first zone of this season (Rookie or open, by rank and choice) that has room.
+    pref "open"/"rookie" is a Recruit's or Soldier's choice (kept on the profile for next seasons)."""
+    pref_ref = db.collection("warProfiles").document(uid)
+    ps = pref_ref.get()
     if not ps.exists:
         raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
     prof = ps.to_dict() or {}
@@ -8083,7 +8094,8 @@ def _zone_seat(db, uid, name, now_ms, carried=False):
         if cw.get("status") == "active" and uid in (cw.get("players") or []):
             raise WM.WarError("FAILED_PRECONDITION", "You're already in a War zone.", {"zoneId": prof["zone"]})
     points = prof.get("battlePoints") or 0
-    rookie = WZ.is_rookie(points)
+    pref = pref or prof.get("zonePref")
+    rookie = WZ.plays_rookie(points, pref)
     start = WZ.season_start(now_ms)
     key = WZ.season_key(start)
     if now_ms >= WZ.season_end(start) - WZ.LAST_HOUR_MS:
@@ -8109,12 +8121,14 @@ def _zone_seat(db, uid, name, now_ms, carried=False):
             if place:
                 t.set(ref.collection("placements").document(uid), place)
             t.set(ref, WL.stored(war))
-            t.update(pref, {"zone": zid})
+            t.update(pref_ref, {"zone": zid, "zonePref": pref or ("rookie" if rookie else "open")})
             return war
         war = txn(db.transaction())
         if war:
             claiming = war.get("phase") == "claiming"
             title = "A new season has started in %s" % war["name"] if carried else "You joined %s" % war["name"]
+            if carried and was_rookie and not rookie and not WZ.is_rookie(points):
+                title = "You've moved up to %s" % war["name"]
             body = ("Place your %d soldiers in secret before the claiming hour ends." % soldiers if claiming else
                     "You landed with %d soldiers in reserve. Claim neutral land or attack; your land is shielded for 24 hours." % soldiers)
             if carried:
@@ -8126,8 +8140,9 @@ def _zone_seat(db, uid, name, now_ms, carried=False):
     raise WM.WarError("RESOURCE_EXHAUSTED", "Every War zone is full right now. Try again soon.")
 
 
-def _zone_join(db, uid, name, now_ms):
-    return _zone_seat(db, uid, name, now_ms)
+def _zone_join(db, uid, name, now_ms, want_open=None):
+    pref = None if want_open is None else ("open" if want_open is True else "rookie")
+    return _zone_seat(db, uid, name, now_ms, pref=pref)
 
 
 def _zone_leave(db, wid, uid, now_ms):
@@ -8151,9 +8166,17 @@ def _zone_leave(db, wid, uid, now_ms):
 def _zone_next_season(db, war, wid, now_ms):
     """A zone's season is over: carry everyone who held land or traded into the new season."""
     rows = (war.get("results") or {}).get("standings") or []
+    for r in rows:  # each player's finish goes on their War profile (W6b2)
+        try:
+            pref = db.collection("warProfiles").document(r["uid"])
+            snap = pref.get()
+            if snap.exists:
+                pref.update({"seasons": WZ.add_season(snap.to_dict(), WZ.season_record(war, r, len(rows)))})
+        except Exception as e:
+            print("[war] season record failed: %s" % type(e).__name__)
     for uid in WZ.carried(rows):
         try:
-            _zone_seat(db, uid, (war.get("names") or {}).get(uid, "Trader"), now_ms, carried=True)
+            _zone_seat(db, uid, (war.get("names") or {}).get(uid, "Trader"), now_ms, carried=True, was_rookie=bool(war.get("rookie")))
         except WM.WarError:
             pass
         except Exception as e:
@@ -8165,3 +8188,43 @@ def _zone_next_season(db, war, wid, now_ms):
                 pref.update({"zone": firestore.DELETE_FIELD})
         except Exception as e:
             print("[war] season clean-up failed: %s" % type(e).__name__)
+
+
+
+def _war_reset(db, uid, now_ms):
+    """Going broke (W6b2): below $10,000, reset the War balance to $100,000 once a week. It costs
+    this season: every War you're in counts you as forfeited (score 0, ranked last)."""
+    prices = _war_prices(db, now_ms)
+    ref = db.collection("warProfiles").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        if not snap.exists:
+            raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
+        prof = snap.to_dict()
+        WZ.check_reset(prof, WM.equity(prof, prices), now_ms)
+        prof = WZ.reset_profile(prof, now_ms)
+        t.set(ref, prof)
+        return prof
+    prof = txn(db.transaction())
+    for snap in db.collection("wars").where("players", "array_contains", uid).stream():
+        if (snap.to_dict() or {}).get("status") != "active":
+            continue
+        wref = snap.reference
+
+        @firestore.transactional
+        def gone(t):
+            w = wref.get(transaction=t).to_dict() or {}
+            if w.get("status") == "active":
+                w = WZ.forfeit(w, uid, now_ms)
+                if w.get("standings"):
+                    w = dict(w, standingsDue=now_ms)  # re-rank on the next run
+                t.set(wref, WL.stored(w))
+        try:
+            gone(db.transaction())
+            wref.collection("log").document("%d-r-%s" % (now_ms, uid[:8])).set(
+                {"at": now_ms, "text": "%s reset their War balance and is out of the running this time." % ((snap.to_dict() or {}).get("names") or {}).get(uid, "Trader")})
+        except Exception as e:
+            print("[war] reset forfeit failed: %s" % type(e).__name__)
+    return {"profile": prof}

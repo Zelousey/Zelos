@@ -267,4 +267,31 @@ ok(z["status"] == "ended" and len(z["results"]["standings"]) == 2, "at the seaso
 ok(n2 and n2["phase"] == "claiming" and set(n2["players"]) == {"zoneAnn01", "zoneCat01"} and n2["startedAt"] == end,
    "everyone who held land is carried into the new season, which starts with its claiming hour")
 ok(any(n["title"].startswith("A new season has started") for n in inbox("zoneAnn01")), "and is told to place their soldiers")
+
+# ---- W6b2: season records and top 3, choosing an open zone, going broke
+sa = db.collection("warProfiles").document("zoneAnn01").get().to_dict()
+ok(sa["seasons"][-1]["zone"] == "Rookie zone 1" and sa["seasons"][-1]["of"] == 2 and sa["seasons"][-1]["rank"] in (1, 2),
+   "each player's finish goes on their War profile")
+ok(any(n["title"].startswith("Top 3! You finished") for n in inbox("zoneAnn01")), "the top 3 are told so")
+t2 = end + 2 * H
+jb = main._zone_join(db, "zoneBen01", "Ben", t2, True)
+ok(jb["warId"] == WZ.zone_id(WZ.season_key(end), False, 1) and db.collection("warProfiles").document("zoneBen01").get().to_dict()["zonePref"] == "open",
+   "a Recruit can choose an open zone instead, and the choice is kept")
+db.collection("warMarket").document("quotes").update({"updatedAt": t2 + M})  # fresh War zone prices at the test's time
+try:
+    main._war_reset(db, "zoneBen01", t2 + M)
+    ok(False, "no reset with a healthy balance")
+except WM.WarError as e:
+    ok("below $10,000" in str(e), "a reset is only for a War balance below $10,000")
+db.collection("warProfiles").document("zoneBen01").update({"cash": 4000.0, "positions": {}})
+r = main._war_reset(db, "zoneBen01", t2 + 2 * M)["profile"]
+ok(r["cash"] == 100000.0 and r["chart"][-1].get("reset") is True, "going broke: back to $100,000, and the balance chart marks it")
+zb = db.collection("wars").document(jb["warId"]).get().to_dict()
+ok(zb["forfeits"] == {"zoneBen01": t2 + 2 * M}, "it costs this season: the zone counts them as forfeited")
+db.collection("warProfiles").document("zoneBen01").update({"cash": 4000.0})
+try:
+    main._war_reset(db, "zoneBen01", t2 + 3 * M)
+    ok(False, "one reset a week")
+except WM.WarError as e:
+    ok("once a week" in str(e), "and it's once a week")
 print("\n%d War zone market checks passed" % passed)

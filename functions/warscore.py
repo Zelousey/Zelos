@@ -10,6 +10,9 @@ War Score (0-100) = 60% Trading + 40% Strategy
   points, the contested-battle winner's +1 and Giant-slayer points.
   Ties: the higher return, then more battle wins.
 
+A player who reset their War balance during the War (going broke, W6b2) forfeits it: score 0,
+ranked after everyone else.
+
 Comeback rules: the leader (1st on the live War Score) gets no free decline; beating the leader in
 a battle is +1 point (Giant-slayer) and taking the leader's land +1 more.
 """
@@ -48,14 +51,18 @@ def standings(war, returns):
     pts = points(war)
     top = max(pts.values() or [0])
     wins = war.get("battleWins") or {}
+    gone = war.get("forfeits") or {}
     rows = []
     for u in war.get("players") or []:
         ret = round(returns.get(u, 0.0), 2)
         tr = trading(ret)
         st = 100.0 * pts[u] / top if top > 0 else 0.0
-        rows.append({"uid": u, "score": round(TRADING_WEIGHT * tr + STRATEGY_WEIGHT * st, 1), "trading": round(tr, 1),
-                     "strategy": round(st, 1), "ret": ret, "points": pts[u], "wins": wins.get(u, 0)})
-    rows.sort(key=lambda r: (-r["score"], -r["ret"], -r["wins"], r["uid"]))
+        row = {"uid": u, "score": round(TRADING_WEIGHT * tr + STRATEGY_WEIGHT * st, 1), "trading": round(tr, 1),
+               "strategy": round(st, 1), "ret": ret, "points": pts[u], "wins": wins.get(u, 0)}
+        if u in gone:
+            row.update(score=0.0, trading=0.0, strategy=0.0, forfeit=True)
+        rows.append(row)
+    rows.sort(key=lambda r: (bool(r.get("forfeit")), -r["score"], -r["ret"], -r["wins"], r["uid"]))
     for i, r in enumerate(rows):
         r["rank"] = i + 1
     return rows

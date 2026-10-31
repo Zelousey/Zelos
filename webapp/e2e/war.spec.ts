@@ -386,4 +386,34 @@ test('open War zones: join this season, see your zone and army, leave', async ({
   await dlg.getByRole('button', { name: 'Leave the zone' }).click();
   await expect(page.getByText('You left the zone.')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Join a War zone' })).toBeVisible();
+  // W6b2: a Recruit can choose an open zone instead
+  await page.getByRole('button', { name: 'Join an open zone' }).click();
+  await expect(page.getByRole('heading', { name: /^Open zone \d+$/, level: 1 })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Move to an open zone' })).toHaveCount(0);
+});
+
+test('going broke: reset the War balance once a week; past seasons and top 3', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `warb-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  await page.goto('war');
+  await expect(page.getByText('$100,000.00').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Going broke?')).toHaveCount(0);
+  await patch(`warProfiles/${uid}`, {
+    cash: 4000,
+    seasons: [{ season: '2026-10-26', zone: 'Rookie zone 3', rookie: true, rank: 2, of: 7, score: 61.5, forfeit: false }],
+  });
+  await expect(page.getByText('Going broke?')).toBeVisible({ timeout: 30_000 });
+  const seasons = page.getByRole('list', { name: 'Your seasons' });
+  await expect(seasons).toContainText('Rookie zone 3');
+  await expect(seasons).toContainText('Top 3');
+  await expect(seasons).toContainText('2 of 7');
+  await page.getByRole('button', { name: 'Reset to $100,000' }).click();
+  await page.getByRole('dialog', { name: 'Reset your War balance?' }).getByRole('button', { name: 'Reset to $100,000' }).click();
+  await expect(page.getByText('Your War balance is back to $100,000.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/^You reset your War balance/)).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-reset-${info.project.name}.png`, fullPage: true });
 });

@@ -29,12 +29,12 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-1. **War zone, step W6b1 (hidden; admins only): open War zones with weekly seasons.** After it merges:
+1. **War zone, step W6b2 (hidden; admins only): season results, moving up, going broke.** After it merges:
    ```
    cd ~/Zelos && git pull && firebase deploy --only functions:war_market_tick,functions:war_lobby
    ```
    No rules change and no new job.
-Deployed by the owner on 2026-10-29 (from home): War W2, W3 and W4a; on 2026-10-30: War W4b, W5a and W5b; on 2026-10-31: War W5c and W6a. Earlier on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9), squad rulesets (Phase 10a–10c, re-sent in small groups after a full deploy hit Google's update limit) and War W1.
+Deployed by the owner on 2026-10-29 (from home): War W2, W3 and W4a; on 2026-10-30: War W4b, W5a and W5b; on 2026-10-31: War W5c, W6a and W6b1. Earlier on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9), squad rulesets (Phase 10a–10c, re-sent in small groups after a full deploy hit Google's update limit) and War W1.
 Tip: never run a bare `firebase deploy --only functions` (about 80 functions at once hits Google's update limit and fails part-way); deploy the named functions, in groups of about 8.
 
 After running one, tell Claude "deployed", and it will be ticked off here.

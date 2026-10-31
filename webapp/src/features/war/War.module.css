@@ -40,6 +40,7 @@
 }
 .ticket { display: grid; gap: var(--space-3); }
 .ticket p { margin: 0; }
+.zonePad { padding: var(--space-4); }
 .explain { display: grid; gap: var(--space-3); padding: var(--space-4); }
 .explain p { margin: 0; }
 .hot {

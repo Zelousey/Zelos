@@ -105,5 +105,37 @@ class Zones(unittest.TestCase):
         self.assertEqual((fin["b"]["soldiers"], fin["b"]["reserve"]), ({}, 100))  # never placed: all in reserve, no land
 
 
+class Season2(unittest.TestCase):
+    def test_rookies_choose_open_zones_sergeants_must(self):
+        self.assertEqual([Z.plays_rookie(0, None), Z.plays_rookie(0, "open"), Z.plays_rookie(0, "rookie"), Z.plays_rookie(60, "rookie")],
+                         [True, False, True, False])
+
+    def test_going_broke_reset(self):
+        now = ms(2026, 11, 4, 12)
+        prof = {"cash": 5000.0, "held": 0, "positions": {"NIMBC": {"qty": 1, "avg": 10}}, "chart": [{"t": 1, "eq": 5000.0}]}
+        with self.assertRaises(Exception):
+            Z.check_reset(prof, 10000.0, now)                              # not broke enough
+        with self.assertRaises(Exception):
+            Z.check_reset(dict(prof, held=5000), 5000.0, now)              # stakes held
+        Z.check_reset(prof, 5010.0, now)
+        out = Z.reset_profile(prof, now)
+        self.assertEqual((out["cash"], out["positions"], out["start"], out["lastResetAt"], out["chart"][-1]), (100000.0, {}, 100000.0, now, {"t": now, "eq": 100000.0, "reset": True}))
+        with self.assertRaises(Exception) as e:
+            Z.check_reset(dict(out, cash=1000.0), 1000.0, now + 6 * 24 * H)  # once a week
+        self.assertEqual(e.exception.details["next"], now + 7 * 24 * H)
+        Z.check_reset(dict(out, cash=1000.0), 1000.0, now + 7 * 24 * H)
+
+    def test_forfeit_and_season_records(self):
+        w = {"players": ["a", "b"], "season": "2026-11-02", "name": "Rookie zone 1", "rookie": True}
+        f = Z.forfeit(w, "a", 5)
+        self.assertEqual(f["forfeits"], {"a": 5})
+        self.assertIs(Z.forfeit(f, "a", 6), f)
+        rec = Z.season_record(w, {"rank": 2, "score": 61.5}, 8)
+        self.assertEqual(rec, {"season": "2026-11-02", "zone": "Rookie zone 1", "rookie": True, "rank": 2, "of": 8, "score": 61.5, "forfeit": False})
+        prof = {"seasons": [rec] * 10}
+        self.assertEqual(len(Z.add_season(prof, dict(rec, rank=1))), 10)
+        self.assertEqual(Z.add_season(prof, dict(rec, rank=1))[-1]["rank"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

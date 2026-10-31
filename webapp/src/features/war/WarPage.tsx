@@ -7,10 +7,10 @@
  */
 import { useId, useMemo, useState } from 'react';
 import { useNow } from '../../lib/useNow';
-import { formatMoney, formatPercent } from '../../lib/format';
+import { formatMoney, formatPercent, formatRelative } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { Badge, Button, Card, Change, EmptyState, Field, Icon, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
+import { Badge, Button, Card, Change, Confirm, EmptyState, Field, Icon, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import { WarGate } from './Gate';
@@ -26,6 +26,9 @@ import {
   QUIET_MAX_MIN,
   QUIET_TIMES,
   QUOTE_MAX_AGE_MS,
+  RESET_BELOW,
+  RESET_EVERY_MS,
+  resetWar,
   battleRank,
   quietLength,
   SECTORS,
@@ -147,8 +150,54 @@ function Balance({ p, q }: { p: WarProfile; q: WarQuotes | null }) {
         <span className={s.muted}>{t('war.balanceLine', { cash: formatMoney(p.cash), start: formatMoney(START_BALANCE, { digits: 0 }) })}</span>
         {points.length > 1 && <Sparkline values={points} width={280} height={48} label={t('war.balanceChart')} />}
       </div>
+      <ResetBox p={p} eq={eq} />
       <BattleLevel points={p.battlePoints} />
     </Card>
+  );
+}
+
+/** Going broke (W6b2): below $10,000, reset to $100,000 once a week; it costs this season. */
+function ResetBox({ p, eq }: { p: WarProfile; eq: number }) {
+  const toast = useToast();
+  const now = useNow(60000);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const next = p.lastResetAt != null ? p.lastResetAt + RESET_EVERY_MS : 0;
+  const broke = eq < RESET_BELOW && p.held === 0;
+  if (!broke && p.lastResetAt == null) return null;
+  async function go() {
+    setBusy(true);
+    try {
+      await resetWar();
+      toast.show(t('war.reset.done'), 'success');
+    } catch (err) {
+      toast.show(errorText(err, t('warl.failed')), 'error');
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+  return (
+    <div className={s.level}>
+      {broke ? (
+        <>
+          <b>{t('war.reset.title')}</b>
+          <span className={s.muted}>{t('war.reset.body')}</span>
+          {next > now ? (
+            <span className={s.muted}>{t('war.reset.wait', { when: formatRelative(next, now) })}</span>
+          ) : (
+            <Button variant="secondary" disabled={busy} onClick={() => setOpen(true)}>
+              {t('war.reset.go')}
+            </Button>
+          )}
+        </>
+      ) : (
+        <span className={s.muted}>{t('war.reset.last', { when: formatRelative(Math.min(p.lastResetAt!, now), now) })}</span>
+      )}
+      <Confirm open={open} title={t('war.reset.q')} action={t('war.reset.go')} variant="danger" busy={busy} onClose={() => setOpen(false)} onConfirm={() => void go()}>
+        <p>{t('war.reset.confirmBody')}</p>
+      </Confirm>
+    </div>
   );
 }
 

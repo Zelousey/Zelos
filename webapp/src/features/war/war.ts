@@ -164,7 +164,12 @@ function parseQuiet(v: unknown): Quiet | null {
 }
 
 export type WarPosition = { sym: string; qty: number; avg: number };
-export type WarProfile = { start: number; cash: number; held: number; battlePoints: number; zone: string | null; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
+/** One finished season in an open War zone (functions/warzone.py season_record), newest first. */
+export type SeasonRecord = { season: string; zone: string; rank: number; of: number; forfeit: boolean };
+/** Going broke (functions/warzone.py): below $10,000 you can reset to $100,000 once a week. */
+export const RESET_BELOW = 10000;
+export const RESET_EVERY_MS = 7 * 86400000;
+export type WarProfile = { start: number; cash: number; held: number; battlePoints: number; zone: string | null; zonePref: 'open' | 'rookie' | null; seasons: SeasonRecord[]; lastResetAt: number | null; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
 export function parseProfile(d: DocumentData): WarProfile {
   return {
     start: num(d.start, START_BALANCE),
@@ -172,6 +177,13 @@ export function parseProfile(d: DocumentData): WarProfile {
     held: num(d.held),
     battlePoints: num(d.battlePoints),
     zone: typeof d.zone === 'string' && /^[A-Za-z0-9]{10,40}$/.test(d.zone) ? d.zone : null,
+    zonePref: d.zonePref === 'open' || d.zonePref === 'rookie' ? d.zonePref : null,
+    seasons: (Array.isArray(d.seasons) ? d.seasons : [])
+      .map((x: unknown) => rec(x))
+      .filter((x: Record<string, unknown>) => typeof x.season === 'string' && typeof x.rank === 'number' && typeof x.of === 'number')
+      .map((x: Record<string, unknown>) => ({ season: x.season as string, zone: typeof x.zone === 'string' ? x.zone.slice(0, 40) : 'War zone', rank: x.rank as number, of: x.of as number, forfeit: x.forfeit === true }))
+      .reverse(),
+    lastResetAt: typeof d.lastResetAt === 'number' ? d.lastResetAt : null,
     positions: Object.entries(rec(d.positions))
       .map(([sym, v]) => ({ sym, qty: num(rec(v).qty), avg: num(rec(v).avg) }))
       .filter((p) => p.qty > 0 && BY_SYM[p.sym])
@@ -194,6 +206,7 @@ export const useWarChaos = () => useLiveDoc('warMarket/chaos', parseChaos);
 export const useWarProfile = (uid: string | null) => useLiveDoc(uid ? `warProfiles/${uid}` : null, parseProfile);
 
 export const openWar = () => callFunction<{ tz: string }, { profile: DocumentData }>('war_open', { tz: browserTz() });
+export const resetWar = () => callFunction<{ action: 'reset' }, { profile: DocumentData }>('war_lobby', { action: 'reset' });
 export const setQuiet = (q: Quiet) => callFunction<Quiet, { quiet: Quiet }>('war_quiet', q);
 export type WarTradeReq = { sym: string; side: 'buy' | 'sell'; qty: number };
 export const warTrade = (req: WarTradeReq) => callFunction<WarTradeReq, { fill: { price: number; qty: number; pnl: number | null } }>('war_trade', req);

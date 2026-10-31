@@ -45,6 +45,11 @@ class Score(unittest.TestCase):
         rows2 = S.standings({"players": ["a", "b"], "map": {}}, {"a": 0.0, "b": 0.0})
         self.assertEqual([r["rank"] for r in rows2], [1, 2])
 
+    def test_a_reset_forfeits_the_war(self):
+        w = {"players": ["a", "b"], "map": {"tech": {"state": "owned", "owner": "a", "how": "claimed"}}, "forfeits": {"a": 1}}
+        rows = S.standings(w, {"a": 9.0, "b": -5.0})
+        self.assertEqual([(r["uid"], r["rank"], r["score"], r.get("forfeit", False)) for r in rows], [("b", 1, 15.0, False), ("a", 2, 0.0, True)])
+
 
 class Comeback(unittest.TestCase):
     def test_the_leader_has_no_free_decline(self):
