@@ -1,0 +1,43 @@
+/* The War map is its own dark game board in every theme, so its colours always read the same. */
+.wrap { display: grid; gap: var(--space-2); padding: var(--space-3); background: #070b16; border-bottom: 1px solid var(--border); }
+.svg { width: 100%; height: auto; display: block; }
+.tall { display: none; }
+@media (max-width: 640px) {
+  .wide { display: none; }
+  .tall { display: block; }
+}
+
+.terr { --fill: #4b5363; --edge: #8d96a8; --glowc: transparent; outline: none; }
+.terr[role='button'] { cursor: pointer; }
+.mine { --fill: #1f4fd6; --edge: #7aa7ff; --glowc: #4a86ff; }
+.enemy { --fill: #9b2328; --edge: #ff7b72; --glowc: #e5484d; }
+.neutral { --fill: #3a4150; --edge: #8d96a8; --glowc: #6b7280; }
+.contested { --fill: #8a6410; --edge: #ffd36b; --glowc: #e8b23d; }
+.out { --fill: #121725; --edge: #222a3b; --glowc: transparent; }
+
+.glow { fill: none; stroke: var(--glowc); stroke-width: 10; opacity: 0.55; }
+.land { fill: var(--fill); transition: fill var(--dur-base) var(--ease-out); }
+.tex { pointer-events: none; }
+.rim { fill: none; stroke: var(--edge); stroke-width: 2.5; stroke-linejoin: round; }
+.terr[role='button']:hover .land { filter: brightness(1.18); }
+.terr:focus-visible .rim { stroke: #fff; stroke-width: 5; }
+.icon path { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0.92; }
+.out .icon path { opacity: 0.25; }
+.name { fill: #fff; font-weight: 800; letter-spacing: 0.06em; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.55); stroke-width: 3px; }
+.line { fill: #e6ebf5; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.55); stroke-width: 3px; }
+.out .name, .out .line { fill: #4d566b; stroke: none; }
+.flag { fill: #ffd36b; font-weight: 800; letter-spacing: 0.08em; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.6); stroke-width: 3px; }
+.flagRed { composes: flag; fill: #ff9a93; }
+
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font-size: var(--text-xs); color: #c9d1e2; }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; display: inline-block; border: 1px solid rgba(255, 255, 255, 0.35); }
+.kMine { background: #1f4fd6; }
+.kEnemy { background: #9b2328; }
+.kNeutral { background: #3a4150; }
+.kContested { background: #8a6410; }
+.kOut { background: #121725; }
+
+@media (prefers-reduced-motion: reduce) {
+  .land { transition: none; }
+}

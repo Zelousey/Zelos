@@ -275,13 +275,20 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await inputs.nth(1).fill('45');
   await page.getByRole('checkbox').nth(1).check();
   await expect(page.getByText('95 of 95 soldiers placed · Camouflage on 1 (−5)')).toBeVisible();
+  // W6c: the War map shows your placement as you go
+  const board = page.getByRole('group', { name: /^The War map/ });
+  await expect(board.getByRole('button')).toHaveCount(6); // the 4 sectors not in this War are dark and can't be tapped
+  await expect(board.getByRole('button', { name: /, 50 of your soldiers$/ })).toHaveCount(1);
+  await expect(board.getByRole('button', { name: /, 45 of your soldiers, Camouflaged$/ })).toHaveCount(1);
+  await expect(page.getByRole('list', { name: 'Map colours' })).toContainText('Not in this War');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-claim-${info.project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: 'Lock in' }).click();
   await page.getByRole('dialog', { name: 'Lock in your placement?' }).getByRole('button', { name: 'Lock in' }).click();
   await expect(page.getByRole('heading', { name: 'You’re locked in' })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText('Your soldiers: 50')).toBeVisible();
-  await expect(page.getByText('Camouflaged', { exact: false })).toBeVisible();
+  const tiles = page.getByRole('list', { name: 'Territories' });
+  await expect(tiles.getByText('Your soldiers: 50')).toBeVisible();
+  await expect(tiles.getByText('Camouflaged', { exact: false })).toBeVisible();
   // the friend locks in too and the server reveals the map (written here as the server would)
   const terr: string[] = await fetch(`${BASE}/wars/${id}`, { headers: { Authorization: 'Bearer owner' } })
     .then((r) => r.json())
@@ -292,10 +299,18 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   );
   await patch(`wars/${id}`, { phase: 'holding', map });
   await expect(page.getByRole('heading', { name: 'The map' })).toBeVisible();
-  await expect(page.getByText('Contested: You vs Pal')).toBeVisible();
-  await expect(page.getByText('Held by Pal')).toBeVisible();
-  await expect(page.getByText('Yours', { exact: true })).toBeVisible();
-  await expect(page.getByText('Neutral', { exact: true })).toHaveCount(3);
+  await expect(tiles.getByText('Contested: You vs Pal')).toBeVisible();
+  await expect(tiles.getByText('Held by Pal')).toBeVisible();
+  await expect(tiles.getByText('Yours', { exact: true })).toBeVisible();
+  await expect(tiles.getByText('Neutral', { exact: true })).toHaveCount(3);
+  // W6c: the map is coloured by who holds each territory; tapping one jumps to its card
+  const mapView = page.getByRole('group', { name: /^The War map/ });
+  await expect(mapView.getByRole('button', { name: /, You vs Pal$/ })).toHaveCount(1);
+  await expect(mapView.getByRole('button', { name: /, Pal$/ })).toHaveCount(1);
+  await expect(mapView.getByRole('button', { name: /, You, 45 soldiers, Camouflaged$|, You, 45 soldiers$/ })).toHaveCount(1);
+  await expect(mapView.getByRole('button', { name: /, Neutral/ })).toHaveCount(3);
+  await mapView.getByRole('button', { name: /, Pal$/ }).click();
+  await expect(tiles.locator('li:focus')).toContainText('Held by Pal');
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-map-${info.project.name}.png`, fullPage: true });
   // W4b: the contested territory is a battle; you have Command and pick Bear, and it starts
   await patch(`wars/${id}`, {
