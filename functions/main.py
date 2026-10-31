@@ -7285,6 +7285,7 @@ import warattack as WA  # noqa: E402
 import warmoves as WMV  # noqa: E402
 import warscore as WS  # noqa: E402
 import warlevel as WLV  # noqa: E402
+import warzone as WZ  # noqa: E402
 
 
 def _war_quiet_of(db, uids):
@@ -7296,8 +7297,8 @@ def _war_quiet_of(db, uids):
 
 
 def _war_open_count(db, uid):
-    return sum(1 for s in db.collection("wars").where("players", "array_contains", uid).select(["status"]).stream()
-               if (s.to_dict() or {}).get("status") in ("lobby", "active"))
+    return sum(1 for s in db.collection("wars").where("players", "array_contains", uid).select(["status", "kind"]).stream()
+               if (s.to_dict() or {}).get("status") in ("lobby", "active") and (s.to_dict() or {}).get("kind") != "zone")
 
 
 def _war_announce(db, before, war, wid, now_ms):
@@ -7337,6 +7338,8 @@ def war_lobby(req, db, uid, now_ms):
         war = WL.new_war(uid, name, cfg, now_ms)
         ref.set(WL.stored(war))
         return {"warId": ref.id, "war": war}
+    if action == "zoneJoin":
+        return _zone_join(db, uid, name, now_ms)
     wid = str(data.get("warId") or "")
     if not _re.match(r"^[A-Za-z0-9]{10,40}$", wid):
         raise WM.WarError("INVALID_ARGUMENT", "That War isn't valid.")
@@ -7355,6 +7358,8 @@ def war_lobby(req, db, uid, now_ms):
             raise WM.WarError("FAILED_PRECONDITION", "@%s can't enter the War zone yet: it's still being built." % uname)
     elif action == "place":
         return _war_place(db, wid, uid, data, now_ms)
+    elif action == "zoneLeave":
+        return _zone_leave(db, wid, uid, now_ms)
     elif action == "pick":
         return _war_pick(db, wid, uid, data, now_ms)
     elif action == "attack":
@@ -7466,6 +7471,8 @@ def war_lobby_pass(db, now_ms):
                 _war_hot_notify(db, war, ref.id, now_ms)
             if before.get("status") == "active" and war.get("status") == "ended":
                 _war_results_notify(db, war, ref.id, now_ms)
+                if war.get("kind") == "zone":
+                    _zone_next_season(db, war, ref.id, now_ms)
                 _war_level_awards(db, war, WLV.result_awards((war.get("results") or {}).get("standings") or []), now_ms)
             _war_level_awards(db, war, _war_event_awards(events, att_events), now_ms)
             _war_attack_notify(db, war, ref.id, att_events, now_ms)
@@ -7498,9 +7505,18 @@ def _war_with_map(war):
     return war
 
 
+def _war_army(war, uid):
+    """Soldiers to place: per player in open zones (level armies), else the War's equal army.
+    uid None: the whole lot ({uid: n} or one number)."""
+    if war.get("troops"):
+        return war["troops"] if uid is None else war["troops"].get(uid, WL.SOLDIERS)
+    return war.get("soldiers") or WL.SOLDIERS
+
+
 def _war_reveal(t, ref, war, places, now_ms):
     """End of claiming, inside a transaction (after its reads): fix every placement, reveal owners."""
-    final = WMAP.final_placements(war["players"], war["territories"], war.get("soldiers") or WL.SOLDIERS, places)
+    zone = war.get("kind") == "zone"
+    final = WMAP.final_placements(war["players"], war["territories"], _war_army(war, None), places, spread=not zone)
     board, lines = WMAP.resolve(war["territories"], final, war.get("names") or {}, now_ms)
     for uid, p in final.items():
         t.set(ref.collection("placements").document(uid), dict(p, lockedAt=(places.get(uid) or {}).get("lockedAt") or now_ms,
@@ -7546,7 +7562,7 @@ def _war_place(db, wid, uid, data, now_ms):
         places = {d.id: d.to_dict() or {} for d in ref.collection("placements").get(transaction=t)}
         if (places.get(uid) or {}).get("locked"):
             raise WM.WarError("FAILED_PRECONDITION", "You've already locked in.")
-        p = WMAP.validate_placement(data, war["territories"], war.get("soldiers") or WL.SOLDIERS)
+        p = WMAP.validate_placement(data, war["territories"], _war_army(war, uid))
         lock = data.get("lock") is True
         places[uid] = dict(p, locked=lock, savedAt=now_ms, **({"lockedAt": now_ms} if lock else {}))
         lines = []
@@ -7802,9 +7818,13 @@ def _war_attack(db, wid, uid, data, now_ms):
             raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
         prof = ps.to_dict()
         start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
-        ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, war.get("startedAt") or 0)
+        ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, WZ.since(war, uid))
         terr, sym, side, use_pass = WA.check_attack(war, uid, data, now_ms, prof.get("cash") or 0, ok)
         defender = war["map"][terr]["owner"]
+        if WZ.shielded(war, defender, now_ms):
+            raise WM.WarError("FAILED_PRECONDITION", "%s is new to this zone: their land is shielded for their first 24 hours."
+                              % ((war.get("names") or {}).get(defender) or "That player"), {"reason": "war-shield", "until": war["shieldUntil"][defender]})
+        war = WZ.end_shield(war, uid)  # attacking ends your own shield
         dq = db.collection("warProfiles").document(defender).get(transaction=t)
         wake = WM.quiet_ends_at((dq.to_dict() or {}).get("quiet") if dq.exists else None, now_ms) or now_ms
         aid = ref.collection("attacks").document().id
@@ -7946,7 +7966,7 @@ def _war_move(db, wid, uid, action, data, now_ms):
             prof_snap = db.collection("warProfiles").document(uid).get(transaction=t)
             prof = prof_snap.to_dict() if prof_snap.exists else {"cash": 0}
             start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
-            ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, war.get("startedAt") or 0)
+            ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, WZ.since(war, uid))
             terr = data.get("territory")
             war = WMV.claim(war, uid, terr, now_ms, ok, data.get("usePass") is True)
             line = "%s claimed %s." % ((war.get("names") or {}).get(uid, "Trader"), WMAP.NAMES[terr])
@@ -8045,3 +8065,103 @@ def _war_level_awards(db, war, awards, now_ms):
                            "You reached the rank of %s." % rank, "war-rank", now_ms, path="app/war")
         except Exception as e:
             print("[war] Battle Level award failed: %s" % type(e).__name__)
+
+
+# ---------------------------------------------------------------- open War zones (W6b1)
+# functions/warzone.py has the rules. Zones are Wars (wars/{zoneId}, kind "zone") with fixed ids per
+# season, so finding a seat is a few document reads and needs no query or index.
+def _zone_seat(db, uid, name, now_ms, carried=False):
+    """Put uid in the first zone of this season (Rookie or open, by rank) that has room."""
+    pref = db.collection("warProfiles").document(uid)
+    ps = pref.get()
+    if not ps.exists:
+        raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
+    prof = ps.to_dict() or {}
+    if prof.get("zone"):
+        cur = db.collection("wars").document(prof["zone"]).get()
+        cw = cur.to_dict() if cur.exists else {}
+        if cw.get("status") == "active" and uid in (cw.get("players") or []):
+            raise WM.WarError("FAILED_PRECONDITION", "You're already in a War zone.", {"zoneId": prof["zone"]})
+    points = prof.get("battlePoints") or 0
+    rookie = WZ.is_rookie(points)
+    start = WZ.season_start(now_ms)
+    key = WZ.season_key(start)
+    if now_ms >= WZ.season_end(start) - WZ.LAST_HOUR_MS:
+        raise WM.WarError("FAILED_PRECONDITION", "This season ends within the hour. Join when the next one starts, Monday 9 am ET.")
+    equity = WM.equity(prof, _war_live_prices(db, now_ms) or {})
+    soldiers = WZ.army(points, start, now_ms)
+    for n in range(1, WZ.MAX_ZONES + 1):
+        zid = WZ.zone_id(key, rookie, n)
+        ref = db.collection("wars").document(zid)
+
+        @firestore.transactional
+        def txn(t):
+            snap = ref.get(transaction=t)
+            if snap.exists:
+                war = snap.to_dict()
+                if war.get("status") != "active" or len(war.get("players") or []) >= WZ.SIZE:
+                    return None
+            else:
+                war = WZ.new_zone(key, rookie, n, start, now_ms)
+                if war["phase"] == "holding":
+                    war = dict(war, hot=_war_hot_now(war["territories"]), hotDay=WMV.war_day(war, now_ms))
+            war, place = WZ.add_player(war, uid, name, soldiers, equity, now_ms)
+            if place:
+                t.set(ref.collection("placements").document(uid), place)
+            t.set(ref, WL.stored(war))
+            t.update(pref, {"zone": zid})
+            return war
+        war = txn(db.transaction())
+        if war:
+            claiming = war.get("phase") == "claiming"
+            title = "A new season has started in %s" % war["name"] if carried else "You joined %s" % war["name"]
+            body = ("Place your %d soldiers in secret before the claiming hour ends." % soldiers if claiming else
+                    "You landed with %d soldiers in reserve. Claim neutral land or attack; your land is shielded for 24 hours." % soldiers)
+            if carried:
+                war_notify(db, _war_quiet_of(db, [uid]), title, body + " Simulated War zone.", "%s: new season." % war["name"], "war-" + zid, now_ms, path="app/war/" + zid)
+            elif not claiming:
+                t2 = db.collection("wars").document(zid).collection("log").document("%d-j-%s" % (now_ms, uid[:8]))
+                t2.set({"at": now_ms, "text": "%s dropped into the zone." % name})
+            return {"warId": zid, "war": war}
+    raise WM.WarError("RESOURCE_EXHAUSTED", "Every War zone is full right now. Try again soon.")
+
+
+def _zone_join(db, uid, name, now_ms):
+    return _zone_seat(db, uid, name, now_ms)
+
+
+def _zone_leave(db, wid, uid, now_ms):
+    ref = db.collection("wars").document(wid)
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        war = snap.to_dict() if snap.exists else None
+        if not war or war.get("kind") != "zone" or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "You're not in that zone.")
+        war = WZ.leave(war, uid, now_ms)
+        t.set(ref.collection("log").document("%d-l-%s" % (now_ms, uid[:8])),
+              {"at": now_ms, "text": "%s left the zone; their land is neutral." % (war.get("names") or {}).get(uid, "Trader")})
+        t.set(ref, WL.stored(war))
+        t.update(db.collection("warProfiles").document(uid), {"zone": firestore.DELETE_FIELD})
+        return war
+    return {"warId": wid, "war": txn(db.transaction())}
+
+
+def _zone_next_season(db, war, wid, now_ms):
+    """A zone's season is over: carry everyone who held land or traded into the new season."""
+    rows = (war.get("results") or {}).get("standings") or []
+    for uid in WZ.carried(rows):
+        try:
+            _zone_seat(db, uid, (war.get("names") or {}).get(uid, "Trader"), now_ms, carried=True)
+        except WM.WarError:
+            pass
+        except Exception as e:
+            print("[war] season carry-over failed: %s" % type(e).__name__)
+    for uid in [p for p in war.get("players") or [] if p not in WZ.carried(rows)]:
+        try:
+            pref = db.collection("warProfiles").document(uid)
+            if (pref.get().to_dict() or {}).get("zone") == wid:
+                pref.update({"zone": firestore.DELETE_FIELD})
+        except Exception as e:
+            print("[war] season clean-up failed: %s" % type(e).__name__)

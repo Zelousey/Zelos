@@ -361,3 +361,29 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
     .click();
   await expect(page.getByRole('region', { name: 'Private Wars' }).or(page.getByLabel('Private Wars')).first()).toContainText('Friday sector clash');
 });
+
+test('open War zones: join this season, see your zone and army, leave', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `warz-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  await page.goto('war');
+  await expect(page.getByText('As a Recruit you play in a Rookie zone, with Recruits and Soldiers only.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Join in the first hour to claim land in secret with your full army \(100 soldiers\)/)).toBeVisible();
+  await page.getByRole('button', { name: 'Join a War zone' }).click();
+  await expect(page.getByRole('heading', { name: /^Rookie zone \d+$/, level: 1 })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Season ends', { exact: true })).toBeVisible();
+  await expect(page.locator('dt', { hasText: 'Your army' })).toBeVisible();
+  await expect(page.locator('dt', { hasText: 'Your army' }).locator('+ dd')).toHaveText(/^\d+ soldiers$/);
+  await expect(page.getByRole('status').filter({ hasText: /^Season ends in .+ The land resets then/ })).toBeVisible();
+  const midSeason = await page.getByText('Your land is shielded until').isVisible({ timeout: 5_000 }).catch(() => false);
+  if (midSeason) await expect(page.getByText('Shielded', { exact: true })).toBeVisible(); // a drop-in after the claiming hour
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-zone-${info.project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Leave the zone' }).click();
+  const dlg = page.getByRole('dialog', { name: 'Leave this zone?' });
+  await dlg.getByRole('button', { name: 'Leave the zone' }).click();
+  await expect(page.getByText('You left the zone.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Join a War zone' })).toBeVisible();
+});

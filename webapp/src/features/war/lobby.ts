@@ -60,6 +60,12 @@ export type PrivateWar = {
   standingsAt: number | null;
   results: Standing[] | null;
   ranks: Record<string, string>;
+  /** Open War zones (W6b1): a zone is a War for one weekly season, with per-player armies. */
+  kind: 'private' | 'zone';
+  rookie: boolean;
+  troops: Record<string, number>;
+  joinedAt: Record<string, number>;
+  shieldUntil: Record<string, number>;
 };
 /** One row of the War Score table (W5c): 60% trading (return, ±10% → 0–100) + 40% land points. */
 export type Standing = { uid: string; rank: number; score: number; trading: number; strategy: number; ret: number; points: number; wins: number };
@@ -196,6 +202,11 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     standingsAt: num(d.standingsAt),
     results: d.results && typeof d.results === 'object' ? parseStandings((d.results as Record<string, unknown>).standings) : null,
     ranks: Object.fromEntries(Object.entries(rec(d.ranks)).filter((x): x is [string, string] => typeof x[1] === 'string').map(([k, v]) => [k, v.slice(0, 20)])),
+    kind: d.kind === 'zone' ? 'zone' : 'private',
+    rookie: d.rookie === true,
+    troops: nums(d.troops),
+    joinedAt: nums(d.joinedAt),
+    shieldUntil: nums(d.shieldUntil),
   };
 }
 const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
@@ -250,6 +261,17 @@ function parseMap(v: unknown): Record<string, Territory> {
 /** Territories on the map for this many players (the server sets it at the start). */
 export const mapSize = (players: number) => (players <= 3 ? 6 : players <= 6 ? 8 : 10);
 export const isOpen = (w: PrivateWar) => w.status === 'lobby' || w.status === 'active';
+/** Soldiers this player places: their own army in a zone (level armies), else the War's equal army. */
+export const armyOf = (w: PrivateWar, uid: string) => w.troops[uid] ?? w.soldiers;
+/** A zone drop-in's land can't be attacked for their first 24 hours (functions/warzone.py). */
+export const shieldedUntil = (w: PrivateWar, uid: string, now: number) => {
+  const until = w.shieldUntil[uid];
+  return until != null && until > now ? until : null;
+};
+/** functions/warzone.py: 10 players a zone; armies drop 10 a day after the claiming hour, never below 50. */
+export const ZONE_SIZE = 10;
+export const ZONE_LATE_PER_DAY = 10;
+export const ZONE_MIN_ARMY = 50;
 
 export const useWar = (id: string | null) => useLiveDoc(id && WAR_ID_RE.test(id) ? `wars/${id}` : null, (d) => parseWar(id!, d));
 export const useMyWars = (uid: string | null) =>
@@ -273,5 +295,7 @@ type LobbyReq =
   | { action: 'skipWait'; warId: string; territory: string }
   | { action: 'claim'; warId: string; territory: string; usePass?: boolean }
   | { action: 'reinforce'; warId: string; soldiers: Record<string, number> }
-  | { action: 'rally'; warId: string };
+  | { action: 'rally'; warId: string }
+  | { action: 'zoneJoin' }
+  | { action: 'zoneLeave'; warId: string };
 export const warLobby = (req: LobbyReq) => callFunction<LobbyReq, { warId: string; war: DocumentData }>('war_lobby', req);

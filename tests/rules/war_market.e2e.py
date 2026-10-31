@@ -214,4 +214,57 @@ pts = {u: (db.collection("warProfiles").document(u).get().to_dict() or {}).get("
 ok(pts["warSleep01"] >= 3, "a battle win adds Battle Level points")
 ok(sum(pts.values()) >= 3 + 10 + 5, "and the War's results add +10 for the win and +5 for 2nd")
 ok(set(ew.get("ranks") or {}) == {"warAwake01", "warSleep01"}, "the standings carry each player's rank")
+
+# ---- Open War zones (W6b1): weekly seasons from Monday 9 am ET, secret claiming hour, drop-ins, shield
+WZ = main.WZ
+S = WZ.season_start(now4 + 10 * 24 * 3600 * 1000)
+H = 3600 * 1000
+for u in ("zoneAnn01", "zoneBen01", "zoneCat01"):
+    db.collection("warProfiles").document(u).set(WM.new_profile(S - H, "UTC"))
+ja = main._zone_join(db, "zoneAnn01", "Ann", S + 10 * M)
+zid = ja["warId"]
+ok(zid == WZ.zone_id(WZ.season_key(S), True, 1) and ja["war"]["phase"] == "claiming" and ja["war"]["troops"] == {"zoneAnn01": 100},
+   "a Recruit joining in the season's first hour gets Rookie zone 1, in its secret claiming hour, with a full army")
+ok(db.collection("warProfiles").document("zoneAnn01").get().to_dict()["zone"] == zid, "their War profile remembers the zone")
+main._zone_join(db, "zoneBen01", "Ben", S + 20 * M)
+try:
+    main._zone_join(db, "zoneBen01", "Ben", S + 21 * M)
+    ok(False, "joining twice is refused")
+except WM.WarError as e:
+    ok("already in a War zone" in str(e), "you can only be in one zone at a time")
+main.war_lobby_pass(db, S + 30 * M)
+ok(db.collection("wars").document(zid).get().to_dict()["phase"] == "claiming", "claiming doesn't end early in a zone: more players can still join")
+main._war_place(db, zid, "zoneAnn01", {"soldiers": {"tech": 50, "energy": 50}, "lock": True}, S + 31 * M)
+main.war_lobby_pass(db, S + H + M)
+z = db.collection("wars").document(zid).get().to_dict()
+pb = db.collection("wars").document(zid).collection("placements").document("zoneBen01").get().to_dict()
+ok(z["phase"] == "holding" and z["map"]["tech"].get("owner") == "zoneAnn01" and z["map"]["health"]["state"] == "neutral",
+   "after the hour the map is revealed")
+ok(pb["soldiers"] == {} and pb["reserve"] == 100, "a player who never placed keeps all their soldiers in reserve and holds no land")
+late = S + 2 * 24 * H + 2 * H
+jc = main._zone_join(db, "zoneCat01", "Cat", late)
+pc = db.collection("wars").document(zid).collection("placements").document("zoneCat01").get().to_dict()
+ok(jc["warId"] == zid and jc["war"]["troops"]["zoneCat01"] == 80 and pc["reserve"] == 80 and jc["war"]["shieldUntil"]["zoneCat01"] == late + 24 * H,
+   "a drop-in on day 3 lands with 80 soldiers in reserve and a 24-hour shield")
+db.collection("warMarket").document("quotes").update({"updatedAt": late})  # fresh War zone prices at the test's time
+main._war_move(db, zid, "zoneCat01", "claim", {"territory": "health"}, late + M)
+try:
+    main._war_attack(db, zid, "zoneAnn01", {"territory": "health", "sym": WA.stocks_of("health")[0], "side": "bull"}, late + 2 * M)
+    ok(False, "a shielded drop-in can't be attacked")
+except WM.WarError as e:
+    ok("shielded" in str(e), "a drop-in's land is shielded for their first 24 hours")
+main._zone_leave(db, zid, "zoneBen01", late + 3 * M)
+z = db.collection("wars").document(zid).get().to_dict()
+ok(z["players"] == ["zoneAnn01", "zoneCat01"] and "zone" not in db.collection("warProfiles").document("zoneBen01").get().to_dict(), "a player can leave the zone")
+ok(main._war_open_count(db, "zoneAnn01") == 0, "zones don't count toward the 3 private Wars")
+end = z["endsAt"]
+ok(end == WZ.season_end(S), "the season ends the next Monday 9 am ET")
+main.war_lobby_pass(db, end + M)
+z = db.collection("wars").document(zid).get().to_dict()
+nxt = WZ.zone_id(WZ.season_key(end), True, 1)
+n2 = db.collection("wars").document(nxt).get().to_dict()
+ok(z["status"] == "ended" and len(z["results"]["standings"]) == 2, "at the season's end the zone's results are final")
+ok(n2 and n2["phase"] == "claiming" and set(n2["players"]) == {"zoneAnn01", "zoneCat01"} and n2["startedAt"] == end,
+   "everyone who held land is carried into the new season, which starts with its claiming hour")
+ok(any(n["title"].startswith("A new season has started") for n in inbox("zoneAnn01")), "and is told to place their soldiers")
 print("\n%d War zone market checks passed" % passed)

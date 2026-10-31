@@ -4,7 +4,7 @@
  * through war_lobby; the server checks who may do what and handles the lobby deadline.
  */
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { formatRelative } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
@@ -12,7 +12,7 @@ import { Badge, Button, Card, Confirm, Field, LoadingState, PageHeader, useToast
 import { errorText } from '../invites/invites';
 import NotFoundPage from '../notfound/NotFoundPage';
 import { WarGate } from './Gate';
-import { useWar, warLobby, WAR_ID_RE, type PrivateWar, type WarConfig } from './lobby';
+import { armyOf, shieldedUntil, useWar, warLobby, WAR_ID_RE, ZONE_SIZE, type PrivateWar, type WarConfig } from './lobby';
 import { statusKey } from './PrivateWars';
 import { WarMap } from './WarMap';
 import { WarSettingsForm } from './WarSettingsForm';
@@ -36,7 +36,9 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
   const toast = useToast();
   const now = useNow(30000);
   const [busy, setBusy] = useState(false);
-  const [confirm, setConfirm] = useState<'cancel' | 'leave' | null>(null);
+  const navigate = useNavigate();
+  const [confirm, setConfirm] = useState<'cancel' | 'leave' | 'zoneLeave' | null>(null);
+  const zone = w.kind === 'zone';
   const org = w.organizer === uid;
   const inIt = w.players.includes(uid);
   const invited = !inIt && w.invited.includes(uid);
@@ -66,6 +68,7 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
           <span className={s.meta}>
             <span className={s.simBadge}>{t('war.sim')}</span>
             <Badge tone={lobby || w.status === 'active' ? 'accent' : 'neutral'}>{t(statusKey(w))}</Badge>
+            {zone && <Badge tone="neutral">{w.rookie ? t('wzone.rookie') : t('wzone.open')}</Badge>}
           </span>
         }
       />
@@ -76,7 +79,7 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
       )}
       <div className={s.cols}>
         <div className={s.stack}>
-          <Card title={t('warl.about')} pad>
+          <Card title={zone ? t('wzone.about') : t('warl.about')} pad>
             <div className={s.ticket}>
               <TimeLine w={w} now={now} />
               {org && w.stage === 'configuring' ? (
@@ -87,6 +90,21 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
                     {t('warl.open')}
                   </Button>
                 </>
+              ) : zone ? (
+                <dl className={s.facts}>
+                  <dt>{t('wzone.ends')}</dt>
+                  <dd>{formatRelative(w.endsAt ?? now, now)}</dd>
+                  <dt>{t('warl.maxPlayers')}</dt>
+                  <dd>{ZONE_SIZE}</dd>
+                  <dt>{t('warl.map')}</dt>
+                  <dd>{t('warl.territories', { n: w.territories.length })}</dd>
+                  {inIt && (
+                    <>
+                      <dt>{t('wzone.yourArmy')}</dt>
+                      <dd>{t('wzone.armyValue', { n: armyOf(w, uid) })}</dd>
+                    </>
+                  )}
+                </dl>
               ) : (
                 <dl className={s.facts}>
                   <dt>{t('warl.days')}</dt>
@@ -98,6 +116,12 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
                   <dt>{t('warl.armyLabel')}</dt>
                   <dd>{t('warl.armyValue', { n: w.soldiers })}</dd>
                 </dl>
+              )}
+              {zone && inIt && shieldedUntil(w, uid, now) && <p className={s.muted}>{t('wzone.shieldYou', { when: formatRelative(shieldedUntil(w, uid, now)!, now) })}</p>}
+              {zone && inIt && w.status === 'active' && (
+                <Button variant="ghost" disabled={busy} onClick={() => setConfirm('zoneLeave')}>
+                  {t('wzone.leave')}
+                </Button>
               )}
             </div>
           </Card>
@@ -115,7 +139,7 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
           )}
         </div>
         <div className={s.stack}>
-          <Card title={t('warl.playersTitle', { n: w.players.length, max: w.maxPlayers })} flush>
+          <Card title={t('warl.playersTitle', { n: w.players.length, max: zone ? ZONE_SIZE : w.maxPlayers })} flush>
             <ul className={s.rows}>
               {w.players.map((p) => (
                 <li key={p} className={s.player}>
@@ -124,8 +148,9 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
                       {w.names[p] ?? 'Trader'}
                       {p === uid && ` ${t('warl.you')}`}
                     </b>
-                    <small>{p === w.organizer ? t('warl.organizer') : t('warl.player')}</small>
+                    <small>{zone ? (w.joinedAt[p] && w.startedAt && w.joinedAt[p]! > w.startedAt + 3600e3 ? t('wzone.dropIn') : t('warl.player')) : p === w.organizer ? t('warl.organizer') : t('warl.player')}</small>
                   </span>
+                  {zone && shieldedUntil(w, p, now) && <Badge tone="gold">{t('wzone.shielded')}</Badge>}
                   {lobby && w.stage !== 'configuring' && <Badge tone={w.ready[p] ? 'up' : 'neutral'}>{w.ready[p] ? t('warl.isReady') : t('warl.notReady')}</Badge>}
                 </li>
               ))}
@@ -170,14 +195,21 @@ function WarView({ w, uid }: { w: PrivateWar; uid: string }) {
       </div>
       <Confirm
         open={confirm != null}
-        title={confirm === 'cancel' ? t('warl.cancelQ') : t('warl.leaveQ')}
-        action={confirm === 'cancel' ? t('warl.cancel') : t('warl.leave')}
+        title={confirm === 'cancel' ? t('warl.cancelQ') : confirm === 'zoneLeave' ? t('wzone.leaveQ') : t('warl.leaveQ')}
+        action={confirm === 'cancel' ? t('warl.cancel') : confirm === 'zoneLeave' ? t('wzone.leave') : t('warl.leave')}
         variant="danger"
         busy={busy}
         onClose={() => setConfirm(null)}
-        onConfirm={() => void act(() => warLobby({ action: confirm === 'cancel' ? 'cancel' : 'leave', warId: w.id }))}
+        onConfirm={() =>
+          confirm === 'zoneLeave'
+            ? void act(async () => {
+                await warLobby({ action: 'zoneLeave', warId: w.id });
+                navigate('/war');
+              }, t('wzone.left'))
+            : void act(() => warLobby({ action: confirm === 'cancel' ? 'cancel' : 'leave', warId: w.id }))
+        }
       >
-        <p>{confirm === 'cancel' ? t('warl.cancelBody') : t('warl.leaveBody')}</p>
+        <p>{confirm === 'cancel' ? t('warl.cancelBody') : confirm === 'zoneLeave' ? t('wzone.leaveBody') : t('warl.leaveBody')}</p>
       </Confirm>
     </>
   );
@@ -187,6 +219,7 @@ function TimeLine({ w, now }: { w: PrivateWar; now: number }) {
   let line: string;
   if (w.status === 'lobby' && w.stage === 'configuring') line = t('warl.tl.draft');
   else if (w.status === 'lobby') line = t('warl.tl.lobby', { when: w.deadline ? formatRelative(w.deadline, now) : '' });
+  else if (w.status === 'active' && w.kind === 'zone') line = t('wzone.tl', { ends: formatRelative(w.endsAt ?? now, now) });
   else if (w.status === 'active') line = t('warl.tl.active', { started: formatRelative(Math.min(w.startedAt ?? now, now), now), ends: formatRelative(w.endsAt ?? now, now) });
   else if (w.status === 'ended') line = t('warl.tl.ended');
   else line = w.why === 'not-enough-players' ? t('warl.tl.cancelledDeadline') : w.why === 'never-opened' ? t('warl.tl.cancelledDraft') : t('warl.tl.cancelled');

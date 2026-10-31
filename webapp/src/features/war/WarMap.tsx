@@ -12,7 +12,7 @@ import { Army } from './Army';
 import { Attacks, AttackSheet } from './Attacks';
 import { Battles } from './Battles';
 import { Standings } from './Standings';
-import { warLobby, type PrivateWar } from './lobby';
+import { armyOf, warLobby, type PrivateWar } from './lobby';
 import { CAMO_COST, CAMO_MAX, companiesOf, MAX_PER_TERRITORY, placementProblem, SECTOR_NAME, useIntel, usePlacement, useWarLog, type Placement, type Warning } from './map';
 import { useWarQuotes } from './war';
 import s from './War.module.css';
@@ -23,7 +23,7 @@ export function WarMap({ w, uid, now }: { w: PrivateWar; uid: string; now: numbe
   if (mine.status === 'loading') return <LoadingState rows={4} />;
   const placement = mine.status === 'ready' ? mine.data : null;
   if (w.phase === 'claiming' && !placement?.locked)
-    return <Claiming key={placement ? 'saved' : 'new'} w={w} saved={placement} warnings={intel.status === 'ready' ? intel.data : {}} now={now} />;
+    return <Claiming key={placement ? 'saved' : 'new'} w={w} uid={uid} saved={placement} warnings={intel.status === 'ready' ? intel.data : {}} now={now} />;
   return <Board w={w} uid={uid} placement={placement} warnings={w.phase === 'claiming' && intel.status === 'ready' ? intel.data : {}} now={now} />;
 }
 
@@ -34,15 +34,16 @@ function WarningBadge({ w }: { w: Warning | undefined }) {
   return <Badge tone={w === 'heavy' ? 'down' : 'gold'}>{w === 'heavy' ? t('wmap.heavy') : t('wmap.enemy')}</Badge>;
 }
 
-function Claiming({ w, saved, warnings, now }: { w: PrivateWar; saved: Placement | null; warnings: Record<string, Warning>; now: number }) {
+function Claiming({ w, uid, saved, warnings, now }: { w: PrivateWar; uid: string; saved: Placement | null; warnings: Record<string, Warning>; now: number }) {
   const toast = useToast();
   const [soldiers, setSoldiers] = useState<Record<string, number>>(saved?.soldiers ?? {});
   const [camo, setCamo] = useState<string[]>(saved?.camo ?? []);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const total = w.soldiers - CAMO_COST * camo.length;
+  const army = armyOf(w, uid);
+  const total = army - CAMO_COST * camo.length;
   const placed = w.territories.reduce((a, x) => a + (soldiers[x] ?? 0), 0);
-  const problem = placementProblem({ soldiers, camo }, w.territories, w.soldiers);
+  const problem = placementProblem({ soldiers, camo }, w.territories, army);
   const set = (x: string, n: number) => {
     const v = Math.max(0, Math.min(MAX_PER_TERRITORY, Math.round(Number.isFinite(n) ? n : 0)));
     setSoldiers((cur) => ({ ...cur, [x]: v }));
@@ -139,7 +140,7 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
   const claiming = w.phase === 'claiming';
   return (
     <>
-      <Card title={claiming ? t('wmap.waitTitle') : t('wmap.boardTitle')} subtitle={claiming ? t('wmap.waitSub', { n: w.lockedCount, of: w.players.length, when: formatRelative(w.claimEnds ?? now, now) }) : t('wmap.boardSub')} flush>
+      <Card title={claiming ? t('wmap.waitTitle') : t('wmap.boardTitle')} subtitle={claiming ? t(w.kind === 'zone' ? 'wzone.waitSub' : 'wmap.waitSub', { n: w.lockedCount, of: w.players.length, when: formatRelative(w.claimEnds ?? now, now) }) : t('wmap.boardSub')} flush>
         <ul className={s.board}>
           {w.territories.map((x) => {
             const cell = w.map[x];

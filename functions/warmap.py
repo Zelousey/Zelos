@@ -83,15 +83,18 @@ def warnings_for(uid, placements):
     return {t: ("heavy" if n >= HEAVY else "enemy") for t, n in totals.items()}
 
 
-def final_placements(players, territories, soldiers, placements):
-    """Every player's placement at the end of claiming (saved or spread evenly), all locked."""
+def final_placements(players, territories, soldiers, placements, spread=True):
+    """Every player's placement at the end of claiming (saved, or spread evenly), all locked.
+    soldiers: one number for everyone, or {uid: n} (level armies in open zones). spread=False (open
+    zones): a player who never saved keeps every soldier in reserve and holds no land."""
     out = {}
     for uid in players:
         p = placements.get(uid) or {}
+        n = soldiers.get(uid, 100) if isinstance(soldiers, dict) else soldiers
         try:
-            v = validate_placement(p, territories, soldiers)
+            v = validate_placement(p, territories, n)
         except WarError:
-            v = even_spread(territories, soldiers)
+            v = even_spread(territories, n) if spread else {"soldiers": {}, "camo": [], "reserve": n}
         out[uid] = dict(v, locked=True)
     return out
 
@@ -120,4 +123,6 @@ def claiming_over(war, placements, now_ms):
     """Claiming ends when every player has locked in, or at its deadline."""
     if war.get("phase") != "claiming":
         return False
+    if war.get("kind") == "zone":  # more players can still drop in: the hour always runs out
+        return now_ms >= war.get("claimEnds", 0)
     return now_ms >= war.get("claimEnds", 0) or all((placements.get(p) or {}).get("locked") for p in war["players"])
