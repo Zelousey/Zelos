@@ -7,8 +7,10 @@ describe('back to your lesson', () => {
   it('remembers the last lesson step, then forgets it after two hours or when cleared', () => {
     const now = Date.now();
     noteLearnPlace('/learn/basics/prices?step=5', '“Why prices move” · step 6 of 9');
-    expect(readLearnPlace(now)).toMatchObject({ path: '/learn/basics/prices?step=5' });
-    expect(readLearnPlace(now + 2 * 3600_000 + 1)).toBeNull();
+    const saved = readLearnPlace(now);
+    expect(saved).toMatchObject({ path: '/learn/basics/prices?step=5' });
+    expect(readLearnPlace(saved!.at + 2 * 3600_000)).not.toBeNull(); // counted from when it was saved, not from `now` (the clock may tick in between)
+    expect(readLearnPlace(saved!.at + 2 * 3600_000 + 1)).toBeNull();
     clearLearnPlace();
     expect(readLearnPlace(now)).toBeNull();
   });
