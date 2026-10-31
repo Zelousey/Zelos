@@ -68,12 +68,12 @@ export type PrivateWar = {
   shieldUntil: Record<string, number>;
 };
 /** One row of the War Score table (W5c): 60% trading (return, ±10% → 0–100) + 40% land points. */
-export type Standing = { uid: string; rank: number; score: number; trading: number; strategy: number; ret: number; points: number; wins: number };
+export type Standing = { uid: string; rank: number; score: number; trading: number; strategy: number; ret: number; points: number; wins: number; forfeit: boolean };
 function parseStandings(v: unknown): Standing[] {
   return (Array.isArray(v) ? v : [])
     .map((x) => rec(x))
     .filter((r) => typeof r.uid === 'string' && typeof r.score === 'number')
-    .map((r) => ({ uid: r.uid as string, rank: num(r.rank) ?? 0, score: num(r.score) ?? 0, trading: num(r.trading) ?? 0, strategy: num(r.strategy) ?? 0, ret: num(r.ret) ?? 0, points: num(r.points) ?? 0, wins: num(r.wins) ?? 0 }));
+    .map((r) => ({ uid: r.uid as string, rank: num(r.rank) ?? 0, score: num(r.score) ?? 0, trading: num(r.trading) ?? 0, strategy: num(r.strategy) ?? 0, ret: num(r.ret) ?? 0, points: num(r.points) ?? 0, wins: num(r.wins) ?? 0, forfeit: r.forfeit === true }));
 }
 /** A War day: 24 hours counted from the War's start (daily limits reset then). */
 export const warDay = (w: PrivateWar, now: number) => (w.startedAt != null ? Math.max(0, Math.floor((now - w.startedAt) / 86400000)) : 0); // the screen clock can lag the server
@@ -296,6 +296,7 @@ type LobbyReq =
   | { action: 'claim'; warId: string; territory: string; usePass?: boolean }
   | { action: 'reinforce'; warId: string; soldiers: Record<string, number> }
   | { action: 'rally'; warId: string }
-  | { action: 'zoneJoin' }
+  | { action: 'zoneJoin'; open?: boolean }
+  | { action: 'reset' }
   | { action: 'zoneLeave'; warId: string };
 export const warLobby = (req: LobbyReq) => callFunction<LobbyReq, { warId: string; war: DocumentData }>('war_lobby', req);

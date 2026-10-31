@@ -21,13 +21,22 @@ zone is found without a query and two players can't open the same zone twice.
   Shield      a drop-in's land can't be attacked for 24 hours; attacking someone ends it early.
   Rookie      Recruit and Soldier ranks play in Rookie zones (lower ranks only).
   Score       the same War Score, with each player's return counted from when they joined.
+
+W6b2 (2026-10-31):
+  Results     at a season's end each player's finish goes on their War profile (`seasons`, the last
+              10); the top 3 are told so (gold bars for them arrive in W7).
+  Moving up   a Recruit or Soldier can choose an open zone any time (and back); Sergeants and up
+              always play in open zones, so a rookie who ranks up moves up at the next season.
+  Going broke below $10,000 of War balance you can reset to $100,000, once a week, with no stakes
+              held. It costs you this season: you forfeit every War you're in (score 0, ranked
+              last). The balance chart marks the reset.
 """
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import warlevel as WLV
 from warmap import CLAIM_MS, TERRITORIES
-from warmarket import WarError
+from warmarket import CHART_KEPT, START_BALANCE, WarError
 
 ET = ZoneInfo("America/New_York")
 SIZE = 10                    # players per zone (owner 2026-10-31: one territory each on average)
@@ -39,6 +48,9 @@ MIN_ARMY = 50
 LATE_PER_DAY = 10            # 10 fewer soldiers per day of the season
 ROOKIE_TOP = 1               # rank index: Recruit 0 and Soldier 1 play in Rookie zones
 MAX_ZONES = 300              # per season and kind
+RESET_BELOW = 10000.0        # going broke (§24.5)
+RESET_EVERY_MS = 7 * DAY_MS
+SEASONS_KEPT = 10
 
 
 def season_start(now_ms):
@@ -70,6 +82,11 @@ def zone_id(key, rookie, n):
 
 def is_rookie(points):
     return WLV.rank_index(points) <= ROOKIE_TOP
+
+
+def plays_rookie(points, pref):
+    """Rookie zone or open: Recruits and Soldiers choose (Rookie unless they picked open)."""
+    return is_rookie(points) and pref != "open"
 
 
 def army(points, start_ms, now_ms):
@@ -150,3 +167,36 @@ def since(war, uid):
 def carried(rows):
     """Who goes on to next season: everyone who held land or traded (the others are let go)."""
     return [r["uid"] for r in rows if r.get("points") or r.get("ret")]
+
+
+def check_reset(profile, equity, now_ms):
+    """WarError unless this player may reset their War balance now."""
+    if equity >= RESET_BELOW:
+        raise WarError("FAILED_PRECONDITION", "You can reset when your War balance is below $10,000.")
+    if (profile.get("held") or 0) > 0:
+        raise WarError("FAILED_PRECONDITION", "Finish your battles first: some of your War cash is held as stakes.")
+    last = profile.get("lastResetAt") or 0
+    if now_ms - last < RESET_EVERY_MS:
+        raise WarError("FAILED_PRECONDITION", "You can reset once a week.", {"reason": "war-reset-wait", "next": last + RESET_EVERY_MS})
+
+
+def reset_profile(profile, now_ms):
+    """The War profile after a reset: $100,000 in cash, no positions; the chart marks it."""
+    chart = (list(profile.get("chart") or []) + [{"t": now_ms, "eq": START_BALANCE, "reset": True}])[-CHART_KEPT:]
+    return dict(profile, start=START_BALANCE, cash=START_BALANCE, held=0, positions={}, equity=START_BALANCE, pnl=0.0, pnlPct=0.0,
+                lastResetAt=now_ms, resets=(list(profile.get("resets") or []) + [now_ms])[-10:], chart=chart, updatedAt=now_ms)
+
+
+def forfeit(war, uid, now_ms):
+    if uid not in war.get("players", []) or uid in (war.get("forfeits") or {}):
+        return war
+    return dict(war, forfeits=dict(war.get("forfeits") or {}, **{uid: now_ms}), updatedAt=now_ms)
+
+
+def season_record(war, row, of):
+    return {"season": war.get("season"), "zone": war.get("name"), "rookie": bool(war.get("rookie")), "rank": row["rank"], "of": of,
+            "score": row["score"], "forfeit": bool(row.get("forfeit"))}
+
+
+def add_season(profile, record):
+    return (list(profile.get("seasons") or []) + [record])[-SEASONS_KEPT:]
