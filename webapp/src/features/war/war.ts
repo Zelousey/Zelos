@@ -164,13 +164,14 @@ function parseQuiet(v: unknown): Quiet | null {
 }
 
 export type WarPosition = { sym: string; qty: number; avg: number };
-export type WarProfile = { start: number; cash: number; held: number; battlePoints: number; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
+export type WarProfile = { start: number; cash: number; held: number; battlePoints: number; zone: string | null; positions: WarPosition[]; trades: number; createdAt: number; chart: { t: number; eq: number }[]; quiet: Quiet | null };
 export function parseProfile(d: DocumentData): WarProfile {
   return {
     start: num(d.start, START_BALANCE),
     cash: num(d.cash),
     held: num(d.held),
     battlePoints: num(d.battlePoints),
+    zone: typeof d.zone === 'string' && /^[A-Za-z0-9]{10,40}$/.test(d.zone) ? d.zone : null,
     positions: Object.entries(rec(d.positions))
       .map(([sym, v]) => ({ sym, qty: num(rec(v).qty), avg: num(rec(v).avg) }))
       .filter((p) => p.qty > 0 && BY_SYM[p.sym])

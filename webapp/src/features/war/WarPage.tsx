@@ -15,6 +15,7 @@ import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import { WarGate } from './Gate';
 import { PrivateWars } from './PrivateWars';
+import { WarZones } from './WarZones';
 import {
   browserTz,
   BY_SYM,
@@ -87,6 +88,11 @@ function WarZone({ uid }: { uid: string }) {
           {p && (
             <div className={s.holdingsSlot}>
               <Holdings p={p} q={q} onPick={setSym} />
+            </div>
+          )}
+          {p && (
+            <div className={s.warsSlot}>
+              <WarZones uid={uid} p={p} />
             </div>
           )}
           <div className={s.warsSlot}>

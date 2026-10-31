@@ -31,7 +31,7 @@ export function PrivateWars({ uid }: { uid: string }) {
   const now = useNow(60000);
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
-  const wars = mine.status === 'ready' ? [...mine.data].sort((a, b) => Number(isOpen(b)) - Number(isOpen(a)) || (b.startedAt ?? b.deadline ?? 0) - (a.startedAt ?? a.deadline ?? 0)).slice(0, 8) : [];
+  const wars = mine.status === 'ready' ? mine.data.filter((w) => w.kind !== 'zone').sort((a, b) => Number(isOpen(b)) - Number(isOpen(a)) || (b.startedAt ?? b.deadline ?? 0) - (a.startedAt ?? a.deadline ?? 0)).slice(0, 8) : [];
   const waiting = invites.status === 'ready' ? invites.data.filter((w) => w.status === 'lobby') : [];
   async function create(cfg: WarConfig) {
     setBusy(true);
