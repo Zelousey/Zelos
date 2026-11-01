@@ -18,7 +18,9 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
+import bearUrl from './board/bear.png';
 import boardUrl from './board/board.jpg';
+import bullUrl from './board/bull.png';
 import { BOARD, BORDERS, REGIONS, SPOTS } from './board/boardShapes';
 import { activityOf, companiesOf, SECTOR_NAME, type Activity } from './map';
 import { chaosNow, useWarChaos, useWarQuotes } from './war';
@@ -499,16 +501,9 @@ function Marker({ x, y, v }: { x: number; y: number; v: TerritoryView }) {
         <>
           <circle r={12} className={s.mkContested} />
           <path d="M-6,-6 L6,6 M6,-6 L-6,6 M-6,2.5 L-2.5,6 M6,2.5 L2.5,6" className={s.mkStroke} />
-          {/* bull vs bear: the two sides of the battle */}
-          <g transform="translate(-20 3)" className={s.mkBull}>
-            <circle r={5} />
-            <path d="M-4,-3 Q-7,-7 -5,-9 M4,-3 Q7,-7 5,-9" />
-          </g>
-          <g transform="translate(20 3)" className={s.mkBear}>
-            <circle r={5} />
-            <circle cx={-3.6} cy={-4} r={2} />
-            <circle cx={3.6} cy={-4} r={2} />
-          </g>
+          {/* bull vs bear: the two sides of the battle (the owner's own mascots) */}
+          <image href={bullUrl} x={-44} y={-13} width={26} height={26} className={s.mkMascot} />
+          <image href={bearUrl} x={18} y={-13} width={26} height={26} className={s.mkMascot} />
         </>
       )}
     </g>

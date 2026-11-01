@@ -53,9 +53,7 @@
 .mkContested { fill: #a87708; stroke: #ffe08a; stroke-width: 1.4; }
 .mkStroke { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .mkInitial { fill: #fff; font-size: 12px; font-weight: 800; text-anchor: middle; }
-.mkBull circle { fill: #1e7a46; stroke: #8ff0b4; stroke-width: 1; }
-.mkBull path { fill: none; stroke: #8ff0b4; stroke-width: 1.4; stroke-linecap: round; }
-.mkBear circle { fill: #8f1d1d; stroke: #ffaaa4; stroke-width: 1; }
+.mkMascot { filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9)); }
 
 .hit { fill: transparent; cursor: pointer; outline: none; }
 .hit:hover { fill: rgba(255, 255, 255, 0.06); }
