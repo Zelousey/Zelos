@@ -1,22 +1,25 @@
 /**
- * The War map (W6c, owner's design 2026-10-31; reworked 2026-11-01 to look like their mockup): one
- * raised island in a dark sea, cut into the 10 sector territories and seen through the whole War.
- * The land has hills and valleys made in code (light and shade over generated noise, not pictures),
- * a thick coast and glowing borders coloured by who holds each territory (yours blue, enemies red,
- * neutral slate, contested gold). Each shows a simple sector icon of our own, its name and holder:
- * no pictures and no real company logos (War prices are simulated). Sectors that aren't in this
- * War are dark. Around the map, like the mockup: the sector list (computers), a phase box, the
- * legend and, while claiming, your deployment. Shapes come from scripts/gen_war_map.py (a wide
- * island for computers, a tall one for phones). Tapping a territory jumps to its card below.
+ * The War board (W6c; owner 2026-11-01: "copy the reference image exactly, then we edit from there").
+ * The owner's own artwork is the board (board/board.jpg). On top of it, in the same places as the
+ * art's panels: the sector list, how it works, the phase box, your deployment and the legend, all
+ * live. Each territory's own label is covered by ours (icon, sector, holder): the art's real-company
+ * logos and tickers never show (trademarks; War prices are simulated). A territory someone holds is
+ * recoloured to its owner (yours blue, enemies red, contested gold) with a glowing edge, keeping the
+ * terrain; neutral land turns grey, like the legend says; sectors not in this War go dark. The shapes come
+ * from scripts/gen_war_board.py. On a phone the board keeps its layout and scrolls sideways.
  */
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { t } from '../../lib/i18n';
+import boardUrl from './board/board.jpg';
+import { BOARD, SPOTS } from './board/boardShapes';
 import { SECTOR_NAME } from './map';
-import { TALL, WIDE, type MapShape } from './mapShapes';
 import s from './TerritoryMap.module.css';
 
 export type TerritoryTone = 'mine' | 'enemy' | 'neutral' | 'contested' | 'out';
 export type TerritoryView = { tone: TerritoryTone; line: string; extra?: string; hot?: boolean; warn?: 'enemy' | 'heavy' };
+
+const MASKS = import.meta.glob<string>('./board/*.png', { eager: true, query: '?url', import: 'default' });
+const mask = (kind: 'm' | 'e', id: string) => MASKS[`./board/${kind}-${id}.png`];
 
 /** Our own simple line icons, one per sector (24×24). */
 const ICON: Record<string, string> = {
@@ -31,7 +34,23 @@ const ICON: Record<string, string> = {
   materials: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5',
   utilities: 'M12 3s6 7 6 11a6 6 0 01-12 0c0-4 6-11 6-11z',
 };
-const ORDER = Object.keys(WIDE.cells);
+const ORDER = Object.keys(SPOTS);
+
+/** A box on the board, in the art's pixels. */
+const at = (x: number, y: number, w: number, h: number): CSSProperties => ({
+  left: `${(x / BOARD.w) * 100}%`,
+  top: `${(y / BOARD.h) * 100}%`,
+  width: `${(w / BOARD.w) * 100}%`,
+  height: `${(h / BOARD.h) * 100}%`,
+});
+
+function SectorIcon({ id, className }: { id: string; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className}>
+      <path d={ICON[id] ?? ''} />
+    </svg>
+  );
+}
 
 export function TerritoryMap({
   territories,
@@ -45,57 +64,175 @@ export function TerritoryMap({
   view: Record<string, TerritoryView>;
   onPick: (id: string) => void;
   label: string;
-  /** The phase box in the map's corner: the phase, a big line (time left) and a small one. */
+  /** The phase box: the phase, a big line (time left) and a small one. */
   status?: { title: string; big?: string; line?: ReactNode };
   /** While claiming: your soldiers placed out of your army. */
   deploy?: { placed: number; total: number };
 }) {
   const shown = (id: string): TerritoryView => (territories.includes(id) ? (view[id] ?? { tone: 'neutral', line: t('wmap.neutral') }) : { tone: 'out', line: t('wmap.k.out') });
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // on a narrow screen, start with the map in view rather than the left-hand panels
+    const el = scroller.current;
+    if (el && el.scrollWidth > el.clientWidth) el.scrollLeft = (el.scrollWidth * 205) / BOARD.w;
+  }, []);
+  const mine = ORDER.filter((id) => territories.includes(id) && shown(id).tone === 'mine');
+  const figures = deploy ? Math.round((deploy.placed / Math.max(1, deploy.total)) * 5) : 0;
   return (
-    <div className={s.wrap}>
-      <ul className={s.sectors} aria-label={t('wmap.sectors')}>
-        {ORDER.filter((id) => territories.includes(id)).map((id) => {
-          const v = shown(id);
+    <div className={s.scroller} ref={scroller}>
+      <div className={s.board} data-board>
+        <img src={boardUrl} alt="" className={s.art} draggable={false} />
+
+        {/* who holds what: owner colours over the terrain, glowing edges, dark fog outside this War */}
+        {ORDER.map((id) => {
+          const tone = shown(id).tone;
+          const m = mask('m', id);
+          const e = mask('e', id);
           return (
-            <li key={id}>
-              <button type="button" className={`${s.sector} ${s[v.tone]}`} onClick={() => onPick(id)}>
-                <svg viewBox="0 0 24 24" aria-hidden className={s.sectorIcon}>
-                  <path d={ICON[id] ?? ''} />
-                </svg>
-                <span>
-                  <b>{SECTOR_NAME[id] ?? id}</b>
-                  <small>{v.line}</small>
-                </span>
-              </button>
-            </li>
+            <div key={id} aria-hidden>
+              <div className={`${s.tint} ${s[tone]}`} style={{ maskImage: `url(${m})`, WebkitMaskImage: `url(${m})` }} />
+              {tone !== 'out' && tone !== 'neutral' && <div className={`${s.edge} ${s[tone]}`} style={{ maskImage: `url(${e})`, WebkitMaskImage: `url(${e})` }} />}
+            </div>
           );
         })}
-      </ul>
-      <div className={s.stage}>
-        <Board L={WIDE} territories={territories} shown={shown} onPick={onPick} label={label} className={s.wide ?? ''} />
-        <Board L={TALL} territories={territories} shown={shown} onPick={onPick} label={label} className={s.tall ?? ''} />
-        {status && (
-          <div className={s.status}>
-            <span className={s.statusTitle}>{status.title}</span>
-            {status.big && <b className={s.statusBig}>{status.big}</b>}
-            {status.line && <span className={s.statusLine}>{status.line}</span>}
-          </div>
-        )}
-        {deploy && (
-          <div className={s.deploy}>
-            <span className={s.statusTitle}>{t('wmap.deploy')}</span>
-            <span className={s.troops} aria-hidden>
-              {Array.from({ length: 10 }, (_, i) => (
-                <svg key={i} viewBox="0 0 12 24" className={i < Math.round((deploy.placed / Math.max(1, deploy.total)) * 10) ? s.troopOn : s.troopOff}>
-                  <circle cx="6" cy="4" r="3.2" />
-                  <path d="M2 9.5Q6 7.5 10 9.5L10.8 16H9.2L8.6 23H3.4L2.8 16H1.2Z" />
-                </svg>
-              ))}
+
+        <svg className={s.overlay} viewBox={`0 0 ${BOARD.w} ${BOARD.h}`} role="group" aria-label={label}>
+          {ORDER.map((id) => {
+            const v = shown(id);
+            const { x, y } = SPOTS[id]!;
+            const name = (SECTOR_NAME[id] ?? id).toUpperCase();
+            return (
+              <g key={id} className={`${s.plate} ${s[v.tone]}`} aria-hidden>
+                <rect x={x - 52} y={y - 42} width={104} height={v.extra ? 88 : 80} rx={4} className={s.plateBg} />
+                <circle cx={x} cy={y - 22} r={12} className={s.plateBadge} />
+                <g transform={`translate(${x - 7.5} ${y - 29.5}) scale(0.625)`} className={s.plateIcon}>
+                  <path d={ICON[id] ?? ''} />
+                </g>
+                <text x={x} y={y + 8} className={s.plateName} fontSize={Math.min(13, 132 / name.length)}>
+                  {name}
+                </text>
+                <text x={x} y={y + 23} className={s.plateLine}>
+                  {v.line}
+                </text>
+                {v.extra && (
+                  <text x={x} y={y + 36} className={s.plateExtra}>
+                    {v.extra}
+                  </text>
+                )}
+                {(v.hot || v.warn) && (
+                  <text x={x} y={y - 48} className={v.warn === 'heavy' ? s.plateFlagRed : s.plateFlag}>
+                    {[v.hot && t('war.hot').toUpperCase(), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy').toUpperCase()].filter(Boolean).join(' · ')}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+          {/* what you tap: each territory in this War */}
+          {ORDER.filter((id) => territories.includes(id)).map((id) => {
+            const v = shown(id);
+            return (
+              <polygon
+                key={id}
+                points={SPOTS[id]!.pts}
+                className={s.hit}
+                role="button"
+                tabIndex={0}
+                aria-label={[SECTOR_NAME[id] ?? id, v.line, v.extra, v.hot && t('war.hot'), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')].filter(Boolean).join(', ')}
+                onClick={() => onPick(id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onPick(id);
+                  }
+                }}
+              />
+            );
+          })}
+        </svg>
+
+        {/* the left-hand panels */}
+        <div className={s.panel} style={at(8, 138, 197, 435)}>
+          <h3 className={s.panelTitle}>{t('wmap.sectorsTitle')}</h3>
+          <ul className={s.sectors} aria-label={t('wmap.sectors')}>
+            {ORDER.map((id) => {
+              const v = shown(id);
+              return (
+                <li key={id}>
+                  <button type="button" className={`${s.sector} ${s[v.tone]}`} disabled={v.tone === 'out'} onClick={() => onPick(id)}>
+                    <SectorIcon id={id} className={s.sectorIcon} />
+                    <span>
+                      <b>{SECTOR_NAME[id] ?? id}</b>
+                      <small>{v.line}</small>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        <div className={s.panel} style={at(8, 583, 197, 186)}>
+          <h3 className={s.panelTitle}>{t('wmap.howTitle')}</h3>
+          <ol className={s.how}>
+            <li>{t('wmap.how1')}</li>
+            <li>{t('wmap.how2')}</li>
+            <li>{t('wmap.how3')}</li>
+            <li>{t('wmap.how4')}</li>
+          </ol>
+        </div>
+
+        {/* the phase box, top right */}
+        <div className={s.panel} style={at(1017, 119, 176, 181)}>
+          {status && (
+            <>
+              <span className={s.phaseTitle}>{status.title}</span>
+              {status.big && (
+                <b className={s.phaseBig} style={{ fontSize: `calc(var(--u) * ${status.big.length > 9 ? 19 : 28})` }}>
+                  {status.big}
+                </b>
+              )}
+              {status.line && <span className={s.phaseLine}>{status.line}</span>}
+            </>
+          )}
+        </div>
+
+        {/* your deployment, along the bottom */}
+        <div className={`${s.panel} ${s.deployRow}`} style={at(223, 696, 808, 109)}>
+          <div className={s.deployBox}>
+            <span className={s.deployTitle}>{t('wmap.deploy')}</span>
+            <span className={s.deployBody}>
+              <span className={s.troops} aria-hidden>
+                {Array.from({ length: 5 }, (_, i) => (
+                  <svg key={i} viewBox="0 0 12 24" className={!deploy || i < figures ? s.troopOn : s.troopOff}>
+                    <circle cx="6" cy="4" r="3.2" />
+                    <path d="M2 9.5Q6 7.5 10 9.5L10.8 16H9.2L8.6 23H3.4L2.8 16H1.2Z" />
+                  </svg>
+                ))}
+              </span>
+              <b className={s.deployCount}>{deploy ? t('wmap.deployN', { placed: deploy.placed, total: deploy.total }) : t('wmap.deployHeld', { n: mine.length })}</b>
             </span>
-            <b className={s.deployCount}>{t('wmap.deployN', { placed: deploy.placed, total: deploy.total })}</b>
           </div>
-        )}
-        <div className={s.legendBox}>
+          <div className={s.chooseBox}>
+            <span className={s.deployTitle}>{t('wmap.choose')}</span>
+            <span className={s.chips}>
+              {Array.from({ length: 5 }, (_, i) => {
+                const id = mine[i];
+                return id ? (
+                  <button key={i} type="button" className={s.chip} onClick={() => onPick(id)}>
+                    <SectorIcon id={id} className={s.chipIcon} />
+                    <span>{SECTOR_NAME[id]}</span>
+                  </button>
+                ) : (
+                  <span key={i} className={s.chipEmpty}>
+                    {i + 1}
+                  </span>
+                );
+              })}
+            </span>
+          </div>
+        </div>
+
+        {/* the legend, bottom right */}
+        <div className={s.panel} style={at(1053, 586, 140, 122)}>
           <ul className={s.legend} aria-label={t('wmap.legend')}>
             <li>
               <i className={s.kMine} />
@@ -123,151 +260,5 @@ export function TerritoryMap({
         </div>
       </div>
     </div>
-  );
-}
-
-function Board({ L, territories, shown, onPick, label, className }: { L: MapShape; territories: string[]; shown: (id: string) => TerritoryView; onPick: (id: string) => void; label: string; className: string }) {
-  const id = L === WIDE ? 'wmw' : 'wmt';
-  const font = L === WIDE ? 21 : 25;
-  const cells = Object.entries(L.cells);
-  return (
-    <svg className={`${s.svg} ${className}`} viewBox={`0 0 ${L.w} ${L.h}`} role="group" aria-label={label}>
-      <defs>
-        <radialGradient id={`${id}-sea`} cx="50%" cy="48%" r="72%">
-          <stop offset="0%" stopColor="#10234a" />
-          <stop offset="60%" stopColor="#081430" />
-          <stop offset="100%" stopColor="#03070f" />
-        </radialGradient>
-        <pattern id={`${id}-chart`} width="60" height="60" patternUnits="userSpaceOnUse">
-          <path d="M60 0H0V60" fill="none" stroke="#3d6bc4" strokeOpacity="0.08" strokeWidth="1" />
-        </pattern>
-        <linearGradient id={`${id}-cliff`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1a2847" />
-          <stop offset="100%" stopColor="#060b17" />
-        </linearGradient>
-        {/* hills and valleys: light falling on generated noise, multiplied into the land colours */}
-        <filter id={`${id}-relief`} x="0" y="0" width={L.w} height={L.h} filterUnits="userSpaceOnUse">
-          <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="5" seed="11" result="n" />
-          <feDiffuseLighting in="n" surfaceScale="6" lightingColor="#ffffff" result="lit">
-            <feDistantLight azimuth="235" elevation="34" />
-          </feDiffuseLighting>
-          <feComposite in="SourceGraphic" in2="lit" operator="arithmetic" k1="1.8" k2="0" k3="0" k4="0" result="shaded" />
-          <feComposite in="shaded" in2="SourceAlpha" operator="in" />
-        </filter>
-        <filter id={`${id}-glow`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
-        <filter id={`${id}-shadow`} x="-10%" y="-10%" width="120%" height="140%">
-          <feGaussianBlur stdDeviation="16" />
-        </filter>
-        <clipPath id={`${id}-land`}>
-          <path d={L.coast} />
-        </clipPath>
-      </defs>
-
-      <rect width={L.w} height={L.h} fill={`url(#${id}-sea)`} />
-      <rect width={L.w} height={L.h} fill={`url(#${id}-chart)`} />
-      {L.isles.map((d, i) => (
-        <g key={i} className={s.isle}>
-          <path d={d} transform="translate(0 6)" fill={`url(#${id}-cliff)`} />
-          <path d={d} />
-        </g>
-      ))}
-
-      {/* the raised island: a shadow in the water, then a thick cliff under the land */}
-      <path d={L.coast} transform="translate(0 30)" className={s.shadow} filter={`url(#${id}-shadow)`} />
-      {[18, 12, 6].map((dy) => (
-        <path key={dy} d={L.coast} transform={`translate(0 ${dy})`} fill={`url(#${id}-cliff)`} className={s.cliff} />
-      ))}
-
-      {/* land colours with the terrain light in them */}
-      <g filter={`url(#${id}-relief)`}>
-        {cells.map(([cid, c]) => (
-          <path key={cid} d={c.d} className={`${s.land} ${s[shown(cid).tone]}`} />
-        ))}
-      </g>
-
-      {/* borders: a soft glow inside the coast, a bright rim, a thin light bevel */}
-      <g clipPath={`url(#${id}-land)`}>
-        {cells.map(([cid, c]) => (
-          <path key={cid} d={c.d} className={`${s.glow} ${s[shown(cid).tone]}`} filter={`url(#${id}-glow)`} />
-        ))}
-      </g>
-      {cells.map(([cid, c]) => (
-        <path key={cid} d={c.d} className={`${s.rim} ${s[shown(cid).tone]}`} />
-      ))}
-      <path d={L.coast} className={s.coastLine} />
-
-      {/* labels */}
-      {cells.map(([cid, c]) => {
-        const v = shown(cid);
-        const name = SECTOR_NAME[cid] ?? cid;
-        const nameF = Math.min(font, (L === WIDE ? 200 : 160) / (name.length * 0.68)); // long names shrink to fit their land
-        return (
-          <g key={cid} className={`${s.label} ${s[v.tone]}`} aria-hidden>
-            <circle cx={c.x} cy={c.y - font * 1.55} r={font * 0.95} className={s.badge} />
-            <g transform={`translate(${c.x - font * 0.6} ${c.y - font * 2.15}) scale(${(font * 1.2) / 24})`} className={s.icon}>
-              <path d={ICON[cid] ?? ''} />
-            </g>
-            <text x={c.x} y={c.y + font * 0.55} className={s.name} fontSize={nameF}>
-              {name.toUpperCase()}
-            </text>
-            <text x={c.x} y={c.y + font * 1.5} className={s.line} fontSize={font * 0.64}>
-              {v.line}
-            </text>
-            {v.extra && (
-              <text x={c.x} y={c.y + font * 2.3} className={s.line} fontSize={font * 0.56}>
-                {v.extra}
-              </text>
-            )}
-            {(v.hot || v.warn) && (
-              <text x={c.x} y={c.y + font * (v.extra ? 3.05 : 2.4)} className={v.warn === 'heavy' ? s.flagRed : s.flag} fontSize={font * 0.56}>
-                {[v.hot && t('war.hot').toUpperCase(), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy').toUpperCase()].filter(Boolean).join(' · ')}
-              </text>
-            )}
-          </g>
-        );
-      })}
-
-      {/* what you tap: one invisible shape per territory in this War, on top of everything */}
-      {cells
-        .filter(([cid]) => territories.includes(cid))
-        .map(([cid, c]) => {
-          const v = shown(cid);
-          const name = SECTOR_NAME[cid] ?? cid;
-          return (
-            <path
-              key={cid}
-              d={c.d}
-              className={s.hit}
-              role="button"
-              tabIndex={0}
-              aria-label={[name, v.line, v.extra, v.hot && t('war.hot'), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')].filter(Boolean).join(', ')}
-              onClick={() => onPick(cid)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onPick(cid);
-                }
-              }}
-            />
-          );
-        })}
-      <Compass x={L === WIDE ? 70 : 60} y={L === WIDE ? L.h - 80 : L.h - 70} r={L === WIDE ? 34 : 30} />
-    </svg>
-  );
-}
-
-function Compass({ x, y, r }: { x: number; y: number; r: number }) {
-  return (
-    <g className={s.compass} transform={`translate(${x} ${y})`} aria-hidden>
-      <circle r={r} />
-      <circle r={r * 0.62} />
-      <path d={`M0 ${-r * 1.15}L${r * 0.16} 0L0 ${r * 1.15}L${-r * 0.16} 0Z`} />
-      <path d={`M${-r * 1.15} 0L0 ${r * 0.16}L${r * 1.15} 0L0 ${-r * 0.16}Z`} />
-      <text y={-r * 1.32} fontSize={r * 0.42}>
-        N
-      </text>
-    </g>
   );
 }

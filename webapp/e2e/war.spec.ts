@@ -216,6 +216,7 @@ const patch = (path: string, data: Record<string, unknown>) =>
   );
 
 test('a private War: set it up, open the lobby, invite by @username, start when everyone is ready', async ({ page }, info) => {
+  test.slow(!!process.env.SHOTS); // full-page screenshots of the War board take a while on the phone
   await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
   await page.goto('dashboard');
   const uid = await signIn(page, `warl-${info.project.name}-${Date.now()}@example.com`);
