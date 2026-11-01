@@ -56,3 +56,22 @@ export const useIntel = (warId: string, uid: string) => useLiveDoc(`wars/${warId
 export const useWarLog = (warId: string | null) =>
   useLiveQuery(warId ? `warLog:${warId}` : null, () => query(collection(db(), 'wars', warId!, 'log'), orderBy('at', 'desc'), limit(40)), (id, d) => (typeof d.text === 'string' ? { id, text: d.text.slice(0, 160), at: Number(d.at) || 0 } : null));
 
+
+/**
+ * How busy a territory's stocks are (owner 2026-11-01), from the same simulated War zone prices the
+ * battles use: the average 24-hour move of its 3 companies. "surge" while a Chaos event is live in
+ * that sector; "major" from 4%; "high" from 2%; "low" under 0.5%; nothing in between.
+ */
+export type Activity = 'surge' | 'major' | 'high' | 'low';
+export const ACTIVITY = { major: 4, high: 2, low: 0.5 } as const;
+export function activityOf(territory: string, q: { prices: Record<string, { p: number; ref: number }> } | null, surgingSector: string | null): Activity | null {
+  if (surgingSector === territory) return 'surge';
+  if (!q) return null;
+  const moves = companiesOf(territory)
+    .map((c) => q.prices[c.sym])
+    .filter((x): x is { p: number; ref: number } => !!x && x.ref > 0)
+    .map((x) => Math.abs(x.p / x.ref - 1) * 100);
+  if (!moves.length) return null;
+  const avg = moves.reduce((a, b) => a + b, 0) / moves.length;
+  return avg >= ACTIVITY.major ? 'major' : avg >= ACTIVITY.high ? 'high' : avg < ACTIVITY.low ? 'low' : null;
+}
