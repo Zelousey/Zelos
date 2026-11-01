@@ -15,6 +15,7 @@ test('Sign in offers Apple and Google, with the Terms', async ({ page }) => {
   const google = sheet.getByRole('button', { name: 'Continue with Google' });
   await expect(apple).toBeVisible();
   await expect(google).toBeVisible();
+  await sheet.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((x) => x.finished))); // the sheet grows in as it opens: measure once it's done
   const [a, g] = [(await apple.boundingBox())!, (await google.boundingBox())!];
   expect(a.y).toBeLessThan(g.y); // Apple first
   expect(Math.abs(a.width - g.width)).toBeLessThan(2); // same size
