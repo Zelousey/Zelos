@@ -326,9 +326,24 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(mapView.getByRole('button', { name: /, Pal(,|$)/ })).toHaveCount(1);
   await expect(mapView.getByRole('button', { name: /, You, 45 soldiers(, Camouflaged)?(,|$)/ })).toHaveCount(1);
   await expect(mapView.getByRole('button', { name: /, Neutral/ })).toHaveCount(3);
+  // tapping a territory opens its details on the map; its button goes to the card with the actions
   await mapView.getByRole('button', { name: /, Pal(,|$)/ }).click();
+  const details = page.getByRole('region', { name: 'Territory details' });
+  await expect(details).toContainText('Enemy territory: Pal');
+  await expect(details.getByRole('list', { name: 'Companies in this territory' }).getByRole('listitem')).toHaveCount(3);
+  await details.getByRole('button', { name: /Claim, attack or defend/ }).click();
   await expect(tiles.locator('li:focus')).toContainText('Held by Pal');
-  if (process.env.SHOTS) await page.locator('svg[role=group]:visible').first().locator('xpath=../..').screenshot({ path: `${process.env.SHOTS}/war-mapboard-${info.project.name}.png` });
+  // the map's top bar: real buttons to each part of the War
+  const parts = page.getByRole('navigation', { name: 'Parts of this War' });
+  await expect(parts.getByRole('button')).toHaveText(['Territories', 'Standings', 'Army', 'Battles']);
+  await parts.getByRole('button', { name: 'Standings' }).click();
+  await expect(page.locator(`#war-${id}-standings`)).toBeFocused();
+  if (process.env.SHOTS) {
+    // hide the app's sticky top bar for the picture, so the whole board shows
+    const hide = await page.addStyleTag({ content: 'header { visibility: hidden !important; }' });
+    await page.locator('svg[role=group]:visible').first().locator('xpath=../..').screenshot({ path: `${process.env.SHOTS}/war-mapboard-${info.project.name}.png` });
+    await hide.evaluate((el) => el.remove());
+  }
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-map-${info.project.name}.png`, fullPage: true });
   // W4b: the contested territory is a battle; you have Command and pick Bear, and it starts
   await patch(`wars/${id}`, {

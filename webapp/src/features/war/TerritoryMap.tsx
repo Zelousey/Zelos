@@ -14,12 +14,13 @@
  * Activity tags come from the same simulated prices the battles use (see activityOf). On a phone the
  * board keeps its layout and scrolls sideways.
  */
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import boardUrl from './board/board.jpg';
 import { BOARD, BORDERS, REGIONS, SPOTS } from './board/boardShapes';
-import { activityOf, SECTOR_NAME, type Activity } from './map';
+import { activityOf, companiesOf, SECTOR_NAME, type Activity } from './map';
 import { chaosNow, useWarChaos, useWarQuotes } from './war';
 import s from './TerritoryMap.module.css';
 
@@ -49,6 +50,88 @@ const at = (x: number, y: number, w: number, h: number): CSSProperties => ({
   height: `${(h / BOARD.h) * 100}%`,
 });
 
+const LOGO = `${import.meta.env.BASE_URL}icons/icon-192.png`;
+
+/** Bring a part of the War page into view and put the keyboard there. */
+function goTo(target: string) {
+  const el = document.getElementById(target);
+  if (!el) return;
+  el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+  el.focus({ preventScroll: true });
+}
+
+/** A soldier: helmet, vest, rifle at the ready (our own drawing, one colour). */
+export function Soldier({ on = true, className }: { on?: boolean; className?: string }) {
+  return (
+    <svg viewBox="0 0 16 32" aria-hidden className={`${on ? s.troopOn : s.troopOff} ${className ?? ''}`}>
+      <path d="M3 7.4Q3.2 1.6 8 1.4Q12.8 1.6 13 7.4L14.2 8.2H1.8Z" />
+      <path d="M5.6 9.2H10.4V10.6Q10.2 12.6 8 12.8Q5.8 12.6 5.6 10.6Z" />
+      <path d="M3.2 14.2Q8 12.4 12.8 14.2L13.4 22.2H2.6Z" />
+      <path className={s.troopDetail} d="M5 15.6H11M5 18.4H11" />
+      <path d="M3 22.6H7.5L7.1 31H4.1ZM8.5 22.6H13L11.9 31H8.9Z" />
+      <path d="M0.6 19.8L13.6 12.2L14.6 13.6L1.6 21.2Z" />
+      <path d="M12.6 12.8L15.4 11.2L15.9 12L13.1 13.6Z" />
+    </svg>
+  );
+}
+
+const TONE_KEY = { mine: 'wmap.k.mine', enemy: 'wmap.k.enemy', neutral: 'wmap.k.neutral', contested: 'wmap.k.contested', out: 'wmap.k.out' } as const;
+
+/** One territory up close: who holds it, your soldiers, activity, its 3 companies on War Zone prices. */
+function Details({ id, v, act, q, onClose, onGo, goLabel }: { id: string; v: TerritoryView; act: Activity | null; q: { prices: Record<string, { p: number; ref: number }> } | null; onClose: () => void; onGo: () => void; goLabel: string }) {
+  return (
+    <div className={`${s.detailsBody} ${s[v.tone]}`}>
+      <div className={s.detailsHead}>
+        <SectorIcon id={id} className={s.sectorIcon} />
+        <h3 className={s.detailsName}>{SECTOR_NAME[id] ?? id}</h3>
+        <button type="button" className={s.detailsClose} aria-label={t('wmap.closeDetails')} onClick={onClose}>
+          ×
+        </button>
+      </div>
+      <dl className={s.detailsFacts}>
+        <dt>{t('wmap.d.holder')}</dt>
+        <dd>
+          <i className={s.dot} /> {t(TONE_KEY[v.tone])}: {v.line}
+        </dd>
+        {v.extra && (
+          <>
+            <dt>{t('wmap.d.defenders')}</dt>
+            <dd>{v.extra}</dd>
+          </>
+        )}
+        {(act || v.hot) && (
+          <>
+            <dt>{t('wmap.d.activity')}</dt>
+            <dd>{[v.hot && t('war.hot'), act && t(ACTIVITY_KEY[act])].filter(Boolean).join(' · ')}</dd>
+          </>
+        )}
+      </dl>
+      <ul className={s.detailsCos} aria-label={t('wmap.d.companies')}>
+        {companiesOf(id).map((c) => {
+          const x = q?.prices[c.sym];
+          const chg = x && x.ref ? (x.p / x.ref - 1) * 100 : null;
+          return (
+            <li key={c.sym}>
+              <span>
+                <b>{c.sym}</b>
+                <small>{c.name}</small>
+              </span>
+              <span className={s.detailsPx}>
+                {x ? formatMoney(x.p) : '…'}
+                {chg !== null && <small className={chg >= 0 ? s.up : s.down}>{`${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`}</small>}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <button type="button" className={s.detailsGo} onClick={onGo}>
+        {goLabel} ↓
+      </button>
+    </div>
+  );
+}
+
 function SectorIcon({ id, className }: { id: string; className?: string }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden className={className}>
@@ -64,11 +147,21 @@ export function TerritoryMap({
   label,
   status,
   deploy,
+  title,
+  nav = [],
+  pickLabel,
 }: {
   territories: string[];
   view: Record<string, TerritoryView>;
+  /** Go to a territory's card (its buttons), from the details panel. */
   onPick: (id: string) => void;
   label: string;
+  /** The War's name, in the board's top bar. */
+  title?: string;
+  /** The top bar's buttons: each scrolls to a part of the War page (by element id). */
+  nav?: { label: string; target: string }[];
+  /** The details panel's button: what you do on a territory's card ("Place soldiers", "Claim or attack"). */
+  pickLabel?: string;
   /** The phase box: the phase, a big line (time left) and a small one. */
   status?: { title: string; big?: string; line?: ReactNode };
   /** While claiming: your soldiers placed out of your army. */
@@ -88,11 +181,40 @@ export function TerritoryMap({
     if (el && el.scrollWidth > el.clientWidth) el.scrollLeft = (el.scrollWidth * 205) / BOARD.w;
   }, []);
   const mine = ORDER.filter((id) => territories.includes(id) && shown(id).tone === 'mine');
+  const [sel, setSel] = useState<string | null>(null);
+  const pick = (id: string) => setSel((cur) => (cur === id ? null : id));
+  const q = quotes.status === 'ready' ? quotes.data : null;
   const figures = deploy ? Math.round((deploy.placed / Math.max(1, deploy.total)) * 5) : 0;
   return (
     <div className={s.scroller} ref={scroller}>
       <div className={s.board} data-board>
-        <Board territories={territories} shown={shown} activity={activity} onPick={onPick} label={label} />
+        <Board territories={territories} shown={shown} activity={activity} onPick={pick} label={label} selected={sel} />
+
+        {/* the top bar: our logo, the War's name, and buttons to each part of the War page */}
+        <div className={s.topBar} style={at(0, 0, BOARD.w, 116)}>
+          <span className={s.brand}>
+            <img src={LOGO} alt="" />
+            <span>
+              <b>ZELOS</b>
+              <small>{t('wmap.brandSub')}</small>
+            </span>
+          </span>
+          {nav.length > 0 && (
+            <nav className={s.topNav} aria-label={t('wmap.navLabel')}>
+              {nav.map((n) => (
+                <button key={n.target} type="button" className={s.topBtn} onClick={() => goTo(n.target)}>
+                  {n.label}
+                </button>
+              ))}
+            </nav>
+          )}
+          {title && (
+            <span className={s.topTitle}>
+              <b>{title}</b>
+              <small>{t('war.sim')}</small>
+            </span>
+          )}
+        </div>
 
         {/* the left-hand panels */}
         <div className={s.panel} style={at(8, 138, 197, 435)}>
@@ -102,11 +224,11 @@ export function TerritoryMap({
               const v = shown(id);
               return (
                 <li key={id}>
-                  <button type="button" className={`${s.sector} ${s[v.tone]}`} disabled={v.tone === 'out'} onClick={() => onPick(id)}>
+                  <button type="button" className={`${s.sector} ${s[v.tone]} ${sel === id ? s.sectorOn : ''}`} disabled={v.tone === 'out'} aria-pressed={sel === id} onClick={() => pick(id)}>
                     <SectorIcon id={id} className={s.sectorIcon} />
                     <span>
                       <b>{SECTOR_NAME[id] ?? id}</b>
-                      <small>{v.line}</small>
+                      <small>{[v.line, v.extra].filter(Boolean).join(' · ')}</small>
                     </span>
                   </button>
                 </li>
@@ -146,10 +268,7 @@ export function TerritoryMap({
             <span className={s.deployBody}>
               <span className={s.troops} aria-hidden>
                 {Array.from({ length: 5 }, (_, i) => (
-                  <svg key={i} viewBox="0 0 12 24" className={!deploy || i < figures ? s.troopOn : s.troopOff}>
-                    <circle cx="6" cy="4" r="3.2" />
-                    <path d="M2 9.5Q6 7.5 10 9.5L10.8 16H9.2L8.6 23H3.4L2.8 16H1.2Z" />
-                  </svg>
+                  <Soldier key={i} on={!deploy || i < figures} />
                 ))}
               </span>
               <b className={s.deployCount}>{deploy ? t('wmap.deployN', { placed: deploy.placed, total: deploy.total }) : t('wmap.deployHeld', { n: mine.length })}</b>
@@ -161,7 +280,7 @@ export function TerritoryMap({
               {Array.from({ length: 5 }, (_, i) => {
                 const id = mine[i];
                 return id ? (
-                  <button key={i} type="button" className={s.chip} onClick={() => onPick(id)}>
+                  <button key={i} type="button" className={`${s.chip} ${sel === id ? s.chipOn : ''}`} aria-pressed={sel === id} onClick={() => pick(id)}>
                     <SectorIcon id={id} className={s.chipIcon} />
                     <span>{SECTOR_NAME[id]}</span>
                   </button>
@@ -173,6 +292,15 @@ export function TerritoryMap({
               })}
             </span>
           </div>
+        </div>
+
+        {/* the details of the territory you tapped, right side */}
+        <div className={`${s.panel} ${s.details}`} style={at(1017, 308, 176, 270)} role="region" aria-label={t('wmap.details')} aria-live="polite">
+          {sel ? (
+            <Details id={sel} v={shown(sel)} act={activity(sel)} q={q} onClose={() => setSel(null)} onGo={() => onPick(sel)} goLabel={pickLabel ?? t('wmap.goCard')} />
+          ) : (
+            <p className={s.detailsHint}>{t('wmap.detailsHint')}</p>
+          )}
         </div>
 
         {/* the legend, bottom right */}
@@ -217,12 +345,14 @@ function Board({
   activity,
   onPick,
   label,
+  selected,
 }: {
   territories: string[];
   shown: (id: string) => TerritoryView;
   activity: (id: string) => Activity | null;
   onPick: (id: string) => void;
   label: string;
+  selected: string | null;
 }) {
   const ids = ORDER;
   return (
@@ -259,6 +389,9 @@ function Board({
           </g>
         );
       })}
+
+      {/* the territory you tapped */}
+      {selected && REGIONS[selected] && <path d={REGIONS[selected]} fillRule="evenodd" className={s.selOutline} />}
 
       {/* labels (they cover the art's own logos and tickers), with ownership markers and activity */}
       {ids.map((id) => {
@@ -317,6 +450,7 @@ function Board({
               className={s.hit}
               role="button"
               tabIndex={0}
+              aria-pressed={selected === id}
               aria-label={[SECTOR_NAME[id] ?? id, v.line, v.extra, v.hot && t('war.hot'), act && t(ACTIVITY_KEY[act]), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')]
                 .filter(Boolean)
                 .join(', ')}

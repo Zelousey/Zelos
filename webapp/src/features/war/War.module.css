@@ -148,3 +148,7 @@ a.zoneCard:active, button.zoneCard:active { transform: translateY(1px); }
 .h_contested { background: #f2c14b; }
 .finished { color: var(--muted); font-size: var(--text-sm); }
 .finished summary { cursor: pointer; padding: var(--space-1) 0; }
+
+/* parts of a War page the map's top bar jumps to (the sticky top bar stays clear of them) */
+.anchor { display: grid; gap: var(--space-4); scroll-margin-top: 72px; }
+.anchor:focus { outline: none; }
