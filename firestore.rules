@@ -359,6 +359,11 @@ service cloud.firestore {
         allow write: if false;
       }
     }
+    // a player's War base (warbase.py): server write only, the owner reads it
+    match /warBases/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
     match /warProfiles/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;

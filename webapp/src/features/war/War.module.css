@@ -148,3 +148,4 @@ a.zoneCard:active, button.zoneCard:active { transform: translateY(1px); }
 .h_contested { background: #f2c14b; }
 .finished { color: var(--muted); font-size: var(--text-sm); }
 .finished summary { cursor: pointer; padding: var(--space-1) 0; }
+.zoneBase { background: linear-gradient(160deg, rgba(232, 178, 61, 0.12), var(--surface) 55%); border-color: rgba(232, 178, 61, 0.45); }

@@ -452,3 +452,37 @@ test('going broke: reset the War balance once a week; past seasons and top 3', a
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-reset-${info.project.name}.png`, fullPage: true });
 });
+
+test('your base: build a Gold Mine and upgrade the Headquarters, in minutes, with real gold', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `wbase-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  await page.goto('war');
+  await page.getByRole('link', { name: /Open your base/ }).click();
+  await expect(page.getByRole('heading', { name: 'Your base', level: 1 })).toBeVisible({ timeout: 30_000 });
+  const hud = page.getByRole('group', { name: 'Your base resources' });
+  await expect(hud).toContainText('1,500gold', { timeout: 30_000 }); // this season's starter gold
+  await expect(hud).toContainText('0 / 3builders busy');
+  // build a Gold Mine: the menu picks a free spot next to the Headquarters; the server takes the gold
+  const menu = page.getByRole('region', { name: 'Build' });
+  await menu.getByRole('button', { name: /Gold Mine/ }).click();
+  await expect(page.getByRole('region', { name: 'Placing a building' })).toContainText('Place your Gold Mine');
+  await page.getByRole('button', { name: 'Build here (150 gold)' }).click();
+  await expect(page.getByText('Gold Mine: construction started.')).toBeVisible({ timeout: 30_000 });
+  await expect(hud).toContainText('1,350gold');
+  await expect(hud).toContainText('1 / 3builders busy');
+  const land = page.getByRole('application', { name: 'Your base' });
+  await expect(land.getByRole('button', { name: /^Gold Mine, Under construction, ready in \d+s$/ })).toBeVisible();
+  // upgrade the Headquarters at the same time (a second builder)
+  await land.getByRole('button', { name: /^Trading Headquarters, Level 1/ }).click();
+  const hq = page.getByRole('region', { name: 'Trading Headquarters' });
+  await expect(hq).toContainText('Allows 1 Gold Mine(s) and buildings up to level 2.');
+  await hq.getByRole('button', { name: 'Upgrade to level 2 · 600 gold · 5m 00s' }).click();
+  await expect(page.getByText('Trading Headquarters: upgrade started.')).toBeVisible({ timeout: 30_000 });
+  await expect(hud).toContainText('750gold');
+  await expect(hud).toContainText('2 / 3builders busy');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-base-${info.project.name}.png`, fullPage: true });
+});

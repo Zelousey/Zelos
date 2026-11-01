@@ -29,7 +29,7 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
     shipped later on main). Compare with main, then ask the owner whether to close it.
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
-None. (W6c, the War map, is app-only: it goes live with the normal website deploy after CI.)
+- **War base prototype (W8-C0)**, after its PR merges: `cd ~/Zelos && git pull && firebase deploy --only firestore:rules,functions:war_lobby,functions:war_market_tick` (the new `warBases` rule, the base actions, and the minute job that finishes constructions).
 Deployed by the owner on 2026-10-29 (from home): War W2, W3 and W4a; on 2026-10-30: War W4b, W5a and W5b; on 2026-10-31: War W5c, W6a, W6b1 and W6b2. Earlier on 2026-10-29: the Trade War match listing rule (#123), Help & feedback (Phase 8a), Battle rematch (Phase 9), squad rulesets (Phase 10a–10c, re-sent in small groups after a full deploy hit Google's update limit) and War W1.
 Tip: never run a bare `firebase deploy --only functions` (about 80 functions at once hits Google's update limit and fails part-way); deploy the named functions, in groups of about 8.
 

@@ -299,6 +299,16 @@ test('War zone: prices for anyone signed in, the engine for nobody, a War profil
   await assertFails(setDoc(doc(real('alice').firestore(), 'warProfiles/alice'), { cash: 1e9 }));
 });
 
+test('War base: its owner reads it, nobody writes it (gold and timers come from the server)', async () => {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'warBases/alice'), { gold: 1500, buildings: {} });
+  });
+  await assertSucceeds(getDoc(doc(real('alice').firestore(), 'warBases/alice')));
+  await assertFails(getDoc(doc(real('bob').firestore(), 'warBases/alice')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'warBases/alice'), { gold: 1e9 }));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'warBases/alice'), { gold: 1500, buildings: { mine9: { level: 5 } } }));
+});
+
 test('private Wars: its players and the people invited can read it; nobody writes it', async () => {
   await env.withSecurityRulesDisabled(async (c) => {
     await setDoc(doc(c.firestore(), 'wars/w1'), { status: 'lobby', players: ['alice'], invited: ['bob'], name: 'Sector clash' });
