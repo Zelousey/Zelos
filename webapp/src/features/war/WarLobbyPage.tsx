@@ -12,8 +12,7 @@ import { Badge, Button, Card, Confirm, Field, LoadingState, PageHeader, useToast
 import { errorText } from '../invites/invites';
 import NotFoundPage from '../notfound/NotFoundPage';
 import { WarGate } from './Gate';
-import { armyOf, shieldedUntil, useWar, warLobby, WAR_ID_RE, ZONE_SIZE, type PrivateWar, type WarConfig } from './lobby';
-import { statusKey } from './PrivateWars';
+import { armyOf, shieldedUntil, statusKey, useWar, warLobby, WAR_ID_RE, ZONE_SIZE, type PrivateWar, type WarConfig } from './lobby';
 import { WarMap } from './WarMap';
 import { WarSettingsForm } from './WarSettingsForm';
 import s from './War.module.css';

@@ -65,14 +65,15 @@ describe('AppShell', () => {
     expect(within(tabbar).getByRole('link', { name: 'Market' }).className).toMatch(/active/); // the chain sits under Market
   });
 
-  it('Trade War is a hub: with nothing running it asks how you want to play, and the section row links every part', async () => {
+  it('Trade War is a hub: it always asks how you want to play, and the section row links every part', async () => {
     renderAt('/trade-war');
     expect(await screen.findByRole('heading', { name: 'How do you want to play?' })).toBeInTheDocument();
     const modes = screen.getByRole('list', { name: 'Ways to play' });
     expect(within(modes).getByRole('link', { name: /^Solo/ })).toHaveAttribute('href', '/trade-war/solo');
     expect(within(modes).getByRole('link', { name: /^Battle/ })).toHaveAttribute('href', '/battles');
-    expect(within(modes).getAllByRole('link')).toHaveLength(2); // Squad is inside Battle; the simulated war zone shows once built (owner 2026-10-28)
-    expect(within(modes).getByRole('link', { name: /^Solo/ })).toHaveTextContent('real stocks at live market prices');
+    expect(within(modes).getAllByRole('link')).toHaveLength(2); // Squad is inside Battle; War Zone shows to admins only until War opens
+    expect(within(modes).getByRole('link', { name: /^Solo/ })).toHaveTextContent('Practice trading on your own');
+    expect(within(modes).getByRole('link', { name: /^Solo/ })).toHaveTextContent('No opponents');
     const row = screen.getByRole('navigation', { name: 'Trade War sections' });
     expect(within(row).getAllByRole('link').map((a) => a.textContent)).toEqual(['Overview', 'Solo', 'Battle', 'Leaderboards', 'Strategies']);
     expect(within(row).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');

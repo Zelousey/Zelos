@@ -1,8 +1,10 @@
 /**
  * Trade War (/trade-war): the hub for everything you play (Phase 5).
  *
- *   /trade-war           opens Solo, the Overview or the mode picker (hub.ts → pickStart)
- *   /trade-war/overview  your battles and squads, recent results, leaderboard, strategies
+ *   /trade-war           the three modes on top (Solo, Battle, War Zone), then your battles and
+ *                        squads, recent results, leaderboard, strategies (owner 2026-11-01: the
+ *                        Trade War tab always opens here, so the modes are never a guess)
+ *   /trade-war/overview  the same page
  *   /trade-war/solo      your Solo account (the one virtual $10,000 practice account)
  *
  * Battle, Squad, Leaderboards and Strategies are their own screens with the same section
@@ -24,17 +26,16 @@ import { useVolMap } from '../options/model';
 import { usePracticeAccount, valueAccount } from '../practice/account';
 import { useMySquadList } from '../social/squads';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
-import { inSoloSession, pickStart } from './hub';
+import { useCanPost } from '../news/news';
 import { TradeWarNav } from './TradeWarNav';
 import s from './TradeWar.module.css';
 
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
-const BRAND = `${import.meta.env.BASE_URL}icons/icon-192.png`;
 
 export default function TradeWarModule() {
   return (
     <Routes>
-      <Route index element={<Start />} />
+      <Route index element={<Overview />} />
       <Route path="overview" element={<Overview />} />
       <Route path="solo" element={<Solo />} />
       <Route path="*" element={<Navigate to="/trade-war" replace />} />
@@ -63,61 +64,50 @@ function useBattles() {
   return { uid, wars, list, open };
 }
 
-function Start() {
-  const { open } = useBattles();
-  const [solo] = useState(inSoloSession);
-  const where = pickStart({ soloSession: solo, active: open });
-  if (where === 'solo') return <Navigate to="/trade-war/solo" replace />;
-  if (where === 'overview') return <Overview />;
-  if (where === 'modes') return <Modes />;
-  return (
-    <Hub>
-      <LoadingState rows={4} />
-    </Hub>
-  );
-}
-
-const MODES: { id: string; icon: IconName; title: MessageKey; body: MessageKey; to: string }[] = [
-  { id: 'solo', icon: 'practice', title: 'hub.mode.solo', body: 'hub.mode.solo.body', to: '/trade-war/solo' },
-  { id: 'battle', icon: 'war', title: 'hub.mode.battle', body: 'hub.mode.battle.body', to: '/battles' },
+type Mode = { id: 'solo' | 'battle' | 'war'; icon: IconName; title: MessageKey; who: MessageKey; body: MessageKey; tags: MessageKey[]; to: string };
+const MODES: Mode[] = [
+  { id: 'solo', icon: 'practice', title: 'hub.mode.solo', who: 'hub.mode.solo.who', body: 'hub.mode.solo.body', tags: ['hub.tag.real', 'hub.tag.alone', 'hub.tag.10k'], to: '/trade-war/solo' },
+  { id: 'battle', icon: 'war', title: 'hub.mode.battle', who: 'hub.mode.battle.who', body: 'hub.mode.battle.body', tags: ['hub.tag.real', 'hub.tag.duels', 'hub.tag.squads'], to: '/battles' },
+  { id: 'war', icon: 'signal', title: 'hub.mode.war', who: 'hub.mode.war.who', body: 'hub.mode.war.body', tags: ['hub.tag.sim', 'hub.tag.land', 'hub.tag.allDay'], to: '/war' },
 ];
 
-/** Solo / Battle (N3; owner 2026-10-28: Squad lives inside Battle, the War zone shows once it's built). */
+/** Solo / Battle / War Zone (owner 2026-11-01): three different games, each saying who it's against.
+ *  War Zone shows only to admins until War opens (WAR_OPEN on the server). */
 function ModeGrid() {
+  const { user, isReal } = useAuth();
+  const admin = useCanPost(isReal && user ? user.uid : null);
+  const modes = MODES.filter((m) => m.id !== 'war' || admin);
   return (
-    <ul className={s.modes} aria-label={t('hub.modes')}>
-      {MODES.map((m) => (
+    <ul className={`${s.modes} ${modes.length === 2 ? s.modes2 : ''}`} aria-label={t('hub.modes')}>
+      {modes.map((m) => (
         <li key={m.id}>
-          <Link to={m.to} className={s.mode}>
-            <span className={s.tileIcon}>
-              <Icon name={m.icon} size={22} />
+          <Link to={m.to} className={`${s.mode} ${s[`mode_${m.id}`]}`} aria-labelledby={`mode-${m.id}`} aria-describedby={`mode-${m.id}-who mode-${m.id}-body`}>
+            <span className={s.modeTop}>
+              <span className={s.tileIcon}>
+                <Icon name={m.icon} size={22} />
+              </span>
+              <span className={s.modeWho} id={`mode-${m.id}-who`}>
+                {t(m.who)}
+              </span>
             </span>
-            <span className={s.tileText}>
-              <b>{t(m.title)}</b>
-              <span>{t(m.body)}</span>
+            <b className={s.modeTitle} id={`mode-${m.id}`}>
+              {t(m.title)}
+            </b>
+            <span className={s.modeBody} id={`mode-${m.id}-body`}>
+              {t(m.body)}
             </span>
-            <Icon name="chevronRight" size={18} />
+            <span className={s.modeTags}>
+              {m.tags.map((x) => (
+                <span key={x}>{t(x)}</span>
+              ))}
+            </span>
+            <span className={s.modeGo} aria-hidden="true">
+              {t('hub.mode.go', { mode: t(m.title) })} <Icon name="chevronRight" size={16} />
+            </span>
           </Link>
         </li>
       ))}
     </ul>
-  );
-}
-
-/** C: nothing running yet, so pick how you want to play. */
-function Modes() {
-  return (
-    <Hub>
-      <section className={s.pick} aria-labelledby="tw-pick">
-        <img className={s.pickArt} src={BRAND} alt="" width={72} height={72} />
-        <h2 id="tw-pick" className={s.pickTitle}>
-          {t('hub.pick.title')}
-        </h2>
-        <p className={s.muted}>{t('hub.pick.body')}</p>
-        <ModeGrid />
-      </section>
-      <StrategiesPromo />
-    </Hub>
   );
 }
 
@@ -144,6 +134,12 @@ function Overview() {
   const squadList = squads.status === 'ready' ? squads.data : [];
   return (
     <Hub>
+      <section aria-labelledby="tw-start">
+        <h2 id="tw-start" className={s.sectionTitle}>
+          {t('hub.pick.title')}
+        </h2>
+        <ModeGrid />
+      </section>
       <Summary uid={uid} live={running.filter((w) => w.status === 'active').length} waiting={running.filter((w) => w.status !== 'active').length} squads={uid && squads.status === 'ready' ? squadList.length : null} loading={open === null} />
       <section aria-labelledby="tw-open">
         <h2 id="tw-open" className={s.sectionTitle}>
@@ -187,12 +183,6 @@ function Overview() {
             )}
           </Card>
         </div>
-      </section>
-      <section aria-labelledby="tw-start">
-        <h2 id="tw-start" className={s.sectionTitle}>
-          {t('hub.start')}
-        </h2>
-        <ModeGrid />
       </section>
       {done.length > 0 && (
         <section aria-labelledby="tw-recent">
@@ -242,7 +232,7 @@ function Summary({ uid, live, waiting, squads, loading }: { uid: string | null; 
   return (
     <Card pad aria-label={t('hub.summary')}>
       <div className={s.summary}>
-        <Stat label={<Scoped mode="hub.solo" what="hub.sum.value" />} value={v ? formatMoney(v.equity) : acct.status === 'loading' ? '…' : <Link to="/trade-war/solo">{t('hub.sum.none')}</Link>} />
+        <Stat label={<Scoped mode="hub.solo" what="hub.sum.value" />} value={v ? formatMoney(v.equity) : acct.status === 'loading' ? '…' : <Link className={s.sumLink} to="/trade-war/solo">{t('hub.sum.none')}</Link>} />
         <Stat label={<Scoped mode="hub.battle" what="hub.sum.live" />} value={n(live)} />
         <Stat label={<Scoped mode="hub.battle" what="hub.sum.waiting" />} value={n(waiting)} />
         <Stat label={<Scoped mode="hub.squad" what="hub.sum.squads" />} value={n(squads)} />

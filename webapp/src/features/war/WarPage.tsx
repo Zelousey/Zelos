@@ -14,8 +14,9 @@ import { Badge, Button, Card, Change, Confirm, EmptyState, Field, Icon, LoadingS
 import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import { WarGate } from './Gate';
-import { PrivateWars } from './PrivateWars';
-import { WarZones } from './WarZones';
+import { Seasons } from './WarZones';
+import { ZoneGrid } from './ZoneGrid';
+import { TradeWarNav } from '../tradewar/TradeWarNav';
 import {
   browserTz,
   BY_SYM,
@@ -76,7 +77,10 @@ function WarZone({ uid }: { uid: string }) {
           </span>
         }
       />
+      <TradeWarNav />
       {chaos && banner && <ChaosBanner c={chaos} live={banner === 'live'} />}
+      <ZoneGrid uid={uid} p={p} />
+      <h2 className={s.zonesTitle}>{t('wz.trading')}</h2>
       <div className={s.cols}>
         <div className={s.stack}>
           <div className={s.balanceSlot}>{p ? <Balance p={p} q={q} /> : <LoadingState rows={2} />}</div>
@@ -93,14 +97,11 @@ function WarZone({ uid }: { uid: string }) {
               <Holdings p={p} q={q} onPick={setSym} />
             </div>
           )}
-          {p && (
+          {p && p.seasons.length > 0 && (
             <div className={s.warsSlot}>
-              <WarZones uid={uid} p={p} />
+              <Seasons p={p} />
             </div>
           )}
-          <div className={s.warsSlot}>
-            <PrivateWars uid={uid} />
-          </div>
           {p && (
             <div className={s.quietSlot}>
               <QuietHours quiet={p.quiet} />

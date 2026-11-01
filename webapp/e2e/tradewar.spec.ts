@@ -28,15 +28,14 @@ const axe = async (page: Page) => {
   return (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(' ')).join(', ')}`);
 };
 const row = (page: Page) => page.getByRole('navigation', { name: 'Trade War sections' });
-/** Wait until this tab has noted the Trade War section (hub.ts noteSection, sessionStorage). */
-const remembered = (page: Page, section: string) =>
-  page.waitForFunction((x) => (JSON.parse(sessionStorage.getItem('zelosTradeWarSection') ?? 'null') as { section?: string } | null)?.section === x, section);
 
-test('nothing running: the tab asks how you want to play; the section row switches without a reload', async ({ page }) => {
+test('the tab asks how you want to play: each mode says who it is against; the section row switches without a reload', async ({ page }) => {
   await page.goto('trade-war');
   await expect(page.getByRole('heading', { name: 'How do you want to play?' })).toBeVisible();
   const modes = page.getByRole('list', { name: 'Ways to play' });
-  await expect(modes.getByRole('link')).toHaveCount(2); // Solo and Battle (Squad is inside Battle); the war zone shows once built
+  await expect(modes.getByRole('link')).toHaveCount(2); // Solo and Battle (Squad is inside Battle); War Zone shows to admins until War opens
+  await expect(modes.getByRole('link', { name: 'Solo' })).toHaveAccessibleDescription(/^Just you Practice trading on your own/);
+  await expect(modes.getByRole('link', { name: 'Battle' })).toHaveAccessibleDescription(/^You vs other players/);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/modes-${test.info().project.name}.png`, fullPage: true });
   expect(await axe(page)).toEqual([]);
 
@@ -58,7 +57,7 @@ test('nothing running: the tab asks how you want to play; the section row switch
   await expect(page.getByText('Sign in to see your Solo account, your battles and your squads in one place.')).toBeVisible();
 });
 
-test('a running battle: the tab opens the Overview, every number says its mode; Solo reopens when you were last there', async ({ page }, info) => {
+test('a running battle: the Overview shows it, every number says its mode; the tab always opens the modes', async ({ page }, info) => {
   await page.goto('trade-war');
   const uid = await signIn(page, `hub-${info.project.name}${Date.now()}@example.com`);
   const now = Date.now();
@@ -79,17 +78,12 @@ test('a running battle: the tab opens the Overview, every number says its mode; 
   await expect(page.getByText('Leaderboard: Solo accounts (battle results stay in each battle room)')).toBeVisible();
   expect(await axe(page)).toEqual([]);
 
-  // A beats B: after Solo, the tab reopens Solo even with a battle running
+  // owner 2026-11-01: the Trade War tab always opens the hub with the modes, even after Solo
   await row(page).getByRole('link', { name: 'Solo', exact: true }).click();
   await expect(page).toHaveURL(/\/trade-war\/solo$/);
-  await remembered(page, 'solo'); // the tab remembers Solo before we leave (a reload right away could beat it)
-  await page.goto('dashboard');
   await page.getByRole('navigation', { name: 'Main' }).filter({ visible: true }).getByRole('link', { name: 'Trade War' }).click();
-  await expect(page).toHaveURL(/\/trade-war\/solo$/);
-  // another section ends the Solo session: back to the Overview
-  await row(page).getByRole('link', { name: 'Battle', exact: true }).click();
-  await remembered(page, 'battle');
-  await page.goto('trade-war');
+  await expect(page).toHaveURL(/\/trade-war$/);
+  await expect(page.getByRole('list', { name: 'Ways to play' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Your Trade War at a glance' })).toBeVisible();
 });
 
