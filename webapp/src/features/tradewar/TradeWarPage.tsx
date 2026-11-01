@@ -232,7 +232,7 @@ function Summary({ uid, live, waiting, squads, loading }: { uid: string | null; 
   return (
     <Card pad aria-label={t('hub.summary')}>
       <div className={s.summary}>
-        <Stat label={<Scoped mode="hub.solo" what="hub.sum.value" />} value={v ? formatMoney(v.equity) : acct.status === 'loading' ? '…' : <Link to="/trade-war/solo">{t('hub.sum.none')}</Link>} />
+        <Stat label={<Scoped mode="hub.solo" what="hub.sum.value" />} value={v ? formatMoney(v.equity) : acct.status === 'loading' ? '…' : <Link className={s.sumLink} to="/trade-war/solo">{t('hub.sum.none')}</Link>} />
         <Stat label={<Scoped mode="hub.battle" what="hub.sum.live" />} value={n(live)} />
         <Stat label={<Scoped mode="hub.battle" what="hub.sum.waiting" />} value={n(waiting)} />
         <Stat label={<Scoped mode="hub.squad" what="hub.sum.squads" />} value={n(squads)} />
