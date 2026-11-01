@@ -1,83 +1,20 @@
 /**
- * The War map (W6c, owner's design 2026-10-31): one board of the 10 sectors, seen through the whole
- * War. Territories are coloured by who holds them (yours blue, enemies red, neutral grey, contested
- * gold), with a soft glow and a faint texture, a simple sector icon of our own, the sector's name
- * and its holder. No pictures and no real company logos (War prices are simulated). Sectors that
- * aren't in this War are shown dark. Drawn as SVG so it updates live and scales to a phone: a wide
- * 4-3-3 board on bigger screens and a 2-column board on phones. Tapping a territory jumps to its
- * card below, where the actions are.
+ * The War map (W6c, owner's design 2026-10-31, reworked 2026-11-01 to look like their mockup): one
+ * island in a dark sea, cut into the 10 sector territories, seen through the whole War. Territories
+ * are coloured by who holds them (yours blue, enemies red, neutral grey, contested gold) with glowing
+ * borders, a raised coast, small islands and a compass. Each shows a simple sector icon of our own,
+ * its name and its holder: no pictures and no real company logos (War prices are simulated).
+ * Sectors that aren't in this War are dark. The land shapes come from scripts/gen_war_map.py (a wide
+ * map for computers, a tall one for phones). Tapping a territory jumps to its card below.
  */
+import type { ReactNode } from 'react';
 import { t } from '../../lib/i18n';
 import { SECTOR_NAME } from './map';
+import { TALL, WIDE, type MapShape } from './mapShapes';
 import s from './TerritoryMap.module.css';
 
 export type TerritoryTone = 'mine' | 'enemy' | 'neutral' | 'contested' | 'out';
 export type TerritoryView = { tone: TerritoryTone; line: string; extra?: string; hot?: boolean; warn?: 'enemy' | 'heavy' };
-
-type Cell = { id: string; x0: number; x1: number; y0: number; y1: number };
-type Layout = { w: number; h: number; cells: Cell[]; font: number };
-
-const row = (ids: string[], y0: number, y1: number, x0: number, x1: number): Cell[] => {
-  const step = (x1 - x0) / ids.length;
-  return ids.map((id, i) => ({ id, x0: x0 + i * step, x1: x0 + (i + 1) * step, y0, y1 }));
-};
-const WIDE: Layout = {
-  w: 1000,
-  h: 640,
-  font: 26,
-  cells: [
-    ...row(['tech', 'comms', 'health'], 40, 230, 80, 920),
-    ...row(['consumer', 'finance', 'energy', 'industrials'], 230, 420, 40, 960),
-    ...row(['realestate', 'materials', 'utilities'], 420, 600, 120, 880),
-  ],
-};
-const TALL: Layout = {
-  w: 600,
-  h: 1000,
-  font: 30,
-  cells: [
-    ...row(['tech', 'comms'], 30, 218, 30, 570),
-    ...row(['health', 'consumer'], 218, 406, 30, 570),
-    ...row(['finance', 'energy'], 406, 594, 30, 570),
-    ...row(['industrials', 'realestate'], 594, 782, 30, 570),
-    ...row(['materials', 'utilities'], 782, 970, 30, 570),
-  ],
-};
-
-/** A small, repeatable wobble so shared borders line up exactly between neighbours. */
-function wobble(a: number, b: number, amp: number) {
-  const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
-  return (v - Math.floor(v) - 0.5) * amp;
-}
-const STEP = 24;
-function edge(fixed: number, from: number, to: number, horizontal: boolean, amp: number): [number, number][] {
-  const pts: [number, number][] = [];
-  const dir = to > from ? 1 : -1;
-  const first = dir > 0 ? Math.ceil((from + 1) / STEP) * STEP : Math.floor((from - 1) / STEP) * STEP;
-  for (let v = first; dir > 0 ? v < to : v > to; v += dir * STEP) {
-    const j = wobble(horizontal ? v : fixed, horizontal ? fixed : v, amp);
-    pts.push(horizontal ? [v, fixed + j] : [fixed + j, v]);
-  }
-  return pts;
-}
-function outline(c: Cell, L: Layout): string {
-  const amp = (x: number, y: number, horizontal: boolean) => {
-    const outer = horizontal ? !L.cells.some((o) => o !== c && (o.y1 === y || o.y0 === y) && o.x0 < c.x1 && o.x1 > c.x0) : x === Math.min(...L.cells.filter((o) => o.y0 === c.y0).map((o) => o.x0)) || x === Math.max(...L.cells.filter((o) => o.y0 === c.y0).map((o) => o.x1));
-    return outer ? 26 : 14;
-  };
-  const corner = (x: number, y: number): [number, number] => [x, y + wobble(x, y, 14)]; // the same point for every cell that meets here
-  const pts: [number, number][] = [
-    corner(c.x0, c.y0),
-    ...edge(c.y0, c.x0, c.x1, true, amp(0, c.y0, true)),
-    corner(c.x1, c.y0),
-    ...edge(c.x1, c.y0, c.y1, false, amp(c.x1, 0, false)),
-    corner(c.x1, c.y1),
-    ...edge(c.y1, c.x1, c.x0, true, amp(0, c.y1, true)),
-    corner(c.x0, c.y1),
-    ...edge(c.x0, c.y1, c.y0, false, amp(c.x0, 0, false)),
-  ];
-  return 'M' + pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L') + 'Z';
-}
 
 /** Our own simple line icons, one per sector (24×24). */
 const ICON: Record<string, string> = {
@@ -93,65 +30,116 @@ const ICON: Record<string, string> = {
   utilities: 'M12 3s6 7 6 11a6 6 0 01-12 0c0-4 6-11 6-11z',
 };
 
-export function TerritoryMap({ territories, view, onPick, label }: { territories: string[]; view: Record<string, TerritoryView>; onPick: (id: string) => void; label: string }) {
+export function TerritoryMap({
+  territories,
+  view,
+  onPick,
+  label,
+  status,
+}: {
+  territories: string[];
+  view: Record<string, TerritoryView>;
+  onPick: (id: string) => void;
+  label: string;
+  /** The box in the map's corner: the phase, a big number (time left) and a line (your soldiers). */
+  status?: { title: string; big?: string; line?: ReactNode };
+}) {
+  const legend = (
+    <ul className={s.legend} aria-label={t('wmap.legend')}>
+      <li>
+        <i className={s.kMine} />
+        {t('wmap.k.mine')}
+      </li>
+      <li>
+        <i className={s.kEnemy} />
+        {t('wmap.k.enemy')}
+      </li>
+      <li>
+        <i className={s.kNeutral} />
+        {t('wmap.k.neutral')}
+      </li>
+      <li>
+        <i className={s.kContested} />
+        {t('wmap.k.contested')}
+      </li>
+      {territories.length < Object.keys(WIDE.cells).length && (
+        <li>
+          <i className={s.kOut} />
+          {t('wmap.k.out')}
+        </li>
+      )}
+    </ul>
+  );
   return (
     <div className={s.wrap}>
-      <Board L={WIDE} territories={territories} view={view} onPick={onPick} label={label} className={s.wide ?? ''} />
-      <Board L={TALL} territories={territories} view={view} onPick={onPick} label={label} className={s.tall ?? ''} />
-      <ul className={s.legend} aria-label={t('wmap.legend')}>
-        <li>
-          <i className={s.kMine} />
-          {t('wmap.k.mine')}
-        </li>
-        <li>
-          <i className={s.kEnemy} />
-          {t('wmap.k.enemy')}
-        </li>
-        <li>
-          <i className={s.kNeutral} />
-          {t('wmap.k.neutral')}
-        </li>
-        <li>
-          <i className={s.kContested} />
-          {t('wmap.k.contested')}
-        </li>
-        {territories.length < WIDE.cells.length && (
-          <li>
-            <i className={s.kOut} />
-            {t('wmap.k.out')}
-          </li>
+      <div className={s.stage}>
+        <Board L={WIDE} territories={territories} view={view} onPick={onPick} label={label} className={s.wide ?? ''} />
+        <Board L={TALL} territories={territories} view={view} onPick={onPick} label={label} className={s.tall ?? ''} />
+        {status && (
+          <div className={s.status}>
+            <span className={s.statusTitle}>{status.title}</span>
+            {status.big && <b className={s.statusBig}>{status.big}</b>}
+            {status.line && <span className={s.statusLine}>{status.line}</span>}
+          </div>
         )}
-      </ul>
+        <div className={s.legendBox}>{legend}</div>
+      </div>
     </div>
   );
 }
 
-function Board({ L, territories, view, onPick, label, className }: { L: Layout; territories: string[]; view: Record<string, TerritoryView>; onPick: (id: string) => void; label: string; className: string }) {
-  const id = `wm${L.w}`;
+function Board({ L, territories, view, onPick, label, className }: { L: MapShape; territories: string[]; view: Record<string, TerritoryView>; onPick: (id: string) => void; label: string; className: string }) {
+  const id = L === WIDE ? 'wmw' : 'wmt';
+  const font = L === WIDE ? 21 : 25;
   return (
     <svg className={`${s.svg} ${className}`} viewBox={`0 0 ${L.w} ${L.h}`} role="group" aria-label={label}>
       <defs>
-        <pattern id={`${id}-tex`} width="14" height="14" patternUnits="userSpaceOnUse">
-          <circle cx="3" cy="3" r="1" fill="#fff" opacity="0.07" />
-          <circle cx="10" cy="9" r="0.8" fill="#000" opacity="0.18" />
+        <radialGradient id={`${id}-sea`} cx="50%" cy="45%" r="75%">
+          <stop offset="0%" stopColor="#0f1d3a" />
+          <stop offset="100%" stopColor="#040812" />
+        </radialGradient>
+        <pattern id={`${id}-waves`} width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M0 20q10-6 20 0t20 0" fill="none" stroke="#5b7bc0" strokeOpacity="0.08" strokeWidth="1.2" />
         </pattern>
-        <filter id={`${id}-glow`} x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur stdDeviation="5" />
+        <pattern id={`${id}-tex`} width="12" height="12" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="3" r="0.9" fill="#fff" opacity="0.06" />
+          <circle cx="8" cy="9" r="1.1" fill="#000" opacity="0.16" />
+        </pattern>
+        <radialGradient id={`${id}-shade`} cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.28" />
+        </radialGradient>
+        <filter id={`${id}-glow`} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" />
         </filter>
+        <filter id={`${id}-shadow`} x="-10%" y="-10%" width="120%" height="130%">
+          <feGaussianBlur stdDeviation="14" />
+        </filter>
+        <clipPath id={`${id}-land`}>
+          <path d={L.coast} />
+        </clipPath>
       </defs>
-      {L.cells.map((c) => {
-        const inWar = territories.includes(c.id);
-        const v: TerritoryView = inWar ? (view[c.id] ?? { tone: 'neutral', line: t('wmap.neutral') }) : { tone: 'out', line: t('wmap.k.out') };
-        const d = outline(c, L);
-        const cx = (c.x0 + c.x1) / 2;
-        const cy = (c.y0 + c.y1) / 2;
-        const name = SECTOR_NAME[c.id] ?? c.id;
-        const f = L.font;
-        const nameF = Math.min(f, ((c.x1 - c.x0) * 0.84) / (name.length * 0.74)); // long names shrink to fit their land
-        const pick = () => inWar && onPick(c.id);
+      {/* the sea */}
+      <rect width={L.w} height={L.h} fill={`url(#${id}-sea)`} />
+      <rect width={L.w} height={L.h} fill={`url(#${id}-waves)`} />
+      {L.isles.map((d, i) => (
+        <g key={i} className={s.isle}>
+          <path d={d} transform="translate(0 5)" className={s.cliff} />
+          <path d={d} />
+        </g>
+      ))}
+      {/* the raised coast: a soft shadow in the water and a dark cliff under the land */}
+      <path d={L.coast} transform="translate(0 22)" className={s.shadow} filter={`url(#${id}-shadow)`} />
+      <path d={L.coast} transform="translate(0 12)" className={s.cliff} />
+      {Object.entries(L.cells).map(([cid, c]) => {
+        const inWar = territories.includes(cid);
+        const v: TerritoryView = inWar ? (view[cid] ?? { tone: 'neutral', line: t('wmap.neutral') }) : { tone: 'out', line: t('wmap.k.out') };
+        const name = SECTOR_NAME[cid] ?? cid;
+        const nameF = Math.min(font, (L === WIDE ? 200 : 160) / (name.length * 0.68)); // long names shrink to fit their land
+        const pick = () => inWar && onPick(cid);
         return (
           <g
-            key={c.id}
+            key={cid}
             className={`${s.terr} ${s[v.tone]}`}
             {...(inWar
               ? {
@@ -168,32 +156,51 @@ function Board({ L, territories, view, onPick, label, className }: { L: Layout; 
                 }
               : { 'aria-hidden': true })}
           >
-            <path d={d} className={s.glow} filter={`url(#${id}-glow)`} />
-            <path d={d} className={s.land} />
-            <path d={d} fill={`url(#${id}-tex)`} className={s.tex} />
-            <path d={d} className={s.rim} />
-            <g transform={`translate(${cx - f * 0.6} ${cy - f * 2.4}) scale(${(f * 1.2) / 24})`} className={s.icon}>
-              <path d={ICON[c.id] ?? ''} />
+            <path d={c.d} className={s.land} />
+            <path d={c.d} fill={`url(#${id}-shade)`} className={s.deco} />
+            <path d={c.d} fill={`url(#${id}-tex)`} className={s.deco} />
+            <g clipPath={`url(#${id}-land)`}>
+              <path d={c.d} className={s.glow} filter={`url(#${id}-glow)`} />
             </g>
-            <text x={cx} y={cy + f * 0.35} className={s.name} fontSize={nameF}>
+            <path d={c.d} className={s.rim} />
+            <circle cx={c.x} cy={c.y - font * 1.55} r={font * 0.95} className={s.badge} />
+            <g transform={`translate(${c.x - font * 0.6} ${c.y - font * 2.15}) scale(${(font * 1.2) / 24})`} className={s.icon}>
+              <path d={ICON[cid] ?? ''} />
+            </g>
+            <text x={c.x} y={c.y + font * 0.55} className={s.name} fontSize={nameF}>
               {name.toUpperCase()}
             </text>
-            <text x={cx} y={cy + f * 1.45} className={s.line} fontSize={f * 0.72}>
+            <text x={c.x} y={c.y + font * 1.5} className={s.line} fontSize={font * 0.64}>
               {v.line}
             </text>
             {v.extra && (
-              <text x={cx} y={cy + f * 2.3} className={s.line} fontSize={f * 0.6}>
+              <text x={c.x} y={c.y + font * 2.3} className={s.line} fontSize={font * 0.56}>
                 {v.extra}
               </text>
             )}
             {(v.hot || v.warn) && (
-              <text x={cx} y={cy + f * (v.extra ? 3.1 : 2.45)} className={v.warn === 'heavy' ? s.flagRed : s.flag} fontSize={f * 0.62}>
+              <text x={c.x} y={c.y + font * (v.extra ? 3.05 : 2.4)} className={v.warn === 'heavy' ? s.flagRed : s.flag} fontSize={font * 0.56}>
                 {[v.hot && t('war.hot').toUpperCase(), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy').toUpperCase()].filter(Boolean).join(' · ')}
               </text>
             )}
           </g>
         );
       })}
+      <Compass x={L === WIDE ? 70 : 60} y={L === WIDE ? L.h - 80 : L.h - 70} r={L === WIDE ? 34 : 30} />
     </svg>
+  );
+}
+
+function Compass({ x, y, r }: { x: number; y: number; r: number }) {
+  return (
+    <g className={s.compass} transform={`translate(${x} ${y})`} aria-hidden>
+      <circle r={r} />
+      <circle r={r * 0.62} />
+      <path d={`M0 ${-r * 1.15}L${r * 0.16} 0L0 ${r * 1.15}L${-r * 0.16} 0Z`} />
+      <path d={`M${-r * 1.15} 0L0 ${r * 0.16}L${r * 1.15} 0L0 ${-r * 0.16}Z`} />
+      <text y={-r * 1.32} fontSize={r * 0.42}>
+        N
+      </text>
+    </g>
   );
 }

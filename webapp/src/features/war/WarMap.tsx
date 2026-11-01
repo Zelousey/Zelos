@@ -13,7 +13,7 @@ import { Attacks, AttackSheet } from './Attacks';
 import { Battles } from './Battles';
 import { Standings } from './Standings';
 import { TerritoryMap, type TerritoryView } from './TerritoryMap';
-import { armyOf, warLobby, type PrivateWar } from './lobby';
+import { armyOf, warDay, warLobby, type PrivateWar } from './lobby';
 import { CAMO_COST, CAMO_MAX, companiesOf, MAX_PER_TERRITORY, placementProblem, SECTOR_NAME, useIntel, usePlacement, useWarLog, type Placement, type Warning } from './map';
 import { useWarQuotes } from './war';
 import s from './War.module.css';
@@ -69,6 +69,7 @@ function Claiming({ w, uid, saved, warnings, now }: { w: PrivateWar; uid: string
         territories={w.territories}
         label={t('wmap.mapLabel')}
         onPick={(x) => jumpTo(w.id, x)}
+        status={{ title: t('wmap.st.claim'), big: minutesLeft(w.claimEnds, now), line: t('wmap.st.soldiers', { placed, total }) }}
         view={Object.fromEntries(
           w.territories.map((x) => {
             const n = soldiers[x] ?? 0;
@@ -155,7 +156,19 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
   return (
     <>
       <Card title={claiming ? t('wmap.waitTitle') : t('wmap.boardTitle')} subtitle={claiming ? t(w.kind === 'zone' ? 'wzone.waitSub' : 'wmap.waitSub', { n: w.lockedCount, of: w.players.length, when: formatRelative(w.claimEnds ?? now, now) }) : t('wmap.boardSub')} flush>
-        <TerritoryMap territories={w.territories} label={t('wmap.mapLabel')} onPick={(x) => jumpTo(w.id, x)} view={boardView(w, uid, placement, warnings, name)} />
+        <TerritoryMap
+          territories={w.territories}
+          label={t('wmap.mapLabel')}
+          onPick={(x) => jumpTo(w.id, x)}
+          view={boardView(w, uid, placement, warnings, name)}
+          status={
+            claiming
+              ? { title: t('wmap.st.claim'), big: minutesLeft(w.claimEnds, now), line: t('wmap.lockedCount', { n: w.lockedCount, of: w.players.length }) }
+              : w.status === 'active'
+                ? { title: t('wmap.st.day', { n: warDay(w, now) + 1 }), big: w.endsAt ? t('wmap.st.ends', { when: formatRelative(w.endsAt, now) }) : undefined, line: t('wmap.st.held', { n: w.territories.filter((x) => w.map[x]?.state === 'owned' && w.map[x]?.owner === uid).length, of: w.territories.length }) }
+                : undefined
+          }
+        />
         <ul className={s.board} aria-label={t('wmap.tiles')}>
           {w.territories.map((x) => {
             const cell = w.map[x];
@@ -222,6 +235,12 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
       )}
     </>
   );
+}
+
+/** "42 min" until the claiming hour ends (the screen clock can lag the server). */
+function minutesLeft(until: number | null, now: number) {
+  if (!until) return undefined;
+  return t('wmap.st.min', { n: Math.max(0, Math.round((until - now) / 60000)) });
 }
 
 const tileId = (warId: string, x: string) => `terr-${warId}-${x}`;

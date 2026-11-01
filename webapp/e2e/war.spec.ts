@@ -281,6 +281,7 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(board.getByRole('button', { name: /, 50 of your soldiers$/ })).toHaveCount(1);
   await expect(board.getByRole('button', { name: /, 45 of your soldiers, Camouflaged$/ })).toHaveCount(1);
   await expect(page.getByRole('list', { name: 'Map colours' })).toContainText('Not in this War');
+  if (process.env.SHOTS) await page.locator('svg[role=group]:visible').first().screenshot({ path: `${process.env.SHOTS}/war-mapclaim-${info.project.name}.png` });
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-claim-${info.project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: 'Lock in' }).click();
@@ -311,6 +312,7 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(mapView.getByRole('button', { name: /, Neutral/ })).toHaveCount(3);
   await mapView.getByRole('button', { name: /, Pal$/ }).click();
   await expect(tiles.locator('li:focus')).toContainText('Held by Pal');
+  if (process.env.SHOTS) await page.locator('svg[role=group]:visible').first().screenshot({ path: `${process.env.SHOTS}/war-mapboard-${info.project.name}.png` });
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-map-${info.project.name}.png`, fullPage: true });
   // W4b: the contested territory is a battle; you have Command and pick Bear, and it starts
   await patch(`wars/${id}`, {
@@ -391,7 +393,7 @@ test('open War zones: join this season, see your zone and army, leave', async ({
   await expect(page.getByText('Season ends', { exact: true })).toBeVisible();
   await expect(page.locator('dt', { hasText: 'Your army' })).toBeVisible();
   await expect(page.locator('dt', { hasText: 'Your army' }).locator('+ dd')).toHaveText(/^\d+ soldiers$/);
-  await expect(page.getByRole('status').filter({ hasText: /^Season ends in .+ The land resets then/ })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /^Season ends .+ The land resets then/ })).toBeVisible();
   const midSeason = await page.getByText('Your land is shielded until').isVisible({ timeout: 5_000 }).catch(() => false);
   if (midSeason) await expect(page.getByText('Shielded', { exact: true })).toBeVisible(); // a drop-in after the claiming hour
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
