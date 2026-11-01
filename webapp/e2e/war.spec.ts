@@ -342,7 +342,7 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
     // hide the app's sticky top bar for the picture, so the whole board shows
     const hide = await page.addStyleTag({ content: 'header { visibility: hidden !important; }' });
     await page.locator('svg[role=group]:visible').first().locator('xpath=../..').screenshot({ path: `${process.env.SHOTS}/war-mapboard-${info.project.name}.png` });
-    await hide.evaluate((el) => el.remove());
+    await hide.evaluate((el) => (el as HTMLElement).remove());
   }
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-map-${info.project.name}.png`, fullPage: true });
   // W4b: the contested territory is a battle; you have Command and pick Bear, and it starts
