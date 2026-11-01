@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { mapSize, parseWar } from './lobby';
-import { parseIntel, parsePlacement, placementProblem } from './map';
+import { activityOf, companiesOf, parseIntel, parsePlacement, placementProblem } from './map';
 import { chaosNow, chartBars, COMPANIES, HOT_MS, parseBars, parseChaos, parseProfile, parseQuotes, QUIET_MAX_MIN, quietLength, SECTORS, warEquity } from './war';
 
 describe('War zone', () => {
@@ -90,5 +90,20 @@ describe('War zone', () => {
     expect(w.battles.tech!.sides).toEqual({ a: 'bear', b: 'bull' });
     expect([w.bonusPoints, w.redeployPasses]).toEqual([{ a: 1 }, { b: 1 }]);
     expect(parsePlacement({ reserve: 5, picks: { tech: { side: 'bull', sym: 'NIMBC' }, mars: { side: 'bull', sym: 'X' } } })).toMatchObject({ reserve: 5, picks: { tech: { side: 'bull', sym: 'NIMBC' } } });
+  });
+});
+
+describe('territory activity (owner 2026-11-01)', () => {
+  const q = (moves: Record<string, number>) => ({ prices: Object.fromEntries(Object.entries(moves).map(([s, m]) => [s, { p: 100 * (1 + m / 100), ref: 100 }])) });
+  const tech = companiesOf('tech').map((c) => c.sym);
+  it('averages the 24-hour moves of the territory’s 3 companies', () => {
+    expect(activityOf('tech', q({ [tech[0]!]: 5, [tech[1]!]: -4, [tech[2]!]: 3 }), null)).toBe('major'); // 4%
+    expect(activityOf('tech', q({ [tech[0]!]: 2, [tech[1]!]: -2, [tech[2]!]: 2.5 }), null)).toBe('high');
+    expect(activityOf('tech', q({ [tech[0]!]: 1, [tech[1]!]: -1, [tech[2]!]: 1 }), null)).toBeNull();
+    expect(activityOf('tech', q({ [tech[0]!]: 0.1, [tech[1]!]: -0.2, [tech[2]!]: 0 }), null)).toBe('low');
+  });
+  it('a live Chaos event in the sector is a market surge; no prices, no tag', () => {
+    expect(activityOf('tech', null, 'tech')).toBe('surge');
+    expect(activityOf('tech', null, 'energy')).toBeNull();
   });
 });

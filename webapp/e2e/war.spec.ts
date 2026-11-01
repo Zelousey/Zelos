@@ -279,8 +279,8 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   // W6c: the War map shows your placement as you go
   const board = page.getByRole('group', { name: /^The War map/ });
   await expect(board.getByRole('button')).toHaveCount(6); // the 4 sectors not in this War are dark and can't be tapped
-  await expect(board.getByRole('button', { name: /, 50 of your soldiers$/ })).toHaveCount(1);
-  await expect(board.getByRole('button', { name: /, 45 of your soldiers, Camouflaged$/ })).toHaveCount(1);
+  await expect(board.getByRole('button', { name: /, 50 of your soldiers(,|$)/ })).toHaveCount(1);
+  await expect(board.getByRole('button', { name: /, 45 of your soldiers, Camouflaged(,|$)/ })).toHaveCount(1);
   await expect(page.getByRole('list', { name: 'Map colours' })).toContainText('Not in this War');
   if (process.env.SHOTS) await page.locator('svg[role=group]:visible').first().locator('xpath=../..').screenshot({ path: `${process.env.SHOTS}/war-mapclaim-${info.project.name}.png` });
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
@@ -307,11 +307,11 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await expect(tiles.getByText('Neutral', { exact: true })).toHaveCount(3);
   // W6c: the map is coloured by who holds each territory; tapping one jumps to its card
   const mapView = page.getByRole('group', { name: /^The War map/ });
-  await expect(mapView.getByRole('button', { name: /, You vs Pal$/ })).toHaveCount(1);
-  await expect(mapView.getByRole('button', { name: /, Pal$/ })).toHaveCount(1);
-  await expect(mapView.getByRole('button', { name: /, You, 45 soldiers, Camouflaged$|, You, 45 soldiers$/ })).toHaveCount(1);
+  await expect(mapView.getByRole('button', { name: /, You vs Pal(,|$)/ })).toHaveCount(1);
+  await expect(mapView.getByRole('button', { name: /, Pal(,|$)/ })).toHaveCount(1);
+  await expect(mapView.getByRole('button', { name: /, You, 45 soldiers(, Camouflaged)?(,|$)/ })).toHaveCount(1);
   await expect(mapView.getByRole('button', { name: /, Neutral/ })).toHaveCount(3);
-  await mapView.getByRole('button', { name: /, Pal$/ }).click();
+  await mapView.getByRole('button', { name: /, Pal(,|$)/ }).click();
   await expect(tiles.locator('li:focus')).toContainText('Held by Pal');
   if (process.env.SHOTS) await page.locator('svg[role=group]:visible').first().locator('xpath=../..').screenshot({ path: `${process.env.SHOTS}/war-mapboard-${info.project.name}.png` });
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-map-${info.project.name}.png`, fullPage: true });

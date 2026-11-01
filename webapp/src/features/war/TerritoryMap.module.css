@@ -2,39 +2,68 @@
    Sizes are in art pixels (1206 wide), scaled with the board: --u is one art pixel. */
 .scroller { overflow-x: auto; overscroll-behavior-x: contain; background: #050a16; border-bottom: 1px solid var(--border); }
 .board { position: relative; width: 100%; min-width: 960px; aspect-ratio: 1206 / 817; container-type: inline-size; --u: calc(100cqw / 1206); color: #dbe5f7; font-family: 'Rajdhani', 'Barlow Semi Condensed', 'IBM Plex Sans', system-ui, sans-serif; }
-.art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; }
 
 /* owner colours */
-.mine { --own: #2f6bff; --glow: #8fb6ff; }
-.enemy { --own: #ff2d2d; --glow: #ff8f8a; }
-.contested { --own: #ffb000; --glow: #ffe08a; }
-.neutral { --own: #8c96a8; --glow: #d5deec; }
-.out { --own: rgba(2, 5, 12, 0.82); --glow: transparent; }
+.mine { --own: #2f6bff; --line: #8db7ff; }
+.enemy { --own: #ff2d2d; --line: #ff7a72; }
+.contested { --own: #ffb000; --line: #ffd36b; }
+.neutral { --own: #808080; --line: #d5deec; }
+.out { --own: rgba(2, 5, 12, 0.82); --line: transparent; }
 
-.tint, .edge { position: absolute; inset: 0; mask-size: 100% 100%; -webkit-mask-size: 100% 100%; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; pointer-events: none; }
-.tint { background: var(--own); mix-blend-mode: color; opacity: 0.92; }
-.tint.out { mix-blend-mode: normal; opacity: 1; }
-.tint.neutral { mix-blend-mode: saturation; opacity: 1; }
-.edge { background: var(--glow); mix-blend-mode: screen; }
+.overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* land: the owner's colour over the terrain (the terrain still shows through) */
+.fill { fill: var(--own); mix-blend-mode: color; opacity: 0.9; pointer-events: none; }
+.fill.neutral { mix-blend-mode: saturation; opacity: 1; }
+.fill.out { mix-blend-mode: normal; opacity: 1; }
+
+/* borders: every line once, thin; held land adds a band of the same width inside its own edge */
+.borderLine { fill: none; stroke: rgba(232, 238, 250, 0.55); stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+.coastLine { fill: none; stroke: rgba(200, 222, 255, 0.7); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+.faint { stroke: rgba(255, 255, 255, 0.12); }
+.band { fill: none; stroke: var(--line); stroke-width: 5; stroke-linejoin: round; pointer-events: none; }
+.halo { fill: none; stroke: var(--own); stroke-width: 14; opacity: 0.35; pointer-events: none; }
+.mine .halo { animation: breathe 3.2s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: 0.6; } }
 
 /* labels over each territory (they cover the art's own logos and tickers) */
-.overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
 .plate { pointer-events: none; }
-.plateBg { fill: #040915; stroke: var(--glow); stroke-width: 1.4; }
+.plateBg { fill: #040915; stroke: var(--line); stroke-width: 1.4; }
 .out .plateBg { stroke: rgba(255, 255, 255, 0.1); }
-.plateBadge { fill: var(--own); stroke: rgba(255, 255, 255, 0.5); stroke-width: 1; }
-.neutral .plateBadge { fill: #33405c; }
-.out .plateBadge { fill: #141b2b; stroke: rgba(255, 255, 255, 0.12); }
-.plateIcon path { fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.neutral .plateBg { stroke: rgba(213, 222, 236, 0.5); }
+.pulse .plateBg { animation: alert 2.4s ease-in-out infinite; }
+@keyframes alert { 50% { stroke: #ffd36b; stroke-width: 2.4; } }
+.plateIcon path { fill: none; stroke: #c9d6ee; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .plateName { fill: #fff; font-weight: 700; letter-spacing: 0.06em; text-anchor: middle; }
 .plateLine { fill: #c9d6ee; font-size: 10.5px; text-anchor: middle; }
 .plateExtra { fill: #9fb3d6; font-size: 9px; text-anchor: middle; }
+.plateClaim { fill: #ffd36b; font-size: 8.5px; font-weight: 700; letter-spacing: 0.1em; text-anchor: middle; }
 .out .plateName, .out .plateLine { fill: #5a6683; }
-.plateFlag { fill: #ffd36b; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.8); stroke-width: 3px; }
-.plateFlagRed { composes: plateFlag; fill: #ff9a93; }
+.out .plateIcon path { stroke: #3c4660; }
+.tag rect, .tagQuiet rect { fill: rgba(4, 9, 21, 0.92); stroke: #ffb000; stroke-width: 1; }
+.tag text, .tagQuiet text { fill: #ffd36b; font-size: 8.5px; font-weight: 700; letter-spacing: 0.08em; text-anchor: middle; }
+.tagQuiet rect { stroke: #3a4766; }
+.tagQuiet text { fill: #8a9cbd; }
+
+/* ownership markers: a shape as well as a colour */
+.marker { pointer-events: none; }
+.mkMine { fill: #2f6bff; stroke: #cfe0ff; stroke-width: 1.4; }
+.mkEnemy { fill: #d92121; stroke: #ffc4bf; stroke-width: 1.4; }
+.mkNeutral { fill: #3b475f; stroke: #c3cede; stroke-width: 1.2; }
+.mkContested { fill: #a87708; stroke: #ffe08a; stroke-width: 1.4; }
+.mkStroke { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mkInitial { fill: #fff; font-size: 12px; font-weight: 800; text-anchor: middle; }
+.mkBull circle { fill: #1e7a46; stroke: #8ff0b4; stroke-width: 1; }
+.mkBull path { fill: none; stroke: #8ff0b4; stroke-width: 1.4; stroke-linecap: round; }
+.mkBear circle { fill: #8f1d1d; stroke: #ffaaa4; stroke-width: 1; }
+
 .hit { fill: transparent; cursor: pointer; outline: none; }
 .hit:hover { fill: rgba(255, 255, 255, 0.06); }
 .hit:focus-visible { stroke: #fff; stroke-width: 3; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mine .halo, .pulse .plateBg { animation: none; }
+}
 
 /* panels laid over the art's own */
 .panel { position: absolute; box-sizing: border-box; background: #080f1f; border: 1px solid #1f3159; border-radius: calc(var(--u) * 4); padding: calc(var(--u) * 10) calc(var(--u) * 12); font-size: calc(var(--u) * 11); overflow: hidden; }

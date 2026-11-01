@@ -3,23 +3,28 @@
  * The owner's own artwork is the board (board/board.jpg). On top of it, in the same places as the
  * art's panels: the sector list, how it works, the phase box, your deployment and the legend, all
  * live. Each territory's own label is covered by ours (icon, sector, holder): the art's real-company
- * logos and tickers never show (trademarks; War prices are simulated). A territory someone holds is
- * recoloured to its owner (yours blue, enemies red, contested gold) with a glowing edge, keeping the
- * terrain; neutral land turns grey, like the legend says; sectors not in this War go dark. The shapes come
- * from scripts/gen_war_board.py. On a phone the board keeps its layout and scrolls sideways.
+ * logos and tickers never show (trademarks; War prices are simulated).
+ *
+ * Map polish (owner 2026-11-01): territory shapes and borders are vector lines traced once from the
+ * art (scripts/gen_war_board.py), so neighbours share exactly the same line. Every border is a thin
+ * shared line; a held territory adds an inner band in its owner's colour (yours blue, enemies red,
+ * contested gold) and its terrain is recoloured to match; neutral land turns grey; sectors not in this
+ * War go dark. Ownership is never colour alone: a blue shield with a check (yours), a red shield with
+ * the holder's initial (enemy), crossed swords with bull vs bear (contested), a grey flag (neutral).
+ * Activity tags come from the same simulated prices the battles use (see activityOf). On a phone the
+ * board keeps its layout and scrolls sideways.
  */
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { t } from '../../lib/i18n';
+import { useNow } from '../../lib/useNow';
 import boardUrl from './board/board.jpg';
-import { BOARD, SPOTS } from './board/boardShapes';
-import { SECTOR_NAME } from './map';
+import { BOARD, BORDERS, REGIONS, SPOTS } from './board/boardShapes';
+import { activityOf, SECTOR_NAME, type Activity } from './map';
+import { chaosNow, useWarChaos, useWarQuotes } from './war';
 import s from './TerritoryMap.module.css';
 
 export type TerritoryTone = 'mine' | 'enemy' | 'neutral' | 'contested' | 'out';
-export type TerritoryView = { tone: TerritoryTone; line: string; extra?: string; hot?: boolean; warn?: 'enemy' | 'heavy' };
-
-const MASKS = import.meta.glob<string>('./board/*.png', { eager: true, query: '?url', import: 'default' });
-const mask = (kind: 'm' | 'e', id: string) => MASKS[`./board/${kind}-${id}.png`];
+export type TerritoryView = { tone: TerritoryTone; line: string; extra?: string; hot?: boolean; warn?: 'enemy' | 'heavy'; initial?: string; claimable?: boolean };
 
 /** Our own simple line icons, one per sector (24×24). */
 const ICON: Record<string, string> = {
@@ -70,6 +75,12 @@ export function TerritoryMap({
   deploy?: { placed: number; total: number };
 }) {
   const shown = (id: string): TerritoryView => (territories.includes(id) ? (view[id] ?? { tone: 'neutral', line: t('wmap.neutral') }) : { tone: 'out', line: t('wmap.k.out') });
+  const quotes = useWarQuotes();
+  const chaosDoc = useWarChaos();
+  const now = useNow(60000);
+  const chaos = chaosDoc.status === 'ready' ? chaosDoc.data : null;
+  const surging = chaos && chaosNow(chaos, now).banner === 'live' ? chaos.scope : null;
+  const activity = (id: string): Activity | null => (territories.includes(id) ? activityOf(id, quotes.status === 'ready' ? quotes.data : null, surging) : null);
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
     // on a narrow screen, start with the map in view rather than the left-hand panels
@@ -81,74 +92,7 @@ export function TerritoryMap({
   return (
     <div className={s.scroller} ref={scroller}>
       <div className={s.board} data-board>
-        <img src={boardUrl} alt="" className={s.art} draggable={false} />
-
-        {/* who holds what: owner colours over the terrain, glowing edges, dark fog outside this War */}
-        {ORDER.map((id) => {
-          const tone = shown(id).tone;
-          const m = mask('m', id);
-          const e = mask('e', id);
-          return (
-            <div key={id} aria-hidden>
-              <div className={`${s.tint} ${s[tone]}`} style={{ maskImage: `url(${m})`, WebkitMaskImage: `url(${m})` }} />
-              {tone !== 'out' && tone !== 'neutral' && <div className={`${s.edge} ${s[tone]}`} style={{ maskImage: `url(${e})`, WebkitMaskImage: `url(${e})` }} />}
-            </div>
-          );
-        })}
-
-        <svg className={s.overlay} viewBox={`0 0 ${BOARD.w} ${BOARD.h}`} role="group" aria-label={label}>
-          {ORDER.map((id) => {
-            const v = shown(id);
-            const { x, y } = SPOTS[id]!;
-            const name = (SECTOR_NAME[id] ?? id).toUpperCase();
-            return (
-              <g key={id} className={`${s.plate} ${s[v.tone]}`} aria-hidden>
-                <rect x={x - 52} y={y - 42} width={104} height={v.extra ? 88 : 80} rx={4} className={s.plateBg} />
-                <circle cx={x} cy={y - 22} r={12} className={s.plateBadge} />
-                <g transform={`translate(${x - 7.5} ${y - 29.5}) scale(0.625)`} className={s.plateIcon}>
-                  <path d={ICON[id] ?? ''} />
-                </g>
-                <text x={x} y={y + 8} className={s.plateName} fontSize={Math.min(13, 132 / name.length)}>
-                  {name}
-                </text>
-                <text x={x} y={y + 23} className={s.plateLine}>
-                  {v.line}
-                </text>
-                {v.extra && (
-                  <text x={x} y={y + 36} className={s.plateExtra}>
-                    {v.extra}
-                  </text>
-                )}
-                {(v.hot || v.warn) && (
-                  <text x={x} y={y - 48} className={v.warn === 'heavy' ? s.plateFlagRed : s.plateFlag}>
-                    {[v.hot && t('war.hot').toUpperCase(), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy').toUpperCase()].filter(Boolean).join(' · ')}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-          {/* what you tap: each territory in this War */}
-          {ORDER.filter((id) => territories.includes(id)).map((id) => {
-            const v = shown(id);
-            return (
-              <polygon
-                key={id}
-                points={SPOTS[id]!.pts}
-                className={s.hit}
-                role="button"
-                tabIndex={0}
-                aria-label={[SECTOR_NAME[id] ?? id, v.line, v.extra, v.hot && t('war.hot'), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')].filter(Boolean).join(', ')}
-                onClick={() => onPick(id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onPick(id);
-                  }
-                }}
-              />
-            );
-          })}
-        </svg>
+        <Board territories={territories} shown={shown} activity={activity} onPick={onPick} label={label} />
 
         {/* the left-hand panels */}
         <div className={s.panel} style={at(8, 138, 197, 435)}>
@@ -260,5 +204,179 @@ export function TerritoryMap({
         </div>
       </div>
     </div>
+  );
+}
+
+const TONE_RANK: Record<TerritoryTone, number> = { out: 0, neutral: 1, enemy: 2, mine: 3, contested: 4 };
+const ACTIVITY_KEY = { surge: 'wmap.act.surge', major: 'wmap.act.major', high: 'wmap.act.high', low: 'wmap.act.low' } as const;
+
+/** The art, then owner colours over the terrain, borders, labels with ownership markers, and what you tap. */
+function Board({
+  territories,
+  shown,
+  activity,
+  onPick,
+  label,
+}: {
+  territories: string[];
+  shown: (id: string) => TerritoryView;
+  activity: (id: string) => Activity | null;
+  onPick: (id: string) => void;
+  label: string;
+}) {
+  const ids = ORDER;
+  return (
+    <svg className={s.overlay} viewBox={`0 0 ${BOARD.w} ${BOARD.h}`} role="group" aria-label={label}>
+      <defs>
+        {ids.map((id) => (
+          <clipPath key={id} id={`wb-clip-${id}`}>
+            <path d={REGIONS[id]} clipRule="evenodd" />
+          </clipPath>
+        ))}
+        <filter id="wb-soft" x="-5%" y="-5%" width="110%" height="110%">
+          <feGaussianBlur stdDeviation="3" />
+        </filter>
+      </defs>
+      <image href={boardUrl} width={BOARD.w} height={BOARD.h} preserveAspectRatio="none" />
+
+      {/* owner colours over the terrain */}
+      {ids.map((id) => (
+        <path key={id} d={REGIONS[id]} fillRule="evenodd" className={`${s.fill} ${s[shown(id).tone]}`} />
+      ))}
+
+      {/* every border once, thin; then an inner band in the owner's colour, the same width everywhere */}
+      {BORDERS.map((b, i) => {
+        const top = Math.max(b.a === 'sea' ? 0 : TONE_RANK[shown(b.a).tone], b.b === 'sea' ? 0 : TONE_RANK[shown(b.b).tone]);
+        return <path key={i} d={b.d} className={`${b.a === 'sea' || b.b === 'sea' ? s.coastLine : s.borderLine} ${top === 0 ? s.faint : ''}`} />;
+      })}
+      {ids.map((id) => {
+        const tone = shown(id).tone;
+        if (tone === 'neutral' || tone === 'out') return null;
+        return (
+          <g key={id} clipPath={`url(#wb-clip-${id})`} className={s[tone]}>
+            <path d={REGIONS[id]} className={s.halo} filter="url(#wb-soft)" />
+            <path d={REGIONS[id]} className={s.band} />
+          </g>
+        );
+      })}
+
+      {/* labels (they cover the art's own logos and tickers), with ownership markers and activity */}
+      {ids.map((id) => {
+        const v = shown(id);
+        const act = activity(id);
+        const { x, y } = SPOTS[id]!;
+        const name = (SECTOR_NAME[id] ?? id).toUpperCase();
+        const tags = [v.hot && t('war.hot').toUpperCase(), act && t(ACTIVITY_KEY[act]), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy').toUpperCase()].filter(Boolean) as string[];
+        const tall = v.extra ? 82 : 74;
+        return (
+          <g key={id} className={`${s.plate} ${s[v.tone]} ${act === 'surge' || act === 'major' || v.hot ? s.pulse : ''}`} aria-hidden>
+            <rect x={x - 54} y={y - 38} width={108} height={tall} rx={4} className={s.plateBg} />
+            <Marker x={x} y={y - 38} v={v} />
+            <g transform={`translate(${x - 6} ${y - 18}) scale(0.5)`} className={s.plateIcon}>
+              <path d={ICON[id] ?? ''} />
+            </g>
+            <text x={x} y={y + 6} className={s.plateName} fontSize={Math.min(13, 132 / name.length)}>
+              {name}
+            </text>
+            <text x={x} y={y + 21} className={s.plateLine}>
+              {v.line}
+            </text>
+            {v.extra && (
+              <text x={x} y={y + 33} className={s.plateExtra}>
+                {v.extra}
+              </text>
+            )}
+            {v.claimable && (
+              <text x={x} y={y + (v.extra ? 45 : 33)} className={s.plateClaim}>
+                {t('wmap.claimHere')}
+              </text>
+            )}
+            {tags.length > 0 && (
+              <g className={act === 'low' && !v.hot ? s.tagQuiet : s.tag}>
+                <rect x={x - 54} y={y - 38 + tall + 3} width={108} height={15} rx={3} />
+                <text x={x} y={y - 38 + tall + 13.5}>
+                  {(act === 'surge' || act === 'major' ? '⚡ ' : v.hot ? '▲ ' : '') + tags.join(' · ')}
+                </text>
+              </g>
+            )}
+          </g>
+        );
+      })}
+
+      {/* what you tap: each territory in this War, its whole shape */}
+      {ids
+        .filter((id) => territories.includes(id))
+        .map((id) => {
+          const v = shown(id);
+          const act = activity(id);
+          return (
+            <path
+              key={id}
+              d={REGIONS[id]}
+              fillRule="evenodd"
+              className={s.hit}
+              role="button"
+              tabIndex={0}
+              aria-label={[SECTOR_NAME[id] ?? id, v.line, v.extra, v.hot && t('war.hot'), act && t(ACTIVITY_KEY[act]), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')]
+                .filter(Boolean)
+                .join(', ')}
+              onClick={() => onPick(id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onPick(id);
+                }
+              }}
+            />
+          );
+        })}
+    </svg>
+  );
+}
+
+const SHIELD = 'M0,-12 L10,-8 L10,1 Q10,9 0,13 Q-10,9 -10,1 L-10,-8 Z';
+
+/** The ownership marker on top of a label: shapes as well as colours, so it reads at a glance. */
+function Marker({ x, y, v }: { x: number; y: number; v: TerritoryView }) {
+  if (v.tone === 'out') return null;
+  return (
+    <g transform={`translate(${x} ${y})`} className={s.marker}>
+      {v.tone === 'mine' && (
+        <>
+          <path d={SHIELD} className={s.mkMine} />
+          <path d="M-4.5,0.5 L-1,4 L5,-3.5" className={s.mkStroke} />
+        </>
+      )}
+      {v.tone === 'enemy' && (
+        <>
+          <path d={SHIELD} className={s.mkEnemy} />
+          <text y={4.5} className={s.mkInitial}>
+            {(v.initial ?? '?').slice(0, 1).toUpperCase()}
+          </text>
+        </>
+      )}
+      {v.tone === 'neutral' && (
+        <>
+          <circle r={11} className={s.mkNeutral} />
+          <path d="M-3.5,7 L-3.5,-7 M-3.5,-6.5 L5,-4 L-3.5,-1" className={s.mkStroke} />
+        </>
+      )}
+      {v.tone === 'contested' && (
+        <>
+          <circle r={12} className={s.mkContested} />
+          <path d="M-6,-6 L6,6 M6,-6 L-6,6 M-6,2.5 L-2.5,6 M6,2.5 L2.5,6" className={s.mkStroke} />
+          {/* bull vs bear: the two sides of the battle */}
+          <g transform="translate(-20 3)" className={s.mkBull}>
+            <circle r={5} />
+            <path d="M-4,-3 Q-7,-7 -5,-9 M4,-3 Q7,-7 5,-9" />
+          </g>
+          <g transform="translate(20 3)" className={s.mkBear}>
+            <circle r={5} />
+            <circle cx={-3.6} cy={-4} r={2} />
+            <circle cx={3.6} cy={-4} r={2} />
+          </g>
+        </>
+      )}
+    </g>
   );
 }

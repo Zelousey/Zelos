@@ -5,9 +5,12 @@ exactly, then we edit from there").
 
 Writes into webapp/src/features/war/board/:
   board.jpg            the artwork (1206 x 817)
-  m-<sector>.png       each territory's exact shape (white = the territory), for recolouring by owner
-  e-<sector>.png       a soft glow along each territory's edge, for the owner's border
-  boardShapes.ts       rough outlines (tap targets) and label spots, in artwork pixels
+  boardShapes.ts       each territory's shape and the border lines between territories (and the sea),
+                       as vector paths in artwork pixels, plus where each label sits
+
+One territory map (every land pixel belongs to exactly one territory) is traced into border lines;
+each line is shared by the two sides it separates, so neighbours always meet on the same line, with
+no gaps or overlaps. Territory shapes are rings of those same lines.
 
 Each territory in the art has its own colour. A rough outline (traced by hand below) says roughly
 where each one is; every land pixel near a border then goes to whichever nearby territory's average
@@ -45,11 +48,143 @@ def art(p):
     return ((p[0] + 400) / 2, (p[1] + 200) / 2)
 
 
-def alpha(m):
-    """White with the shape as transparency (CSS masks read the alpha channel)."""
-    out = Image.new("LA", m.size, 255)
-    out.putalpha(m)
+def tidy(lab, ids):
+    """Smooth the territory map and keep only each territory's main piece: the one under its label
+    (stray specks go to the sea)."""
+    for _ in range(2):
+        lab = np.asarray(Image.fromarray(lab).filter(ImageFilter.ModeFilter(7)))
+    out = np.zeros_like(lab)
+    for v, k in enumerate(ids, start=1):
+        arr = ((lab == v) * 255).astype(np.uint8)
+        ys, xs = np.nonzero(arr)
+        if not len(ys):
+            continue
+        lx, ly = LABEL[k]
+        n = int(np.argmin((xs - lx) ** 2 + (ys - ly) ** 2))  # the territory's pixel nearest its label
+        work = Image.fromarray(arr).copy()  # a copy Pillow can write to
+        ImageDraw.floodfill(work, (int(xs[n]), int(ys[n])), 128)
+        out[np.asarray(work) == 128] = v
+    for v in range(1, len(ids) + 1):
+        # holes inside a territory (dark art around labels, specks) that nobody else holds become its land
+        outside = Image.fromarray(((out != v) * 255).astype(np.uint8)).copy()
+        ImageDraw.floodfill(outside, (0, 0), 128)
+        out[(np.asarray(outside) == 255) & (out == 0)] = v
     return out
+
+
+def trace(lab):
+    """[(a, b, points, closed)]: the lines along pixel edges between different labels, split where
+    three or more meet, then simplified and smoothed (end points kept, so lines still meet)."""
+    H, W = lab.shape
+    P = np.zeros((H + 2, W + 2), dtype=np.int16)
+    P[1:-1, 1:-1] = lab
+    adj = {}
+
+    def add(p, q, pair):
+        adj.setdefault(p, []).append((q, pair))
+        adj.setdefault(q, []).append((p, pair))
+    hy, hx = np.nonzero(P[:-1, 1:-1] != P[1:, 1:-1])   # between pixel rows y-1 and y (corner row y)
+    for y, x in zip(hy.tolist(), hx.tolist()):
+        add((x, y), (x + 1, y), tuple(sorted((int(P[y, x + 1]), int(P[y + 1, x + 1])))))
+    vy, vx = np.nonzero(P[1:-1, :-1] != P[1:-1, 1:])   # between pixel columns x-1 and x (corner column x)
+    for y, x in zip(vy.tolist(), vx.tolist()):
+        add((x, y), (x, y + 1), tuple(sorted((int(P[y + 1, x]), int(P[y + 1, x + 1])))))
+
+    def junction(c):
+        x, y = c
+        return len(adj[c]) != 2 or len({int(P[y, x]), int(P[y, x + 1]), int(P[y + 1, x]), int(P[y + 1, x + 1])}) >= 3
+    seen = set()
+    out = []
+
+    def walk(c0, c1, pair):
+        pts = [c0, c1]
+        seen.add(frozenset((c0, c1)))
+        prev, cur = c0, c1
+        while not junction(cur) and cur != c0:
+            nxt = [q for q, _ in adj[cur] if q != prev][0]
+            seen.add(frozenset((cur, nxt)))
+            prev, cur = cur, nxt
+            pts.append(cur)
+        return pts
+    for c in adj:
+        if junction(c):
+            for q, pair in adj[c]:
+                if frozenset((c, q)) not in seen:
+                    out.append((pair[0], pair[1], walk(c, q, pair), False))
+    for c in adj:  # loops with no junction (a territory surrounded by one other, or an island)
+        for q, pair in adj[c]:
+            if frozenset((c, q)) not in seen:
+                pts = walk(c, q, pair)
+                out.append((pair[0], pair[1], pts, True))
+    return [(a, b, smooth(simplify(pts, 0.9), closed), closed) for a, b, pts, closed in out if len(pts) >= 2]
+
+
+def simplify(pts, tol):
+    """Douglas-Peucker: drop points within tol of the line through their neighbours."""
+    if len(pts) <= 2:
+        return pts
+    arr = np.asarray(pts, float)
+    a, b = arr[0], arr[-1]
+    ab = b - a
+    L = np.hypot(*ab)
+    rel = arr[1:-1] - a
+    d = np.hypot(rel[:, 0], rel[:, 1]) if L == 0 else np.abs(ab[0] * rel[:, 1] - ab[1] * rel[:, 0]) / L
+    idx = int(np.argmax(d)) + 1
+    if d[idx - 1] <= tol:
+        return [pts[0], pts[-1]]
+    return simplify(pts[:idx + 1], tol)[:-1] + simplify(pts[idx:], tol)
+
+
+def smooth(pts, closed, rounds=2):
+    """Chaikin corner cutting: rounds off pixel steps; a line's two end points never move."""
+    pts = [tuple(map(float, p)) for p in pts]
+    for _ in range(rounds):
+        if len(pts) < 3:
+            break
+        if closed:
+            ring = pts[:-1] if pts[0] == pts[-1] else pts
+            new = []
+            for i in range(len(ring)):
+                p, q = ring[i], ring[(i + 1) % len(ring)]
+                new += [(0.75 * p[0] + 0.25 * q[0], 0.75 * p[1] + 0.25 * q[1]), (0.25 * p[0] + 0.75 * q[0], 0.25 * p[1] + 0.75 * q[1])]
+            pts = new + [new[0]]
+        else:
+            new = [pts[0]]
+            for i in range(len(pts) - 1):
+                p, q = pts[i], pts[i + 1]
+                new += [(0.75 * p[0] + 0.25 * q[0], 0.75 * p[1] + 0.25 * q[1]), (0.25 * p[0] + 0.75 * q[0], 0.25 * p[1] + 0.75 * q[1])]
+            new.append(pts[-1])
+            pts = new
+    return pts
+
+
+def rings(parts):
+    """Join a territory's border lines end to end into closed rings."""
+    out, open_ = [], []
+    for pts, closed in parts:
+        (out if closed else open_).append(list(pts))
+    k = lambda p: (round(p[0], 3), round(p[1], 3))  # noqa: E731
+    while open_:
+        ring = open_.pop()
+        while k(ring[-1]) != k(ring[0]):
+            for i, c in enumerate(open_):
+                if k(c[0]) == k(ring[-1]):
+                    ring += c[1:]
+                elif k(c[-1]) == k(ring[-1]):
+                    ring += list(reversed(c))[1:]
+                else:
+                    continue
+                open_.pop(i)
+                break
+            else:
+                break  # couldn't close it: leave it as it is
+        out.append(ring)
+    return out
+
+
+def path(pts, closed):
+    d = "M" + "L".join("%.1f,%.1f" % p for p in pts)
+    return d + ("Z" if closed else "")
 
 
 def main(src):
@@ -84,7 +219,8 @@ def main(src):
     best = cost.argmin(axis=0)
     land = np.isfinite(cost.min(axis=0)) & (lum > 34)  # the dark sea stays out
     own = [(best == i) & land for i in range(len(ids))]
-    for i, k in enumerate(ids):
+    lab = np.zeros((H, W), dtype=np.uint8)  # 0 = sea, i + 1 = territory i
+    for i in range(len(ids)):
         # fill the holes the art's dark shadows and cities leave, without taking a neighbour's land
         m = Image.fromarray(own[i].astype(np.uint8) * 255).filter(ImageFilter.ModeFilter(9))
         closed = np.asarray(m.filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.MinFilter(31))) > 0
@@ -92,18 +228,32 @@ def main(src):
         for j in range(len(ids)):
             if j != i:
                 others |= own[j]
-        m = Image.fromarray((closed & ~others).astype(np.uint8) * 255).filter(ImageFilter.GaussianBlur(1.2))
-        alpha(m).save(os.path.join(OUT, "m-%s.png" % k), optimize=True)
-        edge = np.asarray(m.filter(ImageFilter.MaxFilter(5))).astype(np.int16) - np.asarray(m.filter(ImageFilter.MinFilter(5))).astype(np.int16)
-        e = Image.fromarray(np.clip(edge * 2, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2.5))
-        alpha(e).save(os.path.join(OUT, "e-%s.png" % k), optimize=True)
+        lab[(closed & ~others) & (lab == 0)] = i + 1
+    lab = tidy(lab, ids)
+    chains = trace(lab)
+    regions = {k: [] for k in ids}
+    borders = []
+    for a, b, pts, closed_loop in chains:
+        names = ["sea" if v == 0 else ids[v - 1] for v in (a, b)]
+        borders.append((names[0], names[1], pts, closed_loop))
+        for v in (a, b):
+            if v:
+                regions[ids[v - 1]].append((pts, closed_loop))
     lines = ["/** Generated by scripts/gen_war_board.py from the owner's reference art. Don't edit by hand. */",
              "export const BOARD = { w: %d, h: %d };" % (W, H),
-             "/** Rough outline (tap target) and the label spot of each territory, in art pixels. */",
-             "export const SPOTS: Record<string, { pts: string; x: number; y: number }> = {"]
+             "/** Where each territory's label sits, in art pixels. */",
+             "export const SPOTS: Record<string, { x: number; y: number }> = {"]
     for k in ids:
-        lines.append("  %s: { x: %d, y: %d, pts: '%s' }," % (k, LABEL[k][0], LABEL[k][1], " ".join("%d,%d" % p for p in polys[k])))
-    lines.append("};")
+        lines.append("  %s: { x: %d, y: %d }," % (k, LABEL[k][0], LABEL[k][1]))
+    lines += ["};", "/** Each territory's shape: rings of the shared border lines below (fill-rule evenodd). */",
+              "export const REGIONS: Record<string, string> = {"]
+    for k in ids:
+        lines.append("  %s: '%s'," % (k, " ".join(path(r, True) for r in rings(regions[k]))))
+    lines += ["};", "/** The border lines: each separates territory a from b ('sea' for the coast). */",
+              "export const BORDERS: { a: string; b: string; d: string }[] = ["]
+    for a, b, pts, closed_loop in borders:
+        lines.append("  { a: '%s', b: '%s', d: '%s' }," % (a, b, path(pts, closed_loop)))
+    lines.append("];")
     with open(os.path.join(OUT, "boardShapes.ts"), "w") as f:
         f.write("\n".join(lines) + "\n")
     print("wrote", OUT)

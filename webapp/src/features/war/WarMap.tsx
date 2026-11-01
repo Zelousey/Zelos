@@ -161,7 +161,7 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           territories={w.territories}
           label={t('wmap.mapLabel')}
           onPick={(x) => jumpTo(w.id, x)}
-          view={boardView(w, uid, placement, warnings, name)}
+          view={boardView(w, uid, placement, warnings, name, canAttack)}
           status={
             claiming
               ? { title: t('wmap.st.claim'), big: minutesLeft(w.claimEnds, now), line: t('wmap.lockedCount', { n: w.lockedCount, of: w.players.length }) }
@@ -254,7 +254,7 @@ function jumpTo(warId: string, x: string) {
 }
 
 /** What the map shows for each territory: who holds it, your soldiers there, Hot zones, warnings. */
-function boardView(w: PrivateWar, uid: string, placement: Placement | null, warnings: Record<string, Warning>, name: (p: string) => string): Record<string, TerritoryView> {
+function boardView(w: PrivateWar, uid: string, placement: Placement | null, warnings: Record<string, Warning>, name: (p: string) => string, canClaim: boolean): Record<string, TerritoryView> {
   return Object.fromEntries(
     w.territories.map((x) => {
       const cell = w.map[x];
@@ -262,9 +262,9 @@ function boardView(w: PrivateWar, uid: string, placement: Placement | null, warn
       let v: TerritoryView;
       if (!cell) v = { tone: n ? 'mine' : 'neutral', line: n ? t('wmap.k.yourN', { n }) : t('wmap.k.none') };
       else if (cell.state === 'owned' && cell.owner === uid) v = { tone: 'mine', line: t('wmap.you'), ...(n ? { extra: t('wmap.k.soldiersN', { n }) } : {}) };
-      else if (cell.state === 'owned') v = { tone: 'enemy', line: name(cell.owner ?? '') };
+      else if (cell.state === 'owned') v = { tone: 'enemy', line: name(cell.owner ?? ''), initial: name(cell.owner ?? '').slice(0, 1) };
       else if (cell.state === 'contested') v = { tone: 'contested', line: cell.contenders.map(name).join(' vs ') };
-      else v = { tone: 'neutral', line: t('wmap.neutral') };
+      else v = { tone: 'neutral', line: t('wmap.neutral'), claimable: canClaim };
       if (w.hot[x]) v.hot = true;
       if (!cell && warnings[x]) v.warn = warnings[x];
       return [x, v];
