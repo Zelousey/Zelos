@@ -1,11 +1,13 @@
 /**
- * The War map (W6c, owner's design 2026-10-31, reworked 2026-11-01 to look like their mockup): one
- * island in a dark sea, cut into the 10 sector territories, seen through the whole War. Territories
- * are coloured by who holds them (yours blue, enemies red, neutral grey, contested gold) with glowing
- * borders, a raised coast, small islands and a compass. Each shows a simple sector icon of our own,
- * its name and its holder: no pictures and no real company logos (War prices are simulated).
- * Sectors that aren't in this War are dark. The land shapes come from scripts/gen_war_map.py (a wide
- * map for computers, a tall one for phones). Tapping a territory jumps to its card below.
+ * The War map (W6c, owner's design 2026-10-31; reworked 2026-11-01 to look like their mockup): one
+ * raised island in a dark sea, cut into the 10 sector territories and seen through the whole War.
+ * The land has hills and valleys made in code (light and shade over generated noise, not pictures),
+ * a thick coast and glowing borders coloured by who holds each territory (yours blue, enemies red,
+ * neutral slate, contested gold). Each shows a simple sector icon of our own, its name and holder:
+ * no pictures and no real company logos (War prices are simulated). Sectors that aren't in this
+ * War are dark. Around the map, like the mockup: the sector list (computers), a phase box, the
+ * legend and, while claiming, your deployment. Shapes come from scripts/gen_war_map.py (a wide
+ * island for computers, a tall one for phones). Tapping a territory jumps to its card below.
  */
 import type { ReactNode } from 'react';
 import { t } from '../../lib/i18n';
@@ -29,6 +31,7 @@ const ICON: Record<string, string> = {
   materials: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5',
   utilities: 'M12 3s6 7 6 11a6 6 0 01-12 0c0-4 6-11 6-11z',
 };
+const ORDER = Object.keys(WIDE.cells);
 
 export function TerritoryMap({
   territories,
@@ -36,45 +39,41 @@ export function TerritoryMap({
   onPick,
   label,
   status,
+  deploy,
 }: {
   territories: string[];
   view: Record<string, TerritoryView>;
   onPick: (id: string) => void;
   label: string;
-  /** The box in the map's corner: the phase, a big number (time left) and a line (your soldiers). */
+  /** The phase box in the map's corner: the phase, a big line (time left) and a small one. */
   status?: { title: string; big?: string; line?: ReactNode };
+  /** While claiming: your soldiers placed out of your army. */
+  deploy?: { placed: number; total: number };
 }) {
-  const legend = (
-    <ul className={s.legend} aria-label={t('wmap.legend')}>
-      <li>
-        <i className={s.kMine} />
-        {t('wmap.k.mine')}
-      </li>
-      <li>
-        <i className={s.kEnemy} />
-        {t('wmap.k.enemy')}
-      </li>
-      <li>
-        <i className={s.kNeutral} />
-        {t('wmap.k.neutral')}
-      </li>
-      <li>
-        <i className={s.kContested} />
-        {t('wmap.k.contested')}
-      </li>
-      {territories.length < Object.keys(WIDE.cells).length && (
-        <li>
-          <i className={s.kOut} />
-          {t('wmap.k.out')}
-        </li>
-      )}
-    </ul>
-  );
+  const shown = (id: string): TerritoryView => (territories.includes(id) ? (view[id] ?? { tone: 'neutral', line: t('wmap.neutral') }) : { tone: 'out', line: t('wmap.k.out') });
   return (
     <div className={s.wrap}>
+      <ul className={s.sectors} aria-label={t('wmap.sectors')}>
+        {ORDER.filter((id) => territories.includes(id)).map((id) => {
+          const v = shown(id);
+          return (
+            <li key={id}>
+              <button type="button" className={`${s.sector} ${s[v.tone]}`} onClick={() => onPick(id)}>
+                <svg viewBox="0 0 24 24" aria-hidden className={s.sectorIcon}>
+                  <path d={ICON[id] ?? ''} />
+                </svg>
+                <span>
+                  <b>{SECTOR_NAME[id] ?? id}</b>
+                  <small>{v.line}</small>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
       <div className={s.stage}>
-        <Board L={WIDE} territories={territories} view={view} onPick={onPick} label={label} className={s.wide ?? ''} />
-        <Board L={TALL} territories={territories} view={view} onPick={onPick} label={label} className={s.tall ?? ''} />
+        <Board L={WIDE} territories={territories} shown={shown} onPick={onPick} label={label} className={s.wide ?? ''} />
+        <Board L={TALL} territories={territories} shown={shown} onPick={onPick} label={label} className={s.tall ?? ''} />
         {status && (
           <div className={s.status}>
             <span className={s.statusTitle}>{status.title}</span>
@@ -82,87 +81,130 @@ export function TerritoryMap({
             {status.line && <span className={s.statusLine}>{status.line}</span>}
           </div>
         )}
-        <div className={s.legendBox}>{legend}</div>
+        {deploy && (
+          <div className={s.deploy}>
+            <span className={s.statusTitle}>{t('wmap.deploy')}</span>
+            <span className={s.troops} aria-hidden>
+              {Array.from({ length: 10 }, (_, i) => (
+                <svg key={i} viewBox="0 0 12 24" className={i < Math.round((deploy.placed / Math.max(1, deploy.total)) * 10) ? s.troopOn : s.troopOff}>
+                  <circle cx="6" cy="4" r="3.2" />
+                  <path d="M2 9.5Q6 7.5 10 9.5L10.8 16H9.2L8.6 23H3.4L2.8 16H1.2Z" />
+                </svg>
+              ))}
+            </span>
+            <b className={s.deployCount}>{t('wmap.deployN', { placed: deploy.placed, total: deploy.total })}</b>
+          </div>
+        )}
+        <div className={s.legendBox}>
+          <ul className={s.legend} aria-label={t('wmap.legend')}>
+            <li>
+              <i className={s.kMine} />
+              {t('wmap.k.mine')}
+            </li>
+            <li>
+              <i className={s.kEnemy} />
+              {t('wmap.k.enemy')}
+            </li>
+            <li>
+              <i className={s.kNeutral} />
+              {t('wmap.k.neutral')}
+            </li>
+            <li>
+              <i className={s.kContested} />
+              {t('wmap.k.contested')}
+            </li>
+            {territories.length < ORDER.length && (
+              <li>
+                <i className={s.kOut} />
+                {t('wmap.k.out')}
+              </li>
+            )}
+          </ul>
+        </div>
       </div>
     </div>
   );
 }
 
-function Board({ L, territories, view, onPick, label, className }: { L: MapShape; territories: string[]; view: Record<string, TerritoryView>; onPick: (id: string) => void; label: string; className: string }) {
+function Board({ L, territories, shown, onPick, label, className }: { L: MapShape; territories: string[]; shown: (id: string) => TerritoryView; onPick: (id: string) => void; label: string; className: string }) {
   const id = L === WIDE ? 'wmw' : 'wmt';
   const font = L === WIDE ? 21 : 25;
+  const cells = Object.entries(L.cells);
   return (
     <svg className={`${s.svg} ${className}`} viewBox={`0 0 ${L.w} ${L.h}`} role="group" aria-label={label}>
       <defs>
-        <radialGradient id={`${id}-sea`} cx="50%" cy="45%" r="75%">
-          <stop offset="0%" stopColor="#0f1d3a" />
-          <stop offset="100%" stopColor="#040812" />
+        <radialGradient id={`${id}-sea`} cx="50%" cy="48%" r="72%">
+          <stop offset="0%" stopColor="#10234a" />
+          <stop offset="60%" stopColor="#081430" />
+          <stop offset="100%" stopColor="#03070f" />
         </radialGradient>
-        <pattern id={`${id}-waves`} width="40" height="40" patternUnits="userSpaceOnUse">
-          <path d="M0 20q10-6 20 0t20 0" fill="none" stroke="#5b7bc0" strokeOpacity="0.08" strokeWidth="1.2" />
+        <pattern id={`${id}-chart`} width="60" height="60" patternUnits="userSpaceOnUse">
+          <path d="M60 0H0V60" fill="none" stroke="#3d6bc4" strokeOpacity="0.08" strokeWidth="1" />
         </pattern>
-        <pattern id={`${id}-tex`} width="12" height="12" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="3" r="0.9" fill="#fff" opacity="0.06" />
-          <circle cx="8" cy="9" r="1.1" fill="#000" opacity="0.16" />
-        </pattern>
-        <radialGradient id={`${id}-shade`} cx="50%" cy="40%" r="70%">
-          <stop offset="0%" stopColor="#fff" stopOpacity="0.16" />
-          <stop offset="100%" stopColor="#000" stopOpacity="0.28" />
-        </radialGradient>
-        <filter id={`${id}-glow`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="6" />
+        <linearGradient id={`${id}-cliff`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1a2847" />
+          <stop offset="100%" stopColor="#060b17" />
+        </linearGradient>
+        {/* hills and valleys: light falling on generated noise, multiplied into the land colours */}
+        <filter id={`${id}-relief`} x="0" y="0" width={L.w} height={L.h} filterUnits="userSpaceOnUse">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="5" seed="11" result="n" />
+          <feDiffuseLighting in="n" surfaceScale="6" lightingColor="#ffffff" result="lit">
+            <feDistantLight azimuth="235" elevation="34" />
+          </feDiffuseLighting>
+          <feComposite in="SourceGraphic" in2="lit" operator="arithmetic" k1="1.8" k2="0" k3="0" k4="0" result="shaded" />
+          <feComposite in="shaded" in2="SourceAlpha" operator="in" />
         </filter>
-        <filter id={`${id}-shadow`} x="-10%" y="-10%" width="120%" height="130%">
-          <feGaussianBlur stdDeviation="14" />
+        <filter id={`${id}-glow`} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="7" />
+        </filter>
+        <filter id={`${id}-shadow`} x="-10%" y="-10%" width="120%" height="140%">
+          <feGaussianBlur stdDeviation="16" />
         </filter>
         <clipPath id={`${id}-land`}>
           <path d={L.coast} />
         </clipPath>
       </defs>
-      {/* the sea */}
+
       <rect width={L.w} height={L.h} fill={`url(#${id}-sea)`} />
-      <rect width={L.w} height={L.h} fill={`url(#${id}-waves)`} />
+      <rect width={L.w} height={L.h} fill={`url(#${id}-chart)`} />
       {L.isles.map((d, i) => (
         <g key={i} className={s.isle}>
-          <path d={d} transform="translate(0 5)" className={s.cliff} />
+          <path d={d} transform="translate(0 6)" fill={`url(#${id}-cliff)`} />
           <path d={d} />
         </g>
       ))}
-      {/* the raised coast: a soft shadow in the water and a dark cliff under the land */}
-      <path d={L.coast} transform="translate(0 22)" className={s.shadow} filter={`url(#${id}-shadow)`} />
-      <path d={L.coast} transform="translate(0 12)" className={s.cliff} />
-      {Object.entries(L.cells).map(([cid, c]) => {
-        const inWar = territories.includes(cid);
-        const v: TerritoryView = inWar ? (view[cid] ?? { tone: 'neutral', line: t('wmap.neutral') }) : { tone: 'out', line: t('wmap.k.out') };
+
+      {/* the raised island: a shadow in the water, then a thick cliff under the land */}
+      <path d={L.coast} transform="translate(0 30)" className={s.shadow} filter={`url(#${id}-shadow)`} />
+      {[18, 12, 6].map((dy) => (
+        <path key={dy} d={L.coast} transform={`translate(0 ${dy})`} fill={`url(#${id}-cliff)`} className={s.cliff} />
+      ))}
+
+      {/* land colours with the terrain light in them */}
+      <g filter={`url(#${id}-relief)`}>
+        {cells.map(([cid, c]) => (
+          <path key={cid} d={c.d} className={`${s.land} ${s[shown(cid).tone]}`} />
+        ))}
+      </g>
+
+      {/* borders: a soft glow inside the coast, a bright rim, a thin light bevel */}
+      <g clipPath={`url(#${id}-land)`}>
+        {cells.map(([cid, c]) => (
+          <path key={cid} d={c.d} className={`${s.glow} ${s[shown(cid).tone]}`} filter={`url(#${id}-glow)`} />
+        ))}
+      </g>
+      {cells.map(([cid, c]) => (
+        <path key={cid} d={c.d} className={`${s.rim} ${s[shown(cid).tone]}`} />
+      ))}
+      <path d={L.coast} className={s.coastLine} />
+
+      {/* labels */}
+      {cells.map(([cid, c]) => {
+        const v = shown(cid);
         const name = SECTOR_NAME[cid] ?? cid;
         const nameF = Math.min(font, (L === WIDE ? 200 : 160) / (name.length * 0.68)); // long names shrink to fit their land
-        const pick = () => inWar && onPick(cid);
         return (
-          <g
-            key={cid}
-            className={`${s.terr} ${s[v.tone]}`}
-            {...(inWar
-              ? {
-                  role: 'button',
-                  tabIndex: 0,
-                  'aria-label': [name, v.line, v.extra, v.hot && t('war.hot'), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')].filter(Boolean).join(', '),
-                  onClick: pick,
-                  onKeyDown: (e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      pick();
-                    }
-                  },
-                }
-              : { 'aria-hidden': true })}
-          >
-            <path d={c.d} className={s.land} />
-            <path d={c.d} fill={`url(#${id}-shade)`} className={s.deco} />
-            <path d={c.d} fill={`url(#${id}-tex)`} className={s.deco} />
-            <g clipPath={`url(#${id}-land)`}>
-              <path d={c.d} className={s.glow} filter={`url(#${id}-glow)`} />
-            </g>
-            <path d={c.d} className={s.rim} />
+          <g key={cid} className={`${s.label} ${s[v.tone]}`} aria-hidden>
             <circle cx={c.x} cy={c.y - font * 1.55} r={font * 0.95} className={s.badge} />
             <g transform={`translate(${c.x - font * 0.6} ${c.y - font * 2.15}) scale(${(font * 1.2) / 24})`} className={s.icon}>
               <path d={ICON[cid] ?? ''} />
@@ -186,6 +228,31 @@ function Board({ L, territories, view, onPick, label, className }: { L: MapShape
           </g>
         );
       })}
+
+      {/* what you tap: one invisible shape per territory in this War, on top of everything */}
+      {cells
+        .filter(([cid]) => territories.includes(cid))
+        .map(([cid, c]) => {
+          const v = shown(cid);
+          const name = SECTOR_NAME[cid] ?? cid;
+          return (
+            <path
+              key={cid}
+              d={c.d}
+              className={s.hit}
+              role="button"
+              tabIndex={0}
+              aria-label={[name, v.line, v.extra, v.hot && t('war.hot'), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')].filter(Boolean).join(', ')}
+              onClick={() => onPick(cid)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onPick(cid);
+                }
+              }}
+            />
+          );
+        })}
       <Compass x={L === WIDE ? 70 : 60} y={L === WIDE ? L.h - 80 : L.h - 70} r={L === WIDE ? 34 : 30} />
     </svg>
   );

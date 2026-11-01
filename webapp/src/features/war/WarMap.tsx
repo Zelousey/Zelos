@@ -69,7 +69,8 @@ function Claiming({ w, uid, saved, warnings, now }: { w: PrivateWar; uid: string
         territories={w.territories}
         label={t('wmap.mapLabel')}
         onPick={(x) => jumpTo(w.id, x)}
-        status={{ title: t('wmap.st.claim'), big: minutesLeft(w.claimEnds, now), line: t('wmap.st.soldiers', { placed, total }) }}
+        status={{ title: t('wmap.st.claim'), big: minutesLeft(w.claimEnds, now), line: t('wmap.lockedCount', { n: w.lockedCount, of: w.players.length }) }}
+        deploy={{ placed, total }}
         view={Object.fromEntries(
           w.territories.map((x) => {
             const n = soldiers[x] ?? 0;
