@@ -9,6 +9,7 @@ import { collection, limit, orderBy, query, where, type DocumentData } from 'fir
 import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
+import type { MessageKey } from '../../lib/i18n';
 
 export const DAYS = [1, 2, 3, 5, 7] as const;
 export const LOBBY_HOURS = [1, 6, 24] as const;
@@ -272,6 +273,32 @@ export const shieldedUntil = (w: PrivateWar, uid: string, now: number) => {
 export const ZONE_SIZE = 10;
 export const ZONE_LATE_PER_DAY = 10;
 export const ZONE_MIN_ARMY = 50;
+
+const STATUS: Record<string, MessageKey> = {
+  configuring: 'warl.st.configuring',
+  recruiting: 'warl.st.recruiting',
+  ready: 'warl.st.ready',
+  active: 'warl.st.active',
+  ended: 'warl.st.ended',
+  cancelled: 'warl.st.cancelled',
+};
+export const statusKey = (w: PrivateWar): MessageKey => STATUS[w.status === 'lobby' ? (w.stage ?? 'recruiting') : w.status]!;
+
+/** The order of the War Zone cards: running Wars first (your open zone, then private), lobbies, then finished. */
+export function sortZones(list: PrivateWar[]): PrivateWar[] {
+  const rank = (w: PrivateWar) => (w.status === 'active' ? (w.kind === 'zone' ? 0 : 1) : w.status === 'lobby' ? 2 : 3);
+  return [...list].sort((a, b) => rank(a) - rank(b) || (b.startedAt ?? b.deadline ?? 0) - (a.startedAt ?? a.deadline ?? 0));
+}
+
+/** One War Zone card's territory line: each territory on the map as yours, an enemy's, neutral or contested. */
+export type Holding = 'mine' | 'enemy' | 'neutral' | 'contested';
+export function holdings(w: PrivateWar, uid: string): { t: string; h: Holding }[] {
+  return w.territories.map((t) => {
+    const c = w.map[t];
+    const h: Holding = !c || c.state === 'neutral' ? 'neutral' : c.state === 'contested' ? 'contested' : c.owner === uid ? 'mine' : 'enemy';
+    return { t, h };
+  });
+}
 
 export const useWar = (id: string | null) => useLiveDoc(id && WAR_ID_RE.test(id) ? `wars/${id}` : null, (d) => parseWar(id!, d));
 export const useMyWars = (uid: string | null) =>

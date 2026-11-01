@@ -1,8 +1,8 @@
 /**
- * The War zone (Trade War realm, docs/WAR_DESIGN.md §20, §24): hidden until all of War is built,
+ * The War Zone (Trade War realm, docs/WAR_DESIGN.md §20, §24): hidden until all of War is built,
  * so it's "Page not found" for everyone but admins; an admin gets the one-time "prices are
  * simulated" explainer, a $100,000 War balance, the SIMULATED marking on the screen and the
- * chart, and can buy at the War zone price. W2: a Chaos event shows its banner and Hot stocks, and
+ * chart, and can buy at the War Zone price. W2: a Chaos event shows its banner and Hot stocks, and
  * quiet hours can be changed but never past 10 hours. W3: a private War goes from draft to open
  * lobby to started.
  */
@@ -55,7 +55,7 @@ async function signIn(page: Page, email: string): Promise<string> {
   );
 }
 const SECTOR: Record<string, string> = { tech: 'Tech', finance: 'Finance', health: 'Health', energy: 'Energy', consumer: 'Consumer', comms: 'Communication', industrials: 'Industrials', realestate: 'Real Estate', materials: 'Materials', utilities: 'Utilities' };
-// every other War zone company at $100, so a battle on any territory has prices
+// every other War Zone company at $100, so a battle on any territory has prices
 const OTHERS = [
   'QUBTR',
   'SYNAP',
@@ -115,15 +115,18 @@ async function seedMarket() {
   });
 }
 
-test('the War zone is hidden from everyone but admins', async ({ page }, info) => {
+test('the War Zone is hidden from everyone but admins', async ({ page }, info) => {
   await page.goto('dashboard');
   await signIn(page, `nowar-${info.project.name}-${Date.now()}@example.com`);
   await page.goto('war');
   await expect(page.getByText('Page not found')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'War zone' })).toHaveCount(0); // in no menu
+  await expect(page.getByRole('link', { name: /War Zone/ })).toHaveCount(0); // in no menu
+  await page.goto('trade-war');
+  await expect(page.getByRole('list', { name: 'Ways to play' }).getByRole('link')).toHaveCount(2); // Solo and Battle only
+  await expect(page.getByRole('link', { name: /War Zone/ })).toHaveCount(0);
 });
 
-test('an admin previews the War zone: simulated marking, $100,000 War balance, buy at the War zone price', async ({ page }, info) => {
+test('an admin previews the War Zone: simulated marking, $100,000 War balance, buy at the War Zone price', async ({ page }, info) => {
   await page.addInitScript(() => {
     if (!sessionStorage.getItem('warReset')) {
       localStorage.removeItem('zelosWarExplained'); // a first visit (once, so "seen" can stick)
@@ -134,16 +137,28 @@ test('an admin previews the War zone: simulated marking, $100,000 War balance, b
   const uid = await signIn(page, `war-${info.project.name}-${Date.now()}@example.com`);
   await put(`admins/${uid}`, { addedAt: 1 });
   await seedMarket();
-  await page.goto('war');
+  // an admin sees War Zone as the third mode (everyone else once War opens)
+  await page.goto('trade-war');
+  const modes = page.getByRole('list', { name: 'Ways to play' });
+  await expect(modes.getByRole('link')).toHaveCount(3, { timeout: 30_000 });
+  await expect(modes.getByRole('link', { name: 'War Zone' })).toHaveAccessibleDescription(/^Strategy game/);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/modes-admin-${info.project.name}.png`, fullPage: true });
+  await modes.getByRole('link', { name: 'War Zone' }).click();
+  await expect(page).toHaveURL(/\/war$/);
   const explain = page.getByRole('dialog', {
     name: 'Prices here are simulated',
   });
   await expect(explain).toBeVisible();
   await expect(explain).toContainText('isn’t real market data');
   await explain.getByRole('button', { name: 'Got it' }).click();
-  await expect(page.getByRole('heading', { name: 'War zone', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'War Zone', level: 1 })).toBeVisible();
   await expect(page.getByText('SIMULATED WAR ZONE').first()).toBeVisible();
   await expect(page.getByText('$100,000.00').first()).toBeVisible();
+  // the War Zone screen: your War Zones as cards, and a link back into the Trade War row
+  const zones = page.getByRole('list', { name: 'Your War Zones' });
+  await expect(zones.getByRole('button', { name: /Join a War Zone/ })).toBeVisible();
+  await expect(zones.getByRole('button', { name: /Start a private War/ })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Trade War sections' }).getByRole('link', { name: 'War Zone' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('region', { name: 'Tech' })).toContainText('Nimbus Cloud');
   await expect(page.getByText('Battle Level')).toBeVisible(); // W6a: a new War player starts as a Recruit
   await expect(page.getByText('Recruit', { exact: true })).toBeVisible();
@@ -152,7 +167,7 @@ test('an admin previews the War zone: simulated marking, $100,000 War balance, b
   await expect(page.getByRole('status').filter({ hasText: 'Chaos now: Energy' })).toContainText('swinging hard');
   await expect(page.getByRole('region', { name: 'Energy' }).getByRole('button', { name: /Voltex Energy/ })).toContainText('Hot');
   await expect(page.getByRole('region', { name: 'Tech' }).getByText('Hot')).toHaveCount(0);
-  await expect(page.getByText('live', { exact: false }).filter({ hasText: /\blive\b/i })).toHaveCount(0); // nothing in the War zone says "live"
+  await expect(page.getByText('live', { exact: false }).filter({ hasText: /\blive\b/i })).toHaveCount(0); // nothing in the War Zone says "live"
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS)
     await page.screenshot({
@@ -168,7 +183,7 @@ test('an admin previews the War zone: simulated marking, $100,000 War balance, b
   await expect(page.getByText('Cash $98,095.00 · started with $100,000')).toBeVisible();
   // the explainer shows once
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'War zone', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'War Zone', level: 1 })).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Prices here are simulated' })).toHaveCount(0);
 });
 
@@ -226,7 +241,7 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   await put(`usernames/${pal}`, { uid: `${pal}Uid0` });
   await seedMarket();
   await page.goto('war');
-  await expect(page.getByText('No private Wars yet. Start one and invite friends.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('list', { name: 'Your War Zones' })).toBeVisible({ timeout: 30_000 });
   await page.getByRole('button', { name: 'Start a private War' }).click();
   const sheet = page.getByRole('dialog', { name: 'Start a private War' });
   await sheet.getByLabel('War name').fill('Friday sector clash');
@@ -374,13 +389,15 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-results-${info.project.name}.png`, fullPage: true });
   await page
-    .getByRole('link', { name: /War zone/ })
+    .getByRole('link', { name: /War Zone/ })
     .first()
     .click();
-  await expect(page.getByRole('region', { name: 'Private Wars' }).or(page.getByLabel('Private Wars')).first()).toContainText('Friday sector clash');
+  await expect(page.getByRole('list', { name: 'Your War Zones' })).not.toContainText('Friday sector clash'); // finished Wars fold away
+  await page.getByText('Finished (1)').click();
+  await expect(page.getByRole('link', { name: /Friday sector clash/ })).toBeVisible();
 });
 
-test('open War zones: join this season, see your zone and army, leave', async ({ page }, info) => {
+test('open War Zones: join this season, see your zone and army, leave', async ({ page }, info) => {
   await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
   await page.goto('dashboard');
   const uid = await signIn(page, `warz-${info.project.name}-${Date.now()}@example.com`);
@@ -389,7 +406,7 @@ test('open War zones: join this season, see your zone and army, leave', async ({
   await page.goto('war');
   await expect(page.getByText('As a Recruit you play in a Rookie zone, with Recruits and Soldiers only.')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Join in the first hour to claim land in secret with your full army \(100 soldiers\)/)).toBeVisible();
-  await page.getByRole('button', { name: 'Join a War zone' }).click();
+  await page.getByRole('button', { name: 'Join a War Zone' }).click();
   await expect(page.getByRole('heading', { name: /^Rookie zone \d+$/, level: 1 })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('Season ends', { exact: true })).toBeVisible();
   await expect(page.locator('dt', { hasText: 'Your army' })).toBeVisible();
@@ -403,7 +420,7 @@ test('open War zones: join this season, see your zone and army, leave', async ({
   const dlg = page.getByRole('dialog', { name: 'Leave this zone?' });
   await dlg.getByRole('button', { name: 'Leave the zone' }).click();
   await expect(page.getByText('You left the zone.')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole('button', { name: 'Join a War zone' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Join a War Zone' })).toBeVisible();
   // W6b2: a Recruit can choose an open zone instead
   await page.getByRole('button', { name: 'Join an open zone' }).click();
   await expect(page.getByRole('heading', { name: /^Open zone \d+$/, level: 1 })).toBeVisible({ timeout: 30_000 });
