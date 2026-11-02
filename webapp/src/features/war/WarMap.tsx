@@ -69,6 +69,9 @@ function Claiming({ w, uid, saved, warnings, now }: { w: PrivateWar; uid: string
         territories={w.territories}
         label={t('wmap.mapLabel')}
         onPick={(x) => jumpTo(w.id, x)}
+        title={w.name}
+        nav={[{ label: t('wmap.nav.place'), target: sec(w.id, 'tiles') }]}
+        pickLabel={t('wmap.goPlace')}
         status={{ title: t('wmap.st.claim'), big: minutesLeft(w.claimEnds, now), line: t('wmap.lockedCount', { n: w.lockedCount, of: w.players.length }) }}
         deploy={{ placed, total }}
         view={Object.fromEntries(
@@ -81,7 +84,7 @@ function Claiming({ w, uid, saved, warnings, now }: { w: PrivateWar; uid: string
         )}
       />
       <p className={s.note}>{t('wmap.rules', { max: MAX_PER_TERRITORY, cost: CAMO_COST, camo: CAMO_MAX })}</p>
-      <ul className={s.rows} aria-label={t('wmap.tiles')}>
+      <ul className={s.rows} aria-label={t('wmap.tiles')} id={sec(w.id, 'tiles')}>
         {w.territories.map((x) => {
           const n = soldiers[x] ?? 0;
           const hidden = camo.includes(x);
@@ -161,6 +164,18 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           territories={w.territories}
           label={t('wmap.mapLabel')}
           onPick={(x) => jumpTo(w.id, x)}
+          title={w.name}
+          pickLabel={claiming ? t('wmap.goCard') : t('wmap.goAct')}
+          nav={
+            claiming
+              ? [{ label: t('wmap.nav.territories'), target: sec(w.id, 'tiles') }]
+              : [
+                  { label: t('wmap.nav.territories'), target: sec(w.id, 'tiles') },
+                  { label: t('wmap.nav.standings'), target: sec(w.id, 'standings') },
+                  ...(w.status === 'active' ? [{ label: t('wmap.nav.army'), target: sec(w.id, 'army') }] : []),
+                  { label: t('wmap.nav.battles'), target: sec(w.id, 'battles') },
+                ]
+          }
           view={boardView(w, uid, placement, warnings, name, canAttack)}
           status={
             claiming
@@ -170,7 +185,7 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
                 : undefined
           }
         />
-        <ul className={s.board} aria-label={t('wmap.tiles')}>
+        <ul className={s.board} aria-label={t('wmap.tiles')} id={sec(w.id, 'tiles')}>
           {w.territories.map((x) => {
             const cell = w.map[x];
             const n = placement?.soldiers[x] ?? 0;
@@ -217,10 +232,22 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           </p>
         )}
       </Card>
-      {!claiming && <Standings w={w} uid={uid} now={now} />}
-      {!claiming && w.status === 'active' && <Army w={w} uid={uid} placement={placement} now={now} />}
-      {!claiming && <Attacks w={w} uid={uid} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
-      {!claiming && <Battles w={w} uid={uid} placement={placement} q={quotes.status === 'ready' ? quotes.data : null} now={now} />}
+      {!claiming && (
+        <div id={sec(w.id, 'standings')} className={s.anchor}>
+          <Standings w={w} uid={uid} now={now} />
+        </div>
+      )}
+      {!claiming && w.status === 'active' && (
+        <div id={sec(w.id, 'army')} className={s.anchor}>
+          <Army w={w} uid={uid} placement={placement} now={now} />
+        </div>
+      )}
+      {!claiming && (
+        <div id={sec(w.id, 'battles')} className={s.anchor}>
+          <Attacks w={w} uid={uid} q={quotes.status === 'ready' ? quotes.data : null} now={now} />
+          <Battles w={w} uid={uid} placement={placement} q={quotes.status === 'ready' ? quotes.data : null} now={now} />
+        </div>
+      )}
       {target && <AttackSheet key={target} w={w} territory={target} onClose={() => setTarget(null)} />}
       {!claiming && log.status === 'ready' && log.data.length > 0 && (
         <Card title={t('wmap.logTitle')} flush>
@@ -245,6 +272,8 @@ function minutesLeft(until: number | null, now: number) {
 }
 
 const tileId = (warId: string, x: string) => `terr-${warId}-${x}`;
+/** A part of the War page the map's top bar can jump to. */
+const sec = (warId: string, part: 'tiles' | 'standings' | 'army' | 'battles') => `war-${warId}-${part}`;
 /** Tapping a territory on the map brings its card (and its buttons) into view. */
 function jumpTo(warId: string, x: string) {
   const el = document.getElementById(tileId(warId, x));
