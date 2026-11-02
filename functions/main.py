@@ -7479,9 +7479,9 @@ def war_lobby_pass(db, now_ms):
                 new_hot = war["hot"]
             if war.get("status") == "active" and war.get("phase") == "holding":
                 if now_ms >= war.get("endsAt", float("inf")):
-                    war = _war_scored(db, war, now_ms, final=True)
+                    war = _war_scored(db, war, now_ms, final=True, wid=ref.id)
                 elif now_ms >= (war.get("standingsDue") or 0) or att_events or events:
-                    war = _war_scored(db, war, now_ms)
+                    war = _war_scored(db, war, now_ms, wid=ref.id)
             war = WL.at_end(war, now_ms)
             t.set(ref, WL.stored(war))
             return before, war, lines, events, att_events, new_hot
@@ -7932,7 +7932,7 @@ def _war_attack(db, wid, uid, data, now_ms):
             raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
         prof = ps.to_dict()
         start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
-        ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, WZ.since(war, uid))
+        ok = WA.eligible(WM.war_return(prof, ref.id, prices, start_eq) / 100, sales, now_ms, WZ.since(war, uid))
         terr, sym, side, use_pass = WA.check_attack(war, uid, data, now_ms, prof.get("cash") or 0, ok)
         defender = war["map"][terr]["owner"]
         if WZ.shielded(war, defender, now_ms):
@@ -8080,7 +8080,7 @@ def _war_move(db, wid, uid, action, data, now_ms):
             prof_snap = db.collection("warProfiles").document(uid).get(transaction=t)
             prof = prof_snap.to_dict() if prof_snap.exists else {"cash": 0}
             start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
-            ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, WZ.since(war, uid))
+            ok = WA.eligible(WM.war_return(prof, ref.id, prices, start_eq) / 100, sales, now_ms, WZ.since(war, uid))
             terr = data.get("territory")
             war = WMV.claim(war, uid, terr, now_ms, ok, data.get("usePass") is True)
             line = "%s claimed %s." % ((war.get("names") or {}).get(uid, "Trader"), WMAP.NAMES[terr])
@@ -8105,8 +8105,9 @@ def _war_move(db, wid, uid, action, data, now_ms):
 STANDINGS_EVERY_MS = 3600000
 
 
-def _war_returns(db, war, prices):
-    """({uid: % return}, {uid: Battle Level rank}) from the players' War profiles."""
+def _war_returns(db, war, prices, wid):
+    """({uid: % return in this War}, {uid: Battle Level rank}) from the players' War profiles: each
+    War counts only the trades made in it (owner 2026-11-02; warmarket.war_return)."""
     out, ranks = {}, {}
     for uid in war["players"]:
         snap = db.collection("warProfiles").document(uid).get()
@@ -8114,16 +8115,16 @@ def _war_returns(db, war, prices):
             continue
         prof = snap.to_dict()
         start = (war.get("startEquity") or {}).get(uid) or WM.START_BALANCE
-        out[uid] = (WM.equity(prof, prices) / start - 1) * 100
+        out[uid] = WM.war_return(prof, wid, prices, start)
         ranks[uid] = WLV.rank(prof.get("battlePoints") or 0)
     return out, ranks
 
 
-def _war_scored(db, war, now_ms, final=False):
+def _war_scored(db, war, now_ms, final=False, wid=None):
     prices = _war_live_prices(db, now_ms)
     if prices is None and not final:
         return war  # prices are updating: try again on the next run
-    returns, ranks = _war_returns(db, war, prices or {})
+    returns, ranks = _war_returns(db, war, prices or {}, wid)
     rows = WS.standings(war, returns)
     war = dict(war, standings=rows, ranks=ranks, standingsAt=now_ms, standingsDue=now_ms + STANDINGS_EVERY_MS)
     if final:

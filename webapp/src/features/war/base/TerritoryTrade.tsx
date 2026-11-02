@@ -67,7 +67,7 @@ export function TerritoryTrade({ uid, warId, terr }: { uid: string; warId: strin
             );
           })}
         </ul>
-        {p && <Ticket key={sym} sym={sym} q={q} profile={p} warId={holds ? warId : undefined} />}
+        {p && <Ticket key={sym} sym={sym} q={q} profile={p} warId={warId} canBuy={holds} />}
       </div>
       <p className={s.fine}>{t('wbase.tradeFine')}</p>
     </section>

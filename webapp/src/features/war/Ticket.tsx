@@ -2,7 +2,7 @@
  * Buy or sell whole shares of one War Zone company at the War Zone price (war_trade).
  * Owner 2026-11-01: you buy only companies in territories you hold, from that territory (warId: the
  * server checks you hold it now); without a territory the form only sells, so a position from a
- * territory you lost can always be closed.
+ * territory you lost can always be closed. A sale with warId counts in that War's own score first.
  */
 import { useState } from 'react';
 import { formatMoney } from '../../lib/format';
@@ -13,9 +13,8 @@ import { errorText } from '../invites/invites';
 import { QUOTE_MAX_AGE_MS, warTrade, type WarProfile, type WarQuotes } from './war';
 import s from './War.module.css';
 
-export function Ticket({ sym, q, profile, warId }: { sym: string; q: WarQuotes | null; profile: WarProfile; warId?: string }) {
+export function Ticket({ sym, q, profile, warId, canBuy = !!warId }: { sym: string; q: WarQuotes | null; profile: WarProfile; warId?: string; canBuy?: boolean }) {
   const toast = useToast();
-  const canBuy = !!warId;
   const [pick, setSide] = useState<'buy' | 'sell'>(canBuy ? 'buy' : 'sell');
   const side = canBuy ? pick : 'sell';
   const [qty, setQty] = useState('1');
