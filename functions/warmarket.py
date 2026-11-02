@@ -390,7 +390,48 @@ def apply_trade(profile, sym, side, qty, price, prices, now_ms, war_id=None):
     out["pnl"] = round(out["equity"] - profile["start"], 2)
     out["pnlPct"] = round(out["pnl"] / profile["start"] * 100, 2)
     out["chart"] = (list(profile.get("chart") or []) + [{"t": now_ms, "eq": out["equity"]}])[-CHART_KEPT:]
+    out["books"] = book_trade(profile.get("books") or {}, war_id, sym, side, qty, price)
     fill = {"sym": sym, "side": side, "qty": qty, "price": price, "pnl": pnl, "at": now_ms}
     if war_id:
-        fill["warId"] = war_id  # each trade keeps the War it was made in (separate scores later)
+        fill["warId"] = war_id  # each trade keeps the War it was made in (its own score)
     return out, fill
+
+
+# Each War's own book (owner 2026-11-02: "a separate score for each trade war"): the shares bought
+# in a War and what they cost, and the profit already taken, so each War scores only its own trades.
+#   books {warId: {"pos": {sym: {"qty", "cost"}}, "realized": $}}
+# A sale comes out of its own War's book first (the War it was sold from), then out of the oldest
+# other books, so shares are never counted twice and every War sees the sale of its own shares.
+def book_trade(books, war_id, sym, side, qty, price):
+    out = {w: {"pos": {k: dict(v) for k, v in (b.get("pos") or {}).items()}, "realized": b.get("realized") or 0.0} for w, b in books.items()}
+    if side == "buy":
+        if not war_id:
+            return out
+        b = out.setdefault(war_id, {"pos": {}, "realized": 0.0})
+        p = b["pos"].setdefault(sym, {"qty": 0, "cost": 0.0})
+        p["qty"] += qty
+        p["cost"] = round(p["cost"] + qty * price, 2)
+        return out
+    left = qty
+    order = ([war_id] if war_id in out else []) + sorted(w for w in out if w != war_id)
+    for w in order:
+        p = out[w]["pos"].get(sym)
+        if not p or left <= 0:
+            continue
+        take = min(left, p["qty"])
+        cost = p["cost"] * take / p["qty"]
+        out[w]["realized"] = round(out[w]["realized"] + take * price - cost, 2)
+        if take == p["qty"]:
+            out[w]["pos"].pop(sym)
+        else:
+            out[w]["pos"][sym] = {"qty": p["qty"] - take, "cost": round(p["cost"] - cost, 2)}
+        left -= take
+    return out
+
+
+def war_return(profile, war_id, prices, start):
+    """This War's own return in percent: profit taken plus open profit on the shares bought in it,
+    over the War balance when it started."""
+    b = (profile.get("books") or {}).get(war_id) or {}
+    open_pnl = sum(p["qty"] * prices.get(s, p["cost"] / p["qty"]) - p["cost"] for s, p in (b.get("pos") or {}).items() if p.get("qty"))
+    return ((b.get("realized") or 0.0) + open_pnl) / (start or START_BALANCE) * 100

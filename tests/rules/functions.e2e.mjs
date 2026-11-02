@@ -474,6 +474,10 @@ ok(run.stage === 'running' && run.sides[troll.uid] === 'bear' && run.sides[pal.u
 // --- attacks (W5a): eligibility, the $5,000 stake, one open attack, the defender's Counter-pick
 const FIRST = { tech: 'NIMBC', finance: 'VAULT', health: 'HELIX', energy: 'VOLTX', consumer: 'BRWLY', comms: 'SIGNL', industrials: 'FORGE', realestate: 'HAVEN', materials: 'ALLOY', utilities: 'GRIDX' };
 const SECOND = { tech: 'QUBTR', finance: 'LEDGR', health: 'CURAM', energy: 'SOLRN', consumer: 'STRDE', comms: 'ECHON', industrials: 'AEROV', realestate: 'BRIKX', materials: 'POLYM', utilities: 'AQUAV' };
+// each War has its own return (owner 2026-11-02): the 8 NIMBC shares count in this War's book
+await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/warProfiles/${troll.uid}?updateMask.fieldPaths=books`, {
+  method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+  body: JSON.stringify({ fields: { books: fv({ [wid]: { pos: { NIMBC: { qty: 8, cost: 1600 } }, realized: 0 } }) } }) });
 re1 = null; try { await call('war_lobby', { action: 'attack', warId: wid, territory: T[2], sym: FIRST[T[2]], side: 'bull' }); } catch (x) { re1 = x; }
 ok(re1 && /War return must be 0% or better/.test(re1.message), 'a player whose War return is below 0% (NIMBC fell to $100) can\'t attack');
 await seed('warMarket/quotes', { updatedAt: Date.now(), prices: { ...allQuotes, NIMBC: { p: 200, ref: 100 } } });
