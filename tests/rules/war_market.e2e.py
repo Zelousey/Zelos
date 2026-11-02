@@ -355,4 +355,69 @@ led = [x.to_dict() for x in db.collection("wallets").document("baseKit01").colle
 ok(any(x["type"] == "war-shop" and x["amount"] == -20 for x in led), "and written in the token ledger")
 nb = main._war_base(db, "baseAnn01", {"action": "baseOpen"}, tb + 8 * 24 * H)["base"]
 ok(nb["gold"] == WBASE.START_GOLD and list(nb["buildings"]) == ["hq1"], "a new season starts a fresh base")
+# ---- the trading desk (owner 2026-11-02): Headquarters 3 opens it; a trader trades a territory you hold
+import wartraders as WTR  # noqa: E402
+td = tb - tb % (5 * M) + 10 * M  # a 5-minute mark: traders look at the market then
+db.collection("wars").document("deskWar01").set({"name": "Desk War", "status": "active", "phase": "holding", "players": ["deskAnn01"],
+                                                 "map": {"energy": {"state": "owned", "owner": "deskAnn01"}, "tech": {"state": "neutral"}}})
+db.collection("warProfiles").document("deskAnn01").set(WM.new_profile(td, "UTC"))
+main._war_base(db, "deskAnn01", {"action": "baseOpen"}, td)
+HIRE = {"action": "baseHire", "strategy": "dip", "warId": "deskWar01", "terr": "energy", "budget": 2500}
+try:
+    main._war_base(db, "deskAnn01", HIRE, td)
+    ok(False, "no desk at Headquarters 1")
+except WM.WarError as e:
+    ok("Headquarters level 3" in str(e), "the trading desk opens at Headquarters level 3")
+db.collection("warBases").document("deskAnn01").update({"buildings.hq1.level": 3, "gold": 5000})
+try:
+    main._war_base(db, "deskAnn01", dict(HIRE, terr="tech"), td)
+    ok(False, "no trader for a territory you don't hold")
+except WM.WarError as e:
+    ok("territory you hold" in str(e), "a trader only works a territory you hold")
+for bad in (dict(HIRE, strategy="yolo"), dict(HIRE, budget=999999), dict(HIRE, warId="x")):
+    try:
+        main._war_base(db, "deskAnn01", bad, td)
+        ok(False, "refused: %s" % bad)
+    except WM.WarError:
+        pass
+ok(True, "made-up strategies, budgets and Wars are refused")
+b = main._war_base(db, "deskAnn01", HIRE, td)["base"]
+ok(len(b["traders"]) == 1 and b["tradersOn"] == 1 and b["gold"] == 5000 - WTR.HIRE_GOLD, "hiring puts a trader on the desk for 800 gold")
+try:
+    main._war_base(db, "deskAnn01", HIRE, td)
+    ok(False, "one trader at Headquarters 3")
+except WM.WarError as e:
+    ok("desk is full" in str(e), "Headquarters 3 has room for one trader")
+tid = b["traders"][0]["id"]
+qref = db.collection("warMarket").document("quotes")
+qd = qref.get().to_dict()
+prices = dict(qd["prices"])
+prices.update({"PETRA": {"p": 97.0, "ref": 100.0}, "VOLTX": {"p": 50.0, "ref": 50.0}, "SOLRN": {"p": 20.0, "ref": 20.0}})
+qref.update({"prices": prices, "updatedAt": td})
+main._war_traders_pass(db, td + M)
+ok(not db.collection("warProfiles").document("deskAnn01").get().to_dict()["positions"], "between 5-minute marks traders don't trade")
+main._war_traders_pass(db, td)
+p = db.collection("warProfiles").document("deskAnn01").get().to_dict()
+fills = [d.to_dict() for d in db.collection("warProfiles").document("deskAnn01").collection("fills").stream()]
+ok(p["positions"]["PETRA"]["qty"] == 25 and len(fills) == 1 and fills[0]["by"] == "trader" and fills[0]["warId"] == "deskWar01",
+   "a dip of 3%: the trader buys $2,500 of PETRA with your War balance, in that War")
+prices["PETRA"] = {"p": 99.0, "ref": 100.0}
+qref.update({"prices": prices, "updatedAt": td + 5 * M})
+main._war_traders_pass(db, td + 5 * M)
+p = db.collection("warProfiles").document("deskAnn01").get().to_dict()
+tr = db.collection("warBases").document("deskAnn01").get().to_dict()["traders"][0]
+ok(not p["positions"].get("PETRA") and tr["pos"] == {} and [x["why"] for x in tr["log"]] == ["take", "signal"], "up 2%: it sells at its target and logs both trades")
+sale = [f for f in (d.to_dict() for d in db.collection("warProfiles").document("deskAnn01").collection("fills").stream()) if f["side"] == "sell"][0]
+ok(not main.WA.qualifying_sale(sale, 0), "a trader's sale doesn't earn you an attack")
+db.collection("wars").document("deskWar01").update({"map.energy": {"state": "owned", "owner": "someoneElse"}})
+prices["PETRA"] = {"p": 90.0, "ref": 100.0}
+qref.update({"prices": prices, "updatedAt": td + 10 * M})
+main._war_traders_pass(db, td + 10 * M)
+ok(not db.collection("warProfiles").document("deskAnn01").get().to_dict()["positions"].get("PETRA"), "after losing the territory it doesn't buy")
+b = main._war_base(db, "deskAnn01", {"action": "baseTrader", "id": tid, "on": False}, td + 11 * M)["base"]
+ok(b["tradersOn"] == 0 and b["traders"][0]["on"] is False, "pausing a trader")
+b = main._war_base(db, "deskAnn01", {"action": "baseTrader", "id": tid, "strategy": "momentum", "budget": 1000}, td + 11 * M)["base"]
+ok(b["traders"][0]["strategy"] == "momentum" and b["traders"][0]["budget"] == 1000, "changing its strategy and budget")
+b = main._war_base(db, "deskAnn01", {"action": "baseTrader", "id": tid, "fire": True}, td + 11 * M)["base"]
+ok(b["traders"] == [] and b["tradersOn"] == 0, "and letting it go")
 print("\n%d War zone market checks passed" % passed)

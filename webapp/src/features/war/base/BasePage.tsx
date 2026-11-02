@@ -51,6 +51,7 @@ import landUrl from './land.webp';
 import mineUrl from './mine.webp';
 import researchUrl from './research.webp';
 import { TerritoryTrade } from './TerritoryTrade';
+import { TradingDesk } from './TradingDesk';
 import s from './Base.module.css';
 
 // the owner's building pictures (2026-11-02), cut from their sheet; aspect = height / width
@@ -211,6 +212,17 @@ function BaseScreen({ uid }: { uid: string }) {
       ) : (
         <BuildMenu base={base} now={now} onPick={startPlace} />
       )}
+      <TradingDesk
+        uid={uid}
+        base={base}
+        busy={busy}
+        act={(req, done) =>
+          void act(req, () => {
+            done?.();
+            if (req.action === 'baseHire') toast.show(t('wdesk.hired'), 'success');
+          })
+        }
+      />
     </>
   );
 }
@@ -610,7 +622,7 @@ function Details({ b, x, now, busy, onUpgrade, onCollect, onSpeed, onMove, onClo
           ? t('wbase.eff.research', { rate: Math.round(cfg.rate![lvl - 1]! * (1 + kitBoost('crystals'))), store: cfg.store![lvl - 1]! })
           : x.kind === 'barracks'
             ? t('wbase.eff.barracks', { n: cfg.soldiers![lvl - 1]! })
-            : t('wbase.eff.hq', { mines: CONFIG.mine.count[lvl - 1]!, max: lvl + 1 }) + (lvl < 2 ? ` ${t('wbase.eff.hqNext')}` : '');
+            : t('wbase.eff.hq', { mines: CONFIG.mine.count[lvl - 1]!, max: lvl + 1 }) + (lvl < 2 ? ` ${t('wbase.eff.hqNext')}` : lvl < 3 ? ` ${t('wbase.eff.hqDesk')}` : '');
   const stored = Math.floor(storedNow(b, x, now));
   return (
     <div className={s.panel} role="region" aria-label={cfg.name}>

@@ -30,6 +30,7 @@ you work on. Note: `PROJECT_STATE.md` §4, §10 and §11 are old (early October)
 
 ## Pending deploys (the owner runs these in Cloud Shell; Claude can't reach Firebase)
 - **War base stage 2 (W8-C1)**, after its PR merges (if the prototype below isn't deployed yet, deploy that line instead; it covers both): `cd ~/Zelos && git pull && firebase deploy --only functions:war_lobby`
+- **Trading desk (W8-C3)**, after its PR merges: `cd ~/Zelos && git pull && firebase deploy --only functions:war_lobby,functions:war_market_tick`
 - **Base shop (W8-C2)**, after its PR merges: `cd ~/Zelos && git pull && firebase deploy --only functions:war_lobby`
 - **Each War's own score (W8-B2)**, after its PR merges: `cd ~/Zelos && git pull && firebase deploy --only functions:war_trade,functions:war_lobby,functions:war_market_tick`
 - **Trade only what you own (W8-B1)**, after its PR merges: `cd ~/Zelos && git pull && firebase deploy --only functions:war_trade`
