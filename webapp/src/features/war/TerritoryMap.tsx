@@ -22,6 +22,8 @@ import { useNow } from '../../lib/useNow';
 import bearUrl from './board/bear.png';
 import boardUrl from './board/board.jpg';
 import bullUrl from './board/bull.png';
+import { OutpostPanel, outpostLine } from './OutpostPanel';
+import { outpostNow, type Outpost } from './outposts';
 import { BOARD, BORDERS, REGIONS, SPOTS } from './board/boardShapes';
 import { activityOf, companiesOf, SECTOR_NAME, type Activity } from './map';
 import { chaosNow, useWarChaos, useWarQuotes } from './war';
@@ -82,7 +84,7 @@ export function Soldier({ on = true, className }: { on?: boolean; className?: st
 const TONE_KEY = { mine: 'wmap.k.mine', enemy: 'wmap.k.enemy', neutral: 'wmap.k.neutral', contested: 'wmap.k.contested', out: 'wmap.k.out' } as const;
 
 /** One territory up close: who holds it, your soldiers, activity, its 3 companies on War Zone prices. */
-function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo }: { id: string; v: TerritoryView; act: Activity | null; q: { prices: Record<string, { p: number; ref: number }> } | null; onClose: () => void; onGo: () => void; goLabel: string; baseTo?: string }) {
+function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo, outpost, slot }: { id: string; v: TerritoryView; act: Activity | null; q: { prices: Record<string, { p: number; ref: number }> } | null; onClose: () => void; onGo: () => void; goLabel: string; baseTo?: string; outpost?: string; slot?: ReactNode }) {
   return (
     <div className={`${s.detailsBody} ${s[v.tone]}`}>
       <div className={s.detailsHead}>
@@ -101,6 +103,12 @@ function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo }: { id: string
           <>
             <dt>{t('wmap.d.defenders')}</dt>
             <dd>{v.extra}</dd>
+          </>
+        )}
+        {outpost && (
+          <>
+            <dt>{t('wout.label')}</dt>
+            <dd>{outpost}</dd>
           </>
         )}
         {(act || v.hot) && (
@@ -136,6 +144,7 @@ function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo }: { id: string
       <button type="button" className={s.detailsGo} onClick={onGo}>
         {goLabel} ↓
       </button>
+      {slot}
     </div>
   );
 }
@@ -159,6 +168,9 @@ export function TerritoryMap({
   nav = [],
   pickLabel,
   warId,
+  outposts,
+  uid,
+  active = false,
 }: {
   territories: string[];
   view: Record<string, TerritoryView>;
@@ -173,6 +185,11 @@ export function TerritoryMap({
   pickLabel?: string;
   /** This War (once the map is revealed): a territory you hold offers "Enter your base" to trade its companies there. */
   warId?: string;
+  /** Outposts on this War's territories (everyone sees them), and who's looking (builds on land they hold). */
+  outposts?: Record<string, Outpost>;
+  uid?: string;
+  /** The War is running (outposts work, camps make gold). */
+  active?: boolean;
   /** The phase box: the phase, a big line (time left) and a small one. */
   status?: { title: string; big?: string; line?: ReactNode };
   /** While claiming: your soldiers placed out of your army. */
@@ -199,7 +216,7 @@ export function TerritoryMap({
   return (
     <div className={s.scroller} ref={scroller}>
       <div className={s.board} data-board>
-        <Board territories={territories} shown={shown} activity={activity} onPick={pick} label={label} selected={sel} />
+        <Board territories={territories} shown={shown} activity={activity} onPick={pick} label={label} selected={sel} outposts={outposts} now={now} active={active} />
 
         {/* the top bar: our logo, the War's name, and buttons to each part of the War page */}
         <div className={s.topBar} style={at(0, 0, BOARD.w, 116)}>
@@ -308,7 +325,18 @@ export function TerritoryMap({
         {/* the details of the territory you tapped, right side */}
         <div className={`${s.panel} ${s.details}`} style={at(1017, 302, 176, 280)} role="region" aria-label={t('wmap.details')} aria-live="polite">
           {sel ? (
-            <Details id={sel} v={shown(sel)} act={activity(sel)} q={q} onClose={() => setSel(null)} onGo={() => onPick(sel)} goLabel={pickLabel ?? t('wmap.goCard')} baseTo={warId && shown(sel).tone === 'mine' ? `/war/base?war=${encodeURIComponent(warId)}&t=${encodeURIComponent(sel)}` : undefined} />
+            <Details
+              id={sel}
+              v={shown(sel)}
+              act={activity(sel)}
+              q={q}
+              onClose={() => setSel(null)}
+              onGo={() => onPick(sel)}
+              goLabel={pickLabel ?? t('wmap.goCard')}
+              baseTo={warId && shown(sel).tone === 'mine' ? `/war/base?war=${encodeURIComponent(warId)}&t=${encodeURIComponent(sel)}` : undefined}
+              outpost={outposts?.[sel] ? outpostLine(outposts[sel], now, active) : warId && uid && active && shown(sel).tone === 'mine' ? t('wout.noneYet') : undefined}
+              slot={warId && uid && outposts && shown(sel).tone === 'mine' ? <OutpostPanel key={sel} warId={warId} terr={sel} uid={uid} outposts={outposts} active={active} /> : undefined}
+            />
           ) : (
             <p className={s.detailsHint}>{t('wmap.detailsHint')}</p>
           )}
@@ -357,6 +385,9 @@ function Board({
   onPick,
   label,
   selected,
+  outposts,
+  now,
+  active,
 }: {
   territories: string[];
   shown: (id: string) => TerritoryView;
@@ -364,6 +395,9 @@ function Board({
   onPick: (id: string) => void;
   label: string;
   selected: string | null;
+  outposts?: Record<string, Outpost>;
+  now: number;
+  active: boolean;
 }) {
   const ids = ORDER;
   return (
@@ -416,6 +450,7 @@ function Board({
           <g key={id} className={`${s.plate} ${s[v.tone]} ${act === 'surge' || act === 'major' || v.hot ? s.pulse : ''}`} aria-hidden>
             <rect x={x - 54} y={y - 38} width={108} height={tall} rx={4} className={s.plateBg} />
             <Marker x={x} y={y - 38} v={v} />
+            {outposts?.[id] && territories.includes(id) && <OutpostBadge x={x + 44} y={y - 30} o={outposts[id]} now={now} active={active} />}
             <g transform={`translate(${x - 6} ${y - 18}) scale(0.5)`} className={s.plateIcon}>
               <path d={ICON[id] ?? ''} />
             </g>
@@ -462,7 +497,7 @@ function Board({
               role="button"
               tabIndex={0}
               aria-pressed={selected === id}
-              aria-label={[SECTOR_NAME[id] ?? id, v.line, v.extra, v.hot && t('war.hot'), act && t(ACTIVITY_KEY[act]), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')]
+              aria-label={[SECTOR_NAME[id] ?? id, v.line, v.extra, outposts?.[id] && outpostLine(outposts[id], now, active), v.hot && t('war.hot'), act && t(ACTIVITY_KEY[act]), v.warn && t(v.warn === 'heavy' ? 'wmap.heavy' : 'wmap.enemy')]
                 .filter(Boolean)
                 .join(', ')}
               onClick={() => onPick(id)}
@@ -476,6 +511,18 @@ function Board({
           );
         })}
     </svg>
+  );
+}
+
+/** A territory's outpost on its label: a tower (Fort) or a tent (Supply camp) with its level. */
+function OutpostBadge({ x, y, o, now, active }: { x: number; y: number; o: Outpost; now: number; active: boolean }) {
+  const lvl = outpostNow(o, now, active).level;
+  return (
+    <g transform={`translate(${x} ${y})`} className={s.opBadge}>
+      <rect x={-13} y={-9} width={26} height={18} rx={4} />
+      <path d={o.kind === 'fort' ? 'M-10,5 V-3 H-8.5 V-5.5 H-6.5 V-3 H-5 V-5.5 H-3 V-3 H-1.5 V5 Z' : 'M-11,5 L-5.5,-5 L0,5 Z M-6.5,5 L-5.5,1.5 L-4.5,5'} />
+      <text x={6} y={4.5}>{lvl < 1 ? '…' : lvl}</text>
+    </g>
   );
 }
 

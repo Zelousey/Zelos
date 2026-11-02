@@ -9,6 +9,7 @@ import { collection, limit, orderBy, query, where, type DocumentData } from 'fir
 import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
+import { parseOutposts, type Outpost } from './outposts';
 import type { MessageKey } from '../../lib/i18n';
 
 export const DAYS = [1, 2, 3, 5, 7] as const;
@@ -67,6 +68,8 @@ export type PrivateWar = {
   troops: Record<string, number>;
   joinedAt: Record<string, number>;
   shieldUntil: Record<string, number>;
+  /** Territory outposts (owner 2026-11-02, functions/waroutpost.py): public to everyone in the War. */
+  outposts: Record<string, Outpost>;
 };
 /** One row of the War Score table (W5c): 60% trading (return, ±10% → 0–100) + 40% land points. */
 export type Standing = { uid: string; rank: number; score: number; trading: number; strategy: number; ret: number; points: number; wins: number; forfeit: boolean };
@@ -208,6 +211,7 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     troops: nums(d.troops),
     joinedAt: nums(d.joinedAt),
     shieldUntil: nums(d.shieldUntil),
+    outposts: parseOutposts(d.outposts),
   };
 }
 const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});

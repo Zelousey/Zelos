@@ -7394,6 +7394,8 @@ def war_lobby(req, db, uid, now_ms):
         return _war_skip_wait(db, wid, uid, data, now_ms)
     elif action in ("claim", "reinforce", "rally"):
         return _war_move(db, wid, uid, action, data, now_ms)
+    elif action in ("outpostBuild", "outpostUpgrade", "outpostCollect"):
+        return _war_outpost(db, wid, uid, action, data, now_ms)
     elif action == "join" and _war_open_count(db, uid) >= WL.MAX_OPEN:
         raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
     ref = db.collection("wars").document(wid)
@@ -7636,6 +7638,49 @@ def _war_base(db, uid, data, now_ms):
         return base, got
     base, got = txn(db.transaction())
     return {"base": WBASE.public(base, now_ms), "collected": got}
+
+
+import waroutpost as WO  # noqa: E402
+
+
+def _war_outpost(db, wid, uid, action, data, now_ms):
+    """Outposts on territories you hold (waroutpost.py): outpostBuild {terr, kind},
+    outpostUpgrade {terr}, outpostCollect {terr}. Paid with (or paid into) your season base's gold."""
+    terr = str(data.get("terr") or "")
+    wref = db.collection("wars").document(wid)
+    bref = db.collection("warBases").document(uid)
+    key = _war_season_key(now_ms)
+
+    @firestore.transactional
+    def txn(t):
+        wsnap = wref.get(transaction=t)
+        bsnap = bref.get(transaction=t)
+        war = wsnap.to_dict() if wsnap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        base = bsnap.to_dict() if bsnap.exists else None
+        if not base or base.get("season") != key:
+            base = WBASE.new_base(key, now_ms)
+        base, _done = WBASE.settle(base, now_ms)
+        got = 0
+        if action == "outpostCollect":
+            war, got = WO.collect(war, uid, terr, now_ms)
+            base = dict(base, gold=base["gold"] + got, updatedAt=now_ms)
+        else:
+            if not _war_holds(war, uid, terr):
+                raise WM.WarError("FAILED_PRECONDITION", "You can only build on a territory you hold while the War runs.")
+            if action == "outpostBuild":
+                war, cost = WO.build(war, uid, terr, str(data.get("kind") or ""), WBASE.hq_level(base), base["gold"], now_ms)
+            else:
+                war, cost = WO.upgrade(war, uid, terr, base["gold"], now_ms)
+            base = dict(base, gold=base["gold"] - cost, updatedAt=now_ms)
+        base["nextDone"] = WBASE.next_done(base)
+        war = dict(war, updatedAt=now_ms)
+        t.set(wref, WL.stored(war))
+        t.set(bref, base)
+        return war, base, got
+    war, base, got = txn(db.transaction())
+    return {"warId": wid, "war": war, "base": WBASE.public(base, now_ms), "collected": got}
 
 
 def _war_traders_pass(db, now_ms):

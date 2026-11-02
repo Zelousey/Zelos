@@ -152,6 +152,16 @@ class Results(unittest.TestCase):
         self.assertEqual((fx3["retreat"], w3["progress"]["tech"], w3["lostAt"]["b"]["tech"]), (("b", "tech"), {}, 3 * H))
         self.assertIn(("a", None, 10), fx3["soldiers"])
 
+    def test_a_fort_adds_wins_and_the_captor_gets_it_a_level_lower(self):
+        w, a, _ = self.run_to(101)
+        fort = {"kind": "fort", "owner": "b", "level": 2, "to": None, "busyUntil": None, "stored": 0, "prodAt": None}
+        w = dict(w, progress={"tech": {"a": 2}}, outposts={"tech": fort})
+        w1, _, fx = A.settle(w, a, "attacker", 25, 3 * H)   # 20 left: 2 wins + 2 for the Fort
+        self.assertFalse(fx["captured"])
+        w2, _, fx2 = A.settle(dict(w1, progress={"tech": {"a": 3}}), a, "attacker", 25, 3 * H)
+        self.assertTrue(fx2["captured"])
+        self.assertEqual((w2["outposts"]["tech"]["owner"], w2["outposts"]["tech"]["level"]), ("a", 1))
+
     def test_a_loss_keeps_progress_and_costs_soldiers(self):
         w, a, _ = self.run_to(99)
         w = dict(w, progress={"tech": {"a": 1}})
