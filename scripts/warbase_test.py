@@ -97,10 +97,10 @@ class Gold(unittest.TestCase):
         self.assertEqual(b["buildings"][m]["stored"], B.CONFIG["mine"]["store"][0])
         gold = b["gold"]
         b, got = B.collect(b, None, T0 + 10 * H)
-        self.assertEqual(got, B.CONFIG["mine"]["store"][0])
-        self.assertEqual(b["gold"], gold + got)
+        self.assertEqual(got, {"gold": B.CONFIG["mine"]["store"][0], "crystals": 0})
+        self.assertEqual(b["gold"], gold + got["gold"])
         b, got = B.collect(b, None, T0 + 10 * H)
-        self.assertEqual(got, 0)  # nothing twice
+        self.assertEqual(got["gold"], 0)  # nothing twice
 
     def test_no_production_while_upgrading(self):
         b = dict(fresh(), gold=99999)
@@ -127,6 +127,74 @@ class Barracks(unittest.TestCase):
         b, _ = B.place(b, "mine", 0, 0, T0)
         b = B.upgrade(b, "hq1", T0)
         self.assertEqual(B.next_done(b), T0 + 60 * 1000)
+
+
+class Stage2(unittest.TestCase):
+    def rich(self):
+        return dict(fresh(), gold=99999, crystals=999)
+
+    def test_research_unlocks_at_hq2_and_makes_crystals(self):
+        with self.assertRaises(WarError) as e:
+            B.place(self.rich(), "research", 0, 0, T0)
+        self.assertIn("unlocks at Headquarters level 2", str(e.exception))
+        b = B.upgrade(self.rich(), "hq1", T0)
+        b, _ = B.settle(b, T0 + 5 * MIN)
+        b, r = B.place(b, "research", 0, 0, T0 + 5 * MIN)
+        b, _ = B.settle(b, T0 + 7 * MIN)  # built in 2 minutes
+        b, _ = B.settle(b, T0 + 7 * MIN + H)
+        self.assertAlmostEqual(b["buildings"][r]["stored"], B.CONFIG["research"]["rate"][0], places=3)
+        c0 = b["crystals"]
+        b, got = B.collect(b, r, T0 + 7 * MIN + H)
+        self.assertEqual(got, {"gold": 0, "crystals": B.CONFIG["research"]["rate"][0]})
+        self.assertEqual(b["crystals"], c0 + got["crystals"])
+
+    def test_top_levels_cost_crystals(self):
+        b = dict(self.rich(), crystals=20)  # level 4 takes 20 crystals, level 5 another 50
+        for lvl in (1, 2, 3):
+            b = B.upgrade(b, "hq1", T0)
+            b, _ = B.settle(b, T0 + 3 * H)
+        self.assertEqual((B.hq_level(b), b["crystals"]), (4, 0))
+        with self.assertRaises(WarError) as e:
+            B.upgrade(b, "hq1", T0)  # level 5 needs 50 crystals
+        self.assertEqual(e.exception.details["reason"], "base-crystals")
+
+    def test_finish_now_for_crystals(self):
+        b = dict(fresh(), crystals=20)
+        b = B.upgrade(dict(b, gold=600), "hq1", T0)  # 5 minutes
+        self.assertEqual(B.speed_cost(b["buildings"]["hq1"], T0 + 30000), 5)  # 4.5 minutes left rounds up
+        b, cost = B.speed_up(b, "hq1", T0 + 30000)
+        self.assertEqual((cost, b["crystals"]), (5, 15))
+        b, done = B.settle(b, T0 + 30000)
+        self.assertEqual((done, B.hq_level(b)), (["hq1"], 2))
+        with self.assertRaises(WarError):
+            B.speed_up(b, "hq1", T0 + 30000)  # nothing left to finish
+        b = B.upgrade(dict(b, gold=99999, crystals=1), "hq1", T0 + MIN)  # 15 minutes
+        with self.assertRaises(WarError) as e:
+            B.speed_up(b, "hq1", T0 + MIN)
+        self.assertEqual(e.exception.details["reason"], "base-crystals")
+
+    def test_starter_kit_once_with_its_boost(self):
+        b = B.choose_kit(fresh(), "investor", T0)
+        self.assertEqual(b["gold"], B.START_GOLD + 1500)
+        with self.assertRaises(WarError):
+            B.choose_kit(b, "research", T0)
+        with self.assertRaises(WarError):
+            B.choose_kit(fresh(), "billionaire", T0)
+        b, m = B.place(b, "mine", 0, 0, T0)
+        b, _ = B.settle(b, T0 + MIN + H)
+        self.assertAlmostEqual(b["buildings"][m]["stored"], B.CONFIG["mine"]["rate"][0] * 1.15, places=3)
+        c = B.choose_kit(fresh(), "commander", T0)
+        self.assertEqual(B.soldiers_bonus(c), 10)  # the kit's soldiers count even without a Barracks
+        r = B.choose_kit(fresh(), "research", T0)
+        self.assertEqual(r["crystals"], B.START_CRYSTALS + 60)
+
+    def test_old_prototype_base_without_crystals(self):
+        b = {k: v for k, v in fresh().items() if k not in ("crystals", "kit")}
+        b, _ = B.settle(b, T0)
+        b, got = B.collect(b, None, T0)
+        self.assertEqual(b["crystals"], 0)
+        b = B.choose_kit(b, "research", T0)
+        self.assertEqual(b["crystals"], 60)
 
 
 if __name__ == "__main__":

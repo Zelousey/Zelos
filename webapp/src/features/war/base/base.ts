@@ -1,5 +1,5 @@
 /**
- * The War base (owner 2026-11-01; prototype stage). The server (functions/warbase.py, war_lobby
+ * The War base (owner 2026-11-01; prototype + stage 2: crystals, Research Center, starter kits). The server (functions/warbase.py, war_lobby
  * "base*" actions) owns everything: gold, building levels, construction timers, production. This
  * file reads your base (warBases/{uid}, yours only) and estimates on screen what the mines have
  * made since the server last settled them, the same way the server will.
@@ -8,18 +8,27 @@ import type { DocumentData } from 'firebase/firestore';
 import { useLiveDoc } from '../../../data/liveDoc';
 import { callFunction } from '../../../lib/firebase';
 
-export type Kind = 'hq' | 'mine' | 'barracks';
-export const KINDS: Kind[] = ['hq', 'mine', 'barracks'];
+export type Kind = 'hq' | 'mine' | 'barracks' | 'research';
+export const KINDS: Kind[] = ['hq', 'mine', 'barracks', 'research'];
+export type KitId = 'investor' | 'commander' | 'research';
 export type Building = { id: string; kind: Kind; x: number; y: number; level: number; to: number | null; busyUntil: number | null; stored: number; prodAt: number | null };
-export type Base = { season: string; gold: number; buildings: Building[]; nextDone: number | null };
+export type Base = { season: string; gold: number; crystals: number; kit: KitId | null; buildings: Building[]; nextDone: number | null };
 
 /** The same numbers as functions/warbase.py CONFIG (the server checks every one). */
-export type KindConfig = { name: string; size: number; max: number; cost: number[]; time: number[]; count: number[]; rate?: number[]; store?: number[]; soldiers?: number[] };
+export type KindConfig = { name: string; size: number; max: number; cost: number[]; crystals: number[]; time: number[]; count: number[]; makes?: 'gold' | 'crystals'; rate?: number[]; store?: number[]; soldiers?: number[] };
 export const CONFIG: Record<Kind, KindConfig> = {
-  hq: { name: 'Trading Headquarters', size: 4, max: 5, cost: [0, 600, 1800, 4500, 9000], time: [0, 300, 900, 1800, 2700], count: [1, 1, 1, 1, 1] },
-  mine: { name: 'Gold Mine', size: 3, max: 5, cost: [150, 300, 700, 1600, 3500], time: [60, 120, 300, 900, 1800], count: [1, 2, 2, 3, 3], rate: [600, 900, 1300, 1900, 2700], store: [1200, 2400, 4500, 8000, 14000] },
-  barracks: { name: 'Military Barracks', size: 3, max: 5, cost: [200, 400, 900, 2000, 4200], time: [60, 120, 300, 900, 1800], count: [1, 1, 1, 2, 2], soldiers: [5, 10, 15, 20, 30] },
+  hq: { name: 'Trading Headquarters', size: 4, max: 5, cost: [0, 600, 1800, 4500, 9000], crystals: [0, 0, 0, 20, 50], time: [0, 300, 900, 1800, 2700], count: [1, 1, 1, 1, 1] },
+  mine: { name: 'Gold Mine', size: 3, max: 5, cost: [150, 300, 700, 1600, 3500], crystals: [0, 0, 0, 10, 25], time: [60, 120, 300, 900, 1800], count: [1, 2, 2, 3, 3], makes: 'gold', rate: [600, 900, 1300, 1900, 2700], store: [1200, 2400, 4500, 8000, 14000] },
+  barracks: { name: 'Military Barracks', size: 3, max: 5, cost: [200, 400, 900, 2000, 4200], crystals: [0, 0, 0, 10, 25], time: [60, 120, 300, 900, 1800], count: [1, 1, 1, 2, 2], soldiers: [5, 10, 15, 20, 30] },
+  research: { name: 'Research Center', size: 3, max: 5, cost: [500, 900, 1800, 3600, 7000], crystals: [0, 0, 0, 0, 30], time: [120, 300, 900, 1800, 2700], count: [0, 1, 1, 2, 2], makes: 'crystals', rate: [8, 12, 18, 26, 36], store: [40, 80, 150, 260, 400] },
 };
+/** functions/warbase.py KITS: picked once a season. */
+export const KITS: Record<KitId, { gold: number; crystals: number; boost: Partial<Record<'gold' | 'crystals', number>>; soldiers: number }> = {
+  investor: { gold: 1500, crystals: 0, boost: { gold: 0.15 }, soldiers: 0 },
+  commander: { gold: 600, crystals: 10, boost: {}, soldiers: 10 },
+  research: { gold: 600, crystals: 60, boost: { crystals: 0.25 }, soldiers: 0 },
+};
+export const SPEED_PER_MIN = 1;
 export const GRID = 16;
 export const SLOTS = 3;
 
@@ -31,7 +40,8 @@ export function parseBase(d: DocumentData): Base | null {
   const buildings = Object.entries(d.buildings as Record<string, Record<string, unknown>>)
     .filter(([, b]) => KINDS.includes(b.kind as Kind))
     .map(([id, b]) => ({ id, kind: b.kind as Kind, x: num(b.x), y: num(b.y), level: num(b.level), to: numOrNull(b.to), busyUntil: numOrNull(b.busyUntil), stored: num(b.stored), prodAt: numOrNull(b.prodAt) }));
-  return { season: d.season, gold: num(d.gold), buildings, nextDone: numOrNull(d.nextDone) };
+  const kit = d.kit === 'investor' || d.kit === 'commander' || d.kit === 'research' ? d.kit : null;
+  return { season: d.season, gold: num(d.gold), crystals: num(d.crystals), kit, buildings, nextDone: numOrNull(d.nextDone) };
 }
 
 export const useWarBase = (uid: string | null) => useLiveDoc(uid ? `warBases/${uid}` : null, parseBase);
@@ -41,8 +51,10 @@ type BaseReq =
   | { action: 'basePlace'; kind: Kind; x: number; y: number }
   | { action: 'baseUpgrade'; id: string }
   | { action: 'baseMove'; id: string; x: number; y: number }
-  | { action: 'baseCollect'; id?: string };
-export const baseAction = (req: BaseReq) => callFunction<BaseReq, { base: DocumentData; collected: number }>('war_lobby', req);
+  | { action: 'baseCollect'; id?: string }
+  | { action: 'baseSpeed'; id: string }
+  | { action: 'baseKit'; kit: KitId };
+export const baseAction = (req: BaseReq) => callFunction<BaseReq, { base: DocumentData; collected: { gold: number; crystals: number } }>('war_lobby', req);
 
 export const hqLevel = (b: Base) => b.buildings.find((x) => x.kind === 'hq')?.level ?? 1;
 export const isBusy = (x: Building, now: number) => x.busyUntil !== null && x.busyUntil > now;
@@ -50,27 +62,37 @@ export const busyCount = (b: Base, now: number) => b.buildings.filter((x) => isB
 /** A building whose timer ran out on screen shows its new level until the server confirms it. */
 export const shownLevel = (x: Building, now: number) => (x.busyUntil !== null && x.busyUntil <= now && x.to ? x.to : x.level);
 
-/** Gold a mine holds now (what the server will count when you collect), capped at its store. */
-export function storedNow(x: Building, now: number): number {
-  const cfg = CONFIG.mine;
-  if (x.kind !== 'mine' || isBusy(x, now)) return x.stored;
+/** What a producer (Gold Mine, Research Center) holds now: what the server will count when you collect. */
+export function storedNow(b: Base, x: Building, now: number): number {
+  const cfg = CONFIG[x.kind];
+  if (!cfg.makes || isBusy(x, now)) return x.stored;
   const lvl = shownLevel(x, now);
   if (lvl < 1) return 0;
   const since = x.busyUntil !== null && x.busyUntil <= now ? x.busyUntil : (x.prodAt ?? now);
-  return Math.min(cfg.store![lvl - 1]!, x.stored + (cfg.rate![lvl - 1]! * Math.max(0, now - since)) / 3600000);
+  const rate = cfg.rate![lvl - 1]! * (1 + (b.kit ? (KITS[b.kit].boost[cfg.makes] ?? 0) : 0));
+  return Math.min(cfg.store![lvl - 1]!, x.stored + (rate * Math.max(0, now - since)) / 3600000);
 }
 
+/** The Headquarters level that unlocks a building. */
+export const unlockLevel = (kind: Kind) => CONFIG[kind].count.findIndex((n) => n > 0) + 1;
+
+/** Crystals to finish a construction now (1 a minute or part of one left). */
+export const speedCost = (x: Building, now: number) => (isBusy(x, now) ? Math.max(1, Math.ceil(((x.busyUntil ?? now) - now) / 60000)) * SPEED_PER_MIN : 0);
+
 /** Why you can't place one more of this kind now, or null. */
-export function cantPlace(b: Base, kind: Kind, now: number): 'count' | 'gold' | 'slots' | null {
+export function cantPlace(b: Base, kind: Kind, now: number): 'locked' | 'count' | 'gold' | 'crystals' | 'slots' | null {
   const cfg = CONFIG[kind];
-  if (b.buildings.filter((x) => x.kind === kind).length >= cfg.count[hqLevel(b) - 1]!) return 'count';
+  const allowed = cfg.count[hqLevel(b) - 1]!;
+  if (allowed === 0) return 'locked';
+  if (b.buildings.filter((x) => x.kind === kind).length >= allowed) return 'count';
   if (busyCount(b, now) >= SLOTS) return 'slots';
   if (b.gold < cfg.cost[0]!) return 'gold';
+  if (b.crystals < cfg.crystals[0]!) return 'crystals';
   return null;
 }
 
 /** Why this building can't be upgraded now, or null. */
-export function cantUpgrade(b: Base, x: Building, now: number): 'max' | 'hq' | 'busy' | 'slots' | 'gold' | null {
+export function cantUpgrade(b: Base, x: Building, now: number): 'max' | 'hq' | 'busy' | 'slots' | 'gold' | 'crystals' | null {
   const cfg = CONFIG[x.kind];
   const lvl = shownLevel(x, now);
   if (lvl >= cfg.max) return 'max';
@@ -78,6 +100,7 @@ export function cantUpgrade(b: Base, x: Building, now: number): 'max' | 'hq' | '
   if (x.kind !== 'hq' && lvl + 1 > hqLevel(b) + 1) return 'hq';
   if (busyCount(b, now) >= SLOTS) return 'slots';
   if (b.gold < cfg.cost[lvl]!) return 'gold';
+  if (b.crystals < cfg.crystals[lvl]!) return 'crystals';
   return null;
 }
 

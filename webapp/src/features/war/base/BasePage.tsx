@@ -1,12 +1,12 @@
 /**
- * /war/base: your War base (owner 2026-11-01, prototype). An isometric piece of land with your
+ * /war/base: your War base (owner 2026-11-01, prototype; stage 2 2026-11-02: crystals from the
+ * Research Center, finishing a build early with crystals, the season starter kit, HQ unlocks). An isometric piece of land with your
  * buildings as separate pieces you select, place, move and upgrade; zoom and pan with the mouse,
  * a finger or the buttons. Gold comes from Gold Mines while you're away; up to 3 things build at
  * once, in minutes. Every action goes to the server (war_lobby base*), which checks the gold, the
  * land and the timers; the screen only shows what the server decided (and counts the time down).
  *
- * The building pictures are stand-ins cut from the owner's reference until the owner's own
- * separate pieces arrive (one picture per building, swapped in base/*.webp).
+ * The land and building pictures are the owner's own (base/*.webp, cut from their sheet).
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
 import { Link } from 'react-router';
@@ -27,9 +27,12 @@ import {
   GRID,
   hqLevel,
   isBusy,
+  KITS,
   shownLevel,
   SLOTS,
+  speedCost,
   storedNow,
+  unlockLevel,
   LAND,
   TILE_W,
   toScreen,
@@ -38,10 +41,12 @@ import {
   type Base,
   type Building,
   type Kind,
+  type KitId,
 } from './base';
 import hqUrl from './hq.webp';
 import landUrl from './land.webp';
 import mineUrl from './mine.webp';
+import researchUrl from './research.webp';
 import s from './Base.module.css';
 
 // the owner's building pictures (2026-11-02), cut from their sheet; aspect = height / width
@@ -49,10 +54,15 @@ const SPRITE: Record<Kind, { url: string; aspect: number; widen: number }> = {
   hq: { url: hqUrl, aspect: 420 / 421, widen: 1.05 },
   mine: { url: mineUrl, aspect: 303 / 373, widen: 1.05 },
   barracks: { url: barracksUrl, aspect: 354 / 402, widen: 1.05 },
+  research: { url: researchUrl, aspect: 296 / 362, widen: 1.05 },
 };
 const WORLD_W = LAND.w;
 const WORLD_H = LAND.h;
-const BUILDABLE: Kind[] = ['mine', 'barracks'];
+const BUILDABLE: Kind[] = ['mine', 'barracks', 'research'];
+const KIT_IDS: KitId[] = ['investor', 'commander', 'research'];
+/** "Collected 900 gold and 12 crystals." */
+const collectedText = (c: { gold: number; crystals: number }) =>
+  c.crystals && c.gold ? t('wbase.collectedBoth', { g: c.gold.toLocaleString('en-US'), c: c.crystals }) : c.crystals ? t('wbase.collectedC', { n: c.crystals }) : t('wbase.collected', { n: c.gold.toLocaleString('en-US') });
 const at = toScreen;
 
 export default function BasePage() {
@@ -109,8 +119,9 @@ function BaseScreen({ uid }: { uid: string }) {
 
   if (!ready || live.status === 'loading') return <LoadingState rows={6} />;
   if (!base) return <LoadingState rows={6} />;
-  const mines = base.buildings.filter((b) => b.kind === 'mine');
-  const waiting = Math.floor(mines.reduce((n, m) => n + storedNow(m, now), 0));
+  const producers = base.buildings.filter((b) => CONFIG[b.kind].makes);
+  const waiting = Math.floor(producers.filter((b) => b.kind === 'mine').reduce((n, m) => n + storedNow(base, m, now), 0));
+  const waitingC = Math.floor(producers.filter((b) => b.kind === 'research').reduce((n, m) => n + storedNow(base, m, now), 0));
   return (
     <>
       <Link to="/war" className={s.back}>
@@ -124,6 +135,11 @@ function BaseScreen({ uid }: { uid: string }) {
           <small>{t('wbase.gold')}</small>
         </span>
         <span className={s.res}>
+          <i className={s.gem} aria-hidden />
+          <b>{Math.floor(base.crystals).toLocaleString('en-US')}</b>
+          <small>{t('wbase.crystals')}</small>
+        </span>
+        <span className={s.res}>
           <b>
             {busyCount(base, now)} / {SLOTS}
           </b>
@@ -133,24 +149,11 @@ function BaseScreen({ uid }: { uid: string }) {
           <b>{t('wbase.level', { n: hqLevel(base) })}</b>
           <small>{t('wbase.hqShort')}</small>
         </span>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={busy || waiting < 1}
-          onClick={() =>
-            void act({ action: 'baseCollect' }, (r) =>
-              toast.show(
-                t('wbase.collected', {
-                  n: r.collected.toLocaleString('en-US'),
-                }),
-                'success',
-              ),
-            )
-          }
-        >
-          {t('wbase.collectAll', { n: waiting.toLocaleString('en-US') })}
+        <Button size="sm" variant="secondary" disabled={busy || (waiting < 1 && waitingC < 1)} onClick={() => void act({ action: 'baseCollect' }, (r) => toast.show(collectedText(r.collected), 'success'))}>
+          {waitingC >= 1 ? t('wbase.collectAllBoth', { g: waiting.toLocaleString('en-US'), c: waitingC }) : t('wbase.collectAll', { n: waiting.toLocaleString('en-US') })}
         </Button>
       </div>
+      {!base.kit && <KitPicker busy={busy} onPick={(kit) => void act({ action: 'baseKit', kit }, () => toast.show(t('wbase.kitPicked', { name: t(`wbase.kit.${kit}`) }), 'success'))} />}
 
       <World base={base} now={now} sel={sel} onSelect={(id) => (mode ? undefined : setSel((c) => (c === id ? null : id)))} mode={mode} setMode={setMode} onConfirm={confirm} />
 
@@ -161,7 +164,7 @@ function BaseScreen({ uid }: { uid: string }) {
           {!fits(base, mode.kind, mode.x, mode.y, mode.type === 'move' ? mode.id : undefined) && <p className={s.warn}>{t('wbase.blocked')}</p>}
           <div className={s.row}>
             <Button variant="primary" disabled={busy || !fits(base, mode.kind, mode.x, mode.y, mode.type === 'move' ? mode.id : undefined)} onClick={confirm}>
-              {mode.type === 'place' ? t('wbase.placeHere', { cost: CONFIG[mode.kind].cost[0]! }) : t('wbase.moveHere')}
+              {mode.type === 'place' ? t('wbase.placeHere', { cost: CONFIG[mode.kind].cost[0]!.toLocaleString('en-US') }) : t('wbase.moveHere')}
             </Button>
             <Button variant="ghost" onClick={() => setMode(null)}>
               {t('wbase.cancel')}
@@ -175,16 +178,8 @@ function BaseScreen({ uid }: { uid: string }) {
           now={now}
           busy={busy}
           onUpgrade={() => void act({ action: 'baseUpgrade', id: picked.id }, () => toast.show(t('wbase.upgrading', { name: CONFIG[picked.kind].name }), 'success'))}
-          onCollect={() =>
-            void act({ action: 'baseCollect', id: picked.id }, (r) =>
-              toast.show(
-                t('wbase.collected', {
-                  n: r.collected.toLocaleString('en-US'),
-                }),
-                'success',
-              ),
-            )
-          }
+          onCollect={() => void act({ action: 'baseCollect', id: picked.id }, (r) => toast.show(collectedText(r.collected), 'success'))}
+          onSpeed={() => void act({ action: 'baseSpeed', id: picked.id }, () => toast.show(t('wbase.finished', { name: CONFIG[picked.kind].name }), 'success'))}
           onMove={() =>
             setMode({
               type: 'move',
@@ -358,7 +353,7 @@ function World({ base, now, sel, onSelect, mode, setMode, onConfirm }: { base: B
       >
         <Ground />
         {mode && <Footprint kind={mode.kind} x={mode.x} y={mode.y} ok={ghostOk} />}
-        {sorted.map((b) => (mode?.type === 'move' && mode.id === b.id ? null : <Piece key={b.id} b={b} now={now} selected={sel === b.id} onSelect={() => onSelect(b.id)} />))}
+        {sorted.map((b) => (mode?.type === 'move' && mode.id === b.id ? null : <Piece key={b.id} b={b} now={now} held={storedNow(base, b, now)} selected={sel === b.id} onSelect={() => onSelect(b.id)} />))}
         {mode && (
           <Piece
             b={{
@@ -409,7 +404,7 @@ function Footprint({ kind, x, y, ok }: { kind: Kind; x: number; y: number; ok: b
 }
 
 /** One building: its picture standing on its footprint, its level, and its timer while building. */
-function Piece({ b, now, selected, onSelect, ghost, ok }: { b: Building; now: number; selected?: boolean; onSelect?: () => void; ghost?: boolean; ok?: boolean }) {
+function Piece({ b, now, held = 0, selected, onSelect, ghost, ok }: { b: Building; now: number; held?: number; selected?: boolean; onSelect?: () => void; ghost?: boolean; ok?: boolean }) {
   const cfg = CONFIG[b.kind];
   const sp = SPRITE[b.kind];
   const n = cfg.size;
@@ -463,7 +458,7 @@ function Piece({ b, now, selected, onSelect, ghost, ok }: { b: Building; now: nu
           {formatLeft(left)}
         </span>
       )}
-      {b.kind === 'mine' && !building && storedNow(b, now) >= 1 && <span className={s.bubble}>+{Math.floor(storedNow(b, now))}</span>}
+      {cfg.makes && !building && held >= 1 && <span className={`${s.bubble} ${cfg.makes === 'crystals' ? s.bubbleC : ''}`}>+{Math.floor(held)}</span>}
       {b.kind === 'barracks' && lvl >= 1 && !building && (
         <span className={s.guards} aria-hidden>
           {Array.from({ length: Math.min(4, lvl + 1) }, (_, i) => (
@@ -477,18 +472,43 @@ function Piece({ b, now, selected, onSelect, ghost, ok }: { b: Building; now: nu
   );
 }
 
-const WHY_PLACE: Record<'count' | 'gold' | 'slots', MessageKey> = {
+const WHY_PLACE: Record<'count' | 'gold' | 'crystals' | 'slots', MessageKey> = {
   count: 'wbase.why.count',
   gold: 'wbase.why.gold',
+  crystals: 'wbase.why.crystals',
   slots: 'wbase.why.slots',
 };
-const WHY_UP: Record<'max' | 'hq' | 'busy' | 'slots' | 'gold', MessageKey> = {
+const WHY_UP: Record<'max' | 'hq' | 'busy' | 'slots' | 'gold' | 'crystals', MessageKey> = {
   max: 'wbase.why.max',
   hq: 'wbase.why.hq',
   busy: 'wbase.why.busy',
   slots: 'wbase.why.slots',
   gold: 'wbase.why.gold',
+  crystals: 'wbase.why.crystals',
 };
+const WHAT: Record<Kind, MessageKey> = { hq: 'wbase.what.hq', mine: 'wbase.what.mine', barracks: 'wbase.what.barracks', research: 'wbase.what.research' };
+/** "600 gold" or "4,500 gold + 20 crystals" */
+const price = (gold: number, crystals: number) => (crystals ? t('wbase.priceBoth', { g: gold.toLocaleString('en-US'), c: crystals }) : t('wbase.priceGold', { g: gold.toLocaleString('en-US') }));
+
+/** The season starter kit, picked once (functions/warbase.py KITS). */
+function KitPicker({ busy, onPick }: { busy: boolean; onPick: (k: KitId) => void }) {
+  return (
+    <section className={s.kits} aria-labelledby="kit-title">
+      <p id="kit-title" className={s.panelTitle}>
+        {t('wbase.kitTitle')}
+      </p>
+      <p className={s.muted}>{t('wbase.kitSub')}</p>
+      <div className={s.kitRow}>
+        {KIT_IDS.map((k) => (
+          <button key={k} type="button" className={s.kit} disabled={busy} onClick={() => onPick(k)}>
+            <b>{t(`wbase.kit.${k}`)}</b>
+            <small>{t(`wbase.kit.${k}.body`, { g: KITS[k].gold.toLocaleString('en-US'), c: KITS[k].crystals, s: KITS[k].soldiers })}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function BuildMenu({ base, now, onPick }: { base: Base; now: number; onPick: (k: Kind) => void }) {
   return (
@@ -505,19 +525,11 @@ function BuildMenu({ base, now, onPick }: { base: Base; now: number; onPick: (k:
                 <img src={SPRITE[k].url} alt="" />
                 <span>
                   <b>{cfg.name}</b>
-                  <small>{t(k === 'mine' ? 'wbase.what.mine' : 'wbase.what.barracks')}</small>
+                  <small>{t(WHAT[k])}</small>
                   <small>
-                    {t('wbase.costTime', {
-                      cost: cfg.cost[0]!,
-                      t: formatLeft(cfg.time[0]! * 1000),
-                    })}{' '}
-                    ·{' '}
-                    {t('wbase.have', {
-                      n: have,
-                      max: cfg.count[hqLevel(base) - 1]!,
-                    })}
+                    {price(cfg.cost[0]!, cfg.crystals[0]!)} · {formatLeft(cfg.time[0]! * 1000)} · {t('wbase.have', { n: have, max: cfg.count[hqLevel(base) - 1]! })}
                   </small>
-                  {why && <small className={s.why}>{t(WHY_PLACE[why])}</small>}
+                  {why === 'locked' ? <small className={s.why}>{t('wbase.why.locked', { n: unlockLevel(k) })}</small> : why && <small className={s.why}>{t(WHY_PLACE[why])}</small>}
                 </span>
               </button>
             </li>
@@ -528,26 +540,24 @@ function BuildMenu({ base, now, onPick }: { base: Base; now: number; onPick: (k:
   );
 }
 
-function Details({ b, x, now, busy, onUpgrade, onCollect, onMove, onClose }: { b: Base; x: Building; now: number; busy: boolean; onUpgrade: () => void; onCollect: () => void; onMove: () => void; onClose: () => void }) {
+function Details({ b, x, now, busy, onUpgrade, onCollect, onSpeed, onMove, onClose }: { b: Base; x: Building; now: number; busy: boolean; onUpgrade: () => void; onCollect: () => void; onSpeed: () => void; onMove: () => void; onClose: () => void }) {
   const cfg = CONFIG[x.kind];
   const lvl = shownLevel(x, now);
   const why = cantUpgrade(b, x, now);
-  const next = lvl < cfg.max ? { cost: cfg.cost[lvl]!, time: cfg.time[lvl]! } : null;
+  const next = lvl < cfg.max ? { cost: cfg.cost[lvl]!, crystals: cfg.crystals[lvl]!, time: cfg.time[lvl]! } : null;
+  const fast = speedCost(x, now);
+  const kitBoost = (m: 'gold' | 'crystals') => (b.kit ? (KITS[b.kit].boost[m] ?? 0) : 0);
   const effect =
-    x.kind === 'mine' && lvl >= 1
-      ? t('wbase.eff.mine', {
-          rate: cfg.rate![lvl - 1]!,
-          store: cfg.store![lvl - 1]!,
-        })
-      : x.kind === 'barracks' && lvl >= 1
-        ? t('wbase.eff.barracks', { n: cfg.soldiers![lvl - 1]! })
-        : x.kind === 'hq'
-          ? t('wbase.eff.hq', {
-              mines: CONFIG.mine.count[lvl - 1]!,
-              max: lvl + 1,
-            })
-          : t('wbase.underConstruction');
-  const stored = Math.floor(storedNow(x, now));
+    lvl < 1
+      ? t('wbase.underConstruction')
+      : x.kind === 'mine'
+        ? t('wbase.eff.mine', { rate: Math.round(cfg.rate![lvl - 1]! * (1 + kitBoost('gold'))).toLocaleString('en-US'), store: cfg.store![lvl - 1]!.toLocaleString('en-US') })
+        : x.kind === 'research'
+          ? t('wbase.eff.research', { rate: Math.round(cfg.rate![lvl - 1]! * (1 + kitBoost('crystals'))), store: cfg.store![lvl - 1]! })
+          : x.kind === 'barracks'
+            ? t('wbase.eff.barracks', { n: cfg.soldiers![lvl - 1]! })
+            : t('wbase.eff.hq', { mines: CONFIG.mine.count[lvl - 1]!, max: lvl + 1 }) + (lvl < 2 ? ` ${t('wbase.eff.hqNext')}` : '');
+  const stored = Math.floor(storedNow(b, x, now));
   return (
     <div className={s.panel} role="region" aria-label={cfg.name}>
       <div className={s.panelHead}>
@@ -563,16 +573,17 @@ function Details({ b, x, now, busy, onUpgrade, onCollect, onMove, onClose }: { b
       <div className={s.row}>
         {next && !isBusy(x, now) && (
           <Button variant="primary" disabled={busy || !!why} onClick={onUpgrade}>
-            {t('wbase.upgrade', {
-              n: lvl + 1,
-              cost: next.cost.toLocaleString('en-US'),
-              t: formatLeft(next.time * 1000),
-            })}
+            {t('wbase.upgrade', { n: lvl + 1, cost: price(next.cost, next.crystals), t: formatLeft(next.time * 1000) })}
           </Button>
         )}
-        {x.kind === 'mine' && (
+        {fast > 0 && (
+          <Button variant="primary" disabled={busy || b.crystals < fast} onClick={onSpeed}>
+            {t('wbase.finishNow', { n: fast })}
+          </Button>
+        )}
+        {cfg.makes && (
           <Button variant="secondary" disabled={busy || stored < 1} onClick={onCollect}>
-            {t('wbase.collect', { n: stored.toLocaleString('en-US') })}
+            {t(cfg.makes === 'crystals' ? 'wbase.collectC' : 'wbase.collect', { n: stored.toLocaleString('en-US') })}
           </Button>
         )}
         <Button variant="ghost" disabled={busy} onClick={onMove}>
@@ -580,6 +591,7 @@ function Details({ b, x, now, busy, onUpgrade, onCollect, onMove, onClose }: { b
         </Button>
       </div>
       {why && why !== 'max' && why !== 'busy' && <p className={s.why}>{t(WHY_UP[why])}</p>}
+      {fast > 0 && b.crystals < fast && <p className={s.why}>{t('wbase.why.crystals')}</p>}
       {why === 'max' && <p className={s.muted}>{t('wbase.why.max')}</p>}
     </div>
   );

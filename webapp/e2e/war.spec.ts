@@ -480,13 +480,22 @@ test('your base: build a Gold Mine and upgrade the Headquarters, in minutes, wit
   const hud = page.getByRole('group', { name: 'Your base resources' });
   await expect(hud).toContainText('1,500gold', { timeout: 30_000 }); // this season's starter gold
   await expect(hud).toContainText('0 / 3builders busy');
+  await expect(hud).toContainText('20crystals');
+  // stage 2: the season's starter kit, picked once
+  await page.getByRole('button', { name: /^Research kit/ }).click();
+  await expect(page.getByText('Research kit picked for this season.')).toBeVisible({ timeout: 30_000 });
+  await expect(hud).toContainText('2,100gold');
+  await expect(hud).toContainText('80crystals');
+  await expect(page.getByRole('button', { name: /^Investor kit/ })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Build' }).getByRole('button', { name: /Research Center/ })).toBeDisabled(); // unlocks at Headquarters level 2
+  await expect(page.getByRole('region', { name: 'Build' })).toContainText('Unlocks at Headquarters level 2.');
   // build a Gold Mine: the menu picks a free spot next to the Headquarters; the server takes the gold
   const menu = page.getByRole('region', { name: 'Build' });
   await menu.getByRole('button', { name: /Gold Mine/ }).click();
   await expect(page.getByRole('region', { name: 'Placing a building' })).toContainText('Place your Gold Mine');
   await page.getByRole('button', { name: 'Build here (150 gold)' }).click();
   await expect(page.getByText('Gold Mine: construction started.')).toBeVisible({ timeout: 30_000 });
-  await expect(hud).toContainText('1,350gold');
+  await expect(hud).toContainText('1,950gold');
   await expect(hud).toContainText('1 / 3builders busy');
   const land = page.getByRole('application', { name: 'Your base' });
   await expect(land.getByRole('button', { name: /^Gold Mine, Under construction, ready in \d+s$/ })).toBeVisible();
@@ -496,8 +505,18 @@ test('your base: build a Gold Mine and upgrade the Headquarters, in minutes, wit
   await expect(hq).toContainText('Allows 1 Gold Mine(s) and buildings up to level 2.');
   await hq.getByRole('button', { name: 'Upgrade to level 2 · 600 gold · 5m 00s' }).click();
   await expect(page.getByText('Trading Headquarters: upgrade started.')).toBeVisible({ timeout: 30_000 });
-  await expect(hud).toContainText('750gold');
+  await expect(hud).toContainText('1,350gold');
   await expect(hud).toContainText('2 / 3builders busy');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-base-${info.project.name}.png`, fullPage: true });
+  // finish the Headquarters now for crystals (a crystal a minute left); level 2 unlocks the Research Center
+  await hq.getByRole('button', { name: /^Finish now · [45] crystals$/ }).click();
+  await expect(page.getByText('Trading Headquarters: finished.')).toBeVisible({ timeout: 30_000 });
+  await expect(hud).toContainText('Level 2Headquarters');
+  await hq.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('region', { name: 'Build' }).getByRole('button', { name: /Research Center/ }).click();
+  await page.getByRole('button', { name: 'Build here (500 gold)' }).click();
+  await expect(page.getByText('Research Center: construction started.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('application', { name: 'Your base' }).getByRole('button', { name: /^Research Center, Under construction/ })).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-base2-${info.project.name}.png`, fullPage: true });
 });

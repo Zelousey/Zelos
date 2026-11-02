@@ -1,4 +1,4 @@
-"""The War base (owner brief 2026-11-01, "7-day base building"; prototype stage). Pure rules here
+"""The War base (owner brief 2026-11-01, "7-day base building"; prototype + stage 2). Pure rules here
 (unit tests: scripts/warbase_test.py); main.py runs them through war_lobby "base*" actions and the
 minute job (construction-done notices).
 
@@ -11,6 +11,12 @@ offline production; starter resources so the first 30 minutes are rewarding; eve
 CONFIG so the game can be balanced without rewriting it. Later stages add Crystals and Energy,
 the other buildings, personnel, starter kits and territory outposts.
 
+Stage 2 (owner "next stage", 2026-11-02): Crystals, made by the Research Center (unlocked at
+Headquarters level 2) and spent on the top levels and on finishing a construction early (1 crystal a
+minute left); a season starter kit you pick once (Investor, Commander or Research); Headquarters
+levels unlock buildings. Energy, the Trading Post, Medical Station and Wizard's Tower come with the
+things that use them (scouting and abilities, trading, casualties), so nothing here is decoration.
+
 How time works: nothing is saved every second. Each building keeps when its construction ends
 (busyUntil) and each mine when it last produced (prodAt); settle() works out everything up to
 "now" whenever the base is read or changed. A mine doesn't produce while it's being upgraded.
@@ -20,28 +26,51 @@ from warmarket import WarError
 GRID = 16                                  # the base is GRID x GRID tiles (the owner's land picture)
 SLOTS = 3                                  # things building at once
 START_GOLD = 1500                          # the season's starter gold
+START_CRYSTALS = 20                        # and crystals (enough to finish a first build early)
 HQ_AT = (6, 6)                             # where the Headquarters stands on a new base
+SPEED_PER_MIN = 1                          # crystals per minute left to finish a construction now
 
-# Per building: size in tiles, max level, cost to reach each level (index 0 = build it),
-# seconds to reach each level, how many you may have at each HQ level (index = HQ level - 1).
+# Per building: size in tiles, max level, gold (and crystals) to reach each level (index 0 = build
+# it), seconds to reach each level, how many you may have at each HQ level (index = HQ level - 1;
+# 0 = not unlocked yet). Producers say what they make, how fast (an hour) and how much they hold.
 CONFIG = {
     "hq": {"name": "Trading Headquarters", "size": 4, "max": 5,
-           "cost": [0, 600, 1800, 4500, 9000], "time": [0, 300, 900, 1800, 2700], "count": [1, 1, 1, 1, 1]},
+           "cost": [0, 600, 1800, 4500, 9000], "crystals": [0, 0, 0, 20, 50],
+           "time": [0, 300, 900, 1800, 2700], "count": [1, 1, 1, 1, 1]},
     "mine": {"name": "Gold Mine", "size": 3, "max": 5,
-             "cost": [150, 300, 700, 1600, 3500], "time": [60, 120, 300, 900, 1800], "count": [1, 2, 2, 3, 3],
-             # gold an hour and how much it holds before you collect
-             "rate": [600, 900, 1300, 1900, 2700], "store": [1200, 2400, 4500, 8000, 14000]},
+             "cost": [150, 300, 700, 1600, 3500], "crystals": [0, 0, 0, 10, 25],
+             "time": [60, 120, 300, 900, 1800], "count": [1, 2, 2, 3, 3],
+             "makes": "gold", "rate": [600, 900, 1300, 1900, 2700], "store": [1200, 2400, 4500, 8000, 14000]},
     "barracks": {"name": "Military Barracks", "size": 3, "max": 5,
-                 "cost": [200, 400, 900, 2000, 4200], "time": [60, 120, 300, 900, 1800], "count": [1, 1, 1, 2, 2],
+                 "cost": [200, 400, 900, 2000, 4200], "crystals": [0, 0, 0, 10, 25],
+                 "time": [60, 120, 300, 900, 1800], "count": [1, 1, 1, 2, 2],
                  # extra soldiers in your army in Wars and zones you start or join while it stands
                  "soldiers": [5, 10, 15, 20, 30]},
+    "research": {"name": "Research Center", "size": 3, "max": 5,
+                 "cost": [500, 900, 1800, 3600, 7000], "crystals": [0, 0, 0, 0, 30],
+                 "time": [120, 300, 900, 1800, 2700], "count": [0, 1, 1, 2, 2],
+                 "makes": "crystals", "rate": [8, 12, 18, 26, 36], "store": [40, 80, 150, 260, 400]},
+}
+# The season starter kit, picked once: extra resources now and a boost for the season.
+KITS = {
+    "investor": {"name": "Investor kit", "gold": 1500, "crystals": 0, "boost": {"gold": 0.15}, "soldiers": 0},
+    "commander": {"name": "Commander kit", "gold": 600, "crystals": 10, "boost": {}, "soldiers": 10},
+    "research": {"name": "Research kit", "gold": 600, "crystals": 60, "boost": {"crystals": 0.25}, "soldiers": 0},
 }
 KINDS = tuple(CONFIG)
 
 
 def new_base(season, now_ms):
     hq = {"kind": "hq", "x": HQ_AT[0], "y": HQ_AT[1], "level": 1, "to": None, "busyUntil": None}
-    return {"season": season, "gold": START_GOLD, "buildings": {"hq1": hq}, "seq": 1, "createdAt": now_ms, "updatedAt": now_ms}
+    return {"season": season, "gold": START_GOLD, "crystals": START_CRYSTALS, "kit": None, "buildings": {"hq1": hq}, "seq": 1,
+            "createdAt": now_ms, "updatedAt": now_ms}
+
+
+def _rate(base, kind, lvl):
+    """What a producer makes an hour at this level, with the season kit's boost."""
+    cfg = CONFIG[kind]
+    boost = (KITS.get(base.get("kit") or "", {}).get("boost") or {}).get(cfg["makes"], 0)
+    return cfg["rate"][lvl - 1] * (1 + boost)
 
 
 def hq_level(base):
@@ -57,17 +86,17 @@ def settle(base, now_ms):
         if b.get("busyUntil") is not None and b["busyUntil"] <= now_ms:
             b["level"], b["to"], end = b["to"], None, b["busyUntil"]
             b["busyUntil"] = None
-            if b["kind"] == "mine":
+            if "makes" in CONFIG[b["kind"]]:
                 b["prodAt"] = end
                 b.setdefault("stored", 0)
             done.append(bid)
     for b in out["buildings"].values():
-        if b["kind"] != "mine" or b.get("busyUntil") is not None or b.get("level", 0) < 1:
+        cfg = CONFIG[b["kind"]]
+        if "makes" not in cfg or b.get("busyUntil") is not None or b.get("level", 0) < 1:
             continue
-        cfg = CONFIG["mine"]
         lvl = b["level"]
         since = b.get("prodAt") or now_ms
-        made = cfg["rate"][lvl - 1] * max(0, now_ms - since) / 3600000.0
+        made = _rate(out, b["kind"], lvl) * max(0, now_ms - since) / 3600000.0
         b["stored"] = min(cfg["store"][lvl - 1], (b.get("stored") or 0) + made)
         b["prodAt"] = now_ms
     out["updatedAt"] = now_ms
@@ -102,10 +131,19 @@ def _need_slot(base):
         raise WarError("FAILED_PRECONDITION", "All %d builders are busy. Wait for one to finish." % SLOTS)
 
 
-def _pay(base, cost):
+def _pay(base, cost, crystals=0):
     if base["gold"] < cost:
         raise WarError("FAILED_PRECONDITION", "You need %d gold for that; you have %d." % (cost, int(base["gold"])), {"reason": "base-gold", "need": cost})
+    have = base.get("crystals") or 0
+    if have < crystals:
+        raise WarError("FAILED_PRECONDITION", "You need %d crystals for that; you have %d." % (crystals, int(have)), {"reason": "base-crystals", "need": crystals})
     base["gold"] = base["gold"] - cost
+    base["crystals"] = have - crystals
+
+
+def unlock_level(kind):
+    """The Headquarters level that unlocks a building (None if it never does)."""
+    return next((i + 1 for i, n in enumerate(CONFIG[kind]["count"]) if n > 0), None)
 
 
 def place(base, kind, x, y, now_ms):
@@ -115,12 +153,15 @@ def place(base, kind, x, y, now_ms):
     cfg = CONFIG[kind]
     _need_slot(base)
     have = sum(1 for b in base["buildings"].values() if b["kind"] == kind)
-    if have >= cfg["count"][hq_level(base) - 1]:
+    allowed = cfg["count"][hq_level(base) - 1]
+    if allowed == 0:
+        raise WarError("FAILED_PRECONDITION", "%s unlocks at Headquarters level %d." % (cfg["name"], unlock_level(kind)))
+    if have >= allowed:
         raise WarError("FAILED_PRECONDITION", "Upgrade your Headquarters to build another %s." % cfg["name"])
     if not _fits(base, kind, x, y):
         raise WarError("FAILED_PRECONDITION", "That spot is taken or off the land.")
     out = dict(base, buildings=dict(base["buildings"]))
-    _pay(out, cfg["cost"][0])
+    _pay(out, cfg["cost"][0], cfg["crystals"][0])
     out["seq"] = base.get("seq", 1) + 1
     bid = "%s%d" % (kind, out["seq"])
     out["buildings"][bid] = {"kind": kind, "x": x, "y": y, "level": 0, "to": 1, "busyUntil": now_ms + cfg["time"][0] * 1000}
@@ -142,7 +183,7 @@ def upgrade(base, bid, now_ms):
         raise WarError("FAILED_PRECONDITION", "Upgrade your Headquarters first: buildings can be at most one level above it.")
     _need_slot(base)
     out = dict(base, buildings=dict(base["buildings"]))
-    _pay(out, cfg["cost"][lvl])
+    _pay(out, cfg["cost"][lvl], cfg["crystals"][lvl])
     nb = dict(b, to=lvl + 1, busyUntil=now_ms + cfg["time"][lvl] * 1000)
     out["buildings"][bid] = nb
     out["updatedAt"] = now_ms
@@ -162,29 +203,65 @@ def move(base, bid, x, y, now_ms):
 
 
 def collect(base, bid, now_ms):
-    """Move a mine's stored gold (every mine's when bid is None) into your gold. Returns (base, amount)."""
+    """Move what producers hold (every one when bid is None) into your gold and crystals.
+    Returns (base, {"gold": n, "crystals": n})."""
+    if bid and bid not in base["buildings"]:
+        raise WarError("NOT_FOUND", "That building isn't on your base.")
     out = dict(base, buildings=dict(base["buildings"]))
-    got = 0
+    got = {"gold": 0, "crystals": 0}
     for k, b in base["buildings"].items():
-        if b["kind"] != "mine" or (bid and k != bid):
+        makes = CONFIG[b["kind"]].get("makes")
+        if not makes or (bid and k != bid):
             continue
         amt = int(b.get("stored") or 0)
         if amt:
-            got += amt
+            got[makes] += amt
             out["buildings"][k] = dict(b, stored=(b.get("stored") or 0) - amt)
-    if bid and bid not in base["buildings"]:
-        raise WarError("NOT_FOUND", "That building isn't on your base.")
-    out["gold"] = base["gold"] + got
+    out["gold"] = base["gold"] + got["gold"]
+    out["crystals"] = (base.get("crystals") or 0) + got["crystals"]
     out["updatedAt"] = now_ms
     return out, got
+
+
+def speed_cost(b, now_ms):
+    """Crystals to finish this construction now: SPEED_PER_MIN for every minute (or part) left."""
+    if b.get("busyUntil") is None or b["busyUntil"] <= now_ms:
+        return 0
+    return max(1, -(-(b["busyUntil"] - now_ms) // 60000)) * SPEED_PER_MIN
+
+
+def speed_up(base, bid, now_ms):
+    """Pay crystals to finish a construction now. Returns (base, cost); settle() completes it."""
+    b = base["buildings"].get(bid)
+    if not b:
+        raise WarError("NOT_FOUND", "That building isn't on your base.")
+    cost = speed_cost(b, now_ms)
+    if not cost:
+        raise WarError("FAILED_PRECONDITION", "Nothing is being built there.")
+    out = dict(base, buildings=dict(base["buildings"]))
+    _pay(out, 0, cost)
+    out["buildings"][bid] = dict(b, busyUntil=now_ms)
+    out["updatedAt"] = now_ms
+    return out, cost
+
+
+def choose_kit(base, kit, now_ms):
+    """Pick this season's starter kit (once): its resources now, its boost for the season."""
+    if kit not in KITS:
+        raise WarError("INVALID_ARGUMENT", "Pick one of the three starter kits.")
+    if base.get("kit"):
+        raise WarError("FAILED_PRECONDITION", "You already picked your starter kit this season.")
+    k = KITS[kit]
+    return dict(base, kit=kit, gold=base["gold"] + k["gold"], crystals=(base.get("crystals") or 0) + k["crystals"], updatedAt=now_ms)
 
 
 def soldiers_bonus(base):
     """Extra soldiers from your best finished Barracks (not one under construction to level 1)."""
     best = max((b["level"] for b in base["buildings"].values() if b["kind"] == "barracks" and b["level"] >= 1), default=0)
-    return CONFIG["barracks"]["soldiers"][best - 1] if best else 0
+    kit = KITS.get(base.get("kit") or "", {}).get("soldiers", 0)
+    return (CONFIG["barracks"]["soldiers"][best - 1] if best else 0) + kit
 
 
 def public(base, now_ms):
     """What the app gets: the base plus the rules it needs to draw and price things."""
-    return dict(base, now=now_ms, slots=SLOTS, grid=GRID, config=CONFIG)
+    return dict(base, now=now_ms, slots=SLOTS, grid=GRID, config=CONFIG, kits=KITS)
