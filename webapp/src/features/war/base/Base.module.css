@@ -1,0 +1,75 @@
+/* The War base: an isometric piece of land with buildings you place and upgrade. */
+.back { display: inline-block; margin-bottom: var(--space-2); color: var(--muted); font-size: var(--text-sm); }
+.hud { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-3); }
+.res { display: inline-grid; grid-auto-flow: column; align-items: baseline; gap: var(--space-1); padding: 6px 12px; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--surface); }
+.res b { font-family: var(--mono); font-size: var(--text-md, 1rem); color: var(--ink); }
+.res small { color: var(--muted); font-size: var(--text-xs); }
+.coin { align-self: center; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe28a, #e8b23d 55%, #a87708); box-shadow: 0 0 0 1px #7a5600; }
+
+.viewport {
+  position: relative; height: min(68vh, 640px); min-height: 380px; overflow: hidden; touch-action: none; cursor: grab;
+  border: 1px solid var(--border-soft); border-radius: var(--radius-lg);
+  background: #2d5a2a;
+}
+.viewport:active { cursor: grabbing; }
+.viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.ground { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.grassA { fill: #5f9a3c; }
+.grassB { fill: #66a242; }
+.edge { fill: none; stroke: rgba(30, 60, 20, 0.6); stroke-width: 2; }
+.cliffL { fill: #6b5236; }
+.cliffR { fill: #4f3c27; }
+.footOk { fill: rgba(80, 220, 120, 0.35); stroke: #8ff0b4; stroke-width: 2; }
+.footBad { fill: rgba(230, 70, 70, 0.35); stroke: #ff8a80; stroke-width: 2; }
+
+.piece { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; }
+.piece:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.sprite { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.35)); transition: filter 120ms ease-out; pointer-events: none; user-select: none; }
+.piece:hover .sprite { filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.35)) brightness(1.08); }
+.selected .sprite { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 10px #8fb6ff); }
+.building { filter: grayscale(0.5) brightness(0.8) drop-shadow(0 6px 6px rgba(0, 0, 0, 0.35)); }
+.ghost { opacity: 0.75; pointer-events: none; }
+.ghostBad .sprite { filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(4) brightness(0.8); }
+.tag {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -100%); display: grid; justify-items: center; padding: 3px 9px;
+  border: 1px solid rgba(143, 182, 255, 0.5); border-radius: 6px; background: rgba(6, 12, 27, 0.88); color: #fff;
+  font-size: 13px; font-weight: 700; white-space: nowrap; pointer-events: none;
+}
+.tag small { color: #8fb6ff; font-size: 11px; font-weight: 600; }
+.timer { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); display: grid; justify-items: center; gap: 3px; padding: 4px 8px; border-radius: 6px; background: rgba(6, 12, 27, 0.9); color: #fff; font-family: var(--mono); font-size: 13px; pointer-events: none; }
+.bar { width: 90px; height: 6px; border-radius: 3px; background: #22304f; overflow: hidden; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, #3d8bff, #8fb6ff); }
+.bubble { position: absolute; right: 10%; top: 12%; padding: 3px 8px; border-radius: 999px; background: #e8b23d; color: #1a1400; font-family: var(--mono); font-size: 12px; font-weight: 700; pointer-events: none; animation: bob 2.4s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.guards { position: absolute; left: 4%; bottom: 0; display: flex; gap: 6px; pointer-events: none; }
+.guard { width: 12px; height: 24px; fill: #3d8bff; animation: march 3s ease-in-out infinite alternate; }
+.guard:nth-child(2) { animation-delay: 0.4s; }
+.guard:nth-child(3) { animation-delay: 0.8s; }
+.guard:nth-child(4) { animation-delay: 1.2s; }
+@keyframes march { to { transform: translate(14px, 7px); } }
+
+.zoom { position: absolute; right: 12px; bottom: 12px; display: grid; gap: 6px; }
+.zoom button { width: 40px; height: 40px; border: 1px solid #2b4170; border-radius: 8px; background: rgba(8, 15, 31, 0.9); color: #fff; font-size: 20px; cursor: pointer; }
+.zoom button:hover { background: #142a55; }
+.zoom button:focus-visible { outline: 2px solid #8fb6ff; }
+
+.panel { display: grid; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); }
+.panel p { margin: 0; }
+.panelHead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.panelTitle { font-weight: 700; color: var(--ink); }
+.close { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--ink); font-size: 18px; cursor: pointer; }
+.row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.muted { color: var(--muted); font-size: var(--text-sm); }
+.warn, .why { color: var(--gold); font-size: var(--text-sm); }
+.menu { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2); }
+.card { display: grid; grid-template-columns: 72px 1fr; gap: var(--space-3); align-items: center; width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface-2); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.card:hover:not(:disabled) { border-color: var(--accent-line); }
+.card:disabled { cursor: default; opacity: 0.7; }
+.card img { width: 72px; height: 60px; object-fit: contain; }
+.card span { display: grid; gap: 2px; }
+.card small { color: var(--muted); font-size: var(--text-xs); }
+.card .why { color: var(--gold); }
+@media (pointer: coarse) { .card { min-height: var(--tap); } }
+@media (prefers-reduced-motion: reduce) { .bubble, .guard { animation: none; } }
+.land { position: absolute; left: 0; top: 0; display: block; max-width: none; pointer-events: none; user-select: none; }

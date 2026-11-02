@@ -57,6 +57,19 @@ export function ZoneGrid({ uid, p }: { uid: string; p: WarProfile | null }) {
         <LoadingState rows={3} />
       ) : (
         <ul className={s.zoneGrid} aria-label={t('wz.title')}>
+          <li>
+            <Link className={`${s.zoneCard} ${s.zoneBase}`} to="/war/base">
+              <span className={s.zoneKind}>{t('wz.base')}</span>
+              <span className={s.zoneName}>{t('wbase.title')}</span>
+              <span className={s.muted}>{t('wz.baseBody')}</span>
+              <span className={s.zoneFoot}>
+                <span />
+                <span className={s.zoneOpen}>
+                  {t('wz.baseGo')} <Icon name="chevronRight" size={16} />
+                </span>
+              </span>
+            </Link>
+          </li>
           {running.map((w) => (
             <li key={w.id}>
               <ZoneCard w={w} uid={uid} now={now} />

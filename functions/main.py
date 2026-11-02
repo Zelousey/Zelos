@@ -7198,7 +7198,13 @@ def war_morning_summaries(db, now_ms):
 
 @scheduler_fn.on_schedule(schedule="* * * * *", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=60, memory=256)
 def war_market_tick(event: scheduler_fn.ScheduledEvent) -> None:
-    war_market_pass(firestore.client(), int(_time.time() * 1000))
+    db = firestore.client()
+    now_ms = int(_time.time() * 1000)
+    war_market_pass(db, now_ms)
+    try:
+        _war_base_pass(db, now_ms)
+    except Exception as e:
+        print("[war] base pass failed: %s" % type(e).__name__)
 
 
 def _war_prices(db, now_ms):
@@ -7342,6 +7348,8 @@ def war_lobby(req, db, uid, now_ms):
         return _zone_join(db, uid, name, now_ms, data.get("open"))
     if action == "reset":
         return _war_reset(db, uid, now_ms)
+    if isinstance(action, str) and action.startswith("base"):
+        return _war_base(db, uid, data, now_ms)
     wid = str(data.get("warId") or "")
     if not _re.match(r"^[A-Za-z0-9]{10,40}$", wid):
         raise WM.WarError("INVALID_ARGUMENT", "That War isn't valid.")
@@ -7504,6 +7512,10 @@ def _war_with_map(war):
             snap = db.collection("warProfiles").document(uid).get()
             start[uid] = WM.equity(snap.to_dict(), prices) if snap.exists else WM.START_BALANCE
         war = dict(war, startEquity=start)
+        if war.get("kind") != "zone" and not war.get("troops"):
+            # the base counts in every War (owner 2026-11-01): Barracks add soldiers to the equal army
+            now = int(_time.time() * 1000)
+            war = dict(war, troops={uid: (war.get("soldiers") or WL.SOLDIERS) + _war_base_soldiers(db, uid, now) for uid in war["players"]})
     return war
 
 
@@ -7513,6 +7525,89 @@ def _war_army(war, uid):
     if war.get("troops"):
         return war["troops"] if uid is None else war["troops"].get(uid, WL.SOLDIERS)
     return war.get("soldiers") or WL.SOLDIERS
+
+
+# ---------------------------------------------------------------- the War base (owner 2026-11-01)
+# functions/warbase.py has the rules: one base per player per weekly season (warBases/{uid}), built
+# in minutes, gold from mines while you're away, 3 builders. war_lobby actions:
+#   baseOpen                      your base (a fresh one with starter gold at a new season)
+#   basePlace {kind, x, y}        build a Gold Mine or Barracks on free land
+#   baseUpgrade {id} / baseMove {id, x, y} / baseCollect {id?}
+import warbase as WBASE  # noqa: E402
+
+
+def _war_season_key(now_ms):
+    return WZ.season_key(WZ.season_start(now_ms))
+
+
+def _war_base_soldiers(db, uid, now_ms):
+    """Extra soldiers from this season's Barracks (0 without a base this season)."""
+    snap = db.collection("warBases").document(uid).get()
+    base = snap.to_dict() if snap.exists else None
+    if not base or base.get("season") != _war_season_key(now_ms):
+        return 0
+    return WBASE.soldiers_bonus(WBASE.settle(base, now_ms)[0])
+
+
+def _int_arg(v):
+    return v if type(v) is int else None
+
+
+def _war_base(db, uid, data, now_ms):
+    action = data.get("action")
+    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect"):
+        raise WM.WarError("INVALID_ARGUMENT", "Unknown base action.")
+    ref = db.collection("warBases").document(uid)
+    key = _war_season_key(now_ms)
+    bid = str(data.get("id") or "")[:40]
+
+    @firestore.transactional
+    def txn(t):
+        snap = ref.get(transaction=t)
+        base = snap.to_dict() if snap.exists else None
+        if not base or base.get("season") != key:
+            base = WBASE.new_base(key, now_ms)  # a new season starts a fresh base
+        base, _done = WBASE.settle(base, now_ms)
+        got = 0
+        if action == "basePlace":
+            base, _new = WBASE.place(base, str(data.get("kind") or ""), _int_arg(data.get("x")), _int_arg(data.get("y")), now_ms)
+        elif action == "baseUpgrade":
+            base = WBASE.upgrade(base, bid, now_ms)
+        elif action == "baseMove":
+            base = WBASE.move(base, bid, _int_arg(data.get("x")), _int_arg(data.get("y")), now_ms)
+        elif action == "baseCollect":
+            base, got = WBASE.collect(base, bid or None, now_ms)
+        base["nextDone"] = WBASE.next_done(base)
+        t.set(ref, base)
+        return base, got
+    base, got = txn(db.transaction())
+    return {"base": WBASE.public(base, now_ms), "collected": got}
+
+
+def _war_base_pass(db, now_ms):
+    """The minute job: finish constructions that are due and tell their owners (quiet hours kept)."""
+    for snap in db.collection("warBases").where("nextDone", "<=", now_ms).limit(50).stream():
+        ref = snap.reference
+
+        @firestore.transactional
+        def txn(t):
+            s2 = ref.get(transaction=t)
+            base = s2.to_dict() or {}
+            if not base.get("buildings") or (base.get("nextDone") or now_ms + 1) > now_ms:
+                return []
+            base, done = WBASE.settle(base, now_ms)
+            base["nextDone"] = WBASE.next_done(base)
+            t.set(ref, base)
+            return [(WBASE.CONFIG[base["buildings"][b]["kind"]]["name"], base["buildings"][b]["level"]) for b in done]
+        try:
+            done = txn(db.transaction())
+        except Exception as e:  # one bad base mustn't stop the market job
+            print("[war] base pass failed for one base: %s" % type(e).__name__)
+            continue
+        for name, lvl in done:
+            line = "%s reached level %d." % (name, lvl) if lvl > 1 else "%s is built." % name
+            war_notify(db, _war_quiet_of(db, [snap.id]), "Construction finished", line + " Simulated War Zone.", line,
+                       "war-base-%s-%d" % (name, lvl), now_ms, path="app/war/base")
 
 
 def _war_reveal(t, ref, war, places, now_ms):
@@ -8101,7 +8196,7 @@ def _zone_seat(db, uid, name, now_ms, carried=False, pref=None, was_rookie=False
     if now_ms >= WZ.season_end(start) - WZ.LAST_HOUR_MS:
         raise WM.WarError("FAILED_PRECONDITION", "This season ends within the hour. Join when the next one starts, Monday 9 am ET.")
     equity = WM.equity(prof, _war_live_prices(db, now_ms) or {})
-    soldiers = WZ.army(points, start, now_ms)
+    soldiers = WZ.army(points, start, now_ms) + _war_base_soldiers(db, uid, now_ms)
     for n in range(1, WZ.MAX_ZONES + 1):
         zid = WZ.zone_id(key, rookie, n)
         ref = db.collection("wars").document(zid)

@@ -294,4 +294,34 @@ try:
     ok(False, "one reset a week")
 except WM.WarError as e:
     ok("once a week" in str(e), "and it's once a week")
+
+# ---- the War base (owner 2026-11-01): built in minutes, gold while away, 3 builders, counts in every War
+import warbase as WBASE  # noqa: E402
+tb = end + 3 * H
+b = main._war_base(db, "baseAnn01", {"action": "baseOpen"}, tb)["base"]
+ok(b["gold"] == WBASE.START_GOLD and b["buildings"]["hq1"]["level"] == 1 and b["season"] == WZ.season_key(WZ.season_start(tb)),
+   "a new season's base: starter gold and a Headquarters")
+b = main._war_base(db, "baseAnn01", {"action": "basePlace", "kind": "mine", "x": 2, "y": 2}, tb)["base"]
+mine = [k for k, v in b["buildings"].items() if v["kind"] == "mine"][0]
+ok(b["gold"] == WBASE.START_GOLD - WBASE.CONFIG["mine"]["cost"][0] and b["buildings"][mine]["busyUntil"] == tb + 60000,
+   "placing a Gold Mine costs gold and builds in a minute")
+for bad in ({"action": "basePlace", "kind": "barracks", "x": 3, "y": 3}, {"action": "basePlace", "kind": "barracks", "x": "2", "y": 2},
+            {"action": "baseUpgrade", "id": mine}, {"action": "baseDelete"}):
+    try:
+        main._war_base(db, "baseAnn01", bad, tb)
+        ok(False, "refused: %s" % bad)
+    except WM.WarError:
+        pass
+ok(True, "overlapping land, text coordinates, upgrading a building under construction and unknown actions are refused")
+main._war_base_pass(db, tb + 61000)
+b = db.collection("warBases").document("baseAnn01").get().to_dict()
+ok(b["buildings"][mine]["level"] == 1 and b.get("nextDone") is None, "the minute job finishes the construction")
+ok(any(n["title"] == "Construction finished" for n in inbox("baseAnn01")), "and tells the player")
+r = main._war_base(db, "baseAnn01", {"action": "baseCollect"}, tb + 61000 + H)
+ok(r["collected"] == WBASE.CONFIG["mine"]["rate"][0], "an hour later the mine has made its gold, collected in one tap")
+b = main._war_base(db, "baseAnn01", {"action": "basePlace", "kind": "barracks", "x": 2, "y": 8}, tb + 2 * H)["base"]
+ok(main._war_base_soldiers(db, "baseAnn01", tb + 2 * H) == 0, "a Barracks still being built adds no soldiers")
+ok(main._war_base_soldiers(db, "baseAnn01", tb + 2 * H + 61000) == WBASE.CONFIG["barracks"]["soldiers"][0], "once built it adds soldiers to your army")
+nb = main._war_base(db, "baseAnn01", {"action": "baseOpen"}, tb + 8 * 24 * H)["base"]
+ok(nb["gold"] == WBASE.START_GOLD and list(nb["buildings"]) == ["hq1"], "a new season starts a fresh base")
 print("\n%d War zone market checks passed" % passed)
