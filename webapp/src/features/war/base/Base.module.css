@@ -9,7 +9,7 @@
 .viewport {
   position: relative; height: min(68vh, 640px); min-height: 380px; overflow: hidden; touch-action: none; cursor: grab;
   border: 1px solid var(--border-soft); border-radius: var(--radius-lg);
-  background: radial-gradient(ellipse at 50% 40%, #1b3a52 0%, #0c1c2c 60%, #071019 100%);
+  background: #2d5a2a;
 }
 .viewport:active { cursor: grabbing; }
 .viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -72,3 +72,4 @@
 .card .why { color: var(--gold); }
 @media (pointer: coarse) { .card { min-height: var(--tap); } }
 @media (prefers-reduced-motion: reduce) { .bubble, .guard { animation: none; } }
+.land { position: absolute; left: 0; top: 0; display: block; max-width: none; pointer-events: none; user-select: none; }

@@ -17,10 +17,10 @@ How time works: nothing is saved every second. Each building keeps when its cons
 """
 from warmarket import WarError
 
-GRID = 18                                  # the base is GRID x GRID tiles
+GRID = 16                                  # the base is GRID x GRID tiles (the owner's land picture)
 SLOTS = 3                                  # things building at once
 START_GOLD = 1500                          # the season's starter gold
-HQ_AT = (7, 7)                             # where the Headquarters stands on a new base
+HQ_AT = (6, 6)                             # where the Headquarters stands on a new base
 
 # Per building: size in tiles, max level, cost to reach each level (index 0 = build it),
 # seconds to reach each level, how many you may have at each HQ level (index = HQ level - 1).

@@ -20,7 +20,7 @@ export const CONFIG: Record<Kind, KindConfig> = {
   mine: { name: 'Gold Mine', size: 3, max: 5, cost: [150, 300, 700, 1600, 3500], time: [60, 120, 300, 900, 1800], count: [1, 2, 2, 3, 3], rate: [600, 900, 1300, 1900, 2700], store: [1200, 2400, 4500, 8000, 14000] },
   barracks: { name: 'Military Barracks', size: 3, max: 5, cost: [200, 400, 900, 2000, 4200], time: [60, 120, 300, 900, 1800], count: [1, 1, 1, 2, 2], soldiers: [5, 10, 15, 20, 30] },
 };
-export const GRID = 18;
+export const GRID = 16;
 export const SLOTS = 3;
 
 const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -92,15 +92,23 @@ export function fits(b: Base, kind: Kind, x: number, y: number, skip?: string): 
   });
 }
 
-/** Isometric drawing: tile (x, y) to the screen, and back. TW × TH is one tile's diamond. */
-export const TW = 64;
-export const TH = 32;
-export const ORIGIN = { x: (GRID * TW) / 2, y: TH };
-export const toScreen = (x: number, y: number) => ({ sx: ORIGIN.x + ((x - y) * TW) / 2, sy: ORIGIN.y + ((x + y) * TH) / 2 });
+/** The owner's land picture (base/land.webp) and where its buildable grass diamond is, in the
+ *  picture's pixels: the top, right and left corners. Tile (x, y) has its top corner at
+ *  TOP + x * UX + y * UY; GRID tiles reach the right and left corners. */
+export const LAND = { w: 1672, h: 941 };
+const TOP = { x: 830, y: 45 };
+const RIGHT = { x: 1555, y: 478 };
+const LEFT = { x: 92, y: 463 };
+export const UX = { x: (RIGHT.x - TOP.x) / GRID, y: (RIGHT.y - TOP.y) / GRID };
+export const UY = { x: (LEFT.x - TOP.x) / GRID, y: (LEFT.y - TOP.y) / GRID };
+/** One tile's width on screen (its left corner to its right corner). */
+export const TILE_W = UX.x - UY.x;
+export const toScreen = (x: number, y: number) => ({ sx: TOP.x + UX.x * x + UY.x * y, sy: TOP.y + UX.y * x + UY.y * y });
 export function toTile(sx: number, sy: number) {
-  const px = (sx - ORIGIN.x) / (TW / 2);
-  const py = (sy - ORIGIN.y) / (TH / 2);
-  return { x: Math.floor((px + py) / 2), y: Math.floor((py - px) / 2) };
+  const dx = sx - TOP.x;
+  const dy = sy - TOP.y;
+  const det = UX.x * UY.y - UY.x * UX.y;
+  return { x: Math.floor((dx * UY.y - dy * UY.x) / det), y: Math.floor((UX.x * dy - UX.y * dx) / det) };
 }
 
 export function formatLeft(ms: number): string {
