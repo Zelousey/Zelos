@@ -318,10 +318,28 @@ b = db.collection("warBases").document("baseAnn01").get().to_dict()
 ok(b["buildings"][mine]["level"] == 1 and b.get("nextDone") is None, "the minute job finishes the construction")
 ok(any(n["title"] == "Construction finished" for n in inbox("baseAnn01")), "and tells the player")
 r = main._war_base(db, "baseAnn01", {"action": "baseCollect"}, tb + 61000 + H)
-ok(r["collected"] == WBASE.CONFIG["mine"]["rate"][0], "an hour later the mine has made its gold, collected in one tap")
+ok(r["collected"] == {"gold": WBASE.CONFIG["mine"]["rate"][0], "crystals": 0}, "an hour later the mine has made its gold, collected in one tap")
 b = main._war_base(db, "baseAnn01", {"action": "basePlace", "kind": "barracks", "x": 2, "y": 8}, tb + 2 * H)["base"]
 ok(main._war_base_soldiers(db, "baseAnn01", tb + 2 * H) == 0, "a Barracks still being built adds no soldiers")
 ok(main._war_base_soldiers(db, "baseAnn01", tb + 2 * H + 61000) == WBASE.CONFIG["barracks"]["soldiers"][0], "once built it adds soldiers to your army")
+# stage 2: starter kit once, Headquarters unlocks the Research Center, crystals finish a build early
+r = main._war_base(db, "baseKit01", {"action": "baseKit", "kit": "investor"}, tb)["base"]
+ok(r["kit"] == "investor" and r["gold"] == WBASE.START_GOLD + 1500, "the Investor kit adds its gold")
+try:
+    main._war_base(db, "baseKit01", {"action": "baseKit", "kit": "research"}, tb)
+    ok(False, "one kit a season")
+except WM.WarError:
+    ok(True, "and only one kit a season")
+try:
+    main._war_base(db, "baseKit01", {"action": "basePlace", "kind": "research", "x": 1, "y": 1}, tb)
+    ok(False, "Research Center locked at Headquarters 1")
+except WM.WarError as e:
+    ok("Headquarters level 2" in str(e), "the Research Center unlocks at Headquarters level 2")
+r = main._war_base(db, "baseKit01", {"action": "baseUpgrade", "id": "hq1"}, tb)["base"]
+r = main._war_base(db, "baseKit01", {"action": "baseSpeed", "id": "hq1"}, tb + 30000)["base"]
+ok(r["buildings"]["hq1"]["level"] == 2 and r["crystals"] == WBASE.START_CRYSTALS - 5, "finishing the upgrade now costs 5 crystals (a crystal a minute left)")
+r = main._war_base(db, "baseKit01", {"action": "basePlace", "kind": "research", "x": 1, "y": 1}, tb + 31000)["base"]
+ok(any(b["kind"] == "research" for b in r["buildings"].values()), "then the Research Center can be built")
 nb = main._war_base(db, "baseAnn01", {"action": "baseOpen"}, tb + 8 * 24 * H)["base"]
 ok(nb["gold"] == WBASE.START_GOLD and list(nb["buildings"]) == ["hq1"], "a new season starts a fresh base")
 print("\n%d War zone market checks passed" % passed)

@@ -7532,7 +7532,9 @@ def _war_army(war, uid):
 # in minutes, gold from mines while you're away, 3 builders. war_lobby actions:
 #   baseOpen                      your base (a fresh one with starter gold at a new season)
 #   basePlace {kind, x, y}        build a Gold Mine or Barracks on free land
-#   baseUpgrade {id} / baseMove {id, x, y} / baseCollect {id?}
+#   baseUpgrade {id} / baseMove {id, x, y} / baseCollect {id?} (gold and crystals)
+#   baseSpeed {id}                finish a construction now for crystals (1 a minute left)
+#   baseKit {kit}                 this season's starter kit: investor, commander or research
 import warbase as WBASE  # noqa: E402
 
 
@@ -7555,7 +7557,7 @@ def _int_arg(v):
 
 def _war_base(db, uid, data, now_ms):
     action = data.get("action")
-    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect"):
+    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect", "baseSpeed", "baseKit"):
         raise WM.WarError("INVALID_ARGUMENT", "Unknown base action.")
     ref = db.collection("warBases").document(uid)
     key = _war_season_key(now_ms)
@@ -7568,7 +7570,7 @@ def _war_base(db, uid, data, now_ms):
         if not base or base.get("season") != key:
             base = WBASE.new_base(key, now_ms)  # a new season starts a fresh base
         base, _done = WBASE.settle(base, now_ms)
-        got = 0
+        got = {"gold": 0, "crystals": 0}
         if action == "basePlace":
             base, _new = WBASE.place(base, str(data.get("kind") or ""), _int_arg(data.get("x")), _int_arg(data.get("y")), now_ms)
         elif action == "baseUpgrade":
@@ -7577,6 +7579,11 @@ def _war_base(db, uid, data, now_ms):
             base = WBASE.move(base, bid, _int_arg(data.get("x")), _int_arg(data.get("y")), now_ms)
         elif action == "baseCollect":
             base, got = WBASE.collect(base, bid or None, now_ms)
+        elif action == "baseSpeed":
+            base, _cost = WBASE.speed_up(base, bid, now_ms)
+            base, _done = WBASE.settle(base, now_ms)
+        elif action == "baseKit":
+            base = WBASE.choose_kit(base, str(data.get("kit") or ""), now_ms)
         base["nextDone"] = WBASE.next_done(base)
         t.set(ref, base)
         return base, got
