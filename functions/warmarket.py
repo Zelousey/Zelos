@@ -344,7 +344,24 @@ def validate_trade(data):
     return sym, side, qty
 
 
-def apply_trade(profile, sym, side, qty, price, prices, now_ms):
+def sector_of(sym):
+    return BY_SYM[sym][2]
+
+
+def check_buy(war, uid, sym):
+    """Buying only in a territory you hold (owner 2026-11-01): uid must hold the territory of sym's
+    sector in this running War, after the claiming hour. Selling needs no territory, so you can
+    always get out of a position, even after losing the land (owner: sell-only). Raises WarError."""
+    if not war or uid not in (war.get("players") or []) or war.get("status") != "active":
+        raise WarError("FAILED_PRECONDITION", "Buy from a War you're playing in.")
+    sector = sector_of(sym)
+    cell = (war.get("map") or {}).get(sector) or {}
+    if war.get("phase") != "holding" or cell.get("state") != "owned" or cell.get("owner") != uid:
+        raise WarError("FAILED_PRECONDITION", "You can only buy companies in territories you hold. Take the %s territory first."
+                       % dict(SECTORS).get(sector, sector), {"reason": "war-not-yours", "sector": sector})
+
+
+def apply_trade(profile, sym, side, qty, price, prices, now_ms, war_id=None):
     """Pure: (profile, fill) after buying or selling whole shares at price (long only, no fees:
     short selling is only for Bull/Bear battles, owner-approved). Raises WarError."""
     pos = {s: dict(p) for s, p in (profile.get("positions") or {}).items()}
@@ -374,4 +391,6 @@ def apply_trade(profile, sym, side, qty, price, prices, now_ms):
     out["pnlPct"] = round(out["pnl"] / profile["start"] * 100, 2)
     out["chart"] = (list(profile.get("chart") or []) + [{"t": now_ms, "eq": out["equity"]}])[-CHART_KEPT:]
     fill = {"sym": sym, "side": side, "qty": qty, "price": price, "pnl": pnl, "at": now_ms}
+    if war_id:
+        fill["warId"] = war_id  # each trade keeps the War it was made in (separate scores later)
     return out, fill

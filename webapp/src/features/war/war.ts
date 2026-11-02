@@ -208,8 +208,8 @@ export const useWarProfile = (uid: string | null) => useLiveDoc(uid ? `warProfil
 export const openWar = () => callFunction<{ tz: string }, { profile: DocumentData }>('war_open', { tz: browserTz() });
 export const resetWar = () => callFunction<{ action: 'reset' }, { profile: DocumentData }>('war_lobby', { action: 'reset' });
 export const setQuiet = (q: Quiet) => callFunction<Quiet, { quiet: Quiet }>('war_quiet', q);
-export type WarTradeReq = { sym: string; side: 'buy' | 'sell'; qty: number };
-export const warTrade = (req: WarTradeReq) => callFunction<WarTradeReq, { fill: { price: number; qty: number; pnl: number | null } }>('war_trade', req);
+export type WarTradeReq = { sym: string; side: 'buy' | 'sell'; qty: number; warId?: string };
+export const warTrade = (req: WarTradeReq) => callFunction<WarTradeReq, { fill: { price: number; qty: number; pnl: number | null; warId?: string } }>('war_trade', req);
 
 /** RANKS in functions/warlevel.py: Battle Level ranks and the points each needs (proposed 2026-10-30). */
 export const RANKS = [

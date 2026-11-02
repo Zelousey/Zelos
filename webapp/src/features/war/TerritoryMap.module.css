@@ -171,3 +171,5 @@
 .detailsGo:hover { background: #2350b8; }
 .detailsGo:focus-visible { outline: 2px solid #8fb6ff; outline-offset: 2px; }
 .troopDetail { fill: none; stroke: rgba(3, 8, 20, 0.55); stroke-width: 1; }
+.detailsBase { display: grid; place-items: center; text-decoration: none; background: #b98110; border-color: #e8b23d; color: #1a1400; }
+.detailsBase:hover { background: #d39a1c; }

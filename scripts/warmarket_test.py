@@ -105,6 +105,19 @@ class Profiles(unittest.TestCase):
                 W.validate_trade(bad)
         self.assertEqual(W.validate_trade({"sym": "NIMBC", "side": "buy", "qty": 3.0}), ("NIMBC", "buy", 3))
 
+    def test_buy_only_in_a_territory_you_hold(self):
+        war = {"status": "active", "phase": "holding", "players": ["u1", "u2"],
+               "map": {"tech": {"state": "owned", "owner": "u1"}, "energy": {"state": "owned", "owner": "u2"}, "health": {"state": "contested", "contenders": ["u1", "u2"]}}}
+        W.check_buy(war, "u1", "NIMBC")  # Tech is u1's
+        for who, sym in (("u1", "VOLTX"), ("u1", "HELIX"), ("u3", "NIMBC")):
+            with self.assertRaises(W.WarError):
+                W.check_buy(war, who, sym)
+        for bad in (None, dict(war, phase="claiming"), dict(war, status="ended")):
+            with self.assertRaises(W.WarError):
+                W.check_buy(bad, "u1", "NIMBC")
+        p, f = W.apply_trade(W.new_profile(1), "NIMBC", "buy", 1, 200.0, {}, 1, "war1")
+        self.assertEqual(f["warId"], "war1")
+
     def test_inputs_not_mutated(self):
         p = W.new_profile(0)
         before = repr(p)

@@ -9,7 +9,7 @@
  * The land and building pictures are the owner's own (base/*.webp, cut from their sheet).
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { t, type MessageKey } from '../../../lib/i18n';
 import { useNow } from '../../../lib/useNow';
 import { Button, LoadingState, PageHeader, useToast } from '../../../ui';
@@ -47,6 +47,7 @@ import hqUrl from './hq.webp';
 import landUrl from './land.webp';
 import mineUrl from './mine.webp';
 import researchUrl from './research.webp';
+import { TerritoryTrade } from './TerritoryTrade';
 import s from './Base.module.css';
 
 // the owner's building pictures (2026-11-02), cut from their sheet; aspect = height / width
@@ -73,6 +74,11 @@ type Mode = { type: 'place'; kind: Kind; x: number; y: number } | { type: 'move'
 
 function BaseScreen({ uid }: { uid: string }) {
   const live = useWarBase(uid);
+  const [params] = useSearchParams();
+  // from a territory you hold on a War map: trade its companies here (TerritoryTrade)
+  const fromWar = params.get('war');
+  const fromTerr = params.get('t');
+  const trading = fromWar && /^[A-Za-z0-9]{6,40}$/.test(fromWar) && fromTerr && /^[a-z]{2,20}$/.test(fromTerr) ? { warId: fromWar, terr: fromTerr } : null;
   const toast = useToast();
   const now = useNow(1000);
   const [ready, setReady] = useState(false);
@@ -155,6 +161,7 @@ function BaseScreen({ uid }: { uid: string }) {
       </div>
       {!base.kit && <KitPicker busy={busy} onPick={(kit) => void act({ action: 'baseKit', kit }, () => toast.show(t('wbase.kitPicked', { name: t(`wbase.kit.${kit}`) }), 'success'))} />}
 
+      {trading && <TerritoryTrade uid={uid} warId={trading.warId} terr={trading.terr} />}
       <World base={base} now={now} sel={sel} onSelect={(id) => (mode ? undefined : setSel((c) => (c === id ? null : id)))} mode={mode} setMode={setMode} onConfirm={confirm} />
 
       {mode ? (
