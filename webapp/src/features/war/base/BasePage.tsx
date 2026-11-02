@@ -12,7 +12,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Keyboard
 import { Link, useSearchParams } from 'react-router';
 import { t, type MessageKey } from '../../../lib/i18n';
 import { useNow } from '../../../lib/useNow';
-import { Button, LoadingState, PageHeader, useToast } from '../../../ui';
+import { Button, LoadingState, PageHeader, Sheet, useToast } from '../../../ui';
+import { useWalletDoc } from '../../strategies/strategies';
 import { errorText } from '../../invites/invites';
 import { WarGate } from '../Gate';
 import barracksUrl from './barracks.webp';
@@ -28,6 +29,7 @@ import {
   hqLevel,
   isBusy,
   KITS,
+  SHOP,
   shownLevel,
   SLOTS,
   speedCost,
@@ -42,6 +44,7 @@ import {
   type Building,
   type Kind,
   type KitId,
+  type PackId,
 } from './base';
 import hqUrl from './hq.webp';
 import landUrl from './land.webp';
@@ -86,6 +89,7 @@ function BaseScreen({ uid }: { uid: string }) {
   const [sel, setSel] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(null);
   const [busy, setBusy] = useState(false);
+  const [shop, setShop] = useState(false);
   useEffect(() => {
     // makes this season's base (with its starter gold) the first time, and settles finished work
     baseAction({ action: 'baseOpen' })
@@ -159,7 +163,13 @@ function BaseScreen({ uid }: { uid: string }) {
         <Button size="sm" variant="secondary" disabled={busy || (waiting < 1 && waitingC < 1)} onClick={() => void act({ action: 'baseCollect' }, (r) => toast.show(collectedText(r.collected), 'success'))}>
           {waitingC >= 1 ? t('wbase.collectAllBoth', { g: waiting.toLocaleString('en-US'), c: waitingC }) : t('wbase.collectAll', { n: waiting.toLocaleString('en-US') })}
         </Button>
+        <Button size="sm" variant="ghost" onClick={() => setShop(true)}>
+          {t('wbase.shop')}
+        </Button>
       </div>
+      <Sheet open={shop} onClose={() => setShop(false)} title={t('wbase.shopTitle')} labelledBy="base-shop">
+        <Shop uid={uid} base={base} busy={busy} onBuy={(pack) => void act({ action: 'baseBuy', pack }, () => toast.show(t('wbase.bought', { what: t(`wbase.pack.${pack}`) }), 'success'))} />
+      </Sheet>
       {!base.kit && <KitPicker busy={busy} onPick={(kit) => void act({ action: 'baseKit', kit }, () => toast.show(t('wbase.kitPicked', { name: t(`wbase.kit.${kit}`) }), 'success'))} />}
 
       {trading && <TerritoryTrade uid={uid} warId={trading.warId} terr={trading.terr} />}
@@ -508,6 +518,43 @@ const WHY_UP: Record<'max' | 'hq' | 'busy' | 'slots' | 'gold' | 'crystals', Mess
 const WHAT: Record<Kind, MessageKey> = { hq: 'wbase.what.hq', mine: 'wbase.what.mine', barracks: 'wbase.what.barracks', research: 'wbase.what.research' };
 /** "600 gold" or "4,500 gold + 20 crystals" */
 const price = (gold: number, crystals: number) => (crystals ? t('wbase.priceBoth', { g: gold.toLocaleString('en-US'), c: crystals }) : t('wbase.priceGold', { g: gold.toLocaleString('en-US') }));
+
+/** The base shop (functions/warbase.py SHOP): tokens for small packs, 3 of each a week. */
+function Shop({ uid, base, busy, onBuy }: { uid: string; base: Base; busy: boolean; onBuy: (p: PackId) => void }) {
+  const wallet = useWalletDoc(uid);
+  const tokens = wallet.status === 'ready' ? (wallet.data?.balance ?? 0) : null;
+  return (
+    <div className={s.shop}>
+      <p className={s.muted}>{t('wbase.shopSub')}</p>
+      <p className={s.panelTitle}>{tokens === null ? '…' : t('wbase.tokensHave', { n: tokens })}</p>
+      <ul className={s.menu}>
+        {(['gold', 'crystals'] as PackId[]).map((p) => {
+          const item = SHOP[p];
+          const left = item.max - (base.bought[p] ?? 0);
+          const short = tokens !== null && tokens < item.tokens;
+          return (
+            <li key={p} className={s.packRow}>
+              <span>
+                <b>
+                  <i className={p === 'gold' ? s.coin : s.gem} aria-hidden /> {t(`wbase.pack.${p}`)}
+                </b>
+                <small>{t('wbase.packLeft', { n: left, max: item.max })}</small>
+              </span>
+              <Button size="sm" variant="primary" disabled={busy || left < 1 || short || tokens === null} onClick={() => onBuy(p)}>
+                {t('wbase.packBuy', { n: item.tokens })}
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+      {tokens !== null && tokens < SHOP.gold.tokens && (
+        <Link to="/tokens" className={s.small}>
+          {t('wbase.getTokens')}
+        </Link>
+      )}
+    </div>
+  );
+}
 
 /** The season starter kit, picked once (functions/warbase.py KITS). */
 function KitPicker({ busy, onPick }: { busy: boolean; onPick: (k: KitId) => void }) {

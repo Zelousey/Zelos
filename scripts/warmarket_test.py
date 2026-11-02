@@ -118,6 +118,27 @@ class Profiles(unittest.TestCase):
         p, f = W.apply_trade(W.new_profile(1), "NIMBC", "buy", 1, 200.0, {}, 1, "war1")
         self.assertEqual(f["warId"], "war1")
 
+    def test_each_war_has_its_own_book_and_return(self):
+        p = W.new_profile(1)
+        p, _ = W.apply_trade(p, "NIMBC", "buy", 10, 100.0, {}, 1, "warA")
+        p, _ = W.apply_trade(p, "NIMBC", "buy", 10, 120.0, {}, 2, "warB")
+        p, _ = W.apply_trade(p, "VOLTX", "buy", 5, 80.0, {}, 3)  # no War: in no book
+        self.assertEqual(p["books"]["warA"]["pos"]["NIMBC"], {"qty": 10, "cost": 1000.0})
+        self.assertEqual(p["books"]["warB"]["pos"]["NIMBC"], {"qty": 10, "cost": 1200.0})
+        prices = {"NIMBC": 110.0, "VOLTX": 90.0}
+        self.assertAlmostEqual(W.war_return(p, "warA", prices, 100000), 0.1)   # +$100 of $100,000
+        self.assertAlmostEqual(W.war_return(p, "warB", prices, 100000), -0.1)  # -$100
+        self.assertEqual(W.war_return(p, "warC", prices, 100000), 0)
+        # selling from War B takes B's shares first; a sale without a War takes the oldest book's
+        p, _ = W.apply_trade(p, "NIMBC", "sell", 4, 130.0, prices, 4, "warB")
+        self.assertEqual(p["books"]["warB"]["realized"], 40.0)  # 4 x (130 - 120)
+        self.assertEqual(p["books"]["warB"]["pos"]["NIMBC"], {"qty": 6, "cost": 720.0})
+        p, _ = W.apply_trade(p, "NIMBC", "sell", 12, 130.0, prices, 5)
+        self.assertNotIn("NIMBC", p["books"]["warA"]["pos"])  # all 10 of A's, then 2 of B's
+        self.assertEqual(p["books"]["warA"]["realized"], 300.0)
+        self.assertEqual(p["books"]["warB"]["pos"]["NIMBC"]["qty"], 4)
+        self.assertEqual(sum(b["pos"].get("NIMBC", {"qty": 0})["qty"] for b in p["books"].values()), p["positions"]["NIMBC"]["qty"])
+
     def test_inputs_not_mutated(self):
         p = W.new_profile(0)
         before = repr(p)

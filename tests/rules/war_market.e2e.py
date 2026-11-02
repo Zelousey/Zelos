@@ -340,6 +340,19 @@ r = main._war_base(db, "baseKit01", {"action": "baseSpeed", "id": "hq1"}, tb + 3
 ok(r["buildings"]["hq1"]["level"] == 2 and r["crystals"] == WBASE.START_CRYSTALS - 5, "finishing the upgrade now costs 5 crystals (a crystal a minute left)")
 r = main._war_base(db, "baseKit01", {"action": "basePlace", "kind": "research", "x": 1, "y": 1}, tb + 31000)["base"]
 ok(any(b["kind"] == "research" for b in r["buildings"].values()), "then the Research Center can be built")
+# the base shop: tokens for a pack, 3 a week, never on credit
+try:
+    main._war_base(db, "baseKit01", {"action": "baseBuy", "pack": "gold"}, tb + 32000)
+    ok(False, "no tokens, no pack")
+except WM.WarError as e:
+    ok("costs 20 tokens" in str(e), "a pack needs the tokens")
+db.collection("wallets").document("baseKit01").set({"balance": 100, "passes": {}, "unlocked": [], "createdAt": 1, "updatedAt": 1})
+g0 = db.collection("warBases").document("baseKit01").get().to_dict()["gold"]
+r = main._war_base(db, "baseKit01", {"action": "baseBuy", "pack": "gold"}, tb + 33000)["base"]
+w = db.collection("wallets").document("baseKit01").get().to_dict()
+ok(r["gold"] == g0 + 1000 and w["balance"] == 80, "1,000 gold for 20 tokens, taken from the wallet")
+led = [x.to_dict() for x in db.collection("wallets").document("baseKit01").collection("ledger").stream()]
+ok(any(x["type"] == "war-shop" and x["amount"] == -20 for x in led), "and written in the token ledger")
 nb = main._war_base(db, "baseAnn01", {"action": "baseOpen"}, tb + 8 * 24 * H)["base"]
 ok(nb["gold"] == WBASE.START_GOLD and list(nb["buildings"]) == ["hq1"], "a new season starts a fresh base")
 # ---- the trading desk (owner 2026-11-02): Headquarters 3 opens it; a trader trades a territory you hold

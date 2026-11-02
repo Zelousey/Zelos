@@ -7483,9 +7483,9 @@ def war_lobby_pass(db, now_ms):
                 new_hot = war["hot"]
             if war.get("status") == "active" and war.get("phase") == "holding":
                 if now_ms >= war.get("endsAt", float("inf")):
-                    war = _war_scored(db, war, now_ms, final=True)
+                    war = _war_scored(db, war, now_ms, final=True, wid=ref.id)
                 elif now_ms >= (war.get("standingsDue") or 0) or att_events or events:
-                    war = _war_scored(db, war, now_ms)
+                    war = _war_scored(db, war, now_ms, wid=ref.id)
             war = WL.at_end(war, now_ms)
             t.set(ref, WL.stored(war))
             return before, war, lines, events, att_events, new_hot
@@ -7551,6 +7551,7 @@ def _war_army(war, uid):
 #   baseKit {kit}                 this season's starter kit: investor, commander or research
 #   baseHire {strategy, warId, terr, budget}   a trader for a territory you hold (Headquarters 3+)
 #   baseTrader {id, on?, strategy?, budget?, fire?}   pause, change or let a trader go
+#   baseBuy {pack}                a shop pack (gold or crystals) for tokens, 3 of each a week
 import warbase as WBASE  # noqa: E402
 import wartraders as WTR  # noqa: E402
 
@@ -7580,9 +7581,10 @@ def _int_arg(v):
 
 def _war_base(db, uid, data, now_ms):
     action = data.get("action")
-    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect", "baseSpeed", "baseKit", "baseHire", "baseTrader"):
+    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect", "baseSpeed", "baseKit", "baseHire", "baseTrader", "baseBuy"):
         raise WM.WarError("INVALID_ARGUMENT", "Unknown base action.")
     ref = db.collection("warBases").document(uid)
+    wallet_ref = db.collection("wallets").document(uid)
     key = _war_season_key(now_ms)
     bid = str(data.get("id") or "")[:40]
 
@@ -7593,6 +7595,7 @@ def _war_base(db, uid, data, now_ms):
     def txn(t):
         snap = ref.get(transaction=t)
         wsnap = war_ref.get(transaction=t) if war_ref else None
+        wallsnap = wallet_ref.get(transaction=t) if action == "baseBuy" else None
         base = snap.to_dict() if snap.exists else None
         if not base or base.get("season") != key:
             base = WBASE.new_base(key, now_ms)  # a new season starts a fresh base
@@ -7619,6 +7622,15 @@ def _war_base(db, uid, data, now_ms):
         elif action == "baseTrader":
             base = WTR.change(base, bid, now_ms, on=data.get("on") if isinstance(data.get("on"), bool) else None,
                               strategy=data.get("strategy"), budget=data.get("budget"), fire=data.get("fire") is True)
+        elif action == "baseBuy":
+            pack = str(data.get("pack") or "")
+            base, cost = WBASE.buy_pack(base, pack, now_ms)
+            wallet = wallsnap.to_dict() if wallsnap.exists else tk_new_wallet(now_ms)
+            if wallet.get("balance", 0) < cost:
+                raise WM.WarError("FAILED_PRECONDITION", "That costs %d tokens and you have %d." % (cost, wallet.get("balance", 0)), {"reason": "tokens", "need": cost})
+            wallet = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+            t.set(wallet_ref, wallet)
+            t.set(wallet_ref.collection("ledger").document(), tk_ledger("war-shop", -cost, wallet["balance"], now_ms, "War base: %s" % WBASE.SHOP[pack]["name"], pack))
         base["nextDone"] = WBASE.next_done(base)
         t.set(ref, base)
         return base, got
@@ -8016,7 +8028,7 @@ def _war_attack(db, wid, uid, data, now_ms):
             raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
         prof = ps.to_dict()
         start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
-        ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, WZ.since(war, uid))
+        ok = WA.eligible(WM.war_return(prof, ref.id, prices, start_eq) / 100, sales, now_ms, WZ.since(war, uid))
         terr, sym, side, use_pass = WA.check_attack(war, uid, data, now_ms, prof.get("cash") or 0, ok)
         defender = war["map"][terr]["owner"]
         if WZ.shielded(war, defender, now_ms):
@@ -8164,7 +8176,7 @@ def _war_move(db, wid, uid, action, data, now_ms):
             prof_snap = db.collection("warProfiles").document(uid).get(transaction=t)
             prof = prof_snap.to_dict() if prof_snap.exists else {"cash": 0}
             start_eq = (war.get("startEquity") or {}).get(uid) or prof.get("start") or WM.START_BALANCE
-            ok = WA.eligible(WM.equity(prof, prices) / start_eq - 1, sales, now_ms, WZ.since(war, uid))
+            ok = WA.eligible(WM.war_return(prof, ref.id, prices, start_eq) / 100, sales, now_ms, WZ.since(war, uid))
             terr = data.get("territory")
             war = WMV.claim(war, uid, terr, now_ms, ok, data.get("usePass") is True)
             line = "%s claimed %s." % ((war.get("names") or {}).get(uid, "Trader"), WMAP.NAMES[terr])
@@ -8189,8 +8201,9 @@ def _war_move(db, wid, uid, action, data, now_ms):
 STANDINGS_EVERY_MS = 3600000
 
 
-def _war_returns(db, war, prices):
-    """({uid: % return}, {uid: Battle Level rank}) from the players' War profiles."""
+def _war_returns(db, war, prices, wid):
+    """({uid: % return in this War}, {uid: Battle Level rank}) from the players' War profiles: each
+    War counts only the trades made in it (owner 2026-11-02; warmarket.war_return)."""
     out, ranks = {}, {}
     for uid in war["players"]:
         snap = db.collection("warProfiles").document(uid).get()
@@ -8198,16 +8211,16 @@ def _war_returns(db, war, prices):
             continue
         prof = snap.to_dict()
         start = (war.get("startEquity") or {}).get(uid) or WM.START_BALANCE
-        out[uid] = (WM.equity(prof, prices) / start - 1) * 100
+        out[uid] = WM.war_return(prof, wid, prices, start)
         ranks[uid] = WLV.rank(prof.get("battlePoints") or 0)
     return out, ranks
 
 
-def _war_scored(db, war, now_ms, final=False):
+def _war_scored(db, war, now_ms, final=False, wid=None):
     prices = _war_live_prices(db, now_ms)
     if prices is None and not final:
         return war  # prices are updating: try again on the next run
-    returns, ranks = _war_returns(db, war, prices or {})
+    returns, ranks = _war_returns(db, war, prices or {}, wid)
     rows = WS.standings(war, returns)
     war = dict(war, standings=rows, ranks=ranks, standingsAt=now_ms, standingsDue=now_ms + STANDINGS_EVERY_MS)
     if final:
