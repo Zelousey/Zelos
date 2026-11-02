@@ -188,6 +188,21 @@ class Stage2(unittest.TestCase):
         r = B.choose_kit(fresh(), "research", T0)
         self.assertEqual(r["crystals"], B.START_CRYSTALS + 60)
 
+    def test_shop_packs_capped_each_week(self):
+        b = fresh()
+        b, cost = B.buy_pack(b, "gold", T0)
+        self.assertEqual((cost, b["gold"]), (20, B.START_GOLD + 1000))
+        b, cost = B.buy_pack(b, "crystals", T0)
+        self.assertEqual((cost, b["crystals"]), (25, B.START_CRYSTALS + 20))
+        b, _ = B.buy_pack(b, "gold", T0)
+        b, _ = B.buy_pack(b, "gold", T0)
+        with self.assertRaises(WarError) as e:
+            B.buy_pack(b, "gold", T0)
+        self.assertIn("3 times this week", str(e.exception))
+        with self.assertRaises(WarError):
+            B.buy_pack(b, "energy", T0)  # not on sale until Energy exists
+        self.assertEqual(B.new_base("2026-11-09", T0).get("bought"), None)  # a new season, a new week
+
     def test_old_prototype_base_without_crystals(self):
         b = {k: v for k, v in fresh().items() if k not in ("crystals", "kit")}
         b, _ = B.settle(b, T0)

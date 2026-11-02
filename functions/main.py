@@ -7545,6 +7545,7 @@ def _war_army(war, uid):
 #   baseUpgrade {id} / baseMove {id, x, y} / baseCollect {id?} (gold and crystals)
 #   baseSpeed {id}                finish a construction now for crystals (1 a minute left)
 #   baseKit {kit}                 this season's starter kit: investor, commander or research
+#   baseBuy {pack}                a shop pack (gold or crystals) for tokens, 3 of each a week
 import warbase as WBASE  # noqa: E402
 
 
@@ -7567,15 +7568,17 @@ def _int_arg(v):
 
 def _war_base(db, uid, data, now_ms):
     action = data.get("action")
-    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect", "baseSpeed", "baseKit"):
+    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect", "baseSpeed", "baseKit", "baseBuy"):
         raise WM.WarError("INVALID_ARGUMENT", "Unknown base action.")
     ref = db.collection("warBases").document(uid)
+    wallet_ref = db.collection("wallets").document(uid)
     key = _war_season_key(now_ms)
     bid = str(data.get("id") or "")[:40]
 
     @firestore.transactional
     def txn(t):
         snap = ref.get(transaction=t)
+        wsnap = wallet_ref.get(transaction=t) if action == "baseBuy" else None
         base = snap.to_dict() if snap.exists else None
         if not base or base.get("season") != key:
             base = WBASE.new_base(key, now_ms)  # a new season starts a fresh base
@@ -7594,6 +7597,15 @@ def _war_base(db, uid, data, now_ms):
             base, _done = WBASE.settle(base, now_ms)
         elif action == "baseKit":
             base = WBASE.choose_kit(base, str(data.get("kit") or ""), now_ms)
+        elif action == "baseBuy":
+            pack = str(data.get("pack") or "")
+            base, cost = WBASE.buy_pack(base, pack, now_ms)
+            wallet = wsnap.to_dict() if wsnap.exists else tk_new_wallet(now_ms)
+            if wallet.get("balance", 0) < cost:
+                raise WM.WarError("FAILED_PRECONDITION", "That costs %d tokens and you have %d." % (cost, wallet.get("balance", 0)), {"reason": "tokens", "need": cost})
+            wallet = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
+            t.set(wallet_ref, wallet)
+            t.set(wallet_ref.collection("ledger").document(), tk_ledger("war-shop", -cost, wallet["balance"], now_ms, "War base: %s" % WBASE.SHOP[pack]["name"], pack))
         base["nextDone"] = WBASE.next_done(base)
         t.set(ref, base)
         return base, got

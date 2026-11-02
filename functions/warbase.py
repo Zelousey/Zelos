@@ -51,6 +51,14 @@ CONFIG = {
                  "time": [120, 300, 900, 1800, 2700], "count": [0, 1, 1, 2, 2],
                  "makes": "crystals", "rate": [8, 12, 18, 26, 36], "store": [40, 80, 150, 260, 400]},
 }
+# The base shop (owner 2026-11-02: "buying resources, just generate me what you recommend"): small
+# packs for tokens with a weekly cap, so money can speed you up but never buy the season. A token is
+# about 3 cents (100 for $3), so the most anyone can spend here is 135 tokens (about $4) a week.
+# Energy gets a pack when Energy exists.
+SHOP = {
+    "gold": {"name": "1,000 gold", "gold": 1000, "crystals": 0, "tokens": 20, "max": 3},
+    "crystals": {"name": "20 crystals", "gold": 0, "crystals": 20, "tokens": 25, "max": 3},
+}
 # The season starter kit, picked once: extra resources now and a boost for the season.
 KITS = {
     "investor": {"name": "Investor kit", "gold": 1500, "crystals": 0, "boost": {"gold": 0.15}, "soldiers": 0},
@@ -245,6 +253,20 @@ def speed_up(base, bid, now_ms):
     return out, cost
 
 
+def buy_pack(base, pack, now_ms):
+    """Add a shop pack to the base (the caller takes the tokens). Returns (base, tokens to charge).
+    A season is a week, so "max a week" is counted on the season's base."""
+    if pack not in SHOP:
+        raise WarError("INVALID_ARGUMENT", "Pick something from the shop.")
+    item = SHOP[pack]
+    bought = dict(base.get("bought") or {})
+    if bought.get(pack, 0) >= item["max"]:
+        raise WarError("FAILED_PRECONDITION", "You've bought %s %d times this week, the most there is. It resets Monday 9 am ET." % (item["name"], item["max"]))
+    bought[pack] = bought.get(pack, 0) + 1
+    out = dict(base, gold=base["gold"] + item["gold"], crystals=(base.get("crystals") or 0) + item["crystals"], bought=bought, updatedAt=now_ms)
+    return out, item["tokens"]
+
+
 def choose_kit(base, kit, now_ms):
     """Pick this season's starter kit (once): its resources now, its boost for the season."""
     if kit not in KITS:
@@ -264,4 +286,4 @@ def soldiers_bonus(base):
 
 def public(base, now_ms):
     """What the app gets: the base plus the rules it needs to draw and price things."""
-    return dict(base, now=now_ms, slots=SLOTS, grid=GRID, config=CONFIG, kits=KITS)
+    return dict(base, now=now_ms, slots=SLOTS, grid=GRID, config=CONFIG, kits=KITS, shop=SHOP)
