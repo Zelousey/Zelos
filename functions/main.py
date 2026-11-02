@@ -7258,11 +7258,21 @@ def war_quiet(req, db, uid, now_ms):
     return {"quiet": q}
 
 
-# war_trade {sym, side, qty} -> {fill, profile}: buy or sell whole shares at the War zone price.
+# war_trade {sym, side, qty, warId?} -> {fill, profile}: buy or sell whole shares at the War zone price.
+# Buying needs warId, a War where you hold the company's territory now (owner 2026-11-01: you trade
+# only what you own); selling is always allowed, so a lost territory's shares can still be sold.
 @https_fn.on_call()
 @_war_call
 def war_trade(req, db, uid, now_ms):
     sym, side, qty = WM.validate_trade(req.data)
+    wid = (req.data or {}).get("warId") if isinstance(req.data, dict) else None
+    wid = wid if isinstance(wid, str) and _re.fullmatch(r"[A-Za-z0-9]{6,40}", wid) else None
+    if side == "buy":
+        if not wid:
+            raise WM.WarError("FAILED_PRECONDITION", "You can only buy companies in territories you hold. Open one on a War map and buy from your base.",
+                              {"reason": "war-not-yours"})
+        snap = db.collection("wars").document(wid).get()
+        WM.check_buy(snap.to_dict() if snap.exists else None, uid, sym)
     prices = _war_prices(db, now_ms)
     if sym not in prices:
         raise WM.WarError("UNAVAILABLE", "No War zone price for %s yet. Try again in a minute." % sym)
@@ -7273,7 +7283,7 @@ def war_trade(req, db, uid, now_ms):
         snap = ref.get(transaction=t)
         if not snap.exists:
             raise WM.WarError("FAILED_PRECONDITION", "Open your War profile first.")
-        prof, fill = WM.apply_trade(snap.to_dict(), sym, side, qty, prices[sym], prices, now_ms)
+        prof, fill = WM.apply_trade(snap.to_dict(), sym, side, qty, prices[sym], prices, now_ms, wid)
         t.set(ref, prof)
         t.set(ref.collection("fills").document(), fill)
         return prof, fill

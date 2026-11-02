@@ -15,6 +15,7 @@
  * board keeps its layout and scrolls sideways.
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { formatMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
@@ -81,7 +82,7 @@ export function Soldier({ on = true, className }: { on?: boolean; className?: st
 const TONE_KEY = { mine: 'wmap.k.mine', enemy: 'wmap.k.enemy', neutral: 'wmap.k.neutral', contested: 'wmap.k.contested', out: 'wmap.k.out' } as const;
 
 /** One territory up close: who holds it, your soldiers, activity, its 3 companies on War Zone prices. */
-function Details({ id, v, act, q, onClose, onGo, goLabel }: { id: string; v: TerritoryView; act: Activity | null; q: { prices: Record<string, { p: number; ref: number }> } | null; onClose: () => void; onGo: () => void; goLabel: string }) {
+function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo }: { id: string; v: TerritoryView; act: Activity | null; q: { prices: Record<string, { p: number; ref: number }> } | null; onClose: () => void; onGo: () => void; goLabel: string; baseTo?: string }) {
   return (
     <div className={`${s.detailsBody} ${s[v.tone]}`}>
       <div className={s.detailsHead}>
@@ -127,6 +128,11 @@ function Details({ id, v, act, q, onClose, onGo, goLabel }: { id: string; v: Ter
           );
         })}
       </ul>
+      {baseTo && (
+        <Link className={`${s.detailsGo} ${s.detailsBase}`} to={baseTo}>
+          {t('wmap.enterBase')}
+        </Link>
+      )}
       <button type="button" className={s.detailsGo} onClick={onGo}>
         {goLabel} ↓
       </button>
@@ -152,6 +158,7 @@ export function TerritoryMap({
   title,
   nav = [],
   pickLabel,
+  warId,
 }: {
   territories: string[];
   view: Record<string, TerritoryView>;
@@ -164,6 +171,8 @@ export function TerritoryMap({
   nav?: { label: string; target: string }[];
   /** The details panel's button: what you do on a territory's card ("Place soldiers", "Claim or attack"). */
   pickLabel?: string;
+  /** This War (once the map is revealed): a territory you hold offers "Enter your base" to trade its companies there. */
+  warId?: string;
   /** The phase box: the phase, a big line (time left) and a small one. */
   status?: { title: string; big?: string; line?: ReactNode };
   /** While claiming: your soldiers placed out of your army. */
@@ -297,9 +306,9 @@ export function TerritoryMap({
         </div>
 
         {/* the details of the territory you tapped, right side */}
-        <div className={`${s.panel} ${s.details}`} style={at(1017, 308, 176, 270)} role="region" aria-label={t('wmap.details')} aria-live="polite">
+        <div className={`${s.panel} ${s.details}`} style={at(1017, 302, 176, 280)} role="region" aria-label={t('wmap.details')} aria-live="polite">
           {sel ? (
-            <Details id={sel} v={shown(sel)} act={activity(sel)} q={q} onClose={() => setSel(null)} onGo={() => onPick(sel)} goLabel={pickLabel ?? t('wmap.goCard')} />
+            <Details id={sel} v={shown(sel)} act={activity(sel)} q={q} onClose={() => setSel(null)} onGo={() => onPick(sel)} goLabel={pickLabel ?? t('wmap.goCard')} baseTo={warId && shown(sel).tone === 'mine' ? `/war/base?war=${encodeURIComponent(warId)}&t=${encodeURIComponent(sel)}` : undefined} />
           ) : (
             <p className={s.detailsHint}>{t('wmap.detailsHint')}</p>
           )}

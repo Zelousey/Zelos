@@ -367,16 +367,24 @@ ok(r.profile.cash === 100000 && r.profile.equity === 100000, 'an admin gets a Wa
 ok(r.profile.quiet.start === 1320 && r.profile.quiet.end === 480 && r.profile.quiet.tz === 'Europe/London', 'with quiet hours of 10 pm-8 am in their own time zone');
 ok((await call('war_open', {})).profile.createdAt === r.profile.createdAt, 'opening it again keeps the same profile');
 re1 = null; try { await call('war_trade', { sym: 'NIMBC', side: 'buy', qty: 10 }); } catch (x) { re1 = x; }
+ok(re1 && /territories you hold/.test(re1.message), 'buying needs a territory you hold (owner 2026-11-01)');
+// a running War where this admin holds Tech (NIMBC's sector) but not Energy (VOLTX)
+await seed('wars/tWar000001', { kind: 'private', status: 'active', phase: 'holding', players: [troll.uid], map: { tech: { state: 'owned', owner: troll.uid }, energy: { state: 'neutral' } } });
+re1 = null; try { await call('war_trade', { sym: 'NIMBC', side: 'buy', qty: 10, warId: 'tWar000001' }); } catch (x) { re1 = x; }
 ok(re1 && /prices are updating/.test(re1.message), 'no trade without fresh War zone prices');
 await seed('warMarket/quotes', { updatedAt: Date.now(), prices: { NIMBC: { p: 200, ref: 190 }, VOLTX: { p: 88, ref: 90 } } });
-r = await call('war_trade', { sym: 'NIMBC', side: 'buy', qty: 10 });
-ok(r.fill.price === 200 && r.profile.cash === 98000 && r.profile.positions.NIMBC.qty === 10, 'a buy fills at the War zone price');
+r = await call('war_trade', { sym: 'NIMBC', side: 'buy', qty: 10, warId: 'tWar000001' });
+ok(r.fill.price === 200 && r.fill.warId === 'tWar000001' && r.profile.cash === 98000 && r.profile.positions.NIMBC.qty === 10, 'a buy in a territory you hold fills at the War zone price, tagged with its War');
+re1 = null; try { await call('war_trade', { sym: 'VOLTX', side: 'buy', qty: 1, warId: 'tWar000001' }); } catch (x) { re1 = x; }
+ok(re1 && /Take the Energy territory first/.test(re1.message), 'but not in a territory you don\'t hold');
 re1 = null; try { await call('war_trade', { sym: 'VOLTX', side: 'sell', qty: 1 }); } catch (x) { re1 = x; }
 ok(re1 && /hold 0 shares/.test(re1.message), 'no short selling in the War zone (only in Bull/Bear battles)');
 re1 = null; try { await call('war_trade', { sym: 'AAPL', side: 'buy', qty: 1 }); } catch (x) { re1 = x; }
 ok(re1 && /isn.t in the War zone/.test(re1.message), 'real stocks are not in the War zone');
 const fills = await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents/warProfiles/${troll.uid}/fills`, { headers: { Authorization: 'Bearer owner' } }).then((x) => x.json());
 ok((fills.documents || []).length === 1, 'the trade is kept in the War profile');
+r = await call('war_trade', { sym: 'NIMBC', side: 'sell', qty: 2 });
+ok(r.profile.positions.NIMBC.qty === 8, 'selling needs no territory, so a lost territory can still be sold (owner: sell-only)');
 r = await call('war_quiet', { start: 1380, end: 420, tz: 'Europe/London' });
 ok(r.quiet.start === 1380 && r.quiet.end === 420, 'quiet hours can be changed (11 pm-7 am)');
 re1 = null; try { await call('war_quiet', { start: 1260, end: 480, tz: 'Europe/London' }); } catch (x) { re1 = x; }
@@ -475,7 +483,7 @@ wr = await call('war_lobby', { action: 'attack', warId: wid, territory: T[2], sy
 const atk = wr.war.attacks[wr.attackId];
 ok(atk.stage === 'answering' && atk.defender === pal.uid && atk.answerBy - atk.createdAt === 7200e3, 'back at 0%, the attack goes in: the defender has 2 hours to answer');
 const tp = (await getDoc(doc(db, 'warProfiles', troll.uid))).data();
-ok(tp.held === 5000 && tp.cash === 93000, 'the $5,000 stake is held from War cash');
+ok(tp.held === 5000 && tp.cash === 93400, 'the $5,000 stake is held from War cash');
 re1 = null; try { await call('war_lobby', { action: 'attack', warId: wid, territory: T[2], sym: FIRST[T[2]], side: 'bear' }); } catch (x) { re1 = x; }
 ok(re1 && /already have an attack/.test(re1.message), 'one attack you started open at a time');
 await signOut(auth);

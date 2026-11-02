@@ -174,13 +174,10 @@ test('an admin previews the War Zone: simulated marking, $100,000 War balance, b
       path: `${process.env.SHOTS}/war-${info.project.name}.png`,
       fullPage: true,
     });
-  await page.getByLabel('Shares').fill('10');
-  await page.getByRole('button', { name: 'Buy 10 NIMBC' }).click();
-  await expect(page.getByText('Bought 10 NIMBC at $190.50')).toBeVisible({
-    timeout: 30_000,
-  }); // a cold start
-  await expect(page.getByText('10 shares · avg $190.50')).toBeVisible();
-  await expect(page.getByText('Cash $98,095.00 · started with $100,000')).toBeVisible();
+  // owner 2026-11-01: you buy only in territories you hold (from your base); here the form only sells
+  await expect(page.getByText('You buy companies in territories you hold: tap your territory on a War map and enter your base.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Buy \d+ NIMBC$/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Sell \d+ NIMBC$/ })).toBeDisabled(); // nothing held yet
   // the explainer shows once
   await page.reload();
   await expect(page.getByRole('heading', { name: 'War Zone', level: 1 })).toBeVisible();
@@ -344,6 +341,20 @@ test('a private War: set it up, open the lobby, invite by @username, start when 
     await page.locator('svg[role=group]:visible').first().locator('xpath=../..').screenshot({ path: `${process.env.SHOTS}/war-mapboard-${info.project.name}.png` });
     await hide.evaluate((el) => (el as HTMLElement).remove());
   }
+  // owner 2026-11-02: a territory you hold opens your base, where you trade its companies
+  await expect(details.getByRole('link', { name: /Enter your base/ })).toHaveCount(0); // not on Pal's land
+  await mapView.getByRole('button', { name: /, You, 45 soldiers/ }).click();
+  await details.getByRole('link', { name: /Enter your base/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/war/base\\?war=${id}&t=${terr[1]}$`));
+  const trade = page.getByRole('region', { name: /^Trade / });
+  await expect(trade).toContainText('so you can buy and sell its companies here', { timeout: 30_000 });
+  await expect(trade.getByRole('list', { name: / companies$/ }).getByRole('button')).toHaveCount(3);
+  await trade.getByRole('button', { name: /^Buy 1 [A-Z]{5}$/ }).click();
+  await expect(page.getByText(/^Bought 1 [A-Z]{5} at \$/)).toBeVisible({ timeout: 30_000 });
+  await expect(trade.getByRole('list', { name: / companies$/ })).toContainText('you hold 1');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-basetrade-${info.project.name}.png`, fullPage: true });
+  await page.goto(`war/${id}`);
+  await expect(page.getByRole('heading', { name: 'The map' })).toBeVisible({ timeout: 30_000 });
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-map-${info.project.name}.png`, fullPage: true });
   // W4b: the contested territory is a battle; you have Command and pick Bear, and it starts
   await patch(`wars/${id}`, {
