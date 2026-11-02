@@ -10,12 +10,13 @@ import { useNow } from '../../lib/useNow';
 import { formatMoney, formatPercent, formatRelative } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { Badge, Button, Card, Change, Confirm, EmptyState, Field, Icon, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
+import { Badge, Button, Card, Change, Confirm, EmptyState, Icon, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import { WarGate } from './Gate';
 import { Seasons } from './WarZones';
 import { ZoneGrid } from './ZoneGrid';
+import { Ticket } from './Ticket';
 import { TradeWarNav } from '../tradewar/TradeWarNav';
 import {
   browserTz,
@@ -26,7 +27,6 @@ import {
   COMPANIES,
   QUIET_MAX_MIN,
   QUIET_TIMES,
-  QUOTE_MAX_AGE_MS,
   RESET_BELOW,
   RESET_EVERY_MS,
   resetWar,
@@ -40,7 +40,6 @@ import {
   useWarProfile,
   useWarQuotes,
   warEquity,
-  warTrade,
   type Quiet,
   type WarChaos,
   type WarProfile,
@@ -309,43 +308,6 @@ function Company({ sym, q, profile, hot }: { sym: string; q: WarQuotes | null; p
       </div>
       {profile && <Ticket sym={sym} q={q} profile={profile} />}
     </Card>
-  );
-}
-
-function Ticket({ sym, q, profile }: { sym: string; q: WarQuotes | null; profile: WarProfile }) {
-  const toast = useToast();
-  const [side, setSide] = useState<'buy' | 'sell'>('buy');
-  const [qty, setQty] = useState('1');
-  const [busy, setBusy] = useState(false);
-  const price = q?.prices[sym]?.p ?? 0;
-  const now = useNow(15000);
-  const fresh = !!q && now - q.updatedAt <= QUOTE_MAX_AGE_MS;
-  const held = profile.positions.find((p) => p.sym === sym)?.qty ?? 0;
-  const n = Number.parseInt(qty, 10);
-  const valid = Number.isInteger(n) && n > 0 && (side === 'sell' ? n <= held : n * price <= profile.cash);
-  async function go(e: React.FormEvent) {
-    e.preventDefault();
-    if (!valid) return;
-    setBusy(true);
-    try {
-      const r = await warTrade({ sym, side, qty: n });
-      toast.show(t(side === 'buy' ? 'war.bought' : 'war.sold', { qty: n, sym, price: formatMoney(r.fill.price) }), 'success');
-    } catch (err) {
-      toast.show(errorText(err, t('war.failed')), 'error');
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <form className={s.ticket} onSubmit={go}>
-      <Tabs label={t('war.side')} stretch items={[{ value: 'buy', label: t('war.buy') }, { value: 'sell', label: t('war.sell') }]} value={side} onChange={setSide} />
-      <Field label={t('war.shares')} inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} hint={side === 'sell' ? t('war.youHold', { n: held }) : t('war.cash', { cash: formatMoney(profile.cash) })} />
-      <p className={s.muted}>{valid ? t('war.estimate', { value: formatMoney(n * price) }) : side === 'sell' && n > held ? t('war.notHeld', { n: held }) : t('war.tooMuch')}</p>
-      {!fresh && <p className={s.warn}>{t('war.stale')}</p>}
-      <Button type="submit" variant={side === 'buy' ? 'buy' : 'sell'} size="lg" block disabled={busy || !valid || !fresh}>
-        {t(side === 'buy' ? 'war.buyGo' : 'war.sellGo', { qty: Number.isInteger(n) && n > 0 ? n : 0, sym })}
-      </Button>
-    </form>
   );
 }
 
