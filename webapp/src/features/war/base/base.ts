@@ -12,7 +12,8 @@ export type Kind = 'hq' | 'mine' | 'barracks' | 'research';
 export const KINDS: Kind[] = ['hq', 'mine', 'barracks', 'research'];
 export type KitId = 'investor' | 'commander' | 'research';
 export type Building = { id: string; kind: Kind; x: number; y: number; level: number; to: number | null; busyUntil: number | null; stored: number; prodAt: number | null };
-export type Base = { season: string; gold: number; crystals: number; kit: KitId | null; buildings: Building[]; nextDone: number | null };
+export type Base = { season: string; gold: number; crystals: number; kit: KitId | null; bought: Partial<Record<PackId, number>>; buildings: Building[]; nextDone: number | null };
+export type PackId = 'gold' | 'crystals';
 
 /** The same numbers as functions/warbase.py CONFIG (the server checks every one). */
 export type KindConfig = { name: string; size: number; max: number; cost: number[]; crystals: number[]; time: number[]; count: number[]; makes?: 'gold' | 'crystals'; rate?: number[]; store?: number[]; soldiers?: number[] };
@@ -29,6 +30,11 @@ export const KITS: Record<KitId, { gold: number; crystals: number; boost: Partia
   research: { gold: 600, crystals: 60, boost: { crystals: 0.25 }, soldiers: 0 },
 };
 export const SPEED_PER_MIN = 1;
+/** functions/warbase.py SHOP: small packs for tokens, at most 3 of each a week (the season). */
+export const SHOP: Record<PackId, { gold: number; crystals: number; tokens: number; max: number }> = {
+  gold: { gold: 1000, crystals: 0, tokens: 20, max: 3 },
+  crystals: { gold: 0, crystals: 20, tokens: 25, max: 3 },
+};
 export const GRID = 16;
 export const SLOTS = 3;
 
@@ -41,7 +47,9 @@ export function parseBase(d: DocumentData): Base | null {
     .filter(([, b]) => KINDS.includes(b.kind as Kind))
     .map(([id, b]) => ({ id, kind: b.kind as Kind, x: num(b.x), y: num(b.y), level: num(b.level), to: numOrNull(b.to), busyUntil: numOrNull(b.busyUntil), stored: num(b.stored), prodAt: numOrNull(b.prodAt) }));
   const kit = d.kit === 'investor' || d.kit === 'commander' || d.kit === 'research' ? d.kit : null;
-  return { season: d.season, gold: num(d.gold), crystals: num(d.crystals), kit, buildings, nextDone: numOrNull(d.nextDone) };
+  const b = (d.bought && typeof d.bought === 'object' ? d.bought : {}) as Record<string, unknown>;
+  const bought = { gold: num(b.gold), crystals: num(b.crystals) };
+  return { season: d.season, gold: num(d.gold), crystals: num(d.crystals), kit, bought, buildings, nextDone: numOrNull(d.nextDone) };
 }
 
 export const useWarBase = (uid: string | null) => useLiveDoc(uid ? `warBases/${uid}` : null, parseBase);
@@ -53,7 +61,8 @@ type BaseReq =
   | { action: 'baseMove'; id: string; x: number; y: number }
   | { action: 'baseCollect'; id?: string }
   | { action: 'baseSpeed'; id: string }
-  | { action: 'baseKit'; kit: KitId };
+  | { action: 'baseKit'; kit: KitId }
+  | { action: 'baseBuy'; pack: PackId };
 export const baseAction = (req: BaseReq) => callFunction<BaseReq, { base: DocumentData; collected: { gold: number; crystals: number } }>('war_lobby', req);
 
 export const hqLevel = (b: Base) => b.buildings.find((x) => x.kind === 'hq')?.level ?? 1;

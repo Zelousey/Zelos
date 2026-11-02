@@ -102,3 +102,11 @@
 .down { color: var(--down-ink) !important; }
 .fine { margin: 0; color: var(--muted); font-size: var(--text-xs); }
 @media (pointer: coarse) { .co { min-height: var(--tap); } }
+
+/* the shop */
+.shop { display: grid; gap: var(--space-3); padding: var(--space-4); }
+.shop p { margin: 0; }
+.packRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface-2); }
+.packRow span { display: grid; gap: 2px; }
+.packRow b { display: inline-flex; align-items: center; gap: 8px; }
+.packRow small { color: var(--muted); font-size: var(--text-xs); }

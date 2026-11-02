@@ -530,4 +530,17 @@ test('your base: build a Gold Mine and upgrade the Headquarters, in minutes, wit
   await expect(page.getByText('Research Center: construction started.')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('application', { name: 'Your base' }).getByRole('button', { name: /^Research Center, Under construction/ })).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-base2-${info.project.name}.png`, fullPage: true });
+  // the shop: small packs for tokens, 3 of each a week
+  await hud.getByRole('button', { name: 'Shop' }).click();
+  const shop = page.getByRole('dialog', { name: 'Base shop' });
+  await expect(shop).toContainText('You have 0 tokens', { timeout: 30_000 });
+  await expect(shop.getByRole('button', { name: 'Buy · 20 tokens' })).toBeDisabled();
+  await expect(shop.getByRole('link', { name: 'Get tokens' })).toBeVisible();
+  await put(`wallets/${uid}`, { balance: 100, passes: {}, unlocked: [], createdAt: 1, updatedAt: 1 });
+  await expect(shop).toContainText('You have 100 tokens', { timeout: 30_000 });
+  await shop.getByRole('button', { name: 'Buy · 20 tokens' }).click();
+  await expect(page.getByText('1,000 gold added to your base.')).toBeVisible({ timeout: 30_000 });
+  await expect(shop).toContainText('You have 80 tokens');
+  await expect(shop).toContainText('2 of 3 left this week');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-shop-${info.project.name}.png` });
 });
