@@ -3,7 +3,8 @@
 tests: scripts/warscore_test.py); main.py keeps live standings on the War and the final results.
 
 War Score (0-100) = 60% Trading + 40% Strategy
-  Trading   the War return on a straight scale: -10% -> 0, 0% -> 50, +10% -> 100 (capped)
+  Trading   this War's own return (owner 2026-11-02: only the trades made in it; warmarket.war_return)
+            on a straight scale: -10% -> 0, 0% -> 50, +10% -> 100 (capped)
   Strategy  your territory points / the highest territory points in the War x 100
   Territory points, counted at the end: land you claimed in secret at the start 2, neutral land
   claimed later 1, land taken or held in a battle 3, land given up by concession 1; plus Hot zone
