@@ -12,7 +12,10 @@ export type Kind = 'hq' | 'mine' | 'barracks' | 'research';
 export const KINDS: Kind[] = ['hq', 'mine', 'barracks', 'research'];
 export type KitId = 'investor' | 'commander' | 'research';
 export type Building = { id: string; kind: Kind; x: number; y: number; level: number; to: number | null; busyUntil: number | null; stored: number; prodAt: number | null };
-export type Base = { season: string; gold: number; crystals: number; kit: KitId | null; buildings: Building[]; nextDone: number | null };
+export type StrategyId = 'dip' | 'momentum';
+export type TraderLog = { at: number; sym: string; side: 'buy' | 'sell'; qty: number; price: number; why: 'signal' | 'take' | 'stop' };
+export type Trader = { id: string; strategy: StrategyId; warId: string; terr: string; budget: number; on: boolean; pos: Record<string, { qty: number; cost: number }>; log: TraderLog[] };
+export type Base = { season: string; gold: number; crystals: number; kit: KitId | null; buildings: Building[]; nextDone: number | null; traders: Trader[] };
 
 /** The same numbers as functions/warbase.py CONFIG (the server checks every one). */
 export type KindConfig = { name: string; size: number; max: number; cost: number[]; crystals: number[]; time: number[]; count: number[]; makes?: 'gold' | 'crystals'; rate?: number[]; store?: number[]; soldiers?: number[] };
@@ -28,6 +31,14 @@ export const KITS: Record<KitId, { gold: number; crystals: number; boost: Partia
   commander: { gold: 600, crystals: 10, boost: {}, soldiers: 10 },
   research: { gold: 600, crystals: 60, boost: { crystals: 0.25 }, soldiers: 0 },
 };
+/** functions/wartraders.py: the trading desk opens at Headquarters level 3. */
+export const DESK = { unlockHq: 3, count: [0, 0, 1, 2, 3], hireGold: 800, budgets: [1000, 2500, 5000, 10000], everyMin: 5 } as const;
+export const STRATEGIES: Record<StrategyId, { buyBelow?: number; buyAbove?: number; take: number; stop: number }> = {
+  dip: { buyBelow: -2, take: 1.5, stop: -3 },
+  momentum: { buyAbove: 2, take: 3, stop: -2 },
+};
+export const STRATEGY_IDS: StrategyId[] = ['dip', 'momentum'];
+export const deskSlots = (hq: number) => DESK.count[Math.max(1, Math.min(hq, DESK.count.length)) - 1]!;
 export const SPEED_PER_MIN = 1;
 export const GRID = 16;
 export const SLOTS = 3;
@@ -41,7 +52,21 @@ export function parseBase(d: DocumentData): Base | null {
     .filter(([, b]) => KINDS.includes(b.kind as Kind))
     .map(([id, b]) => ({ id, kind: b.kind as Kind, x: num(b.x), y: num(b.y), level: num(b.level), to: numOrNull(b.to), busyUntil: numOrNull(b.busyUntil), stored: num(b.stored), prodAt: numOrNull(b.prodAt) }));
   const kit = d.kit === 'investor' || d.kit === 'commander' || d.kit === 'research' ? d.kit : null;
-  return { season: d.season, gold: num(d.gold), crystals: num(d.crystals), kit, buildings, nextDone: numOrNull(d.nextDone) };
+  return { season: d.season, gold: num(d.gold), crystals: num(d.crystals), kit, buildings, nextDone: numOrNull(d.nextDone), traders: parseTraders(d.traders) };
+}
+
+function parseTraders(v: unknown): Trader[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object' && typeof x.id === 'string' && (x.strategy === 'dip' || x.strategy === 'momentum') && typeof x.warId === 'string' && typeof x.terr === 'string')
+    .map((x) => {
+      const pos: Trader['pos'] = {};
+      for (const [k, p] of Object.entries((x.pos && typeof x.pos === 'object' ? x.pos : {}) as Record<string, Record<string, unknown>>)) if (p && num(p.qty) > 0) pos[k] = { qty: num(p.qty), cost: num(p.cost) };
+      const log = (Array.isArray(x.log) ? x.log : [])
+        .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object' && typeof l.sym === 'string' && (l.side === 'buy' || l.side === 'sell'))
+        .map((l) => ({ at: num(l.at), sym: l.sym as string, side: l.side as 'buy' | 'sell', qty: num(l.qty), price: num(l.price), why: (l.why === 'take' || l.why === 'stop' ? l.why : 'signal') as TraderLog['why'] }));
+      return { id: x.id as string, strategy: x.strategy as StrategyId, warId: x.warId as string, terr: x.terr as string, budget: num(x.budget), on: x.on === true, pos, log };
+    });
 }
 
 export const useWarBase = (uid: string | null) => useLiveDoc(uid ? `warBases/${uid}` : null, parseBase);
@@ -53,7 +78,9 @@ type BaseReq =
   | { action: 'baseMove'; id: string; x: number; y: number }
   | { action: 'baseCollect'; id?: string }
   | { action: 'baseSpeed'; id: string }
-  | { action: 'baseKit'; kit: KitId };
+  | { action: 'baseKit'; kit: KitId }
+  | { action: 'baseHire'; strategy: StrategyId; warId: string; terr: string; budget: number }
+  | { action: 'baseTrader'; id: string; on?: boolean; strategy?: StrategyId; budget?: number; fire?: boolean };
 export const baseAction = (req: BaseReq) => callFunction<BaseReq, { base: DocumentData; collected: { gold: number; crystals: number } }>('war_lobby', req);
 
 export const hqLevel = (b: Base) => b.buildings.find((x) => x.kind === 'hq')?.level ?? 1;

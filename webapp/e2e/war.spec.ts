@@ -531,3 +531,46 @@ test('your base: build a Gold Mine and upgrade the Headquarters, in minutes, wit
   await expect(page.getByRole('application', { name: 'Your base' }).getByRole('button', { name: /^Research Center, Under construction/ })).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-base2-${info.project.name}.png`, fullPage: true });
 });
+
+test('the trading desk: Headquarters level 3 opens it; hire a trader for a territory you hold', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `wdesk-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  const wid = `deskwar${info.project.name.replace(/[^A-Za-z0-9]/g, '')}${Date.now()}`;
+  await put(`wars/${wid}`, { name: 'Desk War', status: 'active', phase: 'holding', players: [uid], territories: ['energy', 'tech'], map: { energy: { state: 'owned', owner: uid }, tech: { state: 'neutral' } } });
+  await page.goto('war/base');
+  await expect(page.getByRole('heading', { name: 'Your base', level: 1 })).toBeVisible({ timeout: 30_000 });
+  const desk = page.getByRole('region', { name: 'Trading desk' });
+  await expect(desk).toContainText('Opens at Headquarters level 3.', { timeout: 30_000 });
+  await expect(desk.getByRole('button')).toHaveCount(0);
+  // the Headquarters reaches level 3 (written here as the server would after the upgrades)
+  await fetch(`${BASE}/warBases/${uid}?updateMask.fieldPaths=buildings.hq1.level&updateMask.fieldPaths=gold`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { buildings: v({ hq1: { level: 3 } }), gold: v(5000) } }),
+  });
+  await expect(desk).toContainText('0 of 1 traders', { timeout: 30_000 });
+  await expect(desk.getByRole('combobox', { name: 'Territory' })).toHaveValue('0');
+  await expect(desk.getByRole('combobox', { name: 'Territory' }).locator('option')).toHaveText(['Energy · Desk War']);
+  await desk.getByRole('group', { name: 'Strategy' }).getByRole('button', { name: 'Momentum' }).click();
+  await expect(desk).toContainText('Buys a company up 2% or more on the day.');
+  await desk.getByRole('group', { name: 'Budget per trade' }).getByRole('button', { name: '$5,000' }).click();
+  if (process.env.SHOTS) await desk.screenshot({ path: `${process.env.SHOTS}/war-deskhire-${info.project.name}.png` });
+  await desk.getByRole('button', { name: 'Hire · 800 gold' }).click();
+  await expect(page.getByText('Your trader is on the desk.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('group', { name: 'Your base resources' })).toContainText('4,200gold');
+  await expect(desk).toContainText('1 of 1 traders');
+  await expect(desk).toContainText('Momentum · Energy');
+  await expect(desk).toContainText('$5,000 a trade');
+  await expect(desk).toContainText('No trades yet.');
+  await expect(desk).toContainText('Your desk is full. Headquarters level 4 adds another trader.');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await desk.screenshot({ path: `${process.env.SHOTS}/war-desk-${info.project.name}.png` });
+  await desk.getByRole('button', { name: 'Pause' }).click();
+  await expect(desk).toContainText('Paused', { timeout: 30_000 });
+  await desk.getByRole('button', { name: 'Let go' }).click();
+  await page.getByRole('dialog', { name: 'Let this trader go?' }).getByRole('button', { name: 'Let go' }).click();
+  await expect(desk).toContainText('0 of 1 traders', { timeout: 30_000 });
+});

@@ -7205,6 +7205,10 @@ def war_market_tick(event: scheduler_fn.ScheduledEvent) -> None:
         _war_base_pass(db, now_ms)
     except Exception as e:
         print("[war] base pass failed: %s" % type(e).__name__)
+    try:
+        _war_traders_pass(db, now_ms)
+    except Exception as e:
+        print("[war] traders pass failed: %s" % type(e).__name__)
 
 
 def _war_prices(db, now_ms):
@@ -7545,7 +7549,16 @@ def _war_army(war, uid):
 #   baseUpgrade {id} / baseMove {id, x, y} / baseCollect {id?} (gold and crystals)
 #   baseSpeed {id}                finish a construction now for crystals (1 a minute left)
 #   baseKit {kit}                 this season's starter kit: investor, commander or research
+#   baseHire {strategy, warId, terr, budget}   a trader for a territory you hold (Headquarters 3+)
+#   baseTrader {id, on?, strategy?, budget?, fire?}   pause, change or let a trader go
 import warbase as WBASE  # noqa: E402
+import wartraders as WTR  # noqa: E402
+
+
+def _war_holds(war, uid, terr):
+    """Whether uid holds terr in this running War now (after the claiming hour)."""
+    cell = ((war or {}).get("map") or {}).get(terr) or {}
+    return bool(war) and war.get("status") == "active" and war.get("phase") == "holding" and cell.get("state") == "owned" and cell.get("owner") == uid
 
 
 def _war_season_key(now_ms):
@@ -7567,15 +7580,19 @@ def _int_arg(v):
 
 def _war_base(db, uid, data, now_ms):
     action = data.get("action")
-    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect", "baseSpeed", "baseKit"):
+    if action not in ("baseOpen", "basePlace", "baseUpgrade", "baseMove", "baseCollect", "baseSpeed", "baseKit", "baseHire", "baseTrader"):
         raise WM.WarError("INVALID_ARGUMENT", "Unknown base action.")
     ref = db.collection("warBases").document(uid)
     key = _war_season_key(now_ms)
     bid = str(data.get("id") or "")[:40]
 
+    hire = WTR.validate(data) if action == "baseHire" else None
+    war_ref = db.collection("wars").document(hire[1]) if hire else None
+
     @firestore.transactional
     def txn(t):
         snap = ref.get(transaction=t)
+        wsnap = war_ref.get(transaction=t) if war_ref else None
         base = snap.to_dict() if snap.exists else None
         if not base or base.get("season") != key:
             base = WBASE.new_base(key, now_ms)  # a new season starts a fresh base
@@ -7594,11 +7611,78 @@ def _war_base(db, uid, data, now_ms):
             base, _done = WBASE.settle(base, now_ms)
         elif action == "baseKit":
             base = WBASE.choose_kit(base, str(data.get("kit") or ""), now_ms)
+        elif action == "baseHire":
+            strategy, wid, terr, budget = hire
+            if not _war_holds(wsnap.to_dict() if wsnap.exists else None, uid, terr):
+                raise WM.WarError("FAILED_PRECONDITION", "A trader works a territory you hold. Take it first.")
+            base = WTR.hire(base, WBASE.hq_level(base), strategy, wid, terr, budget, now_ms)
+        elif action == "baseTrader":
+            base = WTR.change(base, bid, now_ms, on=data.get("on") if isinstance(data.get("on"), bool) else None,
+                              strategy=data.get("strategy"), budget=data.get("budget"), fire=data.get("fire") is True)
         base["nextDone"] = WBASE.next_done(base)
         t.set(ref, base)
         return base, got
     base, got = txn(db.transaction())
     return {"base": WBASE.public(base, now_ms), "collected": got}
+
+
+def _war_traders_pass(db, now_ms):
+    """Every 5 minutes: each base's traders look at their territory's companies and trade with the
+    owner's War balance (wartraders.decide). Buys need the territory (as for the owner); sells
+    are capped at what the owner still holds. Each trade counts in its War like the owner's."""
+    if (now_ms // 60000) % WTR.EVERY_MIN:
+        return
+    snap = db.collection("warMarket").document("quotes").get()
+    q = snap.to_dict() if snap.exists else None
+    if not q or now_ms - (q.get("updatedAt") or 0) > WM.QUOTE_MAX_AGE_MS:
+        return  # prices are updating: wait for the next look
+    quotes = {s_: v for s_, v in (q.get("prices") or {}).items() if isinstance(v, dict) and isinstance(v.get("p"), (int, float))}
+    flat = {s_: v["p"] for s_, v in quotes.items()}
+    key = _war_season_key(now_ms)
+    for bsnap in db.collection("warBases").where("tradersOn", ">", 0).limit(100).stream():
+        uid, bref = bsnap.id, bsnap.reference
+        pref = db.collection("warProfiles").document(uid)
+
+        @firestore.transactional
+        def txn(t):
+            base = bref.get(transaction=t).to_dict() or {}
+            if base.get("season") != key or not base.get("traders"):
+                return
+            ps = pref.get(transaction=t)
+            if not ps.exists:
+                return
+            wars = {}
+            for tr in base["traders"]:
+                if tr["warId"] not in wars:
+                    ws = db.collection("wars").document(tr["warId"]).get(transaction=t)
+                    wars[tr["warId"]] = ws.to_dict() if ws.exists else None
+            prof, fills, traders = ps.to_dict(), [], []
+            for tr in base["traders"]:
+                holds = _war_holds(wars.get(tr["warId"]), uid, tr["terr"])
+                for sym, side, qty, why in WTR.decide(tr, quotes, prof.get("cash") or 0, holds):
+                    if side == "sell":
+                        have = ((prof.get("positions") or {}).get(sym) or {}).get("qty", 0)
+                        qty = min(qty, have)
+                        if qty < 1:
+                            tr = dict(tr, pos={k: v for k, v in tr["pos"].items() if k != sym})
+                            continue
+                    try:
+                        prof, fill = WM.apply_trade(prof, sym, side, qty, flat[sym], flat, now_ms, tr["warId"])
+                    except WM.WarError:
+                        continue
+                    fills.append(dict(fill, by="trader", trader=tr["id"]))
+                    tr = WTR.record(tr, sym, side, qty, flat[sym], why, now_ms)
+                traders.append(tr)
+            if not fills:
+                return
+            t.set(pref, prof)
+            for f in fills:
+                t.set(pref.collection("fills").document(), f)
+            t.update(bref, {"traders": traders, "updatedAt": now_ms})
+        try:
+            txn(db.transaction())
+        except Exception as e:  # one base mustn't stop the others
+            print("[war] traders failed for one base: %s" % type(e).__name__)
 
 
 def _war_base_pass(db, now_ms):

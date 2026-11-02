@@ -61,8 +61,9 @@ def needed_wins(defender_soldiers):
 
 
 def qualifying_sale(fill, since_ms):
-    """A sale in this War, in the window, at least 1% above its average cost (pnl = qty x (price - avg))."""
-    if fill.get("side") != "sell" or (fill.get("at") or 0) < since_ms or not fill.get("qty"):
+    """A sale in this War, in the window, at least 1% above its average cost (pnl = qty x (price - avg)).
+    Your own sales only: a trading-desk trader's (by "trader") doesn't earn you an attack."""
+    if fill.get("by") == "trader" or fill.get("side") != "sell" or (fill.get("at") or 0) < since_ms or not fill.get("qty"):
         return False
     per = (fill.get("pnl") or 0) / fill["qty"]
     avg = fill["price"] - per

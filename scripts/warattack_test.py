@@ -26,6 +26,11 @@ GO = {"territory": "tech", "sym": "NIMBC", "side": "bull"}
 
 
 class Eligibility(unittest.TestCase):
+    def test_a_traders_sale_does_not_qualify(self):
+        sale = {"side": "sell", "at": 10, "qty": 10, "price": 101.0, "pnl": 20.0}
+        self.assertTrue(A.qualifying_sale(sale, 0))
+        self.assertFalse(A.qualifying_sale(dict(sale, by="trader"), 0))
+
     def test_return_or_a_1_percent_sale_in_the_last_2_days(self):
         sale = {"side": "sell", "at": 2 * D, "qty": 10, "price": 101.0, "pnl": 10.0}   # avg 100: +1%
         small = dict(sale, pnl=5.0)                                                     # +0.5%
