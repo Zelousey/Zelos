@@ -66,7 +66,7 @@ describe('War zone', () => {
   });
   it('reads your placement and warnings, and checks a placement like the server', () => {
     const T = ['tech', 'finance', 'health', 'energy', 'consumer', 'comms'];
-    expect(parsePlacement({ soldiers: { tech: 50, mars: 3, health: -1 }, camo: ['tech', 'mars'], locked: true })).toEqual({ soldiers: { tech: 50 }, camo: ['tech'], locked: true, auto: false, reserve: 0, picks: {} });
+    expect(parsePlacement({ soldiers: { tech: 50, mars: 3, health: -1 }, camo: ['tech', 'mars'], locked: true })).toEqual({ soldiers: { tech: 50 }, camo: ['tech'], locked: true, auto: false, reserve: 0, picks: {}, downed: 0, healed: 0 });
     expect(parseIntel({ warnings: { tech: 'heavy', energy: 'enemy', health: 12, mars: 'enemy' } })).toEqual({ tech: 'heavy', energy: 'enemy' });
     expect(placementProblem({ soldiers: { tech: 50, energy: 50 }, camo: [] }, T, 100)).toBeNull();
     expect(placementProblem({ soldiers: { tech: 50, energy: 45 }, camo: ['energy'] }, T, 100)).toBeNull();
@@ -90,6 +90,7 @@ describe('War zone', () => {
     expect(w.battles.tech!.sides).toEqual({ a: 'bear', b: 'bull' });
     expect([w.bonusPoints, w.redeployPasses]).toEqual([{ a: 1 }, { b: 1 }]);
     expect(parsePlacement({ reserve: 5, picks: { tech: { side: 'bull', sym: 'NIMBC' }, mars: { side: 'bull', sym: 'X' } } })).toMatchObject({ reserve: 5, picks: { tech: { side: 'bull', sym: 'NIMBC' } } });
+    expect(parsePlacement({ downed: 20, healed: 1 })).toMatchObject({ downed: 20, healed: 1 });
   });
 });
 

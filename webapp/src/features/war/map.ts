@@ -15,7 +15,7 @@ export const CAMO_MAX = 2;
 export const SECTOR_NAME: Record<string, string> = Object.fromEntries(SECTORS);
 export const companiesOf = (t: string) => COMPANIES.filter((c) => c.sector === t);
 
-export type Placement = { soldiers: Record<string, number>; camo: string[]; locked: boolean; auto: boolean; reserve: number; picks: Record<string, { side: 'bull' | 'bear'; sym: string }> };
+export type Placement = { soldiers: Record<string, number>; camo: string[]; locked: boolean; auto: boolean; reserve: number; picks: Record<string, { side: 'bull' | 'bear'; sym: string }>; downed: number; healed: number };
 const counts = (v: unknown): Record<string, number> => {
   const out: Record<string, number> = {};
   for (const [k, n] of Object.entries((v && typeof v === 'object' ? v : {}) as Record<string, unknown>)) if (SECTOR_NAME[k] && typeof n === 'number' && Number.isInteger(n) && n > 0) out[k] = n;
@@ -32,6 +32,9 @@ export function parsePlacement(d: DocumentData): Placement {
     auto: d.auto === true,
     reserve: typeof d.reserve === 'number' && d.reserve > 0 ? d.reserve : 0,
     picks,
+    // soldiers lost in this War, and those a Medical Station brought back (functions/warmedic.py)
+    downed: typeof d.downed === 'number' && d.downed > 0 ? d.downed : 0,
+    healed: typeof d.healed === 'number' && d.healed > 0 ? d.healed : 0,
   };
 }
 export type Warning = 'enemy' | 'heavy';

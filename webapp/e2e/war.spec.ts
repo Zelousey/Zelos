@@ -643,3 +643,52 @@ test('outposts: build a Fort on land you hold; see an enemy Fort and what it cos
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-outpost2-${info.project.name}.png`, fullPage: true });
 });
+
+test('the Medical Station: unlocks at Headquarters level 3; the War page shows wounded soldiers healing', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `wmed-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  await page.goto('war/base');
+  await expect(page.getByRole('heading', { name: 'Your base', level: 1 })).toBeVisible({ timeout: 30_000 });
+  const menu = page.getByRole('region', { name: 'Build' });
+  await expect(menu.getByRole('button', { name: /Medical Station/ })).toBeDisabled();
+  await expect(menu.getByRole('button', { name: /Medical Station/ })).toContainText('Unlocks at Headquarters level 3.');
+  // Headquarters level 3 (written here as the server would after the upgrades)
+  await fetch(`${BASE}/warBases/${uid}?updateMask.fieldPaths=buildings.hq1.level&updateMask.fieldPaths=gold`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { buildings: v({ hq1: { level: 3 } }), gold: v(3000) } }),
+  });
+  await menu.getByRole('button', { name: /Medical Station/ }).click();
+  await page.getByRole('button', { name: 'Build here (600 gold)' }).click();
+  await expect(page.getByText('Medical Station: construction started.')).toBeVisible({ timeout: 30_000 });
+  const land = page.getByRole('application', { name: 'Your base' });
+  await land.getByRole('button', { name: /^Medical Station, Under construction/ }).click();
+  await page.getByRole('region', { name: 'Medical Station' }).getByRole('button', { name: /^Finish now/ }).click();
+  await expect(page.getByText('Medical Station: finished.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Medical Station' })).toContainText('Saves 30% of the soldiers you lose in each War and heals 2 an hour');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-medical-${info.project.name}.png`, fullPage: true });
+  // in a War where you've lost 20 soldiers: 6 are saved, 1 back so far
+  const wid = `medwar${info.project.name.replace(/[^A-Za-z0-9]/g, '')}${Date.now()}`;
+  const now = Date.now();
+  await put(`wars/${wid}`, {
+    name: 'Medic War',
+    status: 'active',
+    phase: 'holding',
+    organizer: uid,
+    players: [uid, 'palMedUid0'],
+    names: { [uid]: 'Me', palMedUid0: 'Pal' },
+    startedAt: now - 3600000,
+    endsAt: now + 3 * 86400000,
+    days: 3,
+    territories: ['energy', 'tech', 'health', 'finance', 'consumer', 'comms'],
+    map: { energy: { state: 'owned', owner: uid }, tech: { state: 'owned', owner: 'palMedUid0' }, health: { state: 'neutral' }, finance: { state: 'neutral' }, consumer: { state: 'neutral' }, comms: { state: 'neutral' } },
+  });
+  await put(`wars/${wid}/placements/${uid}`, { soldiers: { energy: 30 }, reserve: 4, locked: true, downed: 20, healed: 1 });
+  await page.goto(`war/${wid}`);
+  await expect(page.getByText('You’ve lost 20 soldiers in this War. Your Medical Station saves 30%: 5 wounded are healing, 2 an hour back to your reserve.')).toBeVisible({ timeout: 30_000 });
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.getByText(/^You’ve lost 20 soldiers/).locator('xpath=ancestor::section[1]').screenshot({ path: `${process.env.SHOTS}/war-wounded-${info.project.name}.png` });
+});

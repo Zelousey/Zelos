@@ -50,6 +50,12 @@ CONFIG = {
                  "cost": [500, 900, 1800, 3600, 7000], "crystals": [0, 0, 0, 0, 30],
                  "time": [120, 300, 900, 1800, 2700], "count": [0, 1, 1, 2, 2],
                  "makes": "crystals", "rate": [8, 12, 18, 26, 36], "store": [40, 80, 150, 260, 400]},
+    # owner 2026-11-03 ("Balanced"): saves a share of the soldiers you lose in every War and heals
+    # them back to that War's reserve each hour (warmedic.py)
+    "medical": {"name": "Medical Station", "size": 3, "max": 5,
+                "cost": [600, 1200, 2400, 4200, 7000], "crystals": [0, 0, 0, 15, 30],
+                "time": [120, 300, 900, 1800, 2700], "count": [0, 0, 1, 1, 1],
+                "saves": [0.3, 0.4, 0.5, 0.6, 0.7], "heal": [2, 3, 4, 6, 8]},
 }
 # The base shop (owner 2026-11-02: "buying resources, just generate me what you recommend"): small
 # packs for tokens with a weekly cap, so money can speed you up but never buy the season. A token is
@@ -79,6 +85,11 @@ def _rate(base, kind, lvl):
     cfg = CONFIG[kind]
     boost = (KITS.get(base.get("kit") or "", {}).get("boost") or {}).get(cfg["makes"], 0)
     return cfg["rate"][lvl - 1] * (1 + boost)
+
+
+def medical_level(base):
+    """The finished level of the Medical Station (0 when there's none, or it's still being built)."""
+    return max([b["level"] for b in base["buildings"].values() if b["kind"] == "medical"] or [0])
 
 
 def hq_level(base):

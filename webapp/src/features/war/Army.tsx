@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { t } from '../../lib/i18n';
 import { Button, Card, Sheet, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
+import { CONFIG, useWarBase } from './base/base';
 import { warDay, warLobby, type PrivateWar } from './lobby';
 import { MAX_PER_TERRITORY, SECTOR_NAME, type Placement } from './map';
 import s from './War.module.css';
@@ -54,6 +55,7 @@ export function Army({ w, uid, placement, now }: { w: PrivateWar; uid: string; p
           </Button>
         </div>
         <p className={s.muted}>{t('warmy.help', { n: RALLY })}</p>
+        {placement && placement.downed > 0 && <Wounded uid={uid} downed={placement.downed} healed={placement.healed} />}
       </div>
       <Sheet open={open} onClose={() => setOpen(false)} title={t('warmy.reinforce')} labelledBy="war-reinforce">
         <form
@@ -93,5 +95,22 @@ export function Army({ w, uid, placement, now }: { w: PrivateWar; uid: string; p
         </form>
       </Sheet>
     </Card>
+  );
+}
+
+/** Soldiers lost in this War and what your Medical Station brings back (functions/warmedic.py). */
+function Wounded({ uid, downed, healed }: { uid: string; downed: number; healed: number }) {
+  const base = useWarBase(uid);
+  const b = base.status === 'ready' ? base.data : null;
+  const level = Math.max(0, ...(b?.buildings.filter((x) => x.kind === 'medical').map((x) => x.level) ?? []));
+  const cfg = CONFIG.medical;
+  if (level < 1) return <p className={s.muted}>{t('wmed.none', { n: downed })}</p>;
+  const waiting = Math.max(0, Math.floor(downed * cfg.saves![level - 1]!) - healed);
+  return (
+    <p className={s.muted}>
+      {waiting > 0
+        ? t('wmed.healing', { n: downed, w: waiting, r: cfg.heal![level - 1]!, p: Math.round(cfg.saves![level - 1]! * 100) })
+        : t('wmed.done', { n: downed, h: healed })}
+    </p>
   );
 }
