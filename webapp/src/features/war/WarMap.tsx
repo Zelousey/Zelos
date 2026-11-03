@@ -166,6 +166,9 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           onPick={(x) => jumpTo(w.id, x)}
           title={w.name}
           warId={claiming ? undefined : w.id}
+          outposts={claiming ? undefined : w.outposts}
+          uid={uid}
+          active={w.status === 'active' && w.phase === 'holding'}
           pickLabel={claiming ? t('wmap.goCard') : t('wmap.goAct')}
           nav={
             claiming

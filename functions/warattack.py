@@ -24,6 +24,7 @@ same attacker -> defender at most 3 a War day, none in the War's last hour, and 
 lost in the last War day (skip that wait once per War for 100 tokens).
 """
 from warmap import NAMES
+import waroutpost as WO
 from warmoves import extra_attacks
 from warmarket import BY_SYM, COMPANIES, WarError
 
@@ -214,7 +215,7 @@ def settle(war, a, outcome, defender_soldiers_there, now_ms):
             left = defender_soldiers_there
         mine = progress.setdefault(t, {})
         mine[att] = mine.get(att, 0) + 1
-        if mine[att] >= needed_wins(left):
+        if mine[att] >= needed_wins(left) + WO.fort_wins(war, t, now_ms):  # a Fort adds wins (waroutpost.py)
             fx["captured"] = True
             fx["soldiers"].append((att, None, CAPTURE))
             fx["retreat"] = (dfd, t)
@@ -222,7 +223,7 @@ def settle(war, a, outcome, defender_soldiers_there, now_ms):
             progress[t] = {}
             lost = {k: dict(v) for k, v in (war.get("lostAt") or {}).items()}
             lost.setdefault(dfd, {})[t] = now_ms
-            war = dict(war, lostAt=lost)
+            war = WO.capture(dict(war, lostAt=lost), t, att, now_ms)  # its outpost goes to the attacker, a level lower
     attacks = dict(war.get("attacks") or {})
     attacks.pop(a["id"], None)
     done = dict(a, stage="done", result=a.get("result") or outcome, doneAt=now_ms, captured=fx["captured"])

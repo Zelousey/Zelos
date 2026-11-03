@@ -420,4 +420,44 @@ b = main._war_base(db, "deskAnn01", {"action": "baseTrader", "id": tid, "strateg
 ok(b["traders"][0]["strategy"] == "momentum" and b["traders"][0]["budget"] == 1000, "changing its strategy and budget")
 b = main._war_base(db, "deskAnn01", {"action": "baseTrader", "id": tid, "fire": True}, td + 11 * M)["base"]
 ok(b["traders"] == [] and b["tradersOn"] == 0, "and letting it go")
+# ---- territory outposts (owner 2026-11-02): Fort + Supply camp on land you hold, paid with base gold
+import waroutpost as WOP  # noqa: E402
+to0 = td + 20 * M
+db.collection("wars").document("outpostWar01").set({"name": "Outpost War", "status": "active", "phase": "holding", "startedAt": to0 - H, "endsAt": to0 + 72 * H, "players": ["outAnn01", "outBen01"],
+                                                    "map": {"energy": {"state": "owned", "owner": "outAnn01"}, "tech": {"state": "owned", "owner": "outBen01"},
+                                                            "health": {"state": "owned", "owner": "outAnn01"}, "finance": {"state": "owned", "owner": "outAnn01"}}})
+main._war_base(db, "outAnn01", {"action": "baseOpen"}, to0)
+OB = {"action": "outpostBuild", "warId": "outpostWar01", "terr": "energy", "kind": "fort"}
+try:
+    main._war_outpost(db, "outpostWar01", "outAnn01", "outpostBuild", OB, to0)
+    ok(False, "no outposts at Headquarters 1")
+except WM.WarError as e:
+    ok("Headquarters level 2" in str(e), "outposts open at Headquarters level 2")
+db.collection("warBases").document("outAnn01").update({"buildings.hq1.level": 2, "gold": 6000})
+try:
+    main._war_outpost(db, "outpostWar01", "outAnn01", "outpostBuild", dict(OB, terr="tech"), to0)
+    ok(False, "not on someone else's land")
+except WM.WarError as e:
+    ok("territory you hold" in str(e), "you only build on a territory you hold")
+r = main._war_outpost(db, "outpostWar01", "outAnn01", "outpostBuild", OB, to0)
+ok(r["base"]["gold"] == 5000 and r["war"]["outposts"]["energy"]["kind"] == "fort" and r["war"]["outposts"]["energy"]["busyUntil"] == to0 + 10 * M,
+   "a Fort costs 1,000 base gold and builds in 10 minutes")
+r = main._war_outpost(db, "outpostWar01", "outAnn01", "outpostBuild", dict(OB, terr="health", kind="camp"), to0)
+ok(r["base"]["gold"] == 4200, "a Supply camp costs 800")
+try:
+    main._war_outpost(db, "outpostWar01", "outAnn01", "outpostBuild", dict(OB, terr="finance", kind="camp"), to0)
+    ok(False, "HQ 2 allows 2")
+except WM.WarError as e:
+    ok("2 outposts in each War" in str(e), "Headquarters level 2 allows 2 outposts in each War")
+r = main._war_outpost(db, "outpostWar01", "outAnn01", "outpostCollect", {"terr": "health"}, to0 + 10 * M + H)
+ok(r["collected"] == 150 and r["base"]["gold"] == 4350, "an hour after it's built the camp has made 150 gold, collected into the base")
+r = main._war_outpost(db, "outpostWar01", "outAnn01", "outpostUpgrade", {"terr": "energy"}, to0 + 2 * H)
+ok(r["base"]["gold"] == 4350 - 2500 and r["war"]["outposts"]["energy"]["to"] == 2, "upgrading the Fort to level 2 costs 2,500")
+w = db.collection("wars").document("outpostWar01").get().to_dict()
+ok(WOP.fort_wins(w, "energy", to0 + 3 * H) == 2, "a level-2 Fort means 2 more wins to take the territory")
+try:
+    main._war_outpost(db, "outpostWar01", "outBen01", "outpostCollect", {"terr": "health"}, to0 + 3 * H)
+    ok(False, "not Ben's camp")
+except WM.WarError:
+    ok(True, "nobody else can collect your camp")
 print("\n%d War zone market checks passed" % passed)

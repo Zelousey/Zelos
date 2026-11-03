@@ -144,7 +144,7 @@
 .chipOn { background: #142a55; border-color: #8fb6ff; }
 
 /* the details panel */
-.details { display: grid; }
+.details { display: grid; overflow-y: auto; scrollbar-width: thin; }  /* the outpost part can make it taller than its box */
 .detailsHint { margin: auto 0; color: #8a9cbd; font-size: calc(var(--u) * 11); line-height: 1.4; text-align: center; }
 .detailsBody { display: grid; align-content: start; gap: calc(var(--u) * 8); min-height: 0; }
 .detailsHead { display: grid; grid-template-columns: calc(var(--u) * 22) 1fr auto; gap: calc(var(--u) * 8); align-items: center; }
@@ -173,3 +173,18 @@
 .troopDetail { fill: none; stroke: rgba(3, 8, 20, 0.55); stroke-width: 1; }
 .detailsBase { display: grid; place-items: center; text-decoration: none; background: #b98110; border-color: #e8b23d; color: #1a1400; }
 .detailsBase:hover { background: #d39a1c; }
+
+/* territory outposts (owner 2026-11-02): the badge on a label, and the panel in the details */
+.opBadge rect { fill: #0b1427; stroke: #e8b23d; stroke-width: 1.2; }
+.opBadge path { fill: #e8b23d; }
+.opBadge text { fill: #fff; font-size: 11px; font-weight: 800; text-anchor: middle; }
+.outpost { display: grid; gap: calc(var(--u) * 4); padding-top: calc(var(--u) * 6); border-top: 1px solid #1f3159; font-size: calc(var(--u) * 10); color: #c4cfe3; }
+.outpost p { margin: 0; line-height: 1.3; }
+.outpostTitle { color: #fff !important; font-weight: 700; font-size: calc(var(--u) * 10.5); letter-spacing: 0.04em; }
+.outpostBtn { display: grid; gap: 1px; padding: calc(var(--u) * 4) calc(var(--u) * 6); border: 1px solid #e8b23d; border-radius: calc(var(--u) * 3); background: #241a05; color: #fff; text-align: left; font: inherit; font-size: calc(var(--u) * 10); cursor: pointer; }
+.outpostBtn small { color: #d9c9a3; font-size: calc(var(--u) * 9); line-height: 1.25; }
+.outpostBtn:hover:not(:disabled) { background: #3a2a08; }
+.outpostBtn:focus-visible { outline: 2px solid #ffd36b; outline-offset: 2px; }
+.outpostBtn:disabled { opacity: 0.55; cursor: default; }
+.outpostLink { color: #ffd36b; font-size: calc(var(--u) * 10); }
+.outpostFine { color: #8a9cbd; font-size: calc(var(--u) * 9); }

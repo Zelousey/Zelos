@@ -587,3 +587,59 @@ test('the trading desk: Headquarters level 3 opens it; hire a trader for a terri
   await page.getByRole('dialog', { name: 'Let this trader go?' }).getByRole('button', { name: 'Let go' }).click();
   await expect(desk).toContainText('0 of 1 traders', { timeout: 30_000 });
 });
+
+test('outposts: build a Fort on land you hold; see an enemy Fort and what it costs to take', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `wout-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  const wid = `outwar${info.project.name.replace(/[^A-Za-z0-9]/g, '')}${Date.now()}`;
+  const now = Date.now();
+  await put(`wars/${wid}`, {
+    name: 'Outpost War',
+    status: 'active',
+    phase: 'holding',
+    organizer: uid,
+    players: [uid, 'palOutUid0'],
+    names: { [uid]: 'Me', palOutUid0: 'Pal' },
+    startedAt: now - 3600000,
+    endsAt: now + 3 * 86400000,
+    days: 3,
+    territories: ['energy', 'tech', 'health', 'finance', 'consumer', 'comms'],
+    map: { energy: { state: 'owned', owner: uid }, tech: { state: 'owned', owner: 'palOutUid0' }, health: { state: 'neutral' }, finance: { state: 'neutral' }, consumer: { state: 'neutral' }, comms: { state: 'neutral' } },
+    outposts: { tech: { kind: 'fort', owner: 'palOutUid0', level: 2, stored: 0 } },
+  });
+  // your base at Headquarters level 2 (written here as the server would after the upgrade)
+  await page.goto('war/base');
+  await expect(page.getByRole('heading', { name: 'Your base', level: 1 })).toBeVisible({ timeout: 30_000 });
+  await fetch(`${BASE}/warBases/${uid}?updateMask.fieldPaths=buildings.hq1.level&updateMask.fieldPaths=gold`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { buildings: v({ hq1: { level: 2 } }), gold: v(3000) } }),
+  });
+  await expect(page.getByRole('group', { name: 'Your base resources' })).toContainText('3,000gold', { timeout: 30_000 });
+  await page.goto(`war/${wid}`);
+  const mapView = page.getByRole('group', { name: /^The War map/ });
+  await expect(mapView).toBeVisible({ timeout: 30_000 });
+  // the enemy's Fort shows on the map and in the details
+  await expect(mapView.getByRole('button', { name: /^Tech, .*Fort, level 2: 2 more win\(s\) to take it/ })).toHaveCount(1);
+  await mapView.getByRole('button', { name: /^Tech,/ }).click();
+  const details = page.getByRole('region', { name: 'Territory details' });
+  await expect(details).toContainText('Fort, level 2: 2 more win(s) to take it');
+  await expect(details.getByRole('button', { name: /^Build a/ })).toHaveCount(0); // not your land
+  // on your land: build a Fort with base gold
+  await mapView.getByRole('button', { name: /^Energy,/ }).click();
+  await expect(details).toContainText('None yet · build one below ↓');
+  await expect(details).toContainText('Build an outpost');
+  await expect(details).toContainText('Your base has 3,000 gold.');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-outpost-${info.project.name}.png`, fullPage: true });
+  await details.getByRole('button', { name: /^Build a Fort · 1,000 gold/ }).click();
+  await expect(page.getByText('Fort: construction started.')).toBeVisible({ timeout: 30_000 });
+  await expect(details).toContainText('Fort, being built');
+  await expect(details).toContainText(/Ready in \d+m/);
+  await expect(details).toContainText('Your base has 2,000 gold.');
+  await expect(mapView.getByRole('button', { name: /^Energy, .*Fort, being built/ })).toHaveCount(1);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-outpost2-${info.project.name}.png`, fullPage: true });
+});
