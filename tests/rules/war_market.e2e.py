@@ -460,4 +460,40 @@ try:
     ok(False, "not Ben's camp")
 except WM.WarError:
     ok(True, "nobody else can collect your camp")
+# ---- the Medical Station (owner 2026-11-03, "Balanced"): lost soldiers are wounded; a station heals a share
+tm = to0 - to0 % (10 * M) + 30 * M  # a 10-minute mark: the healing pass runs then
+db.collection("wars").document("medicWar01").set({"name": "Medic War", "status": "active", "phase": "holding", "startedAt": tm - H, "endsAt": tm + 72 * H,
+                                                  "players": ["medAnn01", "medBen01"], "map": {"energy": {"state": "owned", "owner": "medAnn01"}}})
+mref = db.collection("wars").document("medicWar01")
+places = {"medAnn01": {"soldiers": {"energy": 30}, "reserve": 0}, "medBen01": {"soldiers": {}, "reserve": 20}}
+fx = {"cash": {}, "soldiers": [("medAnn01", "energy", -5), ("medBen01", None, -5)], "retreat": ("medAnn01", "energy"), "captured": True}
+
+
+@firestore.transactional
+def _apply(t):
+    main._war_apply_fx(t, mref, db, {"stakes": {}}, fx, places, {}, tm)
+
+
+_apply(db.transaction())
+pa = mref.collection("placements").document("medAnn01").get().to_dict()
+pb = mref.collection("placements").document("medBen01").get().to_dict()
+ok(pa["downed"] == 5 + 13 and pa["reserve"] == 12 and pb["downed"] == 5,
+   "soldiers lost in an attack and in the retreat (half of 25) are counted as downed in that War")
+main._war_base(db, "medAnn01", {"action": "baseOpen"}, tm)
+try:
+    main._war_base(db, "medAnn01", {"action": "basePlace", "kind": "medical", "x": 0, "y": 0}, tm)
+    ok(False, "locked at HQ 1")
+except WM.WarError as e:
+    ok("Headquarters level 3" in str(e), "the Medical Station unlocks at Headquarters level 3")
+db.collection("warBases").document("medAnn01").update({"buildings.hq1.level": 3, "gold": 5000})
+b = main._war_base(db, "medAnn01", {"action": "basePlace", "kind": "medical", "x": 0, "y": 0}, tm)["base"]
+ok(b["gold"] == 4400 and b["hasMedical"] is True, "it costs 600 gold")
+main._war_medic_pass(db, tm + 60 * M)  # built after 2 minutes; healing starts from the losses' clock
+pa = mref.collection("placements").document("medAnn01").get().to_dict()
+ok(pa["reserve"] == 12 + 2 and pa["healed"] == 2, "an hour later level 1 has healed 2 soldiers back to the reserve")
+main._war_medic_pass(db, tm + 10 * H)
+pa = mref.collection("placements").document("medAnn01").get().to_dict()
+ok(pa["healed"] == 5 and pa["reserve"] == 12 + 5, "and stops at 30% of the 18 lost (5)")
+pb = mref.collection("placements").document("medBen01").get().to_dict()
+ok(pb.get("healed") is None and pb["reserve"] == 15, "a player without a station gets nobody back")
 print("\n%d War zone market checks passed" % passed)

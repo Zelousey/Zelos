@@ -7209,6 +7209,10 @@ def war_market_tick(event: scheduler_fn.ScheduledEvent) -> None:
         _war_traders_pass(db, now_ms)
     except Exception as e:
         print("[war] traders pass failed: %s" % type(e).__name__)
+    try:
+        _war_medic_pass(db, now_ms)
+    except Exception as e:
+        print("[war] medical pass failed: %s" % type(e).__name__)
 
 
 def _war_prices(db, now_ms):
@@ -7605,6 +7609,8 @@ def _war_base(db, uid, data, now_ms):
         got = {"gold": 0, "crystals": 0}
         if action == "basePlace":
             base, _new = WBASE.place(base, str(data.get("kind") or ""), _int_arg(data.get("x")), _int_arg(data.get("y")), now_ms)
+            if data.get("kind") == "medical":
+                base["hasMedical"] = True  # the healing pass looks for these
         elif action == "baseUpgrade":
             base = WBASE.upgrade(base, bid, now_ms)
         elif action == "baseMove":
@@ -7641,6 +7647,7 @@ def _war_base(db, uid, data, now_ms):
 
 
 import waroutpost as WO  # noqa: E402
+import warmedic as WMED  # noqa: E402
 
 
 def _war_outpost(db, wid, uid, action, data, now_ms):
@@ -7681,6 +7688,40 @@ def _war_outpost(db, wid, uid, action, data, now_ms):
         return war, base, got
     war, base, got = txn(db.transaction())
     return {"warId": wid, "war": war, "base": WBASE.public(base, now_ms), "collected": got}
+
+
+def _war_medic_pass(db, now_ms):
+    """Every 10 minutes: Medical Stations bring saved soldiers back to the reserve in each running
+    War their owner plays (warmedic.py)."""
+    if (now_ms // 60000) % WMED.EVERY_MIN:
+        return
+    key = _war_season_key(now_ms)
+    for bsnap in db.collection("warBases").where("hasMedical", "==", True).limit(200).stream():
+        base = bsnap.to_dict() or {}
+        if base.get("season") != key:
+            continue
+        base, _ = WBASE.settle(base, now_ms)
+        level = WBASE.medical_level(base)
+        if level < 1:
+            continue
+        uid = bsnap.id
+        for wsnap in db.collection("wars").where("players", "array_contains", uid).limit(20).stream():
+            w = wsnap.to_dict() or {}
+            if w.get("status") != "active" or w.get("phase") != "holding":
+                continue
+            pref = wsnap.reference.collection("placements").document(uid)
+
+            @firestore.transactional
+            def txn(t):
+                ps = pref.get(transaction=t)
+                if not ps.exists or not (ps.to_dict() or {}).get("downed"):
+                    return
+                p, n = WMED.heal(ps.to_dict(), level, now_ms)
+                t.set(pref, p)
+            try:
+                txn(db.transaction())
+            except Exception as e:
+                print("[war] healing failed for one War: %s" % type(e).__name__)
 
 
 def _war_traders_pass(db, now_ms):
@@ -7978,6 +8019,12 @@ def _war_soldiers(place, uid_place_delta):
     return p
 
 
+def _war_place_total(place):
+    """All of a player's soldiers in a War: on territories plus the reserve."""
+    p = place or {}
+    return (p.get("reserve") or 0) + sum((p.get("soldiers") or {}).values())
+
+
 def _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms):
     """Money and soldiers after an attack (inside the transaction, after its reads)."""
     for uid, stake in (a.get("stakes") or {}).items():
@@ -7989,13 +8036,17 @@ def _war_apply_fx(t, ref, db, a, fx, places, profiles, now_ms):
         t.set(db.collection("warProfiles").document(uid), p)
     touched = set()
     for uid, terr, delta in fx["soldiers"]:
+        before = _war_place_total(places.get(uid))
         places[uid] = _war_soldiers(places.get(uid), (terr, delta))
+        if delta < 0:  # the soldiers actually lost are wounded (warmedic.py)
+            places[uid] = WMED.record_loss(places[uid], before - _war_place_total(places[uid]), now_ms)
         touched.add(uid)
     if fx.get("retreat"):
         uid, terr = fx["retreat"]
         p = dict(places.get(uid) or {}, soldiers=dict((places.get(uid) or {}).get("soldiers") or {}))
-        p["reserve"] = (p.get("reserve") or 0) + p["soldiers"].pop(terr, 0) // 2
-        places[uid] = p
+        there = p["soldiers"].pop(terr, 0)
+        p["reserve"] = (p.get("reserve") or 0) + there // 2
+        places[uid] = WMED.record_loss(p, there - there // 2, now_ms)
         touched.add(uid)
     for uid in touched:
         t.set(ref.collection("placements").document(uid), places[uid])

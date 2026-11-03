@@ -8,8 +8,8 @@ import type { DocumentData } from 'firebase/firestore';
 import { useLiveDoc } from '../../../data/liveDoc';
 import { callFunction } from '../../../lib/firebase';
 
-export type Kind = 'hq' | 'mine' | 'barracks' | 'research';
-export const KINDS: Kind[] = ['hq', 'mine', 'barracks', 'research'];
+export type Kind = 'hq' | 'mine' | 'barracks' | 'research' | 'medical';
+export const KINDS: Kind[] = ['hq', 'mine', 'barracks', 'research', 'medical'];
 export type KitId = 'investor' | 'commander' | 'research';
 export type Building = { id: string; kind: Kind; x: number; y: number; level: number; to: number | null; busyUntil: number | null; stored: number; prodAt: number | null };
 export type StrategyId = 'dip' | 'momentum';
@@ -19,12 +19,13 @@ export type Base = { season: string; gold: number; crystals: number; kit: KitId 
 export type PackId = 'gold' | 'crystals';
 
 /** The same numbers as functions/warbase.py CONFIG (the server checks every one). */
-export type KindConfig = { name: string; size: number; max: number; cost: number[]; crystals: number[]; time: number[]; count: number[]; makes?: 'gold' | 'crystals'; rate?: number[]; store?: number[]; soldiers?: number[] };
+export type KindConfig = { name: string; size: number; max: number; cost: number[]; crystals: number[]; time: number[]; count: number[]; makes?: 'gold' | 'crystals'; rate?: number[]; store?: number[]; soldiers?: number[]; saves?: number[]; heal?: number[] };
 export const CONFIG: Record<Kind, KindConfig> = {
   hq: { name: 'Trading Headquarters', size: 4, max: 5, cost: [0, 600, 1800, 4500, 9000], crystals: [0, 0, 0, 20, 50], time: [0, 300, 900, 1800, 2700], count: [1, 1, 1, 1, 1] },
   mine: { name: 'Gold Mine', size: 3, max: 5, cost: [150, 300, 700, 1600, 3500], crystals: [0, 0, 0, 10, 25], time: [60, 120, 300, 900, 1800], count: [1, 2, 2, 3, 3], makes: 'gold', rate: [600, 900, 1300, 1900, 2700], store: [1200, 2400, 4500, 8000, 14000] },
   barracks: { name: 'Military Barracks', size: 3, max: 5, cost: [200, 400, 900, 2000, 4200], crystals: [0, 0, 0, 10, 25], time: [60, 120, 300, 900, 1800], count: [1, 1, 1, 2, 2], soldiers: [5, 10, 15, 20, 30] },
   research: { name: 'Research Center', size: 3, max: 5, cost: [500, 900, 1800, 3600, 7000], crystals: [0, 0, 0, 0, 30], time: [120, 300, 900, 1800, 2700], count: [0, 1, 1, 2, 2], makes: 'crystals', rate: [8, 12, 18, 26, 36], store: [40, 80, 150, 260, 400] },
+  medical: { name: 'Medical Station', size: 3, max: 5, cost: [600, 1200, 2400, 4200, 7000], crystals: [0, 0, 0, 15, 30], time: [120, 300, 900, 1800, 2700], count: [0, 0, 1, 1, 1], saves: [0.3, 0.4, 0.5, 0.6, 0.7], heal: [2, 3, 4, 6, 8] },
 };
 /** functions/warbase.py KITS: picked once a season. */
 export const KITS: Record<KitId, { gold: number; crystals: number; boost: Partial<Record<'gold' | 'crystals', number>>; soldiers: number }> = {

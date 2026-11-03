@@ -48,6 +48,7 @@ import {
 } from './base';
 import hqUrl from './hq.webp';
 import landUrl from './land.webp';
+import medicalUrl from './medical.webp';
 import mineUrl from './mine.webp';
 import researchUrl from './research.webp';
 import { TerritoryTrade } from './TerritoryTrade';
@@ -60,10 +61,11 @@ const SPRITE: Record<Kind, { url: string; aspect: number; widen: number }> = {
   mine: { url: mineUrl, aspect: 303 / 373, widen: 1.05 },
   barracks: { url: barracksUrl, aspect: 354 / 402, widen: 1.05 },
   research: { url: researchUrl, aspect: 296 / 362, widen: 1.05 },
+  medical: { url: medicalUrl, aspect: 332 / 406, widen: 1.05 },
 };
 const WORLD_W = LAND.w;
 const WORLD_H = LAND.h;
-const BUILDABLE: Kind[] = ['mine', 'barracks', 'research'];
+const BUILDABLE: Kind[] = ['mine', 'barracks', 'research', 'medical'];
 const KIT_IDS: KitId[] = ['investor', 'commander', 'research'];
 /** "Collected 900 gold and 12 crystals." */
 const collectedText = (c: { gold: number; crystals: number }) =>
@@ -515,7 +517,7 @@ const WHY_UP: Record<'max' | 'hq' | 'busy' | 'slots' | 'gold' | 'crystals', Mess
   gold: 'wbase.why.gold',
   crystals: 'wbase.why.crystals',
 };
-const WHAT: Record<Kind, MessageKey> = { hq: 'wbase.what.hq', mine: 'wbase.what.mine', barracks: 'wbase.what.barracks', research: 'wbase.what.research' };
+const WHAT: Record<Kind, MessageKey> = { hq: 'wbase.what.hq', mine: 'wbase.what.mine', barracks: 'wbase.what.barracks', research: 'wbase.what.research', medical: 'wbase.what.medical' };
 /** "600 gold" or "4,500 gold + 20 crystals" */
 const price = (gold: number, crystals: number) => (crystals ? t('wbase.priceBoth', { g: gold.toLocaleString('en-US'), c: crystals }) : t('wbase.priceGold', { g: gold.toLocaleString('en-US') }));
 
@@ -622,6 +624,8 @@ function Details({ b, x, now, busy, onUpgrade, onCollect, onSpeed, onMove, onClo
           ? t('wbase.eff.research', { rate: Math.round(cfg.rate![lvl - 1]! * (1 + kitBoost('crystals'))), store: cfg.store![lvl - 1]! })
           : x.kind === 'barracks'
             ? t('wbase.eff.barracks', { n: cfg.soldiers![lvl - 1]! })
+            : x.kind === 'medical'
+              ? t('wbase.eff.medical', { p: Math.round(cfg.saves![lvl - 1]! * 100), n: cfg.heal![lvl - 1]! })
             : t('wbase.eff.hq', { mines: CONFIG.mine.count[lvl - 1]!, max: lvl + 1 }) + (lvl < 2 ? ` ${t('wbase.eff.hqNext')}` : lvl < 3 ? ` ${t('wbase.eff.hqDesk')}` : '');
   const stored = Math.floor(storedNow(b, x, now));
   return (
