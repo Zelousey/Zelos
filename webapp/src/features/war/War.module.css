@@ -153,3 +153,21 @@ a.zoneCard:active, button.zoneCard:active { transform: translateY(1px); }
 .anchor { display: grid; gap: var(--space-4); scroll-margin-top: 72px; }
 .anchor:focus { outline: none; }
 .zoneBase { background: linear-gradient(160deg, rgba(232, 178, 61, 0.12), var(--surface) 55%); border-color: rgba(232, 178, 61, 0.45); }
+
+/* the weekly War Zone leaderboards (owner 2026-11-04) */
+.lbHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); }
+.lbYou { margin: 0; font-weight: 600; color: var(--ink); }
+.lbList { list-style: none; margin: 0; padding: 0; }
+.lbList li { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border-soft); }
+.lbList li:last-child { border-bottom: 0; }
+.lbMe { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--accent); }
+.lbRank { font-family: var(--mono); font-weight: 700; color: var(--muted); }
+.lbName { display: grid; min-width: 0; }
+.lbName b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lbName small { color: var(--muted); font-size: var(--text-xs); }
+.lbName a { color: inherit; }
+.lbScore { display: grid; justify-items: end; font-family: var(--mono); }
+.lbScore small { font-size: var(--text-xs); }
+.lbScore .up { color: var(--up-ink); }
+.lbScore .down { color: var(--down-ink); }
+.lbEmpty { margin: 0; padding: var(--space-4); color: var(--muted); }

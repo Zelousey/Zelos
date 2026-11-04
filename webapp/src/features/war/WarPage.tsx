@@ -15,6 +15,7 @@ import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import { WarGate } from './Gate';
 import { Seasons } from './WarZones';
+import { Leaderboard } from './Leaderboard';
 import { ZoneGrid } from './ZoneGrid';
 import { Ticket } from './Ticket';
 import { TradeWarNav } from '../tradewar/TradeWarNav';
@@ -79,6 +80,7 @@ function WarZone({ uid }: { uid: string }) {
       <TradeWarNav />
       {chaos && banner && <ChaosBanner c={chaos} live={banner === 'live'} />}
       <ZoneGrid uid={uid} p={p} />
+      <Leaderboard uid={uid} />
       <h2 className={s.zonesTitle}>{t('wz.trading')}</h2>
       <div className={s.cols}>
         <div className={s.stack}>

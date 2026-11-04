@@ -525,4 +525,17 @@ try:
     ok(False, "already")
 except WM.WarError:
     ok(True, "one Shield at a time, once a War day")
+# ---- weekly War Zone leaderboards (owner 2026-11-04): across all zones of the season, Open and Rookie apart
+tl = te + 60 * 24 * H  # a season of its own, away from the zones made above
+skey = WZ.season_key(WZ.season_start(tl))
+for zid, rookie, rows in (("zBoardOpen1", False, [("lbA", 70.0, 4.0), ("lbB", 20.0, -1.0)]), ("zBoardOpen2", False, [("lbC", 85.5, 6.0)]),
+                          ("zBoardRook1", True, [("lbD", 40.0, 1.0)])):
+    db.collection("wars").document(zid).set({"kind": "zone", "rookie": rookie, "season": skey, "name": zid, "status": "active",
+                                             "names": {u: u.upper() for u, _, _ in rows},
+                                             "standings": [{"uid": u, "score": sc, "ret": rt, "rank": i + 1} for i, (u, sc, rt) in enumerate(rows)]})
+main._war_board_pass(db, tl, force=True)
+bd = db.collection("warMarket").document("board").get().to_dict()
+ok(bd["season"] == skey and [r["uid"] for r in bd["open"]["top"]][:3] == ["lbC", "lbA", "lbB"] and bd["open"]["ranks"]["lbB"] >= 3,
+   "the Open board ranks every Open zone's players together by War Score")
+ok(bd["rookie"]["ranks"].get("lbD") is not None and "lbD" not in bd["open"]["ranks"], "Rookie zones have their own board")
 print("\n%d War zone market checks passed" % passed)
