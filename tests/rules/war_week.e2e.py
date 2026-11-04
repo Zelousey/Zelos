@@ -194,6 +194,8 @@ for day in range(2, 8):
            "the weekly leaderboard ranks all four players")
     if day < 7:
         check_invariants(zid, P, "day %d" % day)
+end = war(zid)["endsAt"]
+t = run_hours(t, max(1, -(-(end + H - t) // H)))  # through the season's end (Monday 9 am ET)
 w = war(zid)
 ok(w["status"] == "ended" and len(w["results"]["standings"]) == 4, "the season ends with final results for all four")
 nxt = WZ.zone_id(WZ.season_key(w["endsAt"]), False, 1)
