@@ -97,7 +97,7 @@ class Gold(unittest.TestCase):
         self.assertEqual(b["buildings"][m]["stored"], B.CONFIG["mine"]["store"][0])
         gold = b["gold"]
         b, got = B.collect(b, None, T0 + 10 * H)
-        self.assertEqual(got, {"gold": B.CONFIG["mine"]["store"][0], "crystals": 0})
+        self.assertEqual(got, {"gold": B.CONFIG["mine"]["store"][0], "crystals": 0, "energy": 0})
         self.assertEqual(b["gold"], gold + got["gold"])
         b, got = B.collect(b, None, T0 + 10 * H)
         self.assertEqual(got["gold"], 0)  # nothing twice
@@ -129,6 +129,23 @@ class Barracks(unittest.TestCase):
         self.assertEqual(B.next_done(b), T0 + 60 * 1000)
 
 
+class Energy(unittest.TestCase):
+    def test_wizard_tower_unlocks_at_hq4_makes_energy_and_spends_it(self):
+        self.assertEqual(B.unlock_level("wizard"), 4)
+        b = dict(B.new_base("2026-11-02", T0), gold=99999, crystals=999)
+        for _ in range(3):
+            b = B.upgrade(b, "hq1", T0)
+            b, _ = B.settle(b, T0 + 3 * H)
+        b, w = B.place(b, "wizard", 0, 0, T0 + 3 * H)
+        b, _ = B.settle(b, T0 + 3 * H + 5 * MIN + H)
+        b, got = B.collect(b, w, T0 + 3 * H + 5 * MIN + H)
+        self.assertEqual((got["energy"], b["energy"]), (10, 10))
+        with self.assertRaises(WarError) as e:
+            B.spend_energy(b, 25)
+        self.assertEqual(e.exception.details["reason"], "base-energy")
+        self.assertEqual(B.spend_energy(b, 10)["energy"], 0)
+
+
 class Stage2(unittest.TestCase):
     def rich(self):
         return dict(fresh(), gold=99999, crystals=999)
@@ -145,7 +162,7 @@ class Stage2(unittest.TestCase):
         self.assertAlmostEqual(b["buildings"][r]["stored"], B.CONFIG["research"]["rate"][0], places=3)
         c0 = b["crystals"]
         b, got = B.collect(b, r, T0 + 7 * MIN + H)
-        self.assertEqual(got, {"gold": 0, "crystals": B.CONFIG["research"]["rate"][0]})
+        self.assertEqual(got, {"gold": 0, "crystals": B.CONFIG["research"]["rate"][0], "energy": 0})
         self.assertEqual(b["crystals"], c0 + got["crystals"])
 
     def test_top_levels_cost_crystals(self):
@@ -200,7 +217,9 @@ class Stage2(unittest.TestCase):
             B.buy_pack(b, "gold", T0)
         self.assertIn("3 times this week", str(e.exception))
         with self.assertRaises(WarError):
-            B.buy_pack(b, "energy", T0)  # not on sale until Energy exists
+            B.buy_pack(b, "mana", T0)  # not in the shop
+        b, cost = B.buy_pack(b, "energy", T0)  # owner 2026-11-03: Energy packs too
+        self.assertEqual((cost, b["energy"]), (20, 30))
         self.assertEqual(B.new_base("2026-11-09", T0).get("bought"), None)  # a new season, a new week
 
     def test_old_prototype_base_without_crystals(self):

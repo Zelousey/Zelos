@@ -38,10 +38,16 @@ export function parsePlacement(d: DocumentData): Placement {
   };
 }
 export type Warning = 'enemy' | 'heavy';
-export function parseIntel(d: DocumentData): Record<string, Warning> {
-  const out: Record<string, Warning> = {};
-  for (const [k, v] of Object.entries((d.warnings && typeof d.warnings === 'object' ? d.warnings : {}) as Record<string, unknown>)) if (SECTOR_NAME[k] && (v === 'enemy' || v === 'heavy')) out[k] = v;
-  return out;
+/** What a Scout showed you (functions/warability.py): soldiers on an enemy territory, until when. */
+export type Scout = { n: number; at: number; until: number };
+export type Intel = { warnings: Record<string, Warning>; scouts: Record<string, Scout> };
+export function parseIntel(d: DocumentData): Intel {
+  const warnings: Record<string, Warning> = {};
+  for (const [k, v] of Object.entries((d.warnings && typeof d.warnings === 'object' ? d.warnings : {}) as Record<string, unknown>)) if (SECTOR_NAME[k] && (v === 'enemy' || v === 'heavy')) warnings[k] = v;
+  const scouts: Record<string, Scout> = {};
+  for (const [k, v] of Object.entries((d.scouts && typeof d.scouts === 'object' ? d.scouts : {}) as Record<string, Record<string, unknown>>))
+    if (SECTOR_NAME[k] && v && typeof v.n === 'number' && typeof v.until === 'number') scouts[k] = { n: v.n, at: typeof v.at === 'number' ? v.at : 0, until: v.until };
+  return { warnings, scouts };
 }
 
 /** What's wrong with a placement before it can be locked in (null when it's fine). */

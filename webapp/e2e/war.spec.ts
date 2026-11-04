@@ -534,14 +534,16 @@ test('your base: build a Gold Mine and upgrade the Headquarters, in minutes, wit
   await hud.getByRole('button', { name: 'Shop' }).click();
   const shop = page.getByRole('dialog', { name: 'Base shop' });
   await expect(shop).toContainText('You have 0 tokens', { timeout: 30_000 });
-  await expect(shop.getByRole('button', { name: 'Buy · 20 tokens' })).toBeDisabled();
+  const goldPack = shop.getByRole('listitem').filter({ hasText: '1,000 gold' });
+  await expect(shop.getByRole('listitem')).toHaveCount(3); // gold, crystals and (owner 2026-11-03) Energy
+  await expect(goldPack.getByRole('button', { name: 'Buy · 20 tokens' })).toBeDisabled();
   await expect(shop.getByRole('link', { name: 'Get tokens' })).toBeVisible();
   await put(`wallets/${uid}`, { balance: 100, passes: {}, unlocked: [], createdAt: 1, updatedAt: 1 });
   await expect(shop).toContainText('You have 100 tokens', { timeout: 30_000 });
-  await shop.getByRole('button', { name: 'Buy · 20 tokens' }).click();
+  await goldPack.getByRole('button', { name: 'Buy · 20 tokens' }).click();
   await expect(page.getByText('1,000 gold added to your base.')).toBeVisible({ timeout: 30_000 });
   await expect(shop).toContainText('You have 80 tokens');
-  await expect(shop).toContainText('2 of 3 left this week');
+  await expect(goldPack).toContainText('2 of 3 left this week');
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-shop-${info.project.name}.png` });
 });
 
@@ -691,4 +693,60 @@ test('the Medical Station: unlocks at Headquarters level 3; the War page shows w
   await expect(page.getByText('You’ve lost 20 soldiers in this War. Your Medical Station saves 30%: 5 wounded are healing, 2 an hour back to your reserve.')).toBeVisible({ timeout: 30_000 });
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.getByText(/^You’ve lost 20 soldiers/).locator('xpath=ancestor::section[1]').screenshot({ path: `${process.env.SHOTS}/war-wounded-${info.project.name}.png` });
+});
+
+test('Energy: the Wizard’s Tower unlocks at HQ 4; Scout an enemy territory and Shield your own', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `wen-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  await page.goto('war/base');
+  await expect(page.getByRole('heading', { name: 'Your base', level: 1 })).toBeVisible({ timeout: 30_000 });
+  const hud = page.getByRole('group', { name: 'Your base resources' });
+  await expect(hud).toContainText('0Energy', { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Build' }).getByRole('button', { name: /Wizard’s Tower|Wizard's Tower/ })).toContainText('Unlocks at Headquarters level 4.');
+  // 100 Energy in the base (written here as the server would after collecting from a Tower)
+  await fetch(`${BASE}/warBases/${uid}?updateMask.fieldPaths=energy`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { energy: v(100) } }),
+  });
+  await expect(hud).toContainText('100Energy', { timeout: 30_000 });
+  const wid = `enwar${info.project.name.replace(/[^A-Za-z0-9]/g, '')}${Date.now()}`;
+  const now = Date.now();
+  await put(`wars/${wid}`, {
+    name: 'Energy War',
+    status: 'active',
+    phase: 'holding',
+    organizer: uid,
+    players: [uid, 'palEnUid0'],
+    names: { [uid]: 'Me', palEnUid0: 'Pal' },
+    startedAt: now - 3600000,
+    endsAt: now + 3 * 86400000,
+    days: 3,
+    territories: ['energy', 'tech', 'health', 'finance', 'consumer', 'comms'],
+    map: { energy: { state: 'owned', owner: uid }, tech: { state: 'owned', owner: 'palEnUid0' }, health: { state: 'neutral' }, finance: { state: 'neutral' }, consumer: { state: 'neutral' }, comms: { state: 'neutral' } },
+  });
+  await put(`wars/${wid}/placements/palEnUid0`, { soldiers: { tech: 37 }, reserve: 0, locked: true });
+  await page.goto(`war/${wid}`);
+  const mapView = page.getByRole('group', { name: /^The War map/ });
+  await expect(mapView).toBeVisible({ timeout: 30_000 });
+  const details = page.getByRole('region', { name: 'Territory details' });
+  // Scout Pal's Tech: the real soldier count, for you only
+  await mapView.getByRole('button', { name: /^Tech,/ }).click();
+  await expect(details).toContainText('Your base has 100 Energy.');
+  await details.getByRole('button', { name: /^Scout · 25 Energy/ }).click();
+  await expect(page.getByText('Scouted.', { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(details).toContainText(/Scouted: 37 soldiers here \(for (59m|1h 00m)/);
+  await expect(details).toContainText('Your base has 75 Energy.');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-scout-${info.project.name}.png`, fullPage: true });
+  // Shield your Energy territory: no attacks for 6 hours
+  await mapView.getByRole('button', { name: /^Energy,/ }).click();
+  await details.getByRole('button', { name: /^Shield 6 hours · 60 Energy/ }).click();
+  await expect(page.getByText('Shield up for 6 hours.')).toBeVisible({ timeout: 30_000 });
+  await expect(details).toContainText(/Shielded: no attacks for (5h 59m|6h 00m)/);
+  await expect(details).toContainText('Your base has 15 Energy.');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-shield-${info.project.name}.png`, fullPage: true });
 });

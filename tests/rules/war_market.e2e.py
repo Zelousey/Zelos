@@ -318,7 +318,7 @@ b = db.collection("warBases").document("baseAnn01").get().to_dict()
 ok(b["buildings"][mine]["level"] == 1 and b.get("nextDone") is None, "the minute job finishes the construction")
 ok(any(n["title"] == "Construction finished" for n in inbox("baseAnn01")), "and tells the player")
 r = main._war_base(db, "baseAnn01", {"action": "baseCollect"}, tb + 61000 + H)
-ok(r["collected"] == {"gold": WBASE.CONFIG["mine"]["rate"][0], "crystals": 0}, "an hour later the mine has made its gold, collected in one tap")
+ok(r["collected"] == {"gold": WBASE.CONFIG["mine"]["rate"][0], "crystals": 0, "energy": 0}, "an hour later the mine has made its gold, collected in one tap")
 b = main._war_base(db, "baseAnn01", {"action": "basePlace", "kind": "barracks", "x": 2, "y": 8}, tb + 2 * H)["base"]
 ok(main._war_base_soldiers(db, "baseAnn01", tb + 2 * H) == 0, "a Barracks still being built adds no soldiers")
 ok(main._war_base_soldiers(db, "baseAnn01", tb + 2 * H + 61000) == WBASE.CONFIG["barracks"]["soldiers"][0], "once built it adds soldiers to your army")
@@ -496,4 +496,33 @@ pa = mref.collection("placements").document("medAnn01").get().to_dict()
 ok(pa["healed"] == 5 and pa["reserve"] == 12 + 5, "and stops at 30% of the 18 lost (5)")
 pb = mref.collection("placements").document("medBen01").get().to_dict()
 ok(pb.get("healed") is None and pb["reserve"] == 15, "a player without a station gets nobody back")
+# ---- Energy and War abilities (owner 2026-11-03): Wizard's Tower at HQ 4, Scout 25, Shield 60
+te = tm + 2 * H
+db.collection("wars").document("energyWar01").set({"name": "Energy War", "status": "active", "phase": "holding", "startedAt": te - H, "endsAt": te + 72 * H,
+                                                   "players": ["enAnn01", "enBen01"], "names": {"enAnn01": "Ann", "enBen01": "Ben"},
+                                                   "map": {"tech": {"state": "owned", "owner": "enBen01"}, "energy": {"state": "owned", "owner": "enAnn01"}}})
+eref = db.collection("wars").document("energyWar01")
+eref.collection("placements").document("enBen01").set({"soldiers": {"tech": 37}, "reserve": 0})
+main._war_base(db, "enAnn01", {"action": "baseOpen"}, te)
+try:
+    main._war_ability(db, "energyWar01", "enAnn01", "scout", {"terr": "tech"}, te)
+    ok(False, "no Energy")
+except WM.WarError as e:
+    ok("25 Energy" in str(e), "Scout takes 25 Energy; a new base has none")
+db.collection("warBases").document("enAnn01").update({"buildings.hq1.level": 4, "gold": 9000, "crystals": 50})
+b = main._war_base(db, "enAnn01", {"action": "basePlace", "kind": "wizard", "x": 0, "y": 0}, te)["base"]
+ok(b["gold"] == 7500, "a Wizard's Tower costs 1,500 gold at Headquarters level 4")
+r = main._war_base(db, "enAnn01", {"action": "baseCollect"}, te + 5 * M + 3 * H)
+ok(r["collected"]["energy"] == 30 and r["base"]["energy"] == 30, "it makes 10 Energy an hour, collected like gold")
+r = main._war_ability(db, "energyWar01", "enAnn01", "scout", {"terr": "tech"}, te + 3 * H + 10 * M)
+intel = eref.collection("intel").document("enAnn01").get().to_dict()
+ok(r["scout"]["n"] == 37 and r["base"]["energy"] == 5 and intel["scouts"]["tech"]["n"] == 37, "Scout shows Ben's real 37 soldiers on Tech, for 25 Energy")
+db.collection("warBases").document("enAnn01").update({"energy": 100})
+r = main._war_ability(db, "energyWar01", "enAnn01", "shield", {"terr": "energy"}, te + 4 * H)
+ok(r["base"]["energy"] == 40 and eref.get().to_dict()["shields"]["energy"]["until"] == te + 10 * H, "Shield protects your territory for 6 hours, for 60 Energy")
+try:
+    main._war_ability(db, "energyWar01", "enAnn01", "shield", {"terr": "energy"}, te + 4 * H + M)
+    ok(False, "already")
+except WM.WarError:
+    ok(True, "one Shield at a time, once a War day")
 print("\n%d War zone market checks passed" % passed)

@@ -56,6 +56,11 @@ CONFIG = {
                 "cost": [600, 1200, 2400, 4200, 7000], "crystals": [0, 0, 0, 15, 30],
                 "time": [120, 300, 900, 1800, 2700], "count": [0, 0, 1, 1, 1],
                 "saves": [0.3, 0.4, 0.5, 0.6, 0.7], "heal": [2, 3, 4, 6, 8]},
+    # owner 2026-11-03: Energy for War abilities (Scout, Shield: warability.py)
+    "wizard": {"name": "Wizard's Tower", "size": 3, "max": 5,
+               "cost": [1500, 2500, 4500, 7500, 11000], "crystals": [0, 0, 10, 25, 40],
+               "time": [300, 900, 1800, 2700, 3600], "count": [0, 0, 0, 1, 1],
+               "makes": "energy", "rate": [10, 15, 20, 25, 30], "store": [60, 100, 140, 180, 240]},
 }
 # The base shop (owner 2026-11-02: "buying resources, just generate me what you recommend"): small
 # packs for tokens with a weekly cap, so money can speed you up but never buy the season. A token is
@@ -64,6 +69,7 @@ CONFIG = {
 SHOP = {
     "gold": {"name": "1,000 gold", "gold": 1000, "crystals": 0, "tokens": 20, "max": 3},
     "crystals": {"name": "20 crystals", "gold": 0, "crystals": 20, "tokens": 25, "max": 3},
+    "energy": {"name": "30 Energy", "gold": 0, "crystals": 0, "energy": 30, "tokens": 20, "max": 3},
 }
 # The season starter kit, picked once: extra resources now and a boost for the season.
 KITS = {
@@ -222,12 +228,12 @@ def move(base, bid, x, y, now_ms):
 
 
 def collect(base, bid, now_ms):
-    """Move what producers hold (every one when bid is None) into your gold and crystals.
-    Returns (base, {"gold": n, "crystals": n})."""
+    """Move what producers hold (every one when bid is None) into your gold, crystals and Energy.
+    Returns (base, {"gold": n, "crystals": n, "energy": n})."""
     if bid and bid not in base["buildings"]:
         raise WarError("NOT_FOUND", "That building isn't on your base.")
     out = dict(base, buildings=dict(base["buildings"]))
-    got = {"gold": 0, "crystals": 0}
+    got = {"gold": 0, "crystals": 0, "energy": 0}
     for k, b in base["buildings"].items():
         makes = CONFIG[b["kind"]].get("makes")
         if not makes or (bid and k != bid):
@@ -238,8 +244,17 @@ def collect(base, bid, now_ms):
             out["buildings"][k] = dict(b, stored=(b.get("stored") or 0) - amt)
     out["gold"] = base["gold"] + got["gold"]
     out["crystals"] = (base.get("crystals") or 0) + got["crystals"]
+    out["energy"] = (base.get("energy") or 0) + got["energy"]
     out["updatedAt"] = now_ms
     return out, got
+
+
+def spend_energy(base, n):
+    """The base after paying n Energy (for a War ability), or WarError."""
+    have = base.get("energy") or 0
+    if have < n:
+        raise WarError("FAILED_PRECONDITION", "That takes %d Energy; you have %d. A Wizard's Tower makes it." % (n, int(have)), {"reason": "base-energy", "need": n})
+    return dict(base, energy=have - n)
 
 
 def speed_cost(b, now_ms):
@@ -274,7 +289,8 @@ def buy_pack(base, pack, now_ms):
     if bought.get(pack, 0) >= item["max"]:
         raise WarError("FAILED_PRECONDITION", "You've bought %s %d times this week, the most there is. It resets Monday 9 am ET." % (item["name"], item["max"]))
     bought[pack] = bought.get(pack, 0) + 1
-    out = dict(base, gold=base["gold"] + item["gold"], crystals=(base.get("crystals") or 0) + item["crystals"], bought=bought, updatedAt=now_ms)
+    out = dict(base, gold=base["gold"] + item["gold"], crystals=(base.get("crystals") or 0) + item["crystals"],
+               energy=(base.get("energy") or 0) + item.get("energy", 0), bought=bought, updatedAt=now_ms)
     return out, item["tokens"]
 
 

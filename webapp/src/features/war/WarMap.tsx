@@ -24,8 +24,8 @@ export function WarMap({ w, uid, now }: { w: PrivateWar; uid: string; now: numbe
   if (mine.status === 'loading') return <LoadingState rows={4} />;
   const placement = mine.status === 'ready' ? mine.data : null;
   if (w.phase === 'claiming' && !placement?.locked)
-    return <Claiming key={placement ? 'saved' : 'new'} w={w} uid={uid} saved={placement} warnings={intel.status === 'ready' ? intel.data : {}} now={now} />;
-  return <Board w={w} uid={uid} placement={placement} warnings={w.phase === 'claiming' && intel.status === 'ready' ? intel.data : {}} now={now} />;
+    return <Claiming key={placement ? 'saved' : 'new'} w={w} uid={uid} saved={placement} warnings={intel.status === 'ready' ? intel.data.warnings : {}} now={now} />;
+  return <Board w={w} uid={uid} placement={placement} warnings={w.phase === 'claiming' && intel.status === 'ready' ? intel.data.warnings : {}} now={now} />;
 }
 
 const PROBLEM: Record<'over' | 'empty' | 'left' | 'camo', MessageKey> = { over: 'wmap.problem.over', empty: 'wmap.problem.empty', left: 'wmap.problem.left', camo: 'wmap.problem.camo' };
@@ -169,6 +169,8 @@ function Board({ w, uid, placement, warnings, now }: { w: PrivateWar; uid: strin
           outposts={claiming ? undefined : w.outposts}
           uid={uid}
           active={w.status === 'active' && w.phase === 'holding'}
+          shields={w.shields}
+          shieldUsed={!!w.shieldDays[`${uid}:${warDay(w, now)}`]}
           pickLabel={claiming ? t('wmap.goCard') : t('wmap.goAct')}
           nav={
             claiming

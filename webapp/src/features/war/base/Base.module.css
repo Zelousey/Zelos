@@ -77,6 +77,8 @@
 /* crystals, the season starter kit */
 .gem { align-self: center; width: 13px; height: 13px; transform: rotate(45deg); border-radius: 2px; background: linear-gradient(135deg, #e3c7ff, #9b5cff 55%, #5b21b6); box-shadow: 0 0 0 1px #3b1a73; }
 .bubbleC { background: #9b5cff; color: #fff; }
+.bubbleE { background: #1fb5c9; color: #04161a; }
+.bolt { align-self: center; width: 12px; height: 15px; background: linear-gradient(180deg, #8af3ff, #1fb5c9); clip-path: polygon(55% 0, 0 58%, 42% 58%, 30% 100%, 100% 38%, 58% 38%); }
 .kits { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); padding: var(--space-4); border: 1px solid rgba(232, 178, 61, 0.45); border-radius: var(--radius-lg); background: linear-gradient(160deg, rgba(232, 178, 61, 0.1), var(--surface) 60%); }
 .kits p { margin: 0; }
 .kitRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-2); }

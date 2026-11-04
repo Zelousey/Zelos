@@ -7400,6 +7400,8 @@ def war_lobby(req, db, uid, now_ms):
         return _war_move(db, wid, uid, action, data, now_ms)
     elif action in ("outpostBuild", "outpostUpgrade", "outpostCollect"):
         return _war_outpost(db, wid, uid, action, data, now_ms)
+    elif action in ("scout", "shield"):
+        return _war_ability(db, wid, uid, action, data, now_ms)
     elif action == "join" and _war_open_count(db, uid) >= WL.MAX_OPEN:
         raise WM.WarError("FAILED_PRECONDITION", "You're already in %d private Wars. Finish one first." % WL.MAX_OPEN)
     ref = db.collection("wars").document(wid)
@@ -7688,6 +7690,53 @@ def _war_outpost(db, wid, uid, action, data, now_ms):
         return war, base, got
     war, base, got = txn(db.transaction())
     return {"warId": wid, "war": war, "base": WBASE.public(base, now_ms), "collected": got}
+
+
+import warability as WAB  # noqa: E402
+
+
+def _war_ability(db, wid, uid, action, data, now_ms):
+    """Scout {terr} / Shield {terr}: War abilities paid with Energy from your base (warability.py)."""
+    terr = str(data.get("terr") or "")[:20]
+    wref = db.collection("wars").document(wid)
+    bref = db.collection("warBases").document(uid)
+    iref = wref.collection("intel").document(uid)
+    key = _war_season_key(now_ms)
+
+    @firestore.transactional
+    def txn(t):
+        wsnap = wref.get(transaction=t)
+        bsnap = bref.get(transaction=t)
+        war = wsnap.to_dict() if wsnap.exists else None
+        if not war or uid not in war.get("players", []):
+            raise WM.WarError("NOT_FOUND", "That War doesn't exist.")
+        base = bsnap.to_dict() if bsnap.exists else None
+        if not base or base.get("season") != key:
+            base = WBASE.new_base(key, now_ms)
+        base, _done = WBASE.settle(base, now_ms)
+        out = {}
+        if action == "scout":
+            isnap = iref.get(transaction=t)
+            owner = (((war.get("map") or {}).get(terr) or {}).get("owner")) or ""
+            psnap = wref.collection("placements").document(owner).get(transaction=t) if owner and owner != uid else None
+            there = (((psnap.to_dict() or {}) if psnap and psnap.exists else {}).get("soldiers") or {}).get(terr, 0)
+            intel, cost = WAB.scout(war, isnap.to_dict() if isnap.exists else {}, uid, terr, there, now_ms)
+            base = dict(WBASE.spend_energy(base, cost), updatedAt=now_ms)
+            t.set(iref, intel)
+            out = {"scout": intel["scouts"][terr]}
+        else:
+            war, cost = WAB.shield(war, uid, terr, now_ms)
+            base = dict(WBASE.spend_energy(base, cost), updatedAt=now_ms)
+            war = dict(war, updatedAt=now_ms)
+            t.set(wref, WL.stored(war))
+            t.set(wref.collection("log").document("%d-s-%s" % (now_ms, terr)),
+                  {"at": now_ms, "text": "%s shielded %s for 6 hours." % ((war.get("names") or {}).get(uid) or "A player", WMAP.NAMES.get(terr, terr))})
+            out = {"shield": war["shields"][terr]}
+        base["nextDone"] = WBASE.next_done(base)
+        t.set(bref, base)
+        return out, base
+    out, base = txn(db.transaction())
+    return dict(out, warId=wid, base=WBASE.public(base, now_ms))
 
 
 def _war_medic_pass(db, now_ms):

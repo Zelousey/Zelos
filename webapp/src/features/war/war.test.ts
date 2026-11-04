@@ -67,7 +67,8 @@ describe('War zone', () => {
   it('reads your placement and warnings, and checks a placement like the server', () => {
     const T = ['tech', 'finance', 'health', 'energy', 'consumer', 'comms'];
     expect(parsePlacement({ soldiers: { tech: 50, mars: 3, health: -1 }, camo: ['tech', 'mars'], locked: true })).toEqual({ soldiers: { tech: 50 }, camo: ['tech'], locked: true, auto: false, reserve: 0, picks: {}, downed: 0, healed: 0 });
-    expect(parseIntel({ warnings: { tech: 'heavy', energy: 'enemy', health: 12, mars: 'enemy' } })).toEqual({ tech: 'heavy', energy: 'enemy' });
+    expect(parseIntel({ warnings: { tech: 'heavy', energy: 'enemy', health: 12, mars: 'enemy' } })).toEqual({ warnings: { tech: 'heavy', energy: 'enemy' }, scouts: {} });
+    expect(parseIntel({ scouts: { tech: { n: 37, at: 1, until: 2 }, mars: { n: 1, until: 2 } } }).scouts).toEqual({ tech: { n: 37, at: 1, until: 2 } });
     expect(placementProblem({ soldiers: { tech: 50, energy: 50 }, camo: [] }, T, 100)).toBeNull();
     expect(placementProblem({ soldiers: { tech: 50, energy: 45 }, camo: ['energy'] }, T, 100)).toBeNull();
     expect(placementProblem({ soldiers: { tech: 60, energy: 40 }, camo: [] }, T, 100)?.key).toBe('over');
