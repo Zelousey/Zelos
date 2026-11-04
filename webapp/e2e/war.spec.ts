@@ -750,3 +750,31 @@ test('Energy: the Wizard’s Tower unlocks at HQ 4; Scout an enemy territory and
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/war-shield-${info.project.name}.png`, fullPage: true });
 });
+
+test('the weekly War Zone leaderboard: top 10 across zones and your own rank, Open and Rookie apart', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `wlb-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  const top = Array.from({ length: 10 }, (_, i) => ({ uid: `lbUid${i}`, name: `Trader ${i + 1}`, zone: `Open zone ${(i % 3) + 1}`, zoneId: '', score: 90 - i * 3, ret: 5 - i, rank: i + 1 }));
+  // written as the server would; field by field, so the phone and desktop runs (same document) don't wipe each other's rank
+  const fields = { season: '2026-11-02', at: Date.now(), open: { top, total: 2051, ranks: { [uid]: 143 } }, rookie: { top: [{ uid: 'rk1', name: 'Newbie', zone: 'Rookie zone 1', zoneId: '', score: 55, ret: 1.5, rank: 1 }], ranks: { rk1: 1 }, total: 1 } };
+  const mask = ['season', 'at', 'open.top', 'open.total', `open.ranks.${uid}`, 'rookie'].map((f) => `updateMask.fieldPaths=${f}`).join('&');
+  await fetch(`${BASE}/warMarket/board?${mask}`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: Object.fromEntries(Object.entries(fields).map(([k, x]) => [k, v(x)])) }),
+  });
+  await page.goto('war');
+  const board = page.getByRole('region', { name: 'This week’s leaderboard' });
+  await expect(board.getByRole('list', { name: 'Top players in Open zones' }).getByRole('listitem')).toHaveCount(10, { timeout: 30_000 });
+  await expect(board).toContainText('You’re #143 of 2,051');
+  await expect(board.getByRole('list', { name: 'Top players in Open zones' }).getByRole('listitem').first()).toContainText('Trader 1');
+  await board.getByRole('tab', { name: 'Rookie zones' }).click();
+  await expect(board.getByRole('list', { name: 'Top players in Rookie zones' })).toContainText('Newbie');
+  await expect(board).toContainText('Join a War Zone to get on this board.');
+  await board.getByRole('tab', { name: 'Open zones' }).click();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  if (process.env.SHOTS) await board.screenshot({ path: `${process.env.SHOTS}/war-leaderboard-${info.project.name}.png` });
+});

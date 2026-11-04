@@ -7213,6 +7213,10 @@ def war_market_tick(event: scheduler_fn.ScheduledEvent) -> None:
         _war_medic_pass(db, now_ms)
     except Exception as e:
         print("[war] medical pass failed: %s" % type(e).__name__)
+    try:
+        _war_board_pass(db, now_ms)
+    except Exception as e:
+        print("[war] leaderboard pass failed: %s" % type(e).__name__)
 
 
 def _war_prices(db, now_ms):
@@ -7737,6 +7741,21 @@ def _war_ability(db, wid, uid, action, data, now_ms):
         return out, base
     out, base = txn(db.transaction())
     return dict(out, warId=wid, base=WBASE.public(base, now_ms))
+
+
+import warboard as WBOARD  # noqa: E402
+BOARD_MINUTE = 7  # once an hour, at :07
+
+
+def _war_board_pass(db, now_ms, force=False):
+    """The weekly War Zone leaderboards (warboard.py) from this season's zones' live standings."""
+    if not force and (now_ms // 60000) % 60 != BOARD_MINUTE:
+        return
+    key = WZ.season_key(WZ.season_start(now_ms))
+    zones = [(z.id, z.to_dict() or {}) for z in db.collection("wars").where("season", "==", key)
+             .select(["kind", "rookie", "name", "names", "standings"]).limit(1000).stream()]
+    b = WBOARD.board([(zid, w) for zid, w in zones if w.get("kind") == "zone"])
+    db.collection("warMarket").document("board").set(dict(b, season=key, at=now_ms))
 
 
 def _war_medic_pass(db, now_ms):

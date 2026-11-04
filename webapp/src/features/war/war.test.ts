@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { mapSize, parseWar } from './lobby';
+import { parseBoards } from './Leaderboard';
 import { activityOf, companiesOf, parseIntel, parsePlacement, placementProblem } from './map';
 import { chaosNow, chartBars, COMPANIES, HOT_MS, parseBars, parseChaos, parseProfile, parseQuotes, QUIET_MAX_MIN, quietLength, SECTORS, warEquity } from './war';
 
@@ -107,5 +108,13 @@ describe('territory activity (owner 2026-11-01)', () => {
   it('a live Chaos event in the sector is a market surge; no prices, no tag', () => {
     expect(activityOf('tech', null, 'tech')).toBe('surge');
     expect(activityOf('tech', null, 'energy')).toBeNull();
+  });
+});
+
+describe('weekly War Zone leaderboards (owner 2026-11-04)', () => {
+  it('reads the boards the server writes and drops anything malformed', () => {
+    const b = parseBoards({ season: '2026-11-02', at: 5, open: { top: [{ uid: 'a', name: 'Ann', zone: 'Open zone 1', zoneId: 'z1', score: 81.5, ret: 3.2, rank: 1 }, { name: 'no uid' }], ranks: { a: 1, b: 'x' }, total: 2 } });
+    expect(b.open.top).toEqual([{ uid: 'a', name: 'Ann', zone: 'Open zone 1', zoneId: 'z1', score: 81.5, ret: 3.2, rank: 1 }]);
+    expect([b.open.ranks, b.open.total, b.rookie]).toEqual([{ a: 1 }, 2, { top: [], ranks: {}, total: 0 }]);
   });
 });
