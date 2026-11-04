@@ -22,6 +22,8 @@ import { useNow } from '../../lib/useNow';
 import bearUrl from './board/bear.png';
 import boardUrl from './board/board.jpg';
 import bullUrl from './board/bull.png';
+import { AbilityPanel } from './AbilityPanel';
+import { formatLeft } from './base/base';
 import { OutpostPanel, outpostLine } from './OutpostPanel';
 import { outpostNow, type Outpost } from './outposts';
 import { BOARD, BORDERS, REGIONS, SPOTS } from './board/boardShapes';
@@ -84,7 +86,7 @@ export function Soldier({ on = true, className }: { on?: boolean; className?: st
 const TONE_KEY = { mine: 'wmap.k.mine', enemy: 'wmap.k.enemy', neutral: 'wmap.k.neutral', contested: 'wmap.k.contested', out: 'wmap.k.out' } as const;
 
 /** One territory up close: who holds it, your soldiers, activity, its 3 companies on War Zone prices. */
-function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo, outpost, slot }: { id: string; v: TerritoryView; act: Activity | null; q: { prices: Record<string, { p: number; ref: number }> } | null; onClose: () => void; onGo: () => void; goLabel: string; baseTo?: string; outpost?: string; slot?: ReactNode }) {
+function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo, outpost, shield, slot }: { id: string; v: TerritoryView; act: Activity | null; q: { prices: Record<string, { p: number; ref: number }> } | null; onClose: () => void; onGo: () => void; goLabel: string; baseTo?: string; outpost?: string; shield?: string; slot?: ReactNode }) {
   return (
     <div className={`${s.detailsBody} ${s[v.tone]}`}>
       <div className={s.detailsHead}>
@@ -109,6 +111,12 @@ function Details({ id, v, act, q, onClose, onGo, goLabel, baseTo, outpost, slot 
           <>
             <dt>{t('wout.label')}</dt>
             <dd>{outpost}</dd>
+          </>
+        )}
+        {shield && (
+          <>
+            <dt>{t('wab.shieldLabel')}</dt>
+            <dd>{shield}</dd>
           </>
         )}
         {(act || v.hot) && (
@@ -171,6 +179,8 @@ export function TerritoryMap({
   outposts,
   uid,
   active = false,
+  shields,
+  shieldUsed,
 }: {
   territories: string[];
   view: Record<string, TerritoryView>;
@@ -190,6 +200,9 @@ export function TerritoryMap({
   uid?: string;
   /** The War is running (outposts work, camps make gold). */
   active?: boolean;
+  /** Shields up in this War (everyone sees them), and whether you've used yours this War day. */
+  shields?: Record<string, { by: string; until: number }>;
+  shieldUsed?: boolean;
   /** The phase box: the phase, a big line (time left) and a small one. */
   status?: { title: string; big?: string; line?: ReactNode };
   /** While claiming: your soldiers placed out of your army. */
@@ -335,7 +348,15 @@ export function TerritoryMap({
               goLabel={pickLabel ?? t('wmap.goCard')}
               baseTo={warId && shown(sel).tone === 'mine' ? `/war/base?war=${encodeURIComponent(warId)}&t=${encodeURIComponent(sel)}` : undefined}
               outpost={outposts?.[sel] ? outpostLine(outposts[sel], now, active) : warId && uid && active && shown(sel).tone === 'mine' ? t('wout.noneYet') : undefined}
-              slot={warId && uid && outposts && shown(sel).tone === 'mine' ? <OutpostPanel key={sel} warId={warId} terr={sel} uid={uid} outposts={outposts} active={active} /> : undefined}
+              slot={
+                warId && uid && active && (shown(sel).tone === 'mine' || shown(sel).tone === 'enemy') ? (
+                  <>
+                    <AbilityPanel key={`ab-${sel}`} warId={warId} terr={sel} uid={uid} mine={shown(sel).tone === 'mine'} shieldUntil={shields?.[sel]?.until ?? null} shieldUsed={!!shieldUsed} />
+                    {outposts && shown(sel).tone === 'mine' && <OutpostPanel key={sel} warId={warId} terr={sel} uid={uid} outposts={outposts} active={active} />}
+                  </>
+                ) : undefined
+              }
+              shield={shields?.[sel] && shields[sel]!.until > now ? t('wab.shieldLine', { t: formatLeft(shields[sel]!.until - now) }) : undefined}
             />
           ) : (
             <p className={s.detailsHint}>{t('wmap.detailsHint')}</p>

@@ -44,12 +44,14 @@ import {
   type Building,
   type Kind,
   type KitId,
+  type Collected,
   type PackId,
 } from './base';
 import hqUrl from './hq.webp';
 import landUrl from './land.webp';
 import medicalUrl from './medical.webp';
 import mineUrl from './mine.webp';
+import wizardUrl from './wizard.webp';
 import researchUrl from './research.webp';
 import { TerritoryTrade } from './TerritoryTrade';
 import { TradingDesk } from './TradingDesk';
@@ -62,14 +64,19 @@ const SPRITE: Record<Kind, { url: string; aspect: number; widen: number }> = {
   barracks: { url: barracksUrl, aspect: 354 / 402, widen: 1.05 },
   research: { url: researchUrl, aspect: 296 / 362, widen: 1.05 },
   medical: { url: medicalUrl, aspect: 332 / 406, widen: 1.05 },
+  wizard: { url: wizardUrl, aspect: 338 / 365, widen: 1.05 },
 };
 const WORLD_W = LAND.w;
 const WORLD_H = LAND.h;
-const BUILDABLE: Kind[] = ['mine', 'barracks', 'research', 'medical'];
+const BUILDABLE: Kind[] = ['mine', 'barracks', 'research', 'medical', 'wizard'];
 const KIT_IDS: KitId[] = ['investor', 'commander', 'research'];
-/** "Collected 900 gold and 12 crystals." */
-const collectedText = (c: { gold: number; crystals: number }) =>
-  c.crystals && c.gold ? t('wbase.collectedBoth', { g: c.gold.toLocaleString('en-US'), c: c.crystals }) : c.crystals ? t('wbase.collectedC', { n: c.crystals }) : t('wbase.collected', { n: c.gold.toLocaleString('en-US') });
+/** "900 gold + 12 crystals + 10 Energy" (only what there is; gold when there's nothing). */
+const amounts = (c: { gold: number; crystals: number; energy?: number }) => {
+  const parts = [c.gold ? t('wbase.priceGold', { g: c.gold.toLocaleString('en-US') }) : '', c.crystals ? t('wbase.nCrystals', { n: c.crystals }) : '', c.energy ? t('wbase.nEnergy', { n: c.energy }) : ''].filter(Boolean);
+  return parts.length ? parts.join(' + ') : t('wbase.priceGold', { g: '0' });
+};
+/** "Collected 900 gold + 12 crystals." */
+const collectedText = (c: Collected) => t('wbase.collectedAny', { what: amounts(c) });
 const at = toScreen;
 
 export default function BasePage() {
@@ -135,6 +142,7 @@ function BaseScreen({ uid }: { uid: string }) {
   const producers = base.buildings.filter((b) => CONFIG[b.kind].makes);
   const waiting = Math.floor(producers.filter((b) => b.kind === 'mine').reduce((n, m) => n + storedNow(base, m, now), 0));
   const waitingC = Math.floor(producers.filter((b) => b.kind === 'research').reduce((n, m) => n + storedNow(base, m, now), 0));
+  const waitingE = Math.floor(producers.filter((b) => b.kind === 'wizard').reduce((n, m) => n + storedNow(base, m, now), 0));
   return (
     <>
       <Link to="/war" className={s.back}>
@@ -153,6 +161,11 @@ function BaseScreen({ uid }: { uid: string }) {
           <small>{t('wbase.crystals')}</small>
         </span>
         <span className={s.res}>
+          <i className={s.bolt} aria-hidden />
+          <b>{Math.floor(base.energy).toLocaleString('en-US')}</b>
+          <small>{t('wbase.energy')}</small>
+        </span>
+        <span className={s.res}>
           <b>
             {busyCount(base, now)} / {SLOTS}
           </b>
@@ -162,8 +175,8 @@ function BaseScreen({ uid }: { uid: string }) {
           <b>{t('wbase.level', { n: hqLevel(base) })}</b>
           <small>{t('wbase.hqShort')}</small>
         </span>
-        <Button size="sm" variant="secondary" disabled={busy || (waiting < 1 && waitingC < 1)} onClick={() => void act({ action: 'baseCollect' }, (r) => toast.show(collectedText(r.collected), 'success'))}>
-          {waitingC >= 1 ? t('wbase.collectAllBoth', { g: waiting.toLocaleString('en-US'), c: waitingC }) : t('wbase.collectAll', { n: waiting.toLocaleString('en-US') })}
+        <Button size="sm" variant="secondary" disabled={busy || (waiting < 1 && waitingC < 1 && waitingE < 1)} onClick={() => void act({ action: 'baseCollect' }, (r) => toast.show(collectedText(r.collected), 'success'))}>
+          {waitingC >= 1 || waitingE >= 1 ? t('wbase.collectAny', { what: amounts({ gold: waiting, crystals: waitingC, energy: waitingE }) }) : t('wbase.collectAll', { n: waiting.toLocaleString('en-US') })}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setShop(true)}>
           {t('wbase.shop')}
@@ -489,7 +502,7 @@ function Piece({ b, now, held = 0, selected, onSelect, ghost, ok }: { b: Buildin
           {formatLeft(left)}
         </span>
       )}
-      {cfg.makes && !building && held >= 1 && <span className={`${s.bubble} ${cfg.makes === 'crystals' ? s.bubbleC : ''}`}>+{Math.floor(held)}</span>}
+      {cfg.makes && !building && held >= 1 && <span className={`${s.bubble} ${cfg.makes === 'crystals' ? s.bubbleC : cfg.makes === 'energy' ? s.bubbleE : ''}`}>+{Math.floor(held)}</span>}
       {b.kind === 'barracks' && lvl >= 1 && !building && (
         <span className={s.guards} aria-hidden>
           {Array.from({ length: Math.min(4, lvl + 1) }, (_, i) => (
@@ -517,7 +530,7 @@ const WHY_UP: Record<'max' | 'hq' | 'busy' | 'slots' | 'gold' | 'crystals', Mess
   gold: 'wbase.why.gold',
   crystals: 'wbase.why.crystals',
 };
-const WHAT: Record<Kind, MessageKey> = { hq: 'wbase.what.hq', mine: 'wbase.what.mine', barracks: 'wbase.what.barracks', research: 'wbase.what.research', medical: 'wbase.what.medical' };
+const WHAT: Record<Kind, MessageKey> = { hq: 'wbase.what.hq', mine: 'wbase.what.mine', barracks: 'wbase.what.barracks', research: 'wbase.what.research', medical: 'wbase.what.medical', wizard: 'wbase.what.wizard' };
 /** "600 gold" or "4,500 gold + 20 crystals" */
 const price = (gold: number, crystals: number) => (crystals ? t('wbase.priceBoth', { g: gold.toLocaleString('en-US'), c: crystals }) : t('wbase.priceGold', { g: gold.toLocaleString('en-US') }));
 
@@ -530,7 +543,7 @@ function Shop({ uid, base, busy, onBuy }: { uid: string; base: Base; busy: boole
       <p className={s.muted}>{t('wbase.shopSub')}</p>
       <p className={s.panelTitle}>{tokens === null ? '…' : t('wbase.tokensHave', { n: tokens })}</p>
       <ul className={s.menu}>
-        {(['gold', 'crystals'] as PackId[]).map((p) => {
+        {(['gold', 'crystals', 'energy'] as PackId[]).map((p) => {
           const item = SHOP[p];
           const left = item.max - (base.bought[p] ?? 0);
           const short = tokens !== null && tokens < item.tokens;
@@ -538,7 +551,7 @@ function Shop({ uid, base, busy, onBuy }: { uid: string; base: Base; busy: boole
             <li key={p} className={s.packRow}>
               <span>
                 <b>
-                  <i className={p === 'gold' ? s.coin : s.gem} aria-hidden /> {t(`wbase.pack.${p}`)}
+                  <i className={p === 'gold' ? s.coin : p === 'energy' ? s.bolt : s.gem} aria-hidden /> {t(`wbase.pack.${p}`)}
                 </b>
                 <small>{t('wbase.packLeft', { n: left, max: item.max })}</small>
               </span>
@@ -614,7 +627,7 @@ function Details({ b, x, now, busy, onUpgrade, onCollect, onSpeed, onMove, onClo
   const why = cantUpgrade(b, x, now);
   const next = lvl < cfg.max ? { cost: cfg.cost[lvl]!, crystals: cfg.crystals[lvl]!, time: cfg.time[lvl]! } : null;
   const fast = speedCost(x, now);
-  const kitBoost = (m: 'gold' | 'crystals') => (b.kit ? (KITS[b.kit].boost[m] ?? 0) : 0);
+  const kitBoost = (m: 'gold' | 'crystals' | 'energy') => (b.kit ? (KITS[b.kit].boost[m] ?? 0) : 0);
   const effect =
     lvl < 1
       ? t('wbase.underConstruction')
@@ -626,7 +639,9 @@ function Details({ b, x, now, busy, onUpgrade, onCollect, onSpeed, onMove, onClo
             ? t('wbase.eff.barracks', { n: cfg.soldiers![lvl - 1]! })
             : x.kind === 'medical'
               ? t('wbase.eff.medical', { p: Math.round(cfg.saves![lvl - 1]! * 100), n: cfg.heal![lvl - 1]! })
-            : t('wbase.eff.hq', { mines: CONFIG.mine.count[lvl - 1]!, max: lvl + 1 }) + (lvl < 2 ? ` ${t('wbase.eff.hqNext')}` : lvl < 3 ? ` ${t('wbase.eff.hqDesk')}` : '');
+              : x.kind === 'wizard'
+                ? t('wbase.eff.wizard', { rate: cfg.rate![lvl - 1]!, store: cfg.store![lvl - 1]! })
+            : t('wbase.eff.hq', { mines: CONFIG.mine.count[lvl - 1]!, max: lvl + 1 }) + (lvl < 2 ? ` ${t('wbase.eff.hqNext')}` : lvl < 3 ? ` ${t('wbase.eff.hqDesk')}` : lvl < 4 ? ` ${t('wbase.eff.hqWizard')}` : '');
   const stored = Math.floor(storedNow(b, x, now));
   return (
     <div className={s.panel} role="region" aria-label={cfg.name}>
@@ -653,7 +668,7 @@ function Details({ b, x, now, busy, onUpgrade, onCollect, onSpeed, onMove, onClo
         )}
         {cfg.makes && (
           <Button variant="secondary" disabled={busy || stored < 1} onClick={onCollect}>
-            {t(cfg.makes === 'crystals' ? 'wbase.collectC' : 'wbase.collect', { n: stored.toLocaleString('en-US') })}
+            {t(cfg.makes === 'crystals' ? 'wbase.collectC' : cfg.makes === 'energy' ? 'wbase.collectE' : 'wbase.collect', { n: stored.toLocaleString('en-US') })}
           </Button>
         )}
         <Button variant="ghost" disabled={busy} onClick={onMove}>

@@ -25,6 +25,7 @@ lost in the last War day (skip that wait once per War for 100 tokens).
 """
 from warmap import NAMES
 import waroutpost as WO
+import warability as WAB
 from warmoves import extra_attacks
 from warmarket import BY_SYM, COMPANIES, WarError
 
@@ -92,6 +93,8 @@ def check_attack(war, uid, data, now_ms, cash, performance_ok):
     cell = (war.get("map") or {}).get(t)
     if not cell or cell.get("state") != "owned" or cell.get("owner") == uid:
         raise WarError("FAILED_PRECONDITION", "You can only attack a territory another player holds.")
+    if WAB.shielded(war, t, now_ms):
+        raise WarError("FAILED_PRECONDITION", "%s is shielded. Try again when the shield is down." % NAMES[t])
     if sym not in stocks_of(t):
         raise WarError("INVALID_ARGUMENT", "Pick a stock from %s." % NAMES[t])
     if side not in SIDES:

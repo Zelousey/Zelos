@@ -70,6 +70,9 @@ export type PrivateWar = {
   shieldUntil: Record<string, number>;
   /** Territory outposts (owner 2026-11-02, functions/waroutpost.py): public to everyone in the War. */
   outposts: Record<string, Outpost>;
+  /** Shields (functions/warability.py): a territory nobody can attack until then; who used one which War day. */
+  shields: Record<string, { by: string; until: number }>;
+  shieldDays: Record<string, number>;
 };
 /** One row of the War Score table (W5c): 60% trading (return, ±10% → 0–100) + 40% land points. */
 export type Standing = { uid: string; rank: number; score: number; trading: number; strategy: number; ret: number; points: number; wins: number; forfeit: boolean };
@@ -212,6 +215,13 @@ export function parseWar(id: string, d: DocumentData): PrivateWar | null {
     joinedAt: nums(d.joinedAt),
     shieldUntil: nums(d.shieldUntil),
     outposts: parseOutposts(d.outposts),
+    shields: Object.fromEntries(
+      Object.entries(rec(d.shields))
+        .map(([k, v]) => [k, rec(v)] as const)
+        .filter(([, v]) => typeof v.by === 'string' && typeof v.until === 'number')
+        .map(([k, v]) => [k, { by: v.by as string, until: v.until as number }]),
+    ),
+    shieldDays: nums(d.shieldDays),
   };
 }
 const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
@@ -324,6 +334,7 @@ type LobbyReq =
   | { action: 'attack'; warId: string; territory: string; sym: string; side: Side; usePass?: boolean }
   | { action: 'answer'; warId: string; attackId: string; accept: boolean; counter?: string }
   | { action: 'skipWait'; warId: string; territory: string }
+  | { action: 'scout' | 'shield'; warId: string; terr: string }
   | { action: 'claim'; warId: string; territory: string; usePass?: boolean }
   | { action: 'reinforce'; warId: string; soldiers: Record<string, number> }
   | { action: 'rally'; warId: string }
