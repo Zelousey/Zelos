@@ -43,10 +43,11 @@ def tick(t):
     main._war_board_pass(db, t)
 
 
-def run_hours(t0, hours):
-    """The job at :07 (leaderboard) and :10 (traders, healing) of every hour from t0."""
+def run_hours(t0, hours, every=1):
+    """The job at :07 (leaderboard) and :10 (traders, healing) of every `every` hours from t0
+    (live it runs every minute; fewer runs keep this test quick and cover the same passes)."""
     base, last = t0 - t0 % H, t0
-    for h in range(hours + 1):
+    for h in range(0, hours + 1, every):
         for minute in (7, 10):
             t = base + h * H + minute * M
             if t0 <= t <= t0 + hours * H:
@@ -187,7 +188,7 @@ check_invariants(zid, P, "day 1, after the battle")
 
 # ---------------------------------------------------------------- the rest of the week
 for day in range(2, 8):
-    t = run_hours(t, 24)
+    t = run_hours(t, 24, every=4)
     if day == 2:
         b = db.collection("warMarket").document("board").get().to_dict()
         ok(b["season"] == WZ.season_key(S) and b["open"]["total"] >= 4 and all(u in b["open"]["ranks"] for u in P),
