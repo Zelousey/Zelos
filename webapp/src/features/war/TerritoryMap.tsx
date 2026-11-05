@@ -224,6 +224,17 @@ export function TerritoryMap({
   const mine = ORDER.filter((id) => territories.includes(id) && shown(id).tone === 'mine');
   const [sel, setSel] = useState<string | null>(null);
   const pick = (id: string) => setSel((cur) => (cur === id ? null : id));
+  const detailsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // launch check (2026-11-05): on a phone the board scrolls sideways and the details panel sits at
+    // its right edge, so bring it into view when you tap a territory
+    const el = scroller.current;
+    const panel = detailsRef.current;
+    if (!sel || !el || !panel || el.scrollWidth <= el.clientWidth) return;
+    const box = panel.getBoundingClientRect();
+    const view = el.getBoundingClientRect();
+    if (box.left < view.left || box.right > view.right) el.scrollTo({ left: el.scrollLeft + box.right - view.right + 8, behavior: 'smooth' });
+  }, [sel]);
   const q = quotes.status === 'ready' ? quotes.data : null;
   const figures = deploy ? Math.round((deploy.placed / Math.max(1, deploy.total)) * 5) : 0;
   return (
@@ -336,7 +347,7 @@ export function TerritoryMap({
         </div>
 
         {/* the details of the territory you tapped, right side */}
-        <div className={`${s.panel} ${s.details}`} style={at(1017, 302, 176, 280)} role="region" aria-label={t('wmap.details')} aria-live="polite">
+        <div ref={detailsRef} className={`${s.panel} ${s.details}`} style={at(1017, 302, 176, 280)} role="region" aria-label={t('wmap.details')} aria-live="polite">
           {sel ? (
             <Details
               id={sel}
