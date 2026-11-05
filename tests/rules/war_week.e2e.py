@@ -167,20 +167,25 @@ try:
     ok(False, "shielded")
 except WM.WarError as e:
     ok("shielded" in str(e), "Cat's Shield stops Ben's attack on her land")
-# Ben's War return is below 0% after his trade, so the rules don't let him attack; Dan (0%, no trades) can
-try:
-    main._war_attack(db, zid, "wkBen01", {"territory": T[0], "sym": sorted(syms[T[0]])[0], "side": "bull"}, t + 2 * M)
-except WM.WarError as e:
-    print("       (Ben can't attack: %s)" % e)
-a = main._war_attack(db, zid, "wkDan01", {"territory": T[0], "sym": sorted(syms[T[0]])[0], "side": "bull"}, t + 2 * M)
-aid = a.get("attackId") or next(iter((war(zid).get("attacks") or {})))
+# whoever may attack (a War return of 0% or better) takes on Ann's Fort: Ben if his trade is up so far,
+# otherwise Dan (no trades, 0%). Prices differ from run to run, so either can happen.
+attacker = None
+for u in ("wkBen01", "wkDan01"):
+    try:
+        a = main._war_attack(db, zid, u, {"territory": T[0], "sym": sorted(syms[T[0]])[0], "side": "bull"}, t + 2 * M)
+        attacker = u
+        break
+    except WM.WarError as e:
+        print("       (%s can't attack: %s)" % (NAMES[u], e))
+assert attacker, "someone can attack"
+aid = a["attackId"]
 tick(t + 3 * M)  # the job runs every minute live; here just before each answer, for fresh prices
 main._war_answer(db, zid, "wkAnn01", {"attackId": aid, "accept": True}, t + 3 * M)
 t = run_hours(t + 4 * M, 3)  # the hour-long battle runs and the job settles it
 w = war(zid)
 done = db.collection("wars").document(zid).collection("attacks").document(aid).get().to_dict()
-ok(done and done["stage"] == "done" and aid not in (w.get("attacks") or {}), "Dan's attack on Ann's Fort runs for an hour and is settled (%s)" % done["result"])
-loser = {"attacker": "wkAnn01", "defender": "wkDan01"}.get(done["result"])
+ok(done and done["stage"] == "done" and aid not in (w.get("attacks") or {}), "%s's attack on Ann's Fort runs for an hour and is settled (%s)" % (NAMES[attacker], done["result"]))
+loser = {"attacker": "wkAnn01", "defender": attacker}.get(done["result"])
 if loser:
     ok((place_of(zid, loser).get("downed") or 0) >= 5, "the loser's lost soldiers are counted as wounded")
 ok(w["map"][T[0]]["owner"] == "wkAnn01", "one win isn't enough to take a territory behind a Fort")
