@@ -760,21 +760,14 @@ test('the weekly War Zone leaderboard: top 10 across zones and your own rank, Op
   const top = Array.from({ length: 10 }, (_, i) => ({ uid: `lbUid${i}`, name: `Trader ${i + 1}`, zone: `Open zone ${(i % 3) + 1}`, zoneId: '', score: 90 - i * 3, ret: 5 - i, rank: i + 1 }));
   // written as the server would; field by field, so the phone and desktop runs (same document) don't wipe each other's rank
   const fields = { season: '2026-11-02', at: Date.now(), open: { top, total: 2051, ranks: { [uid]: 143 } }, rookie: { top: [{ uid: 'rk1', name: 'Newbie', zone: 'Rookie zone 1', zoneId: '', score: 55, ret: 1.5, rank: 1 }], ranks: { rk1: 1 }, total: 1 } };
-  const mask = ['season', 'at', 'open.top', 'open.total', `open.ranks.${uid}`, 'rookie'].map((f) => `updateMask.fieldPaths=${f}`).join('&');
-  // the phone and desktop runs write this one document at the same moment; the emulator can turn one
-  // write away under load, so check it landed and try again (a failure says why)
-  let status = 0;
-  for (let i = 0; i < 6 && status !== 200; i++) {
-    if (i) await page.waitForTimeout(300 * i);
-    const r = await fetch(`${BASE}/warMarket/board?${mask}`, {
-      method: 'PATCH',
-      headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: Object.fromEntries(Object.entries(fields).map(([k, x]) => [k, v(x)])) }),
-    });
-    status = r.status;
-    if (status !== 200) console.log(`leaderboard seed write: ${status} ${await r.text()}`);
-  }
-  expect(status, 'the test leaderboard was written').toBe(200);
+  // a sign-in uid can start with a digit, which Firestore only accepts in a field path inside backticks
+  const mask = ['season', 'at', 'open.top', 'open.total', `open.ranks.\`${uid}\``, 'rookie'].map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`).join('&');
+  const r = await fetch(`${BASE}/warMarket/board?${mask}`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: Object.fromEntries(Object.entries(fields).map(([k, x]) => [k, v(x)])) }),
+  });
+  expect(r.status, `the test leaderboard was written: ${r.ok ? '' : await r.text()}`).toBe(200);
   await page.goto('war');
   const board = page.getByRole('region', { name: 'This week’s leaderboard' });
   await expect(board.getByRole('list', { name: 'Top players in Open zones' }).getByRole('listitem')).toHaveCount(10, { timeout: 30_000 });
