@@ -778,3 +778,51 @@ test('the weekly War Zone leaderboard: top 10 across zones and your own rank, Op
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   if (process.env.SHOTS) await board.screenshot({ path: `${process.env.SHOTS}/war-leaderboard-${info.project.name}.png` });
 });
+
+test('launch check: every War screen fits the screen (no sideways scrolling)', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('zelosWarExplained', '1'));
+  await page.goto('dashboard');
+  const uid = await signIn(page, `wfit-${info.project.name}-${Date.now()}@example.com`);
+  await put(`admins/${uid}`, { addedAt: 1 });
+  await seedMarket();
+  const wid = `fitwar${info.project.name.replace(/[^A-Za-z0-9]/g, '')}${Date.now()}`;
+  const now = Date.now();
+  await put(`wars/${wid}`, {
+    name: 'Fit War',
+    status: 'active',
+    phase: 'holding',
+    organizer: uid,
+    players: [uid, 'palFitUid0'],
+    names: { [uid]: 'Me', palFitUid0: 'Pal' },
+    startedAt: now - 3600000,
+    endsAt: now + 3 * 86400000,
+    days: 3,
+    territories: ['energy', 'tech', 'health', 'finance', 'consumer', 'comms'],
+    map: { energy: { state: 'owned', owner: uid }, tech: { state: 'owned', owner: 'palFitUid0' }, health: { state: 'neutral' }, finance: { state: 'neutral' }, consumer: { state: 'neutral' }, comms: { state: 'neutral' } },
+    outposts: { tech: { kind: 'fort', owner: 'palFitUid0', level: 2, stored: 0 } },
+    shields: { energy: { by: uid, until: now + 3600000 } },
+  });
+  const pages: [string, RegExp | string][] = [
+    ['war', 'Your War Zones'],
+    ['war/base', 'Your base'],
+    [`war/${wid}`, 'Fit War'],
+  ];
+  for (const [path, heading] of pages) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(500);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `${path} scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(1);
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/launch-${path.replace(/\W+/g, '-').replace(/-+$/, '')}-${info.project.name}.png`, fullPage: true });
+  }
+  // tapping a territory brings its details panel (Scout, Shield, outposts) fully into view, on a phone too
+  await page.getByRole('group', { name: /^The War map/ }).getByRole('button', { name: /^Tech,/ }).click();
+  const details = page.getByRole('region', { name: 'Territory details' });
+  await expect(details).toContainText('Fort, level 2');
+  await expect
+    .poll(async () => {
+      const box = await details.boundingBox();
+      return !!box && box.x >= 0 && box.x + box.width <= page.viewportSize()!.width + 1;
+    })
+    .toBe(true);
+});

@@ -1135,7 +1135,7 @@ const en = {
   'wbase.collect': 'Collect {n} gold',
   'wbase.move': 'Move',
   'wz.base': 'Your base',
-  'wz.baseBody': 'Build a Gold Mine and Barracks, upgrade them in minutes, and collect gold while you’re away.',
+  'wz.baseBody': 'Build mines, barracks and more, upgrade them in minutes, and collect gold, crystals and Energy while you’re away. It counts in every War.',
   'wz.baseGo': 'Open your base',
   'wz.title': 'Your War Zones',
   'wlb.title': 'This week’s leaderboard',

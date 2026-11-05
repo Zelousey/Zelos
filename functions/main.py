@@ -7276,8 +7276,12 @@ def war_quiet(req, db, uid, now_ms):
 @https_fn.on_call()
 @_war_call
 def war_trade(req, db, uid, now_ms):
-    sym, side, qty = WM.validate_trade(req.data)
-    wid = (req.data or {}).get("warId") if isinstance(req.data, dict) else None
+    return _war_trade(db, uid, req.data, now_ms)
+
+
+def _war_trade(db, uid, data, now_ms):
+    sym, side, qty = WM.validate_trade(data)
+    wid = (data or {}).get("warId") if isinstance(data, dict) else None
     wid = wid if isinstance(wid, str) and _re.fullmatch(r"[A-Za-z0-9]{6,40}", wid) else None
     if side == "buy":
         if not wid:
