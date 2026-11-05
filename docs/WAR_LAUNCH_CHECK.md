@@ -38,8 +38,8 @@ check confirms that no War screen scrolls sideways.
 ## Worth knowing (working as designed)
 
 - A player whose War return is below 0% can't attack unless they've made a sale at least 1% above cost in the
-  last 2 days, or have a Redeploy pass. In the test, one player was blocked by exactly this. It's the rule you
-  approved, but new players may hit it.
+  last 2 days, or have a Redeploy pass. In some test runs a player was blocked by exactly this (it depends on
+  prices). It's the rule you approved, but new players may hit it.
 - Buildings and outposts finish "on paper" and show their new level in the app straight away. The stored level
   catches up the next time someone uses them.
 - The leaderboard refreshes once an hour, at 7 minutes past.
