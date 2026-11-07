@@ -7,7 +7,7 @@
 
 Before writing implementation code:
 
-1. Read `PROJECT_STATE.md`.
+1. Read `docs/HANDOFF.md` (the latest handoff), then `PROJECT_STATE.md`.
 2. Read `MASTER_PLAN.md`.
 3. Read `PRE_BUILD_CHECKLIST.md`.
 4. Read `SECURITY_CHECKLIST.md`.
