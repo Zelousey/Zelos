@@ -69,6 +69,9 @@ test.describe('first sign-in', () => {
 
     // the one-minute quiz: brand new, here to learn, not sure of the answers yet → Beginner
     await expect(page.getByRole('heading', { name: 'Find your level' })).toBeVisible();
+    // the +25 XP is Level 1, but the celebration waits until the welcome is done (it used to cover the quiz)
+    await page.waitForTimeout(1_500);
+    await expect(page.getByRole('dialog', { name: /^Level up/ })).toHaveCount(0);
     await page.getByText('Never: I’m brand new').click();
     await page.getByRole('button', { name: 'Next' }).click();
     await page.getByText('Learn how trading works').click();
@@ -92,8 +95,12 @@ test.describe('first sign-in', () => {
     expect(await axe(page)).toEqual([]);
     await page.getByRole('link', { name: 'I’ll do it later' }).click();
 
-    // Dashboard: the checklist knows what's done; no redirect any more
+    // Dashboard: the Level 1 celebration that waited, then the checklist knows what's done; no redirect any more
     await expect(page).toHaveURL(/\/dashboard$/);
+    const levelUp = page.getByRole('dialog', { name: /^Level up/ });
+    await expect(levelUp).toBeVisible();
+    await levelUp.getByRole('button', { name: 'Nice!' }).click();
+    await expect(levelUp).toHaveCount(0);
     await expect(page.getByText('Welcome, Ada')).toBeVisible();
     const steps = page.getByRole('region', { name: 'First steps' }).or(page.locator('section').filter({ has: page.getByRole('heading', { name: 'First steps' }) }));
     await expect(steps.getByText('2 of 4 done')).toBeVisible();

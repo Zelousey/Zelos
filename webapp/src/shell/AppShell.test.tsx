@@ -93,7 +93,7 @@ describe('AppShell', () => {
     const router = renderAt('/dashboard');
     const side = (await screen.findAllByRole('navigation', { name: 'Main' }))[0]!;
     await userEvent.click(within(side).getByRole('link', { name: 'Settings' }));
-    expect(await screen.findByRole('heading', { name: 'Theme' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/settings');
   });
 

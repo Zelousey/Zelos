@@ -56,6 +56,11 @@ function Flow({ uid, googleName }: { uid: string; googleName: string }) {
   };
   const toast = useToast();
   const level = me.status === 'ready' ? (me.data.skill?.level ?? levelFromExperience(me.data.experience)) : null;
+  // each step starts at the top: the Continue/Next buttons sit low, and the next step's title
+  // used to open scrolled up under the top bar
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [step]);
 
   return (
     <div className={s.wrap}>

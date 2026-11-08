@@ -2,7 +2,7 @@
  * The quiz itself, one question at a time (embedded in the welcome screens and on /quiz).
  * Knowledge checks show the right answer and why after you pick. Skippable at any point.
  */
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Button, useToast } from '../../ui';
 import type { Experience } from '../../data/userDoc';
@@ -14,6 +14,16 @@ export function Quiz({ uid, onDone, onSkip }: { uid: string; onDone: (skill: Ski
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Answers>({ experience: null, goal: null, checks: CHECKS.map(() => null) });
   const [busy, setBusy] = useState(false);
+  // a new question starts at the top of the page (Next is at the bottom; the title used to
+  // stay scrolled out of view, under the top bar)
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0 });
+  }, [i]);
   const name = useId();
   const q = QUESTIONS[i]!;
   const ci = CHECKS.indexOf(q);

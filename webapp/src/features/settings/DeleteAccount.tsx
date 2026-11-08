@@ -59,7 +59,7 @@ export function DeleteAccount() {
   }
 
   return (
-    <Card title={t('del.title')} subtitle={t('del.body')}>
+    <Card group title={t('del.title')} subtitle={t('del.body')}>
       <div className={s.danger}>
         <Field label={t('del.type')} value={typed} autoComplete="off" onChange={(e) => setTyped(e.target.value)} />
         {usesPassword && <Field label={t('del.password')} type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} />}

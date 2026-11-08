@@ -17,62 +17,78 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title={t('nav.settings')} />
-      <div className={s.stack}>
-        <Card title={t('settings.theme')} subtitle={t('settings.theme.help')}>
-          <Tabs
-            label={t('settings.theme')}
-            items={THEMES.map((v) => ({ value: v, label: t(THEME_LABEL[v]) }))}
-            value={theme}
-            onChange={(v) => {
-              setTheme(v);
-              setThemeState(v);
-            }}
-          />
-        </Card>
-        <Card title={t('settings.candles')} subtitle={t('settings.candles.help')}>
-          <ChartColors />
-        </Card>
-        <Card title={t('settings.account')} flush>
-          <ul className={s.links}>
-            <li>
-              <Link to="/profile">
-                {t('settings.profile')} <Icon name="chevronRight" size={16} />
-              </Link>
-            </li>
-            <li>
-              <Link to="/alerts?tab=notify">
-                {t('settings.notifications')} <Icon name="chevronRight" size={16} />
-              </Link>
-            </li>
-            <li>
-              <Link to="/tokens">
-                {t('settings.tokens')} <Icon name="chevronRight" size={16} />
-              </Link>
-            </li>
-            <li>
-              <Link to="/help">
-                {t('nav.help')} <Icon name="chevronRight" size={16} />
-              </Link>
-            </li>
-          </ul>
-        </Card>
-        <Card title={t('settings.legal')} flush>
-          <ul className={s.links}>
-            <li>
-              <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
-                {t('settings.privacy')} <Icon name="external" size={16} />
-              </a>
-            </li>
-            <li>
-              <a href={TERMS_URL} target="_blank" rel="noopener noreferrer">
-                {t('settings.terms')} <Icon name="external" size={16} />
-              </a>
-            </li>
-          </ul>
-          <p className={s.legalNote}>{t('settings.legalNote')}</p>
-        </Card>
-        <BlockedList />
-        <DeleteAccount />
+      <div className={s.grid}>
+        <div className={s.col}>
+          <Card group title={t('settings.appearance')} className={s.o2}>
+            <div className={s.row}>
+              <div>
+                <div className={s.rowLabel}>{t('settings.theme')}</div>
+                <div className={s.note}>{t('settings.theme.help')}</div>
+              </div>
+              <Tabs
+                label={t('settings.theme')}
+                items={THEMES.map((v) => ({ value: v, label: t(THEME_LABEL[v]) }))}
+                value={theme}
+                onChange={(v) => {
+                  setTheme(v);
+                  setThemeState(v);
+                }}
+              />
+            </div>
+            <div className={s.sub}>
+              <div className={s.rowLabel}>{t('settings.candles')}</div>
+              <div className={s.note}>{t('settings.candles.help')}</div>
+            </div>
+            <ChartColors />
+          </Card>
+          <div className={s.o4}>
+            <BlockedList />
+          </div>
+        </div>
+        <div className={s.col}>
+          <Card group title={t('settings.account')} flush className={s.o1}>
+            <ul className={s.links}>
+              <li>
+                <Link to="/profile">
+                  {t('settings.profile')} <Icon name="chevronRight" size={16} />
+                </Link>
+              </li>
+              <li>
+                <Link to="/alerts?tab=notify">
+                  {t('settings.notifications')} <Icon name="chevronRight" size={16} />
+                </Link>
+              </li>
+              <li>
+                <Link to="/tokens">
+                  {t('settings.tokens')} <Icon name="chevronRight" size={16} />
+                </Link>
+              </li>
+              <li>
+                <Link to="/help">
+                  {t('nav.help')} <Icon name="chevronRight" size={16} />
+                </Link>
+              </li>
+            </ul>
+          </Card>
+          <Card group title={t('settings.legal')} flush className={s.o3}>
+            <ul className={s.links}>
+              <li>
+                <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
+                  {t('settings.privacy')} <Icon name="external" size={16} />
+                </a>
+              </li>
+              <li>
+                <a href={TERMS_URL} target="_blank" rel="noopener noreferrer">
+                  {t('settings.terms')} <Icon name="external" size={16} />
+                </a>
+              </li>
+            </ul>
+            <p className={s.legalNote}>{t('settings.legalNote')}</p>
+          </Card>
+          <div className={s.o5}>
+            <DeleteAccount />
+          </div>
+        </div>
       </div>
     </>
   );
