@@ -261,6 +261,7 @@ const en = {
   'notFound.body': "That page doesn't exist in the app.",
   'notFound.home': 'Go to Dashboard',
 
+  'settings.appearance': 'Appearance',
   'settings.theme': 'Theme',
   'settings.theme.black': 'Black',
   'settings.theme.blue': 'Blue',

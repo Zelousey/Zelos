@@ -13,7 +13,7 @@ export function BlockedList() {
   const blocked = useBlocked();
   if (!isReal || !user) return null;
   return (
-    <Card title={t('sf.blockedTitle')} subtitle={t('sf.blockedSub')} flush aria-label={t('sf.blockedTitle')}>
+    <Card group title={t('sf.blockedTitle')} subtitle={t('sf.blockedSub')} flush aria-label={t('sf.blockedTitle')}>
       {blocked.length ? (
         <ul className={s.list}>
           {blocked.map((u) => (

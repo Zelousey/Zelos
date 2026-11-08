@@ -3,9 +3,11 @@
  * level, the new badge pops in with its frame, light rays and confetti. Shown once per level;
  * the "already celebrated" level is shared with the website (localStorage zelosLevelCelebrated),
  * so you don't see it twice. A first visit only records your level.
+ * Not during the welcome screens (/welcome): saving your name there gives your first XP and
+ * Level 1, and the pop-up used to cover the quiz. It waits and shows once the welcome is done.
  */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { useUserDoc } from '../../data/userDoc';
 import { levelFor, type Level } from '../../data/levels';
 import { useAuth } from '../../lib/auth';
@@ -30,6 +32,7 @@ export function LevelUpWatcher() {
   const xp = doc.status === 'ready' ? doc.data.xp : null;
   const [show, setShow] = useState<{ lv: Level; xp: number } | null>(null);
   const last = useRef<number | null>(null);
+  const welcome = /\/welcome\/?$/.test(useLocation().pathname);
   useEffect(() => {
     if (xp == null) return;
     const lv = levelFor(xp).level;
@@ -41,7 +44,7 @@ export function LevelUpWatcher() {
       setShow({ lv: next, xp });
     }
   }, [xp]);
-  return show ? <LevelUp lv={show.lv} xp={show.xp} onClose={() => setShow(null)} /> : null;
+  return show && !welcome ? <LevelUp lv={show.lv} xp={show.xp} onClose={() => setShow(null)} /> : null;
 }
 
 export function LevelUp({ lv, xp, onClose }: { lv: Level; xp: number; onClose: () => void }) {
