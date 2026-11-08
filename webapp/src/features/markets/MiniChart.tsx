@@ -34,17 +34,18 @@ export function MiniLine({ closes, width = 160, height = 48 }: { closes: number[
   );
 }
 
-export function MiniChart({ sym, name, mini, loading, active, replace }: { sym: string; name: string; mini: Mini; loading?: boolean; active?: boolean; replace?: boolean }) {
+/** compact: no company name and a shorter chart (the Market page's tiles). */
+export function MiniChart({ sym, name, mini, loading, active, replace, compact }: { sym: string; name: string; mini: Mini; loading?: boolean; active?: boolean; replace?: boolean; compact?: boolean }) {
   const label = `${sym}, ${name}: ${formatPrice(mini.price)}, ${formatPercent(mini.chPct)} today${mini.periodPct != null ? `, ${formatPercent(mini.periodPct)} over the last month` : ''}`;
   return (
-    <Link to={`/markets/${encodeURIComponent(sym)}`} replace={replace} className={[s.card, active && s.active].filter(Boolean).join(' ')} aria-label={label} aria-current={active ? 'page' : undefined}>
+    <Link to={`/markets/${encodeURIComponent(sym)}`} replace={replace} className={[s.card, active && s.active, compact && s.compact].filter(Boolean).join(' ')} aria-label={label} aria-current={active ? 'page' : undefined}>
       <span className={s.top}>
         <span className={s.sym}>{sym}</span>
         <Change pct={mini.chPct} className={s.chg} />
       </span>
-      <span className={s.name}>{name}</span>
+      {!compact && <span className={s.name}>{name}</span>}
       <span className={s.price}>{formatPrice(mini.price)}</span>
-      <span className={s.chart}>{loading ? <Skeleton height={44} /> : <MiniLine closes={mini.closes} />}</span>
+      <span className={s.chart}>{loading ? <Skeleton height={compact ? 32 : 44} /> : <MiniLine closes={mini.closes} height={compact ? 34 : 48} />}</span>
     </Link>
   );
 }

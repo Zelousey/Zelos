@@ -11,3 +11,8 @@
 .name { color: var(--muted); font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .price { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: var(--text-md); font-weight: 600; }
 .chart { display: block; margin-top: var(--space-1); height: 48px; }
+
+/* compact tiles (Market page): no name, a shorter chart, a lighter edge */
+.compact { padding: var(--space-2) var(--space-3); background: color-mix(in srgb, var(--surface) 55%, transparent); border-color: var(--glass-line); }
+.compact .chart { height: 34px; margin-top: 2px; }
+.compact .price { font-size: var(--text-sm); }

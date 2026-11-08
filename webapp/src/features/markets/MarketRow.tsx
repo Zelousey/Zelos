@@ -6,10 +6,11 @@ import s from './MarketRow.module.css';
 
 export type MarketRowData = { sym: string; name: string; price: number | null | undefined; chPct: number | null | undefined };
 
-/** onPick: tapping a row hands its symbol back (Find a stock) instead of opening the chart. */
-export function MarketList({ rows, label, replace, onPick }: { rows: MarketRowData[]; label: string; replace?: boolean; onPick?: (sym: string) => void }) {
+/** onPick: tapping a row hands its symbol back (Find a stock) instead of opening the chart.
+ * dense: one line per stock (symbol, price, change), for side panels and multi-column lists. */
+export function MarketList({ rows, label, replace, onPick, dense, columns }: { rows: MarketRowData[]; label: string; replace?: boolean; onPick?: (sym: string) => void; dense?: boolean; columns?: boolean }) {
   return (
-    <ul className={s.list} aria-label={label}>
+    <ul className={[s.list, dense && s.dense, columns && s.columns].filter(Boolean).join(' ')} aria-label={label}>
       {rows.map((r) => (
         <li key={r.sym}>
           <Link
