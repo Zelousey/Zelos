@@ -1,10 +1,14 @@
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
+  /* a screen can restyle its cards by setting these (e.g. the Dashboard's glass, owner 2026-11-08) */
+  background: var(--card-bg, var(--surface));
+  border: 1px solid var(--card-line, var(--border-soft));
   border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow, none);
+  backdrop-filter: var(--card-blur, none);
+  -webkit-backdrop-filter: var(--card-blur, none);
   min-width: 0;
 }
-.pad { padding: var(--space-4); }
+.pad { padding: var(--card-pad, var(--space-4)); }
 .interactive { cursor: pointer; transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
 .interactive:hover { border-color: var(--border); background: var(--surface-2); }
 
@@ -12,15 +16,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-soft);
-  min-height: 48px;
+  flex-wrap: wrap; /* on a narrow screen the actions (e.g. tabs) move under the title instead of off screen */
+  gap: var(--space-2) var(--space-3);
+  padding: var(--card-head-pad, var(--space-3) var(--space-4));
+  border-bottom: var(--card-head-line, 1px solid var(--border-soft));
+  min-height: var(--card-head-h, 48px);
 }
 .title { font-size: var(--text-sm); font-weight: 600; color: var(--ink); letter-spacing: 0.01em; }
 .subtitle { font-size: var(--text-xs); color: var(--muted); }
-.actions { display: flex; align-items: center; gap: var(--space-2); }
-.body { padding: var(--space-4); }
+.actions { display: flex; flex-shrink: 0; align-items: center; gap: var(--space-2); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.body { padding: var(--card-pad, var(--space-4)); }
 .flush { padding: 0; }
 
 /* a page section (<Card group>): a plain heading, then the panel */

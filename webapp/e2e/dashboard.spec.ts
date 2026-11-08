@@ -143,7 +143,10 @@ test('phone swipe: sideways changes page, a scroll or a swipe on the chart does 
     );
   await swipe(300, 120); // finger left → next page
   await expect(page).toHaveURL(/\?p=market$/);
-  await swipe(120, 300); // finger right → back
+  // finger right → back, on the chart's title row (Market opens with its chart, and a swipe on the chart itself is the chart's)
+  const title = (await page.getByRole('heading', { name: 'US indexes' }).boundingBox())!;
+  const y = Math.round(title.y + title.height / 2);
+  await swipe(title.x + 4, title.x + 184, y, y);
   await expect(page).toHaveURL(/\?p=profile$/);
   await swipe(300, 260, 420, 600); // mostly down: a scroll
   await swipe(8, 200); // from the edge: the phone's back gesture
