@@ -158,6 +158,7 @@ const en = {
   'hub.sum.squads': 'Your squads',
   'hub.signIn': 'Sign in to see your Solo account, your battles and your squads in one place.',
   'hub.open': 'Your open matches',
+  'hub.side': 'Leaderboard and strategies',
   'hub.open.battles': 'Battles',
   'hub.open.battles.none': 'No battles running. Start one and send the link to a friend.',
   'hub.open.squads': 'Squads',
