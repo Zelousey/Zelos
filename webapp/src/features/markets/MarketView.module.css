@@ -15,5 +15,5 @@
 .heroBar > * { flex: none; }
 .heroTitle { font-size: var(--text-sm); font-weight: 600; margin-right: var(--space-1); }
 .push { margin-left: auto; }
-.heroChart { --chart-h: clamp(340px, calc(100vh - 428px), 720px); --chart-h-phone: clamp(260px, 44vh, 400px); }
+.heroChart { --chart-h: var(--hero-chart-h, clamp(340px, calc(100vh - 428px), 720px)); --chart-h-phone: clamp(260px, 44vh, 400px); }
 .hero .quote { padding: 0 var(--space-1); }

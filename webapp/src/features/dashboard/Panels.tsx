@@ -14,16 +14,13 @@ import { t } from '../../lib/i18n';
 import { classicUrl } from '../../lib/platform';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, buttonClass, Card, Change, EmptyState, ErrorState, Icon, LoadingState, Skeleton, Sparkline, Stat, Tabs } from '../../ui';
-import { MarketView } from '../markets/MarketView';
 import { MarketList } from '../markets/MarketRow';
 import { WatchlistEditor } from '../markets/WatchlistEditor';
-import { SectorBars } from '../markets/Sectors';
 import { LevelBadge } from './LevelBadge';
 import { achievementsView, missionsView, STREAK_NEED, type Progress, type XpLog } from './progress';
 import { sortWars, useMyWars, useTopTraders, type Identity, type Ranked } from './social';
 import s from './DashboardPage.module.css';
 
-const dir = (n: number | null | undefined) => (n == null || n === 0 ? 'flat' : n > 0 ? 'up' : 'down') as 'up' | 'down' | 'flat';
 const MoreLink = ({ to, href, children }: { to?: string; href?: string; children: string }) =>
   to ? (
     <Link to={to} className={s.more}>
@@ -94,11 +91,6 @@ export function TraderCard({ identity, xp, streak, rank, badges, totalBadges }: 
       </div>
     </Card>
   );
-}
-
-// ------------------------------------------------------------------ globe
-export function GlobePanel() {
-  return <MarketView className={s.globe} globeHeight={420} />;
 }
 
 // ------------------------------------------------------------------ missions
@@ -268,14 +260,17 @@ export function AchievementsCard({ progress, publicIds }: { progress: Progress |
 
 // ------------------------------------------------------------------ movers
 type MoverTab = 'gainers' | 'losers' | 'actives';
-export function MoversCard() {
+/** Top movers: the tabs sit in the header; on wide screens the list flows into columns. */
+export function MoversCard({ className }: { className?: string }) {
   const movers = useMovers();
   const [tab, setTab] = useState<MoverTab>('gainers');
   return (
-    <Card className={s.movers} title={t('dash.movers')} subtitle={t('dash.movers.scope')} flush>
-      <div className={s.tabsPad}>
-        <Tabs label={t('dash.movers')} value={tab} onChange={setTab} stretch items={[{ value: 'gainers', label: t('dash.movers.gainers') }, { value: 'losers', label: t('dash.movers.losers') }, { value: 'actives', label: t('dash.movers.actives') }]} />
-      </div>
+    <Card
+      className={[s.movers, className].filter(Boolean).join(' ')}
+      title={t('dash.movers')}
+      flush
+      actions={<Tabs label={t('dash.movers')} value={tab} onChange={setTab} items={[{ value: 'gainers', label: t('dash.movers.gainers') }, { value: 'losers', label: t('dash.movers.losers') }, { value: 'actives', label: t('dash.movers.actives') }]} />}
+    >
       {movers.status === 'loading' ? (
         <LoadingState rows={5} />
       ) : movers.status === 'error' ? (
@@ -283,18 +278,20 @@ export function MoversCard() {
       ) : movers.status === 'missing' || movers.data[tab].length === 0 ? (
         <EmptyState icon="markets" body={t('dash.movers.empty')} compact />
       ) : (
-        <MarketList rows={movers.data[tab].slice(0, 5)} label={t(`dash.movers.${tab}`)} />
+        <div className={s.listPad}>
+          <MarketList rows={movers.data[tab].slice(0, 6)} label={t(`dash.movers.${tab}`)} dense columns />
+        </div>
       )}
       <div className={s.foot}>
-        <span />
+        <span>{t('dash.movers.scope')}</span>
         <Link className="hit" to="/markets">{t('dash.allMarkets')} →</Link>
       </div>
     </Card>
   );
 }
 
-// ------------------------------------------------------------------ US market: indexes + sectors
-export function MarketCard() {
+// ------------------------------------------------------------------ US market: the three indexes, one line each
+export function IndexStrip() {
   const quotes = useQuotes();
   const snapshot = useSnapshot();
   const qs = quotes.status === 'ready' ? quotes.data.quotes : {};
@@ -305,23 +302,23 @@ export function MarketCard() {
     return { sym, label, price: q?.c ?? snap?.price ?? null, pct: q?.chPct ?? snap?.pct ?? null, spark };
   });
   return (
-    <Card className={s.market} title={t('dash.market')} subtitle={t('dash.indexesNote')}>
-      <div className={s.marketGrid}>
+    <Card title={t('dash.market')} subtitle={t('dash.indexesNote')} flush>
+      <div className={s.listPad}>
         <section className={s.tiles} aria-label={t('dash.indexes')}>
           {tiles.map((x) => (
             <Link key={x.sym} to={`/markets/${x.sym}`} className={s.tile} aria-label={`${x.label} (${x.sym}) ${formatPrice(x.price)} ${formatPercent(x.pct)} today`}>
               {quotes.status === 'loading' && snapshot.status === 'loading' ? (
                 <Skeleton height={48} />
               ) : (
-                <Stat size="sm" label={`${x.label} · ${x.sym}`} value={formatPrice(x.price)} delta={<>{formatPercent(x.pct)} today</>} direction={dir(x.pct)} />
+                <span className={s.tileLine}>
+                  <span className={s.tileName}>{x.label}</span>
+                  <span className={s.tilePrice}>{formatPrice(x.price)}</span>
+                  <Change pct={x.pct} className={s.tilePct} />
+                </span>
               )}
-              <Sparkline values={x.spark} width={96} height={32} label={`${x.label}, last month`} />
+              <Sparkline values={x.spark} width={80} height={26} label={`${x.label}, last month`} />
             </Link>
           ))}
-        </section>
-        <section>
-          <div className={s.sub}>{t('dash.sectors')}</div>
-          <SectorBars />
         </section>
       </div>
     </Card>
@@ -347,7 +344,7 @@ export function WatchlistCard({ watch, uid }: { watch: Loadable<string[]>; uid: 
         )
       }
     >
-      {watch.status === 'loading' ? <LoadingState rows={4} /> : rows.length === 0 ? <EmptyState icon="markets" body={t('dash.watchlist.empty')} compact /> : <MarketList rows={rows.slice(0, 8)} label={t('dash.watchlist')} />}
+      {watch.status === 'loading' ? <LoadingState rows={4} /> : rows.length === 0 ? <EmptyState icon="markets" body={t('dash.watchlist.empty')} compact /> : <div className={s.listPad}><MarketList rows={rows.slice(0, 8)} label={t('dash.watchlist')} dense /></div>}
       {editing && watch.status === 'ready' && <WatchlistEditor uid={uid} list={watch.data} open onClose={() => setEditing(false)} />}
     </Card>
   );

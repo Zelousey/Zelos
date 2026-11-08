@@ -16,10 +16,12 @@ import { parseUserDoc, useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Card, PageHeader, useScrollFade, useToast } from '../../ui';
+import { Card, useScrollFade, useToast } from '../../ui';
 import { StatusLine } from '../markets/StatusLine';
 import { useQuotes } from '../../data/markets';
-import { AchievementsCard, GlobePanel, LeaderboardCard, MarketCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
+import { AchievementsCard, IndexStrip, LeaderboardCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
+import { MarketView } from '../markets/MarketView';
+import { SectorBars } from '../markets/Sectors';
 import { achievementsView, mergeProgress, missionsView, readLocal } from './progress';
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
@@ -74,46 +76,58 @@ export default function DashboardPage() {
   ) : (
     <WelcomeCard onSignIn={signIn} />
   );
+  const status = (page === 'trading' || page === 'market') && (
+    <div className={s.status}>
+      <StatusLine quotes={quotes} />
+    </div>
+  );
   return (
-    <>
-      <PageHeader title={t('nav.dashboard')} subtitle={uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')} />
-      <PageNav page={page} go={go} />
+    <div className={s.dash}>
+      {/* owner 2026-11-08: no big title; one slim row with the greeting, the page row and the market status */}
+      <h1 className="visually-hidden">{t('nav.dashboard')}</h1>
+      <div className={s.top}>
+        <p className={s.hello}>{uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')}</p>
+        <PageNav page={page} go={go} />
+        {status}
+      </div>
       <div className={s.pageBody} {...swipe} key={page} data-page={page}>
         {page === 'trading' && (
-          <>
-            <StatusLine quotes={quotes} />
+          <div className={s.tradeGrid}>
             {/* owner 2026-10-20: your account, open positions (stocks and options) and orders come first */}
-            {uid && <AccountSection uid={uid} />}
-            {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
-              <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
-            )}
-            <div className={s.cols}>
-              {!uid && trader}
+            <div className={s.main}>{uid ? <AccountSection uid={uid} /> : trader}</div>
+            <div className={s.side}>
+              {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
+                <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
+              )}
               <WarsCard uid={uid} />
             </div>
-          </>
+          </div>
         )}
         {page === 'profile' && (
-          <>
-            {uid && meDoc && <LevelCard me={meDoc} />}
-            {trader}
-            <div className={s.cols}>
-              <MissionsCard progress={progress} xpLog={local.xpLog} />
-              <LeaderboardCard uid={uid} rank={rank} me={me} />
+          <div className={s.profGrid}>
+            <div className={s.stack}>
+              {uid && meDoc && <LevelCard me={meDoc} />}
+              {trader}
             </div>
-            <AchievementsCard progress={progress} publicIds={me?.achievements ?? []} />
-          </>
+            <MissionsCard progress={progress} xpLog={local.xpLog} />
+            <div className={s.stack}>
+              <LeaderboardCard uid={uid} rank={rank} me={me} />
+              <AchievementsCard progress={progress} publicIds={me?.achievements ?? []} />
+            </div>
+          </div>
         )}
         {page === 'market' && (
-          <>
-            <StatusLine quotes={quotes} />
-            <GlobePanel />
-            <MarketCard />
-            <div className={s.cols}>
-              <MoversCard />
+          <div className={s.marketGrid}>
+            <MarketView hero className={s.mHero} globeHeight={420} phoneGlobeHeight={280} />
+            <div className={s.mSide}>
+              <IndexStrip />
               {uid && <WatchlistCard watch={watch} uid={uid} />}
+              <Card title={t('dash.sectors')} className={s.mSectors}>
+                <SectorBars />
+              </Card>
             </div>
-          </>
+            <MoversCard className={s.mMovers} />
+          </div>
         )}
         {page === 'strategies' && (
           <>
@@ -131,7 +145,7 @@ export default function DashboardPage() {
           </p>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -141,7 +155,9 @@ function PageNav({ page, go }: { page: DashPage; go: (p: DashPage) => void }) {
   useScrollFade(ref);
   function onKey(e: KeyboardEvent) {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const next = stepPage(page, e.key === 'ArrowRight' ? 1 : -1);
+    // step from the link that has focus (a fast second press can arrive before the page re-renders)
+    const from = pageFrom((e.target as HTMLElement).closest<HTMLElement>('[data-page]')?.dataset.page ?? page);
+    const next = stepPage(from, e.key === 'ArrowRight' ? 1 : -1);
     if (!next) return;
     e.preventDefault();
     go(next);

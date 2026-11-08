@@ -33,11 +33,11 @@
 @keyframes pop { 0% { opacity: 0; transform: scale(0.8); } 70% { opacity: 1; transform: scale(1.04); } 100% { transform: none; } }
 
 /* ---------------------------------------------------------------- first steps (dashboard) */
-.steps { margin-bottom: var(--space-4); border-color: var(--accent-line); background: radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 60%), var(--surface); }
+.steps { container-type: inline-size; margin-bottom: var(--space-4); border-color: var(--accent-line); background: radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 60%), var(--surface); }
 .bar { height: 6px; background: var(--surface-2); border-radius: var(--radius-pill); overflow: hidden; margin: 0 var(--space-4) var(--space-2); }
 .bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width var(--dur-slow) var(--ease-out); }
 .list { list-style: none; margin: 0; padding: var(--space-1) 0 var(--space-2); display: grid; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 900px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); } }
+@container (min-width: 620px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); } }
 .row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: 8px var(--space-4); font-size: var(--text-sm); color: var(--ink); }
 a.row:hover { background: var(--surface-hover); }
 .row small { display: block; color: var(--muted); font-size: var(--text-xs); }

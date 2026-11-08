@@ -1,30 +1,5 @@
-/* ---------------------------------------------------------------- layout */
-.grid { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
-.trader { grid-area: trader; align-self: stretch; }
-.welcome { grid-area: welcome; align-self: stretch; justify-content: center; }
-.missions { grid-area: missions; }
-.wars { grid-area: wars; }
-.board { grid-area: board; }
-.globe { grid-area: globe; }
-.movers { grid-area: movers; }
-.ach { grid-area: ach; }
-.market { grid-area: market; }
-.watch { grid-area: watch; }
-.strat { grid-area: strat; }
-@media (max-width: 760px) {
-  .grid > * { grid-area: auto; }
-}
-@media (min-width: 761px) {
-  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .signedIn { grid-template-areas: 'trader trader' 'strat strat' 'missions board' 'globe globe' 'wars ach' 'movers watch' 'market market'; }
-  .signedOut { grid-template-areas: 'welcome welcome' 'strat strat' 'missions board' 'globe globe' 'wars ach' 'movers movers' 'market market'; }
-}
-@media (min-width: 1100px) {
-  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .signedIn { grid-template-areas: 'trader trader trader' 'strat strat strat' 'globe globe missions' 'globe globe board' 'wars ach movers' 'market market watch'; }
-  .signedOut { grid-template-areas: 'welcome welcome missions' 'strat strat strat' 'globe globe board' 'globe globe board' 'movers ach wars' 'market market market'; }
-  .globe { align-self: stretch; }
-}
+/* ---------------------------------------------------------------- layout: see "4 pages" at the end */
+.welcome { justify-content: center; }
 
 /* ---------------------------------------------------------------- shared bits */
 .row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
@@ -120,27 +95,80 @@
 .nextList .muted { font-size: var(--text-xs); }
 
 /* ---------------------------------------------------------------- US market */
-.marketGrid { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 900px) { .marketGrid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
-.tiles { display: grid; gap: var(--space-2); }
-.tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius); color: var(--ink); }
+.tiles { display: grid; gap: 0; }
+.tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); padding: 4px 0; border-bottom: 1px solid var(--border-soft); color: var(--ink); }
+.tiles > .tile:last-child { border-bottom: 0; }
 .tile:hover { background: var(--surface-2); }
 .more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
 /* rows sit edge to edge, so on touch screens they grow to finger size (Phase 4 M-5) */
-@media (pointer: coarse) { .boardRow, .warRow { min-height: var(--tap); } }
+@media (pointer: coarse) { .boardRow, .warRow, .tile { min-height: var(--tap); } }
 
 /* ---------------------------------------------------------------- 4 pages (Phase 6) */
-.pageNav { display: flex; gap: 2px; margin: 0 0 var(--space-4); padding: 3px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius); overflow-x: auto; scrollbar-width: none; }
+/* owner 2026-11-08: one compact screen. Cards on the Dashboard are glass with short headers
+   (the variables are read by ui/Card); no big title; side-by-side columns on wide screens. */
+.dash {
+  position: relative; display: grid; gap: var(--space-3);
+  --card-bg: var(--glass-bg); --card-line: var(--glass-line); --card-shadow: var(--glass-shadow);
+  --card-blur: blur(18px) saturate(140%);
+  --card-head-pad: var(--space-2) var(--space-3); --card-head-h: 40px; --card-head-line: 1px solid var(--glass-line); --card-pad: var(--space-3);
+}
+.dash::before { content: ''; position: absolute; inset: -40px 0 auto; height: 480px; z-index: -1; pointer-events: none; background: radial-gradient(60% 70% at 25% 0%, var(--accent-soft), transparent 70%); opacity: 0.5; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.hello { margin: 0; color: var(--muted); font-size: var(--text-sm); white-space: nowrap; }
+.status { margin-left: auto; }
+.status > p { margin: 0; }
+.pageNav { display: flex; gap: 2px; padding: 3px; background: var(--glass-bg); border: 1px solid var(--glass-line); border-radius: var(--radius); overflow-x: auto; scrollbar-width: none; }
 .pageNav::-webkit-scrollbar { display: none; }
-.pageLink { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 var(--space-3); border-radius: calc(var(--radius) - 2px); color: var(--muted); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+.pageLink { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-height: 30px; padding: 0 var(--space-3); border-radius: calc(var(--radius) - 2px); color: var(--muted); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
 .pageLink:hover { color: var(--ink); }
 .pageLink[aria-current='page'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
 @media (pointer: coarse) { .pageLink { min-height: var(--tap); } }
+@media (max-width: 760px) {
+  .top { gap: var(--space-2); }
+  .hello { width: 100%; }
+  .pageNav { width: 100%; }
+  .pageLink { flex: 1 0 auto; }
+  .status { margin-left: 0; width: 100%; }
+}
 /* the browser keeps vertical scrolling; sideways moves are ours (the page swipe) */
-.pageBody { display: grid; gap: var(--space-4); align-content: start; touch-action: pan-y; animation: pageIn var(--dur-med, 220ms) var(--ease-out); }
+.pageBody { display: grid; gap: var(--space-3); align-content: start; touch-action: pan-y; animation: pageIn var(--dur-med, 220ms) var(--ease-out); }
 .pageBody > *, .cols > * { grid-area: auto; min-width: 0; }
-.cols { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.pageBody :global(section) { margin-bottom: 0; }
+.cols { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 900px) { .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stack, .main, .side, .mSide { display: grid; gap: var(--space-3); align-content: start; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+/* panels keep old grid-area names from the earlier one-grid layout; inside these columns they just stack */
+.stack > *, .main > *, .side > *, .mSide > *, .tradeGrid > *, .profGrid > * { grid-area: auto; min-width: 0; }
+.listPad { padding: 0 var(--space-3) var(--space-1); }
+.listPad ul > li a { padding-left: 0; padding-right: 0; }
+
+/* Trading: your account on the left; first steps and battles on the right */
+.tradeGrid { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .tradeGrid { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); } }
+
+/* Profile: three columns on wide screens */
+.profGrid { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .profGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1300px) { .profGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Market: the index chart large on the left; indexes, watchlist and sectors on the right; movers under */
+.marketGrid { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) {
+  .marketGrid { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: 'hero side' 'movers movers'; }
+  .mHero { grid-area: hero; align-self: stretch; }
+  .mSide { grid-area: side; }
+  .mMovers { grid-area: movers; }
+}
+.mSectors li { padding: 2px 0; }
+
 .back { margin: 0; }
 .backBtn { background: none; border: 0; padding: 0; color: var(--link); font: inherit; font-size: var(--text-sm); cursor: pointer; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* the three indexes, one line each (Market page side column) */
+.tileLine { display: grid; grid-template-columns: minmax(0, 1fr) auto 64px; align-items: baseline; gap: var(--space-2); font-size: var(--text-sm); min-width: 0; }
+.tileName { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tilePrice { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tilePct { text-align: right; font-size: var(--text-xs); }
+@media (min-width: 1100px) { .mHero { --hero-chart-h: clamp(360px, calc(100vh - 218px), 780px); } }
+.mSide :global(ul[aria-label='Watchlist']) { max-height: 216px; overflow-y: auto; scrollbar-width: thin; }
