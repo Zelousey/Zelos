@@ -31,7 +31,7 @@ test('opens on the dashboard and has no errors', async ({ page }) => {
 
 test('deep links load directly', async ({ page }) => {
   await page.goto('settings');
-  await expect(page.getByRole('heading', { name: 'Theme' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Appearance' })).toBeVisible();
 });
 
 test('theme choice applies immediately and survives a reload', async ({ page }) => {
