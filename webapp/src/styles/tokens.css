@@ -32,6 +32,10 @@
   --muted-2: #5c6068;
 
   --chart-bg: rgba(0, 0, 0, 0.25);
+  /* glass surfaces (owner 2026-11-08): see-through panel, faint edge, soft depth */
+  --glass-bg: color-mix(in srgb, var(--surface) 64%, transparent);
+  --glass-line: rgba(255, 255, 255, 0.07);
+  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 32px rgba(0, 0, 0, 0.28);
   --chart-grid: rgba(255, 255, 255, 0.06);
   --chart-cross: rgba(255, 255, 255, 0.35);
   --chart-label-ink: #0b0c0f;
@@ -156,6 +160,9 @@
   --danger: #d23a31;
   --danger-soft: #fbe2df;
   --chart-bg: #fbfbfd;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-line: rgba(18, 21, 27, 0.08);
+  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 10px 28px rgba(18, 21, 27, 0.08);
   --chart-grid: rgba(0, 0, 0, 0.07);
   --chart-cross: rgba(0, 0, 0, 0.35);
   --chart-label-ink: #ffffff;

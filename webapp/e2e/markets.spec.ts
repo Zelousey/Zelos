@@ -168,7 +168,10 @@ test('a stock with no fresh price shows its last good one, marked delayed', asyn
 
 test('all stocks come in two sections: day trading (every minute) and long-term (every 15 minutes)', async ({ page }) => {
   await page.goto('markets');
-  const list = page.getByRole('list', { name: 'Market' });
+  // the last tab under the chart (owner 2026-11-08: one row of tabs, no separate "All stocks" box)
+  const glance = page.getByRole('region', { name: 'Charts at a glance' });
+  await glance.getByRole('tab', { name: 'All stocks' }).click();
+  const list = page.getByRole('list', { name: 'All stocks' });
   await expect(page.getByRole('tab', { name: 'Day trading', selected: true })).toBeVisible();
   await expect(page.getByText('Prices every minute. For trades you open and close the same day.')).toBeVisible();
   await expect(list.getByRole('link')).toHaveCount(8);
@@ -179,16 +182,17 @@ test('all stocks come in two sections: day trading (every minute) and long-term 
   await expect(list).toContainText('TSLA');
   await expect(list).not.toContainText('NVDA');
   // a search that matches the other section says where it is
-  await page.getByRole('searchbox').fill('nvi');
+  await glance.getByRole('searchbox').fill('nvi');
   await expect(page.getByText('It is in Day trading.')).toBeVisible();
   await page.getByRole('button', { name: 'Day trading' }).click();
   await expect(list.getByRole('link')).toHaveCount(1);
   await expect(list).toContainText('NVDA');
   // the choice is remembered
-  await page.getByRole('searchbox').fill('');
+  await glance.getByRole('searchbox').fill('');
   await page.getByRole('tab', { name: 'Long-term' }).click();
   await page.reload();
+  await glance.getByRole('tab', { name: 'All stocks' }).click();
   await expect(page.getByRole('tab', { name: 'Long-term', selected: true })).toBeVisible();
   // removed stocks aren't listed
-  await expect(page.getByRole('list', { name: 'Market' })).not.toContainText('Broadcom');
+  await expect(list).not.toContainText('Broadcom');
 });

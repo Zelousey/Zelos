@@ -75,6 +75,16 @@ textarea {
   border: 0;
 }
 
+/* A glass surface (owner 2026-11-08): a see-through panel with a faint edge, used where related
+   parts of a page should read as one surface instead of separate boxes. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
 /* Small links ("All markets →", a symbol pill) get a finger-sized touch area on touch screens
    (at least --tap) without changing how they look or moving anything. Buttons and tabs
    already have it. Phase 4 M-5. */

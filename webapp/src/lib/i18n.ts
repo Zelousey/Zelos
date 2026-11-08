@@ -362,6 +362,7 @@ const en = {
   'market.tab.watchlist': 'Watchlist',
   'market.watch.signedOut': 'Sign in to see your watchlist here.',
   'market.allStocks': 'All stocks',
+  'market.side': 'Search, watchlist and sectors',
   'market.speed': 'Trading style',
   'market.speed.fast': 'Day trading',
   'market.speed.slow': 'Long-term',
