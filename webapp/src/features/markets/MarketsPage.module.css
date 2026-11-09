@@ -1,6 +1,6 @@
 /* Market as one page (owner brief 2026-11-08): the chart fills most of a computer screen,
    a slim column on the right (search, watchlist, sectors), one row of tabs under the chart. */
-.page { position: relative; display: grid; gap: var(--space-2); }
+.page { position: relative; display: grid; gap: var(--space-2); grid-template-columns: minmax(0, 1fr); }
 /* a soft glow behind the page so the glass surfaces have something to show through */
 .page::before { content: ''; position: absolute; inset: -40px 0 auto; height: 520px; z-index: -1; pointer-events: none; background: radial-gradient(60% 70% at 30% 0%, var(--accent-soft), transparent 70%); opacity: 0.55; }
 

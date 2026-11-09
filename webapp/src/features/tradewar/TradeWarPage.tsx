@@ -17,7 +17,7 @@ import { useAuth } from '../../lib/auth';
 import { formatMoney, formatSignedMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Badge, Button, buttonClass, Card, EmptyState, Icon, LoadingState, PageHeader, Skeleton, Stat, useToast, type IconName } from '../../ui';
+import { Badge, Button, buttonClass, Card, EmptyState, Icon, LoadingState, Skeleton, Stat, useToast, type IconName } from '../../ui';
 import { clock } from '../battles/parts';
 import { nyDay } from '../charts/series';
 import { LeaderboardCard } from '../dashboard/Panels';
@@ -45,12 +45,16 @@ export default function TradeWarModule() {
 
 /** The hub page frame: title, the section row, then the section. */
 function Hub({ children }: { children: ReactNode }) {
+  // owner 2026-11-08: no big title; the section row and a one-line note, then glass cards
   return (
-    <>
-      <PageHeader title={t('nav.tradeWar')} subtitle={t('tw.subtitle')} />
-      <TradeWarNav />
+    <div className={`${s.hub} glass-cards`}>
+      <h1 className="visually-hidden">{t('nav.tradeWar')}</h1>
+      <div className={s.top}>
+        <TradeWarNav />
+        <p className={s.note}>{t('tw.subtitle')}</p>
+      </div>
       <div className={s.stack}>{children}</div>
-    </>
+    </div>
   );
 }
 
@@ -134,76 +138,81 @@ function Overview() {
   const squadList = squads.status === 'ready' ? squads.data : [];
   return (
     <Hub>
-      <section aria-labelledby="tw-start">
-        <h2 id="tw-start" className={s.sectionTitle}>
-          {t('hub.pick.title')}
-        </h2>
-        <ModeGrid />
-      </section>
-      <Summary uid={uid} live={running.filter((w) => w.status === 'active').length} waiting={running.filter((w) => w.status !== 'active').length} squads={uid && squads.status === 'ready' ? squadList.length : null} loading={open === null} />
-      <section aria-labelledby="tw-open">
-        <h2 id="tw-open" className={s.sectionTitle}>
-          {t('hub.open')}
-        </h2>
-        <div className={s.columns}>
-          <Card flush title={t('hub.open.battles')} actions={<Link className="hit" to="/battles">{t('hub.all')}</Link>}>
-            {!uid ? (
-              <EmptyState icon="war" body={t('bt.signIn')} compact />
-            ) : wars.status === 'loading' ? (
-              <LoadingState rows={2} />
-            ) : !running.length ? (
-              <EmptyState icon="war" body={t('hub.open.battles.none')} compact actions={<Link className={buttonClass({ variant: 'primary', size: 'sm' })} to="/invite?kind=battle">{t('bt.new')}</Link>} />
-            ) : (
-              <ul className={s.rows}>
-                {running.map((w) => (
-                  <BattleRow key={w.id} w={w} now={now} />
-                ))}
-              </ul>
-            )}
-          </Card>
-          <Card flush title={t('hub.open.squads')} actions={<Link className="hit" to="/social">{t('hub.all')}</Link>}>
-            {!uid ? (
-              <EmptyState icon="social" body={t('sq.signIn')} compact />
-            ) : squads.status === 'loading' ? (
-              <LoadingState rows={2} />
-            ) : !squadList.length ? (
-              <EmptyState icon="social" body={t('hub.open.squads.none')} compact actions={<Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to="/social">{t('hub.squad.start')}</Link>} />
-            ) : (
-              <ul className={s.rows}>
-                {squadList.map((q) => (
-                  <li key={q.id}>
-                    <Link to={`/social/${encodeURIComponent(q.id)}`} className={s.row}>
-                      <Icon name="social" size={16} />
-                      <b className={s.rowName}>{q.name}</b>
-                      <span className={s.muted}>{t('hub.members', { n: q.members.length })}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+      <div className={s.hubGrid}>
+        <div className={s.main}>
+          <Summary uid={uid} live={running.filter((w) => w.status === 'active').length} waiting={running.filter((w) => w.status !== 'active').length} squads={uid && squads.status === 'ready' ? squadList.length : null} loading={open === null} />
+          <section aria-labelledby="tw-start">
+            <h2 id="tw-start" className={s.sectionTitle}>
+              {t('hub.pick.title')}
+            </h2>
+            <ModeGrid />
+          </section>
+          <section aria-labelledby="tw-open">
+            <h2 id="tw-open" className={s.sectionTitle}>
+              {t('hub.open')}
+            </h2>
+            <div className={s.columns}>
+              <Card flush title={t('hub.open.battles')} actions={<Link className="hit" to="/battles">{t('hub.all')}</Link>}>
+                {!uid ? (
+                  <EmptyState icon="war" body={t('bt.signIn')} compact />
+                ) : wars.status === 'loading' ? (
+                  <LoadingState rows={2} />
+                ) : !running.length ? (
+                  <EmptyState icon="war" body={t('hub.open.battles.none')} compact actions={<Link className={buttonClass({ variant: 'primary', size: 'sm' })} to="/invite?kind=battle">{t('bt.new')}</Link>} />
+                ) : (
+                  <ul className={s.rows}>
+                    {running.map((w) => (
+                      <BattleRow key={w.id} w={w} now={now} />
+                    ))}
+                  </ul>
+                )}
+              </Card>
+              <Card flush title={t('hub.open.squads')} actions={<Link className="hit" to="/social">{t('hub.all')}</Link>}>
+                {!uid ? (
+                  <EmptyState icon="social" body={t('sq.signIn')} compact />
+                ) : squads.status === 'loading' ? (
+                  <LoadingState rows={2} />
+                ) : !squadList.length ? (
+                  <EmptyState icon="social" body={t('hub.open.squads.none')} compact actions={<Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to="/social">{t('hub.squad.start')}</Link>} />
+                ) : (
+                  <ul className={s.rows}>
+                    {squadList.map((q) => (
+                      <li key={q.id}>
+                        <Link to={`/social/${encodeURIComponent(q.id)}`} className={s.row}>
+                          <Icon name="social" size={16} />
+                          <b className={s.rowName}>{q.name}</b>
+                          <span className={s.muted}>{t('hub.members', { n: q.members.length })}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            </div>
+          </section>
+          {done.length > 0 && (
+            <section aria-labelledby="tw-recent">
+              <h2 id="tw-recent" className={s.sectionTitle}>
+                {t('hub.recent')}
+              </h2>
+              <Card flush>
+                <ul className={s.rows}>
+                  {done.map((w) => (
+                    <BattleRow key={w.id} w={w} now={now} />
+                  ))}
+                </ul>
+              </Card>
+            </section>
+          )}
         </div>
-      </section>
-      {done.length > 0 && (
-        <section aria-labelledby="tw-recent">
-          <h2 id="tw-recent" className={s.sectionTitle}>
-            {t('hub.recent')}
-          </h2>
-          <Card flush>
-            <ul className={s.rows}>
-              {done.map((w) => (
-                <BattleRow key={w.id} w={w} now={now} />
-              ))}
-            </ul>
-          </Card>
-        </section>
-      )}
-      <div className={s.columns}>
-        <div className={s.board}>
-          <p className={s.scope}>{t('hub.board.scope')}</p>
-          <LeaderboardCard uid={uid} rank={rank} me={me} />
-        </div>
-        <StrategiesPromo />
+        {/* a side panel (like a trading terminal's right-hand panel): who's winning and the strategies */}
+        <aside className={s.side} aria-label={t('hub.side')}>
+          <div className={s.board}>
+            <LeaderboardCard uid={uid} rank={rank} me={me} />
+            <p className={s.scope}>{t('hub.board.scope')}</p>
+          </div>
+          <StrategiesPromo compact />
+        </aside>
       </div>
     </Hub>
   );
@@ -230,12 +239,12 @@ function Summary({ uid, live, waiting, squads, loading }: { uid: string | null; 
     );
   const n = (x: number | null) => (loading || x === null ? '…' : String(x));
   return (
-    <Card pad aria-label={t('hub.summary')}>
+    <Card pad aria-label={t('hub.summary')} className={s.strip}>
       <div className={s.summary}>
-        <Stat label={<Scoped mode="hub.solo" what="hub.sum.value" />} value={v ? formatMoney(v.equity) : acct.status === 'loading' ? '…' : <Link className={s.sumLink} to="/trade-war/solo">{t('hub.sum.none')}</Link>} />
-        <Stat label={<Scoped mode="hub.battle" what="hub.sum.live" />} value={n(live)} />
-        <Stat label={<Scoped mode="hub.battle" what="hub.sum.waiting" />} value={n(waiting)} />
-        <Stat label={<Scoped mode="hub.squad" what="hub.sum.squads" />} value={n(squads)} />
+        <Stat size="sm" label={<Scoped mode="hub.solo" what="hub.sum.value" />} value={v ? formatMoney(v.equity) : acct.status === 'loading' ? '…' : <Link className={s.sumLink} to="/trade-war/solo">{t('hub.sum.none')}</Link>} />
+        <Stat size="sm" label={<Scoped mode="hub.battle" what="hub.sum.live" />} value={n(live)} />
+        <Stat size="sm" label={<Scoped mode="hub.battle" what="hub.sum.waiting" />} value={n(waiting)} />
+        <Stat size="sm" label={<Scoped mode="hub.squad" what="hub.sum.squads" />} value={n(squads)} />
       </div>
     </Card>
   );

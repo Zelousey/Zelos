@@ -85,6 +85,19 @@ textarea {
   -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
+/* Glass cards for a whole screen (owner 2026-11-08): put this class on a screen's wrapper and
+   every ui/Card inside becomes glass with a short header. */
+.glass-cards {
+  --card-bg: var(--glass-bg);
+  --card-line: var(--glass-line);
+  --card-shadow: var(--glass-shadow);
+  --card-blur: blur(18px) saturate(140%);
+  --card-head-pad: var(--space-2) var(--space-3);
+  --card-head-h: 40px;
+  --card-head-line: 1px solid var(--glass-line);
+  --card-pad: var(--space-3);
+}
+
 /* Small links ("All markets →", a symbol pill) get a finger-sized touch area on touch screens
    (at least --tap) without changing how they look or moving anything. Buttons and tabs
    already have it. Phase 4 M-5. */

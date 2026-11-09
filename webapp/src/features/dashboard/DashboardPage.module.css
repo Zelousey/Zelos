@@ -107,7 +107,7 @@
 /* owner 2026-11-08: one compact screen. Cards on the Dashboard are glass with short headers
    (the variables are read by ui/Card); no big title; side-by-side columns on wide screens. */
 .dash {
-  position: relative; display: grid; gap: var(--space-3);
+  position: relative; display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr);
   --card-bg: var(--glass-bg); --card-line: var(--glass-line); --card-shadow: var(--glass-shadow);
   --card-blur: blur(18px) saturate(140%);
   --card-head-pad: var(--space-2) var(--space-3); --card-head-h: 40px; --card-head-line: 1px solid var(--glass-line); --card-pad: var(--space-3);
