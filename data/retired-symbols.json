@@ -100,6 +100,21 @@
    "sym": "LLY",
    "name": "Eli Lilly",
    "group": "Health"
+  },
+  {
+   "sym": "PFE",
+   "name": "Pfizer",
+   "group": "Health"
+  },
+  {
+   "sym": "BA",
+   "name": "Boeing",
+   "group": "Energy & Industrial"
+  },
+  {
+   "sym": "IWM",
+   "name": "Russell 2000 ETF",
+   "group": "ETF"
   }
  ]
 }

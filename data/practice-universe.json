@@ -1,6 +1,6 @@
 {
  "version": 1,
- "note": "Single source of truth for the Practice Account stock list. Edit here, then run python3 scripts/build_practice.py (it copies this to functions/practice_universe.json for the price function). History comes from data/game-charts.json + data/practice-extra.json. 2026-10-22 (owner): 28 stocks (COIN and MSTR removed 2026-10-22, owner: no prices for them); \"fast\" ones get prices every minute (day trading), the rest every 15 minutes (long-term), to stay inside the Marketstack plan. Removed stocks are in retired-symbols.json.",
+ "note": "Single source of truth for the Practice Account stock list. Edit here, then run python3 scripts/build_practice.py (it copies this to functions/practice_universe.json for the price function). History comes from data/game-charts.json + data/practice-extra.json. 2026-10-22 (owner): 28 stocks (COIN and MSTR removed 2026-10-22, owner: no prices for them); \"fast\" ones get prices every minute (day trading), the rest every 15 minutes (long-term), to stay inside the Marketstack plan. Removed stocks are in retired-symbols.json. 2026-11-10 (owner): BA -> CAT, PFE -> MRNA, IWM -> QQQM.",
  "symbols": [
   {
    "sym": "AAPL",
@@ -109,8 +109,8 @@
    "group": "Health"
   },
   {
-   "sym": "PFE",
-   "name": "Pfizer",
+   "sym": "MRNA",
+   "name": "Moderna",
    "group": "Health"
   },
   {
@@ -119,8 +119,8 @@
    "group": "Energy & Industrial"
   },
   {
-   "sym": "BA",
-   "name": "Boeing",
+   "sym": "CAT",
+   "name": "Caterpillar",
    "group": "Energy & Industrial"
   },
   {
@@ -136,8 +136,8 @@
    "fast": true
   },
   {
-   "sym": "IWM",
-   "name": "Russell 2000 ETF",
+   "sym": "QQQM",
+   "name": "Nasdaq 100 ETF (QQQM)",
    "group": "ETF"
   },
   {
