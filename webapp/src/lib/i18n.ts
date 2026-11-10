@@ -2375,6 +2375,7 @@ const en = {
   'sq.compete.sub': 'Play against each other',
   'sq.compete.board': 'Squad competition',
   'sq.compete.board.body': 'The owner runs a week or a month; the squad board ranks every member’s Solo account.',
+  'sq.compete.start': 'Start',
   'sq.compete.classic': 'Free-for-all battle',
   'sq.compete.classic.body': 'Everyone starts with the same money; the best return wins. Send the link to your squad.',
   'sq.compete.draft': 'Fantasy Draft battle',

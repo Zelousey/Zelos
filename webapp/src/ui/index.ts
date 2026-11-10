@@ -15,5 +15,6 @@ export { Stat } from './StatCard';
 export { EmptyState, ErrorState, LoadingState } from './States';
 export { Tabs, type TabItem } from './Tabs';
 export { useScrollFade } from './useScrollFade';
+export { ChoiceCard, ChoiceList } from './ChoiceCard';
 export { ToastProvider, useToast } from './Toast';
 export { markTour, Tour, tourSeen, type TourStep } from './Tour';
