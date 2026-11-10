@@ -23,7 +23,8 @@ const STATUS: Record<string, 'status.cancelled' | 'status.expired' | 'status.rej
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
 
 /** The account for a signed-in player: a start button until they open one, then the account. */
-export function AccountSection({ uid }: { uid: string }) {
+/** ordersElsewhere: the page shows OpenOrdersCard on its own (the Dashboard puts it under Battle). */
+export function AccountSection({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: boolean }) {
   const acct = usePracticeAccount(uid);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -61,10 +62,10 @@ export function AccountSection({ uid }: { uid: string }) {
       </Card>
     );
   }
-  return <AccountView uid={uid} />;
+  return <AccountView uid={uid} ordersElsewhere={ordersElsewhere} />;
 }
 
-function AccountView({ uid }: { uid: string }) {
+function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: boolean }) {
   const acctState = usePracticeAccount(uid);
   const quotes = useQuotes();
   const history = usePracticeHistory(uid);
@@ -207,10 +208,7 @@ function AccountView({ uid }: { uid: string }) {
             </Card>
           )}
 
-          <Card title={t('practice.orders')} flush>
-            {acct.orders.length === 0 ? <EmptyState icon="inbox" body={t('practice.orders.empty')} compact /> : acct.orders.map((o) => <OrderRow key={o.id} o={o} disabled={pending} onCancel={() => void run(() => cancelOrder(o.id), t('practice.cancelled'))} />)}
-            <p className={s.note}>{t('practice.fillNote')}</p>
-          </Card>
+          {!ordersElsewhere && <OpenOrdersCard uid={uid} />}
         </div>
 
         <details className={s.more}>
@@ -280,17 +278,67 @@ function orderText(o: Order): string {
   return `${o.side === 'buy' ? t('trade.buy') : t('trade.sell')} ${o.qty} ${o.sym} · ${what}${role}`;
 }
 
-function OrderRow({ o, onCancel, disabled }: { o: Order; onCancel: () => void; disabled: boolean }) {
+/**
+ * Solo · Open orders (owner 2026-11-10): orders that haven't filled yet, each marked Open with
+ * what it is waiting for (the market to open, a price), and a clear Cancel order button. Orders
+ * placed while the market is closed wait here until the open and can be cancelled until then.
+ * The server takes a cancelled order out of the account in one transaction, so it can't fill
+ * afterwards. Filled and cancelled orders are in the history, never here.
+ */
+export function OpenOrdersCard({ uid }: { uid: string }) {
+  const acctState = usePracticeAccount(uid);
+  const quotes = useQuotes();
+  const toast = useToast();
+  const [busy, setBusy] = useState<string | null>(null);
+  const acct = acctState.status === 'ready' ? acctState.data : null;
+  if (!acct) return null;
+  const marketOpen = quotes.status === 'ready' ? quotes.data.marketOpen : true;
+  const cancel = (o: Order) => {
+    setBusy(o.id);
+    cancelOrder(o.id)
+      .then(() => toast.show(t('practice.cancelled'), 'success'))
+      .catch((e) => toast.show(errorMessage(e), 'error'))
+      .finally(() => setBusy(null));
+  };
+  return (
+    <Card title={t('practice.orders')} subtitle={acct.orders.length ? t('orders.sub') : undefined} flush>
+      {acct.orders.length === 0 ? (
+        <EmptyState icon="inbox" body={t('practice.orders.empty')} compact />
+      ) : (
+        <ul className={s.orderList}>
+          {acct.orders.map((o) => (
+            <li key={o.id}>
+              <OrderRow o={o} marketOpen={marketOpen} disabled={busy != null} busy={busy === o.id} onCancel={() => cancel(o)} />
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className={s.note}>{t('practice.fillNote')}</p>
+    </Card>
+  );
+}
+
+function waitingFor(o: Order, marketOpen: boolean): string {
+  if (!marketOpen) return t('orders.waitOpen');
+  if (o.type === 'limit' && o.limit != null) return t('orders.waitPrice', { price: formatPrice(o.limit) });
+  if (o.type === 'stop' && o.stop != null) return t('orders.waitPrice', { price: formatPrice(o.stop) });
+  return t('orders.waitNext');
+}
+
+function OrderRow({ o, onCancel, disabled, busy, marketOpen }: { o: Order; onCancel: () => void; disabled: boolean; busy: boolean; marketOpen: boolean }) {
   return (
     <div className={s.orderRow}>
-      <span>
-        <span className={s.orderText}>{orderText(o)}</span>
+      <span className={s.orderMain}>
+        <span className={s.orderTop}>
+          <Badge tone="gold">{t('orders.open')}</Badge>
+          <span className={s.orderText}>{orderText(o)}</span>
+        </span>
         <span className={[s.orderMeta, s.sub].join(' ')}>
-          {o.opt ? t('nav.options') : o.tif === 'gtc' ? t('trade.gtc') : `${t('trade.day')} (${formatDate(o.session + 'T12:00:00Z')})`} · {formatRelative(o.createdAt)}
+          {waitingFor(o, marketOpen)} · {o.opt ? t('nav.options') : o.tif === 'gtc' ? t('trade.gtc') : `${t('trade.day')} (${formatDate(o.session + 'T12:00:00Z')})`} · {formatRelative(o.createdAt)}
         </span>
       </span>
-      <Button variant="ghost" size="sm" onClick={onCancel} disabled={disabled} aria-label={`${t('practice.cancel')}: ${orderText(o)}`}>
-        {t('practice.cancel')}
+      <Button variant="danger" size="sm" onClick={onCancel} disabled={disabled} aria-label={`${t('practice.cancel')}: ${orderText(o)}`}>
+        {busy ? t('orders.cancelling') : t('orders.cancel')}
       </Button>
     </div>
   );
