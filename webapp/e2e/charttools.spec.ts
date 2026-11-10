@@ -31,6 +31,7 @@ test('chart tools: indicators, Fibonacci, place / remove / fire price alerts', a
   await tools.getByRole('button', { name: /Alert/ }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tap the price you want to watch' })).toBeVisible();
   const chart = page.getByRole('img', { name: /^AAPL .* price chart$/ });
+  await chart.scrollIntoViewIfNeeded(); // the chart is taller now (owner 2026-11-10): bring it on screen before tapping it
   const box = (await chart.boundingBox())!;
   await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.3);
   const list = page.getByRole('list', { name: 'Price alerts for AAPL' });
@@ -54,7 +55,9 @@ test('signed in: price alerts are saved on the account, where the server checks 
   await expect(page.getByRole('button', { name: /Watch|Watching/ })).toBeVisible(); // signed-in layout has settled
   await tools.getByRole('button', { name: /Alert/ }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tap the price you want to watch' })).toBeVisible();
-  const box = (await page.getByRole('img', { name: /^AAPL .* price chart$/ }).boundingBox())!;
+  const chart = page.getByRole('img', { name: /^AAPL .* price chart$/ });
+  await chart.scrollIntoViewIfNeeded(); // the chart is taller now (owner 2026-11-10): bring it on screen before tapping it
+  const box = (await chart.boundingBox())!;
   await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.3);
   const list = page.getByRole('list', { name: 'Price alerts for AAPL' });
   await expect(list.getByRole('listitem')).toHaveCount(1);

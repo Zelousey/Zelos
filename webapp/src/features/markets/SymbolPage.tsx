@@ -32,7 +32,7 @@ const TF_KEY = 'zelosAppChartTf';
 
 function initialTf(): Timeframe {
   const v = readString(TF_KEY);
-  return v === '15m' || v === '1h' || v === 'D' || v === 'W' ? v : 'D';
+  return v === '5m' || v === '15m' || v === '1h' || v === 'D' || v === 'W' ? v : 'D';
 }
 
 export default function SymbolPage() {
@@ -98,8 +98,8 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
         <div className={s.ident}>
           <div className={s.symRow}>
             <h1 className={s.sym}>{sym}</h1>
-            <Button variant="secondary" size="sm" onClick={() => setSwitching(true)} aria-haspopup="dialog">
-              <Icon name="search" size={16} /> {t('chart.switch')}
+            <Button variant="secondary" size="sm" onClick={() => setSwitching(true)} aria-haspopup="dialog" aria-label={t('chart.switch')}>
+              <Icon name="search" size={16} /> <span className={s.switchText}>{t('chart.switch')}</span>
             </Button>
             <WatchButton sym={sym} />
           </div>
@@ -123,21 +123,35 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
       <StatusLine quotes={quotes} />
 
       <div className={s.layout}>
-        <Card>
-          <div ref={controlsRef} className={s.controls}>
-            <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.map((x) => ({ value: x.id, label: x.label }))} />
-            <div>
-              <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
-              <Tabs label={t('chart.style')} value={style} onChange={setStyle} items={[{ value: 'line', label: t('chart.line') }, { value: 'candles', label: t('chart.candles') }]} />
-            </div>
-          </div>
+        <Card className={s.chartCard}>
           {failed ? (
             <ErrorState compact onRetry={retry} />
           ) : !loading && built.bars.length === 0 ? (
             <EmptyState icon="chart" body={built.intraday ? t('chart.noIntraday') : t('chart.noData', { sym })} compact />
           ) : (
             <div className={s.chartBody}>
-              <ChartView sym={sym} seriesKey={`${sym}:${tf}`} bars={built.bars} live={built.live} intraday={built.intraday} range={range} style={style} refPrice={tf === '15m' || tf === '1h' ? prevClose : null} loading={loading} label={t('chart.label', { sym, tf: tfDef.label })} tools />
+              <ChartView
+                sym={sym}
+                seriesKey={`${sym}:${tf}`}
+                bars={built.bars}
+                live={built.live}
+                intraday={built.intraday}
+                range={range}
+                style={style}
+                refPrice={built.intraday ? prevClose : null}
+                loading={loading}
+                label={t('chart.label', { sym, tf: tfDef.label })}
+                tools
+                under={
+                  // owner 2026-11-10: the timeframe row sits right under the chart, like a trading app
+                  <div ref={controlsRef} className={s.controls}>
+                    <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
+                    <span className={s.ctrlGap} aria-hidden="true" />
+                    <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.map((x) => ({ value: x.id, label: x.label }))} />
+                    <Tabs label={t('chart.style')} value={style} onChange={setStyle} items={[{ value: 'line', label: t('chart.line') }, { value: 'candles', label: t('chart.candles') }]} />
+                  </div>
+                }
+              />
             </div>
           )}
           {built.bars.length > 0 && (

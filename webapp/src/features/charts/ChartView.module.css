@@ -15,3 +15,4 @@
 .indGroup legend { font-weight: 600; color: var(--ink); margin-bottom: var(--space-1); }
 .indRow { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); color: var(--ink-2); }
 .indRow input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+@media (max-width: 760px) { .wrap { border-radius: 0; } }

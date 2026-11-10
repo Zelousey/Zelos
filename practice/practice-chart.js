@@ -80,6 +80,17 @@
     }
     return o;
   }
+  // VWAP: the volume-weighted average price, starting again each trading day (intraday charts only)
+  function vwap(s) {
+    var o = new Array(s.n), day = null, pv = 0, vv = 0;
+    for (var i = 0; i < s.n; i++) {
+      if (!s.intraday) { o[i] = null; continue; }
+      var d = s.d[i].slice(0, 10); if (d !== day) { day = d; pv = 0; vv = 0; }
+      var v = s.v[i] || 0; pv += (s.h[i] + s.l[i] + s.c[i]) / 3 * v; vv += v;
+      o[i] = vv ? pv / vv : null;
+    }
+    return o;
+  }
   function obv(s) { var o = new Array(s.n), t = 0; for (var i = 0; i < s.n; i++) { if (i) t += s.c[i] > s.c[i - 1] ? s.v[i] : s.c[i] < s.c[i - 1] ? -s.v[i] : 0; o[i] = t; } return o; }
   function donchian(s, n) {
     var up = new Array(s.n).fill(null), lo = new Array(s.n).fill(null);
@@ -97,6 +108,7 @@
     { id: 'sma200', need: 200, label: 'SMA 200', kind: 'overlay', group: 'Moving averages', color: '#f472b6', compute: function (s) { return sma(s.c, 200); } },
     { id: 'ema9', need: 9, label: 'EMA 9', kind: 'overlay', group: 'Moving averages', color: 'violet', compute: function (s) { return ema(s.c, 9); } },
     { id: 'ema21', need: 21, label: 'EMA 21', kind: 'overlay', group: 'Moving averages', color: '#22d3ee', compute: function (s) { return ema(s.c, 21); } },
+    { id: 'vwap', label: 'VWAP', kind: 'overlay', group: 'Moving averages', color: '#7dd3fc', compute: function (s) { return vwap(s); }, intradayOnly: true },
     { id: 'bb', need: 20, label: 'Bollinger Bands (20, 2)', kind: 'overlay', group: 'Bands', color: 'violet', compute: function (s) { return bollinger(s.c, 20, 2); },
       band: ['up', 'lo', 'mid'] },
     { id: 'dc', need: 20, label: 'Donchian Channel (20)', kind: 'overlay', group: 'Bands', color: '#f59e0b', compute: function (s) { return donchian(s, 20); }, band: ['up', 'lo'] },
@@ -319,14 +331,15 @@
     return INDICATORS.filter(function (d) { return d.kind === 'pane' && self.show[d.id]; }).slice(0, 3);
   };
   TradeChart.prototype.layout = function () {
-    var padR = 64, top = Math.max(40, 16 + 14 * (this.legendRows || 1)), bottom = 20, gap = 8, H = this.H, panes = this.panes();
-    var subH = panes.length ? Math.max(54, Math.round(H * (panes.length > 2 ? 0.13 : 0.16))) : 0;
+    var padR = 64, top = 8 + 19 * (this.legendRows || 1) + 6, bottom = 20, gap = 4, H = this.H, panes = this.panes();
+    var subH = panes.length ? Math.max(60, Math.round(H * (panes.length > 2 ? 0.14 : 0.17))) : 0;
     var priceB = H - bottom - panes.length * (subH + gap);
     var L = { x0: 8, x1: this.W - padR, y0: top, y1: priceB, panes: [], vol: null };
-    // volume: its own strip under the candles (it used to sit on top of them)
+    // volume: faint bars along the bottom of the price area, behind the candles (the price scale
+    // leaves room for them, see draw)
     if (this.show.vol && this.style !== 'line' && this.s && this.s.v.some(function (v) { return v > 0; })) {
-      var vh = Math.max(28, Math.round((priceB - top) * 0.16));
-      L.vol = { y0: priceB - vh, y1: priceB }; L.y1 = priceB - vh - 6;
+      var vh = Math.max(28, Math.round((priceB - top) * 0.2));
+      L.vol = { y0: priceB - vh, y1: priceB };
     }
     var y = priceB + gap;
     panes.forEach(function (d) { L.panes.push({ def: d, y0: y, y1: y + subH }); y += subH + gap; });
@@ -396,15 +409,22 @@
     this.shapes.forEach(function (sh) { (sh.pts || []).forEach(function (q) { if (q.p > lo * 0.8 && q.p < hi * 1.25) { lo = Math.min(lo, q.p); hi = Math.max(hi, q.p); } }); });
     if (lineMode && this.refPrice && this.refPrice > lo * 0.97 && this.refPrice < hi * 1.03) { lo = Math.min(lo, this.refPrice); hi = Math.max(hi, this.refPrice); }
     var pad = (hi - lo) * (lineMode ? 0.12 : 0.06) || (lineMode ? hi * 0.004 : 1); lo -= pad; hi += pad;
+    if (L.vol) lo -= (hi - lo) * 0.22; // the volume bars sit in the bottom fifth
     if (this.frozen) { lo = this.frozen.lo; hi = this.frozen.hi; } // keep the scale still while dragging
     function Y(p) { return L.y0 + (hi - p) / (hi - lo) * (L.y1 - L.y0); }
     this.geo = { L: L, lo: lo, hi: hi, Y: Y, bw: bw, fx0: X(Math.min(to, s.n - 1)) + bw * 0.7 };
-    c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'middle';
-    // grid + price axis
-    var step = niceStep((hi - lo) / 6);
+    c.font = '500 11px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.textBaseline = 'middle';
+    // grid + price axis: faint horizontal lines only, labels down the right
+    var step = niceStep((hi - lo) / 7), gTop = L.y0, gBot = L.vol ? L.vol.y0 : L.y1;
+    c.globalAlpha = 0.6;
     for (var g = Math.ceil(lo / step) * step; g < hi; g += step) {
-      var gy = Y(g); c.strokeStyle = grid; c.lineWidth = 1; c.beginPath(); c.moveTo(L.x0, gy); c.lineTo(L.x1, gy); c.stroke();
-      c.fillStyle = muted; c.fillText(fmt(g, g >= 1000 ? 0 : 2), L.x1 + 8, gy);
+      var gy = Math.round(Y(g)) + 0.5; if (gy < gTop || gy > gBot) continue;
+      c.strokeStyle = grid; c.lineWidth = 1; c.beginPath(); c.moveTo(L.x0, gy); c.lineTo(L.x1, gy); c.stroke();
+    }
+    c.globalAlpha = 1;
+    for (g = Math.ceil(lo / step) * step; g < hi; g += step) {
+      var gy2 = Y(g); if (gy2 < gTop + 4 || gy2 > gBot) continue;
+      c.fillStyle = muted; c.fillText(fmt(g, g >= 1000 ? 0 : 2), L.x1 + 8, gy2);
     }
     // time axis
     c.textBaseline = 'alphabetic';
@@ -417,7 +437,6 @@
         if (day === lastM) continue;
         lastM = day;
         var ix = X(i); if (ix - lastX < 44) continue; lastX = ix; dayXs.push(ix);
-        c.strokeStyle = grid; c.beginPath(); c.moveTo(ix, L.y0); c.lineTo(ix, L.y1); c.stroke();
         c.fillStyle = ink; c.fillText(MN[parseInt(day.slice(5, 7), 10) - 1] + ' ' + parseInt(day.slice(8, 10), 10), ix + 3, L.xAxis);
       }
       lastX = -1e9;
@@ -429,7 +448,6 @@
         var hx0 = X(i);
         if (hx0 - lastX < 36 || dayXs.some(function (dx) { return Math.abs(hx0 - dx) < 46; })) continue;
         lastX = hx0;
-        c.strokeStyle = grid; c.beginPath(); c.moveTo(hx0, L.y0); c.lineTo(hx0, L.y1); c.stroke();
         c.fillStyle = muted; c.fillText(s.d[i].slice(11, 16), hx0 + 3, L.xAxis);
         continue;
       }
@@ -438,7 +456,6 @@
         lastM = m; var mx = X(i);
         if (mx - lastX > 46) {
           lastX = mx;
-          c.strokeStyle = grid; c.beginPath(); c.moveTo(mx, L.y0); c.lineTo(mx, L.y1); c.stroke();
           var lab = MN[parseInt(s.d[i].slice(5, 7), 10) - 1] + (s.d[i].slice(5, 7) === '01' ? ' ' + s.d[i].slice(0, 4) : '');
           c.fillStyle = muted; c.fillText(lab, mx + 3, L.xAxis);
         }
@@ -459,23 +476,21 @@
       c.beginPath(); var started = false;
       for (var k = from; k <= to; k++) { if (v.up[k] == null) continue; if (!started) { c.moveTo(X(k), Y(v.up[k])); started = true; } else c.lineTo(X(k), Y(v.up[k])); }
       for (k = to; k >= from; k--) { if (v.lo[k] == null) continue; c.lineTo(X(k), Y(v.lo[k])); }
-      c.closePath(); c.globalAlpha = 0.07; c.fillStyle = cc; c.fill(); c.globalAlpha = 1;
-      pathLine(v.up, cc, 1, 0.6); pathLine(v.lo, cc, 1, 0.6); if (v.mid) pathLine(v.mid, cc, 1, 0.35, [3, 3]);
+      c.closePath(); c.globalAlpha = 0.1; c.fillStyle = cc; c.fill(); c.globalAlpha = 1;
+      pathLine(v.up, cc, 1.2, 0.85); pathLine(v.lo, cc, 1.2, 0.85); if (v.mid) pathLine(v.mid, cc, 1, 0.55);
     });
     c.lineJoin = 'round';
-    overlays.forEach(function (d) { if (!d.band) pathLine(s.ind[d.id], col(d.color, acc), 1.6, 0.95); });
+    overlays.forEach(function (d) { if (!d.band) pathLine(s.ind[d.id], col(d.color, acc), 1.3, 0.95); });
     c.lineJoin = 'miter'; c.restore();
     // volume: its own strip under the price area
     if (L.vol && vmax) {
-      var vh = L.vol.y1 - L.vol.y0 - 2;
-      c.strokeStyle = grid; c.beginPath(); c.moveTo(L.x0, L.vol.y0 - 3); c.lineTo(L.x1, L.vol.y0 - 3); c.stroke();
+      var vh = L.vol.y1 - L.vol.y0 - 2, vbw = Math.max(1, Math.min(9, Math.round(bw * 0.62)));
       for (i = from; i <= to; i++) {
         if (!s.v[i]) continue;
         var up = s.c[i] >= s.o[i], h = Math.max(1, s.v[i] / vmax * vh);
-        c.fillStyle = rgba(up ? bull : bear, 0.45);
-        c.fillRect(X(i) - bw * 0.36, L.vol.y1 - h, Math.max(1, bw * 0.72), h);
+        c.fillStyle = rgba(up ? bull : bear, 0.38);
+        c.fillRect(Math.round(X(i) - vbw / 2), L.vol.y1 - h, vbw, h);
       }
-      c.fillStyle = muted; c.textBaseline = 'top'; c.fillText('Volume', L.x0 + 4, L.vol.y0); c.fillText(fmtVol(vmax), L.x1 + 8, L.vol.y0); c.textBaseline = 'middle';
     }
     // line view: one price line, green or red against the previous close, soft fill, live dot
     var pulseAt = null;
@@ -493,12 +508,14 @@
     }
     this.placePulse(pulseAt);
     // candles
+    var cbw = Math.max(1, Math.min(9, Math.round(bw * 0.62)));
+    if (cbw > 2 && cbw % 2 === 0) cbw -= 1; // odd widths keep the wick in the middle
     for (i = lineMode ? to + 1 : from; i <= to; i++) {
-      var o = s.o[i], cl = s.c[i], x = X(i), cc = cl >= o ? bull : bear;
-      c.strokeStyle = cc; c.lineWidth = 1; c.beginPath(); c.moveTo(x, Y(s.h[i])); c.lineTo(x, Y(s.l[i])); c.stroke();
-      var top = Y(Math.max(o, cl)), hgt = Math.max(1, Math.abs(Y(o) - Y(cl)));
-      c.fillStyle = cc; c.fillRect(x - bw * 0.36, top, Math.max(1, bw * 0.72), hgt);
-      if (lightBg && lum(cc) > 0.8) { c.strokeStyle = '#9aa1ac'; c.strokeRect(x - bw * 0.36, top, Math.max(1, bw * 0.72), hgt); c.beginPath(); c.moveTo(x, Y(s.h[i])); c.lineTo(x, Y(s.l[i])); c.stroke(); }
+      var o = s.o[i], cl = s.c[i], x = Math.round(X(i)), cc = cl >= o ? bull : bear;
+      c.strokeStyle = cc; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 0.5, Math.round(Y(s.h[i]))); c.lineTo(x + 0.5, Math.round(Y(s.l[i]))); c.stroke();
+      var top = Math.round(Y(Math.max(o, cl))), hgt = Math.max(1, Math.round(Math.abs(Y(o) - Y(cl)))), bx = x + 1 - Math.ceil(cbw / 2);
+      c.fillStyle = cc; c.fillRect(bx, top, cbw, hgt);
+      if (lightBg && lum(cc) > 0.8) { c.strokeStyle = '#9aa1ac'; c.strokeRect(bx, top, cbw, hgt); c.beginPath(); c.moveTo(x + 0.5, Y(s.h[i])); c.lineTo(x + 0.5, Y(s.l[i])); c.stroke(); }
       if (s.live && i === s.n - 1) { c.strokeStyle = acc; c.setLineDash([2, 2]); c.strokeRect(x - bw * 0.5, Y(s.h[i]) - 2, bw, Y(s.l[i]) - Y(s.h[i]) + 4); c.setLineDash([]); }
     }
     // forecast stop-loss / take-profit boxes, projected right of the latest bar
@@ -511,9 +528,9 @@
         c.strokeStyle = rgba(k[1], 0.75); c.lineWidth = 1; c.strokeRect(fx0 + 0.5, tp0 + 0.5, fx1 - fx0 - 1, Math.max(1, hh - 1));
         if (hh > 16 && fx1 - fx0 > 60) {
           var pctv = (v / F.entry - 1) * 100;
-          c.font = '700 9.5px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = k[1];
+          c.font = '700 9.5px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillStyle = k[1];
           c.fillText(k[2] + ' ' + (pctv >= 0 ? '+' : '') + pctv.toFixed(1) + '%', fx0 + 5, k[0] === 'tp' ? tp0 + 10 : tp0 + hh - 9);
-          c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+          c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
         }
         c.fillStyle = k[1]; c.fillRect(L.x1 + 1, yB - 8, 62, 16); c.fillStyle = '#0b0c0f'; c.fillText(fmt(v), L.x1 + 6, yB);
         if (F.editable) { // drag grip on the edge you can move
@@ -523,9 +540,9 @@
       c.strokeStyle = ink; c.globalAlpha = 0.7; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(fx0, Y(F.entry)); c.lineTo(fx1, Y(F.entry)); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
       if (F.sl && F.tp && F.entry) {
         var rr = Math.abs(F.tp - F.entry) / Math.max(1e-9, Math.abs(F.entry - F.sl));
-        c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = ink; c.textAlign = 'right';
+        c.font = '700 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillStyle = ink; c.textAlign = 'right';
         c.fillText((F.label ? F.label + ' · ' : '') + rr.toFixed(1) + ':1', fx1 - 5, Y(F.entry) - 8); c.textAlign = 'left';
-        c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+        c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
       }
     }
     // Fibonacci retracement across the visible swing (0% at the latest extreme)
@@ -534,14 +551,14 @@
       for (i = from; i <= to; i++) { if (s.h[i] > s.h[hiI]) hiI = i; if (s.l[i] < s.l[loI]) loI = i; }
       var H0 = s.h[hiI], L0 = s.l[loI], upSwing = hiI > loI, gold = cssVar('--gold', '#e8b23d');
       var fx = X(Math.min(hiI, loI));
-      c.font = '600 9px "IBM Plex Mono", ui-monospace, monospace';
+      c.font = '600 9px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
       [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1].forEach(function (f) {
         var pv = upSwing ? H0 - (H0 - L0) * f : L0 + (H0 - L0) * f, fy = Y(pv);
         c.strokeStyle = gold; c.globalAlpha = f === 0.618 || f === 0.5 ? 0.75 : 0.45; c.lineWidth = 1; c.setLineDash(f === 0 || f === 1 ? [] : [4, 3]);
         c.beginPath(); c.moveTo(fx, fy); c.lineTo(L.x1, fy); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
         c.fillStyle = gold; c.textBaseline = 'bottom'; c.fillText('FIB ' + (f * 100).toFixed(1) + '%  ' + fmt(pv), fx + 4, fy - 1); c.textBaseline = 'middle';
       });
-      c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+      c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     }
     // Three-Legged Strategy: start -> A -> B -> C, with the projected end of leg C
     if (this.abc && this.abc.pts.length) {
@@ -552,7 +569,7 @@
         c.strokeStyle = vio; c.lineWidth = 2; c.beginPath();
         P3.forEach(function (q, k) { var x = X(q.i), y = Y(q.p); if (k) c.lineTo(x, y); else c.moveTo(x, y); });
         c.stroke();
-        c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.textAlign = 'center';
+        c.font = '700 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.textAlign = 'center';
         P3.forEach(function (q, k) {
           if (q.ghost) return;
           var x = X(q.i), y = Y(q.p), above = k === 0 ? P3.length > 1 && P3[1].p < q.p : q.p >= (P3[k - 1] || q).p;
@@ -566,13 +583,13 @@
           c.fillStyle = rgba(vio, 0.12); c.fillRect(zx, Math.min(zy1, zy2), L.x1 - zx, Math.abs(zy2 - zy1));
           c.strokeStyle = rgba(vio, 0.7); c.lineWidth = 1; c.setLineDash([4, 3]);
           [zy1, zy2].forEach(function (zy) { c.beginPath(); c.moveTo(zx, zy); c.lineTo(L.x1, zy); c.stroke(); }); c.setLineDash([]);
-          c.font = '600 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = vio; c.textAlign = 'right';
+          c.font = '600 9px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillStyle = vio; c.textAlign = 'right';
           c.fillText('C = 100% of A · ' + fmt(z1), L.x1 - 4, zy1 + (legA < 0 ? -6 : 8));
           c.fillText('C = 161.8% of A · ' + fmt(z2), L.x1 - 4, zy2 + (legA < 0 ? 8 : -6));
           if (P3.length === 4 && !P3[3].ghost) c.fillText('C/A ' + (Math.abs(P3[3].p - P3[2].p) / Math.max(1e-9, Math.abs(legA))).toFixed(2), L.x1 - 4, Math.min(zy1, zy2) - 16);
           c.textAlign = 'left';
         }
-        c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+        c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
       }
     }
     // coach plays: lines, arrows, boxes, price levels and labels pinned to bar dates
@@ -601,7 +618,7 @@
           c.font = '700 11px "IBM Plex Sans", ui-sans-serif, sans-serif'; c.textBaseline = 'bottom';
           var tx = sh.k === 'hline' ? L.x0 + 6 : a.x + 6, ty = a.y - 4, tw = c.measureText(label).width;
           c.globalAlpha = 0.85; c.fillStyle = bg; c.fillRect(tx - 3, ty - 15, tw + 6, 16); c.globalAlpha = 1; c.fillStyle = col; c.fillText(label, tx, ty);
-          c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+          c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
         }
         c.globalAlpha = 1;
       });
@@ -611,10 +628,10 @@
     this.alerts.forEach(function (a) {
       var ay = Y(a.price); if (ay < L.y0 || ay > L.y1) return;
       c.strokeStyle = acc; c.lineWidth = 1.2; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(L.x0, ay); c.lineTo(L.x1, ay); c.stroke(); c.setLineDash([]);
-      c.font = '700 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = acc; c.textAlign = 'right'; c.textBaseline = 'top';
+      c.font = '700 9px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillStyle = acc; c.textAlign = 'right'; c.textBaseline = 'top';
       c.fillText('TRADE WAR ALERT ' + (a.dir === 'below' ? '≤ ' : '≥ ') + fmt(a.price), L.x1 - 4, ay + 2); c.textAlign = 'left'; c.textBaseline = 'middle';
-      c.fillStyle = acc; c.fillRect(L.x1 + 1, ay - 8, 62, 16); c.fillStyle = '#ffffff'; c.font = '600 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText(fmt(a.price), L.x1 + 6, ay);
-      c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+      c.fillStyle = acc; c.fillRect(L.x1 + 1, ay - 8, 62, 16); c.fillStyle = '#ffffff'; c.font = '600 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillText(fmt(a.price), L.x1 + 6, ay);
+      c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     });
     // your fills
     this.marks.forEach(function (mk) {
@@ -627,35 +644,37 @@
     this.lines.forEach(function (ln) {
       var y3 = Y(ln.price); if (y3 < L.y0 || y3 > L.y1) return;
       c.strokeStyle = ln.color; c.lineWidth = 1; c.setLineDash(ln.dash || [5, 4]); c.beginPath(); c.moveTo(L.x0, y3); c.lineTo(L.x1, y3); c.stroke(); c.setLineDash([]);
-      c.font = '600 9px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = ln.color; c.textAlign = 'right'; c.textBaseline = 'bottom';
-      c.fillText(ln.label, L.x1 - 4, y3 - 2); c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+      c.font = '600 9px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillStyle = ln.color; c.textAlign = 'right'; c.textBaseline = 'bottom';
+      c.fillText(ln.label, L.x1 - 4, y3 - 2); c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
       c.fillStyle = ln.color; c.fillRect(L.x1 + 1, y3 - 8, 62, 16); c.fillStyle = tagInk; c.fillText(fmt(ln.price), L.x1 + 6, y3);
     });
     // each average's latest value as a small tag on the price axis, in its colour, so you can
     // tell the lines apart without the legend (the last-price tag below stays on top)
-    c.font = '600 9.5px "IBM Plex Mono", ui-monospace, monospace';
+    c.font = '600 9.5px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     overlays.forEach(function (d) {
       if (d.band) return;
       var ov = s.ind[d.id][to]; if (ov == null) return;
       var oy = Y(ov); if (oy < L.y0 + 6 || oy > L.y1 - 6) return;
-      var oc = col(d.color, acc); c.fillStyle = oc; c.fillRect(L.x1 + 1, oy - 7, 62, 14);
-      c.fillStyle = lum(oc) > 0.55 ? '#0b0c0f' : '#ffffff'; c.fillText(fmt(ov), L.x1 + 6, oy);
+      var oc = col(d.color, acc); pill(c, L.x1 + 2, oy - 8, 60, 16, oc);
+      c.fillStyle = lum(oc) > 0.55 ? '#0b0c0f' : '#ffffff'; c.fillText(fmt(ov), L.x1 + 9, oy);
     });
-    c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+    c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     // last price tag
-    if (this.lastPrice != null) {
-      var lp = this.anim ? this.animValue() : this.lastPrice;
-      var ly = Y(lp), up2 = lineMode ? lp >= (this.refPrice || s.o[from] || lp) : this.lastPrice >= (s.c[s.n - 2] || this.lastPrice), pc2 = up2 ? bull : bear;
+    // the last price always gets its tag (the app's charts don't set lastPrice; use the latest close)
+    var lastP = this.lastPrice != null ? this.lastPrice : to === s.n - 1 ? s.c[s.n - 1] : null;
+    if (lastP != null) {
+      var lp = this.anim ? this.animValue() : lastP;
+      var ly = Y(lp), up2 = lineMode ? lp >= (this.refPrice || s.o[from] || lp) : lastP >= (s.c[s.n - 2] || lastP), pc2 = up2 ? bull : bear;
       if (ly >= L.y0 && ly <= L.y1) {
         c.strokeStyle = pc2; c.globalAlpha = 0.6; c.setLineDash([1, 3]); c.beginPath(); c.moveTo(L.x0, ly); c.lineTo(L.x1, ly); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
-        c.fillStyle = pc2; c.fillRect(L.x1 + 1, ly - 9, 62, 18); c.fillStyle = lum(pc2) > 0.62 ? '#0b0c0f' : '#ffffff';
-        c.font = '700 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillText(fmt(lp), L.x1 + 6, ly); c.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
+        pill(c, L.x1 + 2, ly - 10, 60, 20, pc2); c.fillStyle = lum(pc2) > 0.62 ? '#0b0c0f' : '#ffffff';
+        c.font = '700 11.5px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillText(fmt(lp), L.x1 + 8, ly); c.font = '500 11px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
       }
     }
     // indicator panes
     L.panes.forEach(function (P) {
       var d = P.def, v = s.ind[d.id];
-      c.strokeStyle = grid; c.strokeRect(L.x0, P.y0, L.x1 - L.x0, P.y1 - P.y0);
+      c.strokeStyle = grid; c.lineWidth = 1; c.beginPath(); c.moveTo(0, Math.round(P.y0 - 2) + 0.5); c.lineTo(self.W, Math.round(P.y0 - 2) + 0.5); c.stroke();
       var series = (d.lines || []).map(function (ln) { return { arr: ln[0] ? v[ln[0]] : v, color: col(ln[1], acc) }; });
       var histArr = d.hist ? v[d.hist] : null;
       var mn, mx2;
@@ -671,20 +690,26 @@
         if (mn === mx2) { mn -= 1; mx2 += 1; }
       }
       var PY = function (val) { return P.y1 - 4 - (val - mn) / (mx2 - mn) * (P.y1 - P.y0 - 8); };
+      if (d.levels && d.levels.length === 2) { c.fillStyle = rgba(acc, 0.08); c.fillRect(L.x0, PY(d.levels[1]), L.x1 - L.x0, PY(d.levels[0]) - PY(d.levels[1])); }
       (d.levels || []).forEach(function (lv) {
-        c.strokeStyle = grid; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(L.x0, PY(lv)); c.lineTo(L.x1, PY(lv)); c.stroke(); c.setLineDash([]);
-        c.fillStyle = muted; c.fillText(String(lv), L.x1 + 8, PY(lv));
+        c.strokeStyle = rgba(acc, 0.7); c.lineWidth = 1; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(L.x0, Math.round(PY(lv)) + 0.5); c.lineTo(L.x1, Math.round(PY(lv)) + 0.5); c.stroke(); c.setLineDash([]);
+        c.fillStyle = muted; c.fillText(fmt(lv), L.x1 + 8, PY(lv));
       });
-      if (d.levels && d.levels.length === 2) { c.fillStyle = 'rgba(143,123,246,0.05)'; c.fillRect(L.x0, PY(d.levels[1]), L.x1 - L.x0, PY(d.levels[0]) - PY(d.levels[1])); }
-      if (histArr) for (var k2 = from; k2 <= to; k2++) { var hv = histArr[k2]; if (hv == null) continue; c.fillStyle = hv >= 0 ? rgba(bull, 0.5) : rgba(bear, 0.5); c.fillRect(X(k2) - bw * 0.3, Math.min(PY(0), PY(hv)), Math.max(1, bw * 0.6), Math.abs(PY(hv) - PY(0))); }
+      if (histArr) { var hbw = Math.max(1, Math.min(7, Math.round(bw * 0.55))); for (var k2 = from; k2 <= to; k2++) { var hv = histArr[k2]; if (hv == null) continue; c.fillStyle = hv >= 0 ? rgba(bull, 0.75) : rgba(bear, 0.75); c.fillRect(Math.round(X(k2) - hbw / 2), Math.min(PY(0), PY(hv)), hbw, Math.max(1, Math.abs(PY(hv) - PY(0)))); } }
       series.forEach(function (sr) {
-        c.strokeStyle = sr.color; c.lineWidth = 1.2; c.beginPath(); var pn = false;
+        c.strokeStyle = sr.color; c.lineWidth = 1.3; c.lineJoin = 'round'; c.beginPath(); var pn = false;
         for (var k3 = from; k3 <= to; k3++) { var v2 = sr.arr[k3]; if (v2 == null) { pn = false; continue; } if (!pn) { c.moveTo(X(k3), PY(v2)); pn = true; } else c.lineTo(X(k3), PY(v2)); }
         c.stroke();
       });
       if (!d.range && !d.levels && hasVals(series, from, to)) { c.fillStyle = muted; c.fillText(fmtShort(mx2), L.x1 + 8, P.y0 + 8); c.fillText(fmtShort(mn), L.x1 + 8, P.y1 - 8); }
       if (!hasVals(series, from, to)) { c.fillStyle = muted; c.textAlign = 'center'; c.fillText(needText(d, s), (L.x0 + L.x1) / 2, (P.y0 + P.y1) / 2 + 4); c.textAlign = 'left'; }
-      c.fillStyle = muted; c.textBaseline = 'top'; c.fillText(d.label + (d.needsVolume && !s.v[s.n - 1] ? ' (needs volume)' : ''), L.x0 + 4, P.y0 + 3); c.textBaseline = 'middle';
+      // "RSI (14)  48.65": the name in ink, then each value in its line's colour
+      c.textBaseline = 'top'; c.font = '600 11.5px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
+      var pl = d.label + (d.needsVolume && !s.v[s.n - 1] ? ' (needs volume)' : ''), plx = L.x0 + 4, pli = self.hoverIdx != null ? self.hoverIdx : to;
+      c.fillStyle = ink; c.fillText(pl, plx, P.y0 + 3); plx += c.measureText(pl).width + 8; c.font = '500 11.5px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
+      series.forEach(function (sr) { var vv = sr.arr[pli]; if (vv == null) return; var tx = fmtShort(vv); c.fillStyle = sr.color; c.fillText(tx, plx, P.y0 + 3); plx += c.measureText(tx).width + 8; });
+      if (histArr && histArr[pli] != null) { c.fillStyle = histArr[pli] >= 0 ? bull : bear; c.fillText(fmtShort(histArr[pli]), plx, P.y0 + 3); }
+      c.textBaseline = 'middle'; c.font = '500 11px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     });
     // crosshair + legend
     var hi2 = null;
@@ -702,34 +727,44 @@
       c.fillStyle = ink; c.fillRect(hx - tw / 2, this.H - 16, tw, 15); c.fillStyle = bg; c.textAlign = 'center'; c.fillText(dl, hx, this.H - 8.5); c.textAlign = 'left';
     }
     var li = hi2 == null ? to : hi2;
-    var chg = li > 0 ? (s.c[li] / s.c[li - 1] - 1) * 100 : 0;
-    var parts = [
-      [s.d[li] + (s.live && li === s.n - 1 ? ' (today)' : ''), muted],
-      ['O ' + fmt(s.o[li]), ink], ['H ' + fmt(s.h[li]), ink], ['L ' + fmt(s.l[li]), ink], ['C ' + fmt(s.c[li]), ink],
-      [(chg >= 0 ? '+' : '') + fmt(chg) + '%', chg >= 0 ? bull : bear], ['Vol ' + fmtVol(s.v[li]), muted]
-    ];
+    this.hoverIdx = hi2;
+    // the legend: one row each for the prices, the averages, each band and volume; names in ink,
+    // values in colour (prices green or red with the candle)
+    var cUp = s.c[li] >= s.o[li], pcol = cUp ? bull : bear;
+    var lab = function (t) { return [t, ink, 'l']; }, sub = function (t) { return [t, muted, 's']; }, val = function (t, cc) { return [t, cc, 'v']; };
+    var rows = [[lab('O'), val(fmt(s.o[li]), pcol), lab('H'), val(fmt(s.h[li]), pcol), lab('L'), val(fmt(s.l[li]), pcol), lab('C'), val(fmt(s.c[li]), pcol)].concat(s.v[li] ? [lab('V'), val(fmtVol(s.v[li]), pcol)] : [])];
+    var avg = [];
     overlays.forEach(function (d) {
-      var v = s.ind[d.id], name = d.label.split(' (')[0];
-      if (!hasVals([{ arr: d.band ? v.up : v }], from, to)) { parts.push([name + ': ' + needText(d, s), muted]); return; }
-      parts.push([name + ' ' + (d.band ? fmt(v.up[li]) + '/' + fmt(v.lo[li]) : fmt(v[li])), col(d.color, acc)]);
+      var v = s.ind[d.id], name = d.label.split(' (')[0], cc = col(d.color, acc);
+      if (d.intradayOnly && !s.intraday) return; // e.g. VWAP on a daily chart: nothing to show
+      if (!hasVals([{ arr: d.band ? v.up : v }], from, to)) { avg.push(lab(name), sub(needText(d, s))); return; }
+      if (d.band) rows.push([lab(name === 'Bollinger Bands' ? 'BB (20)' : name === 'Donchian Channel' ? 'DC (20)' : name), sub('Lower'), val(fmt(v.lo[li]), cc)].concat(v.mid ? [sub('Mid'), val(fmt(v.mid[li]), cc)] : []).concat([sub('Upper'), val(fmt(v.up[li]), cc)]));
+      else avg.push(lab(name), val(fmt(v[li]), cc));
     });
-    L.panes.forEach(function (P) {
-      var d = P.def, v = s.ind[d.id];
-      var val = hasVals((d.lines || []).map(function (ln) { return { arr: ln[0] ? v[ln[0]] : v }; }), from, to)
-        ? (d.lines || []).map(function (ln) { return fmtShort(ln[0] ? v[ln[0]][li] : v[li]); }).join(' / ') : ': ' + needText(d, s);
-      parts.push([d.label.split(' (')[0] + ' ' + val, col((d.lines[0] || [])[1], acc)]);
+    if (avg.length) rows.push(avg);
+    if (L.vol) rows.push([lab('Volume'), val(fmtVol(s.v[li]), pcol)]);
+    var LH = 19, ly2 = 8 + LH / 2;
+    c.textBaseline = 'middle';
+    rows.forEach(function (row, r) {
+      var lx = L.x0 + 4;
+      row.forEach(function (pt, k) {
+        c.font = (pt[2] === 'l' ? '600 ' : '500 ') + '12px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
+        var w = c.measureText(pt[0]).width;
+        if (lx + w > L.x1 && lx > L.x0 + 4) { lx = L.x0 + 4; ly2 += LH; }
+        c.fillStyle = pt[1]; c.fillText(pt[0], lx, ly2);
+        var next = row[k + 1];
+        lx += w + (pt[2] === 'v' ? 12 : next && next[2] !== 'v' ? 8 : 5); // a name sits close to its value
+      });
+      if (r < rows.length - 1) {
+        c.strokeStyle = grid; c.lineWidth = 1; c.beginPath(); c.moveTo(L.x0, Math.round(ly2 + LH / 2) + 0.5); c.lineTo(L.x1, Math.round(ly2 + LH / 2) + 0.5); c.stroke();
+        ly2 += LH;
+      }
     });
-    c.font = '500 10.5px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'middle';
-    var lx = L.x0 + 2, ly2 = 10;
-    parts.forEach(function (pt) {
-      var w = c.measureText(pt[0]).width;
-      if (lx + w > L.x1) { lx = L.x0 + 2; ly2 += 14; }
-      c.fillStyle = pt[1]; c.fillText(pt[0], lx, ly2); lx += w + 12;
-    });
+    c.font = '500 11px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     // the price area starts below the legend (on a phone it wraps onto more lines); it only grows
     // while the crosshair moves, so the chart does not jump around under your finger
-    var rows = (ly2 - 10) / 14 + 1;
-    if (rows !== this.legendRows && !(this.hover && rows < this.legendRows)) { this.legendRows = rows; if (!this._relayout) { this._relayout = true; this.draw(); this._relayout = false; } }
+    var nrows = Math.round((ly2 - 8 - LH / 2) / LH) + 1;
+    if (nrows !== this.legendRows && !(this.hover && nrows < this.legendRows)) { this.legendRows = nrows; if (!this._relayout) { this._relayout = true; this.draw(); this._relayout = false; } }
   };
   function hasVals(series, from, to) {
     for (var k = from; k <= to; k++) for (var j = 0; j < series.length; j++) if (series[j].arr && series[j].arr[k] != null) return true;
@@ -737,7 +772,13 @@
   }
   // an indicator with nothing to draw: it needs more bars than this timeframe has (e.g. SMA 50
   // on hourly bars, where 5 days of history is about 35 bars)
-  function needText(d, s) { return d.need && s.n < d.need ? 'needs ' + d.need + ' bars (has ' + s.n + ')' : 'needs more history'; }
+  // a rounded tag on the price axis (falls back to a square on old browsers)
+  function pill(c, x, y, w, h, color) {
+    c.fillStyle = color; c.beginPath();
+    if (c.roundRect) c.roundRect(x, y, w, h, h / 2); else c.rect(x, y, w, h);
+    c.fill();
+  }
+  function needText(d, s) { if (d.intradayOnly && !s.intraday) return 'intraday charts only'; return d.need && s.n < d.need ? 'needs ' + d.need + ' bars (has ' + s.n + ')' : 'needs more history'; }
   function fmtShort(v) { if (v == null || isNaN(v)) return '–'; var a = Math.abs(v); return a >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : a >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : a >= 1e4 ? (v / 1e3).toFixed(1) + 'K' : a >= 100 ? v.toFixed(1) : v.toFixed(2); }
   function niceStep(raw) { var p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
 

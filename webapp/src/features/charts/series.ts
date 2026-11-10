@@ -2,16 +2,17 @@
  * Turning stored bars into what a chart shows, per timeframe. Pure functions (unit-tested),
  * ported from the classic practice page so both draw the same bars.
  *
- *   15m / 1H  from markets/intraday_SYM (1-minute or 15-minute bars, last 5 sessions), grouped
- *             into 15-minute or hourly buckets anchored at 9:30 ET
+ *   5m / 15m / 1H  from markets/intraday_SYM (5-minute bars, last 5 sessions), grouped
+ *             into 5-minute, 15-minute or hourly buckets anchored at 9:30 ET
  *   D         from ~2 years of daily history; the live quote updates (or adds) today's bar
  *   W         daily bars grouped by week (Monday)
  */
 import type { Bar, Quote } from '../../data/markets';
 
-export type Timeframe = '15m' | '1h' | 'D' | 'W';
+export type Timeframe = '5m' | '15m' | '1h' | 'D' | 'W';
 
 export const TIMEFRAMES: { id: Timeframe; label: string; ranges: [string, number | 'all'][]; def: number | 'all' }[] = [
+  { id: '5m', label: '5m', ranges: [['1D', 78], ['2D', 156], ['5D', 390]], def: 78 },
   { id: '15m', label: '15m', ranges: [['1D', 26], ['2D', 52], ['5D', 130]], def: 26 },
   { id: '1h', label: '1H', ranges: [['1D', 7], ['5D', 35]], def: 35 },
   { id: 'D', label: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
@@ -101,5 +102,5 @@ export function barsFor(tf: Timeframe, inputs: { history?: Bar[]; intraday?: Bar
     const d = dailyBars(inputs.history ?? [], inputs.quote);
     return { bars: tf === 'W' ? weeklyBars(d.bars) : d.bars, live: d.live, intraday: false };
   }
-  return { bars: intradayBars(inputs.intraday ?? [], tf === '1h' ? 60 : 15, inputs.quote), live: false, intraday: true };
+  return { bars: intradayBars(inputs.intraday ?? [], tf === '1h' ? 60 : tf === '5m' ? 5 : 15, inputs.quote), live: false, intraday: true };
 }
