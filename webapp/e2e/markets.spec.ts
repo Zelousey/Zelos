@@ -32,7 +32,9 @@ test('full flow: dashboard → markets → search → chart → practice trade',
   await rows.first().click();
   await expect(page).toHaveURL(/\/app\/markets\/NVDA$/);
   await expect(page.getByRole('heading', { level: 1, name: 'NVDA' })).toBeVisible();
-  await expect(page.getByRole('img', { name: /NVDA .* price chart/ })).toBeVisible();
+  // a day-trading stock opens on intraday bars (the fixture has none for NVDA): the timeframe row stays, so you can switch
+  await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '15m' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('link', { name: 'Sell NVDA' }).filter({ visible: true }).first()).toHaveAttribute('href', '/app/practice/trade/NVDA?side=sell');
   await page.getByRole('link', { name: 'Buy NVDA' }).filter({ visible: true }).first().click();
   await expect(page).toHaveURL(/\/app\/practice\/trade\/NVDA\?side=buy$/);
@@ -95,6 +97,7 @@ test('chart: timeframes, ranges, styles and the data table', async ({ page }) =>
   // a long-term stock: daily and weekly charts (owner 2026-11-10)
   await page.goto('markets/TSLA');
   await expect(page.getByRole('radio', { name: 'Long Term', checked: true })).toBeVisible();
+  await expect(page.getByText('TSLA is a Long Term symbol, so the chart is in Long Term mode.')).toBeVisible();
   await expect(page.getByRole('img', { name: /TSLA D price chart/ })).toBeVisible();
   await expect(page.getByRole('tab', { name: '15m' })).toHaveCount(0);
   await page.getByRole('tab', { name: 'W', exact: true }).click();

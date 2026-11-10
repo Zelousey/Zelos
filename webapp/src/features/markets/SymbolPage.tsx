@@ -10,12 +10,12 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { SYMBOL_RE, useQuotes } from '../../data/markets';
 import { instrument, INDEX_ETFS, searchUniverse, UNIVERSE } from '../../data/universe';
 import { useUserDoc } from '../../data/userDoc';
-import { fallbackSymbol, MODE_DEFAULT_TF, MODE_TFS, modeOf, useMode, type Mode } from '../../data/tradeMode';
+import { fallbackSymbol, MODE_DEFAULT_TF, MODE_TFS, modeOf, readMode, useMode, type Mode } from '../../data/tradeMode';
 import { useAuth } from '../../lib/auth';
 import { formatCompact, formatMarketTime, formatPercent, formatPrice, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade, useToast } from '../../ui';
+import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import type { Forecast } from '../charts/engine';
 import { nyDay } from '../charts/series';
@@ -74,14 +74,14 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   const [mode, setMode] = useMode();
   const navigate = useNavigate();
   const location = useLocation();
-  const toast = useToast();
+  // arriving from the other mode: a short note under the header (not a toast, which would sit on the chart's buttons)
+  const [joined] = useState(() => readMode() !== symMode);
   const swappedFrom = (location.state as { swappedFrom?: string } | null)?.swappedFrom ?? null;
   const [swapNote, setSwapNote] = useState(swappedFrom);
   const minutes = useModeMinutes();
   useEffect(() => {
     if (mode === symMode) return;
     setMode(symMode);
-    toast.show(t('mode.joined', { sym, mode: t(symMode === 'fast' ? 'mode.fast' : 'mode.slow') }));
     // only on arrival: later switches go through switchMode
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sym]);
@@ -138,6 +138,17 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
     setRange(TIMEFRAMES.find((x) => x.id === v)!.def);
   }
 
+  // owner 2026-11-10: the timeframe row sits right under the chart, like a trading app; it stays
+  // when a timeframe has no bars yet, so you can always switch
+  const controls = (
+    <div ref={controlsRef} className={s.controls}>
+      <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
+      <span className={s.ctrlGap} aria-hidden="true" />
+      <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.filter((x) => MODE_TFS[symMode].includes(x.id)).map((x) => ({ value: x.id, label: x.label }))} />
+      <Tabs label={t('chart.style')} value={style} onChange={setStyle} items={[{ value: 'line', label: t('chart.line') }, { value: 'candles', label: t('chart.candles') }]} />
+    </div>
+  );
+
   const tableRows = built.bars.slice(-12).reverse();
   const tradeHref = tradeHrefOf(sym);
 
@@ -176,13 +187,21 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
         </div>
       </div>
       <StatusLine quotes={quotes} />
+      {joined && !swapNote && (
+        <p className={s.joined} role="status">
+          {t('mode.joined', { sym, mode: t(symMode === 'fast' ? 'mode.fast' : 'mode.slow') })}
+        </p>
+      )}
 
       <div className={s.layout}>
         <Card className={s.chartCard}>
           {failed ? (
             <ErrorState compact onRetry={retry} />
           ) : !loading && built.bars.length === 0 ? (
-            <EmptyState icon="chart" body={built.intraday ? t('chart.noIntraday') : t('chart.noData', { sym })} compact />
+            <div className={s.chartBody}>
+              <EmptyState icon="chart" body={built.intraday ? t('chart.noIntraday') : t('chart.noData', { sym })} compact />
+              {controls}
+            </div>
           ) : (
             <div className={s.chartBody}>
               <ChartView
@@ -211,15 +230,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                     </Link>
                   </>
                 }
-                under={
-                  // owner 2026-11-10: the timeframe row sits right under the chart, like a trading app
-                  <div ref={controlsRef} className={s.controls}>
-                    <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
-                    <span className={s.ctrlGap} aria-hidden="true" />
-                    <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.filter((x) => MODE_TFS[symMode].includes(x.id)).map((x) => ({ value: x.id, label: x.label }))} />
-                    <Tabs label={t('chart.style')} value={style} onChange={setStyle} items={[{ value: 'line', label: t('chart.line') }, { value: 'candles', label: t('chart.candles') }]} />
-                  </div>
-                }
+                under={controls}
               />
             </div>
           )}
