@@ -192,7 +192,7 @@ function OpenOrder({ id, text }: { id: string; text: string }) {
   return (
     <div className={s.orderRow}>
       <span className={s.orderText}>
-        <Badge tone="gold">{t('orders.open')}</Badge> {text}
+        <Badge tone="gold">{t('orders.open')}</Badge> <span>{text}</span>
       </span>
       <Button
         variant="danger"
