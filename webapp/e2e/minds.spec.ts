@@ -216,6 +216,9 @@ test('the quote card: after 3 days away, a random quote that opens the Hall of M
 const reach = async (page: Page, target: Locator) => {
   for (let i = 0; i < 24; i++) {
     if (await target.waitFor({ state: 'visible', timeout: 250 }).then(() => true, () => false)) break;
+    // already on the page but still drawing (an image loading on a slow machine): wait for it
+    // rather than pressing Next and skipping past it
+    if ((await target.count()) > 0 && (await target.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false))) break;
     // look without waiting: a task finishing while we wait would turn Next on and skip its page
     const next = page.getByRole('button', { name: /^Next/ });
     if ((await next.count()) === 0 || !(await next.isEnabled())) break;
