@@ -95,6 +95,9 @@ test('phone: pinch zooms the chart, one finger drags it sideways, a double tap r
   const cdp = await page.context().newCDPSession(page);
   const y = b.y + b.height * 0.45, cx = b.x + b.width * 0.5;
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', pts: [number, number][]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, yy], id) => ({ x, y: yy, id })) });
+  // a long press doesn't select the chart or the tabs (iOS Copy / Look Up bar)
+  expect(await canvas.evaluate((el) => getComputedStyle(el).userSelect)).toBe('none');
+  expect(await page.getByRole('tab', { name: '15m' }).evaluate((el) => getComputedStyle(el).userSelect)).toBe('none');
   const before = await range();
   const span0 = before.to - before.from;
   // pinch out: fingers move apart, fewer bars on screen
