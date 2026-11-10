@@ -6,7 +6,7 @@
  * stays (dimmed) instead of flashing a skeleton. Pan (drag), zoom (wheel / pinch on the
  * engine's own handlers) and the crosshair legend come from the engine.
  */
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import type { Bar } from '../../data/markets';
 import { engine, SHAPE_POINTS, toSeries, type Forecast, type Shape, type ShapeColor, type ShapeKind, type TradeChart } from './engine';
 import { ChartTools, type ToolsActions } from './ChartTools';
@@ -33,9 +33,11 @@ export type ChartViewProps = {
   onDrawn?: (s: Shape) => void;
   /** show the chart tools (indicators, Fibonacci, price alerts) under the chart */
   tools?: boolean;
+  /** anything that belongs right under the chart, above the tools (e.g. the timeframe row) */
+  under?: ReactNode;
 };
 
-export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools }: ChartViewProps) {
+export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under }: ChartViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<TradeChart | null>(null);
   // chart tools: Fibonacci, placing an alert, and this symbol's alerts (rev bumps when the store changes)
@@ -162,11 +164,12 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
       {drawTool && <div className={s.drawLayer} data-testid="draw-layer" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDraft(null)} />}
     </div>
   );
-  if (!tools) return view;
+  if (!tools && !under) return view;
   return (
     <div className={s.withTools}>
       {view}
-      <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} />
+      {under}
+      {tools && <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} />}
     </div>
   );
 }
