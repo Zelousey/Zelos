@@ -180,9 +180,34 @@
     this.shapes = []; this.shapeDraft = null;
     this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
     var self = this, drag = null;
+    canvas.__ztc = this; // lets the browser tests read the visible range
     function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    // touch (owner 2026-11-10: pinching and dragging on a phone was hard): every finger is tracked,
+    // two fingers pinch-zoom around their midpoint (and pan as they move), one finger drags sideways,
+    // a double tap goes back to the chosen range
+    var fingers = {}, pinch = null, lastTap = null;
+    function fingerList() { return Object.keys(fingers).map(function (k) { return fingers[k]; }); }
+    function startPinch() {
+      var f = fingerList(); if (f.length < 2 || !self.s) return;
+      var L = self.layout(), w = L.x1 - L.x0;
+      var mid = (f[0].x + f[1].x) / 2, rel = Math.max(0, Math.min(1, (mid - L.x0) / w));
+      var span = self.to - self.from + 1;
+      pinch = { d0: Math.max(24, Math.abs(f[0].x - f[1].x)), span: span, anchor: self.from + rel * span };
+      drag = null; self.frozen = null; self.fullDay = null;
+    }
     canvas.addEventListener('pointerdown', function (e) {
-      var p = pos(e), hit = self.hitTest(p);
+      var p = pos(e);
+      if (e.pointerType === 'touch') {
+        fingers[e.pointerId] = p;
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        if (fingerList().length >= 2) { startPinch(); return; }
+        var now = Date.now();
+        if (lastTap && now - lastTap.t < 320 && Math.abs(p.x - lastTap.x) < 30 && Math.abs(p.y - lastTap.y) < 30 && self._range && !self.placing) {
+          lastTap = null; self.setRange(self._range[0], self._range[1]); return;
+        }
+        lastTap = { t: now, x: p.x, y: p.y };
+      }
+      var hit = self.hitTest(p);
       if (self.placing === 'abc' && self.geo && self.s && p.y >= self.geo.L.y0 && p.y <= self.geo.L.y1) {
         var bi = self.barAt(p.x), up = Math.abs(self.geo.Y(self.s.h[bi]) - p.y) < Math.abs(self.geo.Y(self.s.l[bi]) - p.y);
         if (!self.abc || self.abc.pts.length >= 4) self.abc = { pts: [] };
@@ -201,8 +226,21 @@
     });
     canvas.addEventListener('pointermove', function (e) {
       var p = pos(e);
+      if (e.pointerType === 'touch' && fingers[e.pointerId]) fingers[e.pointerId] = p;
+      if (pinch && self.s) {
+        var f = fingerList(); if (f.length < 2) return;
+        var L = self.layout(), w = L.x1 - L.x0, n = self.s.n;
+        var d = Math.max(24, Math.abs(f[0].x - f[1].x));
+        var ns = Math.max(Math.min(8, n), Math.min(n, Math.round(pinch.span * pinch.d0 / d)));
+        var rel = Math.max(0, Math.min(1, ((f[0].x + f[1].x) / 2 - L.x0) / w));
+        var from = Math.round(pinch.anchor - rel * ns);
+        from = Math.max(0, Math.min(n - ns, from));
+        self.from = from; self.to = from + ns - 1; self.hover = null; self.draw();
+        return;
+      }
       if (drag && drag.handle) { self.dragHandle(drag.handle, p.y); }
       else if (drag && self.s) {
+        if (Math.abs(drag.x - p.x) > 6) lastTap = null;
         var bw = self.barW(); var shift = Math.round((drag.x - p.x) / bw);
         var span = drag.to - drag.from;
         var to = Math.max(span, Math.min(self.s.n - 1, drag.to + shift));
@@ -211,7 +249,18 @@
       if (self.placing === 'abc') canvas.style.cursor = 'crosshair';
       self.hover = p; self.draw();
     });
-    function end() {
+    function end(e) {
+      if (e && e.pointerType === 'touch') {
+        delete fingers[e.pointerId];
+        var left = fingerList();
+        if (pinch) {
+          if (left.length >= 2) { startPinch(); return; }
+          pinch = null;
+          // one finger still down: carry on as a sideways drag from where it is
+          drag = left.length === 1 ? { x: left[0].x, from: self.from, to: self.to } : null;
+          return;
+        }
+      }
       if (drag && drag.handle) {
         var h = drag.handle; self.frozen = null;
         if (h.kind === 'forecast' && self.onForecastEdit) self.onForecastEdit(self.forecast, h.which);
@@ -221,6 +270,21 @@
       drag = null;
     }
     canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+    // the page must not take the gesture: two fingers are always the chart's; one finger is the
+    // chart's once it moves more sideways than up/down (a mostly vertical swipe still scrolls the page)
+    var axis = null, t0 = null;
+    canvas.addEventListener('touchstart', function (e) {
+      axis = e.touches.length >= 2 ? 'chart' : null;
+      t0 = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    }, { passive: true });
+    canvas.addEventListener('touchmove', function (e) {
+      if (e.touches.length >= 2) axis = 'chart';
+      else if (!axis && t0) {
+        var dx = Math.abs(e.touches[0].clientX - t0.x), dy = Math.abs(e.touches[0].clientY - t0.y);
+        if (dx > 4 || dy > 4) axis = dx >= dy || drag && drag.handle ? 'chart' : 'page';
+      }
+      if (axis === 'chart' && e.cancelable) e.preventDefault();
+    }, { passive: false });
     canvas.addEventListener('pointerleave', function () { if (!drag) { self.hover = null; self.draw(); } });
     canvas.addEventListener('wheel', function (e) {
       if (!self.s) return; e.preventDefault();
@@ -317,6 +381,7 @@
   // session in progress doesn't stretch its first bars across the chart (owner 2026-11-10)
   TradeChart.prototype.setRange = function (bars, daySlots) {
     if (!this.s) return;
+    this._range = [bars, daySlots]; // a double tap comes back here
     this.to = this.s.n - 1; this.fullDay = null;
     if (daySlots && this.s.intraday && this.s.n) {
       var day = this.s.d[this.to].slice(0, 10), f = this.to;
