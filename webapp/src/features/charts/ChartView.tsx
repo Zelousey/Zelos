@@ -35,9 +35,14 @@ export type ChartViewProps = {
   tools?: boolean;
   /** anything that belongs right under the chart, above the tools (e.g. the timeframe row) */
   under?: ReactNode;
+  /** the tools row above the chart instead of under it, with extra buttons from the screen */
+  toolsTop?: boolean;
+  toolbarExtra?: ReactNode;
+  /** intraday "1D": show only the latest session, with room for all its bars (e.g. 78 at 5m) */
+  daySlots?: number;
 };
 
-export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under }: ChartViewProps) {
+export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, daySlots }: ChartViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<TradeChart | null>(null);
   // chart tools: Fibonacci, placing an alert, and this symbol's alerts (rev bumps when the store changes)
@@ -68,9 +73,9 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
     c.onForecastEdit = onForecastEdit ?? null;
     if (series) {
       c.empty = null;
-      c.setSeries(series, range);
+      c.setSeries(series, range, daySlots);
     } else c.draw();
-  }, [series, style, refPrice, forecast, onForecastEdit, range]);
+  }, [series, style, refPrice, forecast, onForecastEdit, range, daySlots]);
 
   useEffect(() => {
     const c = chartRef.current;
@@ -155,8 +160,8 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
 
   // a new range on the same series only moves the window
   useEffect(() => {
-    chartRef.current?.setRange(range);
-  }, [range]);
+    chartRef.current?.setRange(range, daySlots);
+  }, [range, daySlots]);
 
   const view = (
     <div className={[s.wrap, loading && series && s.dim].filter(Boolean).join(' ')}>
@@ -165,11 +170,13 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
     </div>
   );
   if (!tools && !under) return view;
+  const toolRow = tools && <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} extra={toolbarExtra} />;
   return (
     <div className={s.withTools}>
+      {toolsTop && toolRow}
       {view}
       {under}
-      {tools && <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} />}
+      {!toolsTop && toolRow}
     </div>
   );
 }

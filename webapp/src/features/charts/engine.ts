@@ -37,8 +37,8 @@ export type Shape = { k: ShapeKind; c: ShapeColor; pts: ShapePoint[]; text?: str
 export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, arrow: 2, box: 2, hline: 1, text: 1 };
 
 export interface TradeChart {
-  setSeries(s: EngineSeries, bars?: number | 'all'): void;
-  setRange(bars: number | 'all'): void;
+  setSeries(s: EngineSeries, bars?: number | 'all', daySlots?: number): void;
+  setRange(bars: number | 'all', daySlots?: number): void;
   setStyle(style: 'line' | 'candles'): void;
   toggle(id: string, on?: boolean): void;
   zoom(factor: number, x?: number): void;

@@ -5,17 +5,21 @@
  * Prices come from markets/quotes (live, every minute in market hours), bars from
  * markets/intraday_SYM and the daily history.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { SYMBOL_RE, useQuotes } from '../../data/markets';
 import { instrument, INDEX_ETFS, searchUniverse, UNIVERSE } from '../../data/universe';
 import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
-import { formatCompact, formatMarketTime, formatPrice } from '../../lib/format';
+import { formatCompact, formatMarketTime, formatPercent, formatPrice, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
 import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
+import type { Forecast } from '../charts/engine';
+import { nyDay } from '../charts/series';
+import { usePracticeAccount, valueAccount } from '../practice/account';
+import { useVolMap } from '../options/model';
 import { TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { StatusLine } from './StatusLine';
@@ -67,6 +71,9 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   // owner 2026-10-09: every chart opens as a line; candles apply only to the chart you switch
   const [style, setStyle] = useState<'line' | 'candles'>('candles');
   const [showTable, setShowTable] = useState(false);
+  // Forecast (owner 2026-11-10): a green target box and a red stop box on the chart, dragged up and
+  // down; Buy then opens the ticket with them as the take-profit and stop-loss. Long only.
+  const [fc, setFc] = useState<{ sl: number; tp: number } | null>(null);
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
   const isIndexEtf = INDEX_ETFS.some((x) => x.sym === sym); // funds have no SEC company research
@@ -83,6 +90,21 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   const chAbs = price != null && prevClose ? price - prevClose : null;
   const chPct = q?.chPct ?? (chAbs != null && prevClose ? (chAbs / prevClose) * 100 : null);
 
+  const forecast: Forecast | null = useMemo(() => (fc && price ? { entry: price, sl: fc.sl, tp: fc.tp, side: 'buy', editable: true, label: `${sym} plan` } : null), [fc, price, sym]);
+  const onForecastEdit = useCallback((f: Forecast) => setFc((x) => (x ? { sl: f.sl ?? x.sl, tp: f.tp ?? x.tp } : x)), []);
+  // the boxes start sized to what's on screen (a 5-minute chart gets a tight plan, a daily chart a
+  // wider one): the stop a quarter of the visible high-low range below, the target twice as far up
+  const flipForecast = () =>
+    setFc((x) => {
+      if (x || !price) return null;
+      const seen = built.bars.slice(typeof range === 'number' ? -range : 0);
+      const spread = seen.length ? Math.max(...seen.map((b) => b[2])) - Math.min(...seen.map((b) => b[3])) : price * 0.05;
+      const step = Math.max(price * 0.002, spread * 0.25);
+      return { sl: +(price - step).toFixed(2), tp: +(price + 2 * step).toFixed(2) };
+    });
+  const buyHref = `${tradeHrefOf(sym)}?side=buy${fc ? `&sl=${fc.sl.toFixed(2)}&tp=${fc.tp.toFixed(2)}` : ''}`;
+  const dayLabel = tfDef.ranges.find(([, n]) => n === range)?.[0];
+
   function setTf(v: Timeframe) {
     setTfState(v);
     writeString(TF_KEY, v);
@@ -90,7 +112,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   }
 
   const tableRows = built.bars.slice(-12).reverse();
-  const tradeHref = `/practice/trade/${encodeURIComponent(sym)}`;
+  const tradeHref = tradeHrefOf(sym);
 
   return (
     <>
@@ -141,7 +163,21 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                 refPrice={built.intraday ? prevClose : null}
                 loading={loading}
                 label={t('chart.label', { sym, tf: tfDef.label })}
+                forecast={forecast}
+                onForecastEdit={onForecastEdit}
+                daySlots={built.intraday && dayLabel === '1D' && typeof range === 'number' ? range : undefined}
                 tools
+                toolsTop
+                toolbarExtra={
+                  <>
+                    <Button size="sm" variant={fc ? 'primary' : 'ghost'} aria-pressed={!!fc} onClick={flipForecast} disabled={!price}>
+                      <Icon name="target" size={16} /> {t('chart.forecast')}
+                    </Button>
+                    <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to={`/options/${encodeURIComponent(sym)}`}>
+                      <Icon name="options" size={16} /> {t('chart.options')}
+                    </Link>
+                  </>
+                }
                 under={
                   // owner 2026-11-10: the timeframe row sits right under the chart, like a trading app
                   <div ref={controlsRef} className={s.controls}>
@@ -152,6 +188,18 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                   </div>
                 }
               />
+            </div>
+          )}
+          {fc && price && (
+            <div className={s.plan} role="status">
+              <span>
+                <b className={s.planTp}>{t('chart.forecast.target')}</b> {formatPrice(fc.tp)} <span className="up">{formatPercent((fc.tp / price - 1) * 100)}</span>
+              </span>
+              <span>
+                <b className={s.planSl}>{t('chart.forecast.stop')}</b> {formatPrice(fc.sl)} <span className="down">{formatPercent((fc.sl / price - 1) * 100)}</span>
+              </span>
+              <span className={s.planRr}>{t('chart.forecast.rr', { r: price > fc.sl ? ((fc.tp - price) / (price - fc.sl)).toFixed(1) : '–' })}</span>
+              <span className={s.planHint}>{t('chart.forecast.hint')}</span>
             </div>
           )}
           {built.bars.length > 0 && (
@@ -194,6 +242,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
         </Card>
 
         <div className={s.side}>
+          <YourPosition sym={sym} tradeHref={tradeHref} />
           <Card title={t('stats.title')}>
             <div className={s.stats}>
               <Stat size="sm" label={t('stats.open')} value={formatPrice(q?.o)} />
@@ -207,7 +256,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
           {!isIndexEtf && <ResearchCard sym={sym} />}
           <div className={s.desktopTrade}>
             <div className={s.tradeBtns}>
-              <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={`${tradeHref}?side=buy`} aria-label={t('trade.buyLabel', { sym })}>
+              <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={buyHref} aria-label={t('trade.buyLabel', { sym })}>
                 {t('trade.buyBtn')}
               </Link>
               <Link className={buttonClass({ variant: 'sell', size: 'lg', block: true })} to={`${tradeHref}?side=sell`} aria-label={t('trade.sellLabel', { sym })}>
@@ -223,7 +272,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
       <SymbolSwitcher open={switching} onClose={() => setSwitching(false)} current={sym} />
 
       <div className={[s.actionBar, s.tradeBtns].join(' ')}>
-        <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={`${tradeHref}?side=buy`} aria-label={t('trade.buyLabel', { sym })}>
+        <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={buyHref} aria-label={t('trade.buyLabel', { sym })}>
           {t('trade.buyBtn')}
         </Link>
         <Link className={buttonClass({ variant: 'sell', size: 'lg', block: true })} to={`${tradeHref}?side=sell`} aria-label={t('trade.sellLabel', { sym })}>
@@ -231,6 +280,56 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
         </Link>
       </div>
     </>
+  );
+}
+
+const tradeHrefOf = (sym: string) => `/practice/trade/${encodeURIComponent(sym)}`;
+
+/** "You own this" (owner 2026-11-10): your Solo shares and options in this stock, with their profit
+ *  or loss, and a way into the trade. Only when you hold something. */
+function YourPosition({ sym, tradeHref }: { sym: string; tradeHref: string }) {
+  const { user, isReal } = useAuth();
+  const acct = usePracticeAccount(isReal && user ? user.uid : null);
+  const quotes = useQuotes();
+  const vols = useVolMap();
+  const [today] = useState(() => nyDay(Date.now()));
+  const data = acct.status === 'ready' ? acct.data : null;
+  const v = useMemo(() => (data ? valueAccount(data, quotes.status === 'ready' ? quotes.data.quotes : {}, today, vols) : null), [data, quotes, today, vols]);
+  if (!data || !v) return null;
+  const pos = v.rows.find((r) => r.sym === sym);
+  const opts = v.optionRows.filter((o) => o.u === sym);
+  const orders = data.orders.filter((o) => o.sym === sym).length;
+  if (!pos && !opts.length && !orders) return null;
+  return (
+    <Card title={t('pos.title')} className={s.position}>
+      {pos && (
+        <div className={s.posMain}>
+          <div>
+            <b>{pos.qty === 1 ? t('pos.share') : t('pos.shares', { n: pos.qty })}</b> <span className={s.muted}>{t('pos.avg', { price: formatPrice(pos.avg) })}</span>
+          </div>
+          <div className={s.posNums}>
+            <Stat size="sm" label={t('pos.value')} value={formatPrice(pos.value)} />
+            <Stat size="sm" label={t('pos.pnl')} value={formatSignedMoney(pos.pnl)} delta={formatPercent(pos.pnlPct)} direction={pos.pnl > 0 ? 'up' : pos.pnl < 0 ? 'down' : 'flat'} />
+          </div>
+        </div>
+      )}
+      {opts.length > 0 && (
+        <ul className={s.posOpts}>
+          {opts.map((o) => (
+            <li key={o.id}>
+              <Link to={`/options/${encodeURIComponent(sym)}`}>{t('pos.contracts', { n: o.qty, label: o.label })}</Link>
+              <span className={o.pnl >= 0 ? 'up' : 'down'}>{formatSignedMoney(o.pnl)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className={s.posFoot}>
+        {orders > 0 && <span className={s.muted}>{orders === 1 ? t('pos.order') : t('pos.orders', { n: orders })}</span>}
+        <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to={`${tradeHref}?side=sell`}>
+          {t('pos.open')}
+        </Link>
+      </div>
+    </Card>
   );
 }
 
@@ -263,13 +362,33 @@ function SymbolSwitcher({ open, onClose, current }: { open: boolean; onClose: ()
   const [q, setQ] = useState('');
   const quotes = useQuotes();
   const [recent] = useState(recentSymbols);
+  // owner 2026-11-10: switch between the day-trading list and the long-term list (starts on this stock's list)
+  const [speed, setSpeedState] = useState<'fast' | 'slow'>(() => (instrument(current)?.fast === false ? 'slow' : 'fast'));
+  const setSpeed = (x: 'fast' | 'slow') => {
+    setSpeedState(x);
+    writeString('zelosAppMarketSpeed', x); // the same choice as on Market
+  };
   const qs = quotes.status === 'ready' ? quotes.data.quotes : {};
-  // picking a symbol changes the page, which remounts this screen and closes the sheet
+  // picking a symbol changes the page, which remounts this screen and closes the sheet; a search
+  // looks in both lists
   const rows = searchUniverse(q)
+    .filter((i) => (q.trim() ? true : i.fast === (speed === 'fast')))
     .filter((i) => i.sym !== current)
     .map((i) => ({ sym: i.sym, name: i.name, price: qs[i.sym]?.c, chPct: qs[i.sym]?.chPct }));
   return (
     <Sheet open={open} onClose={onClose} title={t('chart.switch.title')} labelledBy="chart-switch-title">
+      <div className={s.switchSpeed}>
+        <Tabs
+          stretch
+          label={t('market.speed')}
+          value={speed}
+          onChange={setSpeed}
+          items={[
+            { value: 'fast', label: t('market.speed.fast') },
+            { value: 'slow', label: t('market.speed.slow') },
+          ]}
+        />
+      </div>
       <label className={s.switchSearch}>
         <Icon name="search" size={18} />
         <span className="visually-hidden">{t('markets.search')}</span>

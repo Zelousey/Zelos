@@ -196,3 +196,32 @@ test('all stocks come in two sections: day trading (every minute) and long-term 
   // removed stocks aren't listed
   await expect(list).not.toContainText('Broadcom');
 });
+
+test('stock page: your position with its P&L, a Forecast plan that Buy carries, the tools on top', async ({ page }, info) => {
+  const BASE = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents';
+  await page.goto('markets/AAPL');
+  await page.waitForFunction(() => typeof (window as unknown as { __zelosTestSignIn?: unknown }).__zelosTestSignIn === 'function');
+  const uid = await page.evaluate(
+    (e) => (window as unknown as { __zelosTestSignIn: (e: string, p: string) => Promise<{ user: { uid: string } }> }).__zelosTestSignIn(e, 'secret123').then((c) => c.user.uid),
+    `pos-${info.project.name}${Date.now()}@example.com`,
+  );
+  await fetch(`${BASE}/practiceAccounts/${uid}`, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { v: { integerValue: 3 }, cash: { doubleValue: 9000 }, positions: { mapValue: { fields: { AAPL: { mapValue: { fields: { qty: { integerValue: 5 }, avg: { doubleValue: 300 }, openedDay: { stringValue: '2026-10-01' } } } } } } } } }),
+  });
+  // owner 2026-11-10: you already own it, so the page says so, with the profit or loss and a way in
+  const pos = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Your position · Solo' }) });
+  await expect(pos).toContainText('5 shares');
+  await expect(pos).toContainText('+$168.15'); // (333.63 - 300) × 5
+  await expect(pos.getByRole('link', { name: 'Open this trade' })).toHaveAttribute('href', '/app/practice/trade/AAPL?side=sell');
+  // the tools sit above the chart; Forecast puts a target and a stop on it, and Buy takes them along
+  const tools = page.getByRole('toolbar', { name: 'Chart tools' });
+  const [tb, cb] = await Promise.all([tools.boundingBox(), page.getByRole('img', { name: /^AAPL .* price chart$/ }).boundingBox()]);
+  expect(tb!.y).toBeLessThan(cb!.y);
+  await tools.getByRole('button', { name: 'Forecast' }).click();
+  await expect(tools.getByRole('button', { name: 'Forecast' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('status').filter({ hasText: /Target[\s\S]*Stop/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Buy AAPL' }).filter({ visible: true }).first()).toHaveAttribute('href', /\/practice\/trade\/AAPL\?side=buy&sl=\d+\.\d\d&tp=\d+\.\d\d$/);
+  await expect(tools.getByRole('link', { name: 'Options' })).toHaveAttribute('href', '/app/options/AAPL');
+});
