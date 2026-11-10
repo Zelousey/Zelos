@@ -94,14 +94,14 @@ test('big chart: switch symbols from the search sheet and the mini-chart preview
 });
 
 test('chart: timeframes, ranges, styles and the data table', async ({ page }) => {
-  // a long-term stock: daily and weekly charts (owner 2026-11-10)
-  await page.goto('markets/TSLA');
+  // a long-term symbol: daily and weekly charts (owner 2026-11-10; DIA has daily history in the fixture)
+  await page.goto('markets/DIA');
   await expect(page.getByRole('radio', { name: 'Long Term', checked: true })).toBeVisible();
-  await expect(page.getByText('TSLA is a Long Term symbol, so the chart is in Long Term mode.')).toBeVisible();
-  await expect(page.getByRole('img', { name: /TSLA D price chart/ })).toBeVisible();
+  await expect(page.getByText('DIA is a Long Term symbol, so the chart is in Long Term mode.')).toBeVisible();
+  await expect(page.getByRole('img', { name: /DIA D price chart/ })).toBeVisible();
   await expect(page.getByRole('tab', { name: '15m' })).toHaveCount(0);
   await page.getByRole('tab', { name: 'W', exact: true }).click();
-  await expect(page.getByRole('img', { name: /TSLA W price chart/ })).toBeVisible();
+  await expect(page.getByRole('img', { name: /DIA W price chart/ })).toBeVisible();
   // a day-trading stock: intraday charts
   await page.goto('markets/AAPL');
   await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
