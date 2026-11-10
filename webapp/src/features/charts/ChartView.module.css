@@ -7,6 +7,8 @@
 .withTools { display: grid; gap: var(--space-2); min-width: 0; }
 .tools { display: grid; gap: var(--space-2); }
 .toolRow { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* phones: one row that scrolls sideways, so the toolbar never takes two lines */
+@media (max-width: 760px) { .toolRow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: var(--space-1); } .toolRow::-webkit-scrollbar { display: none; } .toolRow > * { flex: none; } }
 .toolHint { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
 .toolHint a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
 .alertList { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }

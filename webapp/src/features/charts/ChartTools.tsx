@@ -8,18 +8,19 @@
  * drawing is left out on purpose: it becomes a token strategy (PROJECT_STATE.md, 2026-10-10).
  * ChartView owns the state; this only shows it.
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { Button, Sheet } from '../../ui';
+import { Button, Icon, Sheet } from '../../ui';
 import { engine, type PriceAlert } from './engine';
 import s from './ChartView.module.css';
 
 export type ToolsState = { fib: boolean; placing: boolean; alerts: PriceAlert[] };
 export type ToolsActions = { readShow: () => Record<string, boolean>; toggle: (id: string, on: boolean) => void; flipFib: () => void; flipPlacing: () => void; remove: (id: string) => void };
 
-export function ChartTools({ sym, state, act }: { sym: string; state: ToolsState; act: ToolsActions }) {
+/** extra: more toolbar buttons from the screen (e.g. Forecast, Options on the stock page). */
+export function ChartTools({ sym, state, act, extra }: { sym: string; state: ToolsState; act: ToolsActions; extra?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState<Record<string, boolean>>({});
   const groups = [...new Set(engine().INDICATORS.map((i) => i.group))];
@@ -34,14 +35,15 @@ export function ChartTools({ sym, state, act }: { sym: string; state: ToolsState
             setOpen(true);
           }}
         >
-          {t('ct.indicatorsTitle')}
+          <Icon name="indicators" size={16} /> {t('ct.indicatorsTitle')}
         </Button>
         <Button size="sm" variant={state.fib ? 'primary' : 'ghost'} aria-pressed={state.fib} onClick={act.flipFib}>
-          {t('ct.fib')}
+          <Icon name="fib" size={16} /> {t('ct.fib')}
         </Button>
         <Button size="sm" variant={state.placing ? 'primary' : 'ghost'} aria-pressed={state.placing} onClick={act.flipPlacing}>
-          ⏰ {t('ct.alert')}
+          <Icon name="bell" size={16} /> {t('ct.alert')}
         </Button>
+        {extra}
       </div>
       {state.placing && (
         <p className={s.toolHint} role="status">
@@ -53,8 +55,8 @@ export function ChartTools({ sym, state, act }: { sym: string; state: ToolsState
           {state.alerts.map((a) => (
             <li key={a.id}>
               <span>{t(a.dir === 'above' ? 'ct.above' : 'ct.below', { sym, price: formatPrice(a.price) })}</span>
-              <Button size="sm" variant="ghost" onClick={() => act.remove(a.id)} aria-label={t('ct.remove', { price: formatPrice(a.price) })}>
-                ✕
+              <Button size="sm" variant="ghost" iconOnly onClick={() => act.remove(a.id)} aria-label={t('ct.remove', { price: formatPrice(a.price) })}>
+                <Icon name="close" size={16} />
               </Button>
             </li>
           ))}

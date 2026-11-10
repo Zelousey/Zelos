@@ -290,7 +290,7 @@
   TradeChart.prototype.setStyle = function (st) {
     this.style = st === 'candles' ? 'candles' : 'line'; try { localStorage.setItem('zelosChartStyle', this.style); } catch (e) {} this.draw();
   };
-  TradeChart.prototype.setSeries = function (s, bars) {
+  TradeChart.prototype.setSeries = function (s, bars, daySlots) {
     // a new live price on the same chart glides there (line view) instead of jumping
     if (this.s && this.s.key === s.key && s.n && this.s.n) {
       var was = this.anim ? this.animValue() : this.s.c[this.s.n - 1], now = s.c[s.n - 1];
@@ -300,8 +300,9 @@
     var keep = this.s && this.s.key === s.key && this.to === this.s.n - 1;
     var span = this.s ? this.to - this.from : null;
     this.s = s;
-    if (keep && span != null) { this.to = s.n - 1; this.from = Math.max(0, this.to - span); }
-    else this.setRange(bars || 126);
+    if (keep && span != null && !this.fullDay) { this.to = s.n - 1; this.from = Math.max(0, this.to - span); this.draw(); }
+    else if (keep && this.fullDay) { this.to = s.n - 1; this.draw(); } // a new bar joins today's session
+    else this.setRange(bars || 126, daySlots);
   };
   TradeChart.prototype.startAnim = function (a, b) {
     var self = this; this.anim = { a: a, b: b, t0: (global.performance || Date).now() };
@@ -312,9 +313,17 @@
     if (!this.anim) return null; var k = Math.min(1, ((global.performance || Date).now() - this.anim.t0) / 600); k = 1 - Math.pow(1 - k, 3);
     return this.anim.a + (this.anim.b - this.anim.a) * k;
   };
-  TradeChart.prototype.setRange = function (bars) {
+  // daySlots (intraday "1D"): show only the latest session and keep room for the whole of it, so a
+  // session in progress doesn't stretch its first bars across the chart (owner 2026-11-10)
+  TradeChart.prototype.setRange = function (bars, daySlots) {
     if (!this.s) return;
-    this.to = this.s.n - 1; this.from = bars === 'all' ? 0 : Math.max(0, this.to - bars + 1); this.draw();
+    this.to = this.s.n - 1; this.fullDay = null;
+    if (daySlots && this.s.intraday && this.s.n) {
+      var day = this.s.d[this.to].slice(0, 10), f = this.to;
+      while (f > 0 && this.s.d[f - 1].slice(0, 10) === day) f--;
+      this.from = f; this.fullDay = daySlots;
+    } else this.from = bars === 'all' ? 0 : Math.max(0, this.to - bars + 1);
+    this.draw();
   };
   TradeChart.prototype.zoom = function (f, x) {
     if (!this.s) return;
@@ -322,9 +331,12 @@
     var L = this.layout(), rel = x == null ? 1 : Math.max(0, Math.min(1, (x - L.x0) / (L.x1 - L.x0)));
     var anchor = this.from + rel * span, from = Math.round(anchor - rel * ns);
     from = Math.max(0, Math.min(this.s.n - ns, from));
-    this.from = from; this.to = from + ns - 1; this.draw();
+    this.from = from; this.to = from + ns - 1; this.fullDay = null; this.draw();
   };
-  TradeChart.prototype.padBars = function () { return this.forecast ? Math.max(8, Math.round((this.to - this.from + 1) * 0.16)) : 3; };
+  TradeChart.prototype.padBars = function () {
+    var span = this.to - this.from + 1, base = this.forecast ? Math.max(8, Math.round(span * 0.16)) : 3;
+    return this.fullDay && span < this.fullDay ? Math.max(base, this.fullDay - span) : base;
+  };
   TradeChart.prototype.barW = function () { var L = this.layout(); return (L.x1 - L.x0) / (this.to - this.from + 1 + this.padBars()); };
   TradeChart.prototype.panes = function () {
     var self = this;

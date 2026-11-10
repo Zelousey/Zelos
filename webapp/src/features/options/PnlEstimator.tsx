@@ -37,6 +37,31 @@ type Props = {
 const H = 200;
 const PAD = { l: 8, r: 8, t: 12, b: 22 };
 
+/** Count a number smoothly toward its new value, so dragging shows the money going up or down. */
+function useTween(v: number, ms = 220) {
+  const [shown, setShown] = useState(v);
+  const from = useRef(v);
+  const still =
+    (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+    typeof requestAnimationFrame !== "function";
+  useEffect(() => {
+    if (still) return;
+    const a = from.current;
+    const t0 = performance.now();
+    let id = 0;
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - t0) / ms);
+      const x = a + (v - a) * (1 - (1 - k) ** 3);
+      from.current = x;
+      setShown(x);
+      if (k < 1) id = requestAnimationFrame(tick);
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [v, ms, still]);
+  return still ? v : shown;
+}
+
 function useWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   const [w, setW] = useState(320);
@@ -80,6 +105,7 @@ export function PnlEstimator({
     [leg, paid, qty, vol, range],
   );
   const pnl = pnlOn(leg, paid, qty, target, day, vol);
+  const shownPnl = useTween(pnl);
   const cost = paid * 100 * qty;
   const priceId = useId();
   const dateId = useId();
@@ -99,8 +125,8 @@ export function PnlEstimator({
           price: formatMoney(target),
           date: formatDate(day + "T12:00:00Z"),
         })}
-        <b className={pnl >= 0 ? s.up : s.down}>
-          {formatSignedMoney(pnl)}{" "}
+        <b className={[pnl >= 0 ? s.up : s.down, s.money].join(" ")}>
+          {formatSignedMoney(Math.round(shownPnl * 100) / 100)}{" "}
           <small>
             (
             {cost
@@ -118,8 +144,10 @@ export function PnlEstimator({
         S={S}
         target={target}
         be={be}
+        pnl={pnl}
         onPick={setTarget}
       />
+      <p className={s.dragHint}>{t("pnl.drag")}</p>
       <ul className={s.legend}>
         {!atExp && (
           <li>
@@ -221,6 +249,7 @@ function Chart({
   S,
   target,
   be,
+  pnl,
   onPick,
 }: {
   onDay: Point[];
@@ -230,6 +259,7 @@ function Chart({
   S: number;
   target: number;
   be: number;
+  pnl: number;
   onPick: (S: number) => void;
 }) {
   const [ref, W] = useWidth<HTMLDivElement>();
@@ -260,6 +290,10 @@ function Chart({
           onDay[0]!,
         )
       : null;
+  const win = pnl >= 0;
+  const tx = x(target);
+  const ty = Math.min(H - PAD.b, Math.max(PAD.t, y(pnl)));
+  const labelY = ty - 14 < PAD.t + 10 ? ty + 24 : ty - 14;
   const clipUp = useId();
   const clipDown = useId();
   const pick = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -293,8 +327,9 @@ function Chart({
             <rect x={0} y={zero} width={W} height={Math.max(0, H - zero)} />
           </clipPath>
         </defs>
-        <path d={area} className={s.areaUp} clipPath={`url(#${clipUp})`} />
-        <path d={area} className={s.areaDown} clipPath={`url(#${clipDown})`} />
+        {/* owner 2026-11-10: drag into the green and it lights up; the money rides on the dot */}
+        <path d={area} className={[s.areaUp, win ? s.lit : ""].join(" ")} clipPath={`url(#${clipUp})`} />
+        <path d={area} className={[s.areaDown, win ? "" : s.lit].join(" ")} clipPath={`url(#${clipDown})`} />
         <line
           x1={PAD.l}
           x2={W - PAD.r}
@@ -314,18 +349,16 @@ function Chart({
         )}
         {showBoth && <path d={path(atExpiry)} className={s.lineExp} />}
         <path d={path(onDay)} className={s.line} />
-        <circle
-          cx={x(target)}
-          cy={y(
-            onDay.reduce(
-              (b, p) =>
-                Math.abs(p.S - target) < Math.abs(b.S - target) ? p : b,
-              onDay[0]!,
-            ).pnl,
-          )}
-          r={5}
-          className={s.dot}
-        />
+        <line x1={tx} x2={tx} y1={zero} y2={ty} className={win ? s.stemUp : s.stemDown} />
+        <circle cx={tx} cy={ty} r={7} className={[s.dot, win ? s.dotUp : s.dotDown].join(" ")} />
+        <text
+          x={Math.min(W - PAD.r, Math.max(PAD.l, tx))}
+          y={labelY}
+          textAnchor={tx < 50 ? "start" : tx > W - 50 ? "end" : "middle"}
+          className={[s.dotMoney, win ? s.upFill : s.downFill].join(" ")}
+        >
+          {formatSignedMoney(pnl)}
+        </text>
         {hv && (
           <g className={s.hover}>
             <line x1={x(hv.S)} x2={x(hv.S)} y1={PAD.t} y2={H - PAD.b} />

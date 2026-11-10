@@ -6,7 +6,7 @@
 .up { color: var(--bull); }
 .down { color: var(--danger); }
 .chart { position: relative; width: 100%; min-width: 0; touch-action: pan-y; }
-.chart svg { display: block; cursor: crosshair; }
+.chart svg { display: block; cursor: crosshair; user-select: none; -webkit-user-select: none; }
 .areaUp { fill: var(--bull); fill-opacity: 0.14; }
 .areaDown { fill: var(--danger); fill-opacity: 0.14; }
 .zero { stroke: var(--muted-2); stroke-width: 1; }
@@ -34,3 +34,17 @@
 .table th, .table td { text-align: right; padding: 4px 0; border-bottom: 1px solid var(--border-soft); }
 .table th:first-child, .table td:first-child { text-align: left; }
 .note { margin: 0; font-size: var(--text-xs); color: var(--muted); }
+
+/* dragging (owner 2026-11-10): the side you're on lights up and the money rides on the dot */
+.areaUp, .areaDown { transition: fill-opacity var(--dur-base, 160ms) ease-out; }
+.lit { fill-opacity: 0.34; }
+.stemUp, .stemDown { stroke-width: 2; stroke-dasharray: 3 3; }
+.stemUp { stroke: var(--bull); }
+.stemDown { stroke: var(--danger); }
+.dotUp { fill: var(--bull); filter: drop-shadow(0 0 6px var(--bull)); }
+.dotDown { fill: var(--danger); filter: drop-shadow(0 0 6px var(--danger)); }
+.dotMoney { font-size: 13px; font-weight: 700; font-family: var(--mono); paint-order: stroke; stroke: var(--bg-soft); stroke-width: 4px; }
+.upFill { fill: var(--up-ink, var(--bull)); }
+.downFill { fill: var(--down-ink, var(--danger)); }
+.money { font-variant-numeric: tabular-nums; }
+.dragHint { margin: calc(-1 * var(--space-2)) 0 0; font-size: var(--text-xs); color: var(--muted); }
