@@ -93,6 +93,23 @@ export function PnlEstimator({
   return (
     <section className={s.box} aria-label={title ?? t("pnl.title")}>
       <h3 className={s.title}>{title ?? t("pnl.title")}</h3>
+      {/* owner 2026-11-10: at a glance, like Robinhood: what you make if the stock goes up, what
+          you lose if it goes down (at expiration), and the most you can lose */}
+      <ul className={s.quick} aria-label={t("pnl.quick")}>
+        {[10, 5, -5, -10].map((m) => {
+          const v = pnlOn(leg, paid, qty, S * (1 + m / 100), leg.exp, vol);
+          return (
+            <li key={m}>
+              <span>{t("pnl.move", { sym, m: `${m > 0 ? "+" : "−"}${Math.abs(m)}%` })}</span>
+              <b className={v >= 0 ? s.up : s.down}>{formatSignedMoney(v)}</b>
+            </li>
+          );
+        })}
+        <li>
+          <span>{t("pnl.maxLossShort")}</span>
+          <b className={s.down}>{formatMoney(cost)}</b>
+        </li>
+      </ul>
       <p className={s.headline} aria-live="polite">
         {t(atExp ? "pnl.ifAtExp" : "pnl.ifOn", {
           sym,

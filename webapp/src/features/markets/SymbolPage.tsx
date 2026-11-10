@@ -16,6 +16,7 @@ import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
 import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
+import { ChartColors } from '../settings/ChartColors';
 import type { Forecast } from '../charts/engine';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount } from '../practice/account';
@@ -74,6 +75,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   // Forecast (owner 2026-11-10): a green target box and a red stop box on the chart, dragged up and
   // down; Buy then opens the ticket with them as the take-profit and stop-loss. Long only.
   const [fc, setFc] = useState<{ sl: number; tp: number } | null>(null);
+  const [colorsOpen, setColorsOpen] = useState(false); // owner 2026-11-10: change the chart's colours right here
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
   const isIndexEtf = INDEX_ETFS.some((x) => x.sym === sym); // funds have no SEC company research
@@ -173,7 +175,10 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                     <Button size="sm" variant={fc ? 'primary' : 'ghost'} aria-pressed={!!fc} onClick={flipForecast} disabled={!price}>
                       <Icon name="target" size={16} /> {t('chart.forecast')}
                     </Button>
-                    <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to={`/options/${encodeURIComponent(sym)}`}>
+                    <Button size="sm" variant="ghost" onClick={() => setColorsOpen(true)} aria-haspopup="dialog">
+                      <Icon name="palette" size={16} /> {t('chart.colors')}
+                    </Button>
+                    <Link className={buttonClass({ variant: 'secondary', size: 'sm' }, s.tradeOptions)} to={`/options/${encodeURIComponent(sym)}`}>
                       <Icon name="options" size={16} /> {t('chart.options')}
                     </Link>
                   </>
@@ -270,6 +275,12 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
 
       <Previews current={sym} />
       <SymbolSwitcher open={switching} onClose={() => setSwitching(false)} current={sym} />
+      <Sheet open={colorsOpen} onClose={() => setColorsOpen(false)} title={t('settings.candles')} labelledBy="chart-colors-title">
+        <div className={s.colorsSheet}>
+          <p className={s.muted}>{t('settings.candles.help')}</p>
+          <ChartColors />
+        </div>
+      </Sheet>
 
       <div className={[s.actionBar, s.tradeBtns].join(' ')}>
         <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={buyHref} aria-label={t('trade.buyLabel', { sym })}>
@@ -300,36 +311,54 @@ function YourPosition({ sym, tradeHref }: { sym: string; tradeHref: string }) {
   const opts = v.optionRows.filter((o) => o.u === sym);
   const orders = data.orders.filter((o) => o.sym === sym).length;
   if (!pos && !opts.length && !orders) return null;
+  // owner 2026-11-10: each holding is a small rectangle you tap to open it (you may hold shares and
+  // an option at once); profit in green, loss in red
+  const tone = (n: number) => (n > 0 ? s.gain : n < 0 ? s.loss : '');
   return (
-    <Card title={t('pos.title')} className={s.position}>
-      {pos && (
-        <div className={s.posMain}>
-          <div>
-            <b>{pos.qty === 1 ? t('pos.share') : t('pos.shares', { n: pos.qty })}</b> <span className={s.muted}>{t('pos.avg', { price: formatPrice(pos.avg) })}</span>
-          </div>
-          <div className={s.posNums}>
-            <Stat size="sm" label={t('pos.value')} value={formatPrice(pos.value)} />
-            <Stat size="sm" label={t('pos.pnl')} value={formatSignedMoney(pos.pnl)} delta={formatPercent(pos.pnlPct)} direction={pos.pnl > 0 ? 'up' : pos.pnl < 0 ? 'down' : 'flat'} />
-          </div>
-        </div>
-      )}
-      {opts.length > 0 && (
-        <ul className={s.posOpts}>
-          {opts.map((o) => (
-            <li key={o.id}>
-              <Link to={`/options/${encodeURIComponent(sym)}`}>{t('pos.contracts', { n: o.qty, label: o.label })}</Link>
-              <span className={o.pnl >= 0 ? 'up' : 'down'}>{formatSignedMoney(o.pnl)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className={s.posFoot}>
-        {orders > 0 && <span className={s.muted}>{orders === 1 ? t('pos.order') : t('pos.orders', { n: orders })}</span>}
-        <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to={`${tradeHref}?side=sell`}>
-          {t('pos.open')}
-        </Link>
-      </div>
-    </Card>
+    <section className={s.position} aria-labelledby="pos-title">
+      <h2 id="pos-title" className={s.posTitle}>
+        {t('pos.title')}
+      </h2>
+      <ul className={s.posList}>
+        {pos && (
+          <li>
+            <Link to={`${tradeHref}?side=sell`} className={s.posChip}>
+              <span className={s.posWhat}>
+                <b>{pos.qty === 1 ? t('pos.share') : t('pos.shares', { n: pos.qty })}</b>
+                <span className={s.muted}>{t('pos.avg', { price: formatPrice(pos.avg) })}</span>
+              </span>
+              <span className={`${s.posPnl} ${tone(pos.pnl)}`}>
+                <b>{formatSignedMoney(pos.pnl)}</b>
+                <span>{formatPercent(pos.pnlPct)}</span>
+              </span>
+            </Link>
+          </li>
+        )}
+        {opts.map((o) => (
+          <li key={o.id}>
+            <Link to={`/options/${encodeURIComponent(sym)}`} className={s.posChip}>
+              <span className={s.posWhat}>
+                <b>{o.label}</b>
+                <span className={s.muted}>{t('pos.contractsN', { n: o.qty })}</span>
+              </span>
+              <span className={`${s.posPnl} ${tone(o.pnl)}`}>
+                <b>{formatSignedMoney(o.pnl)}</b>
+                <span>{formatPercent(o.pnlPct)}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+        {orders > 0 && (
+          <li>
+            <Link to={tradeHref} className={`${s.posChip} ${s.posOrders}`}>
+              <span className={s.posWhat}>
+                <b>{orders === 1 ? t('pos.order') : t('pos.orders', { n: orders })}</b>
+              </span>
+            </Link>
+          </li>
+        )}
+      </ul>
+    </section>
   );
 }
 

@@ -101,12 +101,20 @@
 .planSl { color: var(--down-ink); }
 .planRr { color: var(--ink-2); }
 .planHint { flex-basis: 100%; color: var(--muted); font-size: var(--text-xs); }
-/* "You own this" */
-.position { border-color: var(--accent-line); }
-.posMain { display: grid; gap: var(--space-2); }
-.posNums { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
-.posOpts { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: 4px; font-size: var(--text-sm); }
-.posOpts li { display: flex; justify-content: space-between; gap: var(--space-2); }
-.posFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-3); }
+/* "Your position": one small rectangle per holding, tap to open it (owner 2026-11-10) */
+.position { display: grid; gap: var(--space-2); }
+.posTitle { font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 var(--space-1); }
+.posList { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.posChip { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 48px; padding: var(--space-2) var(--space-3); border: 1px solid var(--glass-line); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--glass-bg); color: var(--ink); font-size: var(--text-sm); }
+.posChip:hover { border-color: var(--accent-line); background: var(--surface-2); }
+.posWhat { display: grid; min-width: 0; }
+.posWhat > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.posPnl { display: grid; justify-items: end; font-variant-numeric: tabular-nums; flex: none; }
+.posPnl span { font-size: var(--text-xs); }
+.gain { color: var(--up-ink); }
+.loss { color: var(--down-ink); }
+.posOrders { border-left-color: var(--gold); }
+.tradeOptions { margin-left: auto; }
+.colorsSheet { display: grid; gap: var(--space-3); padding: 0 var(--space-4) var(--space-4); }
 .muted { color: var(--muted); font-size: var(--text-sm); }
 .switchSpeed { padding: 0 var(--space-4) var(--space-3); }

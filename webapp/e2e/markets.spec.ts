@@ -210,11 +210,12 @@ test('stock page: your position with its P&L, a Forecast plan that Buy carries, 
     headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields: { v: { integerValue: 3 }, cash: { doubleValue: 9000 }, positions: { mapValue: { fields: { AAPL: { mapValue: { fields: { qty: { integerValue: 5 }, avg: { doubleValue: 300 }, openedDay: { stringValue: '2026-10-01' } } } } } } } } }),
   });
-  // owner 2026-11-10: you already own it, so the page says so, with the profit or loss and a way in
+  // owner 2026-11-10: you already own it, so the page says so: a small rectangle per holding,
+  // profit in green, tap it to open the trade
   const pos = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Your position · Solo' }) });
-  await expect(pos).toContainText('5 shares');
-  await expect(pos).toContainText('+$168.15'); // (333.63 - 300) × 5
-  await expect(pos.getByRole('link', { name: 'Open this trade' })).toHaveAttribute('href', '/app/practice/trade/AAPL?side=sell');
+  const chip = pos.getByRole('link', { name: /5 shares/ });
+  await expect(chip).toContainText('+$168.15'); // (333.63 - 300) × 5
+  await expect(chip).toHaveAttribute('href', '/app/practice/trade/AAPL?side=sell');
   // the tools sit above the chart; Forecast puts a target and a stop on it, and Buy takes them along
   const tools = page.getByRole('toolbar', { name: 'Chart tools' });
   const [tb, cb] = await Promise.all([tools.boundingBox(), page.getByRole('img', { name: /^AAPL .* price chart$/ }).boundingBox()]);
@@ -223,5 +224,10 @@ test('stock page: your position with its P&L, a Forecast plan that Buy carries, 
   await expect(tools.getByRole('button', { name: 'Forecast' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('status').filter({ hasText: /Target[\s\S]*Stop/ })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Buy AAPL' }).filter({ visible: true }).first()).toHaveAttribute('href', /\/practice\/trade\/AAPL\?side=buy&sl=\d+\.\d\d&tp=\d+\.\d\d$/);
-  await expect(tools.getByRole('link', { name: 'Options' })).toHaveAttribute('href', '/app/options/AAPL');
+  await expect(tools.getByRole('link', { name: 'Trade options' })).toHaveAttribute('href', '/app/options/AAPL');
+  // the chart's colours, right from the toolbar
+  await tools.getByRole('button', { name: 'Colors' }).click();
+  const colours = page.getByRole('dialog', { name: 'Candle colours' });
+  await colours.getByRole('radio', { name: /color-blind safe/ }).click();
+  await expect(colours.getByRole('radio', { name: /color-blind safe/ })).toHaveAttribute('aria-checked', 'true');
 });

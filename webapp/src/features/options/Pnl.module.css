@@ -34,3 +34,10 @@
 .table th, .table td { text-align: right; padding: 4px 0; border-bottom: 1px solid var(--border-soft); }
 .table th:first-child, .table td:first-child { text-align: left; }
 .note { margin: 0; font-size: var(--text-xs); color: var(--muted); }
+
+/* quick answers (owner 2026-11-10): up 10% / 5%, down 5% / 10% at expiration, and the most you can lose */
+.quick { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: var(--space-2); }
+.quick li { display: grid; gap: 2px; padding: var(--space-2); border: 1px solid var(--border-soft); border-radius: var(--radius); background: var(--surface-2); font-size: var(--text-xs); color: var(--muted); }
+.quick b { font-size: var(--text-md); font-variant-numeric: tabular-nums; }
+.quick .up { color: var(--up-ink); }
+.quick .down { color: var(--down-ink); }
