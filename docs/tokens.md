@@ -19,7 +19,13 @@ All the logic is in `functions/main.py` (Tokens section); the browser side is
   stays open. Alerts with no qualifying setup are never locked. The outcome
   checker reads gated alerts through `alerts_open` (shared secret).
   Alerts released for free before this change stay public.
-- **A scanner pass** (7 days) unlocks every gated alert from that scanner, live or after the close.
+- **A scanner pass** (owner 2026-11-10) unlocks every gated alert from that scanner **after the close**
+  (until it goes public). A live alert before the close is a single unlock. New passes are stored in
+  `wallets/{uid}.passesClose`; passes sold before 2026-11-10 stay in `passes` and keep live access
+  until they run out (`tk_has_access`, and the `alertsLocked` rule in `firestore.rules`).
+- **Win rate** is independent of publication: `update_alert_outcomes` writes each result to the
+  alert's public doc (`alerts/{id}.outcome`) right away, even while the full alert is still gated,
+  so the track record counts it at once.
 - **A single unlock** opens one alert.
 - **New accounts** get welcome tokens once (Google sign-in or a verified email).
 
@@ -41,7 +47,7 @@ scanner pages, the Terms) quote the same numbers; update them together.
 
 ## Data
 
-- `wallets/{uid}`: `{ balance, passes: {strategy: untilMs}, unlocked: [alertId], welcomed }`
+- `wallets/{uid}`: `{ balance, passes: {strategy: untilMs} (sold before 2026-11-10), passesClose: {strategy: untilMs}, unlocked: [alertId], welcomed }`
   (owner can read; only Cloud Functions write).
 - `wallets/{uid}/ledger/{id}`: `{ type, amount, balanceAfter, note, ref, at }`.
 - `squareCheckouts/{orderId}`: each Square payment link we created:
@@ -49,8 +55,8 @@ scanner pages, the Terms) quote the same numbers; update them together.
 - `squareEvents/{eventId}`: every Square webhook event handled, with its result
   (credited / why it was skipped). Server only; also the duplicate guard.
 - `purchases/sq_{orderId}`: one per credited purchase. Server only.
-- `alertsLocked/{alertId}`: readable with an active pass for that scanner or
-  a single unlock of that alert.
+- `alertsLocked/{alertId}`: readable with an older active pass for that scanner, a new pass once the
+  alert is past its close, or a single unlock of that alert.
 
 ## Functions
 

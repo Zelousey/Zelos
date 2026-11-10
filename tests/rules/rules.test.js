@@ -41,6 +41,26 @@ test('nobody reads someone else\'s user doc', async () => {
   await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'users/alice'), { xp: 1 }));
   await assertFails(getDoc(doc(real('bob').firestore(), 'users/alice')));
 });
+// ---------------------------------------------------------------- Firestore: gated alerts (owner 2026-11-10)
+test('gated alerts: passes sold from now on open alerts after the close only; older passes and unlocks keep working', async () => {
+  const now = Date.now();
+  await env.withSecurityRulesDisabled(async (c) => {
+    const f = c.firestore();
+    await setDoc(doc(f, 'alertsLocked/swing-trader-live'), { strategy: 'swing-trader', released: false, lockedUntil: now + 3600e3 });
+    await setDoc(doc(f, 'alertsLocked/swing-trader-closed'), { strategy: 'swing-trader', released: true, lockedUntil: now - 1 });
+    await setDoc(doc(f, 'wallets/newpass'), { balance: 0, passes: {}, passesClose: { 'swing-trader': now + 86400e3 }, unlocked: [] });
+    await setDoc(doc(f, 'wallets/oldpass'), { balance: 0, passes: { 'swing-trader': now + 86400e3 }, unlocked: [] });
+    await setDoc(doc(f, 'wallets/single'), { balance: 0, passes: {}, unlocked: ['swing-trader-live'] });
+    await setDoc(doc(f, 'wallets/nobody'), { balance: 0, passes: {}, unlocked: [] });
+  });
+  const read = (uid, id) => getDoc(doc(real(uid).firestore(), `alertsLocked/${id}`));
+  await assertFails(read('newpass', 'swing-trader-live'));
+  await assertSucceeds(read('newpass', 'swing-trader-closed'));
+  await assertSucceeds(read('oldpass', 'swing-trader-live'));
+  await assertSucceeds(read('oldpass', 'swing-trader-closed'));
+  await assertSucceeds(read('single', 'swing-trader-live'));
+  await assertFails(read('nobody', 'swing-trader-closed'));
+});
 test('activity ledger: owner reads, nobody writes', async () => {
   await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'users/alice/activity/a1'), { xp: 5 }));
   const db = real('alice').firestore();

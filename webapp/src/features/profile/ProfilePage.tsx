@@ -20,7 +20,7 @@ import { LevelBadge } from '../dashboard/LevelBadge';
 import { ACHIEVEMENTS } from '../dashboard/progress';
 import { useIdentity, useMyProfile, type Identity, type Ranked } from '../dashboard/social';
 import { errorText, shareLink } from '../invites/invites';
-import { STRATEGIES } from '../strategies/strategies';
+import { passUntil, STRATEGIES } from '../strategies/strategies';
 import { TokensSheet, useTokens } from '../strategies/Tokens';
 import { ChallengeSheet } from './ChallengeSheet';
 import { EditProfileSheet } from './EditProfileSheet';
@@ -275,8 +275,8 @@ function TokensCard() {
   const now = useNow();
   const [sheet, setSheet] = useState(false);
   const passes = STRATEGIES.flatMap((x) => {
-    const until = tk.wallet?.passes[x.id];
-    return until && until > now ? [{ name: x.name, until }] : [];
+    const until = passUntil(tk.wallet ?? null, x.id, now);
+    return until ? [{ name: x.name, until }] : [];
   });
   return (
     <Card pad className={s.tokens}>
