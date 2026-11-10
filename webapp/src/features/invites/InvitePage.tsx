@@ -1,6 +1,6 @@
 /**
  * Invite friends (/invite): pick Battle, Team up or Invite a friend, then share the link or
- * send it to a Zelos user by @username. Each choice is a picture card with a mascot scene
+ * send it to a Zelos user by @username. Each choice is a picture card with a bull-and-bear scene
  * (owner 2026-10-09). The server makes the invite; nothing here decides who gets what.
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
