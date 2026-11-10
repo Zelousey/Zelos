@@ -7,7 +7,7 @@
   .o1 { order: 1; } .o2 { order: 2; } .o3 { order: 3; } .o4 { order: 4; } .o5 { order: 5; }
 }
 .row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
-.sub { margin: var(--space-4) 0 var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border-soft); }
+.sub { scroll-margin-top: 80px; margin: var(--space-4) 0 var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border-soft); }
 .rowLabel { font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
 .danger { display: grid; gap: var(--space-3); justify-items: start; }
 .danger > div { width: 100%; }

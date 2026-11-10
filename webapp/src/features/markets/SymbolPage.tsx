@@ -16,7 +16,6 @@ import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
 import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
-import { ChartColors } from '../settings/ChartColors';
 import type { Forecast } from '../charts/engine';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount } from '../practice/account';
@@ -75,7 +74,6 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   // Forecast (owner 2026-11-10): a green target box and a red stop box on the chart, dragged up and
   // down; Buy then opens the ticket with them as the take-profit and stop-loss. Long only.
   const [fc, setFc] = useState<{ sl: number; tp: number } | null>(null);
-  const [colorsOpen, setColorsOpen] = useState(false); // owner 2026-11-10: change the chart's colours right here
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
   const isIndexEtf = INDEX_ETFS.some((x) => x.sym === sym); // funds have no SEC company research
@@ -126,6 +124,10 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
               <Icon name="search" size={16} /> <span className={s.switchText}>{t('chart.switch')}</span>
             </Button>
             <WatchButton sym={sym} />
+            {/* owner 2026-11-10: chart settings sit up here with Switch and Watch, and open the chart part of Settings */}
+            <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to="/settings#chart" aria-label={t('chart.settings')}>
+              <Icon name="palette" size={16} /> <span className={s.switchText}>{t('chart.settings')}</span>
+            </Link>
           </div>
           <span className={s.name}>{name}</span>
         </div>
@@ -174,9 +176,6 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                   <>
                     <Button size="sm" variant={fc ? 'primary' : 'ghost'} aria-pressed={!!fc} onClick={flipForecast} disabled={!price}>
                       <Icon name="target" size={16} /> {t('chart.forecast')}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setColorsOpen(true)} aria-haspopup="dialog">
-                      <Icon name="palette" size={16} /> {t('chart.colors')}
                     </Button>
                     <Link className={buttonClass({ variant: 'secondary', size: 'sm' }, s.tradeOptions)} to={`/options/${encodeURIComponent(sym)}`}>
                       <Icon name="options" size={16} /> {t('chart.options')}
@@ -275,12 +274,6 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
 
       <Previews current={sym} />
       <SymbolSwitcher open={switching} onClose={() => setSwitching(false)} current={sym} />
-      <Sheet open={colorsOpen} onClose={() => setColorsOpen(false)} title={t('settings.candles')} labelledBy="chart-colors-title">
-        <div className={s.colorsSheet}>
-          <p className={s.muted}>{t('settings.candles.help')}</p>
-          <ChartColors />
-        </div>
-      </Sheet>
 
       <div className={[s.actionBar, s.tradeBtns].join(' ')}>
         <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={buyHref} aria-label={t('trade.buyLabel', { sym })}>

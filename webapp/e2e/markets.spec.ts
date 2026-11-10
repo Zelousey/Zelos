@@ -225,9 +225,8 @@ test('stock page: your position with its P&L, a Forecast plan that Buy carries, 
   await expect(page.getByRole('status').filter({ hasText: /Target[\s\S]*Stop/ })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Buy AAPL' }).filter({ visible: true }).first()).toHaveAttribute('href', /\/practice\/trade\/AAPL\?side=buy&sl=\d+\.\d\d&tp=\d+\.\d\d$/);
   await expect(tools.getByRole('link', { name: 'Trade options' })).toHaveAttribute('href', '/app/options/AAPL');
-  // the chart's colours, right from the toolbar
-  await tools.getByRole('button', { name: 'Colors' }).click();
-  const colours = page.getByRole('dialog', { name: 'Candle colours' });
-  await colours.getByRole('radio', { name: /color-blind safe/ }).click();
-  await expect(colours.getByRole('radio', { name: /color-blind safe/ })).toHaveAttribute('aria-checked', 'true');
+  // Chart settings sits up top with Switch and Watch and opens the chart part of Settings
+  await page.getByRole('link', { name: 'Chart settings' }).click();
+  await expect(page).toHaveURL(/\/app\/settings#chart$/);
+  await expect(page.getByRole('radio', { name: /color-blind safe/ })).toBeInViewport();
 });

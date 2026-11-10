@@ -115,6 +115,5 @@
 .loss { color: var(--down-ink); }
 .posOrders { border-left-color: var(--gold); }
 .tradeOptions { margin-left: auto; }
-.colorsSheet { display: grid; gap: var(--space-3); padding: 0 var(--space-4) var(--space-4); }
 .muted { color: var(--muted); font-size: var(--text-sm); }
 .switchSpeed { padding: 0 var(--space-4) var(--space-3); }

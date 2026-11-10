@@ -1,8 +1,8 @@
 /** Settings: theme, candle colours, your account (profile, notifications, tokens), the Privacy Policy and Terms, and deleting your account. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { t } from '../../lib/i18n';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/platform';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { getTheme, setTheme, THEMES, type Theme } from '../../lib/theme';
 import { Card, Icon, PageHeader, Tabs } from '../../ui';
 import { ChartColors } from './ChartColors';
@@ -14,6 +14,13 @@ const THEME_LABEL = { black: 'settings.theme.black', blue: 'settings.theme.blue'
 
 export default function SettingsPage() {
   const [theme, setThemeState] = useState<Theme>(getTheme());
+  const { hash } = useLocation();
+  // the stock page's Chart settings button opens /settings#chart: bring the chart colours into view
+  useEffect(() => {
+    if (hash !== '#chart') return;
+    const el = document.getElementById('chart');
+    el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [hash]);
   return (
     <>
       <PageHeader title={t('nav.settings')} />
@@ -35,7 +42,7 @@ export default function SettingsPage() {
                 }}
               />
             </div>
-            <div className={s.sub}>
+            <div className={s.sub} id="chart" tabIndex={-1}>
               <div className={s.rowLabel}>{t('settings.candles')}</div>
               <div className={s.note}>{t('settings.candles.help')}</div>
             </div>
