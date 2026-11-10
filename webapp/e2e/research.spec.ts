@@ -22,6 +22,9 @@ test('the stock page shows company research and insider trades', async ({ page }
   await page.goto('markets/MSFT');
   const card = page.getByRole('region', { name: 'Company research' });
   await expect(card).toContainText('Services-Prepackaged Software');
+  // folded to a summary until "Explore more" (owner 2026-11-10)
+  await expect(card).not.toContainText('Jane Doe');
+  await card.getByRole('button', { name: 'Explore more' }).click();
   await expect(card).toContainText('29.6');
   await expect(card).toContainText('36.1%');
   await expect(card).toContainText('Jane Doe');
