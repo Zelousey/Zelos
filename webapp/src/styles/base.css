@@ -137,3 +137,13 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* owner 2026-11-10: on phones a long press on a chart, the globe or a tab opened iOS's
+   Copy / Look Up / Translate bar and highlighted the page. Controls and pictures are not
+   text to copy; reading text (news, lessons, chat) stays selectable. */
+button, a[role="button"], [role="button"], [role="tab"], [role="tablist"], [role="toolbar"], [role="radio"], [role="switch"],
+[role="img"], nav, label, select, canvas, svg, img {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

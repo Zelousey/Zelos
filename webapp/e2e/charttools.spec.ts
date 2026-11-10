@@ -82,3 +82,41 @@ test('signed in: price alerts are saved on the account, where the server checks 
   await expect(tools.getByRole('button', { name: /Alert/ })).toBeVisible();
   await expect(list).toHaveCount(0);
 });
+
+// owner 2026-11-10: pinching and dragging the chart on a phone
+test('phone: pinch zooms the chart, one finger drags it sideways, a double tap resets', async ({ page, viewport }) => {
+  test.skip((viewport?.width ?? 0) > 760, 'phone only');
+  await page.goto('markets/AAPL');
+  const canvas = page.getByRole('img', { name: /^AAPL .* price chart$/ });
+  await canvas.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => !!(document.querySelector('canvas') as unknown as { __ztc?: { s?: unknown } })?.__ztc?.s);
+  const range = () => page.evaluate(() => { const c = (document.querySelector('canvas') as unknown as { __ztc: { from: number; to: number } }).__ztc; return { from: c.from, to: c.to }; });
+  const b = (await canvas.boundingBox())!;
+  const cdp = await page.context().newCDPSession(page);
+  const y = b.y + b.height * 0.45, cx = b.x + b.width * 0.5;
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', pts: [number, number][]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, yy], id) => ({ x, y: yy, id })) });
+  // a long press doesn't select the chart or the tabs (iOS Copy / Look Up bar)
+  expect(await canvas.evaluate((el) => getComputedStyle(el).userSelect)).toBe('none');
+  expect(await page.getByRole('tab', { name: '15m' }).evaluate((el) => getComputedStyle(el).userSelect)).toBe('none');
+  const before = await range();
+  const span0 = before.to - before.from;
+  // pinch out: fingers move apart, fewer bars on screen
+  await touch('touchStart', [[cx - 30, y], [cx + 30, y]]);
+  for (let i = 1; i <= 8; i++) await touch('touchMove', [[cx - 30 - i * 15, y], [cx + 30 + i * 15, y]]);
+  await touch('touchEnd', []);
+  const zoomed = await range();
+  expect(zoomed.to - zoomed.from).toBeLessThan(span0 * 0.6);
+  // the page did not scroll sideways or zoom
+  expect(await page.evaluate(() => (window.visualViewport?.scale ?? 1))).toBe(1);
+  // one finger, slightly diagonal, drags the chart to earlier bars
+  const sy = await page.evaluate(() => window.scrollY);
+  await touch('touchStart', [[cx - 60, y]]);
+  for (let i = 1; i <= 8; i++) await touch('touchMove', [[cx - 60 + i * 20, y + i * 4]]);
+  await touch('touchEnd', []);
+  const dragged = await range();
+  expect(dragged.to).toBeLessThan(zoomed.to);
+  expect(await page.evaluate(() => window.scrollY)).toBe(sy);
+  // a double tap goes back to the chosen range
+  for (let k = 0; k < 2; k++) { await touch('touchStart', [[cx, y]]); await touch('touchEnd', []); }
+  await expect.poll(async () => { const r = await range(); return r.to - r.from; }).toBe(span0);
+});
