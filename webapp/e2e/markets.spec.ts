@@ -107,7 +107,7 @@ test('chart: timeframes, ranges, styles and the data table', async ({ page }) =>
   await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
   await expect(page.getByRole('img', { name: /AAPL 15m price chart/ })).toBeVisible(); // AAPL has intraday bars in the fixture
   await expect(page.getByRole('tab', { name: 'W', exact: true })).toHaveCount(0);
-  await page.getByRole('tab', { name: '5m' }).click();
+  await page.getByRole('tab', { name: '5m', exact: true }).click();
   await expect(page.getByRole('img', { name: /AAPL 5m price chart/ })).toBeVisible();
   // candles are the default everywhere (owner 2026-10-27); line is one tap away
   await expect(page.getByRole('tab', { name: 'Candles' })).toHaveAttribute('aria-selected', 'true');
@@ -117,7 +117,7 @@ test('chart: timeframes, ranges, styles and the data table', async ({ page }) =>
   await expect(table.getByRole('row')).toHaveCount(13); // header + 12 bars
   // the choice of timeframe is remembered (per mode)
   await page.reload();
-  await expect(page.getByRole('tab', { name: '5m' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: '5m', exact: true })).toHaveAttribute('aria-selected', 'true');
   // ...but the line style is not: every chart opens as candles (owner 2026-10-27)
   await expect(page.getByRole('tab', { name: 'Candles' })).toHaveAttribute('aria-selected', 'true');
 });
