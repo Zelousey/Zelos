@@ -34,7 +34,7 @@ COUNTRIES = {
  'NLD': {'name': 'Netherlands', 'etf': 'EWN', 'local': [('ASML', 'ASML'), ('NXP Semiconductors', 'NXPI')],
    'us': [('TSM', 'Largest customer for ASML\'s lithography tools'), ('INTC', 'Buys ASML lithography tools'), ('AMAT', 'Chip-equipment peer of ASML')]},
  'CHE': {'name': 'Switzerland', 'etf': 'EWL', 'local': [('Nestlé', 'NSRGY'), ('Roche', 'RHHBY'), ('Novartis', 'NVS'), ('UBS', 'UBS')],
-   'us': [('PFE', 'Pharma peer of Roche and Novartis'), ('MDLZ', 'Packaged-food peer of Nestlé')]},
+   'us': [('MRNA', 'Vaccine maker, a peer of Roche and Novartis'), ('MDLZ', 'Packaged-food peer of Nestlé')]},
  'DNK': {'name': 'Denmark', 'etf': 'EDEN', 'local': [('Novo Nordisk', 'NVO')],
    'us': [('LLY', 'Main competitor in GLP-1 weight-loss and diabetes drugs')]},
  'SWE': {'name': 'Sweden', 'etf': 'EWD', 'local': [('Spotify', 'SPOT'), ('Ericsson', 'ERIC')],
