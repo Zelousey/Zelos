@@ -44,7 +44,6 @@ test('the tab asks how you want to play: each mode says who it is against; the s
     ['Solo', /\/trade-war\/solo$/, 'Solo: your practice account'],
     ['Battle', /\/battles$/, 'Battles'],
     ['Leaderboards', /\/leaderboard$/, 'Leaderboard'],
-    ['Strategies', /\/strategies$/, 'Strategies'],
     ['Overview', /\/trade-war\/overview$/, 'Trade War'],
   ];
   for (const [name, url, heading] of stops) {
@@ -53,8 +52,13 @@ test('the tab asks how you want to play: each mode says who it is against; the s
     await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible();
     await expect(row(page).getByRole('link', { name, exact: true })).toHaveAttribute('aria-current', 'page');
   }
-  expect(await page.evaluate(() => (window as unknown as { __marker?: number }).__marker)).toBe(1); // never reloaded
   await expect(page.getByText('Sign in to see your Solo account, your battles and your squads in one place.')).toBeVisible();
+  // Strategies opens without a reload; its page has no section row (owner 2026-11-11)
+  await row(page).getByRole('link', { name: 'Strategies', exact: true }).click();
+  await expect(page).toHaveURL(/\/strategies$/);
+  await expect(page.getByRole('heading', { name: 'Strategies' }).first()).toBeVisible();
+  await expect(row(page)).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { __marker?: number }).__marker)).toBe(1); // never reloaded
 });
 
 test('a running battle: the Overview shows it, every number says its mode; the tab always opens the modes', async ({ page }, info) => {

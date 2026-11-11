@@ -36,15 +36,21 @@ export type ShapePoint = { d: string; p: number };
 export type Shape = { k: ShapeKind; c: ShapeColor; pts: ShapePoint[]; text?: string };
 export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, arrow: 2, box: 2, hline: 1, text: 1 };
 
+/** Chart types (owner's chart list, step 2); 'line' is the live line coloured against the previous close. */
+export type ChartStyle = 'candles' | 'hollow' | 'volcandles' | 'bars' | 'heikin' | 'line' | 'linemarkers' | 'step' | 'area' | 'hlcarea' | 'baseline' | 'columns' | 'highlow';
+export const CHART_STYLES: ChartStyle[] = ['candles', 'hollow', 'volcandles', 'bars', 'heikin', 'line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'highlow'];
+/** Indicator colours chosen in Settings; a missing key means the default. */
+export type IndColors = { vol?: string; bb?: string; rsi?: string; macd?: string; macdSignal?: string };
+
 export interface TradeChart {
   setSeries(s: EngineSeries, bars?: number | 'all', daySlots?: number): void;
   setRange(bars: number | 'all', daySlots?: number): void;
-  setStyle(style: 'line' | 'candles'): void;
+  setStyle(style: ChartStyle): void;
   toggle(id: string, on?: boolean): void;
   zoom(factor: number, x?: number): void;
   draw(): void;
   destroy(): void;
-  style: 'line' | 'candles';
+  style: ChartStyle;
   show: Record<string, boolean>;
   refPrice: number | null;
   lines: { price: number; label: string; color?: string }[];
@@ -73,6 +79,8 @@ type EngineGlobal = {
   PRESETS: CandlePreset[];
   loadColors(): { id: string; up: string; down: string };
   saveColors(c: { id: string; up: string; down: string }): void;
+  loadIndColors(): IndColors;
+  saveIndColors(c: IndColors): void;
 };
 
 export type CandlePreset = { id: string; name: string; up: string; down: string };
@@ -80,6 +88,12 @@ export type CandlePreset = { id: string; name: string; up: string; down: string 
 /** Save the free candle colours and repaint every open chart (the engine listens for zelos:theme). */
 export function setCandleColors(p: CandlePreset) {
   engine().saveColors({ id: p.id, up: p.up, down: p.down });
+  window.dispatchEvent(new Event('zelos:theme'));
+}
+
+/** Save the indicator colours and repaint every open chart. */
+export function setIndColors(c: IndColors) {
+  engine().saveIndColors(c);
   window.dispatchEvent(new Event('zelos:theme'));
 }
 

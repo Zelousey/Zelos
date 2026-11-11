@@ -15,7 +15,6 @@ import { buyPass, passIsAfterClose, passPrice, passUntil, STRATEGIES, useAlerts,
 import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
-import { TradeWarNav } from '../tradewar/TradeWarNav';
 
 export default function StrategiesPage() {
   const tk = useTokens();
@@ -25,7 +24,6 @@ export default function StrategiesPage() {
   return (
     <>
       <PageHeader title={t('nav.strategies')} subtitle={t('st.subtitle')} />
-      <TradeWarNav />
       <div className={s.list}>
         {STRATEGIES.map((x) => (
           <StrategyCard key={x.id} st={x} latest={list.find((a) => a.strategy === x.id) ?? null} loading={alerts.status === 'loading'} wallet={tk.wallet} info={tk.info} balance={tk.balance} onTokens={() => setSheet(true)} />

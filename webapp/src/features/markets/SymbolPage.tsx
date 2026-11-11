@@ -13,11 +13,11 @@ import { useUserDoc } from '../../data/userDoc';
 import { fallbackSymbol, MODE_DEFAULT_TF, MODE_TFS, modeOf, readMode, useMode, type Mode } from '../../data/tradeMode';
 import { useAuth } from '../../lib/auth';
 import { formatCompact, formatMarketTime, formatPercent, formatPrice, formatSignedMoney } from '../../lib/format';
-import { t } from '../../lib/i18n';
+import { t, type MessageKey } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
 import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
-import type { Forecast } from '../charts/engine';
+import type { ChartStyle, Forecast } from '../charts/engine';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount } from '../practice/account';
 import { useVolMap } from '../options/model';
@@ -35,6 +35,11 @@ import { ModeToggle, modeExplanation, useModeMinutes } from './ModeToggle';
 import s from './SymbolPage.module.css';
 
 const TF_KEY = 'zelosAppChartTf';
+/** The chart-type menu, in two groups like a trading app's. */
+const STYLE_GROUPS: [MessageKey, ChartStyle[]][] = [
+  ['chart.type.g.bars', ['candles', 'hollow', 'volcandles', 'heikin', 'bars', 'highlow']],
+  ['chart.type.g.lines', ['line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns']],
+];
 const tfKey = (m: Mode) => `${TF_KEY}:${m}`;
 
 /** The timeframe last used in this mode (Day Trading: 5m / 15m / 1H; Long Term: D / W). */
@@ -95,8 +100,9 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   useScrollFade(controlsRef);
   const tfDef = TIMEFRAMES.find((x) => x.id === tf)!;
   const [range, setRange] = useState<number | 'all'>(tfDef.def);
-  // owner 2026-10-09: every chart opens as a line; candles apply only to the chart you switch
-  const [style, setStyle] = useState<'line' | 'candles'>('candles');
+  // chart type (owner's step 2, 2026-11-11): a menu of 13 types; every chart still opens as
+  // candles (owner 2026-10-27), the menu changes this chart only
+  const [style, setStyle] = useState<ChartStyle>('candles');
   const [showTable, setShowTable] = useState(false);
   // Forecast (owner 2026-11-10): a green target box and a red stop box on the chart, dragged up and
   // down; Buy then opens the ticket with them as the take-profit and stop-loss. Long only.
@@ -145,7 +151,20 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
       <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
       <span className={s.ctrlGap} aria-hidden="true" />
       <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.filter((x) => MODE_TFS[symMode].includes(x.id)).map((x) => ({ value: x.id, label: x.label }))} />
-      <Tabs label={t('chart.style')} value={style} onChange={setStyle} items={[{ value: 'line', label: t('chart.line') }, { value: 'candles', label: t('chart.candles') }]} />
+      <label className={s.typePick}>
+        <Icon name="chart" size={16} />
+        <select value={style} onChange={(e) => setStyle(e.target.value as ChartStyle)} aria-label={t('chart.type')}>
+          {STYLE_GROUPS.map(([g, list]) => (
+            <optgroup key={g} label={t(g)}>
+              {list.map((v) => (
+                <option key={v} value={v}>
+                  {t(`chart.type.${v}` as MessageKey)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
     </div>
   );
 

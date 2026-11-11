@@ -24,6 +24,14 @@
 .controls [role='tab']:hover { border-color: var(--accent-line); color: var(--ink); }
 .controls [role='tab'][aria-selected='true'] { background: var(--accent-fill); border-color: var(--accent); color: #fff; box-shadow: none; }
 @media (pointer: coarse) { .controls [role='tab'] { min-height: var(--tap); } }
+/* chart type (owner's step 2): a boxed menu that matches the timeframe buttons */
+.typePick { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 28px 0 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: var(--text-sm); font-weight: 700; cursor: pointer; }
+.typePick:hover { border-color: var(--accent-line); }
+.typePick:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.typePick::after { content: ''; position: absolute; right: 10px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); pointer-events: none; }
+.typePick select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; cursor: pointer; outline: none; }
+.typePick select option, .typePick select optgroup { background: var(--surface); color: var(--ink); }
+@media (pointer: coarse) { .typePick { min-height: var(--tap); } .typePick select { font-size: 16px; } }
 .chartBody { padding: var(--space-2) var(--space-3) var(--space-3); }
 /* the chart sits on the page itself, edge to edge, with no box around it */
 .chartCard { background: transparent; border: 0; box-shadow: none; }
