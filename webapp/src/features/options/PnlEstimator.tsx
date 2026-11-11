@@ -314,7 +314,9 @@ function Chart({
         onPointerMove={(e) => {
           const p = pick(e);
           setHover(p);
-          if (e.buttons) onPick(+p.toFixed(2));
+          // owner 2026-11-10: with a mouse the dot follows the pointer, no click needed; on a
+          // touch screen it follows the finger while it's down
+          if (e.pointerType === "mouse" || e.buttons) onPick(+p.toFixed(2));
         }}
         onPointerLeave={() => setHover(null)}
         onPointerDown={(e) => onPick(+pick(e).toFixed(2))}
