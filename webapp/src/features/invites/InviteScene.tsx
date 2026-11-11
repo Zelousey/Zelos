@@ -1,44 +1,48 @@
 /**
- * Little scenes with the Zelos mascot (the character from the original site) for each kind of
- * invite: two facing off for a Battle, side by side to Team up, the mascot and a friend-to-be
- * for Invite a friend, a big one and a small one for Coaching. The second character is the same
- * art in another colour.
+ * The pictures on the invite cards (owner 2026-11-10: redesigned around the Zelos bull vs bear
+ * logo). Battle: the bull and the bear face off. Team up: two bulls charge side by side. Invite
+ * a friend: the bull and a friend-to-be still in shadow. Coaching: a big bull and a small one,
+ * with a rising chart. The art fills the picture with even padding all round, so nothing sits
+ * against an edge and there are no empty black gaps.
  */
+import { Icon } from '../../ui';
 import type { InviteKind } from './invites';
 import s from './InviteScene.module.css';
 
-const MASCOT = `${import.meta.env.BASE_URL}art/mascot.png`;
-const Mascot = ({ className }: { className?: string }) => <img src={MASCOT} alt="" className={[s.m, className].filter(Boolean).join(' ')} width={208} height={340} loading="lazy" decoding="async" />;
+const ART = `${import.meta.env.BASE_URL}art/`;
+const Bull = ({ className }: { className?: string }) => <img src={`${ART}bull.webp`} alt="" className={[s.a, className].filter(Boolean).join(' ')} width={313} height={320} loading="lazy" decoding="async" />;
+const Bear = ({ className }: { className?: string }) => <img src={`${ART}bear.webp`} alt="" className={[s.a, className].filter(Boolean).join(' ')} width={343} height={320} loading="lazy" decoding="async" />;
 
 export function InviteScene({ kind }: { kind: InviteKind }) {
   return (
     <span className={[s.scene, s[kind]].join(' ')} aria-hidden="true">
       {kind === 'battle' && (
         <>
-          <Mascot className={s.left} />
+          <Bull className={s.left} />
           <span className={s.vs}>VS</span>
-          <Mascot className={[s.right, s.flip, s.red].join(' ')} />
+          <Bear className={s.right} />
         </>
       )}
       {kind === 'squad' && (
         <>
-          <Mascot className={[s.pairA, s.blue].join(' ')} />
-          <Mascot className={[s.pairB, s.flip].join(' ')} />
-          <span className={s.badge}>🤝</span>
+          <Bull className={[s.pairA, s.dim].join(' ')} />
+          <Bull className={s.pairB} />
         </>
       )}
       {kind === 'join' && (
         <>
-          <Mascot className={s.left} />
+          <Bull className={s.left} />
           <span className={s.plus}>+</span>
-          <Mascot className={[s.right, s.flip, s.ghost].join(' ')} />
+          <Bull className={[s.right, s.flip, s.ghost].join(' ')} />
         </>
       )}
       {kind === 'coach' && (
         <>
-          <Mascot className={[s.big, s.violet].join(' ')} />
-          <span className={s.bubble}>📈</span>
-          <Mascot className={[s.small, s.flip].join(' ')} />
+          <Bull className={s.big} />
+          <span className={s.bubble}>
+            <Icon name="chart" size={18} />
+          </span>
+          <Bull className={[s.small, s.flip].join(' ')} />
         </>
       )}
     </span>
