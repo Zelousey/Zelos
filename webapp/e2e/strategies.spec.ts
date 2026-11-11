@@ -56,7 +56,7 @@ test.describe('signed in', () => {
     await expect(dialog.getByText(/You’ll have 80 tokens left/)).toBeVisible();
     await dialog.getByRole('button', { name: 'Pay 120 tokens' }).click();
     await expect(page.getByText('Swing Trader pass active for 7 days')).toBeVisible();
-    await expect(card.getByText(/^Pass until/)).toBeVisible();
+    await expect(card.getByText(/^After-close pass until/)).toBeVisible(); // passes sold from 2026-11-10 open alerts after the close
     await expect(card.getByRole('link', { name: /Open alerts/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Your tokens: 80/ })).toBeVisible();
     // a 1-day pass to try a scanner (owner 2026-10-22); 80 tokens isn't enough for a week
