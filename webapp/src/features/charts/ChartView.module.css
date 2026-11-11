@@ -18,3 +18,9 @@
 .indRow { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); color: var(--ink-2); }
 .indRow input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
 @media (max-width: 760px) { .wrap { border-radius: 0; } }
+/* phones (owner 2026-11-11): Indicators, Fibonacci, Alert and Forecast all fit on the screen */
+@media (max-width: 760px) {
+  .tools .toolRow { gap: 2px; }
+  .tools .toolRow > * { padding-inline: 7px; gap: 4px; font-size: 12px; }
+  .tools .toolRow > * svg { width: 14px; height: 14px; }
+}

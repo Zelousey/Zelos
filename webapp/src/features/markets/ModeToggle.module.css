@@ -7,6 +7,7 @@
   font: inherit; font-size: var(--text-sm); font-weight: 700; letter-spacing: 0.01em; cursor: pointer; white-space: nowrap;
   transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
+.opt { composes: hit from global; } /* finger-sized tap area even when it looks small (base.css) */
 .opt:hover { color: var(--ink); }
 .opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .opt[aria-checked='true'] { color: #fff; }
@@ -26,3 +27,8 @@
 }
 .badge.fast { color: var(--link); border-color: var(--accent-line); background: var(--accent-soft); }
 .badge.slow { color: var(--ink); border-color: var(--gold); background: var(--gold-soft); }
+/* phones (owner 2026-11-11: "a little smaller on mobile") */
+@media (max-width: 760px) {
+  .compact .opt { min-height: 32px; padding: 0 9px; gap: 4px; font-size: 11px; }
+  .compact .opt svg { width: 13px; height: 13px; }
+}
