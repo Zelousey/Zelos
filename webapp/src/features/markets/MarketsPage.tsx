@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useMovers, useQuotes } from '../../data/markets';
 import { bySpeed, groups, instrument, searchUniverse, UNIVERSE } from '../../data/universe';
-import { readString, writeString } from '../../lib/storage';
+import { useMode } from '../../data/tradeMode';
 import { useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
@@ -22,21 +22,15 @@ import { SectorBars } from './Sectors';
 import { StatusLine } from './StatusLine';
 import { MarketView } from './MarketView';
 import { TradeChoice } from './TradeChoice';
+import { ModeToggle } from './ModeToggle';
 import s from './MarketsPage.module.css';
 
 type Glance = 'indexes' | 'watchlist' | 'gainers' | 'losers' | 'actives' | 'all';
 const INDEXES = UNIVERSE.filter((i) => i.group === 'ETF').map((i) => i.sym);
 
 type Speed = 'fast' | 'slow';
-const SPEED_KEY = 'zelosAppMarketSpeed';
-function useSpeed() {
-  const [speed, setSpeedState] = useState<Speed>(() => (readString(SPEED_KEY) === 'slow' ? 'slow' : 'fast'));
-  const setSpeed = (x: Speed) => {
-    setSpeedState(x);
-    writeString(SPEED_KEY, x);
-  };
-  return [speed, setSpeed] as const;
-}
+/** The Day Trading / Long Term choice, shared with the chart below and the Full Chart (data/tradeMode). */
+const useSpeed = useMode;
 
 export default function MarketsPage() {
   const quotes = useQuotes();
@@ -60,17 +54,8 @@ export default function MarketsPage() {
       <h1 className="visually-hidden">{t('nav.market')}</h1>
       <div className={s.topRow}>
         <StatusLine quotes={quotes} />
-        <div className={s.speed}>
-          <Tabs
-            label={t('market.speed')}
-            value={speed}
-            onChange={setSpeed}
-            items={[
-              { value: 'fast', label: t('market.speed.fast') },
-              { value: 'slow', label: t('market.speed.slow') },
-            ]}
-          />
-        </div>
+        {/* owner 2026-11-10: this switch changes the chart below too, and the Full Chart keeps it */}
+        <ModeToggle className={s.speed} />
         <Link to="/charts" className={s.openCharts}>
           <Icon name="chart" size={16} /> {t('market.openCharts')}
         </Link>
@@ -238,20 +223,6 @@ function AllStocks({ onPick, speed, setSpeed: setSpeedRaw, columns }: { onPick?:
         />
         <p className={s.speedNote}>{speed === 'fast' ? t('market.speed.fastNote') : t('market.speed.slowNote')}</p>
       </div>
-      )}
-      {!onPick && (
-        <div className={s.speedPhone}>
-          <Tabs
-            stretch
-            label={t('market.speed')}
-            value={speed}
-            onChange={setSpeed}
-            items={[
-              { value: 'fast', label: t('market.speed.fast') },
-              { value: 'slow', label: t('market.speed.slow') },
-            ]}
-          />
-        </div>
       )}
       <div className={[s.tools, !onPick && s.toolsBare].filter(Boolean).join(' ')}>
         <label className={s.search}>

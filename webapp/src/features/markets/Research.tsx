@@ -2,14 +2,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatCompact, formatMoney, formatPercent } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { Card, LoadingState } from '../../ui';
+import { Button, Card, LoadingState } from '../../ui';
 import { fetchResearch, isStale, useResearch } from './research';
 import s from './Research.module.css';
 
 const dateLabel = (d: string) => (d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 
-export function ResearchCard({ sym }: { sym: string }) {
+/** collapsible (owner 2026-11-10, the Full Chart): starts as a short summary with "Explore more",
+ * so the research never pushes the trade buttons down. */
+export function ResearchCard({ sym, collapsible }: { sym: string; collapsible?: boolean }) {
   const doc = useResearch(sym);
+  const [open, setOpen] = useState(!collapsible);
   const r = doc.status === 'ready' ? doc.data : null;
   const [state, setState] = useState<'idle' | 'asking' | 'failed'>('idle');
   const asked = useRef<string | null>(null);
@@ -40,11 +43,13 @@ export function ResearchCard({ sym }: { sym: string }) {
     if (r.metrics.margin != null) kv.push([t('rs.margin'), formatPercent(r.metrics.margin * 100, { digits: 1, signed: false })]);
     if (P?.fiscalYearEnd) kv.push([t('rs.fye'), `${P.fiscalYearEnd.slice(0, 2)}/${P.fiscalYearEnd.slice(2)}`]);
     if (P?.state) kv.push([t('rs.incorporated'), P.state]);
+    const shownKv = open ? kv : kv.slice(0, 3);
+    const more = !open && (kv.length > 3 || r.insiders.length > 0 || !!P?.website);
     body = (
       <>
-        {kv.length > 0 && (
+        {shownKv.length > 0 && (
           <dl className={s.kv}>
-            {kv.map(([k, v]) => (
+            {shownKv.map(([k, v]) => (
               <div key={k}>
                 <dt>{k}</dt>
                 <dd>{v}</dd>
@@ -52,7 +57,7 @@ export function ResearchCard({ sym }: { sym: string }) {
             ))}
           </dl>
         )}
-        {r.insiders.length > 0 && (
+        {open && r.insiders.length > 0 && (
           <>
             <h3 className={s.sub}>{t('rs.insiders')}</h3>
             <ul className={s.list}>
@@ -72,10 +77,15 @@ export function ResearchCard({ sym }: { sym: string }) {
             <p className={s.fine}>{t('rs.insidersNote')}</p>
           </>
         )}
-        {P?.website && (
+        {open && P?.website && (
           <a className={s.site} href={P.website} target="_blank" rel="noopener noreferrer">
             {P.website.replace(/^https:\/\//, '')}
           </a>
+        )}
+        {(more || (collapsible && open)) && (
+          <Button variant="ghost" size="sm" className={s.more} onClick={() => setOpen((x) => !x)} aria-expanded={open}>
+            {open ? t('rs.less') : t('rs.more')}
+          </Button>
         )}
         <p className={s.fine}>{t('rs.source')}</p>
       </>
