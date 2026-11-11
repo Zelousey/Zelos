@@ -22,9 +22,9 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-soft);
+  background: var(--bg);
   border-right: 1px solid var(--border-soft);
-  padding: var(--space-3) var(--space-2);
+  padding: var(--space-3) var(--space-2) var(--space-4);
   overflow-y: auto;
   scrollbar-width: thin;
 }
@@ -32,26 +32,29 @@
 .brand { display: flex; align-items: center; gap: var(--space-2); color: var(--ink); font-weight: 700; letter-spacing: 0.02em; min-width: 0; }
 .brand img { border-radius: 0; flex: none; }
 .brandText { font-size: var(--text-md); }
-.sideNav { flex: none; display: flex; flex-direction: column; gap: var(--space-3); } /* the sidebar scrolls instead of squeezing */
-.navGroup { display: flex; flex-direction: column; gap: 2px; }
-.groupLabel { padding: var(--space-2) var(--space-3) var(--space-1); font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.sideNav { flex: none; display: flex; flex-direction: column; gap: var(--space-4); } /* the sidebar scrolls instead of squeezing */
+.navGroup { display: flex; flex-direction: column; gap: 1px; }
+.groupLabel { padding: 0 var(--space-3) 6px; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
 .navItem {
   position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 36px;
+  min-height: 34px;
   padding: 0 var(--space-3);
   border-radius: var(--radius);
-  color: var(--muted);
+  color: var(--ink-2);
   font-size: var(--text-sm);
   font-weight: 500;
   transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
-.navItem:hover { background: var(--surface-hover); color: var(--ink); }
-.navItem.active { background: var(--accent-soft); color: var(--ink); }
+.navItem svg { flex: none; width: 18px; height: 18px; color: var(--muted); transition: color var(--dur-fast) var(--ease-out); }
+.navItem:hover { background: var(--surface); color: var(--ink); }
+.navItem:hover svg { color: var(--ink-2); }
+/* the current screen: a quiet surface and a 2px marker on the edge, not a filled block of colour */
+.navItem.active { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+.navItem.active::before { content: ''; position: absolute; left: 0; top: 7px; bottom: 7px; width: 2px; background: var(--accent); }
 .navItem.active svg { color: var(--accent); }
-.navItem svg { flex: none; }
 .navText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .newDot { width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--accent); flex: none; }
 .collapsed .newDot { position: absolute; top: 6px; right: 10px; }

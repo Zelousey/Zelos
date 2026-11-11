@@ -19,7 +19,8 @@ import type { ComponentType } from 'react';
 import type { MessageKey } from '../lib/i18n';
 import type { IconName } from '../ui/Icon';
 
-export type ModuleGroup = 'main' | 'play' | 'signals' | 'account';
+/** Sidebar groups (2026-11-11): the old 12-item "Play" list is split into Compete and Learn. */
+export type ModuleGroup = 'main' | 'compete' | 'learn' | 'account';
 
 export type AppModule = {
   id: string;
@@ -48,48 +49,51 @@ export const MODULES: AppModule[] = [
   // owner 2026-10-20: Practice is merged into the Dashboard and options trade from the Buy/Sell
   // ticket, so neither has a menu entry; /practice/trade/:sym (the ticket) and /options/:sym (the
   // full option chain, one tap from the ticket) stay as routes
-  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'play', parent: 'dashboard', nav: false, load: () => import('../features/practice/PracticeModule') },
+  { id: 'practice', path: 'practice', label: 'nav.practice', icon: 'practice', group: 'compete', parent: 'dashboard', nav: false, load: () => import('../features/practice/PracticeModule') },
   // the War zone (the Trade War realm, docs/WAR_DESIGN.md): hidden until all of War is built (owner
   // 2026-10-29), so a route only; the server lets only admins in for now, anyone else gets Not found
-  { id: 'war', path: 'war', label: 'nav.war', icon: 'war', group: 'play', parent: 'trade-war', nav: false, load: () => import('../features/war/WarModule') },
-  { id: 'battles', path: 'battles', label: 'nav.battles', icon: 'war', group: 'play', parent: 'trade-war', load: () => import('../features/battles/BattlesModule') },
-  { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'play', parent: 'markets', nav: false, load: () => import('../features/options/OptionsModule') },
-  { id: 'invite', path: 'invite', label: 'nav.invite', icon: 'invite', group: 'play', load: () => import('../features/invites/InviteModule').then((m) => ({ default: m.InviteMakeModule })) },
+  { id: 'war', path: 'war', label: 'nav.war', icon: 'war', group: 'compete', parent: 'trade-war', nav: false, load: () => import('../features/war/WarModule') },
+  { id: 'battles', path: 'battles', label: 'nav.battles', icon: 'flag', group: 'compete', parent: 'trade-war', load: () => import('../features/battles/BattlesModule') },
+  { id: 'options', path: 'options', label: 'nav.options', icon: 'options', group: 'compete', parent: 'markets', nav: false, load: () => import('../features/options/OptionsModule') },
+  { id: 'invite', path: 'invite', label: 'nav.invite', icon: 'invite', group: 'compete', load: () => import('../features/invites/InviteModule').then((m) => ({ default: m.InviteMakeModule })) },
   // an invite link someone shared: /i/<code>
-  { id: 'invite-link', path: 'i', label: 'nav.invite', icon: 'invite', group: 'play', parent: 'invite', nav: false, load: () => import('../features/invites/InviteModule') },
+  { id: 'invite-link', path: 'i', label: 'nav.invite', icon: 'invite', group: 'compete', parent: 'invite', nav: false, load: () => import('../features/invites/InviteModule') },
   { id: 'welcome', path: 'welcome', label: 'nav.welcome', icon: 'profile', group: 'account', nav: false, load: () => import('../features/welcome/WelcomePage') },
-  { id: 'strategies', path: 'strategies', label: 'nav.strategies', icon: 'signal', group: 'play', parent: 'trade-war', load: () => import('../features/strategies/StrategiesModule') },
-  { id: 'leaderboard', path: 'leaderboard', label: 'nav.leaderboard', icon: 'markets', group: 'play', parent: 'trade-war', load: () => import('../features/leaderboard/LeaderboardPage') },
-  { id: 'coach', path: 'coach', label: 'nav.coach', icon: 'missions', group: 'play', load: () => import('../features/coach/CoachModule') },
-  { id: 'communities', path: 'communities', label: 'nav.communities', icon: 'social', group: 'play', parent: 'social', load: () => import('../features/communities/CommunitiesModule') },
-  { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'play', load: () => import('../features/social/SocialModule') },
-  { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'play', load: () => import('../features/missions/MissionsPage') },
-  { id: 'learn', path: 'learn', label: 'nav.learn', icon: 'learn', group: 'play', load: () => import('../features/learn/LearnModule') },
+  { id: 'strategies', path: 'strategies', label: 'nav.strategies', icon: 'radar', group: 'compete', parent: 'trade-war', load: () => import('../features/strategies/StrategiesModule') },
+  { id: 'leaderboard', path: 'leaderboard', label: 'nav.leaderboard', icon: 'trophy', group: 'compete', parent: 'trade-war', load: () => import('../features/leaderboard/LeaderboardPage') },
+  { id: 'coach', path: 'coach', label: 'nav.coach', icon: 'clipboard', group: 'compete', load: () => import('../features/coach/CoachModule') },
+  { id: 'communities', path: 'communities', label: 'nav.communities', icon: 'chat', group: 'compete', parent: 'social', load: () => import('../features/communities/CommunitiesModule') },
+  { id: 'social', path: 'social', label: 'nav.social', icon: 'social', group: 'compete', load: () => import('../features/social/SocialModule') },
+  { id: 'missions', path: 'missions', label: 'nav.missions', icon: 'missions', group: 'learn', load: () => import('../features/missions/MissionsPage') },
+  { id: 'learn', path: 'learn', label: 'nav.learn', icon: 'learn', group: 'learn', load: () => import('../features/learn/LearnModule') },
   // Hall of Minds (owner 2026-10-22): history's great minds, what a trader can take from them
-  { id: 'minds', path: 'minds', label: 'nav.minds', icon: 'learn', group: 'play', load: () => import('../features/minds/MindsModule') },
-  { id: 'quiz', path: 'quiz', label: 'nav.quiz', icon: 'learn', group: 'play', parent: 'learn', nav: false, load: () => import('../features/learn/QuizPage') },
-  { id: 'training', path: 'training', label: 'nav.training', icon: 'arcade', group: 'play', load: () => import('../features/training/TrainingModule') },
+  { id: 'minds', path: 'minds', label: 'nav.minds', icon: 'landmark', group: 'learn', load: () => import('../features/minds/MindsModule') },
+  { id: 'quiz', path: 'quiz', label: 'nav.quiz', icon: 'learn', group: 'learn', parent: 'learn', nav: false, load: () => import('../features/learn/QuizPage') },
+  { id: 'training', path: 'training', label: 'nav.training', icon: 'arcade', group: 'learn', load: () => import('../features/training/TrainingModule') },
   // the old name: /arcade/... -> /training/...
-  { id: 'arcade', path: 'arcade', label: 'nav.training', icon: 'arcade', group: 'play', parent: 'training', nav: false, load: () => import('../features/training/ArcadeRedirect') },
+  { id: 'arcade', path: 'arcade', label: 'nav.training', icon: 'arcade', group: 'learn', parent: 'training', nav: false, load: () => import('../features/training/ArcadeRedirect') },
 
   { id: 'profile', path: 'profile', label: 'nav.profile', icon: 'profile', group: 'account', load: () => import('../features/profile/ProfileModule') },
   // the Token Store (owner list D, 2026-10-27): tap the token chip in the top bar
   { id: 'tokens', path: 'tokens', label: 'nav.tokens', icon: 'profile', group: 'account', nav: false, load: () => import('../features/tokens/TokenStorePage') },
   { id: 'settings', path: 'settings', label: 'nav.settings', icon: 'settings', group: 'account', load: () => import('../features/settings/SettingsPage') },
   // Help & feedback (Phase 8, owner 2026-10-28: feedback is saved in the app)
-  { id: 'help', path: 'help', label: 'nav.help', icon: 'inbox', group: 'account', load: () => import('../features/help/HelpModule') },
+  { id: 'help', path: 'help', label: 'nav.help', icon: 'help', group: 'account', load: () => import('../features/help/HelpModule') },
 
   // Routes without a nav entry: /charts opens the last symbol you looked at in Market.
   { id: 'charts', path: 'charts', label: 'nav.charts', icon: 'chart', group: 'main', parent: 'markets', nav: false, load: () => import('../features/charts/ChartsRedirect') },
 ];
 
 export const GROUP_LABEL: Record<Exclude<ModuleGroup, 'main'>, MessageKey> = {
-  play: 'nav.group.play',
-  signals: 'nav.group.signals',
+  compete: 'nav.group.compete',
+  learn: 'nav.group.learn',
   account: 'nav.group.account',
 };
 
-export const GROUP_ORDER: ModuleGroup[] = ['main', 'play', 'signals', 'account'];
+export const GROUP_ORDER: ModuleGroup[] = ['main', 'compete', 'learn', 'account'];
+
+/** The order inside the Compete group: play first, then people (anything not listed keeps its place after these). */
+const NAV_ORDER = ['dashboard', 'markets', 'trade-war', 'alerts', 'news', 'battles', 'leaderboard', 'strategies', 'social', 'communities', 'coach', 'invite'];
 
 export const DEFAULT_PATH = 'dashboard';
 
@@ -103,7 +107,8 @@ export function tabModules(): AppModule[] {
 
 /** Modules listed in navigation (the sidebar, the ☰ menu). */
 export function navModules(): AppModule[] {
-  return MODULES.filter((m) => m.nav !== false);
+  const at = (m: AppModule) => { const i = NAV_ORDER.indexOf(m.id); return i < 0 ? NAV_ORDER.length : i; };
+  return MODULES.filter((m) => m.nav !== false).sort((a, b) => at(a) - at(b));
 }
 
 /** Everything in the ☰ menu: listed modules that aren't tabs. */
