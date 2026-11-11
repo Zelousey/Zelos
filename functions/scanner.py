@@ -23,7 +23,7 @@ MIN_RR = 2.0
 BREAKOUT_STOP_ATR = 0.5  # stop half a normal day's range under the old ceiling (or the breakout day's low)...
 MIN_STOP_ATR = 1.0       # ...and at least one normal day's range under the entry, so ordinary noise doesn't stop it out
 BREAKOUT_TARGET_R = 2.0  # first target: twice the risk (the measured move from the base is the second)
-NOT_STOCKS = {"SPY", "QQQ", "IWM", "DIA", "GLD", "XLK", "XLC", "XLY", "XLV", "XLF", "XLE"}
+NOT_STOCKS = {"SPY", "QQQ", "QQQM", "IWM", "DIA", "GLD", "XLK", "XLC", "XLY", "XLV", "XLF", "XLE"}
 SIZE_NOTE = ("A general rule of thumb: risk no more than 1–2% of your own account on any single idea, sized off your "
              "own stop distance (risk per share × number of shares ≈ that 1–2%). This is the same guideline for every "
              "subscriber, not a figure calculated from anyone's balance.")

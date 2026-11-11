@@ -25,7 +25,7 @@ import { SectorBars } from '../markets/Sectors';
 import { achievementsView, mergeProgress, missionsView, readLocal } from './progress';
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
-import { AccountSection } from '../practice/AccountSection';
+import { AccountSection, OpenOrdersCard } from '../practice/AccountSection';
 import { FirstSteps } from '../welcome/FirstSteps';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import { lsGet, SKIP_KEY } from '../welcome/welcome';
@@ -94,12 +94,14 @@ export default function DashboardPage() {
         {page === 'trading' && (
           <div className={s.tradeGrid}>
             {/* owner 2026-10-20: your account, open positions (stocks and options) and orders come first */}
-            <div className={s.main}>{uid ? <AccountSection uid={uid} /> : trader}</div>
+            <div className={s.main}>{uid ? <AccountSection uid={uid} ordersElsewhere /> : trader}</div>
             <div className={s.side}>
               {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
                 <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
               )}
               <WarsCard uid={uid} />
+              {/* owner 2026-11-10: Solo · Open orders sits right under Battle */}
+              {uid && <OpenOrdersCard uid={uid} />}
             </div>
           </div>
         )}

@@ -6,10 +6,11 @@
  * markets/intraday_SYM and the daily history.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { SYMBOL_RE, useQuotes } from '../../data/markets';
 import { instrument, INDEX_ETFS, searchUniverse, UNIVERSE } from '../../data/universe';
 import { useUserDoc } from '../../data/userDoc';
+import { fallbackSymbol, MODE_DEFAULT_TF, MODE_TFS, modeOf, readMode, useMode, type Mode } from '../../data/tradeMode';
 import { useAuth } from '../../lib/auth';
 import { formatCompact, formatMarketTime, formatPercent, formatPrice, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
@@ -30,13 +31,16 @@ import { MiniChart } from './MiniChart';
 import { useMinis } from './miniSeries';
 import { recentSymbols, rememberSymbol } from './useLastSymbol';
 import { reportMission } from '../../data/missionEvent';
+import { ModeToggle, modeExplanation, useModeMinutes } from './ModeToggle';
 import s from './SymbolPage.module.css';
 
 const TF_KEY = 'zelosAppChartTf';
+const tfKey = (m: Mode) => `${TF_KEY}:${m}`;
 
-function initialTf(): Timeframe {
-  const v = readString(TF_KEY);
-  return v === '5m' || v === '15m' || v === '1h' || v === 'D' || v === 'W' ? v : 'D';
+/** The timeframe last used in this mode (Day Trading: 5m / 15m / 1H; Long Term: D / W). */
+function initialTf(m: Mode): Timeframe {
+  const v = readString(tfKey(m)) ?? readString(TF_KEY);
+  return MODE_TFS[m].find((x) => x === v) ?? MODE_DEFAULT_TF[m];
 }
 
 export default function SymbolPage() {
@@ -63,7 +67,30 @@ export default function SymbolPage() {
 }
 
 function SymbolView({ sym, name }: { sym: string; name: string }) {
-  const [tf, setTfState] = useState<Timeframe>(initialTf);
+  // Day Trading or Long Term (owner 2026-11-10): every symbol is on one mode's list, so the chart
+  // is in that mode. Arriving at a symbol of the other mode turns that mode on (and says so);
+  // switching the mode here moves to a symbol of the new mode and explains why in a popup.
+  const symMode: Mode = modeOf(sym) ?? 'fast';
+  const [mode, setMode] = useMode();
+  const navigate = useNavigate();
+  const location = useLocation();
+  // arriving from the other mode: a short note under the header (not a toast, which would sit on the chart's buttons)
+  const [joined] = useState(() => readMode() !== symMode);
+  const swappedFrom = (location.state as { swappedFrom?: string } | null)?.swappedFrom ?? null;
+  const [swapNote, setSwapNote] = useState(swappedFrom);
+  const minutes = useModeMinutes();
+  useEffect(() => {
+    if (mode === symMode) return;
+    setMode(symMode);
+    // only on arrival: later switches go through switchMode
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sym]);
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    if (m === symMode) return;
+    navigate(`/markets/${encodeURIComponent(fallbackSymbol(sym, m))}`, { state: { swappedFrom: sym } });
+  };
+  const [tf, setTfState] = useState<Timeframe>(() => initialTf(symMode));
   const controlsRef = useRef<HTMLDivElement>(null);
   useScrollFade(controlsRef);
   const tfDef = TIMEFRAMES.find((x) => x.id === tf)!;
@@ -107,9 +134,20 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
 
   function setTf(v: Timeframe) {
     setTfState(v);
-    writeString(TF_KEY, v);
+    writeString(tfKey(symMode), v);
     setRange(TIMEFRAMES.find((x) => x.id === v)!.def);
   }
+
+  // owner 2026-11-10: the timeframe row sits right under the chart, like a trading app; it stays
+  // when a timeframe has no bars yet, so you can always switch
+  const controls = (
+    <div ref={controlsRef} className={s.controls}>
+      <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
+      <span className={s.ctrlGap} aria-hidden="true" />
+      <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.filter((x) => MODE_TFS[symMode].includes(x.id)).map((x) => ({ value: x.id, label: x.label }))} />
+      <Tabs label={t('chart.style')} value={style} onChange={setStyle} items={[{ value: 'line', label: t('chart.line') }, { value: 'candles', label: t('chart.candles') }]} />
+    </div>
+  );
 
   const tableRows = built.bars.slice(-12).reverse();
   const tradeHref = tradeHrefOf(sym);
@@ -131,6 +169,8 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
           </div>
           <span className={s.name}>{name}</span>
         </div>
+        {/* owner 2026-11-10: the mode switch sits between the symbol and its price */}
+        <ModeToggle className={s.mode} onChange={switchMode} compact />
         <div className={s.price}>
           <span className={s.last} aria-label={`Price ${formatPrice(price)}`}>
             {formatPrice(price)}
@@ -147,13 +187,21 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
         </div>
       </div>
       <StatusLine quotes={quotes} />
+      {joined && !swapNote && (
+        <p className={s.joined} role="status">
+          {t('mode.joined', { sym, mode: t(symMode === 'fast' ? 'mode.fast' : 'mode.slow') })}
+        </p>
+      )}
 
       <div className={s.layout}>
         <Card className={s.chartCard}>
           {failed ? (
             <ErrorState compact onRetry={retry} />
           ) : !loading && built.bars.length === 0 ? (
-            <EmptyState icon="chart" body={built.intraday ? t('chart.noIntraday') : t('chart.noData', { sym })} compact />
+            <div className={s.chartBody}>
+              <EmptyState icon="chart" body={built.intraday ? t('chart.noIntraday') : t('chart.noData', { sym })} compact />
+              {controls}
+            </div>
           ) : (
             <div className={s.chartBody}>
               <ChartView
@@ -182,15 +230,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                     </Link>
                   </>
                 }
-                under={
-                  // owner 2026-11-10: the timeframe row sits right under the chart, like a trading app
-                  <div ref={controlsRef} className={s.controls}>
-                    <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
-                    <span className={s.ctrlGap} aria-hidden="true" />
-                    <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.map((x) => ({ value: x.id, label: x.label }))} />
-                    <Tabs label={t('chart.style')} value={style} onChange={setStyle} items={[{ value: 'line', label: t('chart.line') }, { value: 'candles', label: t('chart.candles') }]} />
-                  </div>
-                }
+                under={controls}
               />
             </div>
           )}
@@ -245,6 +285,8 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
           )}
         </Card>
 
+        {/* owner 2026-11-10: on a computer Buy / Sell sit right under Today (Your position, Today,
+            Buy / Sell), and Company research comes after, folded to a summary */}
         <div className={s.side}>
           <YourPosition sym={sym} tradeHref={tradeHref} />
           <Card title={t('stats.title')}>
@@ -257,7 +299,6 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
               <Stat size="sm" label={t('stats.updated')} value={q?.t ? formatMarketTime(q.t * 1000) : '—'} />
             </div>
           </Card>
-          {!isIndexEtf && <ResearchCard sym={sym} />}
           <div className={s.desktopTrade}>
             <div className={s.tradeBtns}>
               <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={buyHref} aria-label={t('trade.buyLabel', { sym })}>
@@ -269,11 +310,32 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
             </div>
             <p className={s.tradeHint}>{t('trade.practiceHint')}</p>
           </div>
+          {!isIndexEtf && <ResearchCard sym={sym} collapsible />}
         </div>
       </div>
 
       <Previews current={sym} />
       <SymbolSwitcher open={switching} onClose={() => setSwitching(false)} current={sym} />
+      <Sheet open={!!swapNote} onClose={() => setSwapNote(null)} title={t('mode.swap.title', { to: sym })} labelledBy="mode-swap-title">
+        <div className={s.swap}>
+          <p>{t('mode.swap.body', { from: swapNote ?? '', other: t(symMode === 'fast' ? 'mode.slow' : 'mode.fast'), to: sym, mode: t(symMode === 'fast' ? 'mode.fast' : 'mode.slow') })}</p>
+          <p className={s.swapExplain}>{modeExplanation(minutes)}</p>
+          <div className={s.swapBtns}>
+            <Button variant="primary" onClick={() => setSwapNote(null)}>
+              {t('mode.swap.ok')}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSwapNote(null);
+                setSwitching(true);
+              }}
+            >
+              {t('mode.swap.change')}
+            </Button>
+          </div>
+        </div>
+      </Sheet>
 
       <div className={[s.actionBar, s.tradeBtns].join(' ')}>
         <Link className={buttonClass({ variant: 'buy', size: 'lg', block: true })} to={buyHref} aria-label={t('trade.buyLabel', { sym })}>
@@ -385,11 +447,9 @@ function SymbolSwitcher({ open, onClose, current }: { open: boolean; onClose: ()
   const quotes = useQuotes();
   const [recent] = useState(recentSymbols);
   // owner 2026-11-10: switch between the day-trading list and the long-term list (starts on this stock's list)
-  const [speed, setSpeedState] = useState<'fast' | 'slow'>(() => (instrument(current)?.fast === false ? 'slow' : 'fast'));
-  const setSpeed = (x: 'fast' | 'slow') => {
-    setSpeedState(x);
-    writeString('zelosAppMarketSpeed', x); // the same choice as on Market
-  };
+  // (picking a stock from the other list turns that mode on when its chart opens)
+  const [speed, setSpeed] = useState<'fast' | 'slow'>(() => (instrument(current)?.fast === false ? 'slow' : 'fast'));
+  const minutes = useModeMinutes();
   const qs = quotes.status === 'ready' ? quotes.data.quotes : {};
   // picking a symbol changes the page, which remounts this screen and closes the sheet; a search
   // looks in both lists
@@ -429,6 +489,10 @@ function SymbolSwitcher({ open, onClose, current }: { open: boolean; onClose: ()
         </div>
       )}
       <MarketList rows={rows} label={t('chart.switch.title')} replace />
+      <div className={s.modeHelp}>
+        <h3>{t('mode.explain.title')}</h3>
+        <p>{modeExplanation(minutes)}</p>
+      </div>
       <p className={s.switchScope}>{t('markets.scope', { count: UNIVERSE.length })}</p>
     </Sheet>
   );

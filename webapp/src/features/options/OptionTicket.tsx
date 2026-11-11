@@ -13,6 +13,8 @@ import type { Account, Valued } from '../practice/account';
 import { daysTo, expirations, quote, strikes, useVolMap, volFor, type Kind } from './model';
 import { OptionBuyForm } from './OptionBuyForm';
 import { OptionPositions } from './OptionPositions';
+import { ChartButton } from './FloatingChart';
+import { CurrentPrice } from './CurrentPrice';
 import s from './Options.module.css';
 
 /** initial: a contract to start on (an Options Scanner alert's "Trade this setup"). */
@@ -55,6 +57,11 @@ export function OptionTicket({ sym, side, S, today, acct, valued, initial }: Pro
   const q = quote(kind, S, strike, exp, today, vol);
   return (
     <div className={s.ticket}>
+      {/* owner 2026-11-10: the chart opens from the card's left side, and the stock's price is easy to find */}
+      <div className={s.ticketHead}>
+        <ChartButton sym={sym} />
+        <CurrentPrice sym={sym} price={S} />
+      </div>
       <Tabs stretch label={t('opt.kind')} value={kind} onChange={setKind} items={[{ value: 'call', label: t('opt.callUp') }, { value: 'put', label: t('opt.putDown') }]} />
       <div className={s.row2}>
         <label className={s.select} htmlFor={expId}>

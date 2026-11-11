@@ -98,6 +98,9 @@ service cloud.firestore {
       allow get: if request.auth != null
         && exists(/databases/$(database)/documents/wallets/$(request.auth.uid))
         && (wallet().get('passes', {}).get(resource.data.strategy, 0) > request.time.toMillis()
+          // owner 2026-11-10: passes sold from now on open alerts after the close only
+          || (wallet().get('passesClose', {}).get(resource.data.strategy, 0) > request.time.toMillis()
+              && (resource.data.get('released', false) == true || resource.data.get('lockedUntil', 0) <= request.time.toMillis()))
           || alertId in wallet().get('unlocked', []));
       allow list, write: if false;
     }

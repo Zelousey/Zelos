@@ -11,7 +11,7 @@ import { useAuth } from '../../lib/auth';
 import { formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Button, Card, EmptyState, Field, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
+import { Button, Card, ChoiceCard, ChoiceList, EmptyState, Field, LoadingState, PageHeader, Tabs, useToast, type IconName } from '../../ui';
 import { errorText } from '../invites/invites';
 import { unlockQuietly } from '../missions/missions';
 import { addFriend, removeFriend } from '../profile/profile';
@@ -222,37 +222,39 @@ function Friends({ uid }: { uid: string }) {
   );
 }
 
-/** F9: what a squad can do, split into playing together and competing. Only what exists today. */
+/** F9: what a squad can do, split into playing together and competing. Only what exists today.
+ * Owner 2026-11-10: each battle mode is its own card that you tap to start that mode; the
+ * things that happen inside a squad (goal, chat, the squad board) are info tiles. */
+const COMPETE: { m: 'classic' | 'draft' | 'lms'; icon: IconName; tone: 'accent' | 'gold' | 'violet' }[] = [
+  { m: 'classic', icon: 'war', tone: 'accent' },
+  { m: 'draft', icon: 'social', tone: 'violet' },
+  { m: 'lms', icon: 'target', tone: 'gold' },
+];
+
 function SquadWays() {
   return (
     <div className={s.two} role="group" aria-label={t('sq.ways')}>
-      <Card title={t('sq.together')} subtitle={t('sq.together.sub')}>
-        <ul className={s.ways}>
-          <li>
-            <b>{t('sq.together.goal')}</b>
-            <span>{t('sq.together.goal.body')}</span>
-          </li>
-          <li>
-            <b>{t('sq.together.chat')}</b>
-            <span>{t('sq.together.chat.body')}</span>
-          </li>
-        </ul>
-      </Card>
       <Card title={t('sq.compete')} subtitle={t('sq.compete.sub')}>
-        <ul className={s.ways}>
-          <li>
-            <b>{t('sq.compete.board')}</b>
-            <span>{t('sq.compete.board.body')}</span>
-          </li>
-          {(['classic', 'draft', 'lms'] as const).map((m) => (
+        <ChoiceList label={t('sq.compete')}>
+          {COMPETE.map(({ m, icon, tone }) => (
             <li key={m}>
-              <Link className="hit" to={`/invite?kind=battle&mode=${m}`}>
-                <b>{t(`sq.compete.${m}` as MessageKey)} →</b>
-              </Link>
-              <span>{t(`sq.compete.${m}.body` as MessageKey)}</span>
+              <ChoiceCard to={`/invite?kind=battle&mode=${m}`} icon={icon} tone={tone} title={t(`sq.compete.${m}` as MessageKey)} body={t(`sq.compete.${m}.body` as MessageKey)} cta={t('sq.compete.start')} />
             </li>
           ))}
-        </ul>
+          <li>
+            <ChoiceCard icon="markets" title={t('sq.compete.board')} body={t('sq.compete.board.body')} />
+          </li>
+        </ChoiceList>
+      </Card>
+      <Card title={t('sq.together')} subtitle={t('sq.together.sub')}>
+        <ChoiceList label={t('sq.together')}>
+          <li>
+            <ChoiceCard icon="target" title={t('sq.together.goal')} body={t('sq.together.goal.body')} />
+          </li>
+          <li>
+            <ChoiceCard icon="inbox" title={t('sq.together.chat')} body={t('sq.together.chat.body')} />
+          </li>
+        </ChoiceList>
       </Card>
     </div>
   );

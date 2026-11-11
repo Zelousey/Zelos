@@ -31,6 +31,13 @@ describe('Training Ground', () => {
     expect(appPathFor('/games/grade-the-setup.html')).toBe('/training/grade-the-setup');
     expect(appPathFor('/games/evil.html')).toBeNull();
     expect(appPathFor('/learn/what-is-reward-to-risk-ratio.html')).toBeNull();
+    // 2026-11-10: "XP & Missions" in a drill went to the old website
+    expect(appPathFor('/practice/index.html?tab=progress')).toBe('/missions');
+    expect(appPathFor('/practice/index.html#start')).toBe('/practice');
+    expect(appPathFor('/practice/squads.html')).toBe('/social');
+    expect(appPathFor('/dashboard.html')).toBe('/dashboard');
+    expect(appPathFor('/leaderboard.html#practice')).toBe('/leaderboard');
+    expect(appPathFor('/learn/index.html')).toBe('/learn');
     expect(isGame('daily-challenge') && !isGame('zzz')).toBe(true);
   });
 });

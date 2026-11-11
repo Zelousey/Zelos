@@ -11,13 +11,15 @@ import { useAuth } from '../../lib/auth';
 import { formatDate, formatMoney, formatPercent, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { Badge, Button, buttonClass, Card, Change, EmptyState, LoadingState, PageHeader, Sheet, Tabs, useToast } from '../../ui';
+import { Badge, Button, buttonClass, Card, EmptyState, LoadingState, PageHeader, Sheet, Tabs, useToast } from '../../ui';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount, type Account } from '../practice/account';
 import { cancelOrder, errorMessage } from '../practice/actions';
 import { daysTo, expirations, label, quote, strikes, useVolMap, volFor, type Kind, type OptionQuote } from './model';
 import { OptionBuyForm } from './OptionBuyForm';
 import { OptionPositions } from './OptionPositions';
+import { ChartButton } from './FloatingChart';
+import { CurrentPrice } from './CurrentPrice';
 import s from './Options.module.css';
 
 const SYM_KEY = 'zelosAppOptionsSym';
@@ -91,17 +93,15 @@ export default function OptionsPage() {
             </label>
             <Tabs label={t('opt.kind')} value={kind} onChange={setKind} items={[{ value: 'call', label: t('opt.calls') }, { value: 'put', label: t('opt.puts') }]} />
           </div>
-          <p className={s.stockLine}>
+          {/* owner 2026-11-10: the chart opens from the left; the stock's price is big and bold */}
+          <div className={s.stockNow}>
+            <ChartButton sym={sym} />
             <Link to={`/markets/${sym}`} className={s.stockSym}>
               {sym}
-            </Link>{' '}
-            {live ? (
-              <>
-                <span className="num">{formatPrice(live.c)}</span> {live.pc ? <Change abs={live.c - live.pc} pct={(live.c / live.pc - 1) * 100} /> : null}
-              </>
-            ) : null}
+            </Link>
+            <CurrentPrice sym={sym} price={live?.c} />
             <span className={s.sub}>{t('opt.vol', { v: formatPercent(vol * 100, { digits: 0, signed: false }) })}</span>
-          </p>
+          </div>
           <p className={s.explain}>{kind === 'call' ? t('opt.callExplain') : t('opt.putExplain')}</p>
         </Card>
 
@@ -191,9 +191,11 @@ function OpenOrder({ id, text }: { id: string; text: string }) {
   const [busy, setBusy] = useState(false);
   return (
     <div className={s.orderRow}>
-      <span className={s.orderText}>{text}</span>
+      <span className={s.orderText}>
+        <Badge tone="gold">{t('orders.open')}</Badge> <span>{text}</span>
+      </span>
       <Button
-        variant="ghost"
+        variant="danger"
         size="sm"
         disabled={busy}
         aria-label={`${t('practice.cancel')}: ${text}`}
@@ -205,7 +207,7 @@ function OpenOrder({ id, text }: { id: string; text: string }) {
             .finally(() => setBusy(false));
         }}
       >
-        {t('practice.cancel')}
+        {busy ? t('orders.cancelling') : t('orders.cancel')}
       </Button>
     </div>
   );

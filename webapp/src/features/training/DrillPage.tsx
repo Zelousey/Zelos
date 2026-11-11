@@ -14,15 +14,28 @@ import { ScoreList } from './ScoreList';
 import { dailyId, drill, embedPath, FUN, isGame } from './training';
 import s from './Training.module.css';
 
-/** Where a link clicked inside a drill should go in the app (null: leave the app for that page). */
+/** Where a link clicked inside a drill should go in the app (null: leave the app for that page).
+ * The drill pages still carry the website's menu and footer, so every page they link to that
+ * the app has maps here (2026-11-10: "XP & Missions" went to the old website because its
+ * `?tab=progress` query didn't match). */
 export function appPathFor(sitePath: string): string | null {
-  const p = sitePath.replace(/^\/+/, '');
-  if (/^arcade\.html/.test(p)) return '/training';
-  if (/^leaderboard\.html/.test(p)) return '/training?tab=boards';
-  const g = /^games\/([a-z-]+)\.html/.exec(p);
+  const full = sitePath.replace(/^\/+/, '');
+  const p = full.replace(/[?#].*$/, '');
+  const q = full.slice(p.length);
+  if (p === 'arcade.html') return '/training';
+  if (p === 'leaderboard.html') return /#practice/.test(q) ? '/leaderboard' : '/training?tab=boards';
+  const g = /^games\/([a-z-]+)\.html$/.exec(p);
   if (g && isGame(g[1]!)) return `/training/${g[1]}`;
-  if (/^practice\/(index\.html)?$/.test(p)) return '/practice';
-  if (/^learn\//.test(p)) return null;
+  if (p === 'practice/' || p === 'practice' || p === 'practice/index.html') return /tab=progress/.test(q) ? '/missions' : '/practice';
+  if (p === 'practice/missions.html') return '/missions';
+  if (p === 'practice/squads.html') return '/social';
+  if (p === 'practice/profile.html' || p === 'my-zelos.html') return '/profile';
+  if (p === 'practice/communities.html') return '/communities';
+  if (p === 'dashboard.html' || p === 'index.html' || p === '') return '/dashboard';
+  if (p === 'alert-history.html') return '/alerts';
+  if (p === 'arsenal.html' || p === 'swing-trader.html' || p === 'breakout-rider.html' || p === 'options-scanner.html') return '/strategies';
+  if (p === 'market-3d.html' || p === 'live-chart.html' || p === 'daily-market.html') return '/markets';
+  if (p === 'learn/' || p === 'learn/index.html') return '/learn';
   return null;
 }
 

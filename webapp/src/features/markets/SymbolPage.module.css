@@ -14,9 +14,15 @@
 .controls::-webkit-scrollbar { display: none; }
 .controls > * { flex: none; }
 .ctrlGap { flex: 1 1 auto; min-width: var(--space-2); }
-.controls [role='tablist'] { background: transparent; border: 0; padding: 0; gap: 2px; }
-.controls [role='tab'] { min-height: 30px; padding: 0 10px; border-radius: var(--radius-pill); font-weight: 600; font-size: var(--text-sm); color: var(--muted); background: transparent; box-shadow: none; }
-.controls [role='tab'][aria-selected='true'] { background: var(--accent-soft); color: var(--ink); box-shadow: none; }
+/* owner 2026-11-10: the timeframe and range buttons are clear boxes along the bottom of the chart */
+.controls { gap: var(--space-2); padding: var(--space-2) 0 2px; border-top: 1px solid var(--border-soft); margin-top: var(--space-1); }
+.controls [role='tablist'] { background: transparent; border: 0; padding: 0; gap: 4px; }
+.controls [role='tab'] {
+  min-height: 34px; min-width: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 0;
+  font-weight: 700; font-size: var(--text-sm); color: var(--ink-2); background: var(--surface-2); box-shadow: none;
+}
+.controls [role='tab']:hover { border-color: var(--accent-line); color: var(--ink); }
+.controls [role='tab'][aria-selected='true'] { background: var(--accent-fill); border-color: var(--accent); color: #fff; box-shadow: none; }
 @media (pointer: coarse) { .controls [role='tab'] { min-height: var(--tap); } }
 .chartBody { padding: var(--space-2) var(--space-3) var(--space-3); }
 /* the chart sits on the page itself, edge to edge, with no box around it */
@@ -117,3 +123,20 @@
 .tradeOptions { margin-left: auto; }
 .muted { color: var(--muted); font-size: var(--text-sm); }
 .switchSpeed { padding: 0 var(--space-4) var(--space-3); }
+
+/* Day Trading / Long Term between the symbol and its price (owner 2026-11-10) */
+.mode { align-self: center; }
+@media (max-width: 760px) {
+  .head { flex-wrap: wrap; }
+  .mode { order: 3; flex-basis: 100%; }
+}
+/* the popup when switching modes changed the symbol */
+.swap { display: grid; gap: var(--space-3); padding: 0 var(--space-4) var(--space-4); }
+.swap p { margin: 0; }
+.swapExplain { color: var(--muted); font-size: var(--text-sm); }
+.swapBtns { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* under the Change symbol list: what the two modes mean */
+.modeHelp { margin: var(--space-3) var(--space-4) 0; padding: var(--space-3); border: 1px solid var(--border-soft); border-left: 3px solid var(--accent); background: var(--surface-2); }
+.modeHelp h3 { font-size: var(--text-sm); font-weight: 700; margin: 0 0 4px; }
+.modeHelp p { margin: 0; color: var(--ink-2); font-size: var(--text-xs); line-height: 1.5; }
+.joined { margin: 0 0 var(--space-3); padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--surface-2); color: var(--ink-2); font-size: var(--text-sm); }

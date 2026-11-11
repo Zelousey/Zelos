@@ -32,7 +32,9 @@ test('full flow: dashboard → markets → search → chart → practice trade',
   await rows.first().click();
   await expect(page).toHaveURL(/\/app\/markets\/NVDA$/);
   await expect(page.getByRole('heading', { level: 1, name: 'NVDA' })).toBeVisible();
-  await expect(page.getByRole('img', { name: /NVDA .* price chart/ })).toBeVisible();
+  // a day-trading stock opens on intraday bars (the fixture has none for NVDA): the timeframe row stays, so you can switch
+  await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '15m' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('link', { name: 'Sell NVDA' }).filter({ visible: true }).first()).toHaveAttribute('href', '/app/practice/trade/NVDA?side=sell');
   await page.getByRole('link', { name: 'Buy NVDA' }).filter({ visible: true }).first().click();
   await expect(page).toHaveURL(/\/app\/practice\/trade\/NVDA\?side=buy$/);
@@ -92,24 +94,56 @@ test('big chart: switch symbols from the search sheet and the mini-chart preview
 });
 
 test('chart: timeframes, ranges, styles and the data table', async ({ page }) => {
-  await page.goto('markets/AAPL');
-  const chart = page.getByRole('img', { name: /AAPL D price chart/ });
-  await expect(chart).toBeVisible();
+  // a long-term symbol: daily and weekly charts (owner 2026-11-10; DIA has daily history in the fixture)
+  await page.goto('markets/DIA');
+  await expect(page.getByRole('radio', { name: 'Long Term', checked: true })).toBeVisible();
+  await expect(page.getByText('DIA is a Long Term symbol, so the chart is in Long Term mode.')).toBeVisible();
+  await expect(page.getByRole('img', { name: /DIA D price chart/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '15m' })).toHaveCount(0);
   await page.getByRole('tab', { name: 'W', exact: true }).click();
-  await expect(page.getByRole('img', { name: /AAPL W price chart/ })).toBeVisible();
-  await page.getByRole('tab', { name: '15m' }).click();
+  await expect(page.getByRole('img', { name: /DIA W price chart/ })).toBeVisible();
+  // a day-trading stock: intraday charts
+  await page.goto('markets/AAPL');
+  await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
   await expect(page.getByRole('img', { name: /AAPL 15m price chart/ })).toBeVisible(); // AAPL has intraday bars in the fixture
+  await expect(page.getByRole('tab', { name: 'W', exact: true })).toHaveCount(0);
+  await page.getByRole('tab', { name: '5m', exact: true }).click();
+  await expect(page.getByRole('img', { name: /AAPL 5m price chart/ })).toBeVisible();
   // candles are the default everywhere (owner 2026-10-27); line is one tap away
   await expect(page.getByRole('tab', { name: 'Candles' })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: 'Line' }).click();
   await page.getByRole('button', { name: 'Show data table' }).click();
   const table = page.getByRole('table');
   await expect(table.getByRole('row')).toHaveCount(13); // header + 12 bars
-  // the choice of timeframe is remembered
+  // the choice of timeframe is remembered (per mode)
   await page.reload();
-  await expect(page.getByRole('tab', { name: '15m' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: '5m', exact: true })).toHaveAttribute('aria-selected', 'true');
   // ...but the line style is not: every chart opens as candles (owner 2026-10-27)
   await expect(page.getByRole('tab', { name: 'Candles' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('Day Trading / Long Term: Market changes its chart, Full Chart keeps the mode and explains a symbol change', async ({ page }) => {
+  await page.goto('markets');
+  await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: /SPY 15m price chart/ })).toBeVisible();
+  await page.getByRole('radio', { name: 'Long Term' }).click();
+  // the first switch explains the two modes; SPY is a day-trading fund, so the chart moves to DIA
+  await expect(page.getByText(/Both chart modes track actual stock prices/).first()).toBeVisible();
+  await expect(page.getByRole('img', { name: /DIA D price chart/ })).toBeVisible();
+  await page.getByRole('link', { name: /Full chart/ }).click();
+  await expect(page).toHaveURL(/\/app\/markets\/DIA$/);
+  await expect(page.getByRole('radio', { name: 'Long Term', checked: true })).toBeVisible();
+  // switching here to a mode DIA isn't in picks a compatible symbol and says so
+  await page.getByRole('radio', { name: 'Day Trading' }).click();
+  await expect(page).toHaveURL(/\/app\/markets\/SPY$/);
+  const pop = page.getByRole('dialog', { name: 'Switched to SPY' });
+  await expect(pop).toContainText('DIA is only available in Long Term');
+  await pop.getByRole('button', { name: 'Change symbol' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Chart another symbol' });
+  await expect(sheet).toContainText('Day Trading vs Long Term');
+  await page.keyboard.press('Escape');
+  await page.goto('markets');
+  await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
 });
 
 test('intraday without bars explains itself; unknown symbols are handled', async ({ page }) => {
@@ -172,27 +206,27 @@ test('all stocks come in two sections: day trading (every minute) and long-term 
   const glance = page.getByRole('region', { name: 'Charts at a glance' });
   await glance.getByRole('tab', { name: 'All stocks' }).click();
   const list = page.getByRole('list', { name: 'All stocks' });
-  await expect(page.getByRole('tab', { name: 'Day trading', selected: true })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Day Trading', checked: true })).toBeVisible();
   await expect(page.getByText('Prices every minute. For trades you open and close the same day.')).toBeVisible();
   await expect(list.getByRole('link')).toHaveCount(8);
   await expect(list).toContainText('SPY');
   await expect(list).not.toContainText('TSLA');
-  await page.getByRole('tab', { name: 'Long-term' }).click();
+  await page.getByRole('radio', { name: 'Long Term' }).click();
   await expect(page.getByText('Prices every 15 minutes. For trades you hold for days, weeks or longer.')).toBeVisible();
   await expect(list).toContainText('TSLA');
   await expect(list).not.toContainText('NVDA');
   // a search that matches the other section says where it is
   await glance.getByRole('searchbox').fill('nvi');
-  await expect(page.getByText('It is in Day trading.')).toBeVisible();
-  await page.getByRole('button', { name: 'Day trading' }).click();
+  await expect(page.getByText('It is in Day Trading.')).toBeVisible();
+  await page.getByRole('button', { name: 'Day Trading' }).click();
   await expect(list.getByRole('link')).toHaveCount(1);
   await expect(list).toContainText('NVDA');
   // the choice is remembered
   await glance.getByRole('searchbox').fill('');
-  await page.getByRole('tab', { name: 'Long-term' }).click();
+  await page.getByRole('radio', { name: 'Long Term' }).click();
   await page.reload();
   await glance.getByRole('tab', { name: 'All stocks' }).click();
-  await expect(page.getByRole('tab', { name: 'Long-term', selected: true })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Long Term', checked: true })).toBeVisible();
   // removed stocks aren't listed
   await expect(list).not.toContainText('Broadcom');
 });
