@@ -3722,7 +3722,8 @@ def tw_respond(req, db, uid, now_ms):
 # ---------------------------------------------------------------------------
 # Tokens: the site's paid currency (replaces the old $20 Gumroad purchase).
 #
-#   wallets/{uid}                 { balance, passes: {strategy: untilMs}, unlocked: [alertId],
+#   wallets/{uid}                 { balance, passes: {strategy: untilMs} (sold before 2026-11-10: live + after close),
+#                                   passesClose: {strategy: untilMs} (after the close only), unlocked: [alertId],
 #                                   welcomed, createdAt, updatedAt }   owner-read, server-write
 #   wallets/{uid}/ledger/{id}     { type, amount (+/-), balanceAfter, note, ref, at }
 #   purchases/sq_{orderId}        { uid, pack, tokens, amountCents, provider, paymentId, at }  server only
@@ -3778,7 +3779,7 @@ def _tk_verified(tok):
 
 
 def tk_new_wallet(now_ms):
-    return {"balance": 0, "passes": {}, "unlocked": [], "welcomed": False, "createdAt": now_ms, "updatedAt": now_ms}
+    return {"balance": 0, "passes": {}, "passesClose": {}, "unlocked": [], "welcomed": False, "createdAt": now_ms, "updatedAt": now_ms}
 
 
 def tk_ledger(kind, amount, balance_after, now_ms, note="", ref=None):
@@ -3793,8 +3794,18 @@ def tk_welcome(wallet, verified, now_ms):
     return w, tk_ledger("welcome", TOKENS["welcome"], w["balance"], now_ms, "Welcome tokens")
 
 
-def tk_has_access(wallet, strategy, alert_id, now_ms):
-    return (wallet.get("passes") or {}).get(strategy, 0) > now_ms or alert_id in (wallet.get("unlocked") or [])
+def tk_has_access(wallet, strategy, alert_id, now_ms, closed=True):
+    """Who can read a gated alert (owner 2026-11-10):
+    - passes{strategy: until}: passes sold before 2026-11-10, live and after the close, until they run out;
+    - passesClose{strategy: until}: passes sold from 2026-11-10, after the close only (until the trade
+      finishes and the alert goes public); a live alert before the close is a token unlock;
+    - unlocked: single-alert unlocks.
+    closed: the alert is past its close (released, or lockedUntil has passed)."""
+    if (wallet.get("passes") or {}).get(strategy, 0) > now_ms:
+        return True
+    if closed and (wallet.get("passesClose") or {}).get(strategy, 0) > now_ms:
+        return True
+    return alert_id in (wallet.get("unlocked") or [])
 
 
 PASS_DAYS = (1, 7)  # the passes on sale
@@ -3821,9 +3832,9 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None, da
         if not locked or locked.get("public"):
             raise TWError("FAILED_PRECONDITION", "This alert is already free to read.")
         strategy = locked.get("strategy")
-        if tk_has_access(wallet, strategy, alert_id, now_ms):
+        closed = bool(locked.get("released") or (locked.get("lockedUntil") or 0) <= now_ms)
+        if tk_has_access(wallet, strategy, alert_id, now_ms, closed):
             return wallet, None
-        closed = locked.get("released") or (locked.get("lockedUntil") or 0) <= now_ms
         cost, ref = TOKENS["unlockClosed" if closed else "unlock"], alert_id
     else:
         raise TWError("INVALID_ARGUMENT", "Unknown purchase.")
@@ -3831,9 +3842,11 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None, da
         raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (cost, wallet["balance"]))
     w = dict(wallet, balance=wallet["balance"] - cost, updatedAt=now_ms)
     if kind == "pass":
-        passes = dict(wallet.get("passes") or {})
+        # owner 2026-11-10: a pass opens the scanner's alerts after the close (before they go public);
+        # live alerts before the close are token unlocks. Passes sold earlier keep live access.
+        passes = dict(wallet.get("passesClose") or {})
         passes[strategy] = max(passes.get(strategy, 0), now_ms) + days * 86400000
-        w["passes"] = passes
+        w["passesClose"] = passes
         note = "%s pass (%d day%s)" % (PUSH_NAMES.get(strategy) or strategy.replace("-", " ").title(), days, "" if days == 1 else "s")
     else:
         w["unlocked"] = ((wallet.get("unlocked") or []) + [alert_id])[-TK_UNLOCKED_MAX:]
@@ -3863,7 +3876,7 @@ def _tk_call(fn):
 
 
 def _tk_public(wallet):
-    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:],
+    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "passesClose": wallet.get("passesClose") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:],
             "mindQuotes": wallet.get("mindQuotes") or {}}
 
 

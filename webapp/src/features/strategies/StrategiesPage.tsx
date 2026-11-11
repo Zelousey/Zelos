@@ -11,7 +11,7 @@ import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
-import { buyPass, passPrice, passUntil, STRATEGIES, useAlerts, type Alert, type PassDays, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
+import { buyPass, passIsAfterClose, passPrice, passUntil, STRATEGIES, useAlerts, type Alert, type PassDays, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
 import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens } from './Tokens';
 import s from './Strategies.module.css';
@@ -67,7 +67,7 @@ export function StrategyCard({ st, latest, loading, wallet, info, balance, onTok
 function PassBadge({ st, wallet }: { st: Strategy; wallet: WalletDoc | null }) {
   const now = useNow();
   const until = passUntil(wallet, st.id, now);
-  return until ? <Badge tone="up">{t('st.pass.active', { date: formatDate(until) })}</Badge> : null;
+  return until ? <Badge tone="up">{t(passIsAfterClose(wallet, st.id, now) ? 'st.pass.activeClose' : 'st.pass.active', { date: formatDate(until) })}</Badge> : null;
 }
 
 export function AlertLine({ a }: { a: Alert }) {

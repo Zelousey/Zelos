@@ -95,26 +95,35 @@ export const alertUrl = (id: string) => `alert.html?id=${encodeURIComponent(id)}
 
 // ------------------------------------------------------------------ tokens
 /** mindQuotes: Hall of Minds daily quotes, {figure id: until ms} (functions/minds.py). */
-export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>>; mindQuotes: Record<string, number> };
+/** passes: sold before 2026-11-10 (live + after the close); passesClose: sold since (after the close only). */
+export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>>; passesClose: Partial<Record<StrategyId, number>>; mindQuotes: Record<string, number> };
 export function parseWallet(d: DocumentData): WalletDoc {
-  const passes: WalletDoc['passes'] = {};
-  const p = (d.passes && typeof d.passes === 'object' ? d.passes : {}) as Record<string, unknown>;
-  for (const s of STRATEGIES) {
-    const until = num(p[s.id]);
-    if (until) passes[s.id] = until;
-  }
+  const read = (raw: unknown) => {
+    const out: WalletDoc['passes'] = {};
+    const p = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    for (const s of STRATEGIES) {
+      const until = num(p[s.id]);
+      if (until) out[s.id] = until;
+    }
+    return out;
+  };
+  const passes = read(d.passes);
+  const passesClose = read(d.passesClose);
   const mindQuotes: Record<string, number> = {};
   for (const [k, v] of Object.entries((d.mindQuotes && typeof d.mindQuotes === 'object' ? d.mindQuotes : {}) as Record<string, unknown>)) {
     const until = num(v);
     if (until && /^[a-z-]{2,30}$/.test(k)) mindQuotes[k] = until;
   }
-  return { balance: Math.max(0, Math.floor(num(d.balance) ?? 0)), passes, mindQuotes };
+  return { balance: Math.max(0, Math.floor(num(d.balance) ?? 0)), passes, passesClose, mindQuotes };
 }
 export const useWalletDoc = (uid: string | null) => useLiveDoc(uid ? `wallets/${uid}` : null, parseWallet);
+/** The end of your pass for this strategy, of either kind (null: none). */
 export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
-  const u = w?.passes[id];
-  return u && u > now ? u : null;
+  const u = Math.max(w?.passes[id] ?? 0, w?.passesClose[id] ?? 0);
+  return u > now ? u : null;
 };
+/** True when your pass is the after-the-close kind (sold from 2026-11-10). */
+export const passIsAfterClose = (w: WalletDoc | null, id: StrategyId, now: number) => !((w?.passes[id] ?? 0) > now) && (w?.passesClose[id] ?? 0) > now;
 
 export type Pack = { id: string; tokens: number; cents: number };
 export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; dayPass?: number; dayPassPrices?: Partial<Record<StrategyId, number>>; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };
