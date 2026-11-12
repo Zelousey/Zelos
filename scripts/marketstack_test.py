@@ -195,6 +195,11 @@ finally:
     _ur.urlopen = real_open
     MD.BUDGET[0] = None
 
+# market holidays and early closes (owner 2026-11-12)
+ok(MD.market_holiday("2026-11-26") and MD.market_holiday("2026-12-25") and not MD.market_holiday("2026-11-27"), "Thanksgiving and Christmas are holidays")
+ok(MD.session_close_min("2026-11-27") == 13 * 60 and MD.session_close_min("2026-11-30") == 16 * 60, "the day after Thanksgiving closes at 1 pm")
+ok(all(datetime.strptime(d, "%Y-%m-%d").weekday() < 5 for d in MD.MARKET_HOLIDAYS | MD.EARLY_CLOSES), "every listed holiday is a weekday")
+
 # billing cycle: the 7th to the 7th
 ok(MD.ms_cycle(datetime(2026, 10, 22, 10, tzinfo=MD.NY)) == "2026-10", "Oct 22 is in the cycle that began Oct 7")
 ok(MD.ms_cycle(datetime(2026, 11, 6, 23, tzinfo=MD.NY)) == "2026-10", "Nov 6 is still in it")

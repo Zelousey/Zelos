@@ -6,7 +6,10 @@
 .drawLayer { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
 .withTools { display: grid; gap: var(--space-2); min-width: 0; }
 .tools { display: grid; gap: var(--space-2); }
-.toolRow { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.toolRow { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+/* owner 2026-11-12: with the names gone the icons sit close together (a little room after Indicators) */
+.toolRow > :first-child { margin-right: var(--space-2); }
+@media (pointer: fine) { .toolRow [data-tip] { width: 32px; } }
 /* phones: one row that scrolls sideways, so the toolbar never takes two lines */
 @media (max-width: 760px) { .toolRow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: var(--space-1); } .toolRow::-webkit-scrollbar { display: none; } .toolRow > * { flex: none; } }
 /* Remove sits after the tools, before Trade options at the far right */

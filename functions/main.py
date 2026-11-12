@@ -715,11 +715,15 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     Hard stops: live prices stop for the day at MS_DAILY_CALLS, and until the next billing cycle at
     MS_LIVE_CAP; markets/quotes then says "paused" (the app shows it) and the last prices stay."""
     now = datetime.now(NY)
+    day = now.strftime("%Y-%m-%d")
+    if MD.market_holiday(day):
+        return  # markets closed: no calls at all
     minutes = now.hour * 60 + now.minute
     every, steady_every = MD.quote_every_min(), MD.steady_every_min()
-    in_session = SESSION_OPEN < minutes <= SESSION_CLOSE + 1
+    close = MD.session_close_min(day)  # 13:00 on an early close
+    in_session = SESSION_OPEN < minutes <= close + 1
     on = lambda n: in_session and (minutes - SESSION_OPEN - 1) % n == 0  # noqa: E731
-    closing = minutes == SESSION_CLOSE + 6
+    closing = minutes == close + 6
     syms = (FAST_SYMBOLS if on(every) or closing else []) + (STEADY_SYMBOLS if on(steady_every) or closing else [])
     if not syms:
         return
