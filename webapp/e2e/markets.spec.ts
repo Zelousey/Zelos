@@ -109,17 +109,20 @@ test('chart: timeframes, ranges, styles and the data table', async ({ page }) =>
   await expect(page.getByRole('tab', { name: 'W', exact: true })).toHaveCount(0);
   await page.getByRole('tab', { name: '5m', exact: true }).click();
   await expect(page.getByRole('img', { name: /AAPL 5m price chart/ })).toBeVisible();
-  // candles are the default everywhere (owner 2026-10-27); line is one tap away
-  await expect(page.getByRole('tab', { name: 'Candles' })).toHaveAttribute('aria-selected', 'true');
-  await page.getByRole('tab', { name: 'Line' }).click();
+  // candles are the default everywhere (owner 2026-10-27); the chart-type menu has 13 types (step 2)
+  const type = page.getByRole('combobox', { name: 'Chart type' });
+  await expect(type).toHaveValue('candles');
+  await expect(type.locator('option')).toHaveCount(13);
+  for (const v of ['hollow', 'volcandles', 'heikin', 'bars', 'highlow', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'line']) await type.selectOption(v);
+  await expect(page.getByRole('img', { name: /AAPL 5m price chart/ })).toBeVisible();
   await page.getByRole('button', { name: 'Show data table' }).click();
   const table = page.getByRole('table');
   await expect(table.getByRole('row')).toHaveCount(13); // header + 12 bars
   // the choice of timeframe is remembered (per mode)
   await page.reload();
   await expect(page.getByRole('tab', { name: '5m', exact: true })).toHaveAttribute('aria-selected', 'true');
-  // ...but the line style is not: every chart opens as candles (owner 2026-10-27)
-  await expect(page.getByRole('tab', { name: 'Candles' })).toHaveAttribute('aria-selected', 'true');
+  // ...but the chart type is not: every chart opens as candles (owner 2026-10-27)
+  await expect(page.getByRole('combobox', { name: 'Chart type' })).toHaveValue('candles');
 });
 
 test('Day Trading / Long Term: Market changes its chart, Full Chart keeps the mode and explains a symbol change', async ({ page }) => {

@@ -59,7 +59,11 @@
   --candle-up: var(--accent);
   --candle-down: var(--ink);
 
-  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Numbers (design pass 2, 2026-11-12): prices, money and percentages are set in the same sans
+     as the rest of the app with tabular (equal-width) digits, like a trading terminal, instead
+     of a typewriter font. The token keeps its name because 120+ rules use it for numbers. */
+  --mono: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --code: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   /* ---- app-only tokens ---- */

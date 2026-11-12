@@ -87,9 +87,9 @@ function Board({ board, cat }: { board: BoardId; cat: SeasonCat }) {
       ) : (
         <ol className={s.list}>
           {list.map((r, i) => (
-            <Row key={r.uid} r={r} place={i + 1} value={fmt(board, cat, f.value(r))} me={r.uid === uid} />
+            <Row key={r.uid} r={r} place={i + 1} value={fmt(board, cat, f.value(r))} ret={board === 'all' ? r.growthPct : undefined} me={r.uid === uid} />
           ))}
-          {me && !inTop && rank && myValue != null && <Row r={me} place={rank} value={fmt(board, cat, myValue)} me gap />}
+          {me && !inTop && rank && myValue != null && <Row r={me} place={rank} value={fmt(board, cat, myValue)} ret={board === 'all' ? me.growthPct : undefined} me gap />}
         </ol>
       )}
     </Card>
@@ -127,14 +127,15 @@ function FriendsBoard() {
   );
 }
 
-function Row({ r, place, value, me, gap }: { r: Ranked; place: number; value: string; me?: boolean; gap?: boolean }) {
+/** `ret`: the account's all-time return, shown beside the account value on the all-time board. */
+function Row({ r, place, value, ret, me, gap }: { r: Ranked; place: number; value: string; ret?: number | null; me?: boolean; gap?: boolean }) {
   const medal = place === 1 ? s.gold : place === 2 ? s.silver : place === 3 ? s.bronze : '';
   const lv = levelFor(r.xp).level;
   return (
     <li className={[me && s.me, gap && s.gap].filter(Boolean).join(' ')} value={place}>
       <Link to={`/profile/${encodeURIComponent(r.uid)}`} className={s.row}>
         <span className={[s.place, medal].filter(Boolean).join(' ')}>{place}</span>
-        {r.photo ? <img className={s.avatar} src={r.photo} alt="" width={36} height={36} referrerPolicy="no-referrer" loading="lazy" /> : <span className={s.avatar} aria-hidden>{r.name.slice(0, 1).toUpperCase()}</span>}
+        {r.photo ? <img className={s.avatar} src={r.photo} alt="" width={32} height={32} referrerPolicy="no-referrer" loading="lazy" /> : <span className={s.avatar} aria-hidden>{r.name.slice(0, 1).toUpperCase()}</span>}
         <span className={s.who}>
           <b>
             {r.name}
@@ -145,7 +146,10 @@ function Row({ r, place, value, me, gap }: { r: Ranked; place: number; value: st
             {r.tradeStreak > 1 ? ` · 🔥 ${r.tradeStreak}` : ''}
           </small>
         </span>
-        <span className={s.value}>{value}</span>
+        <span className={s.nums}>
+          <span className={s.value}>{value}</span>
+          {ret != null && Number.isFinite(ret) && <span className={[s.ret, ret >= 0 ? 'up' : 'down'].join(' ')}>{pct(ret)}</span>}
+        </span>
       </Link>
     </li>
   );

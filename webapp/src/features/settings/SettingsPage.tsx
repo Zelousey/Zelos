@@ -6,6 +6,7 @@ import { Link, useLocation } from 'react-router';
 import { getTheme, setTheme, THEMES, type Theme } from '../../lib/theme';
 import { Card, Icon, PageHeader, Tabs } from '../../ui';
 import { ChartColors } from './ChartColors';
+import { IndicatorColors } from './IndicatorColors';
 import { DeleteAccount } from './DeleteAccount';
 import { BlockedList } from '../safety/BlockedList';
 import s from './SettingsPage.module.css';
@@ -47,6 +48,11 @@ export default function SettingsPage() {
               <div className={s.note}>{t('settings.candles.help')}</div>
             </div>
             <ChartColors />
+            <div className={s.sub}>
+              <div className={s.rowLabel}>{t('settings.ind')}</div>
+              <div className={s.note}>{t('settings.ind.help')}</div>
+            </div>
+            <IndicatorColors />
           </Card>
           <div className={s.o4}>
             <BlockedList />

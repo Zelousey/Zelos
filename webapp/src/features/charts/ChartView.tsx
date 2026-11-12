@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import type { Bar } from '../../data/markets';
-import { engine, SHAPE_POINTS, toSeries, type Forecast, type Shape, type ShapeColor, type ShapeKind, type TradeChart } from './engine';
+import { engine, SHAPE_POINTS, toSeries, type ChartStyle, type Forecast, type Shape, type ShapeColor, type ShapeKind, type TradeChart } from './engine';
 import { ChartTools, type ToolsActions } from './ChartTools';
 import s from './ChartView.module.css';
 
@@ -19,7 +19,7 @@ export type ChartViewProps = {
   live?: boolean;
   intraday?: boolean;
   range: number | 'all';
-  style: 'line' | 'candles';
+  style: ChartStyle;
   refPrice?: number | null;
   forecast?: Forecast | null;
   onForecastEdit?: (f: Forecast, which: 'sl' | 'tp') => void;

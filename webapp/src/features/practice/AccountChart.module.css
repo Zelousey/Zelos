@@ -1,12 +1,14 @@
 .wrap { display: grid; gap: var(--space-3); padding: var(--space-4); min-width: 0; }
 .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); }
-.value { font-family: var(--mono); font-size: var(--text-2xl); font-weight: 600; font-variant-numeric: tabular-nums; }
-.up { color: var(--bull); font-family: var(--mono); font-size: var(--text-sm); }
-.down { color: var(--danger); font-family: var(--mono); font-size: var(--text-sm); }
+.value { font-family: var(--mono); font-size: 2rem; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.up { color: var(--up-ink); font-family: var(--mono); font-size: var(--text-sm); font-weight: 500; }
+.down { color: var(--down-ink); font-family: var(--mono); font-size: var(--text-sm); font-weight: 500; }
 .when { color: var(--muted); font-size: var(--text-xs); }
 .plot { width: 100%; min-width: 0; touch-action: pan-y; }
 .plot svg { display: block; cursor: crosshair; }
 .base { stroke: var(--muted-2); stroke-width: 1; stroke-dasharray: 2 4; }
+.gUp { stop-color: var(--bull); }
+.gDown { stop-color: var(--danger); }
 .lineUp, .lineDown { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .lineUp { stroke: var(--bull); }
 .lineDown { stroke: var(--danger); }
@@ -17,7 +19,8 @@
 @keyframes pulse { 50% { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .dotUp, .dotDown { animation: none; } }
 .note { margin: 0; color: var(--muted); font-size: var(--text-xs); }
-.table summary { cursor: pointer; font-size: var(--text-sm); color: var(--ink-2); min-height: 32px; display: flex; align-items: center; }
+.table summary { cursor: pointer; width: fit-content; font-size: var(--text-xs); font-weight: 600; color: var(--muted); min-height: 28px; display: flex; align-items: center; }
+.table summary:hover { color: var(--ink); }
 .table table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .table caption { text-align: left; color: var(--muted); font-size: var(--text-xs); padding: 4px 0; }
 .table th, .table td { text-align: right; padding: 4px 0; border-bottom: 1px solid var(--border-soft); }

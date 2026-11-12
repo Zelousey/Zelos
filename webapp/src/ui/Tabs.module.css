@@ -1,8 +1,9 @@
-.list { display: flex; gap: 2px; padding: 3px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius); overflow-x: auto; scrollbar-width: none; }
+.list { display: flex; width: fit-content; max-width: 100%; gap: 2px; padding: 2px; background: var(--bg-soft); border: 1px solid var(--border-soft); border-radius: var(--radius); overflow-x: auto; scrollbar-width: none; }
 .list::-webkit-scrollbar { display: none; }
-.tab { flex: 0 0 auto; min-height: 32px; padding: 0 var(--space-3); border: 0; border-radius: calc(var(--radius) - 2px); background: transparent; color: var(--muted); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+.tab { flex: 0 0 auto; min-height: 30px; padding: 0 var(--space-3); border: 0; border-radius: calc(var(--radius) - 2px); background: transparent; color: var(--muted); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
 .tab:hover { color: var(--ink); }
-.tab[aria-selected='true'] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+.tab[aria-selected='true'] { background: var(--surface-hover); color: var(--ink); }
+.stretch { width: auto; }
 .stretch .tab { flex: 1 1 0; }
 /* touch screens: taller tabs (the row scrolls, so a hidden touch area would be clipped). Phase 4 M-5 */
 @media (pointer: coarse) { .tab { min-height: var(--tap); min-width: var(--tap); } }

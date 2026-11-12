@@ -27,6 +27,7 @@ import {
   useToast,
   Tour,
   tourSeen,
+  Ticker,
 } from "../../ui";
 import { ChartView } from "../charts/ChartView";
 import type { Forecast } from "../charts/engine";
@@ -253,7 +254,9 @@ function Ticket({
           </span>
         </div>
         <div className={s.px}>
-          <span className={s.last}>{formatPrice(last)}</span>
+          <Ticker value={last} className={s.last}>
+            {formatPrice(last)}
+          </Ticker>
           <Change pct={quote?.chPct} />
         </div>
       </div>
@@ -313,7 +316,7 @@ function Ticket({
             </p>
           ) : (
           <div className={s.ticketTop}>
-            <div data-tour="side">
+            <div data-tour="side" className={s.side} data-side={input.side}>
             <Tabs
               stretch
               label={t("trade.side")}

@@ -40,6 +40,7 @@ import { LearnReturn } from '../features/learn/LearnReturn';
 import { MindsQuoteCard } from '../features/minds/QuoteCard';
 import { useInbox } from './useInbox';
 import { useOnline } from './useOnline';
+import { TopSearch } from './TopSearch';
 import s from './Shell.module.css';
 
 const COLLAPSE_KEY = 'zelosAppSidebarCollapsed';
@@ -132,6 +133,7 @@ export function AppShell() {
           <img src={BRAND_ICON} alt="" width={26} height={26} />
         </Link>
         <div className={s.topTitle}>{title}</div>
+        <TopSearch />
         <div className={s.topActions}>
           {!isReal && (
             <Button variant="primary" size="sm" onClick={signIn} className={s.signInBtn}>

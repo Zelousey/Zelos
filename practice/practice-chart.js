@@ -160,6 +160,26 @@
     try { global.dispatchEvent(new Event('zelos:theme')); } catch (e) {}
   }
   function rgba(hex, a) { if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex; var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  // Indicator colours (owner 2026-11-11, Settings): volume, Bollinger Bands, RSI, MACD line and
+  // signal. Empty means the default; volume's default follows the candle colours.
+  var IND_COLOR_KEY = 'zelosIndColors';
+  function hexOk(x) { return typeof x === 'string' && /^#[0-9a-f]{6}$/i.test(x); }
+  function loadIndColors() {
+    try { var v = JSON.parse(localStorage.getItem(IND_COLOR_KEY) || 'null'); if (v && typeof v === 'object') return v; } catch (e) {}
+    return {};
+  }
+  function saveIndColors(v) { try { localStorage.setItem(IND_COLOR_KEY, JSON.stringify(v || {})); } catch (e) {} }
+  // Chart types (owner's step 2). 'line' is the live line coloured against the previous close.
+  var CHART_TYPES = ['candles', 'hollow', 'volcandles', 'bars', 'heikin', 'line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'highlow'];
+  var CLOSE_ONLY = { line: 1, linemarkers: 1, step: 1, area: 1, baseline: 1, columns: 1 };
+  function heikinAshi(s) {
+    var o = [], h = [], l = [], c = [];
+    for (var i = 0; i < s.n; i++) {
+      var cc = (s.o[i] + s.h[i] + s.l[i] + s.c[i]) / 4, oo = i ? (o[i - 1] + c[i - 1]) / 2 : (s.o[i] + s.c[i]) / 2;
+      o.push(oo); c.push(cc); h.push(Math.max(s.h[i], oo, cc)); l.push(Math.min(s.l[i], oo, cc));
+    }
+    return { o: o, h: h, l: l, c: c };
+  }
   function lum(hex) { if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0.5; var n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; }
 
   // ------------------------------------------------------------ chart
@@ -173,7 +193,8 @@
     this.lines = []; this.lastPrice = null; this.marks = []; this.colors = loadColors(); this.empty = null;
     // 'line' (Robinhood-style live line, the default) or 'candles'; refPrice = previous close (line color + dotted line)
     // candles are the default everywhere (owner 2026-10-27); a saved choice still wins
-    this.style = 'candles'; try { this.style = localStorage.getItem('zelosChartStyle') === 'line' ? 'line' : 'candles'; } catch (e) {}
+    this.style = 'candles'; try { var st0 = localStorage.getItem('zelosChartStyle'); if (CHART_TYPES.indexOf(st0) >= 0) this.style = st0; } catch (e) {}
+    this.indColors = loadIndColors();
     this.refPrice = null; this.anim = null; this.pulse = null;
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
     this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
@@ -292,7 +313,7 @@
     }, { passive: false });
     this._onResize = function () { self.resize(); };
     // a theme or candle-colour change (Settings, the token shop) repaints every open chart
-    this._onTheme = function () { self.colors = loadColors(); self.draw(); };
+    this._onTheme = function () { self.colors = loadColors(); self.indColors = loadIndColors(); self.draw(); };
     if ('ResizeObserver' in global) { this._ro = new ResizeObserver(this._onResize); this._ro.observe(canvas); }
     else global.addEventListener('resize', this._onResize);
     global.addEventListener('zelos:theme', this._onTheme);
@@ -352,7 +373,7 @@
     this.W = w; this.H = h; this.dpr = dpr; this.draw();
   };
   TradeChart.prototype.setStyle = function (st) {
-    this.style = st === 'candles' ? 'candles' : 'line'; try { localStorage.setItem('zelosChartStyle', this.style); } catch (e) {} this.draw();
+    this.style = CHART_TYPES.indexOf(st) >= 0 ? st : 'candles'; try { localStorage.setItem('zelosChartStyle', this.style); } catch (e) {} this.draw();
   };
   TradeChart.prototype.setSeries = function (s, bars, daySlots) {
     // a new live price on the same chart glides there (line view) instead of jumping
@@ -466,9 +487,11 @@
     var overlays = INDICATORS.filter(function (d) { return d.kind === 'overlay' && show[d.id]; });
     // price range: candles, visible overlays, lines, forecast
     var lo = Infinity, hi = -Infinity, vmax = 0, i;
-    var lineMode = this.style === 'line';
+    var ST = this.style, lineMode = ST === 'line', closeOnly = !!CLOSE_ONLY[ST], IC = this.indColors || {};
+    var SO = s.o, SH = s.h, SL = s.l, SC = s.c;
+    if (ST === 'heikin') { if (!s._ha) s._ha = heikinAshi(s); SO = s._ha.o; SH = s._ha.h; SL = s._ha.l; SC = s._ha.c; }
     for (i = from; i <= to; i++) {
-      if (lineMode) { lo = Math.min(lo, s.c[i]); hi = Math.max(hi, s.c[i]); } else { lo = Math.min(lo, s.l[i]); hi = Math.max(hi, s.h[i]); }
+      if (closeOnly) { lo = Math.min(lo, s.c[i]); hi = Math.max(hi, s.c[i]); } else { lo = Math.min(lo, SL[i]); hi = Math.max(hi, SH[i]); }
       vmax = Math.max(vmax, s.v[i] || 0);
     }
     // averages and bands may widen the price range by a quarter at most; past that they run off
@@ -549,7 +572,7 @@
     c.save(); c.beginPath(); c.rect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); c.clip();
     overlays.forEach(function (d) {
       if (!d.band) return;
-      var v = s.ind[d.id], cc = col(d.color, '#8f7bf6');
+      var v = s.ind[d.id], cc = d.id === 'bb' && hexOk(IC.bb) ? IC.bb : col(d.color, '#8f7bf6');
       c.beginPath(); var started = false;
       for (var k = from; k <= to; k++) { if (v.up[k] == null) continue; if (!started) { c.moveTo(X(k), Y(v.up[k])); started = true; } else c.lineTo(X(k), Y(v.up[k])); }
       for (k = to; k >= from; k--) { if (v.lo[k] == null) continue; c.lineTo(X(k), Y(v.lo[k])); }
@@ -561,11 +584,11 @@
     c.lineJoin = 'miter'; c.restore();
     // volume: its own strip under the price area
     if (L.vol && vmax) {
-      var vh = L.vol.y1 - L.vol.y0 - 2, vbw = Math.max(1, Math.min(9, Math.round(bw * 0.62)));
+      var vh = L.vol.y1 - L.vol.y0 - 2, vbw = Math.max(1, Math.min(13, Math.round(bw * 0.72)));
       for (i = from; i <= to; i++) {
         if (!s.v[i]) continue;
         var up = s.c[i] >= s.o[i], h = Math.max(1, s.v[i] / vmax * vh);
-        c.fillStyle = rgba(up ? bull : bear, 0.38);
+        c.fillStyle = hexOk(IC.vol) ? rgba(IC.vol, 0.45) : rgba(up ? bull : bear, 0.38);
         c.fillRect(Math.round(X(i) - vbw / 2), L.vol.y1 - h, vbw, h);
       }
     }
@@ -584,16 +607,75 @@
       if (to === s.n - 1) { var dx = X(to), dy = Y(last); c.fillStyle = lc; c.beginPath(); c.arc(dx, dy, 4, 0, Math.PI * 2); c.fill(); if (s.live) pulseAt = { x: dx, y: dy, c: lc }; }
     }
     this.placePulse(pulseAt);
-    // candles
-    var cbw = Math.max(1, Math.min(9, Math.round(bw * 0.62)));
+    // the price series in the chosen chart type (owner's step 2). Candle bodies are about 72% of
+    // a bar's slot, up to 13 px (owner 2026-11-11: a little bigger, so zoomed out isn't a mess)
+    var cbw = Math.max(1, Math.min(13, Math.round(bw * 0.72)));
     if (cbw > 2 && cbw % 2 === 0) cbw -= 1; // odd widths keep the wick in the middle
-    for (i = lineMode ? to + 1 : from; i <= to; i++) {
-      var o = s.o[i], cl = s.c[i], x = Math.round(X(i)), cc = cl >= o ? bull : bear;
-      c.strokeStyle = cc; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 0.5, Math.round(Y(s.h[i]))); c.lineTo(x + 0.5, Math.round(Y(s.l[i]))); c.stroke();
-      var top = Math.round(Y(Math.max(o, cl))), hgt = Math.max(1, Math.round(Math.abs(Y(o) - Y(cl)))), bx = x + 1 - Math.ceil(cbw / 2);
-      c.fillStyle = cc; c.fillRect(bx, top, cbw, hgt);
-      if (lightBg && lum(cc) > 0.8) { c.strokeStyle = '#9aa1ac'; c.strokeRect(bx, top, cbw, hgt); c.beginPath(); c.moveTo(x + 0.5, Y(s.h[i])); c.lineTo(x + 0.5, Y(s.l[i])); c.stroke(); }
-      if (s.live && i === s.n - 1) { c.strokeStyle = acc; c.setLineDash([2, 2]); c.strokeRect(x - bw * 0.5, Y(s.h[i]) - 2, bw, Y(s.l[i]) - Y(s.h[i]) + 4); c.setLineDash([]); }
+    var baseY = L.vol ? L.vol.y0 : L.y1;
+    function closePath(step) {
+      c.beginPath();
+      for (var k = from; k <= to; k++) {
+        var px = X(k), py = Y(SC[k]);
+        if (step) { if (k === from) c.moveTo(px - bw / 2, py); else c.lineTo(px - bw / 2, py); c.lineTo(px + bw / 2, py); }
+        else if (k === from) c.moveTo(px, py); else c.lineTo(px, py);
+      }
+    }
+    function strokeClose(color, w, step) { closePath(step); c.strokeStyle = color; c.lineWidth = w; c.lineJoin = 'round'; c.stroke(); c.lineJoin = 'miter'; }
+    function fillUnder(color, toY) {
+      closePath(false); c.lineTo(X(to), toY); c.lineTo(X(from), toY); c.closePath();
+      var gd = c.createLinearGradient(0, L.y0, 0, L.y1); gd.addColorStop(0, rgba(color, 0.28)); gd.addColorStop(1, rgba(color, 0.02));
+      c.fillStyle = gd; c.fill();
+    }
+    if (ST === 'candles' || ST === 'heikin' || ST === 'hollow' || ST === 'volcandles') {
+      var vmx = 0; if (ST === 'volcandles') for (i = from; i <= to; i++) vmx = Math.max(vmx, s.v[i] || 0);
+      for (i = from; i <= to; i++) {
+        var o = SO[i], cl = SC[i], x = Math.round(X(i));
+        // hollow candles take their colour from the previous close; filled when the bar fell
+        var upc = ST === 'hollow' ? (i > 0 ? cl >= SC[i - 1] : cl >= o) : cl >= o, cc = upc ? bull : bear, w = cbw;
+        if (ST === 'volcandles' && vmx) { w = Math.max(1, Math.round(bw * 0.92 * (0.2 + 0.8 * Math.sqrt((s.v[i] || 0) / vmx)))); if (w > 2 && w % 2 === 0) w -= 1; }
+        var top = Math.round(Y(Math.max(o, cl))), bot = Math.round(Y(Math.min(o, cl))), hgt = Math.max(1, bot - top), bx = x + 1 - Math.ceil(w / 2);
+        // the wick above and below the body (not through it, so hollow bodies stay empty)
+        c.strokeStyle = cc; c.lineWidth = 1; c.beginPath();
+        c.moveTo(x + 0.5, Math.round(Y(SH[i]))); c.lineTo(x + 0.5, top);
+        c.moveTo(x + 0.5, top + hgt); c.lineTo(x + 0.5, Math.round(Y(SL[i]))); c.stroke();
+        if (ST === 'hollow' && cl >= o && w > 2) { c.strokeRect(bx + 0.5, top + 0.5, w - 1, Math.max(1, hgt - 1)); }
+        else { c.fillStyle = cc; c.fillRect(bx, top, w, hgt); }
+        if (lightBg && lum(cc) > 0.8) { c.strokeStyle = '#9aa1ac'; c.strokeRect(bx, top, w, hgt); }
+        if (s.live && i === s.n - 1) { c.strokeStyle = acc; c.setLineDash([2, 2]); c.strokeRect(x - bw * 0.5, Y(SH[i]) - 2, bw, Y(SL[i]) - Y(SH[i]) + 4); c.setLineDash([]); }
+      }
+    } else if (ST === 'bars' || ST === 'highlow') {
+      var tick = Math.max(1, Math.floor(cbw / 2));
+      for (i = from; i <= to; i++) {
+        var bxx = Math.round(X(i)), bcc = s.c[i] >= s.o[i] ? bull : bear, yH = Math.round(Y(s.h[i])), yL = Math.round(Y(s.l[i]));
+        if (ST === 'highlow') { c.fillStyle = bcc; c.fillRect(bxx + 1 - Math.ceil(cbw / 2), yH, cbw, Math.max(1, yL - yH)); continue; }
+        c.strokeStyle = bcc; c.lineWidth = cbw >= 7 ? 1.5 : 1; c.beginPath();
+        c.moveTo(bxx + 0.5, yH); c.lineTo(bxx + 0.5, yL);
+        c.moveTo(bxx + 0.5 - tick, Math.round(Y(s.o[i])) + 0.5); c.lineTo(bxx + 0.5, Math.round(Y(s.o[i])) + 0.5);
+        c.moveTo(bxx + 0.5, Math.round(Y(s.c[i])) + 0.5); c.lineTo(bxx + 0.5 + tick, Math.round(Y(s.c[i])) + 0.5);
+        c.stroke();
+      }
+    } else if (ST === 'columns') {
+      for (i = from; i <= to; i++) {
+        var cy = Math.round(Y(s.c[i])), ccol = i > 0 && s.c[i] < s.c[i - 1] ? bear : bull;
+        c.fillStyle = rgba(ccol, 0.85); c.fillRect(Math.round(X(i)) + 1 - Math.ceil(cbw / 2), cy, cbw, Math.max(1, baseY - cy));
+      }
+    } else if (ST === 'linemarkers' || ST === 'step') {
+      strokeClose(acc, 2, ST === 'step');
+      if (ST === 'linemarkers' && bw >= 4) { c.fillStyle = acc; for (i = from; i <= to; i++) { c.beginPath(); c.arc(X(i), Y(s.c[i]), bw >= 9 ? 3 : 2, 0, Math.PI * 2); c.fill(); } }
+    } else if (ST === 'area') {
+      fillUnder(acc, baseY); strokeClose(acc, 2, false);
+    } else if (ST === 'hlcarea') {
+      c.beginPath(); for (i = from; i <= to; i++) { if (i === from) c.moveTo(X(i), Y(s.h[i])); else c.lineTo(X(i), Y(s.h[i])); }
+      for (i = to; i >= from; i--) c.lineTo(X(i), Y(s.l[i])); c.closePath(); c.fillStyle = rgba(acc, 0.14); c.fill();
+      pathLine(s.h, bull, 1, 0.75); pathLine(s.l, bear, 1, 0.75); strokeClose(ink, 1.6, false);
+    } else if (ST === 'baseline') {
+      // above the starting price in green, below it in red, both filled toward the base line
+      var base = this.refPrice || s.c[from], by = Y(base);
+      c.save(); c.beginPath(); c.rect(L.x0, L.y0, L.x1 - L.x0, Math.max(0, by - L.y0)); c.clip();
+      closePath(false); c.lineTo(X(to), by); c.lineTo(X(from), by); c.closePath(); c.fillStyle = rgba(bull, 0.18); c.fill(); strokeClose(bull, 2, false); c.restore();
+      c.save(); c.beginPath(); c.rect(L.x0, by, L.x1 - L.x0, Math.max(0, L.y1 - by)); c.clip();
+      closePath(false); c.lineTo(X(to), by); c.lineTo(X(from), by); c.closePath(); c.fillStyle = rgba(bear, 0.18); c.fill(); strokeClose(bear, 2, false); c.restore();
+      c.strokeStyle = muted; c.globalAlpha = 0.6; c.setLineDash([3, 3]); c.lineWidth = 1; c.beginPath(); c.moveTo(L.x0, Math.round(by) + 0.5); c.lineTo(L.x1, Math.round(by) + 0.5); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
     }
     // forecast stop-loss / take-profit boxes, projected right of the latest bar
     if (this.forecast && this.forecast.entry) {
@@ -752,7 +834,10 @@
     L.panes.forEach(function (P) {
       var d = P.def, v = s.ind[d.id];
       c.strokeStyle = grid; c.lineWidth = 1; c.beginPath(); c.moveTo(0, Math.round(P.y0 - 2) + 0.5); c.lineTo(self.W, Math.round(P.y0 - 2) + 0.5); c.stroke();
-      var series = (d.lines || []).map(function (ln) { return { arr: ln[0] ? v[ln[0]] : v, color: col(ln[1], acc) }; });
+      var series = (d.lines || []).map(function (ln) {
+        var pick = d.id === 'rsi' ? IC.rsi : d.id === 'macd' ? (ln[0] === 'signal' ? IC.macdSignal : IC.macd) : null;
+        return { arr: ln[0] ? v[ln[0]] : v, color: hexOk(pick) ? pick : col(ln[1], acc) };
+      });
       var histArr = d.hist ? v[d.hist] : null;
       var mn, mx2;
       if (d.range) { mn = d.range[0]; mx2 = d.range[1]; }
@@ -812,7 +897,7 @@
     var rows = [[lab('O'), val(fmt(s.o[li]), pcol), lab('H'), val(fmt(s.h[li]), pcol), lab('L'), val(fmt(s.l[li]), pcol), lab('C'), val(fmt(s.c[li]), pcol)].concat(s.v[li] ? [lab('V'), val(fmtVol(s.v[li]), pcol)] : [])];
     var avg = [];
     overlays.forEach(function (d) {
-      var v = s.ind[d.id], name = d.label.split(' (')[0], cc = col(d.color, acc);
+      var v = s.ind[d.id], name = d.label.split(' (')[0], cc = d.id === 'bb' && hexOk(IC.bb) ? IC.bb : col(d.color, acc);
       if (d.intradayOnly && !s.intraday) return; // e.g. VWAP on a daily chart: nothing to show
       if (!hasVals([{ arr: d.band ? v.up : v }], from, to)) { avg.push(lab(name), sub(needText(d, s))); return; }
       if (d.band) rows.push([lab(name === 'Bollinger Bands' ? 'BB (20)' : name === 'Donchian Channel' ? 'DC (20)' : name), sub('Lower'), val(fmt(v.lo[li]), cc)].concat(v.mid ? [sub('Mid'), val(fmt(v.mid[li]), cc)] : []).concat([sub('Upper'), val(fmt(v.up[li]), cc)]));
@@ -963,5 +1048,5 @@
   }
   global.ZelosTradeChart = {
     loadHistory: loadHistory, dailySeries: dailySeries, mount: mount, TradeChart: TradeChart, computeIndicators: computeIndicators, fmt: fmt, fmtVol: fmtVol,
-    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, THEMES: THEMES, setTheme: setTheme, loadTheme: loadTheme, alerts: new AlertStore(), AlertStore: AlertStore, abc: abcStore };
+    INDICATORS: INDICATORS, PRESETS: PRESETS, loadColors: loadColors, saveColors: saveColors, CHART_TYPES: CHART_TYPES, loadIndColors: loadIndColors, saveIndColors: saveIndColors, THEMES: THEMES, setTheme: setTheme, loadTheme: loadTheme, alerts: new AlertStore(), AlertStore: AlertStore, abc: abcStore };
 })(window);
