@@ -62,6 +62,8 @@ export interface TradeChart {
   shapeDraft: Shape | null;
   /** bars of empty space kept right of the last bar (while placing a ghost feed) */
   futureRoom: number;
+  /** a line to compare with (sector average, SPY, QQQ): one ratio per bar, started at this stock's price */
+  compare: { label: string; color: string; r: (number | null)[] } | null;
   pointAt(x: number, y: number): ShapePoint | null;
   fib: boolean;
   alerts: PriceAlert[];

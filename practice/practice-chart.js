@@ -199,6 +199,7 @@
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
     this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
     this.shapes = []; this.shapeDraft = null; this.futureRoom = 0;
+    this.compare = null; // { label, color, r: [ratio per bar, or null] }: a line to compare with, started at this stock's price
     this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
     var self = this, drag = null;
     canvas.__ztc = this; // lets the browser tests read the visible range
@@ -513,6 +514,15 @@
         (d.band ? d.band.map(function (k) { return v[k][i]; }) : [v[i]]).forEach(function (x) { if (x != null) { lo = Math.min(lo, Math.max(x, olo)); hi = Math.max(hi, Math.min(x, ohi)); } });
       });
     }
+    var CMP = this.compare && this.compare.r && this.compare.r.length === s.n ? this.compare : null, cmpAt = null;
+    if (CMP) {
+      var c0 = null; for (i = from; i <= to; i++) if (CMP.r[i] != null) { c0 = i; break; }
+      if (c0 != null) {
+        var base0 = s.c[c0] / CMP.r[c0];
+        cmpAt = function (k) { return CMP.r[k] == null ? null : CMP.r[k] * base0; };
+        for (i = from; i <= to; i++) { var cv = cmpAt(i); if (cv != null) { lo = Math.min(lo, Math.max(cv, olo)); hi = Math.max(hi, Math.min(cv, ohi)); } }
+      }
+    }
     this.lines.forEach(function (ln) { if (ln.price > lo * 0.8 && ln.price < hi * 1.25) { lo = Math.min(lo, ln.price); hi = Math.max(hi, ln.price); } });
     if (this.forecast) [this.forecast.sl, this.forecast.tp].forEach(function (v) { if (v) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
     this.alerts.forEach(function (a) { if (a.price > lo * 0.8 && a.price < hi * 1.25) { lo = Math.min(lo, a.price); hi = Math.max(hi, a.price); } });
@@ -591,6 +601,12 @@
     });
     c.lineJoin = 'round';
     overlays.forEach(function (d) { if (!d.band) pathLine(s.ind[d.id], col(d.color, acc), 1.3, 0.95); });
+    if (cmpAt) {
+      var cc3 = col(CMP.color || 'violet', '#8f7bf6'), cArr = []; for (var ck = 0; ck < s.n; ck++) cArr.push(ck >= from && ck <= to ? cmpAt(ck) : null);
+      pathLine(cArr, cc3, 2, 1, [6, 3]);
+      var cl = null; for (ck = to; ck >= from; ck--) if (cArr[ck] != null) { cl = cArr[ck]; break; }
+      if (cl != null) { var cy3 = Y(cl); if (cy3 > L.y0 + 6 && cy3 < L.y1 - 6) { pill(c, L.x1 + 2, cy3 - 8, 60, 16, cc3); c.fillStyle = lum(cc3) > 0.55 ? '#0b0c0f' : '#ffffff'; c.font = '600 9.5px "IBM Plex Sans", system-ui, sans-serif'; c.fillText(fmt(cl), L.x1 + 9, cy3); c.font = '500 11px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; } }
+    }
     c.lineJoin = 'miter'; c.restore();
     // volume: its own strip under the price area
     if (L.vol && vmax) {
@@ -992,6 +1008,13 @@
     });
     if (avg.length) rows.push(avg);
     if (L.vol) rows.push([lab('Volume'), val(fmtVol(s.v[li]), pcol)]);
+    if (cmpAt) {
+      var f0 = null; for (var fk = from; fk <= li; fk++) if (CMP.r[fk] != null) { f0 = fk; break; }
+      if (f0 != null && CMP.r[li] != null) {
+        var mine = (s.c[li] / s.c[f0] - 1) * 100, theirs = (CMP.r[li] / CMP.r[f0] - 1) * 100, pc = function (v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; };
+        rows.push([lab(s.sym || 'This'), val(pc(mine), mine >= 0 ? bull : bear), lab('vs ' + CMP.label), val(pc(theirs), col(CMP.color || 'violet', '#8f7bf6'))]);
+      }
+    }
     var LH = 19, ly2 = 8 + LH / 2;
     c.textBaseline = 'middle';
     rows.forEach(function (row, r) {

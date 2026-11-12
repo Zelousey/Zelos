@@ -189,3 +189,29 @@ test('forecast drawings: anchored VWAP, bars pattern and ghost feed are saved fo
   expect(saved[2]!.pts[0]!.f).toBeGreaterThan(0); // the ghost feed points past the last bar
   expect(saved[0]!.pts[0]!.f).toBeUndefined();
 });
+
+// owner 2026-11-12 (step 6, "comparing the stock against its sector"): Compare puts the sector average or an index on the chart
+test('compare a stock with its sector average or an index', async ({ page }) => {
+  // the test data has minute prices for AAPL only: give two other Tech stocks and SPY the same ones
+  const DOCS = 'http://127.0.0.1:8080/v1/projects/demo-zelos/databases/(default)/documents/markets';
+  const H = { Authorization: 'Bearer owner', 'Content-Type': 'application/json' };
+  const src = await (await fetch(`${DOCS}/intraday_AAPL`, { headers: H })).json();
+  const copies = ['NVDA', 'AMD', 'SPY'];
+  for (const s of copies) expect((await fetch(`${DOCS}/intraday_${s}`, { method: 'PATCH', headers: H, body: JSON.stringify({ fields: src.fields }) })).ok).toBe(true);
+  await page.goto('markets/AAPL');
+  const tools = page.getByRole('toolbar', { name: 'Chart tools' });
+  await tools.getByRole('button', { name: 'Compare' }).click();
+  const menu = page.getByRole('menu', { name: 'Compare' });
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(4); // off, Tech average, SPY, QQQ
+  await menu.getByRole('menuitemradio', { name: /Its sector: Tech average/ }).click();
+  const cmp = () => page.evaluate(() => (document.querySelector('canvas') as unknown as { __ztc: { compare: { label: string; r: (number | null)[] } | null } }).__ztc.compare);
+  await expect.poll(async () => (await cmp())?.label).toBe('Tech avg');
+  expect((await cmp())!.r.some((x) => x != null)).toBe(true);
+  await tools.getByRole('button', { name: 'Compare' }).click();
+  await menu.getByRole('menuitemradio', { name: 'S&P 500 (SPY)' }).click();
+  await expect.poll(async () => (await cmp())?.label).toBe('SPY');
+  await tools.getByRole('button', { name: 'Compare' }).click();
+  await menu.getByRole('menuitemradio', { name: 'No comparison' }).click();
+  await expect.poll(cmp).toBeNull();
+  for (const s of copies) await fetch(`${DOCS}/intraday_${s}`, { method: 'DELETE', headers: H }); // other tests expect no minute prices for these
+});
