@@ -170,7 +170,7 @@
   }
   function saveIndColors(v) { try { localStorage.setItem(IND_COLOR_KEY, JSON.stringify(v || {})); } catch (e) {} }
   // Chart types (owner's step 2). 'line' is the live line coloured against the previous close.
-  var CHART_TYPES = ['candles', 'hollow', 'volcandles', 'bars', 'heikin', 'line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'highlow'];
+  var CHART_TYPES = ['candles', 'hollow', 'volcandles', 'bars', 'heikin', 'line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'highlow', 'renko', 'linebreak', 'kagi', 'pnf'];
   var CLOSE_ONLY = { line: 1, linemarkers: 1, step: 1, area: 1, baseline: 1, columns: 1 };
   function heikinAshi(s) {
     var o = [], h = [], l = [], c = [];
@@ -179,6 +179,99 @@
       o.push(oo); c.push(cc); h.push(Math.max(s.h[i], oo, cc)); l.push(Math.min(s.l[i], oo, cc));
     }
     return { o: o, h: h, l: l, c: c };
+  }
+  // Price-only chart types (owner's "later" list, 2026-11-12): Renko, line break, Kagi and point &
+  // figure ignore time. Each turns the bars into its own series of bricks / lines / columns; every
+  // unit keeps the date of the bar that finished it, so drawings, the date axis and the legend work.
+  // Box and reversal sizes follow the stock's average daily move (ATR 14) on a round number.
+  var PRICE_ONLY = { renko: 1, linebreak: 1, kagi: 1, pnf: 1 };
+  var PT_NAME = { renko: 'Renko', linebreak: 'Line break (3)', kagi: 'Kagi', pnf: 'Point & figure (3)' };
+  function niceBox(s) {
+    var a = atr(s, 14), v = null;
+    for (var i = s.n - 1; i >= 0 && v == null; i--) v = a[i];
+    if (v == null) { var hi = Math.max.apply(null, s.h), lo = Math.min.apply(null, s.l); v = (hi - lo) / 20; }
+    if (!(v > 0)) v = Math.max(0.01, (s.c[s.n - 1] || 1) * 0.01);
+    var e = Math.pow(10, Math.floor(Math.log(v) / Math.LN10)), best = e;
+    [1, 2, 2.5, 5, 10].forEach(function (m) { if (m * e <= v) best = m * e; });
+    return Math.max(0.01, best);
+  }
+  function priceOnly(raw, kind) {
+    var box = niceBox(raw), out = { sym: raw.sym, key: raw.key + '|' + kind, intraday: raw.intraday, live: false, kind: kind, box: box, raw: raw, d: [], o: [], h: [], l: [], c: [], v: [], src: [], at: [], n: 0 };
+    var vol = 0;
+    function push(o, cl, i, h, l) {
+      out.d.push(raw.d[i]); out.o.push(o); out.c.push(cl); out.h.push(h != null ? h : Math.max(o, cl)); out.l.push(l != null ? l : Math.min(o, cl));
+      out.v.push(vol); vol = 0; out.src.push(i); out.n++;
+    }
+    function setLast(o, cl, i, h, l) {
+      var k = out.n - 1; out.o[k] = o; out.c[k] = cl; out.h[k] = h != null ? h : Math.max(o, cl); out.l[k] = l != null ? l : Math.min(o, cl);
+      out.d[k] = raw.d[i]; out.src[k] = i; out.v[k] += vol; vol = 0;
+    }
+    var i, p;
+    if (kind === 'renko') {
+      var ref = Math.round(raw.c[0] / box), dir = 0; // levels in boxes
+      for (i = 0; i < raw.n; i++) {
+        vol += raw.v[i] || 0; var u = raw.c[i] / box + 1e-9;
+        if (dir >= 0) { while (u >= ref + 1) { push(ref * box, (ref + 1) * box, i); ref++; dir = 1; } }
+        if (dir <= 0) { while (u <= ref - 1 + 2e-9) { push(ref * box, (ref - 1) * box, i); ref--; dir = -1; } }
+        if (dir === 1 && u <= ref - 2 + 2e-9) { ref--; while (u <= ref - 1 + 2e-9) { push(ref * box, (ref - 1) * box, i); ref--; } dir = -1; }
+        else if (dir === -1 && u >= ref + 2) { ref++; while (u >= ref + 1) { push(ref * box, (ref + 1) * box, i); ref++; } dir = 1; }
+        out.at.push(Math.max(0, out.n - 1));
+      }
+    } else if (kind === 'linebreak') {
+      for (i = 0; i < raw.n; i++) {
+        vol += raw.v[i] || 0; p = raw.c[i];
+        if (!out.n) { if (p !== raw.o[i]) push(raw.o[i], p, i); }
+        else {
+          var k0 = out.n - 1, up = out.c[k0] >= out.o[k0], hi3 = -Infinity, lo3 = Infinity;
+          for (var j = Math.max(0, out.n - 3); j < out.n; j++) { hi3 = Math.max(hi3, out.h[j]); lo3 = Math.min(lo3, out.l[j]); }
+          if (up ? p > out.c[k0] : p < out.c[k0]) push(out.c[k0], p, i);
+          else if (up ? p < lo3 : p > hi3) push(out.o[k0], p, i);
+        }
+        out.at.push(Math.max(0, out.n - 1));
+      }
+    } else if (kind === 'kagi') {
+      var start = raw.c[0], ext = start, kd = 0;
+      out.kg = [];
+      for (i = 0; i < raw.n; i++) {
+        vol += raw.v[i] || 0; p = raw.c[i];
+        if (!kd) { if (Math.abs(p - start) >= box) { kd = p > start ? 1 : -1; ext = p; push(start, ext, i); } }
+        else if (kd * (p - ext) > 0) { ext = p; setLast(start, ext, i); }
+        else if (kd * (ext - p) >= box) { start = ext; ext = p; kd = -kd; push(start, ext, i); }
+        out.at.push(Math.max(0, out.n - 1));
+      }
+      // thick (yang) above the last shoulder, thin (yin) below the last waist; may switch mid-line
+      var thick = out.n ? out.c[0] > out.o[0] : true, top = null, bottom = null;
+      for (i = 0; i < out.n; i++) {
+        var a = out.o[i], b = out.c[i], g = { t0: thick, sw: null };
+        if (b > a) { if (!thick && top != null && b > top) { g.sw = top; thick = true; } top = b; }
+        else { if (thick && bottom != null && b < bottom) { g.sw = bottom; thick = false; } bottom = b; }
+        out.kg.push(g);
+      }
+    } else if (kind === 'pnf') {
+      var base = Math.round(raw.c[0] / box), cd = 0, lo = 0, hi = 0; // a column spans levels lo..hi (in boxes)
+      for (i = 0; i < raw.n; i++) {
+        vol += raw.v[i] || 0; var uu = raw.c[i] / box, fl = Math.floor(uu + 1e-9), ce = Math.ceil(uu - 1e-9);
+        if (!cd) {
+          if (fl >= base + 1) { cd = 1; lo = base; hi = fl; push(lo * box, hi * box, i); }
+          else if (ce <= base - 1) { cd = -1; hi = base; lo = ce; push(hi * box, lo * box, i); }
+        } else if (cd === 1) {
+          if (fl > hi) { hi = fl; setLast(lo * box, hi * box, i); }
+          else if (ce <= hi - 4) { cd = -1; hi = hi - 1; lo = ce; push(hi * box, lo * box, i); }
+        } else {
+          if (ce < lo) { lo = ce; setLast(hi * box, lo * box, i); }
+          else if (fl >= lo + 4) { cd = 1; lo = lo + 1; hi = fl; push(lo * box, hi * box, i); }
+        }
+        out.at.push(Math.max(0, out.n - 1));
+      }
+    }
+    if (!out.n) push(raw.c[raw.n - 1], raw.c[raw.n - 1], raw.n - 1);
+    out.note = PT_NAME[kind] + (kind === 'linebreak' ? '' : kind === 'kagi' ? ' · reversal ' + fmt(box) : ' · box ' + fmt(box));
+    return computeIndicators(out);
+  }
+  function derived(raw, kind) {
+    if (!raw || !raw.n || !PRICE_ONLY[kind]) return raw;
+    if (!raw._pt) raw._pt = {};
+    return raw._pt[kind] || (raw._pt[kind] = priceOnly(raw, kind));
   }
   function lum(hex) { if (!/^#[0-9a-f]{6}$/i.test(hex)) return 0.5; var n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; }
 
@@ -376,9 +469,15 @@
     this.W = w; this.H = h; this.dpr = dpr; this.draw();
   };
   TradeChart.prototype.setStyle = function (st) {
-    this.style = CHART_TYPES.indexOf(st) >= 0 ? st : 'candles'; try { localStorage.setItem('zelosChartStyle', this.style); } catch (e) {} this.draw();
+    var was = this.style;
+    this.style = CHART_TYPES.indexOf(st) >= 0 ? st : 'candles'; try { localStorage.setItem('zelosChartStyle', this.style); } catch (e) {}
+    // to or from a price-only type (Renko...): the chart's units change, so rebuild them
+    if (this.raw && was !== this.style && (PRICE_ONLY[was] || PRICE_ONLY[this.style])) this.setSeries(this.raw, this._range && this._range[0], this._range && this._range[1]);
+    else this.draw();
   };
   TradeChart.prototype.setSeries = function (s, bars, daySlots) {
+    this.raw = s; s = derived(s, this.style);
+    if (s.kind) daySlots = null; // bricks and columns don't follow the clock
     // a new live price on the same chart glides there (line view) instead of jumping
     if (this.s && this.s.key === s.key && s.n && this.s.n) {
       var was = this.anim ? this.animValue() : this.s.c[this.s.n - 1], now = s.c[s.n - 1];
@@ -515,6 +614,7 @@
       });
     }
     var CMP = this.compare && this.compare.r && this.compare.r.length === s.n ? this.compare : null, cmpAt = null;
+    if (!CMP && s.kind && this.compare && this.compare.r && this.compare.r.length === s.raw.n) CMP = { label: this.compare.label, color: this.compare.color, r: s.src.map(function (k) { return this.compare.r[k]; }, this) };
     if (CMP) {
       var c0 = null; for (i = from; i <= to; i++) if (CMP.r[i] != null) { c0 = i; break; }
       if (c0 != null) {
@@ -668,6 +768,44 @@
         else { c.fillStyle = cc; c.fillRect(bx, top, w, hgt); }
         if (lightBg && lum(cc) > 0.8) { c.strokeStyle = '#9aa1ac'; c.strokeRect(bx, top, w, hgt); }
         if (s.live && i === s.n - 1) { c.strokeStyle = acc; c.setLineDash([2, 2]); c.strokeRect(x - bw * 0.5, Y(SH[i]) - 2, bw, Y(SL[i]) - Y(SH[i]) + 4); c.setLineDash([]); }
+      }
+    } else if (ST === 'renko' || ST === 'linebreak') {
+      // bricks / lines: a body from open to close, no wicks; bricks touch corner to corner
+      var bwid = Math.max(1, Math.round(bw * (ST === 'renko' ? 0.92 : 0.8)));
+      for (i = from; i <= to; i++) {
+        var rup = s.c[i] >= s.o[i], rc = rup ? bull : bear, rt = Math.round(Y(Math.max(s.o[i], s.c[i]))), rb = Math.round(Y(Math.min(s.o[i], s.c[i]))), rx = Math.round(X(i) - bwid / 2);
+        c.fillStyle = rgba(rc, ST === 'renko' ? 0.85 : 1); c.fillRect(rx, rt, bwid, Math.max(1, rb - rt));
+        if (ST === 'renko' && bwid > 3) { c.strokeStyle = rc; c.lineWidth = 1; c.strokeRect(rx + 0.5, rt + 0.5, bwid - 1, Math.max(1, rb - rt - 1)); }
+      }
+    } else if (ST === 'kagi') {
+      // one vertical line per swing, joined by short shoulders / waists; thick and green while above
+      // the last shoulder, thin and red once below the last waist
+      var kw = function (t) { c.lineWidth = t ? 3 : 1.2; c.strokeStyle = t ? bull : bear; };
+      c.lineCap = 'square';
+      for (i = from; i <= to; i++) {
+        var g = s.kg[i], kx = Math.round(X(i)) + 0.5, ya = Y(s.o[i]), yb = Y(s.c[i]), endT = g.sw != null ? !g.t0 : g.t0;
+        if (g.sw != null) {
+          kw(g.t0); c.beginPath(); c.moveTo(kx, ya); c.lineTo(kx, Y(g.sw)); c.stroke();
+          kw(!g.t0); c.beginPath(); c.moveTo(kx, Y(g.sw)); c.lineTo(kx, yb); c.stroke();
+        } else { kw(g.t0); c.beginPath(); c.moveTo(kx, ya); c.lineTo(kx, yb); c.stroke(); }
+        if (i < to) { kw(endT); c.beginPath(); c.moveTo(kx, yb); c.lineTo(Math.round(X(i + 1)) + 0.5, yb); c.stroke(); }
+      }
+      c.lineCap = 'butt';
+    } else if (ST === 'pnf') {
+      // a column of X (rising) or O (falling), one per box
+      var bpx = Math.abs(Y(0) - Y(s.box)), cell = Math.max(3, Math.min(bpx * 0.86, 22)), cw = Math.max(cell, Math.min(bw * 0.6, 18));
+      c.lineWidth = cw > 10 ? 1.8 : 1.3;
+      for (i = from; i <= to; i++) {
+        var pup = s.c[i] >= s.o[i], nbx = Math.round((s.h[i] - s.l[i]) / s.box), px = X(i);
+        c.strokeStyle = pup ? bull : bear;
+        for (var bk = 0; bk < nbx; bk++) {
+          var lv = pup ? s.l[i] + bk * s.box : s.h[i] - (bk + 1) * s.box, py = (Y(lv) + Y(lv + s.box)) / 2, r2 = cell / 2, rw = cw / 2;
+          if (bpx < 2) { c.beginPath(); c.moveTo(px, Y(lv)); c.lineTo(px, Y(lv + s.box)); c.stroke(); continue; }
+          c.beginPath();
+          if (pup) { c.moveTo(px - rw, py - r2); c.lineTo(px + rw, py + r2); c.moveTo(px + rw, py - r2); c.lineTo(px - rw, py + r2); }
+          else c.ellipse(px, py, rw * 0.92, r2 * 0.92, 0, 0, Math.PI * 2);
+          c.stroke();
+        }
       }
     } else if (ST === 'bars' || ST === 'highlow') {
       var tick = Math.max(1, Math.floor(cbw / 2));
@@ -1041,8 +1179,9 @@
     });
     // your fills
     this.marks.forEach(function (mk) {
-      if (mk.i < from || mk.i > to) return;
-      var x2 = X(mk.i), y2 = Y(mk.price), dd = mk.side === 'buy' ? 1 : -1;
+      var mi = s.kind ? s.at[mk.i] : mk.i;
+      if (mi == null || mi < from || mi > to) return;
+      var x2 = X(mi), y2 = Y(mk.price), dd = mk.side === 'buy' ? 1 : -1;
       c.fillStyle = mk.side === 'buy' ? bull : bear;
       c.beginPath(); c.moveTo(x2, y2 + dd * 3); c.lineTo(x2 - 5, y2 + dd * 12); c.lineTo(x2 + 5, y2 + dd * 12); c.closePath(); c.fill();
     });
@@ -1067,7 +1206,7 @@
     c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     // last price tag
     // the last price always gets its tag (the app's charts don't set lastPrice; use the latest close)
-    var lastP = this.lastPrice != null ? this.lastPrice : to === s.n - 1 ? s.c[s.n - 1] : null;
+    var lastP = this.lastPrice != null ? this.lastPrice : to === s.n - 1 ? (s.kind ? s.raw.c[s.raw.n - 1] : s.c[s.n - 1]) : null;
     if (lastP != null) {
       var lp = this.anim ? this.animValue() : lastP;
       var ly = Y(lp), up2 = lineMode ? lp >= (this.refPrice || s.o[from] || lp) : lastP >= (s.c[s.n - 2] || lastP), pc2 = up2 ? bull : bear;
@@ -1142,6 +1281,7 @@
     var cUp = s.c[li] >= s.o[li], pcol = cUp ? bull : bear;
     var lab = function (t) { return [t, ink, 'l']; }, sub = function (t) { return [t, muted, 's']; }, val = function (t, cc) { return [t, cc, 'v']; };
     var rows = [[lab('O'), val(fmt(s.o[li]), pcol), lab('H'), val(fmt(s.h[li]), pcol), lab('L'), val(fmt(s.l[li]), pcol), lab('C'), val(fmt(s.c[li]), pcol)].concat(s.v[li] ? [lab('V'), val(fmtVol(s.v[li]), pcol)] : [])];
+    if (s.kind) rows[0] = [sub(s.note), lab('Open'), val(fmt(s.o[li]), pcol), lab('Close'), val(fmt(s.c[li]), pcol)];
     var avg = [];
     overlays.forEach(function (d) {
       var v = s.ind[d.id], name = d.label.split(' (')[0], cc = d.id === 'bb' && hexOk(IC.bb) ? IC.bb : col(d.color, acc);
