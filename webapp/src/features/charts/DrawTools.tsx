@@ -45,6 +45,27 @@ export const GANN_TOOLS: [ShapeKind, IconName, MessageKey][] = [
   ['gannfixed', 'gann', 'gann.fixed'],
   ['gannfan', 'fan', 'gann.fan'],
 ];
+/** chart patterns (owner's chart plan, step 5): place the points one after another */
+export const PATTERN_TOOLS: [ShapeKind, IconName, MessageKey][] = [
+  ['xabcd', 'pattern', 'pat.xabcd'],
+  ['cypher', 'pattern', 'pat.cypher'],
+  ['headshoulders', 'pattern', 'pat.hs'],
+  ['abcd', 'pattern', 'pat.abcd'],
+  ['trianglepat', 'pattern', 'pat.triangle'],
+  ['threedrives', 'pattern', 'pat.threedrives'],
+];
+export const ELLIOTT_TOOLS: [ShapeKind, IconName, MessageKey][] = [
+  ['elliottimpulse', 'wave', 'pat.eImpulse'],
+  ['elliottcorrection', 'wave', 'pat.eCorrection'],
+  ['elliotttriangle', 'wave', 'pat.eTriangle'],
+  ['elliottdouble', 'wave', 'pat.eDouble'],
+  ['elliotttriple', 'wave', 'pat.eTriple'],
+];
+export const CYCLE_TOOLS: [ShapeKind, IconName, MessageKey][] = [
+  ['cyclelines', 'dVline', 'pat.cycleLines'],
+  ['timecycles', 'arc', 'pat.timeCycles'],
+  ['sineline', 'wave', 'pat.sine'],
+];
 /** forecasting extras (owner's step 6): what-if bars and anchored VWAP */
 export const FORECAST_TOOLS: [ShapeKind, IconName, MessageKey][] = [
   ['avwap', 'dAvwap', 'draw.avwap'],
@@ -57,6 +78,7 @@ const COLORS: [ShapeColor, MessageKey][] = [
   ['red', 'draw.c.red'],
   ['gold', 'draw.c.gold'],
 ];
+const isPattern = (k: ShapeKind) => [...PATTERN_TOOLS, ...ELLIOTT_TOOLS, ...CYCLE_TOOLS].some((x) => x[0] === k);
 const HINT: Partial<Record<ShapeKind, MessageKey>> = { measure: 'draw.hint.measure', avwap: 'draw.hint.avwap', pattern: 'draw.hint.pattern', ghost: 'draw.hint.ghost' };
 const SWATCH: Record<ShapeColor, string> = { blue: 'var(--accent)', green: 'var(--bull)', red: 'var(--danger)', gold: 'var(--gold)' };
 
@@ -73,6 +95,8 @@ export function useDrawTools(sym: string) {
   const [tool, setTool] = useState<ShapeKind | null>(null);
   const [color, setColor] = useState<ShapeColor>('blue');
   const [menu, setMenu] = useState(false);
+  const [patMenu, setPatMenu] = useState(false);
+  const patRef = useRef<HTMLDivElement>(null);
   const [textAt, setTextAt] = useState<ShapePoint | null>(null);
   const [text, setText] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
@@ -85,23 +109,25 @@ export function useDrawTools(sym: string) {
 
   // a click outside the menu closes it; Esc leaves the tool
   useEffect(() => {
-    if (!menu) return;
+    if (!menu && !patMenu) return;
     const onDown = (e: PointerEvent) => {
       if (!menuRef.current?.contains(e.target as Node)) setMenu(false);
+      if (!patRef.current?.contains(e.target as Node)) setPatMenu(false);
     };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
-  }, [menu]);
+  }, [menu, patMenu]);
   useEffect(() => {
-    if (!tool && !menu) return;
+    if (!tool && !menu && !patMenu) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       setMenu(false);
+      setPatMenu(false);
       setTool(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [tool, menu]);
+  }, [tool, menu, patMenu]);
 
   const onDrawn = (drawn: Shape) => {
     let sh = drawn;
@@ -125,11 +151,12 @@ export function useDrawTools(sym: string) {
 
   const pick = (k: ShapeKind) => {
     setMenu(false);
+    setPatMenu(false);
     setMeasure(null);
     setTool((cur) => (cur === k ? null : k));
   };
 
-  const toolKey: MessageKey | undefined = tool === 'measure' ? 'draw.measure' : [...DRAW_TOOLS, ...FORECAST_TOOLS, ...FIB_TOOLS, ...GANN_TOOLS].find((x) => x[0] === tool)?.[2];
+  const toolKey: MessageKey | undefined = tool === 'measure' ? 'draw.measure' : [...DRAW_TOOLS, ...FORECAST_TOOLS, ...FIB_TOOLS, ...GANN_TOOLS, ...PATTERN_TOOLS, ...ELLIOTT_TOOLS, ...CYCLE_TOOLS].find((x) => x[0] === tool)?.[2];
   const twoPoint = tool ? SHAPE_POINTS[tool] === 2 : false;
 
   const buttons: ReactNode = (
@@ -182,6 +209,26 @@ export function useDrawTools(sym: string) {
           </div>
         )}
       </div>
+      <div className={s.menuWrap} ref={patRef}>
+        <Button size="sm" variant={tool && isPattern(tool) ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={patMenu} onClick={() => setPatMenu((v) => !v)}>
+          <Icon name="pattern" size={16} /> {t('pat.title')}
+        </Button>
+        {patMenu && (
+          <div className={s.menu} role="menu" aria-label={t('pat.title')}>
+            {([['pat.group.chart', PATTERN_TOOLS], ['pat.group.elliott', ELLIOTT_TOOLS], ['pat.group.cycles', CYCLE_TOOLS]] as [MessageKey, typeof PATTERN_TOOLS][]).map(([g, list], gi) => (
+              <div key={g} className={s.group}>
+                <div className={gi ? s.groupLabel : s.groupLabelFirst}>{t(g)}</div>
+                {list.map(([k, icon, label]) => (
+                  <button key={k} type="button" role="menuitemradio" aria-checked={tool === k} className={s.item} onClick={() => pick(k)}>
+                    <Icon name={icon} size={18} />
+                    <span>{t(label)}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <Button size="sm" variant={tool === 'measure' ? 'primary' : 'ghost'} aria-pressed={tool === 'measure'} onClick={() => pick('measure')}>
         <Icon name="ruler" size={16} /> {t('draw.measure')}
       </Button>
@@ -190,7 +237,7 @@ export function useDrawTools(sym: string) {
 
   const note: ReactNode = tool ? (
     <p className={s.note} role="status">
-      <b>{toolKey ? t(toolKey) : ''}</b> {t(HINT[tool] ?? (tool && SHAPE_POINTS[tool] === 3 ? 'draw.hint.three' : twoPoint ? 'draw.hint.drag' : 'draw.hint.tap'))}{' '}
+      <b>{toolKey ? t(toolKey) : ''}</b> {HINT[tool] ? t(HINT[tool]!) : tool && SHAPE_POINTS[tool] > 3 ? t('draw.hint.many', { n: SHAPE_POINTS[tool] }) : t(tool && SHAPE_POINTS[tool] === 3 ? 'draw.hint.three' : twoPoint ? 'draw.hint.drag' : 'draw.hint.tap')}{' '}
       <button type="button" className={s.cancel} onClick={() => setTool(null)}>
         {t('draw.cancel')}
       </button>

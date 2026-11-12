@@ -256,3 +256,33 @@ test('Fibonacci and Gann tools: a two-point retracement, a three-point extension
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zelosAppDrawings:AAPL') || '[]') as { k: string; pts: unknown[] }[]);
   expect(saved.map((x) => [x.k, x.pts.length])).toEqual([['fibret', 2], ['fibext', 3], ['gannfixed', 1]]);
 });
+
+// owner's chart plan step 5 (2026-11-12): the Patterns menu; patterns take 4 to 7 points, placed one after another
+test('patterns: an XABCD (5 points), a head and shoulders (7) and a sine line (2)', async ({ page }) => {
+  await page.goto('markets/AAPL');
+  const tools = page.getByRole('toolbar', { name: 'Chart tools' });
+  const menu = page.getByRole('menu', { name: 'Patterns' });
+  await tools.getByRole('button', { name: 'Patterns' }).click();
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(14);
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  const place = async (name: string, xs: number[]) => {
+    await tools.getByRole('button', { name: 'Patterns' }).click();
+    await menu.getByRole('menuitemradio', { name, exact: true }).click();
+    const l = page.getByTestId('draw-layer');
+    await l.scrollIntoViewIfNeeded();
+    const b = (await l.boundingBox())!;
+    const y = (j: number) => b.y + b.height * (j % 2 ? 0.18 : 0.32);
+    await page.mouse.move(b.x + b.width * xs[0]!, y(0));
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * xs[1]!, y(1), { steps: 4 });
+    await page.mouse.up();
+    for (let j = 2; j < xs.length; j++) await page.mouse.click(b.x + b.width * xs[j]!, y(j));
+  };
+  await place('XABCD pattern', [0.1, 0.2, 0.3, 0.4, 0.5]);
+  await expect(page.getByRole('status').filter({ hasText: '5 points in all' })).toHaveCount(0); // done: the tool is put away
+  await place('Head and shoulders', [0.1, 0.17, 0.24, 0.31, 0.38, 0.45, 0.52]);
+  await place('Sine line', [0.3, 0.4]);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zelosAppDrawings:AAPL') || '[]') as { k: string; pts: unknown[] }[]);
+  expect(saved.map((x) => [x.k, x.pts.length])).toEqual([['xabcd', 5], ['headshoulders', 7], ['sineline', 2]]);
+});

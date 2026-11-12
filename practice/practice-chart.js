@@ -793,6 +793,65 @@
         var w = Math.max(1, Math.min(13, Math.round(bw * 0.72))); if (w > 2 && w % 2 === 0) w -= 1;
         c.strokeRect(x + 1 - Math.ceil(w / 2) + 0.5, top + 0.5, Math.max(1, w - 1), Math.max(1, bot - top - 1)); c.restore();
       };
+      var PATS = { xabcd: ['X', 'A', 'B', 'C', 'D'], cypher: ['X', 'A', 'B', 'C', 'D'], headshoulders: ['', 'Left shoulder', '', 'Head', '', 'Right shoulder', ''], abcd: ['A', 'B', 'C', 'D'], trianglepat: ['A', 'B', 'C', 'D'], threedrives: ['', '1', '', '2', '', '3', ''], elliottimpulse: ['0', '1', '2', '3', '4', '5'], elliottcorrection: ['0', 'A', 'B', 'C'], elliotttriangle: ['0', 'A', 'B', 'C', 'D', 'E'], elliottdouble: ['0', 'W', 'X', 'Y'], elliotttriple: ['0', 'W', 'X', 'Y', 'X', 'Z'], cyclelines: 1, timecycles: 1, sineline: 1 };
+      var drawPattern = function (k, P, colr) {
+        var tag = function (t, q, j) {
+          if (!t) return;
+          // above a peak, below a trough (compared with its neighbours)
+          var prev = P[j - 1], next = P[j + 1], peak = (!prev || q.y <= prev.y) && (!next || q.y <= next.y);
+          c.save(); c.font = '700 10.5px "IBM Plex Sans", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = peak ? 'bottom' : 'top';
+          var tw = c.measureText(t).width + 8, ty = peak ? q.y - 6 : q.y + 6;
+          c.globalAlpha = 0.9; c.fillStyle = colr; c.fillRect(q.x - tw / 2, peak ? ty - 14 : ty, tw, 14);
+          c.globalAlpha = 1; c.fillStyle = '#ffffff'; c.fillText(t, q.x, peak ? ty - 1 : ty + 1); c.restore();
+        };
+        var poly = function (list, alpha, dash) { if (list.length < 2) return; c.save(); c.globalAlpha = alpha == null ? 0.95 : alpha; c.setLineDash(dash || []); c.lineWidth = 1.6; c.beginPath(); c.moveTo(list[0].x, list[0].y); for (var j = 1; j < list.length; j++) c.lineTo(list[j].x, list[j].y); c.stroke(); c.restore(); };
+        var fillTri = function (p1, p2, p3) { if (!p1 || !p2 || !p3) return; c.save(); c.globalAlpha = 0.1; c.beginPath(); c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.lineTo(p3.x, p3.y); c.closePath(); c.fill(); c.restore(); };
+        var ratio = function (p1, p2, q1, q2) { var d1 = Math.abs(p2.p - p1.p); return d1 ? Math.abs(q2.p - q1.p) / d1 : 0; };
+        var midTag = function (t, p1, p2) { if (!p1 || !p2) return; c.save(); c.font = '600 10px "IBM Plex Sans", system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2, tw = c.measureText(t).width + 6; c.globalAlpha = 0.8; c.fillStyle = bg; c.fillRect(mx - tw / 2, my - 7, tw, 14); c.globalAlpha = 1; c.fillStyle = colr; c.fillText(t, mx, my); c.restore(); };
+        var a = P[0], b = P[1];
+        if (k === 'cyclelines' || k === 'timecycles' || k === 'sineline') {
+          if (!b) return;
+          var dx = b.x - a.x; if (Math.abs(dx) < 3) return;
+          var step = Math.abs(dx), start = Math.min(a.x, b.x);
+          while (start - step > L.x0) start -= step;
+          if (k === 'cyclelines') {
+            // equal cycles: verticals every a→b distance, across the whole chart
+            for (var x = start; x <= L.x1; x += step) { c.save(); c.globalAlpha = 0.7; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(x, L.y0); c.lineTo(x, L.y1); c.stroke(); c.restore(); }
+          } else if (k === 'timecycles') {
+            // half-circles along the price, one per cycle, as tall as the cycle is wide
+            for (var x2 = start; x2 <= L.x1; x2 += step) { c.save(); c.globalAlpha = 0.75; c.beginPath(); c.arc(x2 + step / 2, a.y, step / 2, Math.PI, 2 * Math.PI); c.stroke(); c.restore(); }
+          } else {
+            // a sine wave: half a wave from the first point to the second, repeated across the chart
+            var amp = (b.y - a.y) / 2, mid = (a.y + b.y) / 2;
+            c.save(); c.globalAlpha = 0.9; c.lineWidth = 1.6; c.beginPath();
+            for (var sx = L.x0, f = true; sx <= L.x1; sx += 2) { var sy = mid - amp * Math.cos(Math.PI * (sx - a.x) / dx); if (f) { c.moveTo(sx, sy); f = false; } else c.lineTo(sx, sy); }
+            c.stroke(); c.restore();
+          }
+          return;
+        }
+        var names = PATS[k];
+        if (k === 'xabcd' || k === 'cypher') {
+          fillTri(P[0], P[1], P[2]); fillTri(P[2], P[3], P[4]);
+          poly(P); if (P[2]) poly([P[0], P[2]], 0.5, [4, 4]); if (P[4]) poly([P[2], P[4]], 0.5, [4, 4]);
+          // Fibonacci ratios of each leg, the way harmonic traders read them
+          if (P[2]) midTag(ratio(P[0], P[1], P[1], P[2]).toFixed(3), P[0], P[2]);
+          if (P[3]) midTag(ratio(P[1], P[2], P[2], P[3]).toFixed(3), P[1], P[3]);
+          // D: XABCD reads it against the X→A leg, Cypher against the X→C leg
+          if (P[4]) midTag((k === 'cypher' ? ratio(P[0], P[3], P[3], P[4]) : ratio(P[0], P[1], P[1], P[4])).toFixed(3), P[2], P[4]);
+        } else if (k === 'abcd') {
+          poly(P); if (P[2]) midTag(ratio(P[0], P[1], P[1], P[2]).toFixed(3), P[0], P[2]); if (P[3]) midTag(ratio(P[1], P[2], P[2], P[3]).toFixed(3), P[1], P[3]);
+        } else if (k === 'trianglepat') {
+          fillTri(P[0], P[1], P[2]); fillTri(P[1], P[2], P[3]); poly(P); if (P[2]) poly([P[0], P[2]], 0.6, [4, 4]); if (P[3]) poly([P[1], P[3]], 0.6, [4, 4]);
+        } else if (k === 'headshoulders') {
+          poly(P);
+          // the neckline through the two troughs either side of the head, run on to the right edge
+          if (P[2] && P[4]) { var n0 = P[2], n1 = P[4], ny = n0.y + (n1.y - n0.y) * (L.x1 - n0.x) / ((n1.x - n0.x) || 1); poly([n0, { x: L.x1, y: ny }], 0.8, [6, 4]); c.save(); c.font = '600 10px "IBM Plex Sans", system-ui, sans-serif'; c.fillStyle = colr; c.textBaseline = 'bottom'; c.fillText('Neckline', n1.x + 6, n1.y + (ny - n1.y) * 0.1 - 3); c.restore(); }
+          if (P[1] && P[3] && P[5]) { fillTri(P[0], P[1], P[2]); fillTri(P[2], P[3], P[4]); fillTri(P[4], P[5], P[6] || P[5]); }
+        } else {
+          poly(P);
+        }
+        P.forEach(function (q, j) { tag(names[j], q, j); });
+      };
       var FIBG = { fibret: 1, fibext: 1, fibchannel: 1, fibtime: 1, fibtrendtime: 1, fibfan: 1, fibarcs: 1, fibcircles: 1, fibspiral: 1, fibwedge: 1, pitchfan: 1, gannbox: 1, gannsquare: 1, gannfixed: 1, gannfan: 1 };
       var drawFibGann = function (k, a, b, p3, colr) {
         var lbl = function (t, x, y, align) { c.save(); c.globalAlpha = 1; c.fillStyle = colr; c.font = '600 10px "IBM Plex Sans", system-ui, sans-serif'; c.textAlign = align || 'left'; c.textBaseline = 'bottom'; c.fillText(t, x, y - 2); c.restore(); };
@@ -886,6 +945,10 @@
           if (b.x < a.x) { rx = L.x0; ry = a.y + (b.y - a.y) * (rx - a.x) / (b.x - a.x); }
           c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(rx, ry); c.stroke();
           c.beginPath(); c.arc(a.x, a.y, 3, 0, Math.PI * 2); c.fill();
+        }
+        else if (PATS[sh.k]) {
+          // chart patterns (owner's chart plan, step 5): the points you placed, joined and labelled
+          drawPattern(sh.k, pts, col);
         }
         else if (FIBG[sh.k]) {
           // Fibonacci and Gann tools (owner's chart plan, step 4); levels are drawn faint with their ratio
