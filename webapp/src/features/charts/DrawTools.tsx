@@ -25,6 +25,26 @@ export const DRAW_TOOLS: [ShapeKind, IconName, MessageKey][] = [
   ['box', 'dBox', 'draw.box'],
   ['text', 'dText', 'draw.text'],
 ];
+/** Fibonacci and Gann tools (owner's chart plan, step 4), shown in the Fibonacci menu */
+export const FIB_TOOLS: [ShapeKind, IconName, MessageKey][] = [
+  ['fibret', 'fib', 'fib.ret'],
+  ['fibext', 'fib', 'fib.ext'],
+  ['fibchannel', 'fib', 'fib.channel'],
+  ['fibtime', 'dVline', 'fib.time'],
+  ['fibtrendtime', 'dVline', 'fib.trendtime'],
+  ['fibfan', 'fan', 'fib.fan'],
+  ['fibarcs', 'arc', 'fib.arcs'],
+  ['fibcircles', 'arc', 'fib.circles'],
+  ['fibspiral', 'arc', 'fib.spiral'],
+  ['fibwedge', 'fan', 'fib.wedge'],
+  ['pitchfan', 'fan', 'fib.pitchfan'],
+];
+export const GANN_TOOLS: [ShapeKind, IconName, MessageKey][] = [
+  ['gannbox', 'gann', 'gann.box'],
+  ['gannsquare', 'gann', 'gann.square'],
+  ['gannfixed', 'gann', 'gann.fixed'],
+  ['gannfan', 'fan', 'gann.fan'],
+];
 /** forecasting extras (owner's step 6): what-if bars and anchored VWAP */
 export const FORECAST_TOOLS: [ShapeKind, IconName, MessageKey][] = [
   ['avwap', 'dAvwap', 'draw.avwap'],
@@ -109,7 +129,7 @@ export function useDrawTools(sym: string) {
     setTool((cur) => (cur === k ? null : k));
   };
 
-  const toolKey: MessageKey | undefined = tool === 'measure' ? 'draw.measure' : [...DRAW_TOOLS, ...FORECAST_TOOLS].find((x) => x[0] === tool)?.[2];
+  const toolKey: MessageKey | undefined = tool === 'measure' ? 'draw.measure' : [...DRAW_TOOLS, ...FORECAST_TOOLS, ...FIB_TOOLS, ...GANN_TOOLS].find((x) => x[0] === tool)?.[2];
   const twoPoint = tool ? SHAPE_POINTS[tool] === 2 : false;
 
   const buttons: ReactNode = (
@@ -170,7 +190,7 @@ export function useDrawTools(sym: string) {
 
   const note: ReactNode = tool ? (
     <p className={s.note} role="status">
-      <b>{toolKey ? t(toolKey) : ''}</b> {t(HINT[tool] ?? (twoPoint ? 'draw.hint.drag' : 'draw.hint.tap'))}{' '}
+      <b>{toolKey ? t(toolKey) : ''}</b> {t(HINT[tool] ?? (tool && SHAPE_POINTS[tool] === 3 ? 'draw.hint.three' : twoPoint ? 'draw.hint.drag' : 'draw.hint.tap'))}{' '}
       <button type="button" className={s.cancel} onClick={() => setTool(null)}>
         {t('draw.cancel')}
       </button>
@@ -203,5 +223,25 @@ export function useDrawTools(sym: string) {
     </Sheet>
   );
 
-  return { shapes: measure ? [...saved, measure] : saved, tool, color, onDrawn, buttons, note, textSheet };
+  // the Fibonacci menu's tools (ChartTools shows them under its automatic retracement)
+  const fibItems: ReactNode = (
+    <>
+      <div className={s.groupLabel}>{t('fib.group')}</div>
+      {FIB_TOOLS.map(([k, icon, label]) => (
+        <button key={k} type="button" role="menuitemradio" aria-checked={tool === k} className={s.item} onClick={() => pick(k)}>
+          <Icon name={icon} size={18} />
+          <span>{t(label)}</span>
+        </button>
+      ))}
+      <div className={s.groupLabel}>{t('gann.group')}</div>
+      {GANN_TOOLS.map(([k, icon, label]) => (
+        <button key={k} type="button" role="menuitemradio" aria-checked={tool === k} className={s.item} onClick={() => pick(k)}>
+          <Icon name={icon} size={18} />
+          <span>{t(label)}</span>
+        </button>
+      ))}
+    </>
+  );
+
+  return { shapes: measure ? [...saved, measure] : saved, tool, color, onDrawn, buttons, note, textSheet, fibItems };
 }

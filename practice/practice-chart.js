@@ -793,6 +793,83 @@
         var w = Math.max(1, Math.min(13, Math.round(bw * 0.72))); if (w > 2 && w % 2 === 0) w -= 1;
         c.strokeRect(x + 1 - Math.ceil(w / 2) + 0.5, top + 0.5, Math.max(1, w - 1), Math.max(1, bot - top - 1)); c.restore();
       };
+      var FIBG = { fibret: 1, fibext: 1, fibchannel: 1, fibtime: 1, fibtrendtime: 1, fibfan: 1, fibarcs: 1, fibcircles: 1, fibspiral: 1, fibwedge: 1, pitchfan: 1, gannbox: 1, gannsquare: 1, gannfixed: 1, gannfan: 1 };
+      var drawFibGann = function (k, a, b, p3, colr) {
+        var lbl = function (t, x, y, align) { c.save(); c.globalAlpha = 1; c.fillStyle = colr; c.font = '600 10px "IBM Plex Sans", system-ui, sans-serif'; c.textAlign = align || 'left'; c.textBaseline = 'bottom'; c.fillText(t, x, y - 2); c.restore(); };
+        var seg = function (x0, y0, x1, y1, alpha, dash) { c.save(); c.globalAlpha = alpha == null ? 0.85 : alpha; c.setLineDash(dash || []); c.lineWidth = 1.2; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); c.restore(); };
+        // a ray from (x0,y0) through (x1,y1) to the plot's edge
+        var ray = function (x0, y0, x1, y1, alpha) {
+          if (x1 === x0) { seg(x0, y0, x1, y1 > y0 ? L.y1 : L.y0, alpha); return; }
+          var ex = x1 > x0 ? L.x1 : L.x0, ey = y0 + (y1 - y0) * (ex - x0) / (x1 - x0);
+          // stop at the top or bottom edge when the line gets there first (so its label can sit there)
+          if (ey < L.y0 || ey > L.y1) { var yy = ey < L.y0 ? L.y0 : L.y1; ex = x0 + (x1 - x0) * (yy - y0) / ((y1 - y0) || 1); ey = yy; }
+          seg(x0, y0, ex, ey, alpha); return { x: ex, y: ey };
+        };
+        var band = function (x0, x1, y0, y1, alpha) { c.save(); c.globalAlpha = alpha; c.fillRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); c.restore(); };
+        var dist = b ? Math.hypot(b.x - a.x, b.y - a.y) : 0, R = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1], fmtK = function (v) { return String(+v.toFixed(3)); };
+        if (!b && k !== 'gannfixed') return;
+        if (k === 'fibret') {
+          // 0 at the second point, 1 at the first, like most charting apps
+          var x0 = Math.min(a.x, b.x);
+          R.forEach(function (r, j) { var pr = b.p + (a.p - b.p) * r, y = Y(pr); if (j) band(x0, L.x1, Y(b.p + (a.p - b.p) * R[j - 1]), y, j % 2 ? 0.05 : 0.09); seg(x0, y, L.x1, y); lbl(fmtK(r) + ' (' + fmt(pr) + ')', x0 + 4, y); });
+          seg(a.x, a.y, b.x, b.y, 0.5, [4, 4]);
+        } else if (k === 'fibext' && p3) {
+          // trend-based extension: the a→b move, projected from the third point
+          [0, 0.382, 0.618, 1, 1.272, 1.618, 2, 2.618].forEach(function (r) { var pr = p3.p + (b.p - a.p) * r, y = Y(pr); seg(p3.x, y, L.x1, y); lbl(fmtK(r) + ' (' + fmt(pr) + ')', p3.x + 4, y); });
+          seg(a.x, a.y, b.x, b.y, 0.6, [4, 4]); seg(b.x, b.y, p3.x, p3.y, 0.6, [4, 4]);
+        } else if (k === 'fibchannel' && p3) {
+          // lines parallel to a→b, spaced by the third point's distance from it
+          var m = (b.y - a.y) / ((b.x - a.x) || 1), off = p3.y - (a.y + m * (p3.x - a.x));
+          [0, 0.382, 0.618, 1, 1.618, 2.618].forEach(function (r) { var o = off * r; seg(a.x, a.y + o, L.x1, a.y + o + m * (L.x1 - a.x)); lbl(fmtK(r), a.x + 4, a.y + o); });
+        } else if (k === 'fibtime') {
+          // time zones: verticals at 0, 1, 2, 3, 5, 8, 13… times the a→b distance
+          var dx = b.x - a.x; if (!dx) return;
+          [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89].forEach(function (n) { var x = a.x + dx * n; if (x < L.x0 || x > L.x1) return; seg(x, L.y0, x, L.y1, 0.75); lbl(String(n), x + 3, L.y0 + 14); });
+        } else if (k === 'fibtrendtime' && p3) {
+          var dx2 = b.x - a.x;
+          [0, 0.382, 0.5, 0.618, 1, 1.382, 1.618, 2, 2.618].forEach(function (r) { var x = p3.x + dx2 * r; if (x < L.x0 || x > L.x1) return; seg(x, L.y0, x, L.y1, 0.75); lbl(fmtK(r), x + 3, L.y0 + 14); });
+          seg(a.x, a.y, b.x, b.y, 0.6, [4, 4]);
+        } else if (k === 'fibfan') {
+          // speed resistance fan: rays from the first point through fractions of the a→b move
+          [1, 0.75, 0.618, 0.5, 0.382, 0.25, 0].forEach(function (r) { var y = b.y + (a.y - b.y) * r, e = ray(a.x, a.y, b.x, y, r === 1 || r === 0 ? 0.9 : 0.7); if (e) lbl(fmtK(r), b.x + 4, y); });
+        } else if (k === 'fibarcs') {
+          [0.382, 0.5, 0.618, 1].forEach(function (r) { c.save(); c.globalAlpha = 0.8; c.beginPath(); c.arc(b.x, b.y, dist * r, b.y > a.y ? Math.PI : 0, b.y > a.y ? 2 * Math.PI : Math.PI); c.stroke(); c.restore(); lbl(fmtK(r), b.x + 3, b.y + (b.y > a.y ? -dist * r : dist * r + 12)); });
+          seg(a.x, a.y, b.x, b.y, 0.5, [4, 4]);
+        } else if (k === 'fibcircles') {
+          var cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, h = dist / 2;
+          [0.382, 0.618, 1, 1.618, 2.618].forEach(function (r) { c.save(); c.globalAlpha = r === 1 ? 0.9 : 0.6; c.beginPath(); c.arc(cx, cy, h * r, 0, Math.PI * 2); c.stroke(); c.restore(); lbl(fmtK(r), cx + h * r + 3, cy); });
+          seg(a.x, a.y, b.x, b.y, 0.5, [4, 4]);
+        } else if (k === 'fibspiral') {
+          // a golden spiral through the second point, centred on the first: it grows 1.618× every quarter turn
+          var phi = 1.618034, ang0 = Math.atan2(b.y - a.y, b.x - a.x);
+          c.save(); c.globalAlpha = 0.85; c.beginPath();
+          for (var tt = -4, first = true; tt <= 1.5; tt += 0.05) { var rr = dist * Math.pow(phi, tt), th = ang0 + tt * Math.PI / 2, sx = a.x + rr * Math.cos(th), sy = a.y + rr * Math.sin(th); if (first) { c.moveTo(sx, sy); first = false; } else c.lineTo(sx, sy); }
+          c.stroke(); c.restore();
+        } else if (k === 'fibwedge' && p3) {
+          var a1 = Math.atan2(b.y - a.y, b.x - a.x), a2 = Math.atan2(p3.y - a.y, p3.x - a.x);
+          seg(a.x, a.y, b.x, b.y); seg(a.x, a.y, a.x + dist * Math.cos(a2), a.y + dist * Math.sin(a2));
+          R.slice(1).forEach(function (r) { c.save(); c.globalAlpha = 0.7; c.beginPath(); c.arc(a.x, a.y, dist * r, Math.min(a1, a2), Math.max(a1, a2), Math.abs(a2 - a1) > Math.PI); c.stroke(); c.restore(); });
+        } else if (k === 'pitchfan' && p3) {
+          // rays from the first point through the second, the third, and the middle of the two
+          var mx = (b.x + p3.x) / 2, my = (b.y + p3.y) / 2;
+          ray(a.x, a.y, b.x, b.y, 0.85); ray(a.x, a.y, p3.x, p3.y, 0.85); ray(a.x, a.y, mx, my, 1); seg(b.x, b.y, p3.x, p3.y, 0.5, [4, 4]);
+        } else if (k === 'gannbox' || k === 'gannsquare' || k === 'gannfixed') {
+          // Gann box: price and time split at 0, ¼, 0.382, ½, 0.618, ¾, 1 with both diagonals; a Gann square
+          // is the same grid in quarters, kept square on screen; the fixed square is 34 bars wide from the tap
+          var bx = b, side;
+          if (k === 'gannfixed') { side = Math.min(34 * bw, (L.y1 - L.y0) * 0.6); bx = { x: a.x + side, y: a.y - side }; }
+          else if (k === 'gannsquare') { side = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y)); bx = { x: a.x + side * (b.x >= a.x ? 1 : -1), y: a.y + side * (b.y >= a.y ? 1 : -1) }; }
+          var gx0 = a.x, gy0 = a.y, gx1 = bx.x, gy1 = bx.y, G = k === 'gannbox' ? [0, 0.25, 0.382, 0.5, 0.618, 0.75, 1] : [0, 0.25, 0.5, 0.75, 1];
+          band(gx0, gx1, gy0, gy1, 0.06);
+          G.forEach(function (r) { var x = gx0 + (gx1 - gx0) * r, y = gy0 + (gy1 - gy0) * r, edge = r === 0 || r === 1; seg(x, gy0, x, gy1, edge ? 0.9 : 0.45); seg(gx0, y, gx1, y, edge ? 0.9 : 0.45); if (k === 'gannbox' && !edge) { lbl(fmtK(r), x + 2, Math.max(gy0, gy1) + 12); lbl(fmtK(r), Math.max(gx0, gx1) + 4, y); } });
+          seg(gx0, gy0, gx1, gy1, 0.8); seg(gx0, gy1, gx1, gy0, 0.8);
+          if (k !== 'gannbox') { var s2 = Math.abs(gx1 - gx0); c.save(); c.globalAlpha = 0.5; c.beginPath(); c.arc((gx0 + gx1) / 2, (gy0 + gy1) / 2, s2 / 2, 0, Math.PI * 2); c.stroke(); c.restore(); }
+        } else if (k === 'gannfan') {
+          // Gann fan: 1×1 is the a→b slope; the other angles are 2×1, 3×1… (steeper) and 1×2, 1×3… (flatter)
+          var vx = b.x - a.x, vy = b.y - a.y;
+          [[8, '8×1'], [4, '4×1'], [3, '3×1'], [2, '2×1'], [1, '1×1'], [1 / 2, '1×2'], [1 / 3, '1×3'], [1 / 4, '1×4'], [1 / 8, '1×8']].forEach(function (g) { var e = ray(a.x, a.y, a.x + vx, a.y + vy * g[0], g[0] === 1 ? 1 : 0.65); if (e) lbl(g[1], e.x - 4, Math.max(L.y0 + 14, Math.min(L.y1 - 2, e.y + (e.y <= L.y0 + 1 ? 14 : 0))), 'right'); });
+        }
+      };
       c.save(); c.beginPath(); c.rect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); c.clip();
       shapeList.forEach(function (sh) {
         var col = SC[sh.c] || SC.blue, pts = (sh.pts || []).map(function (q) { var qi = idxOf(q.d); return { x: X(qi + (q.f || 0)), y: Y(q.p), i: qi, f: q.f || 0, p: q.p }; });
@@ -809,6 +886,10 @@
           if (b.x < a.x) { rx = L.x0; ry = a.y + (b.y - a.y) * (rx - a.x) / (b.x - a.x); }
           c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(rx, ry); c.stroke();
           c.beginPath(); c.arc(a.x, a.y, 3, 0, Math.PI * 2); c.fill();
+        }
+        else if (FIBG[sh.k]) {
+          // Fibonacci and Gann tools (owner's chart plan, step 4); levels are drawn faint with their ratio
+          drawFibGann(sh.k, a, b, pts[2] || null, col);
         }
         else if (sh.k === 'avwap') {
           // anchored VWAP (step 6): volume-weighted average price from the bar you tapped to now

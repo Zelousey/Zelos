@@ -249,6 +249,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                 drawColor={draw.color}
                 onDrawn={draw.onDrawn}
                 toolsNote={draw.note}
+                fibItems={draw.fibItems}
                 compare={cmpData.line}
                 daySlots={built.intraday && dayLabel === '1D' && typeof range === 'number' ? range : undefined}
                 tools

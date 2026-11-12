@@ -8,19 +8,36 @@
  * drawing is left out on purpose: it becomes a token strategy (PROJECT_STATE.md, 2026-10-10).
  * ChartView owns the state; this only shows it.
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { Button, Icon, Sheet } from '../../ui';
 import { engine, type PriceAlert } from './engine';
 import s from './ChartView.module.css';
+import ds from './DrawTools.module.css';
 
 export type ToolsState = { fib: boolean; placing: boolean; alerts: PriceAlert[] };
 export type ToolsActions = { readShow: () => Record<string, boolean>; toggle: (id: string, on: boolean) => void; flipFib: () => void; flipPlacing: () => void; remove: (id: string) => void };
 
 /** extra: more toolbar buttons from the screen (e.g. Forecast, Options on the stock page). */
-export function ChartTools({ sym, state, act, extra }: { sym: string; state: ToolsState; act: ToolsActions; extra?: ReactNode }) {
+/** fibItems: drawing tools for the Fibonacci menu (step 4); without them the button just toggles the automatic retracement. */
+export function ChartTools({ sym, state, act, extra, fibItems }: { sym: string; state: ToolsState; act: ToolsActions; extra?: ReactNode; fibItems?: ReactNode }) {
+  const [fibOpen, setFibOpen] = useState(false);
+  const fibRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!fibOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!fibRef.current?.contains(e.target as Node)) setFibOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFibOpen(false);
+    document.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [fibOpen]);
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState<Record<string, boolean>>({});
   const groups = [...new Set(engine().INDICATORS.map((i) => i.group))];
@@ -37,9 +54,27 @@ export function ChartTools({ sym, state, act, extra }: { sym: string; state: Too
         >
           <Icon name="indicators" size={16} /> {t('ct.indicatorsTitle')}
         </Button>
-        <Button size="sm" variant={state.fib ? 'primary' : 'ghost'} aria-pressed={state.fib} onClick={act.flipFib}>
-          <Icon name="fib" size={16} /> {t('ct.fib')}
-        </Button>
+        {fibItems ? (
+          <div className={ds.menuWrap} ref={fibRef}>
+            <Button size="sm" variant={state.fib ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={fibOpen} onClick={() => setFibOpen((v) => !v)}>
+              <Icon name="fib" size={16} /> {t('ct.fib')}
+            </Button>
+            {fibOpen && (
+              // a pick closes the menu (the items' own clicks run first)
+              <div className={ds.menu} role="menu" aria-label={t('ct.fib')} onClick={() => setFibOpen(false)}>
+                <button type="button" role="menuitemcheckbox" aria-checked={state.fib} className={ds.item} onClick={act.flipFib}>
+                  <Icon name="fib" size={18} />
+                  <span>{t('fib.auto')}</span>
+                </button>
+                {fibItems}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Button size="sm" variant={state.fib ? 'primary' : 'ghost'} aria-pressed={state.fib} onClick={act.flipFib}>
+            <Icon name="fib" size={16} /> {t('ct.fib')}
+          </Button>
+        )}
         <Button size="sm" variant={state.placing ? 'primary' : 'ghost'} aria-pressed={state.placing} onClick={act.flipPlacing}>
           <Icon name="bell" size={16} /> {t('ct.alert')}
         </Button>
