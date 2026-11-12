@@ -330,3 +330,25 @@ test('price-only chart types: Renko bricks, line break, Kagi swings and point & 
   await type.selectOption('candles');
   await expect.poll(async () => (await units()).kind).toBeUndefined();
 });
+
+test('icon toolbar: names on hover, and Remove asks what to take off the chart', async ({ page, viewport }) => {
+  await page.goto('markets/AAPL');
+  const tools = page.getByRole('toolbar', { name: 'Chart tools' });
+  await expect(tools.getByRole('button', { name: 'Patterns' })).toHaveAttribute('data-tip', 'Patterns');
+  if ((viewport?.width ?? 0) > 760) await expect(tools.getByRole('button', { name: 'Indicators' })).toContainText('Indicators');
+  // a forecast and an auto Fibonacci on the chart; the indicators are on by default
+  await tools.getByRole('button', { name: 'Forecast' }).click();
+  await tools.getByRole('button', { name: 'Fibonacci' }).click();
+  await page.getByRole('menuitemcheckbox', { name: /Auto retracement/ }).click();
+  const rm = tools.getByRole('button', { name: 'Remove from chart' });
+  await rm.click();
+  const menu = page.getByRole('menu', { name: 'Remove from chart' });
+  await expect(menu.getByRole('menuitem')).toHaveText([/Indicators \(\d\)/, 'Auto Fibonacci', 'Forecast boxes', 'Everything']);
+  await menu.getByRole('menuitem', { name: 'Forecast boxes' }).click();
+  await expect(tools.getByRole('button', { name: 'Forecast' })).toHaveAttribute('aria-pressed', 'false');
+  await rm.click();
+  await menu.getByRole('menuitem', { name: 'Everything' }).click();
+  await expect(tools.getByRole('button', { name: 'Fibonacci' })).not.toHaveClass(/primary/);
+  // nothing left: the button goes away
+  await expect(rm).toHaveCount(0);
+});

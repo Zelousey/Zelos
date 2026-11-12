@@ -18,11 +18,13 @@ import s from './ChartView.module.css';
 import ds from './DrawTools.module.css';
 
 export type ToolsState = { fib: boolean; placing: boolean; alerts: PriceAlert[] };
+/** one line in the Remove menu, from the screen (drawings, a compare line, the forecast boxes) */
+export type ClearItem = { id: string; label: string; onClear: () => void };
 export type ToolsActions = { readShow: () => Record<string, boolean>; toggle: (id: string, on: boolean) => void; flipFib: () => void; flipPlacing: () => void; remove: (id: string) => void };
 
 /** extra: more toolbar buttons from the screen (e.g. Forecast, Options on the stock page). */
 /** fibItems: drawing tools for the Fibonacci menu (step 4); without them the button just toggles the automatic retracement. */
-export function ChartTools({ sym, state, act, extra, fibItems }: { sym: string; state: ToolsState; act: ToolsActions; extra?: ReactNode; fibItems?: ReactNode }) {
+export function ChartTools({ sym, state, act, extra, fibItems, clearItems = [] }: { sym: string; state: ToolsState; act: ToolsActions; extra?: ReactNode; fibItems?: ReactNode; clearItems?: ClearItem[] }) {
   const [fibOpen, setFibOpen] = useState(false);
   const fibRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -40,6 +42,42 @@ export function ChartTools({ sym, state, act, extra, fibItems }: { sym: string; 
   }, [fibOpen]);
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState<Record<string, boolean>>({});
+  // Remove (owner 2026-11-12): one button that asks what to take off the chart
+  const [rmOpen, setRmOpen] = useState(false);
+  const rmRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!rmOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!rmRef.current?.contains(e.target as Node)) setRmOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setRmOpen(false);
+    document.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [rmOpen]);
+  const onIds = Object.entries(act.readShow())
+    .filter(([, v]) => v)
+    .map(([k]) => k);
+  const removable: ClearItem[] = [
+    ...(onIds.length
+      ? [
+          {
+            id: 'ind',
+            label: t('ct.clear.ind', { n: onIds.length }),
+            onClear: () => {
+              onIds.forEach((id) => act.toggle(id, false));
+              setShow({});
+            },
+          },
+        ]
+      : []),
+    ...(state.fib ? [{ id: 'fib', label: t('ct.clear.fib'), onClear: act.flipFib }] : []),
+    ...(state.alerts.length ? [{ id: 'alerts', label: t('ct.clear.alerts', { n: state.alerts.length }), onClear: () => state.alerts.forEach((a) => act.remove(a.id)) }] : []),
+    ...clearItems,
+  ];
   const groups = [...new Set(engine().INDICATORS.map((i) => i.group))];
   return (
     <div className={s.tools}>
@@ -52,12 +90,13 @@ export function ChartTools({ sym, state, act, extra, fibItems }: { sym: string; 
             setOpen(true);
           }}
         >
-          <Icon name="indicators" size={16} /> {t('ct.indicatorsTitle')}
+          <Icon name="indicators" size={16} /> <span className={s.indLabel}>{t('ct.indicatorsTitle')}</span>
         </Button>
         {fibItems ? (
           <div className={ds.menuWrap} ref={fibRef}>
-            <Button size="sm" variant={state.fib ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={fibOpen} onClick={() => setFibOpen((v) => !v)}>
-              <Icon name="fib" size={16} /> {t('ct.fib')}
+            <Button size="sm" iconOnly data-tip={t('ct.fib')} variant={state.fib ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={fibOpen} onClick={() => setFibOpen((v) => !v)}>
+              <Icon name="fib" size={18} />
+              <span className="visually-hidden">{t('ct.fib')}</span>
             </Button>
             {fibOpen && (
               // a pick closes the menu (the items' own clicks run first)
@@ -71,14 +110,60 @@ export function ChartTools({ sym, state, act, extra, fibItems }: { sym: string; 
             )}
           </div>
         ) : (
-          <Button size="sm" variant={state.fib ? 'primary' : 'ghost'} aria-pressed={state.fib} onClick={act.flipFib}>
-            <Icon name="fib" size={16} /> {t('ct.fib')}
+          <Button size="sm" iconOnly data-tip={t('ct.fib')} variant={state.fib ? 'primary' : 'ghost'} aria-pressed={state.fib} onClick={act.flipFib}>
+            <Icon name="fib" size={18} />
+            <span className="visually-hidden">{t('ct.fib')}</span>
           </Button>
         )}
-        <Button size="sm" variant={state.placing ? 'primary' : 'ghost'} aria-pressed={state.placing} onClick={act.flipPlacing}>
-          <Icon name="bell" size={16} /> {t('ct.alert')}
+        <Button size="sm" iconOnly data-tip={t('ct.alert')} variant={state.placing ? 'primary' : 'ghost'} aria-pressed={state.placing} onClick={act.flipPlacing}>
+          <Icon name="bell" size={18} />
+          <span className="visually-hidden">{t('ct.alert')}</span>
         </Button>
         {extra}
+        {removable.length > 0 && (
+          <div className={[ds.menuWrap, s.rmWrap].join(' ')} ref={rmRef}>
+            <Button size="sm" iconOnly data-tip={t('ct.clear.title')} variant="ghost" aria-haspopup="menu" aria-expanded={rmOpen} onClick={() => setRmOpen((v) => !v)}>
+              <Icon name="trash" size={18} />
+              <span className="visually-hidden">{t('ct.clear.title')}</span>
+            </Button>
+            {rmOpen && (
+              <div className={ds.menu} role="menu" aria-label={t('ct.clear.title')}>
+                <div className={ds.groupLabelFirst}>{t('ct.clear.ask')}</div>
+                {removable.map((it) => (
+                  <button
+                    key={it.id}
+                    type="button"
+                    role="menuitem"
+                    className={ds.item}
+                    onClick={() => {
+                      it.onClear();
+                      setRmOpen(false);
+                    }}
+                  >
+                    <Icon name="close" size={18} />
+                    <span>{it.label}</span>
+                  </button>
+                ))}
+                {removable.length > 1 && (
+                  <div className={ds.manage}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={ds.item}
+                      onClick={() => {
+                        removable.forEach((it) => it.onClear());
+                        setRmOpen(false);
+                      }}
+                    >
+                      <Icon name="trash" size={18} />
+                      <span>{t('ct.clear.all')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {state.placing && (
         <p className={s.toolHint} role="status">

@@ -64,6 +64,45 @@ textarea {
   color: var(--down-ink);
 }
 
+/* name tags for icon-only buttons (owner 2026-11-12: icons, with the name on hover) */
+[data-tip] {
+  position: relative;
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  [data-tip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 250ms;
+  }
+}
+[data-tip]:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+[data-tip][aria-expanded='true']::after {
+  display: none;
+}
+
 .visually-hidden {
   position: absolute !important;
   width: 1px;

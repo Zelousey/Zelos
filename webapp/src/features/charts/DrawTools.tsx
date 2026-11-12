@@ -162,8 +162,9 @@ export function useDrawTools(sym: string) {
   const buttons: ReactNode = (
     <>
       <div className={s.menuWrap} ref={menuRef}>
-        <Button size="sm" variant={tool && tool !== 'measure' ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((v) => !v)}>
-          <Icon name="pencil" size={16} /> {t('draw.title')}
+        <Button size="sm" iconOnly data-tip={t('draw.title')} variant={tool && tool !== 'measure' ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((v) => !v)}>
+          <Icon name="pencil" size={18} />
+          <span className="visually-hidden">{t('draw.title')}</span>
         </Button>
         {menu && (
           <div className={s.menu} role="menu" aria-label={t('draw.title')}>
@@ -210,8 +211,9 @@ export function useDrawTools(sym: string) {
         )}
       </div>
       <div className={s.menuWrap} ref={patRef}>
-        <Button size="sm" variant={tool && isPattern(tool) ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={patMenu} onClick={() => setPatMenu((v) => !v)}>
-          <Icon name="pattern" size={16} /> {t('pat.title')}
+        <Button size="sm" iconOnly data-tip={t('pat.title')} variant={tool && isPattern(tool) ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={patMenu} onClick={() => setPatMenu((v) => !v)}>
+          <Icon name="pattern" size={18} />
+          <span className="visually-hidden">{t('pat.title')}</span>
         </Button>
         {patMenu && (
           <div className={s.menu} role="menu" aria-label={t('pat.title')}>
@@ -229,8 +231,9 @@ export function useDrawTools(sym: string) {
           </div>
         )}
       </div>
-      <Button size="sm" variant={tool === 'measure' ? 'primary' : 'ghost'} aria-pressed={tool === 'measure'} onClick={() => pick('measure')}>
-        <Icon name="ruler" size={16} /> {t('draw.measure')}
+      <Button size="sm" iconOnly data-tip={t('draw.measure')} variant={tool === 'measure' ? 'primary' : 'ghost'} aria-pressed={tool === 'measure'} onClick={() => pick('measure')}>
+        <Icon name="ruler" size={18} />
+        <span className="visually-hidden">{t('draw.measure')}</span>
       </Button>
     </>
   );
@@ -290,5 +293,11 @@ export function useDrawTools(sym: string) {
     </>
   );
 
-  return { shapes: measure ? [...saved, measure] : saved, tool, color, onDrawn, buttons, note, textSheet, fibItems };
+  /** for the chart's Remove menu: how many drawings there are, and clearing them all */
+  const count = saved.length + (measure ? 1 : 0);
+  const clearAll = () => {
+    save([]);
+    setMeasure(null);
+  };
+  return { shapes: measure ? [...saved, measure] : saved, tool, color, onDrawn, buttons, note, textSheet, fibItems, count, clearAll };
 }
