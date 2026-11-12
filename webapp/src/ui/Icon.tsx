@@ -42,6 +42,7 @@ const PATHS = {
   dAvwap: '<path d="M3 17c3-1 4-6 7-6s4 4 7 2 3-6 4-7"/><path d="M6 21v-5"/><circle cx="6" cy="15" r="1.4"/>',
   dPattern: '<path d="M5 8v8M9 6v9M15 10v8M19 7v9" opacity=".5"/><path d="M3 4v16M12 4v16" stroke-dasharray="2 2"/>',
   dGhost: '<path d="M4 16l4-4 3 2 4-5" /><path d="M15 9l2-2 3 1" stroke-dasharray="2 2"/><circle cx="20" cy="8" r="1.4"/>',
+  compare: '<path d="M3 17l5-5 4 3 8-8"/><path d="M3 13l5-3 4 4 8-5" stroke-dasharray="2 2.5"/>',
   undo: '<path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12h-2" transform="translate(0 -6)"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
