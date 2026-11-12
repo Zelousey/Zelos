@@ -42,8 +42,8 @@ export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, ray: 2, arrow:
   xabcd: 5, cypher: 5, headshoulders: 7, abcd: 4, trianglepat: 4, threedrives: 7, elliottimpulse: 6, elliottcorrection: 4, elliotttriangle: 6, elliottdouble: 4, elliotttriple: 6, cyclelines: 2, timecycles: 2, sineline: 2 };
 
 /** Chart types (owner's chart list, step 2); 'line' is the live line coloured against the previous close. */
-export type ChartStyle = 'candles' | 'hollow' | 'volcandles' | 'bars' | 'heikin' | 'line' | 'linemarkers' | 'step' | 'area' | 'hlcarea' | 'baseline' | 'columns' | 'highlow';
-export const CHART_STYLES: ChartStyle[] = ['candles', 'hollow', 'volcandles', 'bars', 'heikin', 'line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'highlow'];
+export type ChartStyle = 'candles' | 'hollow' | 'volcandles' | 'bars' | 'heikin' | 'line' | 'linemarkers' | 'step' | 'area' | 'hlcarea' | 'baseline' | 'columns' | 'highlow' | 'renko' | 'linebreak' | 'kagi' | 'pnf';
+export const CHART_STYLES: ChartStyle[] = ['candles', 'hollow', 'volcandles', 'bars', 'heikin', 'line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'highlow', 'renko', 'linebreak', 'kagi', 'pnf'];
 /** Indicator colours chosen in Settings; a missing key means the default. */
 export type IndColors = { vol?: string; bb?: string; rsi?: string; macd?: string; macdSignal?: string };
 

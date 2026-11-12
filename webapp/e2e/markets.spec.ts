@@ -110,10 +110,11 @@ test('chart: timeframes, ranges, styles and the data table', async ({ page }) =>
   await page.getByRole('tab', { name: '5m', exact: true }).click();
   await expect(page.getByRole('img', { name: /AAPL 5m price chart/ })).toBeVisible();
   // candles are the default everywhere (owner 2026-10-27); the chart-type menu has 13 types (step 2)
+  // plus the 4 price-only ones (Renko, line break, Kagi, point & figure)
   const type = page.getByRole('combobox', { name: 'Chart type' });
   await expect(type).toHaveValue('candles');
-  await expect(type.locator('option')).toHaveCount(13);
-  for (const v of ['hollow', 'volcandles', 'heikin', 'bars', 'highlow', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'line']) await type.selectOption(v);
+  await expect(type.locator('option')).toHaveCount(17);
+  for (const v of ['hollow', 'volcandles', 'heikin', 'bars', 'highlow', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns', 'renko', 'linebreak', 'kagi', 'pnf', 'line']) await type.selectOption(v);
   await expect(page.getByRole('img', { name: /AAPL 5m price chart/ })).toBeVisible();
   await page.getByRole('button', { name: 'Show data table' }).click();
   const table = page.getByRole('table');

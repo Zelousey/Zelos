@@ -41,6 +41,7 @@ const TF_KEY = 'zelosAppChartTf';
 const STYLE_GROUPS: [MessageKey, ChartStyle[]][] = [
   ['chart.type.g.bars', ['candles', 'hollow', 'volcandles', 'heikin', 'bars', 'highlow']],
   ['chart.type.g.lines', ['line', 'linemarkers', 'step', 'area', 'hlcarea', 'baseline', 'columns']],
+  ['chart.type.g.price', ['renko', 'linebreak', 'kagi', 'pnf']],
 ];
 const tfKey = (m: Mode) => `${TF_KEY}:${m}`;
 
