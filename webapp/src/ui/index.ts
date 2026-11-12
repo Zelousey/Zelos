@@ -11,6 +11,7 @@ export { PageHeader } from './PageHeader';
 export { Sheet } from './Sheet';
 export { Skeleton, SkeletonRows } from './Skeleton';
 export { Sparkline } from './Sparkline';
+export { ValueChart, type ValuePt } from './ValueChart';
 export { Stat } from './StatCard';
 export { EmptyState, ErrorState, LoadingState } from './States';
 export { Tabs, type TabItem } from './Tabs';

@@ -2,7 +2,10 @@
  * Trading 101 (/learn): chapters of short animated lessons (chapters.ts), each chapter a path
  * you walk one lesson at a time, ending in a chapter quiz. Lessons pay 10 XP once, a passed
  * chapter quiz 50 XP once and unlocks the next chapter; anyone can test out with the quiz.
- *   /learn                        the chapters
+ * Each chapter is a book (owner 2026-11-12): the page is a shelf, and a book opens on two
+ * choices, learn from the start (or continue) or skip to the chapter quiz, over its lessons.
+ *   /learn                        the bookshelf
+ *   /learn/:chapter               one book (BookPage)
  *   /learn/:chapter/:lesson       one lesson (LessonPlayer)
  *   /learn/:chapter/quiz          the chapter quiz (ChapterQuiz)
  *   /learn/:old                   the old one-page lessons → their new place
@@ -50,10 +53,84 @@ export function LearnPage() {
             </div>
           </Card>
         )}
-        {CHAPTERS.map((c) => (
-          <ChapterCard key={c.id} c={c} learnDone={learnDone} learnPassed={learnPassed} gated={isReal} />
-        ))}
+        <ul className={s.shelf} aria-label={t('ln.books')}>
+          {CHAPTERS.map((c) => {
+            const st = chapterState(c, learnDone, learnPassed);
+            const locked = isReal && !st.unlocked;
+            return (
+              <li key={c.id}>
+                <Link to={`/learn/${c.id}`} className={[s.book, locked && s.bookLocked].filter(Boolean).join(' ')} data-n={c.n} aria-label={`${t('ln.bookN', { n: c.n })}: ${c.title}. ${locked ? t('ln.lockedShort') : st.passed ? t('ln.passed') : t('ln.progress', { n: st.done, of: st.total })}`}>
+                  <span className={s.cover} aria-hidden>
+                    <span className={s.coverN}>{t('ln.bookN', { n: c.n })}</span>
+                    <b className={s.coverTitle}>{c.title}</b>
+                    <span className={s.coverMark}>{t('nav.learn')}</span>
+                  </span>
+                  <span className={s.bookInfo} aria-hidden>
+                    <span className={s.muted}>{c.sub}</span>
+                    <span className={s.bookBar}>
+                      <i style={{ width: `${(st.done / st.total) * 100}%` }} />
+                    </span>
+                    <span className={s.bookState}>
+                      {locked ? (
+                        <>🔒 {t('ln.lockedShort')}</>
+                      ) : st.passed ? (
+                        <Badge tone="up">{t('ln.passed')}</Badge>
+                      ) : (
+                        t('ln.progress', { n: st.done, of: st.total })
+                      )}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
         <p className={s.fine}>{t('ln.fine')}</p>
+      </div>
+    </>
+  );
+}
+
+/** /learn/:chapter: one book, its two choices and its lessons (an old one-page lesson id redirects) */
+export function BookPage() {
+  const { chapter = '' } = useParams();
+  const { isReal } = useAuth();
+  const { learnDone, learnPassed } = useSkill();
+  const c = CHAPTERS.find((x) => x.id === chapter);
+  if (!c) return <OldLessonRedirect />;
+  const st = chapterState(c, learnDone, learnPassed);
+  const locked = isReal && !st.unlocked;
+  const first = c.lessons[0]!;
+  const startAt = isReal && st.next ? st.next : first;
+  return (
+    <>
+      <Link to="/learn" className={s.backLink}>
+        ← {t('ln.shelf')}
+      </Link>
+      <div className={s.stack}>
+        <div className={s.bookHero} data-n={c.n}>
+          <span className={s.cover} aria-hidden>
+            <span className={s.coverN}>{t('ln.bookN', { n: c.n })}</span>
+            <b className={s.coverTitle}>{c.title}</b>
+            <span className={s.coverMark}>{t('nav.learn')}</span>
+          </span>
+          <div className={s.bookChoices}>
+            {locked ? (
+              <p className={s.locked}>{t('ln.chapterLocked', { n: c.n - 1 })}</p>
+            ) : (
+              <>
+                <Link className={buttonClass({ variant: 'primary', block: true })} to={`/learn/${c.id}/${startAt.id}`}>
+                  {isReal && st.done > 0 && !st.complete ? t('ln.continueAt', { title: startAt.title }) : t('ln.fromStart')}
+                </Link>
+                <Link className={buttonClass({ variant: 'secondary', block: true })} to={`/learn/${c.id}/quiz`}>
+                  {st.passed ? t('ln.retakeChapterQuiz') : t('ln.skipToQuiz', { xp: CHAPTER_XP })}
+                </Link>
+                <p className={s.muted}>{st.passed ? t('ln.quizPassed') : t('ln.skipNote')}</p>
+              </>
+            )}
+          </div>
+        </div>
+        <ChapterCard c={c} learnDone={learnDone} learnPassed={learnPassed} gated={isReal} />
       </div>
     </>
   );
@@ -136,7 +213,7 @@ function ChapterCard({ c, learnDone, learnPassed, gated }: { c: Chapter; learnDo
 
 /** /learn/:id from before chapters (e.g. /learn/stops) → /learn/basics/stops */
 export function OldLessonRedirect() {
-  const { id = '' } = useParams();
+  const { chapter: id = '' } = useParams();
   const to = OLD_LESSON[id];
   return <Navigate to={to ? `/learn/${to}` : '/learn'} replace />;
 }

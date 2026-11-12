@@ -72,7 +72,7 @@ export type Battle = {
 };
 export type Team = 'A' | 'B';
 
-export type Account = { uid: string; name: string; start: number; cash: number; equity: number; pnl: number; pnlPct: number; trades: number; wins: number; losses: number; out: boolean; outReason: string | null; place: number | null };
+export type Account = { uid: string; name: string; start: number; cash: number; equity: number; pnl: number; pnlPct: number; trades: number; wins: number; losses: number; out: boolean; outReason: string | null; place: number | null; curve: { t: number; v: number }[] };
 export type Position = { sym: string; qty: number; avg: number; sl: number | null; tp: number | null };
 export type Fill = { sym: string; side: 'buy' | 'sell'; qty: number; price: number; at: number; pnl: number | null; auto: boolean | 'sl' | 'tp' };
 export type Book = { positions: Position[]; fills: Fill[] };
@@ -170,6 +170,8 @@ export const parseAccount = (uid: string, d: DocumentData): Account => ({
   out: d.out === true,
   outReason: d.outReason ? str(d.outReason) : null,
   place: typeof d.place === 'number' ? d.place : null,
+  // the value line the server keeps (a point every 5 minutes; functions/main.py tw_curve)
+  curve: (Array.isArray(d.curve) ? (d.curve as { t?: unknown; eq?: unknown }[]) : []).flatMap((p) => (typeof p?.t === 'number' && typeof p?.eq === 'number' ? [{ t: p.t, v: p.eq }] : [])),
 });
 
 export function parseBook(d: DocumentData): Book {

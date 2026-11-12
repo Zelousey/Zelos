@@ -85,7 +85,7 @@ export function ChapterQuiz() {
                       {t('ln.backToNext')}
                     </Link>
                   ) : (
-                    <Link className={buttonClass({ variant: 'primary' })} to="/learn">
+                    <Link className={buttonClass({ variant: 'primary' })} to={`/learn/${c.id}`}>
                       {nextChapter ? t('ln.toNextChapter') : t('ln.back')}
                     </Link>
                   )
@@ -100,7 +100,7 @@ export function ChapterQuiz() {
                     >
                       {t('ln.tryAgain')}
                     </Button>
-                    <Link className={buttonClass({ variant: 'secondary' })} to="/learn">
+                    <Link className={buttonClass({ variant: 'secondary' })} to={`/learn/${c.id}`}>
                       {t('ln.reviewLessons')}
                     </Link>
                   </>
@@ -118,7 +118,7 @@ export function ChapterQuiz() {
                 <Button variant="primary" onClick={() => setPayNow(true)}>
                   {t('ln.retakeNow', { n: RETAKE_COST })}
                 </Button>
-                <Link className={buttonClass({ variant: 'secondary' })} to={`/learn`}>
+                <Link className={buttonClass({ variant: 'secondary' })} to={`/learn/${c.id}`}>
                   {t('ln.reviewLessons')}
                 </Link>
               </div>

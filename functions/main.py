@@ -2379,6 +2379,35 @@ def tw_mark(acct, book, prices, now_ms):
     return acct
 
 
+TW_CURVE_EVERY_MS = 5 * 60 * 1000   # a battle account's value line: one point every 5 minutes
+TW_CURVE_KEEP = 600                  # about a week of market hours at that rate
+
+
+def tw_curve(acct, now_ms):
+    """Pure: acct with its value line (`curve`, [{t, eq}]) extended (owner 2026-11-12: the battle
+    chart remembers the highs and lows, like a brokerage app). A point every TW_CURVE_EVERY_MS
+    while the value moves; a flat value (market closed) adds one at most every 6 hours."""
+    eq = acct.get("equity")
+    if not isinstance(eq, (int, float)):
+        return acct
+    curve = list(acct.get("curve") or [])
+    last = curve[-1] if curve else None
+    if last is None:
+        start = acct.get("start")
+        curve = [{"t": now_ms, "eq": _r2(start if isinstance(start, (int, float)) else eq)}]
+        if curve[0]["eq"] != eq:
+            curve.append({"t": now_ms, "eq": _r2(eq)})
+    else:
+        gap = now_ms - (last.get("t") or 0)
+        if gap >= TW_CURVE_EVERY_MS and (eq != last.get("eq") or gap >= 6 * 3600000):
+            curve.append({"t": now_ms, "eq": _r2(eq)})
+        else:
+            return acct
+    out = dict(acct)
+    out["curve"] = curve[-TW_CURVE_KEEP:]
+    return out
+
+
 def tw_check_bracket(price, sl, tp):
     """(sl, tp) as clean numbers or None, or raises TWError. Long only: stop below the
     current price, target above it."""
@@ -3202,6 +3231,8 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
                 notes.append((r["uid"], "battles", ("You won %s 🏆" if r["rank"] == 1 else "%s is over") % wname,
                               "You finished #%d of %d (%+.2f%%)." % (r["rank"], n, r["pnlPct"] or 0), wpath))
         for uid, acct in accts.items():
+            if not acct.get("out") or uid in knocked:
+                acct = tw_curve(acct, now_ms)
             t.set(ref.collection("accounts").document(uid), acct)
             if uid in knocked or uid in touched:
                 t.set(ref.collection("books").document(uid), books[uid])

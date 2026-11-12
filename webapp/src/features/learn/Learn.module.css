@@ -125,3 +125,39 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
 .lock { display: grid; gap: var(--space-2); justify-items: start; }
 .lockIcon { font-size: 28px; line-height: 1; }
 .quiz > .bar { margin-top: 0; }
+
+/* Trading 101 as books (owner 2026-11-12): a shelf of covers; a book opens on its two choices */
+.shelf { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.book { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-4); align-items: center; padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); text-decoration: none; transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+.book:hover { border-color: var(--accent-line); }
+.book:hover .cover { transform: translateY(-3px) rotate(-1deg); }
+.book:focus-visible { box-shadow: var(--focus-ring); }
+.bookLocked .cover { filter: grayscale(0.8) brightness(0.7); }
+.cover {
+  --c1: #2f5bd8; --c2: #15307f;
+  position: relative; display: grid; grid-template-rows: auto 1fr auto; gap: 6px; aspect-ratio: 3 / 4; width: 100%;
+  padding: 12px 10px 10px 18px; border-radius: 3px 8px 8px 3px; color: #fff;
+  background: linear-gradient(160deg, var(--c1), var(--c2));
+  box-shadow: inset 6px 0 0 rgb(0 0 0 / 0.28), inset 8px 0 0 rgb(255 255 255 / 0.08), 0 8px 18px rgb(0 0 0 / 0.35);
+  transition: transform var(--dur-base, 200ms) var(--ease-out);
+}
+[data-n='2'] .cover, .bookHero[data-n='2'] .cover { --c1: #2aa86a; --c2: #0f5a36; }
+[data-n='3'] .cover, .bookHero[data-n='3'] .cover { --c1: #d0901c; --c2: #7a4b05; }
+[data-n='4'] .cover, .bookHero[data-n='4'] .cover { --c1: #a24bd8; --c2: #521a7a; }
+[data-n='5'] .cover, .bookHero[data-n='5'] .cover { --c1: #d8463a; --c2: #7a1710; }
+.coverN { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
+.coverTitle { align-self: center; font-size: 1rem; font-weight: 900; line-height: 1.15; }
+.coverMark { font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.7; }
+.bookInfo { display: grid; gap: var(--space-2); min-width: 0; }
+.bookBar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.bookBar i { display: block; height: 100%; background: var(--accent-fill, var(--accent)); }
+.bookState { font-size: var(--text-xs); color: var(--ink-2); font-weight: 600; }
+.backLink { display: inline-flex; align-items: center; min-height: var(--tap); margin-bottom: var(--space-2); color: var(--link); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
+.bookHero { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: var(--space-5); align-items: center; padding: var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); }
+.bookHero .coverTitle { font-size: 1.2rem; }
+.bookChoices { display: grid; gap: var(--space-2); max-width: 360px; }
+.bookChoices p { margin: 0; }
+@media (max-width: 520px) {
+  .bookHero { grid-template-columns: 110px minmax(0, 1fr); gap: var(--space-3); }
+  .book { grid-template-columns: 92px minmax(0, 1fr); }
+}

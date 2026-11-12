@@ -55,10 +55,15 @@
 .backCover blockquote { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(0.8rem, 2.3vw, 1.15rem); line-height: 1.4; }
 .backCover figcaption { font-size: clamp(0.7rem, 1.8vw, 0.85rem); font-weight: 700; letter-spacing: 0.04em; opacity: 0.9; }
 .backMark { font-weight: 900; font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; }
-.cover, .page { transition: opacity 0.25s ease, transform 0.5s cubic-bezier(0.45, 0, 0.3, 1); }
+.cover { transition: opacity 0.25s ease; }
+.front, .back { transition: opacity 0.25s ease; }
 /* 2026-11-10: the back cover jumped to the middle on the last slide; it slides now */
 .backCover { transition: transform 0.55s cubic-bezier(0.45, 0, 0.3, 1), box-shadow 0.55s ease; }
-.ending .cover, .ending .page { opacity: 0; }
+/* 2026-11-12 (owner: "a weird flash of all the characters" on the left at the end): fading a page
+   itself flattens its 3D (opacity below 1 forces it), so every turned page showed its front for a
+   moment. The faces fade instead; the pages keep their 3D and their hidden backs. */
+.ending .cover, .ending .front, .ending .back { opacity: 0; }
+.under { visibility: hidden; }
 .ending .backCover { transform: translateX(-50%); box-shadow: 0 20px 50px rgb(0 0 0 / 0.5); }
 @keyframes open { from { transform: scale(0.7) rotateX(18deg); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } }

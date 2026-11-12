@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Bar, Quote } from '../../data/markets';
 import { parseAccount } from './account';
-import { change, dailyPoints, intradayPoints, previousClose, sessionDay } from './valueSeries';
+import { change, dailyPoints, holdingsAt, intradayPoints, nyMinute, previousClose, sessionDay } from './valueSeries';
 
 const q = (c: number, pc: number): Quote => ({ c, pc, o: c, h: c, l: c, t: 0, v: 0, chPct: null });
 const bar = (label: string, c: number): Bar => [label, c, c, c, c, 0];
@@ -43,5 +43,35 @@ describe('account value chart data', () => {
     expect(sessionDay(bars, '2026-10-10')).toBe('2026-10-09');
     const pts = intradayPoints(a, bars, {}, '2026-10-09', '2026-10-10', null, 2000, 600);
     expect(pts[pts.length - 1]).toMatchObject({ t: 16 * 60, v: 2000 });
+  });
+
+  it('today remembers what you sold: the morning keeps the shares you no longer hold (owner 2026-11-12)', () => {
+    // you held 10 AAPL and 5 TSLA this morning; at 09:32 you sold the 5 TSLA at 210 (cash 1000 now includes it)
+    const acct = parseAccount({ cash: 2050, positions: { AAPL: { qty: 10, avg: 100 } } });
+    const fills = [{ m: 572, sym: 'TSLA', side: 'sell' as const, qty: 5, price: 210 }];
+    const before = holdingsAt(acct, fills, 571);
+    expect(before.cash).toBe(1000);
+    expect(before.shares.get('TSLA')).toEqual({ qty: 5, avg: 210 });
+    expect(holdingsAt(acct, fills, 572).shares.has('TSLA')).toBe(false);
+    const bars = {
+      AAPL: [bar('2026-10-08 09:30', 100), bar('2026-10-08 09:31', 100), bar('2026-10-08 09:32', 100), bar('2026-10-08 09:33', 100)],
+      TSLA: [bar('2026-10-08 09:30', 200), bar('2026-10-08 09:31', 230), bar('2026-10-08 09:32', 210), bar('2026-10-08 09:33', 190)],
+    };
+    const pts = intradayPoints(acct, bars, {}, '2026-10-08', '2026-10-08', null, 3050, 9 * 60 + 34, fills);
+    expect(pts.map((p) => [p.t, p.v])).toEqual([
+      [570, 1000 + 1000 + 5 * 200], // the morning: TSLA still held
+      [571, 1000 + 1000 + 5 * 230], // the peak stays on the line
+      [572, 2050 + 1000], // sold: cash, no TSLA
+      [573, 2050 + 1000], // TSLA's later drop doesn't touch you
+      [574, 3050], // live
+    ]);
+  });
+
+  it('a buy today: before it, the cash was still there', () => {
+    const acct = parseAccount({ cash: 0, positions: { AAPL: { qty: 10, avg: 100 } } });
+    const h = holdingsAt(acct, [{ m: 600, sym: 'AAPL', side: 'buy', qty: 10, price: 100 }], 599);
+    expect(h.cash).toBe(1000);
+    expect(h.shares.get('AAPL')!.qty).toBe(0);
+    expect(nyMinute(Date.parse('2026-10-08T13:31:00Z'))).toBe(9 * 60 + 31); // 9:31 am in New York (EDT)
   });
 });
