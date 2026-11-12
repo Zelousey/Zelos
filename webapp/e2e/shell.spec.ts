@@ -172,3 +172,29 @@ test.describe('desktop', () => {
     expect(toggle!.y + toggle!.height).toBeLessThanOrEqual(home!.y);
   });
 });
+
+// design pass 3 (2026-11-12): search any stock from the desktop top bar; "/" jumps to it
+test('top bar stock search: "/" focuses it, best match first, arrows and Enter open the stock', async ({ page, viewport }) => {
+  test.skip((viewport?.width ?? 0) <= 760, 'desktop only: phones use Market search');
+  await page.goto('alerts');
+  await expect(page.getByRole('main')).toBeVisible();
+  await page.keyboard.press('/');
+  const box = page.getByRole('combobox', { name: 'Symbol search' });
+  await expect(box).toBeFocused();
+  await box.fill('nvi');
+  const list = page.getByRole('listbox', { name: 'Symbol search' });
+  await expect(list.getByRole('option').first()).toContainText('NVDA');
+  await box.fill('AMD');
+  await expect(list.getByRole('option').first()).toContainText('AMD'); // the exact symbol before names that contain it
+  await box.press('Enter');
+  await expect(page).toHaveURL(/\/markets\/AMD$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'AMD' })).toBeVisible();
+  // an empty box lists what you looked at last; arrows move, Enter opens
+  await page.keyboard.press('/');
+  await expect(list.getByRole('option', { name: /AMD/ })).toBeVisible();
+  await box.fill('zzzz');
+  await expect(page.getByText('No Zelos stock matches “zzzz”.')).toBeVisible();
+  await box.press('Escape');
+  await expect(box).toHaveValue('');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((v) => v.id)).toEqual([]);
+});

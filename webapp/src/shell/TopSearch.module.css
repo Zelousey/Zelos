@@ -1,0 +1,25 @@
+/* stock search in the desktop top bar (design pass 3) */
+.box { position: relative; width: min(420px, 40vw); }
+.field { position: relative; display: flex; align-items: center; height: 34px; padding: 0 8px 0 32px; background: var(--surface); border: 1px solid var(--border-soft); transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
+.field:hover { border-color: var(--border); }
+.field:focus-within { border-color: var(--accent); background: var(--bg-soft); }
+.icon { position: absolute; left: 10px; color: var(--muted); pointer-events: none; }
+.field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--ink); font-size: var(--text-sm); }
+.field input::placeholder { color: var(--muted); }
+.field input::-webkit-search-cancel-button { display: none; }
+.kbd { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border: 1px solid var(--border); color: var(--muted); font-family: var(--code); font-size: 11px; line-height: 1; }
+.pop { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 40; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-pop); padding: 4px 0; animation: drop var(--dur-fast) var(--ease-out); }
+@keyframes drop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+.head { padding: 6px 12px 4px; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+.opt { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto 64px; align-items: center; gap: var(--space-3); min-height: 36px; padding: 0 12px; cursor: pointer; font-size: var(--text-sm); }
+.opt[aria-selected='true'] { background: var(--surface-hover); }
+.sym { font-weight: 600; color: var(--ink); }
+.name { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.price { color: var(--ink); font-weight: 500; text-align: right; }
+.ch { text-align: right; font-size: var(--text-xs); }
+.none { margin: 0; padding: 10px 12px; color: var(--muted); font-size: var(--text-sm); }
+/* phones and narrow windows: Market has its own search */
+@media (max-width: 760px) { .box { display: none; } }
+.field input:focus-visible { box-shadow: none; } /* the field's border shows the focus */
