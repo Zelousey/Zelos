@@ -152,7 +152,9 @@ function Glance({ speed, setSpeed }: { speed: Speed; setSpeed: (x: Speed) => voi
   const minis = useMinis();
   // movers are limited to the Zelos list (the server does that too); anything else has no chart
   const fromMovers = (k: 'gainers' | 'losers' | 'actives') => (movers.status === 'ready' ? movers.data[k].map((m) => m.sym).filter((x) => instrument(x)) : []);
-  const syms = tab === 'all' ? [] : tab === 'indexes' ? INDEXES : tab === 'watchlist' ? (userDoc.status === 'ready' ? userDoc.data.watchlist : []) : fromMovers(tab);
+  // owner 2026-11-12: no empty cards; a fund with no price yet is left out once prices have loaded
+  const priced = (list: string[]) => (minis.status === 'loading' ? list : list.filter((x) => minis.get(x).price != null));
+  const syms = tab === 'all' ? [] : tab === 'indexes' ? priced(INDEXES) : tab === 'watchlist' ? (userDoc.status === 'ready' ? userDoc.data.watchlist : []) : fromMovers(tab);
   const items: { value: Glance; label: string }[] = [
     { value: 'indexes', label: t('market.tab.indexes') },
     { value: 'watchlist', label: t('market.tab.watchlist') },

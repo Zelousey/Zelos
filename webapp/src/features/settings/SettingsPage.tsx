@@ -15,6 +15,8 @@ const THEME_LABEL = { black: 'settings.theme.black', blue: 'settings.theme.blue'
 
 export default function SettingsPage() {
   const [theme, setThemeState] = useState<Theme>(getTheme());
+  // which colour line is open; coming from a chart's Chart settings button opens the candle colours
+  const [pick, setPick] = useState<string | null>(() => (window.location.hash === '#chart' ? 'candles' : null));
   const { hash } = useLocation();
   // the stock page's Chart settings button opens /settings#chart: bring the chart colours into view
   useEffect(() => {
@@ -44,15 +46,13 @@ export default function SettingsPage() {
               />
             </div>
             <div className={s.sub} id="chart" tabIndex={-1}>
-              <div className={s.rowLabel}>{t('settings.candles')}</div>
-              <div className={s.note}>{t('settings.candles.help')}</div>
+              <div className={s.rowLabel}>{t('settings.chartColors')}</div>
+              <div className={s.note}>{t('settings.chartColors.help')}</div>
             </div>
-            <ChartColors />
-            <div className={s.sub}>
-              <div className={s.rowLabel}>{t('settings.ind')}</div>
-              <div className={s.note}>{t('settings.ind.help')}</div>
+            <div className={s.picks}>
+              <ChartColors open={pick} onOpen={setPick} />
+              <IndicatorColors open={pick} onOpen={setPick} />
             </div>
-            <IndicatorColors />
           </Card>
           <div className={s.o4}>
             <BlockedList />

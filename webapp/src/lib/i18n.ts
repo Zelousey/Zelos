@@ -295,6 +295,8 @@ const en = {
   'settings.ind.orange': 'Orange',
   'settings.ind.white': 'White',
   'settings.candles': 'Candle colours',
+  'settings.chartColors': 'Chart colours',
+  'settings.chartColors.help': 'Candles, volume and indicator lines on every chart. Tap one to change it. Saved on this device; a chart theme from the shop uses its own colours.',
   'settings.candles.help': 'Up and down candles on every chart. Saved on this device. A chart theme from the shop uses its own colours.',
   'settings.legal': 'Legal',
   'settings.privacy': 'Privacy Policy',

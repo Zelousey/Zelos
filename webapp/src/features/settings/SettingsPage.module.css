@@ -17,7 +17,21 @@
 .links a { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-4); color: var(--ink); text-decoration: none; min-height: 44px; }
 .links a:hover { background: var(--surface-2); }
 .legalNote { margin: 0; padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--ink-2); border-top: 1px solid var(--border-soft); }
-.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-2); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); grid-auto-rows: 1fr; gap: var(--space-2); }
+/* chart colours: one line each (name, current colour, arrow) that opens its choices (owner 2026-11-12) */
+.picks { display: grid; border: 1px solid var(--border-soft); }
+.pick + .pick { border-top: 1px solid var(--border-soft); }
+.pickHead { display: grid; grid-template-columns: minmax(0, 1fr) auto 12px; align-items: center; gap: var(--space-3); width: 100%; min-height: 44px; padding: 0 var(--space-3); border: 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; }
+.pickHead:hover { background: var(--surface-2); }
+.pickHead:focus-visible { box-shadow: var(--focus-ring); }
+.pickName { font-weight: 600; }
+.pickVal { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-2); }
+.pickPreview { display: inline-flex; align-items: center; justify-content: center; width: 24px; }
+.dotPreview { display: block; width: 16px; height: 16px; border: 1px solid var(--border); }
+.dotPreview[data-empty] { background: repeating-linear-gradient(135deg, var(--surface-2) 0 3px, var(--border) 3px 4px) !important; }
+.chev { width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); margin-top: -4px; transition: transform var(--dur-fast) var(--ease-out); }
+.pickHead[aria-expanded='true'] .chev { transform: rotate(-135deg); margin-top: 4px; }
+.pickBody { padding: var(--space-1) var(--space-3) var(--space-3); }
 .swatch { display: flex; align-items: center; gap: var(--space-2); min-height: 40px; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-2); font: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; }
 .swatch[aria-checked='true'] { border-color: var(--accent); color: var(--ink); box-shadow: inset 0 0 0 1px var(--accent); }
 .swatch:focus-visible { outline: none; box-shadow: var(--focus-ring); }
@@ -25,10 +39,7 @@
 .candles i { display: block; flex: 1; }
 @media (pointer: coarse) { .swatch { min-height: var(--tap); } }
 
-/* indicator colours (owner 2026-11-11): one row per indicator, a Default button and colour squares */
-.indRows { display: grid; gap: var(--space-2); }
-.indRow { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); align-items: center; gap: var(--space-2); }
-.indName { font-size: var(--text-sm); color: var(--ink-2); }
+/* indicator colours (owner 2026-11-11): a Default button and colour squares */
 .dots { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
 .dot, .dotDefault { composes: hit from global; min-height: 26px; border: 1px solid var(--border); cursor: pointer; }
 .dot { width: 26px; padding: 0; }
@@ -36,4 +47,3 @@
 .dot[aria-checked='true'], .dotDefault[aria-checked='true'] { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dotDefault[aria-checked='true'] { color: var(--ink); }
 .dot:focus-visible, .dotDefault:focus-visible { box-shadow: var(--focus-ring); }
-@media (max-width: 520px) { .indRow { grid-template-columns: minmax(0, 1fr); gap: 4px; } }

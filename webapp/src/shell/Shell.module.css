@@ -95,9 +95,14 @@
 .offline { grid-area: offline; display: flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); background: var(--amber-soft); color: var(--amber); font-size: var(--text-sm); }
 
 /* ===================================================== screen */
-.main { grid-area: main; min-width: 0; padding: var(--space-5); outline: none; }
-.screen { animation: enter var(--dur-base) var(--ease-out); max-width: 1600px; margin: 0 auto; }
-@keyframes enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.main { grid-area: main; min-width: 0; padding: var(--space-5); outline: none; position: relative; }
+/* owner 2026-11-12: one blue glow from the sidebar's edge across every page (each page used to draw
+   its own inside its padding, which left a dark strip next to the sidebar) */
+.main::before { content: ''; position: absolute; inset: 0 0 auto; height: 560px; z-index: 0; pointer-events: none; background: radial-gradient(70% 80% at 20% 0%, var(--accent-soft), transparent 72%); opacity: 0.55; }
+@media (min-width: 1100px) { .main { padding: var(--space-5) var(--space-6); } }
+.screen { position: relative; z-index: 1; animation: enter var(--dur-base) var(--ease-out); max-width: 1600px; margin: 0 auto; }
+/* opacity only: a transform here made fixed bars (the phone's Buy / Sell bar) sit in the page while it faded in */
+@keyframes enter { from { opacity: 0; } to { opacity: 1; } }
 
 /* ===================================================== tab bar (phone) */
 .tabbar { display: none; }

@@ -20,27 +20,42 @@ test('settings: in-app account links, Privacy Policy and Terms', async ({ page }
 
 test('settings: indicator colours for volume, Bollinger Bands, RSI and MACD (owner 2026-11-11)', async ({ page }) => {
   await page.goto('settings');
+  // each colour is one line (name and current colour) that opens its choices (owner 2026-11-12)
+  const line = (n: RegExp) => page.getByRole('button', { name: n });
+  await expect(page.getByRole('radiogroup', { name: 'RSI' })).toHaveCount(0);
+  await expect(line(/^RSI\s*Default$/)).toHaveAttribute('aria-expanded', 'false');
+  await line(/^RSI/).click();
   const rsi = page.getByRole('radiogroup', { name: 'RSI' });
   await expect(rsi.getByRole('radio', { name: 'Default' })).toHaveAttribute('aria-checked', 'true');
   await rsi.getByRole('radio', { name: 'Gold' }).click();
+  await expect(line(/^RSI\s*Gold$/)).toBeVisible();
+  await line(/^Volume/).click();
+  await expect(rsi).toHaveCount(0); // one line open at a time
   await page.getByRole('radiogroup', { name: 'Volume' }).getByRole('radio', { name: 'Cyan' }).click();
+  await line(/^MACD signal/).click();
   await page.getByRole('radiogroup', { name: 'MACD signal' }).getByRole('radio', { name: 'Pink' }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zelosIndColors') || '{}'))).toEqual({ rsi: '#e8b23d', vol: '#22d3ee', macdSignal: '#f472b6' });
+  await line(/^Volume/).click();
   await page.getByRole('radiogroup', { name: 'Volume' }).getByRole('radio', { name: 'Match candles' }).click();
   await page.reload();
+  await expect(line(/^RSI\s*Gold$/)).toBeVisible();
+  await line(/^RSI/).click();
   await expect(page.getByRole('radiogroup', { name: 'RSI' }).getByRole('radio', { name: 'Gold' })).toHaveAttribute('aria-checked', 'true');
+  await line(/^Volume/).click();
   await expect(page.getByRole('radiogroup', { name: 'Volume' }).getByRole('radio', { name: 'Match candles' })).toHaveAttribute('aria-checked', 'true');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((v) => v.id)).toEqual([]);
 });
 
 test('settings: candle colours (Green / Red by default), saved on this device', async ({ page }) => {
   await page.goto('settings');
+  await page.getByRole('button', { name: /^Candle colours\s*Green \/ Red$/ }).click();
   const group = page.getByRole('radiogroup', { name: 'Candle colours' });
   await expect(group.getByRole('radio', { name: 'Green / Red' })).toHaveAttribute('aria-checked', 'true');
   await group.getByRole('radio', { name: /color-blind safe/ }).click();
   await expect(group.getByRole('radio', { name: /color-blind safe/ })).toHaveAttribute('aria-checked', 'true');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zelosChartColors') || 'null')?.id)).toBe('cb');
   await page.reload();
+  await page.getByRole('button', { name: /^Candle colours\s*Blue \/ Orange/ }).click();
   await expect(page.getByRole('radiogroup', { name: 'Candle colours' }).getByRole('radio', { name: /color-blind safe/ })).toHaveAttribute('aria-checked', 'true');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((v) => v.id)).toEqual([]);
 });
