@@ -11,11 +11,11 @@
 .ticket { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding: var(--space-4); }
 .row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); }
 .qtyRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); align-items: end; }
-.bracket { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); border: 1px dashed var(--border); border-radius: var(--radius); }
+.bracket { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-soft); background: var(--bg-soft); border-radius: var(--radius); }
 .toggle { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); cursor: pointer; min-height: var(--tap); }
 .toggle input { width: 18px; height: 18px; accent-color: var(--accent-fill); }
 .hint { font-size: var(--text-xs); color: var(--muted); }
-.summary { display: grid; gap: 4px; padding: var(--space-3); background: var(--bg-soft); border-radius: var(--radius); font-size: var(--text-sm); }
+.summary { display: grid; gap: 4px; padding: var(--space-3) 0 0; border-top: 1px solid var(--border-soft); font-size: var(--text-sm); }
 .summary .num { font-weight: 600; }
 .note { font-size: var(--text-xs); color: var(--muted); }
 .confirm { display: grid; gap: var(--space-2); font-size: var(--text-sm); }
@@ -24,3 +24,8 @@
 @media (max-width: 760px) { .ticket { padding: var(--space-3); } }
 .ticketTop { display: grid; gap: var(--space-2); margin-bottom: var(--space-4); }
 .linkBtn { background: none; border: 0; padding: 0; color: var(--link); font: inherit; cursor: pointer; text-decoration: underline; }
+
+/* Buy / Sell (design pass 4): the side you're on takes its colour, so the ticket's intent is clear at a glance */
+.side [role='tablist'] { width: 100%; }
+.side[data-side='buy'] [role='tab'][aria-selected='true'] { background: var(--buy-fill); color: var(--on-fill); }
+.side[data-side='sell'] [role='tab'][aria-selected='true'] { background: var(--sell-fill); color: var(--on-fill); }

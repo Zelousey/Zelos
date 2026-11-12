@@ -313,7 +313,7 @@ function Ticket({
             </p>
           ) : (
           <div className={s.ticketTop}>
-            <div data-tour="side">
+            <div data-tour="side" className={s.side} data-side={input.side}>
             <Tabs
               stretch
               label={t("trade.side")}

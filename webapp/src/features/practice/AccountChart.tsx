@@ -63,7 +63,7 @@ export function AccountChart({ acct, equity, quotes, vols, today }: Props) {
         <span className={s.when}>{hover ? whenLabel(hover, range) : range === '1D' && session !== today ? formatDate(session + 'T12:00:00Z') : t(`acct.range.${range}`)}</span>
       </div>
       <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} />
-      <Tabs stretch label={t('acct.range')} value={range} onChange={setRange} items={(['1D', '1W', '1M', '3M'] as Range[]).map((r) => ({ value: r, label: r }))} />
+      <Tabs label={t('acct.range')} value={range} onChange={setRange} items={(['1D', '1W', '1M', '3M'] as Range[]).map((r) => ({ value: r, label: r }))} />
       {range === '1D' && (acct.positions.length > 0 || acct.options.length > 0) && <p className={s.note}>{t('acct.todayNote')}</p>}
       <details className={s.table}>
         <summary>{t('acct.table')}</summary>
@@ -131,9 +131,17 @@ function Plot({ points, base, range, dir, onHover }: { points: ValuePoint[]; bas
     return () => ro.disconnect();
   }, []);
   const [x0, x1] = range === '1D' ? [OPEN_MIN, CLOSE_MIN] : [points[0]?.t ?? 0, points[points.length - 1]?.t ?? 1];
-  const vs = [...points.map((p) => p.v), base];
-  let lo = Math.min(...vs);
-  let hi = Math.max(...vs);
+  // the scale follows the line; the starting value joins it only when it's near, so one far-off
+  // reference (a big deposit, a reset) doesn't squash the day's moves into a flat line
+  const pv = points.map((p) => p.v);
+  let lo = Math.min(...pv, pv.length ? Infinity : base);
+  let hi = Math.max(...pv, pv.length ? -Infinity : base);
+  const span = Math.max(hi - lo, hi * 0.004);
+  const showBase = base >= lo - span * 1.5 && base <= hi + span * 1.5;
+  if (showBase) {
+    lo = Math.min(lo, base);
+    hi = Math.max(hi, base);
+  }
   const pad = (hi - lo) * 0.1 || Math.max(1, hi * 0.002);
   lo -= pad;
   hi += pad;
@@ -141,6 +149,9 @@ function Plot({ points, base, range, dir, onHover }: { points: ValuePoint[]; bas
   const y = (v: number) => PAD.t + ((hi - v) / (hi - lo)) * (H - PAD.t - PAD.b);
   const d = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
   const last = points[points.length - 1];
+  const first = points[0];
+  const area = first && last && points.length > 1 ? `${d}L${x(last.t).toFixed(1)},${H}L${x(first.t).toFixed(1)},${H}Z` : '';
+  const gradId = useId();
   const [hx, setHx] = useState<number | null>(null);
   const nearest = (px: number) => points.reduce((b, p) => (Math.abs(x(p.t) - px) < Math.abs(x(b.t) - px) ? p : b), points[0]!);
   const hp = hx != null && points.length ? nearest(hx) : null;
@@ -163,7 +174,14 @@ function Plot({ points, base, range, dir, onHover }: { points: ValuePoint[]; bas
           onHover(null);
         }}
       >
-        <line x1={PAD.l} x2={W - PAD.r} y1={y(base)} y2={y(base)} className={s.base} />
+        <defs>
+          <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" className={dir === 'up' ? s.gUp : s.gDown} stopOpacity="0.22" />
+            <stop offset="1" className={dir === 'up' ? s.gUp : s.gDown} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {showBase && <line x1={PAD.l} x2={W - PAD.r} y1={y(base)} y2={y(base)} className={s.base} />}
+        {area && <path d={area} fill={`url(#${gradId})`} />}
         {points.length > 1 && <path d={d} className={dir === 'up' ? s.lineUp : s.lineDown} />}
         {last && <circle cx={x(last.t)} cy={y(last.v)} r={4} className={dir === 'up' ? s.dotUp : s.dotDown} />}
         {hp && <line x1={x(hp.t)} x2={x(hp.t)} y1={PAD.t} y2={H - PAD.b} className={s.cross} />}

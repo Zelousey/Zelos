@@ -150,11 +150,11 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
                             <Change abs={r.pnl} pct={r.pnlPct} />
                           </td>
                           <td>
-                            <span style={{ display: 'inline-flex', gap: 6 }}>
+                            <span className={s.rowActions}>
                               <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to={`/practice/trade/${r.sym}`}>
                                 {t('practice.trade')}
                               </Link>
-                              <Button variant="secondary" size="sm" onClick={() => setClosing({ sym: r.sym, qty: sellableShares(acct, r.sym) })} disabled={pending || sellableShares(acct, r.sym) === 0}>
+                              <Button variant="ghost" size="sm" className={s.closeBtn} onClick={() => setClosing({ sym: r.sym, qty: sellableShares(acct, r.sym) })} disabled={pending || sellableShares(acct, r.sym) === 0}>
                                 {t('practice.close')}
                               </Button>
                             </span>

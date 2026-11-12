@@ -68,3 +68,9 @@
 .orderMain { display: grid; gap: 4px; min-width: 0; }
 .orderTop { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
 .orderRow > button { flex: none; }
+
+/* row actions (design pass 4): quiet text buttons that brighten with the row */
+.rowActions { display: inline-flex; gap: 2px; }
+.rowActions > * { color: var(--muted); }
+.table tbody tr:hover .rowActions > * { color: var(--ink); }
+.closeBtn:hover:not(:disabled) { color: var(--down-ink) !important; }
