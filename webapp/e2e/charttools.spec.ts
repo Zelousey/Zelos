@@ -286,3 +286,47 @@ test('patterns: an XABCD (5 points), a head and shoulders (7) and a sine line (2
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zelosAppDrawings:AAPL') || '[]') as { k: string; pts: unknown[] }[]);
   expect(saved.map((x) => [x.k, x.pts.length])).toEqual([['xabcd', 5], ['headshoulders', 7], ['sineline', 2]]);
 });
+
+test('price-only chart types: Renko bricks, line break, Kagi swings and point & figure columns follow their rules', async ({ page }) => {
+  await page.goto('markets/DIA'); // a Long Term fund: a year of daily prices in the test data
+  await expect(page.getByRole('img', { name: /DIA D price chart/ })).toBeVisible();
+  const type = page.getByRole('combobox', { name: 'Chart type' });
+  type U = { kind?: string; box: number; n: number; o: number[]; c: number[]; h: number[]; l: number[]; d: string[]; raw: { n: number }; at: number[]; note: string };
+  const units = () => page.evaluate(() => {
+    const s = (document.querySelector('canvas') as unknown as { __ztc: { s: U & { raw: unknown } } }).__ztc.s;
+    return { kind: s.kind, box: s.box, n: s.n, o: s.o, c: s.c, h: s.h, l: s.l, d: s.d, raw: { n: (s.raw as { n: number } | undefined)?.n ?? 0 }, at: s.at, note: s.note };
+  });
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  await page.waitForFunction(() => !!(document.querySelector('canvas') as unknown as { __ztc?: { s?: unknown } })?.__ztc?.s);
+  for (const k of ['renko', 'linebreak', 'kagi', 'pnf']) {
+    await type.selectOption(k);
+    await expect.poll(async () => (await units()).kind).toBe(k);
+    const u = await units();
+    expect(u.n).toBeGreaterThan(2);
+    expect(u.n).toBeLessThan(u.raw.n); // fewer units than days
+    expect(u.at).toHaveLength(u.raw.n);
+    expect([...u.d].sort()).toEqual(u.d); // still in date order
+    expect(u.box).toBeGreaterThan(0);
+    for (let i = 1; i < u.n; i++) {
+      const up = u.c[i]! > u.o[i]!, prevUp = u.c[i - 1]! > u.o[i - 1]!;
+      if (k === 'renko') {
+        expect(near(Math.abs(u.c[i]! - u.o[i]!), u.box)).toBe(true); // every brick is one box
+        // the next brick starts at the last one's close (same way) or its open (a turn)
+        expect(near(u.o[i]!, up === prevUp ? u.c[i - 1]! : u.o[i - 1]!)).toBe(true);
+      } else if (k === 'linebreak') {
+        expect(near(u.o[i]!, up === prevUp ? u.c[i - 1]! : u.o[i - 1]!)).toBe(true);
+      } else if (k === 'kagi') {
+        expect(up).not.toBe(prevUp); // swings alternate
+        expect(near(u.o[i]!, u.c[i - 1]!)).toBe(true); // and join end to start
+        expect(Math.abs(u.c[i]! - u.o[i]!) + 1e-9).toBeGreaterThanOrEqual(u.box);
+      } else {
+        expect(up).not.toBe(prevUp); // X and O columns alternate
+        expect(Math.round((u.h[i]! - u.l[i]!) / u.box)).toBeGreaterThanOrEqual(3); // a turn takes 3 boxes
+      }
+    }
+    expect(u.note).toMatch(k === 'linebreak' ? /^Line break/ : /box|reversal/);
+  }
+  // back to candles: one candle per day again
+  await type.selectOption('candles');
+  await expect.poll(async () => (await units()).kind).toBeUndefined();
+});
