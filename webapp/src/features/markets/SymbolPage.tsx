@@ -17,6 +17,7 @@ import { t, type MessageKey } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
 import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, Ticker, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
+import { useDrawTools } from '../charts/DrawTools';
 import type { ChartStyle, Forecast } from '../charts/engine';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount } from '../practice/account';
@@ -107,6 +108,8 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
   // Forecast (owner 2026-11-10): a green target box and a red stop box on the chart, dragged up and
   // down; Buy then opens the ticket with them as the take-profit and stop-loss. Long only.
   const [fc, setFc] = useState<{ sl: number; tp: number } | null>(null);
+  // drawings and the measure tool (owner's step 3), saved on this device per stock
+  const draw = useDrawTools(sym);
   const [switching, setSwitching] = useState(false);
   const { quotes, quote: q, built, loading, failed, retry } = useSymbolBars(sym, tf);
   const isIndexEtf = INDEX_ETFS.some((x) => x.sym === sym); // funds have no SEC company research
@@ -236,11 +239,17 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                 label={t('chart.label', { sym, tf: tfDef.label })}
                 forecast={forecast}
                 onForecastEdit={onForecastEdit}
+                shapes={draw.shapes}
+                drawTool={draw.tool}
+                drawColor={draw.color}
+                onDrawn={draw.onDrawn}
+                toolsNote={draw.note}
                 daySlots={built.intraday && dayLabel === '1D' && typeof range === 'number' ? range : undefined}
                 tools
                 toolsTop
                 toolbarExtra={
                   <>
+                    {draw.buttons}
                     <Button size="sm" variant={fc ? 'primary' : 'ghost'} aria-pressed={!!fc} onClick={flipForecast} disabled={!price}>
                       <Icon name="target" size={16} /> {t('chart.forecast')}
                     </Button>
@@ -335,6 +344,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
 
       <Previews current={sym} />
       <SymbolSwitcher open={switching} onClose={() => setSwitching(false)} current={sym} />
+      {draw.textSheet}
       <Sheet open={!!swapNote} onClose={() => setSwapNote(null)} title={t('mode.swap.title', { to: sym })} labelledBy="mode-swap-title">
         <div className={s.swap}>
           <p>{t('mode.swap.body', { from: swapNote ?? '', other: t(symMode === 'fast' ? 'mode.slow' : 'mode.fast'), to: sym, mode: t(symMode === 'fast' ? 'mode.fast' : 'mode.slow') })}</p>
