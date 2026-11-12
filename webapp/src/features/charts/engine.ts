@@ -30,12 +30,14 @@ export type CompatDb = {
 export type Forecast = { entry: number; sl: number | null; tp: number | null; label?: string; side?: 'buy' | 'sell'; editable?: boolean };
 
 /** A coach-play drawing, pinned to a bar date and a price so it survives zooming (practice-chart.js). */
-export type ShapeKind = 'line' | 'ray' | 'arrow' | 'box' | 'hline' | 'hray' | 'vline' | 'measure' | 'text' | 'avwap' | 'pattern' | 'ghost';
+export type FibKind = 'fibret' | 'fibext' | 'fibchannel' | 'fibtime' | 'fibtrendtime' | 'fibfan' | 'fibarcs' | 'fibcircles' | 'fibspiral' | 'fibwedge' | 'pitchfan' | 'gannbox' | 'gannsquare' | 'gannfixed' | 'gannfan';
+export type ShapeKind = 'line' | 'ray' | 'arrow' | 'box' | 'hline' | 'hray' | 'vline' | 'measure' | 'text' | 'avwap' | 'pattern' | 'ghost' | FibKind;
 export type ShapeColor = 'blue' | 'green' | 'red' | 'gold';
 /** f: bars after the last bar, for a point placed in the empty space on the right (ghost feed) */
 export type ShapePoint = { d: string; p: number; f?: number };
 export type Shape = { k: ShapeKind; c: ShapeColor; pts: ShapePoint[]; text?: string };
-export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, ray: 2, arrow: 2, box: 2, hline: 1, hray: 1, vline: 1, measure: 2, text: 1, avwap: 1, pattern: 2, ghost: 1 };
+export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, ray: 2, arrow: 2, box: 2, hline: 1, hray: 1, vline: 1, measure: 2, text: 1, avwap: 1, pattern: 2, ghost: 1,
+  fibret: 2, fibext: 3, fibchannel: 3, fibtime: 2, fibtrendtime: 3, fibfan: 2, fibarcs: 2, fibcircles: 2, fibspiral: 2, fibwedge: 3, pitchfan: 3, gannbox: 2, gannsquare: 2, gannfixed: 1, gannfan: 2 };
 
 /** Chart types (owner's chart list, step 2); 'line' is the live line coloured against the previous close. */
 export type ChartStyle = 'candles' | 'hollow' | 'volcandles' | 'bars' | 'heikin' | 'line' | 'linemarkers' | 'step' | 'area' | 'hlcarea' | 'baseline' | 'columns' | 'highlow';

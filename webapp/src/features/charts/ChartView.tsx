@@ -40,13 +40,15 @@ export type ChartViewProps = {
   toolbarExtra?: ReactNode;
   /** a line to compare with (sector average or an index), one ratio per bar */
   compare?: { label: string; color: string; r: (number | null)[] } | null;
+  /** drawing tools for the Fibonacci menu (Fibonacci and Gann, step 4) */
+  fibItems?: ReactNode;
   /** a line under the tools row (e.g. what the drawing tool you picked does) */
   toolsNote?: ReactNode;
   /** intraday "1D": show only the latest session, with room for all its bars (e.g. 78 at 5m) */
   daySlots?: number;
 };
 
-export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots, compare }: ChartViewProps) {
+export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots, compare, fibItems }: ChartViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<TradeChart | null>(null);
   // chart tools: Fibonacci, placing an alert, and this symbol's alerts (rev bumps when the store changes)
@@ -158,23 +160,39 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
       c.draw();
     }
   };
+  // three-point tools (Fibonacci extension, channel, wedge, pitchfan…): drag from the first point to
+  // the second, then the third follows the pointer until you tap it
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (!drawTool) return;
     const pt = at(e);
     if (!pt) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    const d = draft.current;
+    if (d && d.pts.length === 3) {
+      setDraft({ ...d, pts: [d.pts[0]!, d.pts[1]!, pt] });
+      return;
+    }
     if (SHAPE_POINTS[drawTool] === 1) onDrawn?.({ k: drawTool, c: drawColor, pts: [pt] });
     else setDraft({ k: drawTool, c: drawColor, pts: [pt, pt] });
   };
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const d = draft.current;
     const pt = d && at(e);
-    if (d && pt) setDraft({ ...d, pts: [d.pts[0]!, pt] });
+    if (!d || !pt) return;
+    if (d.pts.length === 3) setDraft({ ...d, pts: [d.pts[0]!, d.pts[1]!, pt] });
+    else if (e.buttons || e.pointerType !== 'mouse') setDraft({ ...d, pts: [d.pts[0]!, pt] });
   };
   const up = () => {
     const d = draft.current;
+    if (!d) return;
+    const moved = d.pts[0]!.d !== d.pts[1]!.d || d.pts[0]!.p !== d.pts[1]!.p;
+    if (d.pts.length === 2 && SHAPE_POINTS[d.k] === 3) {
+      if (moved) setDraft({ ...d, pts: [d.pts[0]!, d.pts[1]!, d.pts[1]!] }); // now the third point
+      else setDraft(null);
+      return;
+    }
     setDraft(null);
-    if (d && (d.pts[0]!.d !== d.pts[1]!.d || d.pts[0]!.p !== d.pts[1]!.p)) onDrawn?.(d);
+    if (d.pts.length === 3 || moved) onDrawn?.(d);
   };
 
   // a new range on the same series only moves the window
@@ -189,7 +207,7 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
     </div>
   );
   if (!tools && !under) return view;
-  const toolRow = tools && <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} extra={toolbarExtra} />;
+  const toolRow = tools && <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} extra={toolbarExtra} fibItems={fibItems} />;
   return (
     <div className={s.withTools}>
       {toolsTop && toolRow}

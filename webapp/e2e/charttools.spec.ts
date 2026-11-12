@@ -25,8 +25,12 @@ test('chart tools: indicators, Fibonacci, place / remove / fire price alerts', a
   await page.keyboard.press('Escape');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zelosPracticeInd') || '{}').macd)).toBe(true);
 
+  // Fibonacci is a menu on the stock page (step 4): the automatic retracement is its first item
   await tools.getByRole('button', { name: 'Fibonacci' }).click();
-  await expect(tools.getByRole('button', { name: 'Fibonacci' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('menu', { name: 'Fibonacci' }).getByRole('menuitemcheckbox', { name: /Auto retracement/ }).click();
+  await tools.getByRole('button', { name: 'Fibonacci' }).click();
+  await expect(page.getByRole('menu', { name: 'Fibonacci' }).getByRole('menuitemcheckbox', { name: /Auto retracement/ })).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Escape');
 
   await tools.getByRole('button', { name: /Alert/ }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Tap the price you want to watch' })).toBeVisible();
@@ -214,4 +218,41 @@ test('compare a stock with its sector average or an index', async ({ page }) => 
   await menu.getByRole('menuitemradio', { name: 'No comparison' }).click();
   await expect.poll(cmp).toBeNull();
   for (const s of copies) await fetch(`${DOCS}/intraday_${s}`, { method: 'DELETE', headers: H }); // other tests expect no minute prices for these
+});
+
+// owner's chart plan step 4 (2026-11-12): the Fibonacci menu's Fibonacci and Gann tools, including three-point ones
+test('Fibonacci and Gann tools: a two-point retracement, a three-point extension, a one-tap Gann square', async ({ page }) => {
+  await page.goto('markets/AAPL');
+  const tools = page.getByRole('toolbar', { name: 'Chart tools' });
+  const menu = page.getByRole('menu', { name: 'Fibonacci' });
+  await tools.getByRole('button', { name: 'Fibonacci' }).click();
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(15); // 11 Fibonacci + 4 Gann
+  const box = async () => {
+    const l = page.getByTestId('draw-layer');
+    await l.scrollIntoViewIfNeeded();
+    return (await l.boundingBox())!;
+  };
+  await menu.getByRole('menuitemradio', { name: 'Fib retracement' }).click();
+  let b = await box();
+  await page.mouse.move(b.x + b.width * 0.2, b.y + b.height * 0.32);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.18, { steps: 5 });
+  await page.mouse.up();
+  // three points: drag the first two, then tap the third
+  await tools.getByRole('button', { name: 'Fibonacci' }).click();
+  await menu.getByRole('menuitemradio', { name: 'Trend-based fib extension' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'then tap the third' })).toBeVisible();
+  b = await box();
+  await page.mouse.move(b.x + b.width * 0.15, b.y + b.height * 0.32);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * 0.35, b.y + b.height * 0.2, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.getByTestId('draw-layer')).toHaveCount(1); // still waiting for the third point
+  await page.mouse.click(b.x + b.width * 0.5, b.y + b.height * 0.28);
+  await tools.getByRole('button', { name: 'Fibonacci' }).click();
+  await menu.getByRole('menuitemradio', { name: 'Gann square (fixed)' }).click();
+  b = await box();
+  await page.mouse.click(b.x + b.width * 0.3, b.y + b.height * 0.3);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zelosAppDrawings:AAPL') || '[]') as { k: string; pts: unknown[] }[]);
+  expect(saved.map((x) => [x.k, x.pts.length])).toEqual([['fibret', 2], ['fibext', 3], ['gannfixed', 1]]);
 });
