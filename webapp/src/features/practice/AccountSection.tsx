@@ -108,8 +108,8 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
         <Card>
           <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} />
           <div className={s.kpis}>
-            <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} direction={dir(v.dayPnl)} delta={null} />
-            <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} />
+            <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
+            <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
             <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
             <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
           </div>

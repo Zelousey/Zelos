@@ -19,6 +19,7 @@ body {
   font-size: var(--text-md);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums; /* digits line up in every column, row and ticking price */
   -webkit-tap-highlight-color: transparent;
   text-size-adjust: 100%;
 }
