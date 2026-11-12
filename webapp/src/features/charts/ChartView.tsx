@@ -38,11 +38,13 @@ export type ChartViewProps = {
   /** the tools row above the chart instead of under it, with extra buttons from the screen */
   toolsTop?: boolean;
   toolbarExtra?: ReactNode;
+  /** a line under the tools row (e.g. what the drawing tool you picked does) */
+  toolsNote?: ReactNode;
   /** intraday "1D": show only the latest session, with room for all its bars (e.g. 78 at 5m) */
   daySlots?: number;
 };
 
-export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, daySlots }: ChartViewProps) {
+export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots }: ChartViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<TradeChart | null>(null);
   // chart tools: Fibonacci, placing an alert, and this symbol's alerts (rev bumps when the store changes)
@@ -174,6 +176,7 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
   return (
     <div className={s.withTools}>
       {toolsTop && toolRow}
+      {toolsTop && toolsNote}
       {view}
       {under}
       {!toolsTop && toolRow}

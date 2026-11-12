@@ -30,11 +30,11 @@ export type CompatDb = {
 export type Forecast = { entry: number; sl: number | null; tp: number | null; label?: string; side?: 'buy' | 'sell'; editable?: boolean };
 
 /** A coach-play drawing, pinned to a bar date and a price so it survives zooming (practice-chart.js). */
-export type ShapeKind = 'line' | 'arrow' | 'box' | 'hline' | 'text';
+export type ShapeKind = 'line' | 'ray' | 'arrow' | 'box' | 'hline' | 'hray' | 'vline' | 'measure' | 'text';
 export type ShapeColor = 'blue' | 'green' | 'red' | 'gold';
 export type ShapePoint = { d: string; p: number };
 export type Shape = { k: ShapeKind; c: ShapeColor; pts: ShapePoint[]; text?: string };
-export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, arrow: 2, box: 2, hline: 1, text: 1 };
+export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, ray: 2, arrow: 2, box: 2, hline: 1, hray: 1, vline: 1, measure: 2, text: 1 };
 
 /** Chart types (owner's chart list, step 2); 'line' is the live line coloured against the previous close. */
 export type ChartStyle = 'candles' | 'hollow' | 'volcandles' | 'bars' | 'heikin' | 'line' | 'linemarkers' | 'step' | 'area' | 'hlcarea' | 'baseline' | 'columns' | 'highlow';
