@@ -1,0 +1,25 @@
+/* the Draw menu (chart plan step 3) */
+.menuWrap { position: relative; flex: none; }
+.menu { position: fixed; z-index: 45; min-width: 220px; margin-top: 6px; padding: 4px 0; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-pop); animation: drop var(--dur-fast) var(--ease-out); }
+@keyframes drop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .menu { animation: none; } }
+.item { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: 36px; padding: 0 var(--space-3); border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; }
+.item svg { color: var(--muted); flex: none; }
+.item:hover, .item:focus-visible { background: var(--surface-hover); color: var(--ink); box-shadow: none; }
+.item[aria-checked='true'] { color: var(--ink); font-weight: 600; }
+.item[aria-checked='true'] svg { color: var(--accent); }
+.groupLabel { padding: 8px 12px 2px; border-top: 1px solid var(--border-soft); margin-top: 4px; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.colors { display: flex; gap: 6px; padding: var(--space-2) var(--space-3); border-top: 1px solid var(--border-soft); margin-top: 4px; }
+.swatch { composes: hit from global; width: 22px; height: 22px; padding: 0; border: 1px solid var(--border); cursor: pointer; }
+.swatch[aria-checked='true'] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.manage { border-top: 1px solid var(--border-soft); margin-top: 4px; padding-top: 4px; }
+.note { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+.note b { color: var(--ink); font-weight: 600; }
+.cancel { composes: hit from global; border: 0; background: none; padding: 0; color: var(--link); font: inherit; font-weight: 600; cursor: pointer; }
+.textForm { display: grid; gap: var(--space-3); padding: 0 var(--space-4) var(--space-4); }
+@media (pointer: coarse) { .item { min-height: var(--tap); } }
+/* phones: the menu opens as a panel above the tab bar instead of off the bottom of the screen */
+@media (max-width: 760px) {
+  .menu { left: 0; right: 0; top: auto; bottom: calc(var(--tabbar-h) + var(--safe-bottom)); margin: 0; max-height: 70vh; overflow-y: auto; border-width: 1px 0 0; display: grid; grid-template-columns: 1fr 1fr; }
+  .colors, .manage, .groupLabel { grid-column: 1 / -1; }
+}

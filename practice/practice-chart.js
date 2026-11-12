@@ -22,7 +22,7 @@
  *     click (snapped to the nearest candle's high or low); after three points the
  *     likely end of leg C is projected (100%-161.8% of leg A from B); after four,
  *     onAbcDone(abc) fires. Points are stored by date so they survive zooming.
- *   - shapes: coach "plays" (app, 2026-10-10) [{ k: line|arrow|box|hline|text, c: blue|green|red|gold,
+ *   - shapes: coach "plays" and the stock page's drawings [{ k: line|ray|arrow|box|hline|hray|vline|measure|text, c: blue|green|red|gold,
  *     pts: [{ d, p }], text }] drawn over the chart; shapeDraft is the one being drawn.
  *     pointAt(x, y) -> { d, p } turns a pointer position into a bar date and a price.
  */
@@ -198,7 +198,7 @@
     this.refPrice = null; this.anim = null; this.pulse = null;
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
     this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
-    this.shapes = []; this.shapeDraft = null;
+    this.shapes = []; this.shapeDraft = null; this.futureRoom = 0;
     this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
     var self = this, drag = null;
     canvas.__ztc = this; // lets the browser tests read the visible range
@@ -341,6 +341,8 @@
   TradeChart.prototype.pointAt = function (x, y) {
     var g = this.geo; if (!g || !this.s || y < g.L.y0 || y > g.L.y1) return null;
     var p = this.priceAt(y); if (!(p > 0)) return null;
+    var last = this.s.n - 1, raw = this.from + Math.floor((x - g.L.x0) / g.bw);
+    if (this.to === last && raw > last) return { d: this.s.d[last], p: Math.round(p * 100) / 100, f: raw - last };
     return { d: this.s.d[this.barAt(x)], p: Math.round(p * 100) / 100 };
   };
   // draggable things under the pointer: forecast SL / TP edges, then alert lines
@@ -421,6 +423,14 @@
   };
   TradeChart.prototype.padBars = function () {
     var span = this.to - this.from + 1, base = this.forecast ? Math.max(8, Math.round(span * 0.16)) : 3;
+    if (this.s && this.to === this.s.n - 1) {
+      var need = this.futureRoom || 0, sd = this.s.d;
+      (this.shapes || []).forEach(function (sh) {
+        if (sh.k === 'pattern' && sh.pts.length === 2) need = Math.max(need, Math.abs(sd.indexOf(sh.pts[1].d) - sd.indexOf(sh.pts[0].d)) + 1);
+        (sh.pts || []).forEach(function (q) { if (q.f) need = Math.max(need, q.f); });
+      });
+      if (need) base = Math.max(base, Math.min(need + 2, Math.round(span * 0.8)));
+    }
     return this.fullDay && span < this.fullDay ? Math.max(base, this.fullDay - span) : base;
   };
   TradeChart.prototype.barW = function () { var L = this.layout(); return (L.x1 - L.x0) / (this.to - this.from + 1 + this.padBars()); };
@@ -760,19 +770,96 @@
         for (var j = 0; j < s.n; j++) if (s.d[j] > d) return j; // nearest later bar (e.g. a daily date on 15m bars)
         return d > s.d[s.n - 1] ? s.n - 1 : -1;
       };
+      var ghostBar = function (gx, go, gh, gl, gcl) {
+        var x = Math.round(X(gx)), up = gcl >= go, cc2 = up ? bull : bear, top = Math.round(Y(Math.max(go, gcl))), bot = Math.round(Y(Math.min(go, gcl)));
+        c.save(); c.globalAlpha = 0.55; c.strokeStyle = cc2; c.lineWidth = 1; c.setLineDash([]);
+        c.beginPath(); c.moveTo(x + 0.5, Math.round(Y(gh))); c.lineTo(x + 0.5, top); c.moveTo(x + 0.5, bot); c.lineTo(x + 0.5, Math.round(Y(gl))); c.stroke();
+        var w = Math.max(1, Math.min(13, Math.round(bw * 0.72))); if (w > 2 && w % 2 === 0) w -= 1;
+        c.strokeRect(x + 1 - Math.ceil(w / 2) + 0.5, top + 0.5, Math.max(1, w - 1), Math.max(1, bot - top - 1)); c.restore();
+      };
       c.save(); c.beginPath(); c.rect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); c.clip();
       shapeList.forEach(function (sh) {
-        var col = SC[sh.c] || SC.blue, pts = (sh.pts || []).map(function (q) { return { x: X(idxOf(q.d)), y: Y(q.p), i: idxOf(q.d), p: q.p }; });
+        var col = SC[sh.c] || SC.blue, pts = (sh.pts || []).map(function (q) { var qi = idxOf(q.d); return { x: X(qi + (q.f || 0)), y: Y(q.p), i: qi, f: q.f || 0, p: q.p }; });
         if (!pts.length || pts.some(function (q) { return q.i < 0; })) return;
         c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 2; c.globalAlpha = sh === self.shapeDraft ? 0.7 : 1;
         var a = pts[0], b = pts[1];
         if (sh.k === 'hline') { c.setLineDash([6, 4]); c.beginPath(); c.moveTo(L.x0, a.y); c.lineTo(L.x1, a.y); c.stroke(); c.setLineDash([]); }
         else if (sh.k === 'box' && b) { c.globalAlpha *= 0.18; c.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y)); c.globalAlpha = sh === self.shapeDraft ? 0.7 : 1; c.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y)); }
+        else if (sh.k === 'vline') { c.setLineDash([6, 4]); c.beginPath(); c.moveTo(Math.round(a.x) + 0.5, L.y0); c.lineTo(Math.round(a.x) + 0.5, L.y1); c.stroke(); c.setLineDash([]); }
+        else if (sh.k === 'hray') { c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(L.x1, a.y); c.stroke(); c.beginPath(); c.arc(a.x, a.y, 3, 0, Math.PI * 2); c.fill(); }
+        else if (sh.k === 'ray' && b) {
+          // a line through both points that runs on to the right edge
+          var rx = b.x === a.x ? b.x : L.x1, ry = b.x === a.x ? b.y : a.y + (b.y - a.y) * (rx - a.x) / (b.x - a.x);
+          if (b.x < a.x) { rx = L.x0; ry = a.y + (b.y - a.y) * (rx - a.x) / (b.x - a.x); }
+          c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(rx, ry); c.stroke();
+          c.beginPath(); c.arc(a.x, a.y, 3, 0, Math.PI * 2); c.fill();
+        }
+        else if (sh.k === 'avwap') {
+          // anchored VWAP (step 6): volume-weighted average price from the bar you tapped to now
+          var pv = 0, vv = 0, k0 = a.i, started = false, lastY = null;
+          c.beginPath();
+          for (var ai = k0; ai <= Math.min(to, s.n - 1); ai++) {
+            var tp = (s.h[ai] + s.l[ai] + s.c[ai]) / 3, w = s.v[ai] || 1; pv += tp * w; vv += w;
+            if (ai < from) continue;
+            var ay = Y(pv / vv); if (!started) { c.moveTo(X(ai), ay); started = true; } else c.lineTo(X(ai), ay); lastY = { y: ay, v: pv / vv };
+          }
+          c.stroke();
+          c.beginPath(); c.arc(a.x, Y(s.l[a.i]) + 8, 3.5, 0, Math.PI * 2); c.fill();
+          if (lastY) { pill(c, L.x1 + 2, lastY.y - 8, 60, 16, col); c.fillStyle = lum(col) > 0.55 ? '#0b0c0f' : '#ffffff'; c.font = '600 9.5px "IBM Plex Sans", system-ui, sans-serif'; c.fillText(fmt(lastY.v), L.x1 + 9, lastY.y); }
+          sh = { k: 'avwap', c: sh.c, pts: sh.pts, text: sh.text || 'AVWAP' };
+        }
+        else if (sh.k === 'pattern' && b) {
+          // bars pattern (step 6): the bars you picked, replayed after the latest bar as a what-if,
+          // scaled so the copy starts at today's close
+          var p0 = Math.min(a.i, b.i), p1 = Math.max(a.i, b.i), lastI = s.n - 1, k = s.c[lastI] / (s.o[p0] || 1);
+          c.globalAlpha = 0.12; c.fillRect(X(p0) - bw / 2, L.y0, (p1 - p0 + 1) * bw, L.y1 - L.y0); c.globalAlpha = 1;
+          for (var pj = p0; pj <= p1; pj++) ghostBar(lastI + 1 + pj - p0, s.o[pj] * k, s.h[pj] * k, s.l[pj] * k, s.c[pj] * k);
+          sh = { k: 'pattern', c: sh.c, pts: [sh.pts[0]], text: sh.text || 'Pattern' };
+          a = { x: X(lastI + 1), y: L.y0 + 14, i: lastI + 1, p: 0 };
+        }
+        else if (sh.k === 'ghost') {
+          // ghost feed (step 6): made-up bars from now to the price and day you tapped, with wiggles
+          // the size of this stock's usual bars (the same every time for the same tap)
+          var gi = s.n - 1, n = Math.max(2, a.f || 10), ar = 0, ac = 0;
+          for (var gk = Math.max(0, gi - 20); gk <= gi; gk++) { ar += s.h[gk] - s.l[gk]; ac++; }
+          ar = ac ? ar / ac : s.c[gi] * 0.01;
+          var seed = Math.round(a.p * 100) * 31 + n, rnd = function () { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+          var prev = s.c[gi];
+          for (var gj = 1; gj <= n; gj++) {
+            var target = s.c[gi] + (a.p - s.c[gi]) * gj / n, gc = gj === n ? a.p : target + (rnd() - 0.5) * ar * 0.8;
+            ghostBar(gi + gj, prev, Math.max(prev, gc) + rnd() * ar * 0.35, Math.min(prev, gc) - rnd() * ar * 0.35, gc);
+            prev = gc;
+          }
+          c.beginPath(); c.arc(a.x, a.y, 3.5, 0, Math.PI * 2); c.fill();
+          sh = { k: 'ghost', c: sh.c, pts: sh.pts, text: sh.text || 'Ghost feed' };
+          a = { x: X(gi + 1), y: Math.min(Y(s.c[gi]), Y(a.p)) - 8, i: gi + 1, p: a.p }; // the label where the made-up bars start
+        }
+        else if (sh.k === 'measure' && b) {
+          // the measure tool (owner's step 3): price change and %, bars, days and volume between two points
+          var up = b.p >= a.p, mc = up ? green : red, i0 = Math.min(a.i, b.i), i1 = Math.max(a.i, b.i), vol = 0;
+          for (var vi = i0 + 1; vi <= i1; vi++) vol += s.v[vi] || 0;
+          var nb = i1 - i0, dd = Math.round(Math.abs(Date.parse(s.d[b.i].slice(0, 10)) - Date.parse(s.d[a.i].slice(0, 10))) / 864e5);
+          var mx0 = Math.min(a.x, b.x), my0 = Math.min(a.y, b.y), mw = Math.abs(b.x - a.x), mh = Math.abs(b.y - a.y);
+          c.globalAlpha = 0.16; c.fillStyle = mc; c.fillRect(mx0, my0, mw, mh); c.globalAlpha = 1;
+          c.strokeStyle = mc; c.lineWidth = 1.5; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+          // intraday moves inside a day read in hours and minutes, longer ones in days
+          var span = dd + (dd === 1 ? ' day' : ' days');
+          if (s.intraday && dd < 1) { var mins = Math.round(Math.abs(Date.parse(s.d[b.i].replace(' ', 'T')) - Date.parse(s.d[a.i].replace(' ', 'T'))) / 6e4) || 0; /* Safari wants the T */ span = mins >= 60 ? Math.floor(mins / 60) + 'h' + (mins % 60 ? ' ' + (mins % 60) + 'm' : '') : mins + 'm'; }
+          var dif = b.p - a.p, lines = [(dif >= 0 ? '+' : '') + fmt(dif) + ' (' + (dif >= 0 ? '+' : '') + (a.p ? dif / a.p * 100 : 0).toFixed(2) + '%)', nb + (nb === 1 ? ' bar' : ' bars') + ', ' + span];
+          if (vol) lines.push('Vol ' + fmtVol(vol));
+          c.font = '600 11px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
+          var lw = Math.max.apply(null, lines.map(function (t) { return c.measureText(t).width; })) + 16, lh = lines.length * 15 + 8;
+          var lx = Math.max(L.x0 + 2, Math.min(L.x1 - lw - 2, (a.x + b.x) / 2 - lw / 2)), ly = up ? my0 - lh - 6 : my0 + mh + 6;
+          if (ly < L.y0 + 2) ly = my0 + mh + 6; if (ly + lh > L.y1 - 2) ly = Math.max(L.y0 + 2, my0 - lh - 6);
+          c.fillStyle = mc; c.fillRect(lx, ly, lw, lh); c.fillStyle = '#ffffff'; c.textBaseline = 'top';
+          lines.forEach(function (t, k) { c.fillText(t, lx + 8, ly + 5 + k * 15); });
+          c.textBaseline = 'middle'; c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
+        }
         else if ((sh.k === 'line' || sh.k === 'arrow') && b) {
           c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
           if (sh.k === 'arrow') { var ang = Math.atan2(b.y - a.y, b.x - a.x), hl = 11; c.beginPath(); c.moveTo(b.x, b.y); c.lineTo(b.x - hl * Math.cos(ang - 0.45), b.y - hl * Math.sin(ang - 0.45)); c.lineTo(b.x - hl * Math.cos(ang + 0.45), b.y - hl * Math.sin(ang + 0.45)); c.closePath(); c.fill(); }
         } else if (sh.k === 'text') { c.beginPath(); c.arc(a.x, a.y, 3.5, 0, Math.PI * 2); c.fill(); }
-        var label = sh.text || (sh.k === 'hline' ? fmt(a.p) : '');
+        var label = sh.text || (sh.k === 'hline' || sh.k === 'hray' ? fmt(a.p) : '');
         if (label) {
           c.font = '700 11px "IBM Plex Sans", ui-sans-serif, sans-serif'; c.textBaseline = 'bottom';
           var tx = sh.k === 'hline' ? L.x0 + 6 : a.x + 6, ty = a.y - 4, tw = c.measureText(label).width;
