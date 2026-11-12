@@ -38,13 +38,15 @@ export type ChartViewProps = {
   /** the tools row above the chart instead of under it, with extra buttons from the screen */
   toolsTop?: boolean;
   toolbarExtra?: ReactNode;
+  /** a line to compare with (sector average or an index), one ratio per bar */
+  compare?: { label: string; color: string; r: (number | null)[] } | null;
   /** a line under the tools row (e.g. what the drawing tool you picked does) */
   toolsNote?: ReactNode;
   /** intraday "1D": show only the latest session, with room for all its bars (e.g. 78 at 5m) */
   daySlots?: number;
 };
 
-export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots }: ChartViewProps) {
+export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots, compare }: ChartViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<TradeChart | null>(null);
   // chart tools: Fibonacci, placing an alert, and this symbol's alerts (rev bumps when the store changes)
@@ -78,6 +80,13 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
       c.setSeries(series, range, daySlots);
     } else c.draw();
   }, [series, style, refPrice, forecast, onForecastEdit, range, daySlots]);
+
+  useEffect(() => {
+    const c = chartRef.current;
+    if (!c) return;
+    c.compare = compare && compare.r.length === bars.length ? compare : null;
+    c.draw();
+  }, [compare, bars.length]);
 
   useEffect(() => {
     const c = chartRef.current;
