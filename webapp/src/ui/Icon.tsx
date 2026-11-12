@@ -46,6 +46,8 @@ const PATHS = {
   fan: '<path d="M4 20 20 4M4 20l16-6M4 20l16 0M4 20l6-16"/>',
   arc: '<path d="M4 20a16 16 0 0 1 16-16"/><path d="M9 20a11 11 0 0 1 11-11" opacity=".6"/><path d="M14 20a6 6 0 0 1 6-6" opacity=".4"/>',
   gann: '<rect x="4" y="4" width="16" height="16"/><path d="M4 20 20 4M4 4l16 16M12 4v16M4 12h16" opacity=".55"/>',
+  pattern: '<path d="M3 16l4-9 4 6 4-9 4 12"/><circle cx="3" cy="16" r="1.2"/><circle cx="11" cy="13" r="1.2"/><circle cx="19" cy="16" r="1.2"/>',
+  wave: '<path d="M3 15l3-6 3 4 3-7 3 8 3-4 3 3"/>',
   undo: '<path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12h-2" transform="translate(0 -6)"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',

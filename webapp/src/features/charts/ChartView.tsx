@@ -160,16 +160,17 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
       c.draw();
     }
   };
-  // three-point tools (Fibonacci extension, channel, wedge, pitchfan…): drag from the first point to
-  // the second, then the third follows the pointer until you tap it
+  // tools with three or more points (Fibonacci extension, pitchfan, chart patterns…): drag from the
+  // first point to the second, then each next point follows the pointer until you tap it
+  const pickingNext = (d: Shape | null) => !!d && d.pts.length > 2;
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (!drawTool) return;
     const pt = at(e);
     if (!pt) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
     const d = draft.current;
-    if (d && d.pts.length === 3) {
-      setDraft({ ...d, pts: [d.pts[0]!, d.pts[1]!, pt] });
+    if (d && pickingNext(d)) {
+      setDraft({ ...d, pts: [...d.pts.slice(0, -1), pt] });
       return;
     }
     if (SHAPE_POINTS[drawTool] === 1) onDrawn?.({ k: drawTool, c: drawColor, pts: [pt] });
@@ -179,20 +180,26 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
     const d = draft.current;
     const pt = d && at(e);
     if (!d || !pt) return;
-    if (d.pts.length === 3) setDraft({ ...d, pts: [d.pts[0]!, d.pts[1]!, pt] });
+    if (pickingNext(d)) setDraft({ ...d, pts: [...d.pts.slice(0, -1), pt] });
     else if (e.buttons || e.pointerType !== 'mouse') setDraft({ ...d, pts: [d.pts[0]!, pt] });
   };
   const up = () => {
     const d = draft.current;
     if (!d) return;
-    const moved = d.pts[0]!.d !== d.pts[1]!.d || d.pts[0]!.p !== d.pts[1]!.p;
-    if (d.pts.length === 2 && SHAPE_POINTS[d.k] === 3) {
-      if (moved) setDraft({ ...d, pts: [d.pts[0]!, d.pts[1]!, d.pts[1]!] }); // now the third point
+    const need = SHAPE_POINTS[d.k];
+    if (d.pts.length === 2 && need > 2) {
+      const moved = d.pts[0]!.d !== d.pts[1]!.d || d.pts[0]!.p !== d.pts[1]!.p;
+      if (moved) setDraft({ ...d, pts: [...d.pts, d.pts[1]!] }); // now the next point
       else setDraft(null);
       return;
     }
+    if (pickingNext(d) && d.pts.length < need) {
+      setDraft({ ...d, pts: [...d.pts, d.pts[d.pts.length - 1]!] });
+      return;
+    }
     setDraft(null);
-    if (d.pts.length === 3 || moved) onDrawn?.(d);
+    const moved = d.pts.length > 2 || d.pts[0]!.d !== d.pts[1]?.d || d.pts[0]!.p !== d.pts[1]?.p;
+    if (moved) onDrawn?.(d);
   };
 
   // a new range on the same series only moves the window
