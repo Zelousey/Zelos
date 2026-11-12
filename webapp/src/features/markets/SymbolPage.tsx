@@ -15,7 +15,7 @@ import { useAuth } from '../../lib/auth';
 import { formatCompact, formatMarketTime, formatPercent, formatPrice, formatSignedMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, useScrollFade } from '../../ui';
+import { buttonClass, Button, Card, Change, EmptyState, ErrorState, Icon, Sheet, Stat, Tabs, Ticker, useScrollFade } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import type { ChartStyle, Forecast } from '../charts/engine';
 import { nyDay } from '../charts/series';
@@ -192,7 +192,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
         <ModeToggle className={s.mode} onChange={switchMode} compact />
         <div className={s.price}>
           <span className={s.last} aria-label={`Price ${formatPrice(price)}`}>
-            {formatPrice(price)}
+            <Ticker value={price}>{formatPrice(price)}</Ticker>
           </span>
           <span className={s.today}>
             <Change pct={chPct} abs={chAbs} />

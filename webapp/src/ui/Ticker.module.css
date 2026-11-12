@@ -1,0 +1,6 @@
+.t { display: inline-block; }
+.up { animation: up 900ms var(--ease-out); }
+.down { animation: down 900ms var(--ease-out); }
+@keyframes up { 0% { background: color-mix(in srgb, var(--bull) 32%, transparent); } 100% { background: transparent; } }
+@keyframes down { 0% { background: color-mix(in srgb, var(--danger) 32%, transparent); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .up, .down { animation: none; } }

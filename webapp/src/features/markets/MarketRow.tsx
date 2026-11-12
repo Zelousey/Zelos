@@ -1,7 +1,7 @@
 /** One instrument in a list: symbol + name, price, today's change. Taps through to its chart. */
 import { Link } from 'react-router';
 import { formatPrice } from '../../lib/format';
-import { Change } from '../../ui';
+import { Change, Ticker } from '../../ui';
 import s from './MarketRow.module.css';
 
 export type MarketRowData = { sym: string; name: string; price: number | null | undefined; chPct: number | null | undefined };
@@ -31,7 +31,9 @@ export function MarketList({ rows, label, replace, onPick, dense, columns }: { r
               <span className={s.sym}>{r.sym}</span>
               <span className={s.name}>{r.name}</span>
             </span>
-            <span className={s.price}>{formatPrice(r.price)}</span>
+            <Ticker value={r.price} className={s.price}>
+              {formatPrice(r.price)}
+            </Ticker>
             <Change pct={r.chPct} className={s.chg} />
           </Link>
         </li>
