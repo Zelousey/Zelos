@@ -11,7 +11,24 @@ import { readJSON, writeString } from '../lib/storage';
 import { Button } from './Button';
 import s from './Tour.module.css';
 
-export type TourStep = { target: string; title: MessageKey; body: MessageKey };
+/**
+ * A step points at [data-tour=target], or at the first visible element matching `sel` (whose text
+ * starts with `text`, if given), widened to its closest `up` ancestor; with neither it's a card in
+ * the middle of the screen (an intro or a note).
+ */
+export type TourStep = { target?: string; sel?: string; text?: string; up?: string; title: MessageKey; body: MessageKey };
+
+/** The element a step points at, or null (not on screen right now). */
+export function findTarget(step: TourStep): HTMLElement | null {
+  if (step.target) return document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
+  if (!step.sel) return null;
+  const all = [...document.querySelectorAll<HTMLElement>(step.sel)].filter((e) => e.getClientRects().length > 0);
+  const el = step.text ? all.find((e) => (e.textContent ?? '').trim().startsWith(step.text!)) : all[0];
+  if (!el) return null;
+  return (step.up ? el.closest<HTMLElement>(step.up) : null) ?? el;
+}
+/** A step with no target is a centred card; it always shows. */
+export const stepOnScreen = (step: TourStep) => (!step.target && !step.sel) || !!findTarget(step);
 type Seen = Record<string, 'done' | 'skipped'>;
 const KEY = 'zelosTours';
 
@@ -34,8 +51,11 @@ export function Tour({ id, steps, open, onClose }: { id: string; steps: TourStep
   // follow the target while the page scrolls or resizes
   useLayoutEffect(() => {
     if (!open || !step) return;
-    const el = document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
-    if (!el) return;
+    const el = findTarget(step);
+    if (!el) {
+      const id = requestAnimationFrame(() => setBox(null)); // a centred card
+      return () => cancelAnimationFrame(id);
+    }
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     el.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
     let raf = 0;
@@ -74,7 +94,7 @@ export function Tour({ id, steps, open, onClose }: { id: string; steps: TourStep
   const roomBelow = box ? vh - box.bottom - 2 * GAP : vh;
   const roomAbove = box ? box.top - 2 * GAP : 0;
   const top = !box
-    ? GAP
+    ? Math.max(GAP, (vh - cardH) / 2)
     : roomBelow >= cardH
       ? box.bottom + GAP
       : roomAbove >= cardH
@@ -83,7 +103,7 @@ export function Tour({ id, steps, open, onClose }: { id: string; steps: TourStep
           ? Math.max(GAP, vh - cardH - GAP)
           : GAP;
   const cardStyle: CSSProperties = {
-    left: box ? Math.max(GAP, Math.min(box.left, vw - Math.min(CARD_W, vw - 2 * GAP) - GAP)) : GAP,
+    left: box ? Math.max(GAP, Math.min(box.left, vw - Math.min(CARD_W, vw - 2 * GAP) - GAP)) : Math.max(GAP, (vw - Math.min(CARD_W, vw - 2 * GAP)) / 2),
     top,
   };
   return (

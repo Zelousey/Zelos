@@ -19,4 +19,4 @@ export { Ticker } from './Ticker';
 export { useScrollFade } from './useScrollFade';
 export { ChoiceCard, ChoiceList } from './ChoiceCard';
 export { ToastProvider, useToast } from './Toast';
-export { markTour, Tour, tourSeen, type TourStep } from './Tour';
+export { findTarget, markTour, stepOnScreen, Tour, tourSeen, type TourStep } from './Tour';

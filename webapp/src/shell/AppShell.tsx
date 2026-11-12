@@ -22,6 +22,7 @@ import { TermsGate } from '../features/safety/TermsGate';
 import { SignInSheet } from './SignInSheet';
 import { ChartThemeSync } from '../features/charts/ChartThemeSync';
 import { PriceAlertWatcher } from '../features/charts/PriceAlertWatcher';
+import { PageTours } from '../features/tutorials/PageTours';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { GROUP_LABEL, GROUP_ORDER, moduleForPath, navModules, navOwner, tabModules } from '../app/modules';
@@ -196,6 +197,7 @@ export function AppShell() {
       <LevelUpWatcher />
       <MindsQuoteCard />
       <LearnReturn />
+      <PageTours />
       <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} />
     </div>
   );
