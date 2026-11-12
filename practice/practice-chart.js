@@ -198,7 +198,7 @@
     this.refPrice = null; this.anim = null; this.pulse = null;
     this.forecast = null; // { entry, sl, tp, label, side, editable } -> green / red boxes right of the last bar
     this.fib = false; this.alerts = []; this.placing = null; this.geo = null; this.frozen = null; this.abc = null; this.onAbcDone = null;
-    this.shapes = []; this.shapeDraft = null;
+    this.shapes = []; this.shapeDraft = null; this.futureRoom = 0;
     this.onForecastEdit = null; this.onAlertMove = null; this.onPlaceAlert = null;
     var self = this, drag = null;
     canvas.__ztc = this; // lets the browser tests read the visible range
@@ -341,6 +341,8 @@
   TradeChart.prototype.pointAt = function (x, y) {
     var g = this.geo; if (!g || !this.s || y < g.L.y0 || y > g.L.y1) return null;
     var p = this.priceAt(y); if (!(p > 0)) return null;
+    var last = this.s.n - 1, raw = this.from + Math.floor((x - g.L.x0) / g.bw);
+    if (this.to === last && raw > last) return { d: this.s.d[last], p: Math.round(p * 100) / 100, f: raw - last };
     return { d: this.s.d[this.barAt(x)], p: Math.round(p * 100) / 100 };
   };
   // draggable things under the pointer: forecast SL / TP edges, then alert lines
@@ -421,6 +423,14 @@
   };
   TradeChart.prototype.padBars = function () {
     var span = this.to - this.from + 1, base = this.forecast ? Math.max(8, Math.round(span * 0.16)) : 3;
+    if (this.s && this.to === this.s.n - 1) {
+      var need = this.futureRoom || 0, sd = this.s.d;
+      (this.shapes || []).forEach(function (sh) {
+        if (sh.k === 'pattern' && sh.pts.length === 2) need = Math.max(need, Math.abs(sd.indexOf(sh.pts[1].d) - sd.indexOf(sh.pts[0].d)) + 1);
+        (sh.pts || []).forEach(function (q) { if (q.f) need = Math.max(need, q.f); });
+      });
+      if (need) base = Math.max(base, Math.min(need + 2, Math.round(span * 0.8)));
+    }
     return this.fullDay && span < this.fullDay ? Math.max(base, this.fullDay - span) : base;
   };
   TradeChart.prototype.barW = function () { var L = this.layout(); return (L.x1 - L.x0) / (this.to - this.from + 1 + this.padBars()); };
@@ -760,9 +770,16 @@
         for (var j = 0; j < s.n; j++) if (s.d[j] > d) return j; // nearest later bar (e.g. a daily date on 15m bars)
         return d > s.d[s.n - 1] ? s.n - 1 : -1;
       };
+      var ghostBar = function (gx, go, gh, gl, gcl) {
+        var x = Math.round(X(gx)), up = gcl >= go, cc2 = up ? bull : bear, top = Math.round(Y(Math.max(go, gcl))), bot = Math.round(Y(Math.min(go, gcl)));
+        c.save(); c.globalAlpha = 0.55; c.strokeStyle = cc2; c.lineWidth = 1; c.setLineDash([]);
+        c.beginPath(); c.moveTo(x + 0.5, Math.round(Y(gh))); c.lineTo(x + 0.5, top); c.moveTo(x + 0.5, bot); c.lineTo(x + 0.5, Math.round(Y(gl))); c.stroke();
+        var w = Math.max(1, Math.min(13, Math.round(bw * 0.72))); if (w > 2 && w % 2 === 0) w -= 1;
+        c.strokeRect(x + 1 - Math.ceil(w / 2) + 0.5, top + 0.5, Math.max(1, w - 1), Math.max(1, bot - top - 1)); c.restore();
+      };
       c.save(); c.beginPath(); c.rect(L.x0, L.y0, L.x1 - L.x0, L.y1 - L.y0); c.clip();
       shapeList.forEach(function (sh) {
-        var col = SC[sh.c] || SC.blue, pts = (sh.pts || []).map(function (q) { return { x: X(idxOf(q.d)), y: Y(q.p), i: idxOf(q.d), p: q.p }; });
+        var col = SC[sh.c] || SC.blue, pts = (sh.pts || []).map(function (q) { var qi = idxOf(q.d); return { x: X(qi + (q.f || 0)), y: Y(q.p), i: qi, f: q.f || 0, p: q.p }; });
         if (!pts.length || pts.some(function (q) { return q.i < 0; })) return;
         c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 2; c.globalAlpha = sh === self.shapeDraft ? 0.7 : 1;
         var a = pts[0], b = pts[1];
@@ -776,6 +793,46 @@
           if (b.x < a.x) { rx = L.x0; ry = a.y + (b.y - a.y) * (rx - a.x) / (b.x - a.x); }
           c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(rx, ry); c.stroke();
           c.beginPath(); c.arc(a.x, a.y, 3, 0, Math.PI * 2); c.fill();
+        }
+        else if (sh.k === 'avwap') {
+          // anchored VWAP (step 6): volume-weighted average price from the bar you tapped to now
+          var pv = 0, vv = 0, k0 = a.i, started = false, lastY = null;
+          c.beginPath();
+          for (var ai = k0; ai <= Math.min(to, s.n - 1); ai++) {
+            var tp = (s.h[ai] + s.l[ai] + s.c[ai]) / 3, w = s.v[ai] || 1; pv += tp * w; vv += w;
+            if (ai < from) continue;
+            var ay = Y(pv / vv); if (!started) { c.moveTo(X(ai), ay); started = true; } else c.lineTo(X(ai), ay); lastY = { y: ay, v: pv / vv };
+          }
+          c.stroke();
+          c.beginPath(); c.arc(a.x, Y(s.l[a.i]) + 8, 3.5, 0, Math.PI * 2); c.fill();
+          if (lastY) { pill(c, L.x1 + 2, lastY.y - 8, 60, 16, col); c.fillStyle = lum(col) > 0.55 ? '#0b0c0f' : '#ffffff'; c.font = '600 9.5px "IBM Plex Sans", system-ui, sans-serif'; c.fillText(fmt(lastY.v), L.x1 + 9, lastY.y); }
+          sh = { k: 'avwap', c: sh.c, pts: sh.pts, text: sh.text || 'AVWAP' };
+        }
+        else if (sh.k === 'pattern' && b) {
+          // bars pattern (step 6): the bars you picked, replayed after the latest bar as a what-if,
+          // scaled so the copy starts at today's close
+          var p0 = Math.min(a.i, b.i), p1 = Math.max(a.i, b.i), lastI = s.n - 1, k = s.c[lastI] / (s.o[p0] || 1);
+          c.globalAlpha = 0.12; c.fillRect(X(p0) - bw / 2, L.y0, (p1 - p0 + 1) * bw, L.y1 - L.y0); c.globalAlpha = 1;
+          for (var pj = p0; pj <= p1; pj++) ghostBar(lastI + 1 + pj - p0, s.o[pj] * k, s.h[pj] * k, s.l[pj] * k, s.c[pj] * k);
+          sh = { k: 'pattern', c: sh.c, pts: [sh.pts[0]], text: sh.text || 'Pattern' };
+          a = { x: X(lastI + 1), y: L.y0 + 14, i: lastI + 1, p: 0 };
+        }
+        else if (sh.k === 'ghost') {
+          // ghost feed (step 6): made-up bars from now to the price and day you tapped, with wiggles
+          // the size of this stock's usual bars (the same every time for the same tap)
+          var gi = s.n - 1, n = Math.max(2, a.f || 10), ar = 0, ac = 0;
+          for (var gk = Math.max(0, gi - 20); gk <= gi; gk++) { ar += s.h[gk] - s.l[gk]; ac++; }
+          ar = ac ? ar / ac : s.c[gi] * 0.01;
+          var seed = Math.round(a.p * 100) * 31 + n, rnd = function () { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+          var prev = s.c[gi];
+          for (var gj = 1; gj <= n; gj++) {
+            var target = s.c[gi] + (a.p - s.c[gi]) * gj / n, gc = gj === n ? a.p : target + (rnd() - 0.5) * ar * 0.8;
+            ghostBar(gi + gj, prev, Math.max(prev, gc) + rnd() * ar * 0.35, Math.min(prev, gc) - rnd() * ar * 0.35, gc);
+            prev = gc;
+          }
+          c.beginPath(); c.arc(a.x, a.y, 3.5, 0, Math.PI * 2); c.fill();
+          sh = { k: 'ghost', c: sh.c, pts: sh.pts, text: sh.text || 'Ghost feed' };
+          a = { x: X(gi + 1), y: Math.min(Y(s.c[gi]), Y(a.p)) - 8, i: gi + 1, p: a.p }; // the label where the made-up bars start
         }
         else if (sh.k === 'measure' && b) {
           // the measure tool (owner's step 3): price change and %, bars, days and volume between two points

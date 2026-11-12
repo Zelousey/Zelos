@@ -126,6 +126,14 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
     },
   };
 
+  // a ghost feed is placed in the empty space after the last bar, so make room while it's picked
+  useEffect(() => {
+    const c = chartRef.current;
+    if (!c) return;
+    c.futureRoom = drawTool === 'ghost' ? 24 : 0;
+    c.draw();
+  }, [drawTool]);
+
   // drawing: one point (level, label) on tap; two points (line, arrow, box) by dragging
   const draft = useRef<Shape | null>(null);
   const at = (e: PointerEvent<HTMLDivElement>) => {

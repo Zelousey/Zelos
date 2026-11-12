@@ -25,12 +25,19 @@ export const DRAW_TOOLS: [ShapeKind, IconName, MessageKey][] = [
   ['box', 'dBox', 'draw.box'],
   ['text', 'dText', 'draw.text'],
 ];
+/** forecasting extras (owner's step 6): what-if bars and anchored VWAP */
+export const FORECAST_TOOLS: [ShapeKind, IconName, MessageKey][] = [
+  ['avwap', 'dAvwap', 'draw.avwap'],
+  ['pattern', 'dPattern', 'draw.pattern'],
+  ['ghost', 'dGhost', 'draw.ghost'],
+];
 const COLORS: [ShapeColor, MessageKey][] = [
   ['blue', 'draw.c.blue'],
   ['green', 'draw.c.green'],
   ['red', 'draw.c.red'],
   ['gold', 'draw.c.gold'],
 ];
+const HINT: Partial<Record<ShapeKind, MessageKey>> = { measure: 'draw.hint.measure', avwap: 'draw.hint.avwap', pattern: 'draw.hint.pattern', ghost: 'draw.hint.ghost' };
 const SWATCH: Record<ShapeColor, string> = { blue: 'var(--accent)', green: 'var(--bull)', red: 'var(--danger)', gold: 'var(--gold)' };
 
 /** Saved drawings for a stock (the measure box is never saved). */
@@ -76,12 +83,16 @@ export function useDrawTools(sym: string) {
     return () => window.removeEventListener('keydown', onKey);
   }, [tool, menu]);
 
-  const onDrawn = (sh: Shape) => {
+  const onDrawn = (drawn: Shape) => {
+    let sh = drawn;
     if (sh.k === 'measure') {
       setMeasure(sh);
       setTool(null);
       return;
     }
+    // anchored VWAP and a bars pattern are pinned to real bars; a ghost feed points into the future
+    if (sh.k === 'avwap' || sh.k === 'pattern') sh = { ...sh, pts: sh.pts.map((q) => ({ d: q.d, p: q.p })) };
+    if (sh.k === 'ghost' && !sh.pts[0]?.f) sh = { ...sh, pts: [{ ...sh.pts[0]!, f: 10 }] };
     if (sh.k === 'text') {
       setTextAt(sh.pts[0]!);
       setText('');
@@ -98,7 +109,7 @@ export function useDrawTools(sym: string) {
     setTool((cur) => (cur === k ? null : k));
   };
 
-  const toolKey: MessageKey | undefined = tool === 'measure' ? 'draw.measure' : DRAW_TOOLS.find((x) => x[0] === tool)?.[2];
+  const toolKey: MessageKey | undefined = tool === 'measure' ? 'draw.measure' : [...DRAW_TOOLS, ...FORECAST_TOOLS].find((x) => x[0] === tool)?.[2];
   const twoPoint = tool ? SHAPE_POINTS[tool] === 2 : false;
 
   const buttons: ReactNode = (
@@ -110,6 +121,13 @@ export function useDrawTools(sym: string) {
         {menu && (
           <div className={s.menu} role="menu" aria-label={t('draw.title')}>
             {DRAW_TOOLS.map(([k, icon, label]) => (
+              <button key={k} type="button" role="menuitemradio" aria-checked={tool === k} className={s.item} onClick={() => pick(k)}>
+                <Icon name={icon} size={18} />
+                <span>{t(label)}</span>
+              </button>
+            ))}
+            <div className={s.groupLabel}>{t('draw.forecastGroup')}</div>
+            {FORECAST_TOOLS.map(([k, icon, label]) => (
               <button key={k} type="button" role="menuitemradio" aria-checked={tool === k} className={s.item} onClick={() => pick(k)}>
                 <Icon name={icon} size={18} />
                 <span>{t(label)}</span>
@@ -152,7 +170,7 @@ export function useDrawTools(sym: string) {
 
   const note: ReactNode = tool ? (
     <p className={s.note} role="status">
-      <b>{toolKey ? t(toolKey) : ''}</b> {t(tool === 'measure' ? 'draw.hint.measure' : twoPoint ? 'draw.hint.drag' : 'draw.hint.tap')}{' '}
+      <b>{toolKey ? t(toolKey) : ''}</b> {t(HINT[tool] ?? (twoPoint ? 'draw.hint.drag' : 'draw.hint.tap'))}{' '}
       <button type="button" className={s.cancel} onClick={() => setTool(null)}>
         {t('draw.cancel')}
       </button>

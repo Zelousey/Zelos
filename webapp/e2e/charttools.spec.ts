@@ -127,7 +127,7 @@ test('draw a trend line (saved for this stock), measure a move, undo', async ({ 
   const tools = page.getByRole('toolbar', { name: 'Chart tools' });
   await tools.getByRole('button', { name: 'Draw' }).click();
   const menu = page.getByRole('menu', { name: 'Draw' });
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(8);
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(11); // 8 drawing tools + 3 forecast tools (step 6)
   await menu.getByRole('radio', { name: 'Green' }).click();
   await menu.getByRole('menuitemradio', { name: 'Trend line' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Trend line' })).toBeVisible();
@@ -155,4 +155,37 @@ test('draw a trend line (saved for this stock), measure a move, undo', async ({ 
   await expect(menu.getByRole('menuitem', { name: 'Clear all drawings (1)' })).toBeVisible();
   await menu.getByRole('menuitem', { name: 'Undo last drawing' }).click();
   expect(await saved()).toEqual([]);
+});
+
+// owner's chart plan step 6 (2026-11-12): anchored VWAP, bars pattern and ghost feed
+test('forecast drawings: anchored VWAP, bars pattern and ghost feed are saved for the stock', async ({ page }) => {
+  await page.goto('markets/AAPL');
+  const tools = page.getByRole('toolbar', { name: 'Chart tools' });
+  const menu = page.getByRole('menu', { name: 'Draw' });
+  const box = async () => {
+    const layer = page.getByTestId('draw-layer');
+    await layer.scrollIntoViewIfNeeded();
+    return (await layer.boundingBox())!;
+  };
+  const pick = async (name: string) => {
+    await tools.getByRole('button', { name: 'Draw' }).click();
+    await menu.getByRole('menuitemradio', { name }).click();
+  };
+  await pick('Anchored VWAP');
+  let b = await box();
+  await page.mouse.click(b.x + b.width * 0.3, b.y + b.height * 0.25);
+  await pick('Bars pattern');
+  b = await box();
+  await page.mouse.move(b.x + b.width * 0.4, b.y + b.height * 0.25);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * 0.55, b.y + b.height * 0.25, { steps: 5 });
+  await page.mouse.up();
+  await pick('Ghost feed');
+  await expect(page.getByRole('status').filter({ hasText: 'Ghost feed' })).toBeVisible();
+  b = await box();
+  await page.mouse.click(b.x + b.width * 0.9, b.y + b.height * 0.2); // the room kept right of the last bar
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zelosAppDrawings:AAPL') || '[]') as { k: string; pts: { f?: number }[] }[]);
+  expect(saved.map((x) => x.k)).toEqual(['avwap', 'pattern', 'ghost']);
+  expect(saved[2]!.pts[0]!.f).toBeGreaterThan(0); // the ghost feed points past the last bar
+  expect(saved[0]!.pts[0]!.f).toBeUndefined();
 });
