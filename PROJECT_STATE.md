@@ -273,3 +273,4 @@ Recently done: #45 Coach / Learn (merged 2026-10-08; deploy per the runbook "Coa
 
 ## 13. Session handoff rule
 Update this file whenever a major implementation, architectural decision, security decision, provider change, deployment change, or important bug/fix changes the project state. Detailed per-phase history stays in `AGENTICTRADING_PROGRESS.md`.
+| 2026-11-13 | **Sign in blocked for new visitors (owner's friend).** A signed-out visitor got the Dashboard page tour by itself; its card sat over the welcome card's Sign in, so Google/Apple sign-in couldn't be reached on phones. Page tours now open by themselves only for signed-in players (`?tour=` still works), a tap outside any tour card closes it and the tap still lands, and intro cards sit near the bottom. Test: a signed-out phone visitor sees no tour and reaches "Continue with Google". |
