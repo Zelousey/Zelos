@@ -688,6 +688,8 @@ const en = {
   'opt.bp': 'Buying power {bp}',
   'opt.risk': 'The most you can lose is what you pay ({cost}). The final price is set when it fills.',
   'opt.buyN': 'Buy {n}',
+  'opt.sellN': "Sell {n}",
+  'opt.selling': "Selling\u2026",
   'opt.placed': 'Order placed. It fills at the next price update.',
   'opt.positions': 'Solo · Your options',
   'opt.positions.empty': 'No options yet. Pick a strike above to buy your first call or put.',

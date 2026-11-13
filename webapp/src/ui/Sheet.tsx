@@ -18,7 +18,9 @@ type Placement = 'auto' | 'center' | 'right' | 'bottom';
 export function Sheet({ open, onClose, title, placement = 'auto', children, labelledBy }: { open: boolean; onClose: () => void; title?: ReactNode; placement?: Placement; children: ReactNode; labelledBy?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const phone = useMediaQuery(PHONE_QUERY);
-  const resolved = placement === 'auto' ? (phone ? 'bottom' : 'right') : placement;
+  // phones: a centred pop-up slides up from the bottom instead (owner 2026-11-13: on an iPhone the
+  // centred confirm opened as an empty strip; bottom sheets work there)
+  const resolved = placement === 'auto' || (placement === 'center' && phone) ? (phone ? 'bottom' : 'right') : placement;
 
   useEffect(() => {
     const el = ref.current;

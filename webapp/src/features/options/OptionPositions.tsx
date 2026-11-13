@@ -1,13 +1,15 @@
 /**
  * Your option contracts (on Options and on Practice): value at the model price, P&L, and
  * Sell to close at the model bid on the next price update. Expired ones wait for the close.
+ * Sell asks to confirm right in the row (owner 2026-11-13: on an iPhone the pop-up confirm opened
+ * empty, so selling was impossible; an in-row confirm has nothing to go wrong).
  */
 import { useId, useState } from 'react';
 import { useQuotes } from '../../data/markets';
 import { Link } from 'react-router';
 import { formatDate, formatMoney, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { Badge, Button, Change, Confirm, EmptyState, Sheet, useToast } from '../../ui';
+import { Badge, Button, Change, EmptyState, Sheet, useToast } from '../../ui';
 import { nyDay } from '../charts/series';
 import { sellableContracts, type Account, type Valued } from '../practice/account';
 import { errorMessage } from '../practice/actions';
@@ -57,11 +59,39 @@ export function OptionPositions({ acct, rows, empty }: { acct: Account; rows: Ro
                 {r.expired ? (
                   <Badge>{t('opt.settling')}</Badge>
                 ) : (
-                  <Button variant="secondary" size="sm" disabled={busy || free === 0} onClick={() => setSelling({ row: r, qty: free })} aria-label={`${t('opt.sell')}: ${r.label}`}>
+                  <Button variant="secondary" size="sm" disabled={busy || free === 0} onClick={() => setSelling(selling?.row.id === r.id ? null : { row: r, qty: free })} aria-expanded={selling?.row.id === r.id} aria-label={`${t('opt.sell')}: ${r.label}`}>
                     {t('opt.sell')}
                   </Button>
                 )}
               </span>
+              {selling?.row.id === r.id && (
+                <div className={s.sellConfirm} role="group" aria-label={t('opt.sell')}>
+                  <p>{t('opt.sellConfirm', { qty: selling.qty, label: r.label })}</p>
+                  <span className={s.sellConfirmActions}>
+                    <Button variant="ghost" size="sm" onClick={() => setSelling(null)} disabled={busy}>
+                      {t('common.cancel')}
+                    </Button>
+                    <Button
+                      variant="sell"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => {
+                        const x = selling;
+                        setBusy(true);
+                        placeOptionOrder({ u: x.row.u, type: x.row.kind, strike: x.row.strike, exp: x.row.exp, side: 'sell', qty: x.qty })
+                          .then(() => {
+                            toast.show(t('opt.placed'), 'success');
+                            setSelling(null);
+                          })
+                          .catch((e) => toast.show(errorMessage(e), 'error'))
+                          .finally(() => setBusy(false));
+                      }}
+                    >
+                      {busy ? t('opt.selling') : t('opt.sellN', { n: selling.qty })}
+                    </Button>
+                  </span>
+                </div>
+              )}
             </li>
           );
         })}
@@ -73,27 +103,6 @@ export function OptionPositions({ acct, rows, empty }: { acct: Account; rows: Ro
           </div>
         </Sheet>
       )}
-      <Confirm
-        open={!!selling}
-        title={t('opt.sell')}
-        action={t('trade.sell')}
-        variant="sell"
-        busy={busy}
-        onClose={() => setSelling(null)}
-        onConfirm={() => {
-          const x = selling!;
-          setBusy(true);
-          placeOptionOrder({ u: x.row.u, type: x.row.kind, strike: x.row.strike, exp: x.row.exp, side: 'sell', qty: x.qty })
-            .then(() => {
-              toast.show(t('opt.placed'), 'success');
-              setSelling(null);
-            })
-            .catch((e) => toast.show(errorMessage(e), 'error'))
-            .finally(() => setBusy(false));
-        }}
-      >
-        {selling && t('opt.sellConfirm', { qty: selling.qty, label: selling.row.label })}
-      </Confirm>
     </>
   );
 }
