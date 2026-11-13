@@ -581,6 +581,15 @@ service cloud.firestore {
     match /reportCounts/{uid} {
       allow read, write: if false;
     }
+    // Community posts (owner 2026-11-13): anyone can read them; only the server writes them
+    // (community_post builds the card from the real trade or battle). postCounts: the daily limit.
+    match /posts/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /postCounts/{uid} {
+      allow read, write: if false;
+    }
 
     // Retired with Gumroad: old purchase claims. Nothing reads or writes them now.
     // XP daily limits (xp_award). Server only.

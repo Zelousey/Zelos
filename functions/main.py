@@ -6750,6 +6750,12 @@ def report_snapshot(db, rep):
     """What was reported, copied at the time (it may be deleted later). Raises TWError when the
     thing doesn't exist or doesn't belong to the reported trader."""
     kind, target, where = rep["kind"], rep["target"], rep.get("where") or ""
+    if kind == "post":
+        p = db.collection("posts").document(where or "-").get()
+        d = (p.to_dict() or {}) if p.exists else None
+        if not d or d.get("uid") != target:
+            raise TWError("NOT_FOUND", "That post is gone.")
+        return {"name": d.get("name"), "thesis": d.get("thesis"), "card": d.get("card"), "source": d.get("source")}
     if kind == "profile":
         t = db.collection("traders").document(target).get()
         d = (t.to_dict() or {}) if t.exists else {}
@@ -6781,6 +6787,68 @@ def report_snapshot(db, rep):
     if d.get("from") != target and not mine:
         raise TWError("NOT_FOUND", "That's gone.")
     return {"text": d.get("text") or d.get("note"), "title": d.get("title"), "comments": mine[-10:]}
+
+
+import posts as POSTS  # noqa: E402
+
+
+@https_fn.on_call()
+@_tk_call
+def community_post(req, db, uid, tok, now_ms):
+    """Post a closed Solo trade or a finished battle to the community, with a short thesis
+    (owner 2026-11-13). The card comes from the real record (functions/posts.py)."""
+    try:
+        source, ref, thesis = POSTS.validate(req.data)
+    except ValueError as e:
+        raise TWError("INVALID_ARGUMENT", str(e))
+    try:
+        if source == "solo":
+            h = db.collection("practiceAccounts").document(uid).collection("history").document(ref).get()
+            card = POSTS.solo_card(h.to_dict() if h.exists else None)
+        else:
+            w = db.collection("tradeWars").document(ref).get()
+            card = POSTS.battle_card(w.to_dict() if w.exists else None, uid)
+    except ValueError as e:
+        raise TWError("FAILED_PRECONDITION", str(e))
+    if MOD.is_bad(thesis):
+        thesis = MOD.mask(thesis)
+    who = _pr_identity(db, uid, tok)
+    pref = db.collection("posts").document(POSTS.post_id(uid, source, ref))
+    day = datetime.fromtimestamp(now_ms / 1000, NY).strftime("%Y-%m-%d")
+    count_ref = db.collection("postCounts").document(uid)
+
+    @firestore.transactional
+    def write(t):
+        if pref.get(transaction=t).exists:
+            raise TWError("ALREADY_EXISTS", "You've already shared this one.")
+        c = count_ref.get(transaction=t)
+        d = (c.to_dict() or {}) if c.exists else {}
+        n = d.get("n", 0) if d.get("day") == day else 0
+        if n >= POSTS.POSTS_PER_DAY:
+            raise TWError("RESOURCE_EXHAUSTED", "That's %d posts today. Share more tomorrow." % POSTS.POSTS_PER_DAY)
+        t.set(count_ref, {"day": day, "n": n + 1})
+        t.set(pref, {"uid": uid, "name": who["name"], "username": who["username"], "photo": who["photo"], "source": source, "ref": ref,
+                     "card": card, "thesis": thesis, "createdAt": now_ms})
+
+    write(db.transaction())
+    return {"ok": True, "id": pref.id}
+
+
+@https_fn.on_call()
+@_tk_call
+def community_post_delete(req, db, uid, tok, now_ms):
+    """Delete one of your posts (the team can delete any)."""
+    pid = (req.data or {}).get("id") if isinstance(req.data, dict) else None
+    if not (isinstance(pid, str) and _re.match(r"^[A-Za-z0-9_-]{1,160}$", pid)):
+        raise TWError("INVALID_ARGUMENT", "That post can't be deleted.")
+    ref = db.collection("posts").document(pid)
+    snap = ref.get()
+    if not snap.exists:
+        return {"ok": True}
+    if (snap.to_dict() or {}).get("uid") != uid and not db.collection("admins").document(uid).get().exists:
+        raise TWError("PERMISSION_DENIED", "You can only delete your own posts.")
+    ref.delete()
+    return {"ok": True}
 
 
 @https_fn.on_call()

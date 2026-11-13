@@ -216,6 +216,19 @@ export const PAGE_TOURS: TourDef[] = [
     ],
   },
   {
+    id: 'page-communities',
+    title: 'tour.pg.communities',
+    body: 'tour.pg.communities.body',
+    replay: '/communities?tour=page-communities',
+    match: /^\/communities\/?$/,
+    steps: [
+    { title: 'tour.pg.communities.0', body: 'tour.pg.communities.0.body' },
+    { sel: '[role=tablist][aria-label="Community posts"]', title: 'tour.pg.communities.1', body: 'tour.pg.communities.1.body' },
+    { title: 'tour.pg.communities.2', body: 'tour.pg.communities.2.body' },
+    { sel: '[role=tab]', text: 'Communities', title: 'tour.pg.communities.3', body: 'tour.pg.communities.3.body' },
+    ],
+  },
+  {
     id: 'page-news',
     title: 'tour.pg.news',
     body: 'tour.pg.news.body',

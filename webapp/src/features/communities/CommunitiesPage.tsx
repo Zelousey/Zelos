@@ -1,13 +1,15 @@
 /**
- * The Founder Program hub (/communities): what founders earn, your community (or start one),
- * trending this week, the biggest, and browse by state.
+ * The Communities page (/communities): community posts first (owner 2026-11-13: shared Solo trades
+ * and Trade War results with a thesis, posts/Feed.tsx), then the Founder Program hub: what founders
+ * earn, your community (or start one), trending this week, the biggest, and browse by state.
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { Loadable } from '../../data/liveDoc';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
-import { Button, Card, EmptyState, Field, LoadingState, PageHeader, useToast } from '../../ui';
+import { Button, Card, EmptyState, Field, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
+import { Feed } from '../posts/Feed';
 import { errorText } from '../invites/invites';
 import { ACTIVE_DAYS, createCommunity, thisWeek, useBiggest, useByState, useCommunity, useMembership, useTrending, type Community } from './communities';
 import { CommunityCard, Milestones, StateSelect } from './parts';
@@ -77,12 +79,27 @@ export default function CommunitiesPage() {
   const wk = thisWeek();
   const trending = useTrending(wk);
   const biggest = useBiggest();
+  const [params, setParams] = useSearchParams();
+  const view = params.get('view') === 'groups' ? 'groups' : 'posts';
   const [st, setSt] = useState('');
   const byState = useByState(st || null);
   const stateRows: Loadable<Community[]> = byState.status === 'ready' ? { status: 'ready', data: [...byState.data].sort((a, b) => b.members - a.members) } : byState;
   return (
     <>
       <PageHeader title={t('nav.communities')} subtitle={t('cm.subtitle')} />
+      <Tabs
+        label={t('nav.communities')}
+        value={view}
+        onChange={(v) => setParams((p) => (v === 'posts' ? p.delete('view') : p.set('view', v), p), { replace: true })}
+        items={[
+          { value: 'posts', label: t('post.tab.posts') },
+          { value: 'groups', label: t('post.tab.groups') },
+        ]}
+      />
+      <div className={s.tabGap} />
+      {view === 'posts' ? (
+        <Feed />
+      ) : (
       <div className={s.stack}>
         <Card title={t('cm.programTitle')} pad>
           <p className={s.lead}>{t('cm.programBody')}</p>
@@ -109,6 +126,7 @@ export default function CommunitiesPage() {
           {st && <Grid rows={stateRows} empty={t('cm.noneInState')} />}
         </Card>
       </div>
+      )}
     </>
   );
 }

@@ -22,7 +22,7 @@ export type Order = { id: string; sym: string; opt: string | null; label: string
 export type Account = { cash: number; positions: Position[]; options: OptionPosition[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number; hist: DayValue[] };
 /** One New York day's closing account value (server: practice.py, kept 90 days). */
 export type DayValue = { day: string; e: number };
-export type HistoryItem = { id: string; kind: 'order' | 'fill' | 'trade'; at: number; sym: string; opt?: string; label?: string; side?: string; qty?: number; price?: number; pnl?: number; pct?: number; status?: string; note?: string; type?: string; role?: string | null; fillPrice?: number; entry?: number; exit?: number };
+export type HistoryItem = { id: string; kind: 'order' | 'fill' | 'trade'; at: number; sym: string; opt?: string; label?: string; side?: string; qty?: number; price?: number; pnl?: number; pct?: number; status?: string; note?: string; type?: string; role?: string | null; fillPrice?: number; entry?: number; exit?: number; openDay?: string; closeDay?: string };
 
 const n = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 

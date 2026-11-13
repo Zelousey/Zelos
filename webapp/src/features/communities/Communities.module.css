@@ -35,3 +35,6 @@
 .rank { color: var(--muted); font-family: var(--mono); }
 .who { color: var(--ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .xpCell { font-family: var(--mono); font-size: var(--text-sm); color: var(--ink-2); }
+
+/* space under the Posts / Communities tabs */
+.tabGap { height: var(--space-3); }

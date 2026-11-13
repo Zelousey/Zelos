@@ -1,0 +1,32 @@
+/* community posts and share cards (owner 2026-11-13) */
+.card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2) var(--space-4); align-items: end; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+  background: radial-gradient(70% 120% at 0% 0%, rgb(47 91 216 / 0.35), transparent 70%), var(--surface-2); }
+.cardUp { background: radial-gradient(70% 120% at 0% 0%, rgb(47 91 216 / 0.32), transparent 70%), radial-gradient(60% 120% at 100% 100%, rgb(62 203 124 / 0.2), transparent 70%), var(--surface-2); }
+.cardDown { background: radial-gradient(70% 120% at 0% 0%, rgb(47 91 216 / 0.32), transparent 70%), radial-gradient(60% 120% at 100% 100%, rgb(240 86 74 / 0.2), transparent 70%), var(--surface-2); }
+.cardKind { grid-column: 1 / -1; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.cardMain { display: grid; gap: 2px; min-width: 0; }
+.cardSym { font-size: 1.75rem; font-weight: 800; line-height: 1.1; }
+.cardSub { font-size: var(--text-sm); color: var(--ink-2); }
+.cardResult { display: grid; justify-items: end; gap: 2px; font-variant-numeric: tabular-nums; }
+.cardResult b { font-size: 1.6rem; font-weight: 800; }
+.cardMeta { grid-column: 1 / -1; font-size: var(--text-xs); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sheet { display: grid; gap: var(--space-3); padding: var(--space-4); }
+.thesisLabel { display: flex; justify-content: space-between; font-size: var(--text-sm); font-weight: 600; }
+.count { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.thesis { width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; font-size: 1rem; line-height: 1.45; }
+.thesis:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.sheetActions { display: grid; gap: var(--space-2); }
+.postedLink { display: grid; place-items: center; min-height: var(--tap); color: var(--link); font-weight: 600; text-decoration: none; }
+.fine { margin: 0; font-size: var(--text-xs); color: var(--muted); }
+.feed { display: grid; gap: var(--space-3); max-width: 760px; }
+.feedHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.h2 { margin: 0; font-size: var(--text-lg); }
+.muted { margin: 0; color: var(--ink-2); font-size: var(--text-sm); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.post { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); }
+.postHead { display: flex; align-items: center; gap: var(--space-2); }
+.author { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; color: var(--ink); text-decoration: none; font-size: var(--text-sm); }
+.avatar { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; object-fit: cover; background: var(--surface-2); color: var(--ink-2); font-weight: 700; }
+.when { margin-left: auto; color: var(--muted); font-size: var(--text-xs); white-space: nowrap; }
+.postThesis { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); line-height: 1.5; }
+.shareBtn { margin-left: var(--space-2); }

@@ -16,6 +16,8 @@ import { Badge, Button, buttonClass, Card, Confirm, EmptyState, LoadingState, Pa
 import { createInvite, errorText, shareLink } from '../invites/invites';
 import { BATTLE_ID_RE, cancelBattle, joinBattle, leaveBattle, OUT_REASON, startBattle, surrender, useAccounts, useBattle, useBook, useEvents, useMyRematch, type Battle } from './battle';
 import { BattleClash } from './BattleClash';
+import { ShareSheet } from '../posts/ShareSheet';
+import type { Draft as PostDraft } from '../posts/posts';
 import { LobbyTeams, TeamResult } from './Teams';
 import { DraftView } from './DraftView';
 import { LiveView } from './LiveView';
@@ -217,9 +219,30 @@ function Lobby({ b, uid, busy, onJoin, onStart }: { b: Battle; uid: string; busy
 function Results({ b, uid }: { b: Battle; uid: string }) {
   const winner = b.results.find((r) => r.rank === 1);
   const mine = b.rewards.find((r) => r.uid === uid);
+  const me = b.results.find((r) => r.uid === uid);
+  const [share, setShare] = useState<PostDraft | null>(null);
+  const modes = [b.lms && 'lms', b.modes.draft && 'draft', b.modes.whale && 'whale', b.modes.storms && 'storms', b.modes.bounties && 'bounties', b.modes.stops && 'stops'].filter((x): x is string => !!x);
   return (
     <div className={s.cols}>
       <div className={s.stack}>
+        {me && (
+          // owner 2026-11-13: a finished battle gives you a card to share, here or in the community
+          <Card pad className={s.shareResult}>
+            <div>
+              <b>{me.rank === 1 ? t('post.youWon') : t('post.youPlaced', { n: me.rank, of: b.results.length })}</b>
+              <span className={s.muted}>{t('post.shareResult.body')}</span>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() =>
+                setShare({ source: 'battle', ref: b.id, name: me.name, card: { name: b.name, rank: me.rank, of: b.results.length, pnlPct: me.pnlPct, pnl: me.pnl, start: me.start, final: me.final, trades: me.trades, modes } })
+              }
+            >
+              {t('post.shareResult')}
+            </Button>
+          </Card>
+        )}
+        <ShareSheet draft={share} onClose={() => setShare(null)} />
         <TeamResult b={b} uid={uid} />
         <Card pad className={s.winner}>
           <span className={s.trophy} aria-hidden="true">

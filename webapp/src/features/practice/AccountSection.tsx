@@ -14,6 +14,9 @@ import { Badge, Button, buttonClass, Card, Change, Confirm, EmptyState, ErrorSta
 import { nyDay } from '../charts/series';
 import { useVolMap } from '../options/model';
 import { AccountChart } from './AccountChart';
+import { useIdentity } from '../dashboard/social';
+import { ShareSheet } from '../posts/ShareSheet';
+import type { Draft } from '../posts/posts';
 import { OptionPositions } from '../options/OptionPositions';
 import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeHistory, valueAccount, type HistoryItem, type Order } from './account';
 import { cancelOrder, errorMessage, openAccount, placeOrder, resetAccount, setPublic } from './actions';
@@ -69,6 +72,8 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
   const acctState = usePracticeAccount(uid);
   const quotes = useQuotes();
   const history = usePracticeHistory(uid);
+  const ident = useIdentity(uid);
+  const [share, setShare] = useState<Draft | null>(null);
   const toast = useToast();
   const acct = acctState.status === 'ready' ? acctState.data : null;
   const archive = useArchive(uid, !!acct?.archivedClassic);
@@ -215,7 +220,7 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
           <summary>{t('acct.more')}</summary>
           <div className={s.stack}>
         <Card title={t('practice.history')} flush>
-          {!history.ready ? <Skeleton height={120} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} />}
+          {!history.ready ? <Skeleton height={120} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} onShare={(h) => setShare({ source: 'solo', ref: h.id, name: ident.status === 'ready' && ident.data.name ? ident.data.name : 'Trader', card: { sym: h.sym, qty: h.qty ?? 0, entry: h.entry ?? 0, exit: h.exit ?? 0, pnl: h.pnl ?? 0, pct: h.pct ?? 0, option: h.opt ? (h.label ?? h.opt) : undefined, openDay: h.openDay, closeDay: h.closeDay } })} />}
         </Card>
 
         {acct.archivedClassic && archive.status === 'ready' && (
@@ -267,6 +272,7 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
       >
         {t('practice.reset.confirm', { n: acct.resets + 1 })}
       </Confirm>
+      <ShareSheet draft={share} onClose={() => setShare(null)} />
     </section>
   );
 }
@@ -344,7 +350,7 @@ function OrderRow({ o, onCancel, disabled, busy, marketOpen }: { o: Order; onCan
   );
 }
 
-function HistoryList({ items }: { items: HistoryItem[] }) {
+function HistoryList({ items, onShare }: { items: HistoryItem[]; onShare: (h: HistoryItem) => void }) {
   return (
     <ul className={s.hist}>
       {items
@@ -362,6 +368,11 @@ function HistoryList({ items }: { items: HistoryItem[] }) {
               {h.kind === 'trade' && (
                 <>
                   {h.role === 'expired' ? t('hist.expired', { label: h.label ?? h.sym, price: formatPrice(h.exit) }) : t('hist.closed', { sym: h.label ?? h.sym })} <Change abs={h.pnl} pct={h.pct} />
+                  {h.entry != null && h.exit != null && (
+                    <Button variant="ghost" size="sm" className={s.shareBtn} onClick={() => onShare(h)} aria-label={t('post.shareTrade', { sym: h.label ?? h.sym })}>
+                      {t('post.share')}
+                    </Button>
+                  )}
                 </>
               )}
               {h.kind === 'order' && (
