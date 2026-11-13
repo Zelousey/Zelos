@@ -4,8 +4,10 @@
  * section, that brings you to the right tutorial", "new users: it should pop up automatically ...
  * if they click a new page", and players who've been around see it less.
  *
- *   - a new player (account under 14 days old, or not signed in) gets a page's tour by itself the
- *     first time they open that page; afterwards a small "Need help?" note at most every 3 days
+ *   - a new player (account under 14 days old) gets a page's tour by itself the first time they
+ *     open that page; afterwards a small "Need help?" note at most every 3 days
+ *   - nothing opens by itself for someone who isn't signed in (2026-11-13: a tour card covered the
+ *     Dashboard's Sign in button on a phone, so a friend couldn't sign in); ?tour= still works
  *   - anyone else gets the note instead: every 7 days on a page whose tour they haven't seen,
  *     every 30 days once they have
  *   - never more than one note every 10 minutes, and never on top of another dialog
@@ -73,8 +75,9 @@ export function PageTours() {
         sig.off = true;
       };
     }
+    if (!isReal) return; // sign in first; tours are for players
     const now = Date.now();
-    const isNew = !isReal || (created != null && now - created < NEW_FOR);
+    const isNew = created != null && now - created < NEW_FOR;
     const seen = tourSeen(tour.id);
     if (isNew && !seen) {
       whenSettled(start, sig);
@@ -94,7 +97,7 @@ export function PageTours() {
     };
     // once per page visit
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tour, location.key]);
+  }, [tour, location.key, isReal]);
 
   // the note goes away by itself after a while
   useEffect(() => {

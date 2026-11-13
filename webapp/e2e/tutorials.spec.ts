@@ -94,9 +94,18 @@ test('reduced motion: the walkthrough works the same', async ({ page }, info) =>
   await expect(c).toHaveCount(0);
 });
 
-test('page tours: a new visitor gets each page’s tour once (only steps on screen), a help note later, and Help replays any of them', async ({ page }) => {
+test('page tours: a new player gets each page’s tour once (only steps on screen), a help note later, and Help replays any of them; never over Sign in', async ({ page }, info) => {
   await page.addInitScript(() => localStorage.removeItem('zelosPageToursOff'));
   const tour = page.getByRole('dialog').filter({ hasText: /Step \d+ of \d+/ });
+  // signed out: nothing opens by itself, and Sign in works (2026-11-13: a tour card covered it)
+  await page.goto('dashboard');
+  await page.waitForTimeout(2500);
+  await expect(tour).toHaveCount(0);
+  await page.getByRole('button', { name: /^Sign in( to start)?$/ }).filter({ visible: true }).first().click();
+  await expect(page.getByRole('button', { name: /Continue with Google/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  // a new account gets each page's tour
+  await signIn(page, `ptour-${info.project.name}-${Date.now()}@example.com`);
   await page.goto('markets');
   await expect(tour.getByRole('heading', { name: 'The market at a glance' })).toBeVisible();
   await expect(tour).toBeFocused();
@@ -122,9 +131,15 @@ test('page tours: a new visitor gets each page’s tour once (only steps on scre
   await page.keyboard.press('Escape');
   await expect(tour).toHaveCount(0);
 
-  // another page has its own tour (Trading 101), and Esc skips it
+  // a tap outside a tour card closes it and still reaches what was tapped
   await page.goto('learn');
   await expect(tour.getByRole('heading', { name: 'Trading 101' })).toBeVisible();
+  await page.getByRole('link', { name: /^Book 1: The basics/ }).click();
+  await expect(page).toHaveURL(/\/learn\/basics$/);
+  await expect(tour).toHaveCount(0);
+  // another page has its own tour (Hall of Minds), and Esc skips it
+  await page.goto('training');
+  await expect(tour.getByRole('heading', { name: 'Training Ground' })).toBeVisible();
   await page.keyboard.press('Escape');
   // Help lists every page's tour and replays it on its page
   await page.goto('help');

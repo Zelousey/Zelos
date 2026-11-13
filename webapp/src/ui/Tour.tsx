@@ -76,6 +76,23 @@ export function Tour({ id, steps, open, onClose }: { id: string; steps: TourStep
   useEffect(() => {
     if (open) card.current?.focus();
   }, [open, at]);
+  // a tap anywhere outside the card ends the tour, and the tap still reaches what was tapped
+  // (2026-11-13: the card sat over the Sign in button and blocked it)
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!card.current || card.current.contains(e.target as Node)) return;
+      markTour(id, 'skipped');
+      setAt(0);
+      closeRef.current('skipped');
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [open, id]);
   // the card's real height decides whether it fits above or below the highlighted control
   useLayoutEffect(() => {
     if (open && card.current) setCardH(card.current.offsetHeight);
@@ -93,8 +110,9 @@ export function Tour({ id, steps, open, onClose }: { id: string; steps: TourStep
   // below the control if it fits there, else above, else on the roomier side (kept on screen)
   const roomBelow = box ? vh - box.bottom - 2 * GAP : vh;
   const roomAbove = box ? box.top - 2 * GAP : 0;
+  // a card with nothing to point at sits low (above a phone's tab bar), not over the page's middle
   const top = !box
-    ? Math.max(GAP, (vh - cardH) / 2)
+    ? Math.max(GAP, vh - cardH - (vw <= 760 ? 96 : 32))
     : roomBelow >= cardH
       ? box.bottom + GAP
       : roomAbove >= cardH
