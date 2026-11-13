@@ -39,6 +39,10 @@ test('communities: hub, create (verified only), join and leave', async ({ page, 
   await put(`communities/${cid}/members/cmMemberUid001`, { name: 'Max', joinedAt: 2, xp: 300, counted: true, founder: false });
 
   await page.goto('communities');
+  // posts come first (owner 2026-11-13); the Founder Program is the Communities tab
+  await expect(page.getByRole('heading', { name: 'Community posts' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Communities' }).click();
+  await expect(page).toHaveURL(/\/communities\?view=groups$/);
   await expect(page.getByRole('list', { name: 'Founder milestones' })).toContainText('Legendary Founder');
   const card = page.getByRole('link', { name: new RegExp(`Rats ${tag}`) });
   await expect(card.first()).toBeVisible();

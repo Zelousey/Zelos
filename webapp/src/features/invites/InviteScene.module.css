@@ -16,6 +16,9 @@
 .coach { background: radial-gradient(80% 100% at 50% 50%, var(--violet-soft), transparent 70%), var(--surface-2); }
 .a { position: relative; z-index: 1; height: 100%; max-height: 132px; width: auto; flex: 0 1 auto; min-width: 0; object-fit: contain; filter: drop-shadow(0 8px 14px rgb(0 0 0 / 0.4)); transition: transform var(--dur-slow) var(--ease-out); }
 .flip { transform: scaleX(-1); }
+/* one full picture (Team up, Coaching): a little taller than the bull and bear on their own */
+.art { max-height: 148px; }
+@media (hover: hover) { :global(button:hover) > .scene .art { transform: scale(1.03); } }
 .ghost { filter: grayscale(1) brightness(0.55) opacity(0.45); }
 .dim { filter: brightness(0.7) saturate(0.8) drop-shadow(0 8px 14px rgb(0 0 0 / 0.4)); }
 .pairA { margin-right: -48px; transform: translateY(-6px) scale(0.9); }

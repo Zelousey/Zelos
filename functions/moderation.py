@@ -22,7 +22,7 @@ ALLOWED = ("dickens", "therapeutic", "therapist", "grape", "drape", "scrape", "t
 _LOOK = str.maketrans({"0": "o", "1": "i", "!": "i", "|": "i", "3": "e", "4": "a", "@": "a", "5": "s", "$": "s", "7": "t", "8": "b", "+": "t"})
 
 REASONS = ("spam", "harassment", "hate", "sexual", "violence", "other")
-KINDS = ("chat", "profile", "squad", "coach")
+KINDS = ("chat", "profile", "squad", "coach", "post")
 _ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 

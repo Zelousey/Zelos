@@ -21,8 +21,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:4173/app/',
     // Most tests skip the launch animation, the first sign-in welcome, level-up celebrations, the battle clash
-    // the first-trade walkthrough and the page tours; e2e/welcome.spec.ts, e2e/rewards.spec.ts and e2e/tutorials.spec.ts turn them back on.
-    storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [{ name: 'zelosSplashOff', value: '1' }, { name: 'zelosWelcomeSkip', value: '1' }, { name: 'zelosLevelCelebrated', value: '99' }, { name: 'zelosTerms', value: 'all' }, { name: 'zelosClashOff', value: '1' }, { name: 'zelosTours', value: '{"first-trade":"skipped"}' }, { name: 'zelosPageToursOff', value: '1' }] }] },
+    // the first-trade walkthrough, the page tours and the share card after a trade; e2e/welcome.spec.ts, e2e/rewards.spec.ts and e2e/tutorials.spec.ts turn them back on.
+    storageState: { cookies: [], origins: [{ origin: 'http://127.0.0.1:4173', localStorage: [{ name: 'zelosSplashOff', value: '1' }, { name: 'zelosWelcomeSkip', value: '1' }, { name: 'zelosLevelCelebrated', value: '99' }, { name: 'zelosTerms', value: 'all' }, { name: 'zelosClashOff', value: '1' }, { name: 'zelosTours', value: '{"first-trade":"skipped"}' }, { name: 'zelosPageToursOff', value: '1' }, { name: 'zelosShareAfterTrade', value: 'off' }] }] },
     trace: 'retain-on-failure',
     launchOptions: executablePath ? { executablePath } : {},
   },

@@ -13,7 +13,7 @@ import { arrayRemove, arrayUnion, doc, setDoc } from 'firebase/firestore';
 import { callFunction, db } from '../../lib/firebase';
 import { readString, writeString } from '../../lib/storage';
 
-export type ReportKind = 'chat' | 'profile' | 'squad' | 'coach';
+export type ReportKind = 'chat' | 'profile' | 'squad' | 'coach' | 'post';
 export const REASONS = ['spam', 'harassment', 'hate', 'sexual', 'violence', 'other'] as const;
 export type Reason = (typeof REASONS)[number];
 export type ReportTarget = { kind: ReportKind; target: string; where?: string };

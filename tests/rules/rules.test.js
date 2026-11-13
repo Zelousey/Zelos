@@ -187,6 +187,15 @@ test('block list and terms: your own, capped; reports are server only', async ()
   await assertFails(setDoc(doc(db, 'reportCounts/alice'), { n: 0 }));
 });
 
+test('community posts: anyone can read them; only the server writes (it builds the card from the real trade)', async () => {
+  const db = real('alice').firestore();
+  await assertSucceeds(getDoc(doc(db, 'posts/alice_s_t1')));
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'posts/alice_s_t1')));
+  await assertFails(setDoc(doc(db, 'posts/alice_s_t1'), { uid: 'alice', source: 'solo', card: { sym: 'AAPL', pct: 900 }, thesis: 'x' }));
+  await assertFails(deleteDoc(doc(db, 'posts/bob_s_t1')));
+  await assertFails(setDoc(doc(db, 'postCounts/alice'), { day: '2026-11-13', n: 0 }));
+});
+
 test('missions are counted by the server: browsers cannot write them', async () => {
   await assertFails(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, missions: { day: { done: { trade: true } } } }));
   await assertSucceeds(setDoc(doc(real('alice').firestore(), 'users/alice'), { xp: 0, watchlist: [] }));

@@ -1,11 +1,10 @@
 /**
  * The pictures on the invite cards (owner 2026-11-10: redesigned around the Zelos bull vs bear
- * logo). Battle: the bull and the bear face off. Team up: two bulls charge side by side. Invite
- * a friend: the bull and a friend-to-be still in shadow. Coaching: a big bull and a small one,
- * with a rising chart. The art fills the picture with even padding all round, so nothing sits
+ * logo). Battle: the bull and the bear face off. Invite a friend: the bull and a friend-to-be still
+ * in shadow. Team up and Coaching use the owner's pictures (2026-11-13): the bull and the bear
+ * arm-wrestling, and the bull at a rising chart (art/teamup.webp, art/coach.webp). The art fills the picture with even padding all round, so nothing sits
  * against an edge and there are no empty black gaps.
  */
-import { Icon } from '../../ui';
 import type { InviteKind } from './invites';
 import s from './InviteScene.module.css';
 
@@ -23,12 +22,7 @@ export function InviteScene({ kind }: { kind: InviteKind }) {
           <Bear className={s.right} />
         </>
       )}
-      {kind === 'squad' && (
-        <>
-          <Bull className={[s.pairA, s.dim].join(' ')} />
-          <Bull className={s.pairB} />
-        </>
-      )}
+      {kind === 'squad' && <img src={`${ART}teamup.webp`} alt="" className={[s.a, s.art].join(' ')} width={560} height={466} loading="lazy" decoding="async" />}
       {kind === 'join' && (
         <>
           <Bull className={s.left} />
@@ -36,15 +30,7 @@ export function InviteScene({ kind }: { kind: InviteKind }) {
           <Bull className={[s.right, s.flip, s.ghost].join(' ')} />
         </>
       )}
-      {kind === 'coach' && (
-        <>
-          <Bull className={s.big} />
-          <span className={s.bubble}>
-            <Icon name="chart" size={18} />
-          </span>
-          <Bull className={[s.small, s.flip].join(' ')} />
-        </>
-      )}
+      {kind === 'coach' && <img src={`${ART}coach.webp`} alt="" className={[s.a, s.art].join(' ')} width={720} height={476} loading="lazy" decoding="async" />}
     </span>
   );
 }

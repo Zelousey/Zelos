@@ -18,6 +18,10 @@
 .bottom { position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: 100%; height: auto; max-height: calc(100vh - 48px); max-height: calc(100dvh - var(--safe-top) - 48px); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-width: 1px 0 0 0; padding-bottom: var(--safe-bottom); }
 
 .inner { display: flex; flex-direction: column; max-height: inherit; height: 100%; min-height: 0; }
+/* 2026-11-13 (owner: "the screen darkens and a gray line pops up, nothing else" on Sell): a centred
+   dialog has no set height, and iPhone Safari resolved the inner box's height: 100% to zero, so only
+   the dialog's border showed. A centred dialog's inside sizes to its content, capped, and scrolls. */
+.center .inner { height: auto; max-height: min(80vh, 720px); }
 .bottom .inner { max-height: calc(100vh - 48px - var(--safe-bottom)); max-height: calc(100dvh - var(--safe-top) - 48px - var(--safe-bottom)); }
 .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-soft); }
 .title { font-size: var(--text-md); font-weight: 600; }

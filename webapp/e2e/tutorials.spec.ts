@@ -128,7 +128,7 @@ test('page tours: a new visitor gets each page’s tour once (only steps on scre
   await page.keyboard.press('Escape');
   // Help lists every page's tour and replays it on its page
   await page.goto('help');
-  await expect(page.getByRole('link', { name: /^Replay: / })).toHaveCount(16);
+  await expect(page.getByRole('link', { name: /^Replay: / })).toHaveCount(17);
   await page.getByRole('link', { name: 'Replay: Coaching' }).click();
   await expect(page).toHaveURL(/\/app\/coach\?tour=page-coach$/);
   await expect(tour.getByRole('heading', { name: 'Coaching' })).toBeVisible();
