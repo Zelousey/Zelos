@@ -1,0 +1,5 @@
+.banner { position: relative; display: flex; align-items: center; justify-content: center; max-width: 760px; padding: var(--space-3); box-sizing: border-box; height: clamp(150px, 22vw, 200px); margin-bottom: var(--space-4); overflow: hidden; border: 1px solid var(--border-soft); border-radius: var(--radius-lg); }
+.banner::before { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(var(--border-soft) 1px, transparent 1px), linear-gradient(90deg, var(--border-soft) 1px, transparent 1px); background-size: 28px 28px; opacity: 0.3; }
+.banner img { position: relative; height: 100%; width: auto; max-width: 100%; object-fit: contain; filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.45)); }
+.blue { background: radial-gradient(60% 100% at 50% 60%, rgb(37 99 235 / 0.32), transparent 72%), var(--surface); }
+.duel { background: radial-gradient(45% 100% at 30% 55%, rgb(37 99 235 / 0.3), transparent 72%), radial-gradient(45% 100% at 70% 55%, rgb(220 38 38 / 0.3), transparent 72%), var(--surface); }

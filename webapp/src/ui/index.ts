@@ -1,4 +1,5 @@
 /** Shared UI building blocks. Screens import from here, never from each other. See webapp/README.md → "Components". */
+export { ArtBanner } from './ArtBanner';
 export { Badge, type BadgeTone } from './Badge';
 export { Button, ButtonLink, buttonClass } from './Button';
 export { Card } from './Card';

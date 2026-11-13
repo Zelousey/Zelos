@@ -11,7 +11,7 @@ import { useAuth } from '../../lib/auth';
 import { formatMoney } from '../../lib/format';
 import { t, type MessageKey } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Button, Card, ChoiceCard, ChoiceList, EmptyState, Field, LoadingState, PageHeader, Tabs, useToast, type IconName } from '../../ui';
+import { ArtBanner, Button, Card, ChoiceCard, ChoiceList, EmptyState, Field, LoadingState, PageHeader, Tabs, useToast, type IconName } from '../../ui';
 import { errorText } from '../invites/invites';
 import { unlockQuietly } from '../missions/missions';
 import { addFriend, removeFriend } from '../profile/profile';
@@ -30,6 +30,7 @@ export default function SocialPage() {
   return (
     <>
       <PageHeader title={t('nav.social')} subtitle={t('sq.subtitle')} />
+      <ArtBanner src="teamup.webp" width={560} height={466} tone="duel" />
       <TradeWarNav />
       <div className={s.tabs}>
         <Tabs label={t('nav.social')} value={tab} onChange={(v) => setParams(v === 'squads' ? {} : { tab: v }, { replace: true })} items={[{ value: 'squads', label: t('sq.tab.squads') }, { value: 'friends', label: t('sq.tab.friends') }]} />
