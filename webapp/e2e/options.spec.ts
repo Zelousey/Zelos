@@ -80,8 +80,10 @@ test('buy a put, cancel it, and sell a contract you hold', async ({ page }, info
   await expect(page.getByRole('dialog', { name: `AAPL $330 Call ${short(exp)}` })).toContainText('Estimated profit or loss');
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: `Sell: AAPL $330 Call ${short(exp)}` }).click();
-  await expect(page.getByRole('dialog')).toContainText(`Sell 3 AAPL $330 Call ${short(exp)} at the model price`);
-  await page.getByRole('dialog').getByRole('button', { name: 'Sell' }).click();
+  // confirmed in the row, no pop-up (owner 2026-11-13: the iPhone pop-up opened empty)
+  const confirmRow = page.getByRole('group', { name: 'Sell' });
+  await expect(confirmRow).toContainText(`Sell 3 AAPL $330 Call ${short(exp)} at the model price`);
+  await confirmRow.getByRole('button', { name: 'Sell 3' }).click();
   // the sheet says "Sell 3 … at the model price" while it closes (slower on phones): wait for it, then match the order line exactly
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText(`Sell 3 AAPL $330 Call ${short(exp)}`, { exact: true })).toBeVisible();
