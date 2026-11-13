@@ -23,6 +23,7 @@ import { SignInSheet } from './SignInSheet';
 import { ChartThemeSync } from '../features/charts/ChartThemeSync';
 import { PriceAlertWatcher } from '../features/charts/PriceAlertWatcher';
 import { PageTours } from '../features/tutorials/PageTours';
+import { ShareAfterTrade } from '../features/posts/ShareAfterTrade';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { GROUP_LABEL, GROUP_ORDER, moduleForPath, navModules, navOwner, tabModules } from '../app/modules';
@@ -198,6 +199,7 @@ export function AppShell() {
       <MindsQuoteCard />
       <LearnReturn />
       <PageTours />
+      <ShareAfterTrade />
       <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} />
     </div>
   );

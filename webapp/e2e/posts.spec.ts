@@ -47,12 +47,15 @@ test('a closed Solo trade: share it with a thesis, see it in the community, dele
   await page.getByText('Activity & account settings').click();
   await page.getByRole('button', { name: 'Share your AAPL trade' }).click();
   const sheet = page.getByRole('dialog', { name: 'Share your trade' });
+  await expect(sheet).toContainText('+$152.30');
   await expect(sheet).toContainText('+4.78%');
-  await expect(sheet).toContainText('10 shares');
+  await expect(sheet).toContainText('Buy 10 @ $318.40 · Sell @ $333.63');
+  await expect(sheet).toContainText('Put in $3,184.00');
+  await expect(sheet.getByRole('button', { name: 'Download image' })).toBeVisible();
   expect(await axe(page)).toEqual([]);
   await sheet.getByLabel(/Your thesis/).fill(`Bought the pullback to the 50-day average, sold into the earnings pop (${info.project.name}).`);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/share-${info.project.name}.png` });
-  await sheet.getByRole('button', { name: 'Post to the Zelos community' }).click();
+  await sheet.getByRole('button', { name: 'Share to community' }).click();
   await expect(sheet.getByRole('link', { name: /See it in the community/ })).toBeVisible();
   const doc = await get(`posts/${uid}_s_trade0001`);
   expect(doc.fields?.thesis?.stringValue).toContain('pullback');
@@ -73,7 +76,7 @@ test('a closed Solo trade: share it with a thesis, see it in the community, dele
   await page.goto('dashboard');
   await page.getByText('Activity & account settings').click();
   await page.getByRole('button', { name: 'Share your AAPL trade' }).click();
-  await page.getByRole('dialog', { name: 'Share your trade' }).getByRole('button', { name: 'Post to the Zelos community' }).click();
+  await page.getByRole('dialog', { name: 'Share your trade' }).getByRole('button', { name: 'Share to community' }).click();
   await expect(page.getByText(/already shared this one/).first()).toBeVisible();
   // delete it
   await page.goto('communities');
@@ -100,13 +103,44 @@ test('a finished battle: share your result to the Trade War tab', async ({ page 
   await page.goto(`battles/${id}`);
   await expect(page.getByText('You won this battle!')).toBeVisible();
   await page.getByRole('button', { name: 'Share your result' }).click();
-  const sheet = page.getByRole('dialog', { name: 'Share your trade' });
+  const sheet = page.getByRole('dialog', { name: 'Share your battle' });
   await expect(sheet).toContainText('1st place');
   await expect(sheet).toContainText('+6.20%');
   await sheet.getByLabel(/Your thesis/).fill(`Held NVDA all week and let the bounty come to me (${info.project.name}).`);
-  await sheet.getByRole('button', { name: 'Post to the Zelos community' }).click();
+  await sheet.getByRole('button', { name: 'Share to community' }).click();
   await expect(sheet.getByRole('link', { name: /See it in the community/ })).toBeVisible();
   await page.goto('communities?feed=battle');
   await expect(page.getByRole('tab', { name: 'Trade War' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('listitem').filter({ hasText: `let the bounty come to me (${info.project.name})` })).toContainText('Friday Duel');
+});
+
+test('the share card pops up after a trade closes, and Settings can turn that off', async ({ page }, info) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('shareReset')) {
+      localStorage.removeItem('zelosShareAfterTrade');
+      sessionStorage.setItem('shareReset', '1');
+    }
+  });
+  await page.goto('dashboard');
+  const uid = await signIn(page, `posta-${info.project.name}-${Date.now()}@example.com`);
+  await page.getByRole('button', { name: 'Start with $10,000' }).click();
+  await expect(page.getByText('$10,000.00').first()).toBeVisible();
+  await page.waitForTimeout(1500);
+  // a sale fills on the server: the card comes up by itself
+  await put(`practiceAccounts/${uid}/history/trade0003`, { kind: 'trade', sym: 'MSFT', qty: 3, entry: 541.25, exit: 529.3, pnl: -35.85, pct: -2.21, openDay: '2026-11-05', closeDay: '2026-11-12', at: Date.now() });
+  const sheet = page.getByRole('dialog', { name: 'Share your trade' });
+  await expect(sheet).toContainText('MSFT');
+  await expect(sheet).toContainText('−$35.85');
+  await sheet.getByRole('button', { name: 'Close' }).click();
+  // Settings: on by default; off means no card next time
+  await page.goto('settings');
+  const sw = page.getByRole('switch', { name: 'Share card after every trade' });
+  await expect(sw).toHaveAttribute('aria-checked', 'true');
+  await sw.click();
+  await expect(sw).toHaveAttribute('aria-checked', 'false');
+  await page.goto('dashboard');
+  await page.waitForTimeout(1500);
+  await put(`practiceAccounts/${uid}/history/trade0004`, { kind: 'trade', sym: 'AMD', qty: 2, entry: 610, exit: 649.42, pnl: 78.84, pct: 6.46, openDay: '2026-11-05', closeDay: '2026-11-12', at: Date.now() });
+  await page.waitForTimeout(2500);
+  await expect(page.getByRole('dialog', { name: 'Share your trade' })).toHaveCount(0);
 });

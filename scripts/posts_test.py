@@ -31,4 +31,15 @@ war = {"status": "ended", "name": "Friday Duel", "modes": {"lms": True, "storms"
 b = P.battle_card(war, "a")
 ok(b["rank"] == 1 and b["of"] == 2 and b["pnlPct"] == 6.2 and b["modes"] == ["bounties", "lms"] and b["name"] == "Friday Duel", "a battle card: your place, return and its modes")
 ok(raises(P.battle_card, dict(war, status="active"), "a") and raises(P.battle_card, war, "zzz"), "only a finished battle you were in")
+# the chart around a trade (owner 2026-11-13: the chart, when they bought, when they sold)
+days = ["2026-11-%02d,1,1,1,%d,9" % (d, 100 + d) for d in range(1, 21)]
+ch = P.trade_chart(days, "2026-11-05", "2026-11-12")
+ok(ch["t"][0] == "2026-11-02" and ch["t"][-1] == "2026-11-15", "a few days before the buy and after the sale: %s .. %s" % (ch["t"][0], ch["t"][-1]))
+ok(ch["t"][ch["buy"]] == "2026-11-05" and ch["t"][ch["sell"]] == "2026-11-12" and ch["p"][ch["buy"]] == 105, "buy and sell marked on their days")
+mins = ["2026-11-12 %02d:%02d,1,1,1,%s" % (9 + (m + 30) // 60, (m + 30) % 60, 50 + m * 0.1) for m in range(390)]
+ci = P.trade_chart(mins, "2026-11-12 10:00", "2026-11-12 15:30")
+ok(len(ci["t"]) <= 92 and ci["t"][ci["buy"]] == "2026-11-12 10:00" and ci["t"][ci["sell"]] == "2026-11-12 15:30", "a day trade: minute prices, thinned to ~90 points, buy and sell kept exactly")
+ok(P.trade_chart(days, "2026-12-01", "2026-12-05") is None and P.trade_chart([], "a", "b") is None, "no bars for the trade: no chart (the card still posts)")
+cv = P.curve_chart([{"t": i, "eq": 500 + i} for i in range(300)])
+ok(len(cv["t"]) <= 90 and cv["p"][0] == 500 and cv["p"][-1] == 799, "a battle's value line, thinned, first and last kept")
 sys.exit(1 if fails else 0)

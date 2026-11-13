@@ -16,7 +16,7 @@ import { useVolMap } from '../options/model';
 import { AccountChart } from './AccountChart';
 import { useIdentity } from '../dashboard/social';
 import { ShareSheet } from '../posts/ShareSheet';
-import type { Draft } from '../posts/posts';
+import { soloDraft, type Draft } from '../posts/posts';
 import { OptionPositions } from '../options/OptionPositions';
 import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeHistory, valueAccount, type HistoryItem, type Order } from './account';
 import { cancelOrder, errorMessage, openAccount, placeOrder, resetAccount, setPublic } from './actions';
@@ -220,7 +220,7 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
           <summary>{t('acct.more')}</summary>
           <div className={s.stack}>
         <Card title={t('practice.history')} flush>
-          {!history.ready ? <Skeleton height={120} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} onShare={(h) => setShare({ source: 'solo', ref: h.id, name: ident.status === 'ready' && ident.data.name ? ident.data.name : 'Trader', card: { sym: h.sym, qty: h.qty ?? 0, entry: h.entry ?? 0, exit: h.exit ?? 0, pnl: h.pnl ?? 0, pct: h.pct ?? 0, option: h.opt ? (h.label ?? h.opt) : undefined, openDay: h.openDay, closeDay: h.closeDay } })} />}
+          {!history.ready ? <Skeleton height={120} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} onShare={(h) => setShare(soloDraft(h, history.items, { name: ident.status === 'ready' ? ident.data.name : '', username: ident.status === 'ready' ? ident.data.username : null }))} />}
         </Card>
 
         {acct.archivedClassic && archive.status === 'ready' && (

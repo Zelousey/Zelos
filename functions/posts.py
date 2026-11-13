@@ -66,6 +66,56 @@ def solo_card(rec):
     return card
 
 
+CHART_POINTS = 90
+
+
+def _thin(n, keep, max_points):
+    """Indexes 0..n-1 cut down to about max_points, always keeping the ones in `keep`."""
+    if n <= max_points:
+        return list(range(n))
+    step = (n - 1) / (max_points - 1)
+    idx = {round(i * step) for i in range(max_points)} | {k for k in keep if k is not None}
+    return sorted(i for i in idx if 0 <= i < n)
+
+
+def trade_chart(rows, buy_label, sell_label, pad=3, max_points=CHART_POINTS):
+    """The price line around a trade (owner 2026-11-13: "the chart, when they bought in, when they
+    sold"), from stored bars ("label,o,h,l,c,..."; daily labels are dates, intraday ones "date HH:MM"):
+    a few bars before the buy to a few after the sell, closes only, thinned to about 90 points.
+    -> {"t": [labels], "p": [closes], "buy": i, "sell": j}, or None without enough bars.
+    Two flat lists, because Firestore can't store a list of lists."""
+    bars = []
+    for r in rows or []:
+        parts = str(r).split(",")
+        try:
+            c = float(parts[4])
+        except (IndexError, ValueError):
+            continue
+        if c > 0:
+            bars.append((parts[0], c))
+    bars.sort(key=lambda b: b[0])
+    if len(bars) < 2:
+        return None
+    bi = next((i for i, b in enumerate(bars) if b[0] >= buy_label), None)
+    si = max((i for i, b in enumerate(bars) if b[0] <= sell_label), default=None)
+    if bi is None or si is None or si < bi:
+        return None
+    lo, hi = max(0, bi - pad), min(len(bars) - 1, si + pad)
+    window = bars[lo:hi + 1]
+    keep = _thin(len(window), (bi - lo, si - lo), max_points)
+    pick = [window[i] for i in keep]
+    return {"t": [b[0] for b in pick], "p": [round(b[1], 4) for b in pick], "buy": keep.index(bi - lo), "sell": keep.index(si - lo)}
+
+
+def curve_chart(curve, max_points=CHART_POINTS):
+    """A battle account's value line ([{t, eq}], kept by the server) -> {"t": [ms], "p": [values]}, or None."""
+    pts = [(int(p["t"]), float(p["eq"])) for p in (curve or []) if isinstance(p, dict) and _num(p.get("t")) is not None and _num(p.get("eq")) is not None]
+    if len(pts) < 2:
+        return None
+    keep = _thin(len(pts), (0, len(pts) - 1), max_points)
+    return {"t": [pts[i][0] for i in keep], "p": [round(pts[i][1], 2) for i in keep]}
+
+
 def battle_card(war, uid):
     """Your row in a finished battle -> the card, or ValueError."""
     if not isinstance(war, dict) or war.get("status") != "ended":

@@ -6,6 +6,8 @@ import { Link, useLocation } from 'react-router';
 import { getTheme, setTheme, THEMES, type Theme } from '../../lib/theme';
 import { Card, Icon, PageHeader, Tabs } from '../../ui';
 import { ChartColors } from './ChartColors';
+import { SHARE_AFTER_KEY, shareAfterOn } from '../posts/ShareAfterTrade';
+import { writeString } from '../../lib/storage';
 import { IndicatorColors } from './IndicatorColors';
 import { DeleteAccount } from './DeleteAccount';
 import { BlockedList } from '../safety/BlockedList';
@@ -15,6 +17,7 @@ const THEME_LABEL = { black: 'settings.theme.black', blue: 'settings.theme.blue'
 
 export default function SettingsPage() {
   const [theme, setThemeState] = useState<Theme>(getTheme());
+  const [shareAfter, setShareAfter] = useState(shareAfterOn); // the share card after every trade, on by default
   // which colour line is open; coming from a chart's Chart settings button opens the candle colours
   const [pick, setPick] = useState<string | null>(() => (window.location.hash === '#chart' ? 'candles' : null));
   const { hash } = useLocation();
@@ -52,6 +55,29 @@ export default function SettingsPage() {
             <div className={s.picks}>
               <ChartColors open={pick} onOpen={setPick} />
               <IndicatorColors open={pick} onOpen={setPick} />
+            </div>
+          </Card>
+          <Card group title={t('settings.sharing')} className={s.o4}>
+            <div className={s.row}>
+              <div>
+                <div className={s.rowLabel} id="share-after">
+                  {t('settings.shareAfter')}
+                </div>
+                <div className={s.note}>{t('settings.shareAfter.help')}</div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={shareAfter}
+                aria-labelledby="share-after"
+                className={s.switch}
+                onClick={() => {
+                  writeString(SHARE_AFTER_KEY, shareAfter ? 'off' : 'on');
+                  setShareAfter(!shareAfter);
+                }}
+              >
+                <span className={s.knob} />
+              </button>
             </div>
           </Card>
           <div className={s.o4}>

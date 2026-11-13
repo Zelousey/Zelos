@@ -6792,6 +6792,30 @@ def report_snapshot(db, rep):
 import posts as POSTS  # noqa: E402
 
 
+def _post_trade_chart(db, uid, rec):
+    """The price line for a shared Solo trade: the day's minute prices for a trade bought and sold
+    the same day, else daily closes; the buy is the latest buy fill of that stock before the sale."""
+    try:
+        sym, sell_ms = rec["sym"], int(rec.get("at") or 0)
+        buy_ms = None
+        for d in db.collection("practiceAccounts").document(uid).collection("history").order_by("at", direction=firestore.Query.DESCENDING).limit(120).stream():
+            x = d.to_dict() or {}
+            if x.get("kind") == "fill" and x.get("side") == "buy" and x.get("sym") == sym and (x.get("opt") or None) == (rec.get("opt") or None) and int(x.get("at") or 0) <= sell_ms:
+                buy_ms = int(x["at"])
+                break
+        nyl = lambda ms: datetime.fromtimestamp(ms / 1000, NY).strftime("%Y-%m-%d %H:%M")  # noqa: E731
+        open_day = rec.get("openDay") or (nyl(buy_ms)[:10] if buy_ms else None)
+        close_day = rec.get("closeDay") or nyl(sell_ms)[:10]
+        if open_day and open_day == close_day:
+            snap = db.collection("markets").document("intraday_" + sym).get()
+            bars = (snap.to_dict() or {}).get("bars", []) if snap.exists else []
+            return POSTS.trade_chart(bars, nyl(buy_ms) if buy_ms else open_day, nyl(sell_ms))
+        return POSTS.trade_chart(_read_history(db).get(sym) or [], open_day or close_day, close_day)
+    except Exception as e:
+        print("[posts] chart:", type(e).__name__, e)
+        return None
+
+
 @https_fn.on_call()
 @_tk_call
 def community_post(req, db, uid, tok, now_ms):
@@ -6804,10 +6828,16 @@ def community_post(req, db, uid, tok, now_ms):
     try:
         if source == "solo":
             h = db.collection("practiceAccounts").document(uid).collection("history").document(ref).get()
-            card = POSTS.solo_card(h.to_dict() if h.exists else None)
+            rec = h.to_dict() if h.exists else None
+            card = POSTS.solo_card(rec)
+            chart = _post_trade_chart(db, uid, rec)
         else:
             w = db.collection("tradeWars").document(ref).get()
             card = POSTS.battle_card(w.to_dict() if w.exists else None, uid)
+            a = db.collection("tradeWars").document(ref).collection("accounts").document(uid).get()
+            chart = POSTS.curve_chart(((a.to_dict() or {}) if a.exists else {}).get("curve"))
+        if chart:
+            card["chart"] = chart
     except ValueError as e:
         raise TWError("FAILED_PRECONDITION", str(e))
     if MOD.is_bad(thesis):

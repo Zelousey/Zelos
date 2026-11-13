@@ -18,6 +18,8 @@ import { BATTLE_ID_RE, cancelBattle, joinBattle, leaveBattle, OUT_REASON, startB
 import { BattleClash } from './BattleClash';
 import { ShareSheet } from '../posts/ShareSheet';
 import type { Draft as PostDraft } from '../posts/posts';
+import { curveChart } from '../posts/chartData';
+import { useIdentity } from '../dashboard/social';
 import { LobbyTeams, TeamResult } from './Teams';
 import { DraftView } from './DraftView';
 import { LiveView } from './LiveView';
@@ -147,7 +149,7 @@ function Room({ b, uid }: { b: Battle; uid: string }) {
       {b.status !== 'lobby' && !player && b.status !== 'ended' && <EmptyState icon="war" body={t('bt.playersOnly')} />}
       {b.status === 'draft' && player && <DraftView b={b} uid={uid} now={now} />}
       {b.status === 'active' && player && <LiveView b={b} uid={uid} accounts={accounts} me={me} book={book.status === 'ready' ? book.data : { positions: [], fills: [] }} events={events.status === 'ready' ? events.data : []} quotes={quotes.status === 'ready' ? quotes.data : null} now={now} />}
-      {b.status === 'ended' && <Results b={b} uid={uid} />}
+      {b.status === 'ended' && <Results b={b} uid={uid} curve={(accts.status === 'ready' ? accts.data : []).find((a) => a.uid === uid)?.curve ?? []} />}
       {player && (b.status === 'active' || b.status === 'ended') && <BattleClash key={b.status} battleId={b.id} stage={b.status === 'active' ? 'start' : 'end'} />}
 
       <Confirm
@@ -216,10 +218,11 @@ function Lobby({ b, uid, busy, onJoin, onStart }: { b: Battle; uid: string; busy
   );
 }
 
-function Results({ b, uid }: { b: Battle; uid: string }) {
+function Results({ b, uid, curve }: { b: Battle; uid: string; curve: { t: number; v: number }[] }) {
   const winner = b.results.find((r) => r.rank === 1);
   const mine = b.rewards.find((r) => r.uid === uid);
   const me = b.results.find((r) => r.uid === uid);
+  const ident = useIdentity(uid);
   const [share, setShare] = useState<PostDraft | null>(null);
   const modes = [b.lms && 'lms', b.modes.draft && 'draft', b.modes.whale && 'whale', b.modes.storms && 'storms', b.modes.bounties && 'bounties', b.modes.stops && 'stops'].filter((x): x is string => !!x);
   return (
@@ -235,7 +238,7 @@ function Results({ b, uid }: { b: Battle; uid: string }) {
             <Button
               variant="primary"
               onClick={() =>
-                setShare({ source: 'battle', ref: b.id, name: me.name, card: { name: b.name, rank: me.rank, of: b.results.length, pnlPct: me.pnlPct, pnl: me.pnl, start: me.start, final: me.final, trades: me.trades, modes } })
+                setShare({ source: 'battle', ref: b.id, name: me.name, username: ident.status === 'ready' ? ident.data.username : null, card: { name: b.name, rank: me.rank, of: b.results.length, pnlPct: me.pnlPct, pnl: me.pnl, start: me.start, final: me.final, trades: me.trades, modes, chart: curveChart([...curve, ...(curve.length ? [{ t: b.endAt, v: me.final }] : [])]) ?? undefined } })
               }
             >
               {t('post.shareResult')}

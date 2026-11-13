@@ -81,8 +81,8 @@ function PostItem({ p, mine }: { p: Post; mine: boolean }) {
           <SafetyMenu what={{ kind: 'post', target: p.uid, where: p.id }} name={p.name} />
         )}
       </div>
-      <ShareCard source={p.source} card={p.card} />
       {p.thesis && <p className={s.postThesis}>{p.thesis}</p>}
+      <ShareCard source={p.source} card={p.card} />
       <Confirm
         open={ask}
         title={t('post.deleteAsk')}
