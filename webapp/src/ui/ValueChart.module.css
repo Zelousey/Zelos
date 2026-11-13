@@ -1,0 +1,9 @@
+.wrap { display: grid; gap: 4px; min-width: 0; }
+.read { min-height: 20px; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.when { color: var(--muted); font-size: var(--text-xs); }
+.plot { width: 100%; touch-action: pan-y; cursor: crosshair; }
+.plot svg { display: block; }
+.up { color: var(--bull); }
+.down { color: var(--bear); }
+.base { stroke: var(--muted); stroke-dasharray: 3 4; stroke-width: 1; opacity: 0.6; }
+.cross { stroke: var(--muted); stroke-width: 1; opacity: 0.7; }

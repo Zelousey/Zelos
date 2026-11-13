@@ -109,8 +109,9 @@ export function CompareMenu({ sym, value, onChange, sectorCount, group }: { sym:
   if (sym !== 'QQQ') items.push(['QQQ', t('cmp.qqq')]);
   return (
     <div className={ds.menuWrap} ref={ref}>
-      <Button size="sm" variant={value ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        <Icon name="compare" size={16} /> {t('cmp.title')}
+      <Button size="sm" iconOnly data-tip={t('cmp.title')} variant={value ? 'primary' : 'ghost'} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <Icon name="compare" size={18} />
+        <span className="visually-hidden">{t('cmp.title')}</span>
       </Button>
       {open && (
         <div className={ds.menu} role="menu" aria-label={t('cmp.title')}>

@@ -715,11 +715,15 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
     Hard stops: live prices stop for the day at MS_DAILY_CALLS, and until the next billing cycle at
     MS_LIVE_CAP; markets/quotes then says "paused" (the app shows it) and the last prices stay."""
     now = datetime.now(NY)
+    day = now.strftime("%Y-%m-%d")
+    if MD.market_holiday(day):
+        return  # markets closed: no calls at all
     minutes = now.hour * 60 + now.minute
     every, steady_every = MD.quote_every_min(), MD.steady_every_min()
-    in_session = SESSION_OPEN < minutes <= SESSION_CLOSE + 1
+    close = MD.session_close_min(day)  # 13:00 on an early close
+    in_session = SESSION_OPEN < minutes <= close + 1
     on = lambda n: in_session and (minutes - SESSION_OPEN - 1) % n == 0  # noqa: E731
-    closing = minutes == SESSION_CLOSE + 6
+    closing = minutes == close + 6
     syms = (FAST_SYMBOLS if on(every) or closing else []) + (STEADY_SYMBOLS if on(steady_every) or closing else [])
     if not syms:
         return
@@ -2379,6 +2383,35 @@ def tw_mark(acct, book, prices, now_ms):
     return acct
 
 
+TW_CURVE_EVERY_MS = 5 * 60 * 1000   # a battle account's value line: one point every 5 minutes
+TW_CURVE_KEEP = 600                  # about a week of market hours at that rate
+
+
+def tw_curve(acct, now_ms):
+    """Pure: acct with its value line (`curve`, [{t, eq}]) extended (owner 2026-11-12: the battle
+    chart remembers the highs and lows, like a brokerage app). A point every TW_CURVE_EVERY_MS
+    while the value moves; a flat value (market closed) adds one at most every 6 hours."""
+    eq = acct.get("equity")
+    if not isinstance(eq, (int, float)):
+        return acct
+    curve = list(acct.get("curve") or [])
+    last = curve[-1] if curve else None
+    if last is None:
+        start = acct.get("start")
+        curve = [{"t": now_ms, "eq": _r2(start if isinstance(start, (int, float)) else eq)}]
+        if curve[0]["eq"] != eq:
+            curve.append({"t": now_ms, "eq": _r2(eq)})
+    else:
+        gap = now_ms - (last.get("t") or 0)
+        if gap >= TW_CURVE_EVERY_MS and (eq != last.get("eq") or gap >= 6 * 3600000):
+            curve.append({"t": now_ms, "eq": _r2(eq)})
+        else:
+            return acct
+    out = dict(acct)
+    out["curve"] = curve[-TW_CURVE_KEEP:]
+    return out
+
+
 def tw_check_bracket(price, sl, tp):
     """(sl, tp) as clean numbers or None, or raises TWError. Long only: stop below the
     current price, target above it."""
@@ -3202,6 +3235,8 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
                 notes.append((r["uid"], "battles", ("You won %s 🏆" if r["rank"] == 1 else "%s is over") % wname,
                               "You finished #%d of %d (%+.2f%%)." % (r["rank"], n, r["pnlPct"] or 0), wpath))
         for uid, acct in accts.items():
+            if not acct.get("out") or uid in knocked:
+                acct = tw_curve(acct, now_ms)
             t.set(ref.collection("accounts").document(uid), acct)
             if uid in knocked or uid in touched:
                 t.set(ref.collection("books").document(uid), books[uid])

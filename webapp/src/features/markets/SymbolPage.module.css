@@ -27,9 +27,10 @@
 /* chart type (owner's step 2): a boxed menu that matches the timeframe buttons */
 .typePick { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 28px 0 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); font-size: var(--text-sm); font-weight: 700; cursor: pointer; }
 .typePick:hover { border-color: var(--accent-line); }
-.typePick:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* one ring, keyboard only (owner 2026-11-12: clicking showed three boxes: hover border, this outline and the page's ring on the select) */
+.typePick:has(select:focus-visible) { box-shadow: var(--focus-ring); }
 .typePick::after { content: ''; position: absolute; right: 10px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); pointer-events: none; }
-.typePick select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; cursor: pointer; outline: none; }
+.typePick select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; cursor: pointer; outline: none; box-shadow: none; }
 .typePick select option, .typePick select optgroup { background: var(--surface); color: var(--ink); }
 @media (pointer: coarse) { .typePick { min-height: var(--tap); } .typePick select { font-size: 16px; } }
 .chartBody { padding: var(--space-2) var(--space-3) var(--space-3); }
@@ -128,7 +129,7 @@
 .gain { color: var(--up-ink); }
 .loss { color: var(--down-ink); }
 .posOrders { border-left-color: var(--gold); }
-.tradeOptions { margin-left: auto; }
+.tradeOptions { margin-left: auto; order: 2; }
 .muted { color: var(--muted); font-size: var(--text-sm); }
 .switchSpeed { padding: 0 var(--space-4) var(--space-3); }
 

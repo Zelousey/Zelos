@@ -9,7 +9,7 @@ import type { QuotesDoc } from '../../data/markets';
 import { instrument } from '../../data/universe';
 import { formatMoney, formatPercent, formatPrice, formatRelative, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { Badge, Button, Card, Change, Confirm, EmptyState, Field, useToast } from '../../ui';
+import { Badge, Button, Card, Change, Confirm, EmptyState, Field, useToast, ValueChart } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { TIMEFRAMES } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
@@ -64,6 +64,7 @@ export function LiveView({ b, uid, accounts, me, book, events, quotes, now }: Pr
               <span className={s.big}>{formatMoney(live)}</span>
               <Change abs={pnl} pct={me?.start ? (pnl / me.start) * 100 : 0} />
               <span className={s.muted}>{t('bt.cashLine', { cash: formatMoney(me?.cash ?? 0), start: formatMoney(me?.start ?? b.buyIn, { digits: 0 }) })}</span>
+              {me && me.curve.length > 0 && <ValueChart points={[...me.curve, { t: now, v: live }]} base={me.start} label={t('bt.valueChart')} />}
             </div>
           </Card>
           {!me?.out && <Ticket b={b} uid={uid} me={me} book={book} quotes={quotes} sym={sym} setSym={setSym} syms={syms} now={now} />}

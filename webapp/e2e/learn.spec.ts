@@ -27,6 +27,14 @@ const axe = async (page: Page) => {
 test('Trading 101: chapter 1 path, an animated lesson with a quick check, old links redirect', async ({ page }) => {
   await page.goto('learn');
   await expect(page.getByRole('heading', { name: 'Trading 101', level: 1 })).toBeVisible();
+  // every chapter is a book on a shelf (owner 2026-11-12); a book opens on two choices
+  const shelf = page.getByRole('list', { name: 'Trading 101 books' });
+  await expect(shelf.getByRole('link')).toHaveCount(2);
+  await axe(page);
+  await shelf.getByRole('link', { name: /^Book 1: The basics/ }).click();
+  await expect(page).toHaveURL(/\/app\/learn\/basics$/);
+  await expect(page.getByRole('link', { name: 'Learn from the start' })).toHaveAttribute('href', '/app/learn/basics/stocks');
+  await expect(page.getByRole('link', { name: /Skip to the chapter quiz/ })).toHaveAttribute('href', '/app/learn/basics/quiz');
   const ch = page.getByRole('region', { name: 'The basics' });
   await expect(ch.getByText('Chapter 1')).toBeVisible();
   await expect(ch.getByRole('listitem')).toHaveCount(9); // 8 lessons + the chapter quiz
@@ -61,7 +69,7 @@ test('Trading 101: chapter 1 path, an animated lesson with a quick check, old li
   await axe(page);
 
   // chapter 2: charts & volume (signed out, every lesson is open to read)
-  await page.goto('learn');
+  await page.goto('learn/charts');
   const ch2 = page.getByRole('region', { name: 'Charts & volume' });
   await expect(ch2.getByText('Chapter 2')).toBeVisible();
   await expect(ch2.getByRole('listitem')).toHaveCount(9);
@@ -116,11 +124,15 @@ test.describe('signed in', () => {
 
     // a lesson, start to finish: 10 XP from the server, and the next lesson opens
     await page.goto('learn');
+    await expect(page.getByRole('link', { name: /^Book 2: Charts & volume\. locked/ })).toBeVisible();
     const ch = page.getByRole('region', { name: 'The basics' });
     const ch2 = page.getByRole('region', { name: 'Charts & volume' });
-    await expect(ch.getByRole('link', { name: /Lesson 2/ })).toHaveCount(0); // locked until lesson 1 is done
-    await expect(ch2.getByText('Finish Chapter 1 (or pass its quiz) to open this chapter.')).toBeVisible();
+    await page.goto('learn/charts');
+    await expect(page.getByText('Finish Chapter 1 (or pass its quiz) to open this chapter.').first()).toBeVisible();
     await expect(ch2.getByRole('link')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /Skip to the chapter quiz/ })).toHaveCount(0);
+    await page.goto('learn/basics');
+    await expect(ch.getByRole('link', { name: /Lesson 2/ })).toHaveCount(0); // locked until lesson 1 is done
     await page.goto('learn/charts/quiz');
     await expect(page.getByText('Pass Chapter 1 first')).toBeVisible();
     await page.goto('learn');
@@ -132,8 +144,9 @@ test.describe('signed in', () => {
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByText('+10 XP')).toBeVisible();
     await expect.poll(async () => (await get(`users/${uid}`)).fields?.learnDone?.arrayValue?.values?.map((v: { stringValue: string }) => v.stringValue)).toEqual(['stocks']);
-    await page.goto('learn');
+    await page.goto('learn/basics');
     await expect(ch.getByText('1 of 8 lessons done')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Continue: Why prices move' })).toHaveAttribute('href', '/app/learn/basics/prices');
     await expect(ch.getByRole('link', { name: 'Lesson 2: Why prices move' })).toBeVisible();
 
     // test out: the chapter quiz, graded by the server (wrong first, then right)
@@ -162,9 +175,10 @@ test.describe('signed in', () => {
     await expect(page.getByText('+50 XP')).toBeVisible();
     await axe(page);
     await expect.poll(async () => !!(await get(`users/${uid}`)).fields?.learnPassed?.mapValue?.fields?.basics).toBe(true);
-    await page.goto('learn');
+    await page.goto('learn/basics');
     await expect(ch.getByText('Passed', { exact: true })).toBeVisible();
     await expect(ch.getByRole('link', { name: 'Lesson 8: Battles with friends' })).toBeVisible(); // a passed chapter opens every lesson
+    await page.goto('learn/charts');
     await expect(ch2.getByRole('link', { name: 'Lesson 1: Timeframes' })).toBeVisible(); // ...and the next chapter
     await expect(ch2.getByRole('link', { name: /Lesson 2/ })).toHaveCount(0);
     await page.goto('learn/charts/trends');

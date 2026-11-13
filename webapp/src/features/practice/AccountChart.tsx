@@ -11,17 +11,18 @@ import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Tabs } from '../../ui';
 import type { Vols } from '../options/model';
-import { START_CASH, type Account } from './account';
+import { START_CASH, type Account, type HistoryItem } from './account';
 import s from './AccountChart.module.css';
-import { change, CLOSE_MIN, dailyPoints, intradayPoints, OPEN_MIN, previousClose, sessionDay, type Range, type ValuePoint } from './valueSeries';
+import { nyDay } from '../charts/series';
+import { change, CLOSE_MIN, dailyPoints, intradayPoints, nyMinute, OPEN_MIN, previousClose, sessionDay, type DayFill, type Range, type ValuePoint } from './valueSeries';
 
 const H = 180;
 const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
-type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string };
+type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[] };
 
-export function AccountChart({ acct, equity, quotes, vols, today }: Props) {
+export function AccountChart({ acct, equity, quotes, vols, today, history = [] }: Props) {
   const [range, setRange] = useState<Range>('1D');
   const [bars, setBars] = useState<Record<string, Bar[]>>({});
   const now = useNow(60_000);
@@ -33,14 +34,23 @@ export function AccountChart({ acct, equity, quotes, vols, today }: Props) {
     const val = new Map<string, number>();
     for (const p of acct.positions) val.set(p.sym, (val.get(p.sym) ?? 0) + p.qty * (quotes[p.sym]?.c ?? p.avg));
     for (const o of acct.options) val.set(o.u, (val.get(o.u) ?? 0) + o.qty * 100 * o.avg);
+    // what you sold today too, so the morning still shows it
+    for (const h of history) if (h.kind === 'fill' && h.sym && nyDay(h.at) === today && !val.has(h.sym)) val.set(h.sym, (h.qty ?? 0) * (h.price ?? 0) * (h.opt ? 100 : 1));
     return [...val.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_FEEDS).map(([sym]) => sym);
-  }, [acct.positions, acct.options, quotes]);
+  }, [acct.positions, acct.options, quotes, history, today]);
 
   const session = sessionDay(bars, today);
+  const fills = useMemo<DayFill[]>(
+    () =>
+      history
+        .filter((h) => h.kind === 'fill' && h.sym && (h.side === 'buy' || h.side === 'sell') && h.qty && h.price != null && nyDay(h.at) === session)
+        .map((h) => ({ m: nyMinute(h.at), sym: h.sym, opt: h.opt, side: h.side as 'buy' | 'sell', qty: h.qty!, price: h.price! })),
+    [history, session],
+  );
   const base1d = previousClose(acct.hist, session, START_CASH);
   const points = useMemo<ValuePoint[]>(
-    () => (range === '1D' ? intradayPoints(acct, bars, quotes, session, today, vols, equity, nowMin) : dailyPoints(acct.hist, today, equity, range)),
-    [range, acct, bars, quotes, session, today, vols, equity, nowMin],
+    () => (range === '1D' ? intradayPoints(acct, bars, quotes, session, today, vols, equity, nowMin, fills) : dailyPoints(acct.hist, today, equity, range)),
+    [range, acct, bars, quotes, session, today, vols, equity, nowMin, fills],
   );
   const base = range === '1D' ? base1d : (points[0]?.v ?? equity);
   const ch = change(points, base);
@@ -64,7 +74,7 @@ export function AccountChart({ acct, equity, quotes, vols, today }: Props) {
       </div>
       <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} />
       <Tabs label={t('acct.range')} value={range} onChange={setRange} items={(['1D', '1W', '1M', '3M'] as Range[]).map((r) => ({ value: r, label: r }))} />
-      {range === '1D' && (acct.positions.length > 0 || acct.options.length > 0) && <p className={s.note}>{t('acct.todayNote')}</p>}
+      {range === '1D' && (acct.positions.length > 0 || acct.options.length > 0 || fills.length > 0) && <p className={s.note}>{t('acct.todayNote')}</p>}
       <details className={s.table}>
         <summary>{t('acct.table')}</summary>
         <table aria-describedby={tableId}>

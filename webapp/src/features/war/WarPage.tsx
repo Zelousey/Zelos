@@ -10,7 +10,7 @@ import { useNow } from '../../lib/useNow';
 import { formatMoney, formatPercent, formatRelative } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { readString, writeString } from '../../lib/storage';
-import { Badge, Button, Card, Change, Confirm, EmptyState, Icon, LoadingState, PageHeader, Sheet, Sparkline, Tabs, useToast } from '../../ui';
+import { Badge, Button, Card, Change, Confirm, EmptyState, Icon, LoadingState, PageHeader, Sheet, Tabs, useToast, ValueChart } from '../../ui';
 import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import { WarGate } from './Gate';
@@ -140,9 +140,9 @@ function WarZone({ uid }: { uid: string }) {
 }
 
 function Balance({ p, q }: { p: WarProfile; q: WarQuotes | null }) {
+  const now = useNow(60_000);
   const eq = warEquity(p, q?.prices ?? {});
   const pnl = eq - p.start;
-  const points = [...p.chart.map((x) => x.eq), eq];
   return (
     <Card pad>
       <div className={s.balance}>
@@ -150,7 +150,7 @@ function Balance({ p, q }: { p: WarProfile; q: WarQuotes | null }) {
         <span className={s.big}>{formatMoney(eq)}</span>
         <Change abs={pnl} pct={(pnl / p.start) * 100} />
         <span className={s.muted}>{t('war.balanceLine', { cash: formatMoney(p.cash), start: formatMoney(START_BALANCE, { digits: 0 }) })}</span>
-        {points.length > 1 && <Sparkline values={points} width={280} height={48} label={t('war.balanceChart')} />}
+        {p.chart.length > 0 && <ValueChart points={[...p.chart.map((x) => ({ t: x.t, v: x.eq })), { t: now, v: eq }]} base={p.start} label={t('war.balanceChart')} />}
       </div>
       <ResetBox p={p} eq={eq} />
       <BattleLevel points={p.battlePoints} />

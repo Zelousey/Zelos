@@ -2,7 +2,7 @@
 /* owner 2026-11-08: one compact screen. A slim top row, glass cards (the global glass-cards class),
    the main column on the left and a side panel (leaderboard, strategies) on the right on wide screens. */
 .hub { position: relative; display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
-.hub::before { content: ''; position: absolute; inset: -40px 0 auto; height: 480px; z-index: -1; pointer-events: none; background: radial-gradient(60% 70% at 25% 0%, var(--accent-soft), transparent 70%); opacity: 0.5; }
+/* the blue glow now covers the whole page area, from the sidebar (Shell .main::before) */
 .top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
 .top > nav { margin: 0; max-width: 100%; min-width: 0; }
 .note { margin: 0; color: var(--muted); font-size: var(--text-xs); }

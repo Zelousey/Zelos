@@ -251,6 +251,11 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                 onDrawn={draw.onDrawn}
                 toolsNote={draw.note}
                 fibItems={draw.fibItems}
+                clearItems={[
+                  ...(draw.count ? [{ id: 'draw', label: t('ct.clear.draw', { n: draw.count }), onClear: draw.clearAll }] : []),
+                  ...(cmp ? [{ id: 'cmp', label: t('ct.clear.cmp'), onClear: () => setCmp(null) }] : []),
+                  ...(fc ? [{ id: 'fc', label: t('ct.clear.fc'), onClear: flipForecast }] : []),
+                ]}
                 compare={cmpData.line}
                 daySlots={built.intraday && dayLabel === '1D' && typeof range === 'number' ? range : undefined}
                 tools
@@ -259,8 +264,9 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
                   <>
                     {draw.buttons}
                     <CompareMenu sym={sym} value={cmp} onChange={setCmp} sectorCount={sectorCount} group={cmpData.group} />
-                    <Button size="sm" variant={fc ? 'primary' : 'ghost'} aria-pressed={!!fc} onClick={flipForecast} disabled={!price}>
-                      <Icon name="target" size={16} /> {t('chart.forecast')}
+                    <Button size="sm" iconOnly data-tip={t('chart.forecast')} variant={fc ? 'primary' : 'ghost'} aria-pressed={!!fc} onClick={flipForecast} disabled={!price}>
+                      <Icon name="target" size={18} />
+                      <span className="visually-hidden">{t('chart.forecast')}</span>
                     </Button>
                     <Link className={buttonClass({ variant: 'secondary', size: 'sm' }, s.tradeOptions)} to={`/options/${encodeURIComponent(sym)}`}>
                       <Icon name="options" size={16} /> {t('chart.options')}

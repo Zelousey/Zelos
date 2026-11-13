@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import type { Bar } from '../../data/markets';
 import { engine, SHAPE_POINTS, toSeries, type ChartStyle, type Forecast, type Shape, type ShapeColor, type ShapeKind, type TradeChart } from './engine';
-import { ChartTools, type ToolsActions } from './ChartTools';
+import { ChartTools, type ClearItem, type ToolsActions } from './ChartTools';
 import s from './ChartView.module.css';
 
 export type ChartViewProps = {
@@ -42,13 +42,15 @@ export type ChartViewProps = {
   compare?: { label: string; color: string; r: (number | null)[] } | null;
   /** drawing tools for the Fibonacci menu (Fibonacci and Gann, step 4) */
   fibItems?: ReactNode;
+  /** more lines for the toolbar's Remove menu (drawings, compare line, forecast) */
+  clearItems?: ClearItem[];
   /** a line under the tools row (e.g. what the drawing tool you picked does) */
   toolsNote?: ReactNode;
   /** intraday "1D": show only the latest session, with room for all its bars (e.g. 78 at 5m) */
   daySlots?: number;
 };
 
-export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots, compare, fibItems }: ChartViewProps) {
+export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots, compare, fibItems, clearItems }: ChartViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<TradeChart | null>(null);
   // chart tools: Fibonacci, placing an alert, and this symbol's alerts (rev bumps when the store changes)
@@ -214,7 +216,7 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
     </div>
   );
   if (!tools && !under) return view;
-  const toolRow = tools && <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} extra={toolbarExtra} fibItems={fibItems} />;
+  const toolRow = tools && <ChartTools sym={sym} state={{ fib, placing, alerts }} act={act} extra={toolbarExtra} fibItems={fibItems} clearItems={clearItems} />;
   return (
     <div className={s.withTools}>
       {toolsTop && toolRow}

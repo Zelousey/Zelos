@@ -93,3 +93,43 @@ test('reduced motion: the walkthrough works the same', async ({ page }, info) =>
   await c.getByRole('button', { name: 'Skip' }).click();
   await expect(c).toHaveCount(0);
 });
+
+test('page tours: a new visitor gets each page’s tour once (only steps on screen), a help note later, and Help replays any of them', async ({ page }) => {
+  await page.addInitScript(() => localStorage.removeItem('zelosPageToursOff'));
+  const tour = page.getByRole('dialog').filter({ hasText: /Step \d+ of \d+/ });
+  await page.goto('markets');
+  await expect(tour.getByRole('heading', { name: 'The market at a glance' })).toBeVisible();
+  await expect(tour).toBeFocused();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  for (let i = 0; i < 10 && (await tour.getByRole('button', { name: 'Got it' }).count()) === 0; i++) await tour.getByRole('button', { name: 'Next' }).click();
+  await tour.getByRole('button', { name: 'Got it' }).click();
+  await expect(tour).toHaveCount(0);
+  // seen: it doesn't open again, and no help note right after it
+  await page.reload();
+  await page.waitForTimeout(2500);
+  await expect(tour).toHaveCount(0);
+  await expect(page.getByText('Need help with Market?')).toHaveCount(0);
+  // days later the page offers it again with a small note
+  await page.evaluate(() => {
+    localStorage.setItem('zelosPageHelp', JSON.stringify({ 'page-market': 1 }));
+    localStorage.setItem('zelosPageHelpAt', '1');
+  });
+  await page.reload();
+  const note = page.getByRole('status').filter({ hasText: 'Need help with Market?' });
+  await expect(note).toBeVisible();
+  await note.getByRole('button', { name: 'Show me around' }).click();
+  await expect(tour.getByRole('heading', { name: 'The market at a glance' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(tour).toHaveCount(0);
+
+  // another page has its own tour (Trading 101), and Esc skips it
+  await page.goto('learn');
+  await expect(tour.getByRole('heading', { name: 'Trading 101' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  // Help lists every page's tour and replays it on its page
+  await page.goto('help');
+  await expect(page.getByRole('link', { name: /^Replay: / })).toHaveCount(16);
+  await page.getByRole('link', { name: 'Replay: Coaching' }).click();
+  await expect(page).toHaveURL(/\/app\/coach\?tour=page-coach$/);
+  await expect(tour.getByRole('heading', { name: 'Coaching' })).toBeVisible();
+});

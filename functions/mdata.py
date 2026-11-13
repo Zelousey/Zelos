@@ -140,6 +140,28 @@ CALLS = [0]   # Marketstack calls (symbols x requests) made by this process (usa
 BUDGET = [None]  # calls the running job may still make; None = not limited (tests, scripts)
 
 
+# US stock market holidays and 1 pm early closes (NYSE calendar). On a holiday live prices make no
+# calls at all (Marketstack would answer every minute with nothing, about 3,700 calls for nothing);
+# on an early close they stop after 1 pm. Owner 2026-11-12: "make sure the calls are done right".
+MARKET_HOLIDAYS = frozenset({
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25", "2026-06-19", "2026-07-03",
+    "2026-09-07", "2026-11-26", "2026-12-25",
+    "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31", "2027-06-18", "2027-07-05",
+    "2027-09-06", "2027-11-25", "2027-12-24",
+})
+EARLY_CLOSES = frozenset({"2026-11-27", "2026-12-24", "2027-11-26"})
+
+
+def market_holiday(day):
+    """'YYYY-MM-DD' -> True when US stock markets are closed all day."""
+    return day in MARKET_HOLIDAYS
+
+
+def session_close_min(day):
+    """Minutes after midnight (New York) the regular session ends that day: 16:00, or 13:00 on an early close."""
+    return 13 * 60 if day in EARLY_CLOSES else 16 * 60
+
+
 def _env_int(name, default, lo=0):
     try:
         return max(lo, int(os.environ.get(name, str(default))))

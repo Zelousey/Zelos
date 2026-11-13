@@ -84,7 +84,7 @@ function Player({ chapterId, idx }: { chapterId: string; idx: number }) {
   return (
     <div className={s.player}>
       <div className={s.playerTop}>
-        <Link to="/learn" className={s.close} aria-label={t('ln.closeLesson')}>
+        <Link to={`/learn/${c.id}`} className={s.close} aria-label={t('ln.closeLesson')}>
           ×
         </Link>
         <div className={s.pathBar} role="progressbar" aria-label={t('ln.lessonProgress')} aria-valuemin={0} aria-valuemax={total} aria-valuenow={at}>

@@ -2,7 +2,7 @@
    a slim column on the right (search, watchlist, sectors), one row of tabs under the chart. */
 .page { position: relative; display: grid; gap: var(--space-2); grid-template-columns: minmax(0, 1fr); }
 /* a soft glow behind the page so the glass surfaces have something to show through */
-.page::before { content: ''; position: absolute; inset: -40px 0 auto; height: 520px; z-index: -1; pointer-events: none; background: radial-gradient(60% 70% at 30% 0%, var(--accent-soft), transparent 70%); opacity: 0.55; }
+/* the blue glow now covers the whole page area, from the sidebar (Shell .main::before) */
 
 .topRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
 .topRow .status { margin: 0; }
@@ -17,7 +17,10 @@
 @media (min-width: 1100px) {
   .layout { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: 'hero side' 'glance glance'; }
   .hero { grid-area: hero; align-self: stretch; }
-  .side { grid-area: side; align-self: stretch; grid-template-rows: auto minmax(0, auto) minmax(0, 1fr); }
+  /* the sectors always show in full; the watchlist takes the height that's left and scrolls */
+  .side { grid-area: side; align-self: stretch; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .watch { min-height: 120px; }
+  .watch .watchList { max-height: none; flex: 1; min-height: 0; }
   .glance { grid-area: glance; }
 }
 /* phones and tablets: search first, then the chart, the tabs and the sectors; the watchlist is a tab */
@@ -56,7 +59,8 @@
 /* the tabs under the chart and their small charts */
 .glanceTabs { margin-bottom: var(--space-2); overflow-x: auto; scrollbar-width: none; }
 .glanceTabs::-webkit-scrollbar { display: none; }
-.minis { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+/* the cards share the whole row (auto-fit), so a few cards don't leave a blank strip on the right */
+.minis { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 @media (max-width: 760px) { .minis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } }
 
 /* every stock (the All stocks tab, and Find a stock) */

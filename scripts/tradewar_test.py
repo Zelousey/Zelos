@@ -199,6 +199,21 @@ class MarkAndRank(unittest.TestCase):
         a = m.tw_mark(a, b, {"AAPL": 110.0}, T0 + 9000)  # no MSFT price: valued at cost
         self.assertEqual((a["equity"], a["pnl"], a["pnlPct"]), (1050.0, 50.0, 5.0))
 
+    def test_value_line_remembers_highs_and_lows(self):
+        # owner 2026-11-12: the battle chart keeps the whole path, not just the value now
+        a = dict(m.tw_new_account("A", 1000, T0), equity=1000.0)
+        a = m.tw_curve(a, T0)
+        self.assertEqual([p["eq"] for p in a["curve"]], [1000.0])
+        a = m.tw_curve(dict(a, equity=1100.0), T0 + 60000)  # too soon: no new point
+        self.assertEqual(len(a["curve"]), 1)
+        a = m.tw_curve(dict(a, equity=1100.0), T0 + m.TW_CURVE_EVERY_MS)
+        a = m.tw_curve(dict(a, equity=1000.0), T0 + 2 * m.TW_CURVE_EVERY_MS)
+        self.assertEqual([p["eq"] for p in a["curve"]], [1000.0, 1100.0, 1000.0])  # up to 1,100 and back
+        same = m.tw_curve(dict(a), T0 + 3 * m.TW_CURVE_EVERY_MS)  # flat (market closed): nothing added
+        self.assertEqual(len(same["curve"]), 3)
+        many = dict(a, curve=[{"t": i, "eq": 1.0} for i in range(m.TW_CURVE_KEEP)], equity=2.0)
+        self.assertEqual(len(m.tw_curve(many, 10 ** 12)["curve"]), m.TW_CURVE_KEEP)
+
     def test_rank_by_percent(self):
         rows = m.tw_rank([{"uid": "a", "pnlPct": 1.0, "pnl": 10}, {"uid": "b", "pnlPct": 5.0, "pnl": 25},
                           {"uid": "c", "pnlPct": -2.0, "pnl": -20}])

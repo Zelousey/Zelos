@@ -68,7 +68,8 @@ export function BookIntro() {
           const flipped = i < turned;
           // unturned pages: the next one on top; turned pages: the latest one on top
           return (
-            <div key={f.id} className={[s.page, flipped && s.flipped].filter(Boolean).join(' ')} style={{ zIndex: flipped ? PAGES.length + i : PAGES.length - i }} data-page={i}>
+            // at the end only the top turned page fades; the ones under it go at once (they'd show through)
+            <div key={f.id} className={[s.page, flipped && s.flipped, ending && flipped && i < turned - 1 && s.under].filter(Boolean).join(' ')} style={{ zIndex: flipped ? PAGES.length + i : PAGES.length - i }} data-page={i}>
               <div className={s.front}>
                 <img src={portraitUrl(f)} alt="" />
                 <b>{f.name}</b>
