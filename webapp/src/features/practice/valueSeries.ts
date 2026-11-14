@@ -56,6 +56,16 @@ export const CLOSE_MIN = 16 * 60;
 
 export const dayNum = (day: string) => Date.parse(day + 'T12:00:00Z') / 864e5;
 
+/** The days whose fills need 1-minute prices for 1D: today, plus the last day you traded if it was
+ *  within the past 4 days (on a weekend or holiday 1D shows that last session). */
+export function feedDays(fillDays: string[], today: string): Set<string> {
+  const days = new Set([today]);
+  let last = '';
+  for (const d of fillDays) if (d <= today && d > last) last = d;
+  if (last && dayNum(today) - dayNum(last) <= 4) days.add(last);
+  return days;
+}
+
 /** The trading day 1D shows: the newest day with 1-minute prices (Friday on a weekend), at most today. */
 export function sessionDay(bars: Record<string, Bar[]>, today: string): string {
   let best = '';
