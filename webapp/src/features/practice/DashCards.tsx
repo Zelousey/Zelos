@@ -132,6 +132,14 @@ export function PendingPanel({ uid }: { uid: string }) {
   return acct.data.orders.length ? <PendingOrders orders={acct.data.orders} /> : <MarketMovers />;
 }
 
+/** Computer Dashboard (owner 2026-11-14): the market movers always on top, pending orders on their own. */
+export function PendingOnly({ uid }: { uid: string }) {
+  const acct = usePracticeAccount(uid);
+  if (acct.status !== 'ready' || !acct.data || !acct.data.orders.length) return null;
+  return <PendingOrders orders={acct.data.orders} />;
+}
+export { MarketMovers };
+
 function orderLine(o: Order): string {
   const side = o.side === 'buy' ? t('trade.buy') : t('trade.sell');
   const what = o.opt ? (o.label ?? o.sym) : o.sym;
@@ -248,6 +256,7 @@ function waiting(o: Order, marketOpen: boolean): string {
 function MarketMovers() {
   const movers = useMovers();
   const tick = useNow(4000);
+  const [open, setOpen] = useState(false);
   if (movers.status === 'loading') return <Skeleton height={86} />;
   if (movers.status !== 'ready') return null;
   const up = movers.data.gainers.slice(0, 5);
@@ -255,20 +264,46 @@ function MarketMovers() {
   if (!up.length && !down.length) return null;
   const i = Math.floor(tick / 4000);
   return (
-    <div className={s.pair} aria-label={t('dc.marketMovers')}>
-      <MoverTicker tone="up" title={t('dc.mktGainers')} list={up} i={i} />
-      <MoverTicker tone="down" title={t('dc.mktLosers')} list={down} i={i} />
-    </div>
+    <>
+      <div className={s.pair} aria-label={t('dc.marketMovers')}>
+        <MoverTicker tone="up" title={t('dc.mktGainers')} list={up} i={i} onOpen={() => setOpen(true)} />
+        <MoverTicker tone="down" title={t('dc.mktLosers')} list={down} i={i} onOpen={() => setOpen(true)} />
+      </div>
+      {/* owner 2026-11-14: tap a mover card and it opens up into the full lists */}
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('dc.marketMovers')}>
+        <div className={[s.sheet, s.sheetPad].join(' ')}>
+          <div className={s.moverLists}>
+            {([['up', t('dc.mktGainers'), movers.data.gainers.slice(0, 8)], ['down', t('dc.mktLosers'), movers.data.losers.slice(0, 8)]] as const).map(([tone, title, list]) => (
+              <section key={tone} aria-label={title}>
+                <h4 className={s.sub}>{title}</h4>
+                <ul className={s.moverList}>
+                  {list.map((m) => (
+                    <li key={m.sym}>
+                      <Link to={`/markets/${m.sym}`} onClick={() => setOpen(false)}>
+                        <b>{m.sym}</b>
+                        <span className={s.tickName}>{instrument(m.sym)?.name ?? m.name}</span>
+                        <span className={`num ${tone}`}>{formatPercent(m.chPct, { signed: true })}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+          <p className={s.muted}>{t('dc.moversNote')}</p>
+        </div>
+      </Sheet>
+    </>
   );
 }
 
-function MoverTicker({ tone, title, list, i }: { tone: 'up' | 'down'; title: string; list: Mover[]; i: number }) {
+function MoverTicker({ tone, title, list, i, onOpen }: { tone: 'up' | 'down'; title: string; list: Mover[]; i: number; onOpen: () => void }) {
   const [still] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   if (!list.length) return null;
   const k = still ? 0 : i % list.length;
   const m = list[k]!;
   return (
-    <Link to={`/markets/${m.sym}`} className={[s.card, s.ticker, tone === 'up' ? s.green : s.red].join(' ')} aria-label={`${title}: ${m.sym} ${formatPercent(m.chPct, { signed: true })}`}>
+    <button type="button" onClick={onOpen} aria-haspopup="dialog" className={[s.card, s.ticker, tone === 'up' ? s.green : s.red].join(' ')} aria-label={`${title}: ${m.sym} ${formatPercent(m.chPct, { signed: true })}. ${t('dc.moversMore')}`}>
       <span className={s.cardTitle}>{title}</span>
       <span key={m.sym} className={s.tickRow}>
         <b>{m.sym}</b>
@@ -280,7 +315,7 @@ function MoverTicker({ tone, title, list, i }: { tone: 'up' | 'down'; title: str
           <i key={x.sym} className={j === k ? s.dotOn : undefined} />
         ))}
       </span>
-    </Link>
+    </button>
   );
 }
 

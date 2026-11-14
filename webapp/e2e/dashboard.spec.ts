@@ -85,12 +85,24 @@ test('signed in: the Solo account and battles on Trading; trader card, missions 
   // no pending orders: two small cards cycle through today's market movers instead (owner 2026-11-15),
   // labelled as the market, not your account
   await expect(page.getByRole('heading', { name: 'Solo · Pending orders' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /^Market · gainers: / })).toBeVisible();
-  await expect(page.getByRole('link', { name: /^Market · losers: / })).toBeVisible();
-  // your own top gainers and losers today (green and red cards), then the positions, then Battle
+  // tap a mover card and it opens into the full lists (owner 2026-11-14)
+  await expect(page.getByRole('button', { name: /^Market · gainers: / })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Market · losers: / })).toBeVisible();
+  await page.getByRole('button', { name: /^Market · gainers: / }).click();
+  await expect(page.getByRole('dialog')).toContainText('not your account');
+  await page.keyboard.press('Escape');
+  // your own top gainers and losers: phones only; a computer has the ETF chart in their place
+  const phoneLayout = info.project.name === 'phone';
   const gain = page.getByRole('region', { name: 'Your top gainers' });
-  await expect(gain).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Your top losers' })).toBeVisible();
+  await expect(gain).toHaveCount(phoneLayout ? 1 : 0);
+  await expect(page.getByRole('region', { name: 'Your top losers' })).toHaveCount(phoneLayout ? 1 : 0);
+  if (!phoneLayout) {
+    await expect(page.getByRole('combobox', { name: 'Which ETF' })).toHaveValue('SPY');
+    await expect(page.getByRole('link', { name: 'Open in Market →' })).toHaveAttribute('href', /\/markets\/SPY$/);
+    // buying power on top, no separate cash tile; Solo options always listed
+    await expect(page.getByText('Buying power', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Solo · Options' })).toBeVisible();
+  }
   await expect(page.getByRole('heading', { name: 'What’s moving your account' })).toHaveCount(0);
   const earn = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Upcoming earnings' }) });
   await expect(earn).toContainText('Your stocks reporting soon');

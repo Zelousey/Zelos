@@ -84,3 +84,18 @@
 /* a position row opens its stock's trade page */
 .tapRow { cursor: pointer; }
 .tapRow:hover { background: var(--surface-hover); }
+
+/* ---- computer dashboard board (owner 2026-11-14 mock-up): number tiles on top, chart, then
+   positions / your movers side by side. At 1100px+ the section's parts sit straight in the
+   Dashboard's grid (DashboardPage.module.css .board); narrower, they stack as before. */
+.kpiTiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+.kpiTiles > * { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg, var(--radius)); padding: var(--space-3) var(--space-4); }
+.kpiTiles :global(span:nth-child(2)) { font-size: 1.25rem; }
+@media (max-width: 760px) { .kpiTiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) {
+  .board, .board > .stack, .board .posCell { display: contents; }
+  .board .kpiTiles { grid-area: k; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .board .chartCard { grid-area: chart; }
+  .board .posCard { grid-area: pos; }
+  .board .optCard { grid-area: opt; }
+}

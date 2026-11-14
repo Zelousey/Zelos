@@ -37,7 +37,8 @@ import { achievementsView, mergeProgress, missionsView, readLocal } from './prog
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
 import { AccountMore, AccountSection } from '../practice/AccountSection';
-import { PendingPanel } from '../practice/DashCards';
+import { MarketMovers, PendingOnly } from '../practice/DashCards';
+import { EtfChart } from './EtfChart';
 import { FirstSteps } from '../welcome/FirstSteps';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import { lsGet, SKIP_KEY } from '../welcome/welcome';
@@ -111,29 +112,53 @@ export default function DashboardPage() {
         {status}
       </div>
       <div className={s.pageBody} key={page} data-page={page}>
-        {page === 'trading' && (
-          <div className={s.tradeGrid}>
-            {/* owner 2026-10-20: your account, positions (stocks and options) and orders come first.
-                Phone (2026-11-14): pending orders right under the chart while there are any, otherwise
-                down here; Activity & account settings at the very bottom. */}
-            <div className={s.main}>
-              {uid ? <AccountSection uid={uid} phone={phone} /> : trader}
-              {uid && !phone && <AccountMore uid={uid} />}
+        {page === 'trading' &&
+          (phone ? (
+            <div className={s.tradeGrid}>
+              {/* phone (2026-11-14): pending orders right under the chart while there are any, otherwise
+                  down here; Activity & account settings at the very bottom */}
+              <div className={s.main}>{uid ? <AccountSection uid={uid} phone /> : trader}</div>
+              <div className={s.side}>
+                <WarsCard uid={uid} />
+                {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
+                  <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
+                )}
+                {uid && <PushNudge uid={uid} />}
+                <EarningsCard mine={mine} />
+              </div>
+              {uid && <AccountMore uid={uid} />}
             </div>
-            <div className={s.side}>
-              {/* computer: pending orders (or today's market movers) first; on a phone they sit under the chart */}
-              {uid && !phone && <PendingPanel uid={uid} />}
-              {/* owner 2026-11-15: Battle right under Solo positions and options */}
-              <WarsCard uid={uid} />
-              {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
-                <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
+          ) : (
+            /* computer (owner 2026-11-14 mock-up, round 2): one board that fills the screen.
+               Left: tiles (today, total P&L, buying power), the chart about halfway down, then Solo
+               positions and Solo options. Right: market movers (tap to open the lists), pending
+               orders and battles, a live ETF chart, then first steps (daily missions once done). */
+            <div className={[s.tradeGrid, uid ? s.board : ''].join(' ')}>
+              {uid ? <AccountSection uid={uid} phone={false} /> : <div className={s.main}>{trader}</div>}
+              {uid && (
+                <div className={s.bMv}>
+                  <MarketMovers />
+                </div>
               )}
-              {uid && <PushNudge uid={uid} />}
-              <EarningsCard mine={mine} />
+              <div className={s.bPend}>
+                {uid && <PendingOnly uid={uid} />}
+                <WarsCard uid={uid} />
+              </div>
+              <EtfChart className={s.bEtf} />
+              <div className={[s.side, s.bSide].join(' ')}>
+                {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
+                  <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} fallback={<MissionsCard progress={progress} xpLog={local.xpLog} />} />
+                )}
+                {uid && <PushNudge uid={uid} />}
+                <EarningsCard mine={mine} />
+              </div>
+              {uid && (
+                <div className={s.bMore}>
+                  <AccountMore uid={uid} />
+                </div>
+              )}
             </div>
-            {uid && phone && <AccountMore uid={uid} />}
-          </div>
-        )}
+          ))}
         {page === 'profile' && (
           <div className={s.profGrid}>
             <div className={s.stack}>
