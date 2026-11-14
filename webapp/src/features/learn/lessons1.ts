@@ -215,7 +215,7 @@ export const PNL_PERCENT: Lesson = lesson(
     { art: big('−20% THEN +20% = −4%', 'NOT EVEN'), title: 'Ups and downs don’t cancel', text: '$100 down 20% is $80. Up 20% from $80 is $96, not $100. Percentages work from where you are now, so losses hurt more than equal gains help.' },
     { art: big('ACCOUNT +1.2% TODAY', 'THE NUMBER THAT MATTERS', 'up'), title: 'Watch the account percent', text: 'A stock up 30% matters little if it’s a tiny slice of your account. Your account’s percent change is the real score, and it’s what battles rank by.' },
   ],
-  check('A stock falls 20%, then rises 20%. Compared with where it started, it is…', ['Back to even', 'Down 4%', 'Up 4%'], 1, '100 → 80 → 96. A 20% gain on the smaller number doesn’t make up the 20% loss.'),
+  check('A $100 stock falls 20% to $80. Then it rises 20%. Where does it end up?', ['Back at $100', 'At $96, still $4 below where it started', 'At $104'], 1, '20% of $80 is only $16, so $80 + $16 = $96. A rise of the same percent doesn’t make up a fall, because it’s worked out on the smaller price.'),
   { label: 'See your account', to: '/dashboard' },
 );
 

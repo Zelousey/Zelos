@@ -146,7 +146,8 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
 [data-n='4'] .cover, .bookHero[data-n='4'] .cover { --c1: #a24bd8; --c2: #521a7a; }
 [data-n='5'] .cover, .bookHero[data-n='5'] .cover { --c1: #d8463a; --c2: #7a1710; }
 .coverN { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
-.coverTitle { align-self: center; font-size: 1rem; font-weight: 900; line-height: 1.15; }
+.coverTitle { align-self: center; min-width: 0; font-size: 1rem; font-weight: 900; line-height: 1.15; overflow-wrap: break-word; hyphens: manual; } /* long titles stay inside the cover (owner 2026-11-15) */
+.cover > * { min-width: 0; }
 .coverMark { font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.7; }
 .bookInfo { display: grid; gap: var(--space-2); min-width: 0; }
 .bookBar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
@@ -155,9 +156,14 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
 .backLink { display: inline-flex; align-items: center; min-height: var(--tap); margin-bottom: var(--space-2); color: var(--link); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
 .bookHero { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: var(--space-5); align-items: center; padding: var(--space-4); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); }
 .bookHero .coverTitle { font-size: 1.2rem; }
-.bookChoices { display: grid; gap: var(--space-2); max-width: 360px; }
+.bookChoices { display: grid; gap: var(--space-2); max-width: 360px; min-width: 0; }
+/* buttons wrap their text instead of running past the box (owner 2026-11-15) */
+.bookChoices > a, .bookChoices > button { white-space: normal; height: auto; min-height: var(--tap); padding-block: 8px; text-align: center; line-height: 1.25; }
 .bookChoices p { margin: 0; }
 @media (max-width: 520px) {
-  .bookHero { grid-template-columns: 110px minmax(0, 1fr); gap: var(--space-3); }
-  .book { grid-template-columns: 92px minmax(0, 1fr); }
+  .bookHero { gap: var(--space-3); padding: var(--space-3); }
+  .book { grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-3); }
+  .book .coverTitle, .bookHero .coverTitle { font-size: 0.75rem; letter-spacing: -0.01em; }
+  .bookHero { grid-template-columns: 112px minmax(0, 1fr); }
+  .cover { padding: 10px 6px 8px 13px; }
 }

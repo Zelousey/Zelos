@@ -41,7 +41,9 @@ export function Ticket({ sym, q, profile, warId, canBuy = !!warId }: { sym: stri
   return (
     <form className={s.ticket} onSubmit={go}>
       {canBuy ? (
-        <Tabs label={t('war.side')} stretch items={[{ value: 'buy', label: t('war.buy') }, { value: 'sell', label: t('war.sell') }]} value={side} onChange={setSide} />
+        <div className={s.sideTabs} data-side={side}>
+          <Tabs label={t('war.side')} stretch items={[{ value: 'buy', label: t('war.buy') }, { value: 'sell', label: t('war.sell') }]} value={side} onChange={setSide} />
+        </div>
       ) : (
         <p className={s.muted}>{t('war.buyFromLand')}</p>
       )}

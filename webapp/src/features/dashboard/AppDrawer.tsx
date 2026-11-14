@@ -1,11 +1,13 @@
 /**
- * The phone Dashboard's pull-down (owner 2026-11-14): a small handle under the greeting; tap it
- * or pull it down and the Zelos sections open as app icons (Trade War, Battles, Strategies,
- * Leaderboard, Training Ground, Hall of Minds, Trading 101…), so you don't need the ☰ menu.
- * Pull up or tap again to fold it. Only the handle takes the drag, so the page still scrolls
- * and the browser's own pull-to-refresh is never in the way. Phones only; a computer has the sidebar.
+ * The phone Dashboard's pull-down (owner 2026-11-14): a grip and arrow right under the top bar;
+ * swipe down (2026-11-15: anywhere in the top part of the page while it's scrolled to the top)
+ * or tap the grip, and the Zelos sections open as app icons below it (Trade War, Battles,
+ * Strategies, Leaderboard, Training Ground, Hall of Minds, Trading 101…), so you don't need the
+ * ☰ menu. Swipe up or tap again to fold it. A swipe only counts when it's mostly downward and
+ * the page is already at the top, so scrolling is never affected; the Dashboard turns off the
+ * browser's pull-to-refresh while it's open on a phone. Phones only; a computer has the sidebar.
  */
-import { useId, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useId, useRef, useState, type PointerEvent } from 'react';
 import { Link } from 'react-router';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Icon, type IconName } from '../../ui';
@@ -49,8 +51,58 @@ export function AppDrawer() {
     drag.current = null;
     if (d && !d.moved) setOpen((o) => !o); // a plain tap toggles
   };
+  // a swipe down from the top part of the page, while it's scrolled to the top, opens it;
+  // a swipe up anywhere in the open panel folds it
+  useEffect(() => {
+    let start: { x: number; y: number; top: boolean } | null = null;
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t || e.touches.length > 1) return void (start = null);
+      start = { x: t.clientX, y: t.clientY, top: window.scrollY <= 2 && t.clientY < window.innerHeight * 0.6 };
+    };
+    const onMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!start || !t) return;
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dy) < 50 || Math.abs(dy) < 2 * Math.abs(dx)) return;
+      if (dy > 0 && start.top && window.scrollY <= 2) setOpen(true);
+      start = null;
+    };
+    const end = () => (start = null);
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', end, { passive: true });
+    window.addEventListener('touchcancel', end, { passive: true });
+    // no pull-to-refresh on the Dashboard, so the swipe opens the sections instead of reloading
+    const html = document.documentElement;
+    const before = html.style.overscrollBehaviorY;
+    html.style.overscrollBehaviorY = 'contain';
+    return () => {
+      window.removeEventListener('touchstart', onStart);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', end);
+      window.removeEventListener('touchcancel', end);
+      html.style.overscrollBehaviorY = before;
+    };
+  }, []);
   return (
     <div className={s.drawer} data-open={open || undefined}>
+      <button
+        type="button"
+        className={s.handle}
+        aria-expanded={open}
+        aria-controls={id}
+        aria-label={t(open ? 'dash.apps.close' : 'dash.apps.open')}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={() => (drag.current = null)}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setOpen((o) => !o))}
+      >
+        <span className={s.grip} aria-hidden />
+        <Icon name="chevronRight" size={16} className={s.chev} />
+      </button>
       <div className={s.panel} id={id} hidden={!open}>
         <nav aria-label={t('dash.apps')}>
           <ul className={s.grid}>
@@ -67,21 +119,6 @@ export function AppDrawer() {
           </ul>
         </nav>
       </div>
-      <button
-        type="button"
-        className={s.handle}
-        aria-expanded={open}
-        aria-controls={id}
-        aria-label={t(open ? 'dash.apps.close' : 'dash.apps.open')}
-        onPointerDown={down}
-        onPointerMove={move}
-        onPointerUp={up}
-        onPointerCancel={() => (drag.current = null)}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setOpen((o) => !o))}
-      >
-        <span className={s.grip} aria-hidden />
-        <Icon name="chevronRight" size={16} className={s.chev} />
-      </button>
     </div>
   );
 }

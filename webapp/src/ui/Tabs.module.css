@@ -7,3 +7,10 @@
 .stretch .tab { flex: 1 1 0; }
 /* touch screens: taller tabs (the row scrolls, so a hidden touch area would be clipped). Phase 4 M-5 */
 @media (pointer: coarse) { .tab { min-height: var(--tap); min-width: var(--tap); } }
+
+/* compact (the account chart's 1D / 1W / 1M / 3M, owner 2026-11-15): small pills, same touch area */
+.compact { background: transparent; border: 0; padding: 0; gap: 2px; }
+.compact .tab { position: relative; isolation: isolate; min-height: 30px; padding: 0 10px; font-size: var(--text-xs); background: transparent; }
+.compact .tab::before { content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: 50%; height: 26px; transform: translateY(-50%); border-radius: calc(var(--radius) - 2px); background: var(--bg-soft); }
+.compact .tab[aria-selected='true'] { background: transparent; }
+.compact .tab[aria-selected='true']::before { background: var(--surface-hover); }

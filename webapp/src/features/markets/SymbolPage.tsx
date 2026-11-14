@@ -162,8 +162,13 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
       <Tabs label={t('chart.range')} value={String(range)} onChange={(v) => setRange(v === 'all' ? 'all' : Number(v))} items={tfDef.ranges.map(([label, n]) => ({ value: String(n), label }))} />
       <span className={s.ctrlGap} aria-hidden="true" />
       <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TIMEFRAMES.filter((x) => MODE_TFS[symMode].includes(x.id)).map((x) => ({ value: x.id, label: x.label }))} />
-      <label className={s.typePick}>
-        <Icon name="chart" size={16} />
+      {/* owner 2026-11-15: just a couple of candles; the menu itself is the phone's own picker */}
+      <label className={s.typePick} data-tip={t('chart.type')}>
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" className={s.typeIcon}>
+          <path d="M6 2.5v3M6 14.5v3M14 4.5v3M14 13.5v2" />
+          <rect x="3.5" y="5.5" width="5" height="9" rx="1" />
+          <rect x="11.5" y="7.5" width="5" height="6" rx="1" className={s.typeIconDn} />
+        </svg>
         <select value={style} onChange={(e) => setStyle(e.target.value as ChartStyle)} aria-label={t('chart.type')}>
           {STYLE_GROUPS.map(([g, list]) => (
             <optgroup key={g} label={t(g)}>

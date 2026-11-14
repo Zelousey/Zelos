@@ -171,3 +171,6 @@ a.zoneCard:active, button.zoneCard:active { transform: translateY(1px); }
 .lbScore .up { color: var(--up-ink); }
 .lbScore .down { color: var(--down-ink); }
 .lbEmpty { margin: 0; padding: var(--space-4); color: var(--muted); }
+/* Buy green, Sell red, always (owner 2026-11-15) */
+.sideTabs[data-side='buy'] [role='tab'][aria-selected='true'] { background: var(--buy-fill); color: var(--on-fill); }
+.sideTabs[data-side='sell'] [role='tab'][aria-selected='true'] { background: var(--sell-fill); color: var(--on-fill); }

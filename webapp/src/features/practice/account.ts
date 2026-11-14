@@ -5,7 +5,7 @@
  * value it on screen with the latest quotes, the same way the server does, so what you see
  * matches the leaderboard. Nothing computed here is ever sent back as truth.
  */
-import { collection, limit, onSnapshot, orderBy, query, type DocumentData } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query, where, type DocumentData } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useLiveDoc } from '../../data/liveDoc';
 import type { Quote } from '../../data/markets';
@@ -16,7 +16,7 @@ export const START_CASH = 10000;
 export const RESET_BELOW = 2500;
 
 export type Position = { sym: string; qty: number; avg: number; openedDay: string | null };
-export type OptionPosition = Contract & { id: string; qty: number; avg: number; label: string };
+export type OptionPosition = Contract & { id: string; qty: number; avg: number; label: string; openedDay?: string | null };
 /** `opt` is set on option orders: the contract id; `sym` is then the underlying stock. */
 export type Order = { id: string; sym: string; opt: string | null; label: string | null; est: number; side: 'buy' | 'sell'; type: 'market' | 'limit' | 'stop'; qty: number; limit: number | null; stop: number | null; tif: 'day' | 'gtc'; session: string; createdAt: number; bracket: { sl: number | null; tp: number | null } | null; role: 'sl' | 'tp' | null; oco: string | null };
 export type Account = { cash: number; positions: Position[]; options: OptionPosition[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number; hist: DayValue[] };
@@ -35,7 +35,7 @@ export function parseAccount(d: DocumentData): Account {
     .flatMap(([id, p]) => {
       const c = parseContract(id);
       const qty = n(p.qty);
-      return c && qty > 0 ? [{ ...c, id: contractId(c), qty, avg: n(p.avg), label: typeof p.label === 'string' ? p.label : optLabel(c) }] : [];
+      return c && qty > 0 ? [{ ...c, id: contractId(c), qty, avg: n(p.avg), label: typeof p.label === 'string' ? p.label : optLabel(c), openedDay: typeof p.openedDay === 'string' ? p.openedDay : null }] : [];
     })
     .sort((a, b) => a.u.localeCompare(b.u) || a.exp.localeCompare(b.exp) || a.strike - b.strike);
   const orders = Object.values((d.orders as Record<string, Record<string, unknown>>) ?? {})
@@ -111,9 +111,14 @@ export function valueAccount(a: Account, quotes: Record<string, Quote>, today: s
   });
   let optionValue = 0;
   const optionRows = a.options.map((p) => {
-    const mark = markValue(p, quotes[p.u]?.c, volFor(vols, p.u), today);
+    const q = quotes[p.u];
+    const mark = markValue(p, q?.c, volFor(vols, p.u), today);
     const value = mark * 100 * p.qty;
     optionValue += value;
+    // today's change counts options too (2026-11-15: an options-only account showed "Today $0.00"):
+    // from your cost if opened today, else from the model price at the stock's previous close
+    const base = p.openedDay === today ? p.avg : q?.pc ? markValue(p, q.pc, volFor(vols, p.u), today) : null;
+    if (base != null && p.exp >= today) dayPnl += (mark - base) * 100 * p.qty;
     return { ...p, mark, value, pnl: (mark - p.avg) * 100 * p.qty, pnlPct: p.avg ? (mark / p.avg - 1) * 100 : 0, expired: p.exp < today };
   });
   const reserved = a.orders.filter((o) => o.side === 'buy').reduce((t, o) => t + (o.opt ? o.est : o.qty * (o.limit ?? o.stop ?? quotes[o.sym]?.c ?? 0)), 0);
@@ -158,3 +163,22 @@ export function usePracticeHistory(uid: string | null) {
   }, [uid]);
   return state.uid === uid ? state : { uid, items: [], ready: false };
 }
+
+/** Your history of one kind (up to 300, newest first): closed trades for the chart's markers,
+ *  fills for its 1D line (the last-40 list misses a busy day's morning fills). */
+function useHistoryKind(uid: string | null, kind: 'trade' | 'fill') {
+  const [state, setState] = useState<{ key: string; items: HistoryItem[] }>({ key: '', items: [] });
+  const key = uid ? `${uid}:${kind}` : '';
+  useEffect(() => {
+    if (!uid) return;
+    const q = query(collection(db(), 'practiceAccounts', uid, 'history'), where('kind', '==', kind), limit(300));
+    return onSnapshot(
+      q,
+      (snap) => setState({ key: `${uid}:${kind}`, items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HistoryItem, 'id'>) })).sort((a, b) => b.at - a.at) }),
+      () => setState({ key: `${uid}:${kind}`, items: [] }),
+    );
+  }, [uid, kind]);
+  return state.key === key ? state.items : [];
+}
+export const usePracticeTrades = (uid: string | null) => useHistoryKind(uid, 'trade');
+export const usePracticeFills = (uid: string | null) => useHistoryKind(uid, 'fill');

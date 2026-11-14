@@ -21,10 +21,10 @@
 .label { font-size: 0.72rem; line-height: 1.2; color: var(--ink-2); }
 /* the handle: a grip line and a small arrow; only it takes the drag */
 .handle {
-  justify-self: center; display: grid; justify-items: center; align-content: center; gap: 0; width: 120px; height: var(--tap, 44px); margin: -12px 0 -10px; padding: 0;
+  justify-self: center; display: grid; justify-items: center; align-content: center; gap: 0; width: 120px; height: var(--tap, 44px); margin: calc(-1 * var(--space-4)) 0 -12px; padding: 0;
   border: 0; background: transparent; color: var(--muted); cursor: pointer; touch-action: none;
 }
 .grip { width: 36px; height: 4px; border-radius: 2px; background: var(--border); }
-.chev { transform: rotate(90deg); transition: transform var(--dur-fast, 150ms) var(--ease-out); }
+.chev { transform: rotate(90deg); margin-top: 2px; transition: transform var(--dur-fast, 150ms) var(--ease-out); }
 .drawer[data-open] .chev { transform: rotate(-90deg); }
 @media (prefers-reduced-motion: reduce) { .panel { animation: none; } .chev { transition: none; } }

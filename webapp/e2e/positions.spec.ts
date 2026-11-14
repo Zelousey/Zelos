@@ -58,7 +58,7 @@ test('a stock position opens its trade page with entry pins; an option position 
 
   // tap the position (not its buttons): its trade page, the daily chart with a pin for each buy
   await page.reload();
-  const row = page.locator(info.project.name === 'phone' ? 'li' : 'tr').filter({ hasText: /^AAPL/ }).filter({ visible: true }).first();
+  const row = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Solo · Positions' }) }).last().locator(info.project.name === 'phone' ? 'li' : 'tr').filter({ hasText: /^AAPL/ }).filter({ visible: true }).first();
   await row.locator('.num').filter({ hasText: /\$/ }).first().click();
   await expect(page).toHaveURL(/\/practice\/trade\/AAPL$/);
   await page.getByRole('tab', { name: 'D', exact: true }).click().catch(() => {});
