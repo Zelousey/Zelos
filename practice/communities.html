@@ -37,7 +37,7 @@
 <meta name="twitter:title" content="Communities: Founder Program | Zelos">
 <meta name="twitter:description" content="Join a Zelos trading community, or start your own: build it to 5 real members to become a Founder and earn tokens, a Founder badge and your own community leaderboard.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
-<link rel="stylesheet" href="../zelos-theme.css?v=1911ab88">
+<link rel="stylesheet" href="../zelos-theme.css?v=cd483bbd">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{ color-scheme: dark; }
@@ -45,7 +45,7 @@
   body{ margin:0; }
   [hidden]{ display:none !important; }
 </style>
-<link rel="stylesheet" href="../zelos-theme.css?v=1911ab88">
+<link rel="stylesheet" href="../zelos-theme.css?v=cd483bbd">
 <link rel="stylesheet" href="practice.css?v=a60760dd">
 </head>
 <body class="zt zt-body">
@@ -55,34 +55,7 @@
     <a class="nav-brand" href="../index.html"><span class="mark-dot"></span>Zelos</a>
 
     <div class="nav-primary" id="navPrimary">
-      <a class="nav-link" href="../dashboard.html">Dashboard</a>
-      <div class="nav-drop">
-        <button class="nav-drop-btn is-active" type="button" aria-haspopup="true" aria-expanded="false">Trade War <span class="nav-drop-caret">&#9662;</span></button>
-        <div class="nav-drop-panel" hidden>
-          <a href="../practice/index.html">Trade War<small>Your account, chart, Trade Wars &amp; invites</small></a>
-          <a href="../practice/index.html#start">Start a Trade War<small>Challenge a friend or your squad</small></a>
-          <a href="../practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
-          <a href="../leaderboard.html#practice">Leaderboards<small>Top Trade War traders</small></a>
-          <a href="../practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
-          <a href="../practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
-        </div>
-      </div>
-      <div class="nav-drop">
-        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trading Tools <span class="nav-drop-caret">&#9662;</span></button>
-        <div class="nav-drop-panel" hidden>
-          <a href="../swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
-          <a href="../breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
-          <a href="../options-scanner.html">Options Scanner<small>Long calls/puts setups</small></a>
-          <hr>
-          <a href="../daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
-          <a href="../alert-history.html">Alerts<small>Every agent alert, archived</small></a>
-          <a href="../live-chart.html">Live Chart<small>Full interactive chart</small></a>
-          <a href="../market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
-          <hr>
-          <a href="../real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
-          <a href="../arsenal.html">Full Arsenal<small>Everything you own</small></a>
-        </div>
-      </div>
+      <a class="nav-link" href="../learn/index.html">Learn</a>
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Training Ground <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
@@ -90,47 +63,60 @@
           <a href="../games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
           <a href="../games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
           <a href="../games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
-          <hr>
-          <a href="../leaderboard.html">Leaderboard<small>Top scores in every game</small></a>
         </div>
       </div>
-      <a class="nav-link" href="../learn/index.html">Learn</a>
-      <a class="nav-link" href="../index.html#why-zelos">About</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="../swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="../breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="../options-scanner.html">Options Scanner<small>Long calls/puts setups</small></a>
+          <hr>
+          <a href="../alert-history.html">Alerts<small>Every alert, archived</small></a>
+          <a href="../daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="../live-chart.html">Live Chart<small>Full interactive chart</small></a>
+          <a href="../market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <hr>
+          <a href="../real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
+          <a href="../arsenal.html">Full Arsenal<small>Everything you own</small></a>
+        </div>
+      </div>
+      <a class="nav-link" href="../app/news">News</a>
+      <a class="nav-link" href="../app/communities">Community</a>
+      <a class="nav-link" href="../leaderboard.html">Leaderboards</a>
+      <a class="nav-link" href="../index.html#about">About</a>
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
       <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-blue"></i><i class="sw-white"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <a class="nav-practice" href="../app/">Open Practice</a>
       <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
       <div class="nav-auth" id="navAuth"></div>
     </div>
 
     <div class="nav-mobile-panel" id="navMobilePanel">
+      <a class="nav-mobile-practice" href="../app/">Open Practice &rarr;</a>
       <a href="../index.html">Home</a>
-      <a href="../dashboard.html">Dashboard</a>
-      <div class="nav-mobile-label">Trade War &middot; virtual</div>
-      <a href="../practice/index.html">Trade War</a>
-      <a href="../practice/index.html#start">Start a Trade War</a>
-      <a href="../practice/squads.html">Squads</a>
-      <a href="../leaderboard.html#practice">Leaderboards</a>
-      <a href="../practice/profile.html">My profile</a>
-      <a href="../practice/index.html?tab=progress">XP &amp; Missions</a>
-      <div class="nav-mobile-label">Trading Tools &middot; real</div>
+      <a href="../learn/index.html">Learn</a>
+      <a href="../app/news">News</a>
+      <a href="../app/communities">Community</a>
+      <a href="../leaderboard.html">Leaderboards</a>
+      <a href="../index.html#about">About</a>
+      <div class="nav-mobile-label">Training Ground</div>
+      <a href="../arcade.html">Training Ground</a>
+      <a href="../games/chart-replay.html">Chart Replay</a>
+      <a href="../games/grade-the-setup.html">Grade the Setup</a>
+      <a href="../games/daily-challenge.html">Daily Challenge</a>
+      <div class="nav-mobile-label">Strategies</div>
       <a href="../swing-trader.html">Swing Trader</a>
       <a href="../breakout-rider.html">Breakout Rider</a>
       <a href="../options-scanner.html">Options Scanner</a>
-      <a href="../daily-market.html">Daily Market</a>
       <a href="../alert-history.html">Alerts</a>
+      <a href="../daily-market.html">Daily Market</a>
       <a href="../live-chart.html">Live Chart</a>
       <a href="../market-3d.html">Market 3D</a>
       <a href="../real/index.html">Real Trade Journal</a>
       <a href="../arsenal.html">Full Arsenal</a>
-      <div class="nav-mobile-label">Training Ground</div>
-      <a href="../arcade.html">Training Ground</a>
-      <a href="../leaderboard.html">Leaderboard</a>
-      <div class="nav-mobile-label">More</div>
-      <a href="../learn/index.html">Learn</a>
-      <a href="../ai-knowledge-catalog.html">Knowledge</a>
-      <a href="../index.html#why-zelos">About</a>
     </div>
   </div>
 </nav>
@@ -166,7 +152,7 @@
 <script src="../zelos-signin.js?v=d00a05f1"></script>
 <script src="../zelos-modes.js?v=8401e21a"></script>
 <script src="../zelos-levels.js?v=5ae2909e"></script>
-<script src="../zelos-progress.js?v=d7ac960b"></script>
+<script src="../zelos-progress.js?v=703f3fb8"></script>
 <script src="../zelos-social.js?v=e1cac053"></script>
 <script src="../zelos-profile.js?v=44b3b6af"></script>
 <script src="communities.js?v=25a00857"></script>

@@ -18,7 +18,7 @@ import type { Vols } from '../options/model';
 import { START_CASH, type Account, type HistoryItem } from './account';
 import s from './AccountChart.module.css';
 import { nyDay } from '../charts/series';
-import { change, CLOSE_MIN, dailyPoints, intradayPoints, nyMinute, OPEN_MIN, previousClose, sessionDay, type DayFill, type Range, type ValuePoint } from './valueSeries';
+import { change, CLOSE_MIN, dailyPoints, feedDays, intradayPoints, nyMinute, OPEN_MIN, previousClose, sessionDay, type DayFill, type Range, type ValuePoint } from './valueSeries';
 
 const H = 180;
 const PAD = { l: 4, r: 4, t: 10, b: 10 };
@@ -50,8 +50,12 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
     const val = new Map<string, number>();
     for (const p of acct.positions) val.set(p.sym, (val.get(p.sym) ?? 0) + p.qty * (quotes[p.sym]?.c ?? p.avg));
     for (const o of acct.options) val.set(o.u, (val.get(o.u) ?? 0) + o.qty * 100 * o.avg);
-    // what you sold today too, so the morning still shows it
-    for (const h of allFills.length ? allFills : history) if (h.kind === 'fill' && h.sym && nyDay(h.at) === today && !val.has(h.sym)) val.set(h.sym, (h.qty ?? 0) * (h.price ?? 0) * (h.opt ? 100 : 1));
+    // what you sold on the day 1D shows too, so the morning still moves with its price. On a
+    // weekend or holiday 1D shows the last session (Friday), so that day's fills count as well:
+    // without them a stock bought and sold on Friday had no prices and drew as flat steps.
+    const list = allFills.length ? allFills : history;
+    const days = feedDays(list.filter((h) => h.kind === 'fill').map((h) => nyDay(h.at)), today);
+    for (const h of list) if (h.kind === 'fill' && h.sym && days.has(nyDay(h.at)) && !val.has(h.sym)) val.set(h.sym, (h.qty ?? 0) * (h.price ?? 0) * (h.opt ? 100 : 1));
     return [...val.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_FEEDS).map(([sym]) => sym);
   }, [acct.positions, acct.options, quotes, history, allFills, today]);
 

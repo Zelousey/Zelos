@@ -18,7 +18,7 @@ type App = { to: string; label: MessageKey; art?: string; icon?: IconName; tone:
 export const APPS: App[] = [
   { to: '/trade-war', label: 'nav.tradeWar', art: `${B}icons/icon-192.png`, tone: 'blue' },
   { to: '/battles', label: 'nav.battles', art: `${B}art/bear.webp`, tone: 'red' },
-  { to: '/strategies', label: 'nav.strategies', icon: 'radar', tone: 'violet' },
+  { to: '/strategies', label: 'nav.strategies', art: `${B}art/strategy.webp`, tone: 'violet' },
   { to: '/leaderboard', label: 'nav.leaderboard', icon: 'trophy', tone: 'gold' },
   { to: '/training', label: 'nav.training', icon: 'arcade', tone: 'green' },
   { to: '/minds', label: 'nav.minds', art: `${B}minds/livermore.webp`, tone: 'gold' },

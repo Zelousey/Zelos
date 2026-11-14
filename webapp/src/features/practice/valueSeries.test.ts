@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Bar, Quote } from '../../data/markets';
 import { parseAccount } from './account';
-import { change, dailyPoints, holdingsAt, intradayPoints, nyMinute, previousClose, sessionDay } from './valueSeries';
+import { change, dailyPoints, feedDays, holdingsAt, intradayPoints, nyMinute, previousClose, sessionDay } from './valueSeries';
 
 const q = (c: number, pc: number): Quote => ({ c, pc, o: c, h: c, l: c, t: 0, v: 0, chPct: null });
 const bar = (label: string, c: number): Bar => [label, c, c, c, c, 0];
@@ -73,5 +73,14 @@ describe('account value chart data', () => {
     expect(h.cash).toBe(1000);
     expect(h.shares.get('AAPL')!.qty).toBe(0);
     expect(nyMinute(Date.parse('2026-10-08T13:31:00Z'))).toBe(9 * 60 + 31); // 9:31 am in New York (EDT)
+  });
+});
+
+describe('feedDays', () => {
+  it("adds Friday's fills on a Saturday, so a stock bought and sold Friday still gets prices", () => {
+    expect([...feedDays(['2026-11-13', '2026-11-12'], '2026-11-14')].sort()).toEqual(['2026-11-13', '2026-11-14']);
+  });
+  it('ignores old trading days and future-dated ones', () => {
+    expect([...feedDays(['2026-11-02', '2026-11-20'], '2026-11-14')]).toEqual(['2026-11-14']);
   });
 });

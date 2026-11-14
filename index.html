@@ -15,129 +15,193 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zelos — Agentic Trading Bots</title>
+<title>Zelos — Practice the stock market with virtual money</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Zelos is a catalog of rule-based trade-alert pages — published research, general information, the same for every subscriber. No account, no connection, nothing trades.">
+<meta name="description" content="Zelos is a stock market practice and learning platform: trade real stocks at real prices with a $10,000 virtual account, take Trading 101, and learn from history. Free, virtual money only.">
 <link rel="canonical" href="https://agentictrading.info/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
-<meta property="og:title" content="Zelos — Agentic Trading Bots">
-<meta property="og:description" content="A catalog of rule-based trade-alert pages — published research, general information, the same for every subscriber. No account, no connection, nothing trades.">
+<meta property="og:title" content="Zelos — Practice the stock market with virtual money">
+<meta property="og:description" content="Zelos is a stock market practice and learning platform: trade real stocks at real prices with a $10,000 virtual account, take Trading 101, and learn from history. Free, virtual money only.">
 <meta property="og:url" content="https://agentictrading.info/">
 <meta property="og:image" content="https://agentictrading.info/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zelos — Agentic Trading Bots">
-<meta name="twitter:description" content="A catalog of rule-based trade-alert pages — published research, general information, the same for every subscriber. No account, no connection, nothing trades.">
+<meta name="twitter:title" content="Zelos — Practice the stock market with virtual money">
+<meta name="twitter:description" content="Zelos is a stock market practice and learning platform: trade real stocks at real prices with a $10,000 virtual account, take Trading 101, and learn from history. Free, virtual money only.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
-<link rel="stylesheet" href="zelos-theme.css?v=1911ab88">
+<link rel="stylesheet" href="zelos-theme.css?v=cd483bbd">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{ color-scheme: dark; }
   *{ box-sizing:border-box; }
   body{ margin:0; }
   [hidden]{ display:none !important; }
+  img{ max-width:100%; }
 
-  /* ---- Trade War promo ---- */
-  .practice-promo-grid{ display:grid; grid-template-columns:minmax(0, 1.3fr) minmax(0, 1fr); gap:40px; align-items:center; }
-  .practice-promo-list{ margin:18px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; color:var(--ink-2); font-size:0.93rem; }
-  .practice-promo-list li::before{ content:'\2713'; color:var(--bull); font-weight:700; margin-right:10px; }
-  .practice-promo-card{ display:block; text-decoration:none; color:var(--ink); background:linear-gradient(180deg, var(--surface-2), var(--surface)); border:1px solid var(--border); border-radius:12px; padding:16px 16px 14px; box-shadow:0 0 0 1px rgba(62,203,124,0.08), 0 24px 60px rgba(0,0,0,0.35), 0 0 70px rgba(62,203,124,0.10); transition:transform .2s ease, box-shadow .2s ease; }
-  .practice-promo-card:hover{ transform:translateY(-3px); box-shadow:0 0 0 1px rgba(62,203,124,0.3), 0 28px 70px rgba(0,0,0,0.4), 0 0 90px rgba(62,203,124,0.18); }
-  .ppc-head{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-  .ppc-sym{ font-family:var(--mono); font-size:1.15rem; }
-  .ppc-name{ color:var(--muted); font-size:0.8rem; margin-left:8px; }
-  .ppc-quote{ text-align:right; font-family:var(--mono); }
-  .ppc-quote b{ font-size:1.15rem; margin-right:8px; }
-  .ppc-quote .up{ color:var(--bull); } .ppc-quote .dn{ color:var(--danger); }
-  .ppc-tfs{ display:flex; gap:4px; margin:10px 0 6px; font-family:var(--mono); font-size:0.66rem; color:var(--muted); align-items:center; }
-  .ppc-tfs span{ padding:3px 7px; border:1px solid var(--border-soft); border-radius:3px; }
-  .ppc-tfs span.on{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
-  .ppc-tfs .ppc-live{ margin-left:auto; border:none; color:var(--bull); text-transform:uppercase; letter-spacing:0.08em; }
-  .ppc-live i{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--bull); margin-right:6px; box-shadow:0 0 0 3px rgba(62,203,124,0.18); }
-  .ppc-chart{ display:block; width:100%; height:auto; background:var(--chart-bg, transparent); border:1px solid var(--border-soft); border-radius:6px; }
-  .ppc-acct{ display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:center; margin-top:12px; }
-  .ppc-acct small{ display:block; font-family:var(--mono); font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
-  .ppc-acct b{ font-family:var(--mono); font-size:1.05rem; }
-  .ppc-btns{ display:flex; gap:6px; }
-  @media (max-width:520px){
-    .practice-promo-card{ padding:12px; }
-    .ppc-head{ flex-wrap:wrap; }
-    .ppc-acct{ grid-template-columns:1fr 1fr; }
-    .ppc-btns{ grid-column:1 / -1; }
-    .ppc-btns em{ flex:1; text-align:center; }
+  /* ---- onboarding homepage (owner 2026-11-14) ---- */
+  .ob-hero{ position:relative; padding:56px 0 64px; overflow:hidden; border-bottom:1px solid var(--border-soft); }
+  .ob-hero::before{ content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(60% 70% at 78% 30%, var(--accent-soft), transparent 70%); opacity:0.7; }
+  .ob-hero-grid{ position:relative; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.15fr); gap:48px; align-items:center; }
+  .ob-hero h1{ font-size:clamp(2.1rem, 4.6vw, 3.4rem); line-height:1.06; letter-spacing:-0.02em; margin:14px 0 0; }
+  .ob-hero h1 em{ font-style:normal; color:var(--accent); }
+  .ob-lede{ margin:18px 0 0; color:var(--ink-2); font-size:1.08rem; line-height:1.55; max-width:52ch; }
+  .ob-go{ margin-top:28px; display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+  .ob-practice{ display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:64px; padding:0 34px;
+    background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent); border-radius:4px; text-decoration:none;
+    font-family:var(--sans); font-weight:700; font-size:1.3rem; letter-spacing:-0.005em;
+    box-shadow:0 0 0 4px var(--accent-soft), 0 18px 50px -12px var(--accent-glow); transition:filter .15s ease, transform .15s ease; }
+  .ob-practice:hover{ filter:brightness(1.1); transform:translateY(-1px); }
+  .ob-practice span{ font-size:1.5rem; line-height:1; }
+  .ob-go-note{ font-family:var(--mono); font-size:0.78rem; color:var(--muted); letter-spacing:0.02em; }
+  .ob-go-note b{ color:var(--bull); font-weight:600; }
+  .ob-more{ color:var(--ink-2); font-size:0.95rem; text-decoration:none; border-bottom:1px solid var(--border); padding-bottom:2px; }
+  .ob-more:hover{ color:var(--ink); border-color:var(--ink-2); }
+  .ob-visual{ position:relative; padding-bottom:40px; }
+  .ob-frame{ border:1px solid var(--border); border-radius:6px; overflow:hidden; background:var(--surface); box-shadow:0 30px 80px -30px rgba(0,0,0,0.65); }
+  .ob-frame-bar{ display:flex; gap:6px; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border-soft); }
+  .ob-frame-bar i{ width:8px; height:8px; border-radius:50%; background:var(--border); }
+  .ob-frame-bar span{ margin-left:10px; font-family:var(--mono); font-size:0.68rem; color:var(--muted); }
+  .ob-frame img{ display:block; width:100%; height:auto; }
+  .ob-phone{ position:absolute; right:-6px; bottom:0; width:30%; min-width:130px; border:6px solid #050608; border-radius:22px; overflow:hidden; background:#050608; box-shadow:0 24px 60px -18px rgba(0,0,0,0.75); }
+  .ob-phone img{ display:block; width:100%; height:auto; }
+  .ob-app-note{ margin-top:30px; display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border:1px solid var(--accent-line); background:var(--accent-soft); border-radius:3px; color:var(--ink); font-size:0.92rem; max-width:62ch; }
+  .ob-app-note b{ color:var(--accent); }
+  .ob-app-note-icon{ flex:none; font-family:var(--mono); font-weight:700; color:var(--accent); }
+
+  .ob-section{ padding:84px 0; border-bottom:1px solid var(--border-soft); }
+  .ob-section h2{ font-size:clamp(1.6rem, 3vw, 2.25rem); line-height:1.15; letter-spacing:-0.015em; margin:10px 0 0; max-width:26ch; }
+  .ob-intro{ margin:14px 0 0; color:var(--ink-2); font-size:1.02rem; line-height:1.6; max-width:64ch; }
+
+  .ob-pillars{ margin-top:36px; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); border-top:1px solid var(--border); }
+  .ob-pillar{ padding:22px 22px 24px 0; border-bottom:1px solid var(--border-soft); }
+  .ob-pillar + .ob-pillar{ padding-left:22px; border-left:1px solid var(--border-soft); }
+  .ob-pillar:nth-child(3n+1){ padding-left:0; border-left:none; }
+  .ob-pillar small{ display:block; font-family:var(--mono); font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase; color:var(--accent); }
+  .ob-pillar h3{ margin:8px 0 0; font-size:1.08rem; }
+  .ob-pillar p{ margin:6px 0 0; color:var(--ink-2); font-size:0.92rem; line-height:1.55; }
+
+  /* tour: feature list + one large screenshot */
+  .ob-tour{ margin-top:40px; display:grid; grid-template-columns:minmax(0, 0.8fr) minmax(0, 2fr); gap:36px; align-items:start; }
+  .ob-tabs{ display:flex; flex-direction:column; border-top:1px solid var(--border); }
+  .ob-tab{ text-align:left; background:none; border:none; border-bottom:1px solid var(--border-soft); color:var(--ink-2); cursor:pointer;
+    padding:14px 4px 14px 14px; font-family:var(--sans); font-size:0.98rem; font-weight:600; position:relative; }
+  .ob-tab::before{ content:''; position:absolute; left:0; top:12px; bottom:12px; width:2px; background:transparent; }
+  .ob-tab small{ display:block; margin-top:3px; font-weight:400; font-size:0.84rem; color:var(--muted); line-height:1.45; }
+  .ob-tab:hover{ color:var(--ink); }
+  .ob-tab[aria-selected="true"]{ color:var(--ink); }
+  .ob-tab[aria-selected="true"]::before{ background:var(--accent); }
+  .ob-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .ob-shot figure{ margin:0; }
+  .ob-shot figcaption{ margin-top:14px; color:var(--ink-2); font-size:0.95rem; line-height:1.55; max-width:70ch; }
+  .ob-shot figcaption b{ color:var(--ink); }
+  .ob-fine{ margin-top:18px; font-family:var(--mono); font-size:0.72rem; color:var(--muted); }
+
+  /* founder */
+  .ob-founder{ margin-top:40px; display:grid; grid-template-columns:minmax(0, 0.72fr) minmax(0, 1.28fr); gap:48px; align-items:start; }
+  .ob-founder-photo{ margin:0; }
+  .ob-founder-photo img{ display:block; width:100%; aspect-ratio:4/5; object-fit:cover; border:1px solid var(--border); border-radius:4px; filter:saturate(0.92); }
+  .ob-founder-photo figcaption{ margin-top:12px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .ob-founder-photo figcaption b{ font-size:1.05rem; }
+  .ob-founder-photo figcaption span{ font-family:var(--mono); font-size:0.74rem; color:var(--muted); }
+  .ob-ig{ display:inline-flex; align-items:center; gap:8px; margin-top:10px; color:var(--ink-2); text-decoration:none; font-size:0.92rem; }
+  .ob-ig svg{ width:18px; height:18px; }
+  .ob-ig:hover{ color:var(--ink); }
+  .ob-bio p{ margin:0 0 14px; color:var(--ink-2); font-size:1rem; line-height:1.65; }
+  .ob-bio p b{ color:var(--ink); font-weight:600; }
+  .ob-quote{ margin:22px 0; padding:4px 0 4px 18px; border-left:2px solid var(--accent); font-size:1.15rem; line-height:1.5; color:var(--ink); }
+  .ob-honest{ margin-top:20px; padding:14px 16px; border:1px solid var(--border); border-radius:3px; color:var(--muted); font-size:0.88rem; line-height:1.55; }
+
+  /* future */
+  .ob-future{ margin-top:36px; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:0 40px; }
+  .ob-future-item{ padding:22px 0; border-top:1px solid var(--border-soft); }
+  .ob-future-item h3{ margin:0; font-size:1.08rem; display:flex; gap:10px; align-items:baseline; }
+  .ob-future-item h3 small{ font-family:var(--mono); font-size:0.66rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+  .ob-future-item p{ margin:8px 0 0; color:var(--ink-2); font-size:0.94rem; line-height:1.6; }
+  .ob-future-item ul{ margin:10px 0 0; padding-left:18px; color:var(--ink-2); font-size:0.92rem; line-height:1.7; }
+  .ob-future-item.is-maybe h3 small{ color:var(--muted); }
+
+  /* development updates */
+  .ob-updates{ margin-top:36px; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:28px; }
+  .ob-col h3{ margin:0 0 4px; font-family:var(--mono); font-size:0.72rem; letter-spacing:0.09em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:8px; }
+  .ob-col h3 i{ width:8px; height:8px; border-radius:50%; background:var(--muted); }
+  .ob-col.is-released h3 i{ background:var(--bull); }
+  .ob-col.is-developing h3 i{ background:var(--accent); }
+  .ob-col.is-planned h3 i{ background:var(--ink-2); }
+  .ob-col ul{ list-style:none; margin:0; padding:0; }
+  .ob-col li{ padding:14px 0; border-bottom:1px solid var(--border-soft); }
+  .ob-col li b{ display:block; font-size:0.95rem; }
+  .ob-col li span{ display:block; margin-top:4px; color:var(--ink-2); font-size:0.86rem; line-height:1.5; }
+  .ob-col li time{ display:block; font-family:var(--mono); font-size:0.68rem; color:var(--muted); margin-bottom:3px; }
+
+  /* explore the website */
+  .ob-explore{ margin-top:32px; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); border-top:1px solid var(--border); }
+  .ob-link{ display:block; padding:20px 20px 20px 0; border-bottom:1px solid var(--border-soft); text-decoration:none; color:var(--ink); }
+  .ob-link + .ob-link{ padding-left:20px; border-left:1px solid var(--border-soft); }
+  .ob-link:nth-child(3n+1){ padding-left:0; border-left:none; }
+  .ob-link b{ font-size:1rem; }
+  .ob-link b::after{ content:' \2192'; color:var(--accent); }
+  .ob-link span{ display:block; margin-top:5px; color:var(--ink-2); font-size:0.88rem; line-height:1.5; }
+  .ob-link small{ display:inline-block; margin-top:8px; font-family:var(--mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); }
+  .ob-link:hover b{ color:var(--accent); }
+
+  .ob-final{ padding:80px 0; text-align:center; }
+  .ob-final h2{ margin:0 auto; max-width:none; font-size:clamp(1.7rem, 3.4vw, 2.4rem); }
+  .ob-final p{ margin:12px auto 0; color:var(--ink-2); max-width:56ch; }
+  .ob-final .ob-go{ align-items:center; }
+
+  .ob-hero p.ob-lede{ margin-top:18px; }
+  .ob-section p.ob-intro{ margin-top:14px; }
+  .ob-section p.ob-intro + p.ob-intro{ margin-top:12px; }
+  @media (max-width:980px){
+    .ob-hero-grid{ grid-template-columns:1fr; gap:34px; }
+    .ob-tour{ grid-template-columns:1fr; gap:20px; }
+    .ob-tabs{ flex-direction:row; overflow-x:auto; border-top:none; gap:6px; scrollbar-width:none; padding-bottom:4px; }
+    .ob-tabs::-webkit-scrollbar{ display:none; }
+    .ob-tab{ flex:none; border:1px solid var(--border); border-radius:3px; padding:9px 14px; font-size:0.88rem; }
+    .ob-tab small{ display:none; }
+    .ob-tab::before{ display:none; }
+    .ob-tab[aria-selected="true"]{ border-color:var(--accent); background:var(--accent-soft); }
+    .ob-updates{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
   }
-  .ppc-btns em{ font-style:normal; font-weight:700; font-size:0.85rem; padding:8px 14px; border-radius:4px; }
-  .ppc-buy{ background:rgba(62,203,124,0.16); color:var(--bull); border:1px solid var(--bull); }
-  .ppc-sell{ background:rgba(224,72,63,0.14); color:var(--danger); border:1px solid var(--danger); }
-  @media (max-width:860px){ .practice-promo-grid{ grid-template-columns:1fr; gap:24px; } }
+  @media (max-width:760px){
+    .ob-hero{ padding:28px 0 44px; }
+    .ob-hero h1{ margin-top:10px; }
+    .ob-hero p.ob-lede{ font-size:1rem; margin-top:12px; }
+    .ob-go{ margin-top:20px; align-items:stretch; }
+    .ob-practice{ width:100%; min-height:60px; font-size:1.2rem; }
+    .ob-go-note, .ob-more{ align-self:center; }
+    .ob-visual{ padding-bottom:0; }
+    .ob-visual .ob-frame{ display:none; }
+    .ob-phone{ position:relative; right:auto; width:62%; margin:0 auto; }
+    .ob-section{ padding:60px 0; }
+    .ob-pillars, .ob-explore{ grid-template-columns:1fr; }
+    .ob-pillar, .ob-pillar + .ob-pillar, .ob-link, .ob-link + .ob-link{ padding-left:0; padding-right:0; border-left:none; }
+    .ob-founder{ grid-template-columns:1fr; gap:26px; }
+    .ob-founder-photo{ max-width:340px; }
+    .ob-future{ grid-template-columns:1fr; }
+    .ob-updates{ grid-template-columns:1fr; }
+  }
+  @media (prefers-reduced-motion: reduce){ .ob-practice{ transition:none; } .ob-practice:hover{ transform:none; } }
 </style>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "ItemList",
-  "name": "Zelos agentic trading bots",
-  "url": "https://agentictrading.info/",
-  "itemListElement": [
-    {
-      "@type": "SoftwareApplication",
-      "position": 1,
-      "name": "Zelos Swing Trader",
-      "url": "https://agentictrading.info/swing-trader.html",
-      "image": "https://agentictrading.info/og-image.jpg",
-      "description": "Swing Trader publishes one alert a day for one specific pattern — a healthy stock pausing after a run. Rule-based, general information, the same for every subscriber.",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Any"
-    },
-    {
-      "@type": "SoftwareApplication",
-      "position": 2,
-      "name": "Zelos Breakout Rider",
-      "url": "https://agentictrading.info/breakout-rider.html",
-      "image": "https://agentictrading.info/og-image.jpg",
-      "description": "Breakout Rider publishes one alert a day for one specific pattern — a stock clearing resistance and actually holding above it, not just spiking through. Rule-based, general information, the same for every subscriber.",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Any"
-    },
-    {
-      "@type": "SoftwareApplication",
-      "position": 3,
-      "name": "Zelos Options Scanner",
-      "url": "https://agentictrading.info/options-scanner.html",
-      "image": "https://agentictrading.info/og-image.jpg",
-      "description": "Options Scanner takes the same directional setups Zelos already screens for and translates each one into a single long call or put — never spreads, multi-leg, short options, 0DTE, or weeklies. Rule-based, general information, the same for every subscriber.",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Any"
-    }
-  ]
-}
-</script>
-<script type="application/ld+json">
-{
- "@context": "https://schema.org",
- "@type": "Organization",
- "name": "Zelos",
- "url": "https://agentictrading.info/",
- "logo": "https://agentictrading.info/icons/icon-512.png",
- "description": "Zelos publishes rule-based, AI-run stock scans and trade alerts: general information, the same for every reader. It never connects to brokerage accounts or places trades."
-}
-</script>
-<script type="application/ld+json">
-{
- "@context": "https://schema.org",
- "@type": "WebSite",
- "name": "Zelos",
- "url": "https://agentictrading.info/",
- "publisher": {
-  "@type": "Organization",
-  "name": "Zelos"
- }
+  "@type": "WebApplication",
+  "name": "Zelos",
+  "url": "https://agentictrading.info/app/",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web",
+  "description": "Stock market practice and learning platform with virtual money and real stock prices.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "founder": { "@type": "Person", "name": "Nathan Groccia", "sameAs": "https://www.instagram.com/nathan_groccia/" }
 }
 </script>
 </head>
@@ -148,35 +212,7 @@
     <a class="nav-brand" href="index.html"><span class="mark-dot"></span>Zelos</a>
 
     <div class="nav-primary" id="navPrimary">
-      <a class="nav-link" href="dashboard.html">Dashboard</a>
-      <div class="nav-drop">
-        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trade War <span class="nav-drop-caret">&#9662;</span></button>
-        <div class="nav-drop-panel" hidden>
-          <a href="practice/index.html">Trade War<small>Your account, chart, Trade Wars &amp; invites</small></a>
-          <a href="practice/index.html#start">Start a Trade War<small>Challenge a friend or your squad</small></a>
-          <a href="practice/squads.html">Squads<small>Private groups &amp; squad competitions</small></a>
-          <a href="practice/communities.html">Communities<small>Founder Program: start one, earn tokens</small></a>
-          <a href="leaderboard.html#practice">Leaderboards<small>Top Trade War traders</small></a>
-          <a href="practice/profile.html">My profile<small>Picture, @username, record &amp; badges</small></a>
-          <a href="practice/index.html?tab=progress">XP &amp; Missions<small>Your level, daily missions &amp; streaks</small></a>
-        </div>
-      </div>
-      <div class="nav-drop">
-        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Trading Tools <span class="nav-drop-caret">&#9662;</span></button>
-        <div class="nav-drop-panel" hidden>
-          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
-          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
-          <a href="options-scanner.html">Options Scanner<small>Long calls/puts setups</small></a>
-          <hr>
-          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
-          <a href="alert-history.html">Alerts<small>Every agent alert, archived</small></a>
-          <a href="live-chart.html">Live Chart<small>Full interactive chart</small></a>
-          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
-          <hr>
-          <a href="real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
-          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
-        </div>
-      </div>
+      <a class="nav-link" href="learn/index.html">Learn</a>
       <div class="nav-drop">
         <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Training Ground <span class="nav-drop-caret">&#9662;</span></button>
         <div class="nav-drop-panel" hidden>
@@ -184,16 +220,33 @@
           <a href="games/chart-replay.html">Chart Replay<small>Trade a hidden chart bar by bar</small></a>
           <a href="games/grade-the-setup.html">Grade the Setup<small>Run the checklist on real charts</small></a>
           <a href="games/daily-challenge.html">Daily Challenge<small>Five charts, same for everyone</small></a>
-          <hr>
-          <a href="leaderboard.html">Leaderboard<small>Top scores in every game</small></a>
         </div>
       </div>
-      <a class="nav-link" href="learn/index.html">Learn</a>
-      <a class="nav-link" href="index.html#why-zelos">About</a>
+      <div class="nav-drop">
+        <button class="nav-drop-btn" type="button" aria-haspopup="true" aria-expanded="false">Strategies <span class="nav-drop-caret">&#9662;</span></button>
+        <div class="nav-drop-panel" hidden>
+          <a href="swing-trader.html">Swing Trader<small>Pullbacks in an uptrend</small></a>
+          <a href="breakout-rider.html">Breakout Rider<small>Clears resistance and holds</small></a>
+          <a href="options-scanner.html">Options Scanner<small>Long calls/puts setups</small></a>
+          <hr>
+          <a href="alert-history.html">Alerts<small>Every alert, archived</small></a>
+          <a href="daily-market.html">Daily Market<small>Today's regime &amp; tape</small></a>
+          <a href="live-chart.html">Live Chart<small>Full interactive chart</small></a>
+          <a href="market-3d.html">Market 3D<small>Global markets on a live globe</small></a>
+          <hr>
+          <a href="real/index.html">Real Trade Journal<small>Log and track your real trades</small></a>
+          <a href="arsenal.html">Full Arsenal<small>Everything you own</small></a>
+        </div>
+      </div>
+      <a class="nav-link" href="app/news">News</a>
+      <a class="nav-link" href="app/communities">Community</a>
+      <a class="nav-link" href="leaderboard.html">Leaderboards</a>
+      <a class="nav-link" href="#about">About</a>
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
       <button class="theme-toggle" id="themeToggle" type="button" title="Switch background theme"><span class="theme-toggle-track"><i class="sw-blue"></i><i class="sw-white"></i><i class="sw-black"></i></span><span class="theme-toggle-knob"></span></button>
+      <a class="nav-practice" href="app/">Open Practice</a>
       <button class="nav-hamburger" id="navHamburger" type="button" aria-label="Menu" aria-expanded="false">&#9776;</button>
       <div class="nav-auth" id="navAuth">
         <!-- populated by script: Log in / Get Started (signed out) or My Zelos ▾ (signed in) -->
@@ -201,331 +254,257 @@
     </div>
 
     <div class="nav-mobile-panel" id="navMobilePanel">
+      <a class="nav-mobile-practice" href="app/">Open Practice &rarr;</a>
       <a href="index.html">Home</a>
-      <a href="dashboard.html">Dashboard</a>
-      <div class="nav-mobile-label">Trade War &middot; virtual</div>
-      <a href="practice/index.html">Trade War</a>
-      <a href="practice/index.html#start">Start a Trade War</a>
-      <a href="practice/squads.html">Squads</a>
-      <a href="practice/communities.html">Communities</a>
-      <a href="leaderboard.html#practice">Leaderboards</a>
-      <a href="practice/profile.html">My profile</a>
-      <a href="practice/index.html?tab=progress">XP &amp; Missions</a>
-      <div class="nav-mobile-label">Trading Tools &middot; real</div>
+      <a href="learn/index.html">Learn</a>
+      <a href="app/news">News</a>
+      <a href="app/communities">Community</a>
+      <a href="leaderboard.html">Leaderboards</a>
+      <a href="#about">About</a>
+      <div class="nav-mobile-label">Training Ground</div>
+      <a href="arcade.html">Training Ground</a>
+      <a href="games/chart-replay.html">Chart Replay</a>
+      <a href="games/grade-the-setup.html">Grade the Setup</a>
+      <a href="games/daily-challenge.html">Daily Challenge</a>
+      <div class="nav-mobile-label">Strategies</div>
       <a href="swing-trader.html">Swing Trader</a>
       <a href="breakout-rider.html">Breakout Rider</a>
       <a href="options-scanner.html">Options Scanner</a>
-      <a href="daily-market.html">Daily Market</a>
       <a href="alert-history.html">Alerts</a>
+      <a href="daily-market.html">Daily Market</a>
       <a href="live-chart.html">Live Chart</a>
       <a href="market-3d.html">Market 3D</a>
       <a href="real/index.html">Real Trade Journal</a>
       <a href="arsenal.html">Full Arsenal</a>
-      <div class="nav-mobile-label">Training Ground</div>
-      <a href="arcade.html">Training Ground</a>
-      <a href="leaderboard.html">Leaderboard</a>
-      <div class="nav-mobile-label">More</div>
-      <a href="learn/index.html">Learn</a>
-      <a href="ai-knowledge-catalog.html">Knowledge</a>
-      <a href="index.html#why-zelos">About</a>
     </div>
   </div>
 </nav>
 
-<section class="hero">
-  <div class="hero-rain" aria-hidden="true">
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:7.9s; animation-delay:-2.1s;"><span class="r">4</span><span class="g">1</span><span class="g">4</span><span class="g">8</span><span class="g">3</span><span class="g">0</span><span class="r">7</span><span class="g">1</span><span class="g">7</span><span class="r">8</span><span class="r">4</span><span class="g">1</span><span class="g">4</span><span class="g">8</span><span class="g">3</span><span class="g">0</span><span class="r">7</span><span class="g">1</span><span class="g">7</span><span class="r">8</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:6.4s; animation-delay:-1.8s;"><span class="r">3</span><span class="g">9</span><span class="r">2</span><span class="r">5</span><span class="r">5</span><span class="r">4</span><span class="r">5</span><span class="g">7</span><span class="r">7</span><span class="r">7</span><span class="r">3</span><span class="g">9</span><span class="r">2</span><span class="r">5</span><span class="r">5</span><span class="r">4</span><span class="r">5</span><span class="g">7</span><span class="r">7</span><span class="r">7</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:8.9s; animation-delay:-7.9s;"><span class="g">8</span><span class="g">8</span><span class="g">1</span><span class="g">6</span><span class="r">4</span><span class="r">4</span><span class="g">5</span><span class="g">4</span><span class="g">7</span><span class="g">4</span><span class="g">8</span><span class="g">8</span><span class="g">1</span><span class="g">6</span><span class="r">4</span><span class="r">4</span><span class="g">5</span><span class="g">4</span><span class="g">7</span><span class="g">4</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:7.4s; animation-delay:-0.2s;"><span class="g">7</span><span class="g">8</span><span class="g">9</span><span class="g">6</span><span class="g">0</span><span class="g">6</span><span class="r">2</span><span class="r">0</span><span class="g">0</span><span class="r">7</span><span class="g">7</span><span class="g">8</span><span class="g">9</span><span class="g">6</span><span class="g">0</span><span class="g">6</span><span class="r">2</span><span class="r">0</span><span class="g">0</span><span class="r">7</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:7.9s; animation-delay:-5.9s;"><span class="g">6</span><span class="g">0</span><span class="g">7</span><span class="r">7</span><span class="g">3</span><span class="g">8</span><span class="r">2</span><span class="r">8</span><span class="g">4</span><span class="r">2</span><span class="g">6</span><span class="g">0</span><span class="g">7</span><span class="r">7</span><span class="g">3</span><span class="g">8</span><span class="r">2</span><span class="r">8</span><span class="g">4</span><span class="r">2</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:7.9s; animation-delay:-7.5s;"><span class="r">6</span><span class="r">9</span><span class="g">6</span><span class="g">3</span><span class="g">6</span><span class="r">8</span><span class="r">0</span><span class="g">1</span><span class="g">2</span><span class="r">8</span><span class="r">6</span><span class="r">9</span><span class="g">6</span><span class="g">3</span><span class="g">6</span><span class="r">8</span><span class="r">0</span><span class="g">1</span><span class="g">2</span><span class="r">8</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:10.8s; animation-delay:-5.2s;"><span class="g">1</span><span class="g">8</span><span class="r">8</span><span class="r">7</span><span class="g">4</span><span class="g">6</span><span class="r">2</span><span class="g">6</span><span class="g">0</span><span class="r">7</span><span class="g">1</span><span class="g">8</span><span class="r">8</span><span class="r">7</span><span class="g">4</span><span class="g">6</span><span class="r">2</span><span class="g">6</span><span class="g">0</span><span class="r">7</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:9.9s; animation-delay:-6.5s;"><span class="g">4</span><span class="r">8</span><span class="g">2</span><span class="g">4</span><span class="g">1</span><span class="r">0</span><span class="g">7</span><span class="r">0</span><span class="g">9</span><span class="g">5</span><span class="g">4</span><span class="r">8</span><span class="g">2</span><span class="g">4</span><span class="g">1</span><span class="r">0</span><span class="g">7</span><span class="r">0</span><span class="g">9</span><span class="g">5</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:5.7s; animation-delay:-2.0s;"><span class="g">5</span><span class="g">0</span><span class="r">7</span><span class="g">4</span><span class="g">1</span><span class="r">4</span><span class="g">2</span><span class="r">1</span><span class="g">1</span><span class="g">7</span><span class="g">5</span><span class="g">0</span><span class="r">7</span><span class="g">4</span><span class="g">1</span><span class="r">4</span><span class="g">2</span><span class="r">1</span><span class="g">1</span><span class="g">7</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:9.3s; animation-delay:-3.6s;"><span class="g">1</span><span class="r">9</span><span class="g">0</span><span class="g">1</span><span class="r">5</span><span class="r">9</span><span class="g">1</span><span class="g">8</span><span class="g">5</span><span class="r">1</span><span class="g">1</span><span class="r">9</span><span class="g">0</span><span class="g">1</span><span class="r">5</span><span class="r">9</span><span class="g">1</span><span class="g">8</span><span class="g">5</span><span class="r">1</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:6.4s; animation-delay:-7.1s;"><span class="r">0</span><span class="r">2</span><span class="r">2</span><span class="r">2</span><span class="g">4</span><span class="r">4</span><span class="r">0</span><span class="r">9</span><span class="g">1</span><span class="g">2</span><span class="r">0</span><span class="r">2</span><span class="r">2</span><span class="r">2</span><span class="g">4</span><span class="r">4</span><span class="r">0</span><span class="r">9</span><span class="g">1</span><span class="g">2</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:7.4s; animation-delay:-7.1s;"><span class="r">6</span><span class="g">9</span><span class="r">9</span><span class="r">6</span><span class="r">8</span><span class="r">8</span><span class="g">4</span><span class="g">2</span><span class="r">4</span><span class="g">0</span><span class="r">6</span><span class="g">9</span><span class="r">9</span><span class="r">6</span><span class="r">8</span><span class="r">8</span><span class="g">4</span><span class="g">2</span><span class="r">4</span><span class="g">0</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:10.8s; animation-delay:-4.2s;"><span class="g">8</span><span class="g">5</span><span class="g">0</span><span class="g">6</span><span class="r">2</span><span class="g">6</span><span class="g">5</span><span class="g">4</span><span class="g">2</span><span class="r">5</span><span class="g">8</span><span class="g">5</span><span class="g">0</span><span class="g">6</span><span class="r">2</span><span class="g">6</span><span class="g">5</span><span class="g">4</span><span class="g">2</span><span class="r">5</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:6.3s; animation-delay:-0.1s;"><span class="r">9</span><span class="g">9</span><span class="r">7</span><span class="r">6</span><span class="r">7</span><span class="r">6</span><span class="g">4</span><span class="g">0</span><span class="r">5</span><span class="r">4</span><span class="r">9</span><span class="g">9</span><span class="r">7</span><span class="r">6</span><span class="r">7</span><span class="r">6</span><span class="g">4</span><span class="g">0</span><span class="r">5</span><span class="r">4</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:7.1s; animation-delay:-4.6s;"><span class="r">9</span><span class="g">7</span><span class="r">1</span><span class="g">6</span><span class="r">2</span><span class="g">4</span><span class="r">0</span><span class="g">9</span><span class="r">3</span><span class="g">4</span><span class="r">9</span><span class="g">7</span><span class="r">1</span><span class="g">6</span><span class="r">2</span><span class="g">4</span><span class="r">0</span><span class="g">9</span><span class="r">3</span><span class="g">4</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:5.9s; animation-delay:-1.8s;"><span class="r">8</span><span class="g">8</span><span class="g">0</span><span class="r">9</span><span class="g">8</span><span class="r">2</span><span class="r">1</span><span class="r">4</span><span class="r">1</span><span class="g">9</span><span class="r">8</span><span class="g">8</span><span class="g">0</span><span class="r">9</span><span class="g">8</span><span class="r">2</span><span class="r">1</span><span class="r">4</span><span class="r">1</span><span class="g">9</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:10.6s; animation-delay:-3.6s;"><span class="r">7</span><span class="g">0</span><span class="g">4</span><span class="r">6</span><span class="r">0</span><span class="r">3</span><span class="r">1</span><span class="g">2</span><span class="g">3</span><span class="g">2</span><span class="r">7</span><span class="g">0</span><span class="g">4</span><span class="r">6</span><span class="r">0</span><span class="r">3</span><span class="r">1</span><span class="g">2</span><span class="g">3</span><span class="g">2</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:9.4s; animation-delay:-8.7s;"><span class="r">6</span><span class="r">9</span><span class="r">6</span><span class="g">0</span><span class="g">0</span><span class="r">9</span><span class="r">8</span><span class="g">6</span><span class="g">7</span><span class="g">5</span><span class="r">6</span><span class="r">9</span><span class="r">6</span><span class="g">0</span><span class="g">0</span><span class="r">9</span><span class="r">8</span><span class="g">6</span><span class="g">7</span><span class="g">5</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:6.0s; animation-delay:-3.7s;"><span class="g">2</span><span class="g">1</span><span class="r">2</span><span class="r">1</span><span class="r">6</span><span class="r">3</span><span class="r">8</span><span class="r">9</span><span class="r">3</span><span class="r">4</span><span class="g">2</span><span class="g">1</span><span class="r">2</span><span class="r">1</span><span class="r">6</span><span class="r">3</span><span class="r">8</span><span class="r">9</span><span class="r">3</span><span class="r">4</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:10.9s; animation-delay:-2.0s;"><span class="g">2</span><span class="g">6</span><span class="r">3</span><span class="r">6</span><span class="r">1</span><span class="g">2</span><span class="g">6</span><span class="r">2</span><span class="g">3</span><span class="r">9</span><span class="g">2</span><span class="g">6</span><span class="r">3</span><span class="r">6</span><span class="r">1</span><span class="g">2</span><span class="g">6</span><span class="r">2</span><span class="g">3</span><span class="r">9</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:9.5s; animation-delay:-7.4s;"><span class="g">2</span><span class="r">5</span><span class="g">0</span><span class="g">0</span><span class="g">4</span><span class="g">3</span><span class="g">5</span><span class="r">6</span><span class="g">1</span><span class="g">6</span><span class="g">2</span><span class="r">5</span><span class="g">0</span><span class="g">0</span><span class="g">4</span><span class="g">3</span><span class="g">5</span><span class="r">6</span><span class="g">1</span><span class="g">6</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:9.6s; animation-delay:-3.6s;"><span class="g">1</span><span class="r">5</span><span class="r">1</span><span class="r">5</span><span class="g">2</span><span class="g">2</span><span class="g">8</span><span class="r">9</span><span class="r">9</span><span class="g">8</span><span class="g">1</span><span class="r">5</span><span class="r">1</span><span class="r">5</span><span class="g">2</span><span class="g">2</span><span class="g">8</span><span class="r">9</span><span class="r">9</span><span class="g">8</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:10.4s; animation-delay:-6.8s;"><span class="r">6</span><span class="r">2</span><span class="r">5</span><span class="g">8</span><span class="g">7</span><span class="r">0</span><span class="g">1</span><span class="g">1</span><span class="g">9</span><span class="g">5</span><span class="r">6</span><span class="r">2</span><span class="r">5</span><span class="g">8</span><span class="g">7</span><span class="r">0</span><span class="g">1</span><span class="g">1</span><span class="g">9</span><span class="g">5</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:5.8s; animation-delay:-5.6s;"><span class="r">1</span><span class="r">8</span><span class="r">4</span><span class="r">3</span><span class="r">2</span><span class="g">2</span><span class="r">5</span><span class="g">6</span><span class="g">8</span><span class="r">6</span><span class="r">1</span><span class="r">8</span><span class="r">4</span><span class="r">3</span><span class="r">2</span><span class="g">2</span><span class="r">5</span><span class="g">6</span><span class="g">8</span><span class="r">6</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:8.6s; animation-delay:-5.4s;"><span class="r">5</span><span class="g">1</span><span class="g">2</span><span class="r">1</span><span class="r">4</span><span class="g">5</span><span class="g">5</span><span class="r">9</span><span class="r">7</span><span class="g">9</span><span class="r">5</span><span class="g">1</span><span class="g">2</span><span class="r">1</span><span class="r">4</span><span class="g">5</span><span class="g">5</span><span class="r">9</span><span class="r">7</span><span class="g">9</span></div></div>
-    <div class="hero-rain-col"><div class="hero-rain-track" style="animation-duration:9.1s; animation-delay:-7.3s;"><span class="r">9</span><span class="r">4</span><span class="r">0</span><span class="r">2</span><span class="r">0</span><span class="g">8</span><span class="g">0</span><span class="r">0</span><span class="r">7</span><span class="r">8</span><span class="r">9</span><span class="r">4</span><span class="r">0</span><span class="r">2</span><span class="r">0</span><span class="g">8</span><span class="g">0</span><span class="r">0</span><span class="r">7</span><span class="r">8</span></div></div>
-  </div>
-  <div class="shell hero-grid">
-    <div class="hero-copy">
-      <div class="eyebrow">Agentic trading &middot; rule-based alerts</div>
-      <h1>Agentic trading scans. <em>The call's still yours.</em></h1>
-      <p class="lede">Zelos is a small catalog of rule-based trading alerts. Each one is its own Claude skill that scans the market on a schedule &mdash; screening and scoring setups against a fixed checklist &mdash; and publishes what it finds. Every subscriber sees the exact same alert, at the exact same time.</p>
-      <div class="cta-note">General alerts, not personalized advice &mdash; nothing here is tied to your account. You decide if, how, and where to act.</div>
-      <div class="hero-ctas">
-        <a href="#strategies" class="btn btn-primary">Explore Strategies &rarr;</a>
-        <a href="practice/index.html" class="btn">⚔️ Trade War</a>
-        <a href="arcade.html" class="btn">Play Zelos Training Ground &mdash; free</a>
-      </div>
-    </div>
-
-    <div class="hero-visual">
-      <div class="zmark is-globe">
-        <div class="zmark-glow"></div>
-        <div class="zmark-label"><span class="dot"></span><span id="heroGlobeLabel">Global exchanges</span></div>
-        <div class="globe-wrap" id="heroGlobe"></div>
-        <div class="zmark-chip c1" id="heroNyse">NYSE &middot; checking hours…</div>
-        <div class="zmark-chip c2">Every setup scored out of 80</div>
-        <a class="zmark-chip c3" href="alert-history.html" style="text-decoration:none; color:inherit;">Every outcome tracked &rarr;</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="ticker-strip"><div data-zm="tape"></div></div>
-
-<section class="section practice-promo" id="practice">
-  <div class="shell practice-promo-grid">
+<main id="top">
+<section class="ob-hero">
+  <div class="shell ob-hero-grid">
     <div>
-      <div class="eyebrow">New &middot; free &middot; virtual money</div>
-      <h2 style="font-size:clamp(1.6rem, 3.4vw, 2.3rem); margin-top:8px;">Trade War</h2>
-      <p style="margin-top:12px; color:var(--ink-2); max-width:56ch; font-size:1rem;">Get a $10,000 virtual Main account, trade real stocks at live prices and compete with your friends. Leaderboards, challenges, squads, XP and streaks. All virtual money, and kept separate from your real trading, which you can track in the <a href="real/index.html">Real Trade Journal</a>.</p>
-      <ul class="practice-promo-list">
-        <li>Live prices, updated every minute during market hours</li>
-        <li>50 stocks and ETFs, 13 indicators, options and agent signals</li>
-        <li>Challenge friends, join squads, climb weekly and season leaderboards</li>
-        <li>Free, no brokerage account, same Zelos account and XP</li>
-      </ul>
-      <div style="margin-top:22px; display:flex; gap:10px; flex-wrap:wrap;">
-        <a class="btn btn-primary" href="practice/index.html">Enter Trade War &rarr;</a>
-        <a class="btn" href="real/index.html">Real Trade Journal</a>
+      <div class="eyebrow">Virtual money &middot; real stock prices</div>
+      <h1>Learn the stock market by <em>practicing it.</em></h1>
+      <p class="lede ob-lede">Zelos is a stock market practice and learning platform. Start with $10,000 in virtual money, trade real companies like Tesla, Nvidia and Amazon at real market prices, and learn as you go, without risking your own money.</p>
+      <div class="ob-go">
+        <a class="ob-practice" href="app/" id="openPractice">Open Practice <span aria-hidden="true">&rarr;</span></a>
+        <div class="ob-go-note"><b>Free</b> &middot; $10,000 virtual account &middot; no brokerage account</div>
+        <a class="ob-more" href="#tour">See what's inside first</a>
       </div>
     </div>
-    <a class="practice-promo-card" href="practice/index.html" aria-label="Enter Trade War">
-      <!-- PROMO-CHART --><div class="ppc-head"><div><b class="ppc-sym">NVDA</b><span class="ppc-name">NVIDIA</span></div><div class="ppc-quote"><b>225.07</b><span class="up">+0.49 (+0.22%)</span></div></div><div class="ppc-tfs"><span>5m</span><span>15m</span><span>1H</span><span class="on">D</span><span>W</span><span class="ppc-live"><i></i>Live</span></div><svg viewBox="0 0 560 250" class="ppc-chart" role="img" aria-label="NVIDIA daily candlestick chart with volume and 20-day average"><style>.pg{stroke:rgba(127,127,127,0.16);stroke-width:1}.pa{font:500 10px 'IBM Plex Mono',monospace;fill:#8a8f98}.pt{font:700 10px 'IBM Plex Mono',monospace;fill:#fff}.pl{font:500 9.5px 'IBM Plex Mono',monospace}</style><line x1="8" y1="174.7" x2="502" y2="174.7" class="pg"/><text x="510" y="178.2" class="pa">190</text><line x1="8" y1="139.7" x2="502" y2="139.7" class="pg"/><text x="510" y="143.2" class="pa">200</text><line x1="8" y1="104.7" x2="502" y2="104.7" class="pg"/><text x="510" y="108.2" class="pa">210</text><line x1="8" y1="69.7" x2="502" y2="69.7" class="pg"/><text x="510" y="73.2" class="pa">220</text><line x1="8" y1="34.8" x2="502" y2="34.8" class="pg"/><text x="510" y="38.3" class="pa">230</text><rect x="9.6" y="221.3" width="7.0" height="16.7" fill="#e0483f" opacity="0.32"/><rect x="19.9" y="216.8" width="7.0" height="21.2" fill="#3ecb7c" opacity="0.32"/><rect x="30.2" y="221.0" width="7.0" height="17.0" fill="#e0483f" opacity="0.32"/><rect x="40.5" y="220.3" width="7.0" height="17.7" fill="#e0483f" opacity="0.32"/><rect x="50.8" y="214.2" width="7.0" height="23.8" fill="#e0483f" opacity="0.32"/><rect x="61.1" y="217.4" width="7.0" height="20.6" fill="#3ecb7c" opacity="0.32"/><rect x="71.4" y="215.3" width="7.0" height="22.7" fill="#e0483f" opacity="0.32"/><rect x="81.7" y="218.1" width="7.0" height="19.9" fill="#3ecb7c" opacity="0.32"/><rect x="92.0" y="216.5" width="7.0" height="21.5" fill="#3ecb7c" opacity="0.32"/><rect x="102.3" y="218.2" width="7.0" height="19.8" fill="#3ecb7c" opacity="0.32"/><rect x="112.6" y="217.2" width="7.0" height="20.8" fill="#3ecb7c" opacity="0.32"/><rect x="122.9" y="213.7" width="7.0" height="24.3" fill="#3ecb7c" opacity="0.32"/><rect x="133.1" y="220.5" width="7.0" height="17.5" fill="#e0483f" opacity="0.32"/><rect x="143.4" y="221.7" width="7.0" height="16.3" fill="#3ecb7c" opacity="0.32"/><rect x="153.7" y="220.2" width="7.0" height="17.8" fill="#e0483f" opacity="0.32"/><rect x="164.0" y="222.4" width="7.0" height="15.6" fill="#e0483f" opacity="0.32"/><rect x="174.3" y="221.3" width="7.0" height="16.7" fill="#3ecb7c" opacity="0.32"/><rect x="184.6" y="222.8" width="7.0" height="15.2" fill="#3ecb7c" opacity="0.32"/><rect x="194.9" y="226.4" width="7.0" height="11.6" fill="#e0483f" opacity="0.32"/><rect x="205.2" y="223.6" width="7.0" height="14.4" fill="#e0483f" opacity="0.32"/><rect x="215.5" y="222.1" width="7.0" height="15.9" fill="#e0483f" opacity="0.32"/><rect x="225.8" y="223.1" width="7.0" height="14.9" fill="#e0483f" opacity="0.32"/><rect x="236.1" y="223.8" width="7.0" height="14.2" fill="#e0483f" opacity="0.32"/><rect x="246.4" y="222.8" width="7.0" height="15.2" fill="#e0483f" opacity="0.32"/><rect x="256.6" y="217.2" width="7.0" height="20.8" fill="#e0483f" opacity="0.32"/><rect x="266.9" y="219.2" width="7.0" height="18.8" fill="#3ecb7c" opacity="0.32"/><rect x="277.2" y="210.3" width="7.0" height="27.7" fill="#e0483f" opacity="0.32"/><rect x="287.5" y="192.0" width="7.0" height="46.0" fill="#3ecb7c" opacity="0.32"/><rect x="297.8" y="208.0" width="7.0" height="30.0" fill="#e0483f" opacity="0.32"/><rect x="308.1" y="218.8" width="7.0" height="19.2" fill="#3ecb7c" opacity="0.32"/><rect x="318.4" y="221.1" width="7.0" height="16.9" fill="#3ecb7c" opacity="0.32"/><rect x="328.7" y="213.8" width="7.0" height="24.2" fill="#3ecb7c" opacity="0.32"/><rect x="339.0" y="217.3" width="7.0" height="20.7" fill="#3ecb7c" opacity="0.32"/><rect x="349.3" y="217.2" width="7.0" height="20.8" fill="#e0483f" opacity="0.32"/><rect x="359.6" y="219.1" width="7.0" height="18.9" fill="#e0483f" opacity="0.32"/><rect x="369.9" y="225.2" width="7.0" height="12.8" fill="#e0483f" opacity="0.32"/><rect x="380.1" y="221.7" width="7.0" height="16.3" fill="#e0483f" opacity="0.32"/><rect x="390.4" y="224.3" width="7.0" height="13.7" fill="#e0483f" opacity="0.32"/><rect x="400.7" y="217.6" width="7.0" height="20.4" fill="#e0483f" opacity="0.32"/><rect x="411.0" y="224.4" width="7.0" height="13.6" fill="#e0483f" opacity="0.32"/><rect x="421.3" y="223.1" width="7.0" height="14.9" fill="#e0483f" opacity="0.32"/><rect x="431.6" y="223.5" width="7.0" height="14.5" fill="#3ecb7c" opacity="0.32"/><rect x="441.9" y="208.7" width="7.0" height="29.3" fill="#3ecb7c" opacity="0.32"/><rect x="452.2" y="221.1" width="7.0" height="16.9" fill="#3ecb7c" opacity="0.32"/><rect x="462.5" y="223.3" width="7.0" height="14.7" fill="#3ecb7c" opacity="0.32"/><rect x="472.8" y="224.2" width="7.0" height="13.8" fill="#e0483f" opacity="0.32"/><rect x="483.1" y="226.1" width="7.0" height="11.9" fill="#3ecb7c" opacity="0.32"/><rect x="493.4" y="224.2" width="7.0" height="13.8" fill="#e0483f" opacity="0.32"/><polyline points="13.1,133.8 23.4,131.7 33.7,130.0 44.0,128.1 54.3,127.4 64.6,127.0 74.9,128.8 85.2,129.2 95.5,128.2 105.8,126.2 116.1,123.6 126.4,121.0 136.6,118.1 146.9,115.9 157.2,113.4 167.5,112.4 177.8,110.4 188.1,107.3 198.4,103.4 208.7,99.6 219.0,97.4 229.3,96.4 239.6,95.0 249.9,93.6 260.1,91.5 270.4,88.7 280.7,85.3 291.0,79.5 301.3,76.6 311.6,74.1 321.9,73.1 332.2,72.2 342.5,70.6 352.8,69.5 363.1,68.0 373.4,67.0 383.6,68.0 393.9,69.2 404.2,71.7 414.5,73.9 424.8,74.9 435.1,74.6 445.4,73.7 455.7,71.5 466.0,67.9 476.3,65.7 486.6,63.1 496.9,63.6" fill="none" stroke="#4a86ff" stroke-width="1.6" opacity="0.9"/><line x1="13.1" y1="109.5" x2="13.1" y2="125.7" stroke="#e0483f" stroke-width="1"/><rect x="9.6" y="113.3" width="7.0" height="1.0" fill="#e0483f" rx="0.6"/><line x1="23.4" y1="89.4" x2="23.4" y2="122.4" stroke="#3ecb7c" stroke-width="1"/><rect x="19.9" y="97.5" width="7.0" height="21.9" fill="#3ecb7c" rx="0.6"/><line x1="33.7" y1="101.7" x2="33.7" y2="118.9" stroke="#e0483f" stroke-width="1"/><rect x="30.2" y="106.6" width="7.0" height="2.4" fill="#e0483f" rx="0.6"/><line x1="44.0" y1="98.1" x2="44.0" y2="122.9" stroke="#e0483f" stroke-width="1"/><rect x="40.5" y="113.7" width="7.0" height="2.1" fill="#e0483f" rx="0.6"/><line x1="54.3" y1="109.1" x2="54.3" y2="155.7" stroke="#e0483f" stroke-width="1"/><rect x="50.8" y="111.0" width="7.0" height="40.9" fill="#e0483f" rx="0.6"/><line x1="64.6" y1="144.3" x2="64.6" y2="165.1" stroke="#3ecb7c" stroke-width="1"/><rect x="61.1" y="150.2" width="7.0" height="7.0" fill="#3ecb7c" rx="0.6"/><line x1="74.9" y1="150.0" x2="74.9" y2="174.7" stroke="#e0483f" stroke-width="1"/><rect x="71.4" y="153.9" width="7.0" height="20.8" fill="#e0483f" rx="0.6"/><line x1="85.2" y1="149.3" x2="85.2" y2="169.4" stroke="#3ecb7c" stroke-width="1"/><rect x="81.7" y="157.1" width="7.0" height="5.6" fill="#3ecb7c" rx="0.6"/><line x1="95.5" y1="132.7" x2="95.5" y2="157.4" stroke="#3ecb7c" stroke-width="1"/><rect x="92.0" y="137.1" width="7.0" height="8.1" fill="#3ecb7c" rx="0.6"/><line x1="105.8" y1="109.1" x2="105.8" y2="150.7" stroke="#3ecb7c" stroke-width="1"/><rect x="102.3" y="116.5" width="7.0" height="31.3" fill="#3ecb7c" rx="0.6"/><line x1="116.1" y1="94.0" x2="116.1" y2="108.1" stroke="#3ecb7c" stroke-width="1"/><rect x="112.6" y="97.9" width="7.0" height="2.2" fill="#3ecb7c" rx="0.6"/><line x1="126.4" y1="62.0" x2="126.4" y2="82.3" stroke="#3ecb7c" stroke-width="1"/><rect x="122.9" y="72.5" width="7.0" height="8.3" fill="#3ecb7c" rx="0.6"/><line x1="136.6" y1="57.0" x2="136.6" y2="80.2" stroke="#e0483f" stroke-width="1"/><rect x="133.1" y="64.4" width="7.0" height="8.9" fill="#e0483f" rx="0.6"/><line x1="146.9" y1="53.1" x2="146.9" y2="67.4" stroke="#3ecb7c" stroke-width="1"/><rect x="143.4" y="55.9" width="7.0" height="8.5" fill="#3ecb7c" rx="0.6"/><line x1="157.2" y1="55.3" x2="157.2" y2="81.0" stroke="#e0483f" stroke-width="1"/><rect x="153.7" y="57.9" width="7.0" height="20.5" fill="#e0483f" rx="0.6"/><line x1="167.5" y1="62.1" x2="167.5" y2="83.0" stroke="#e0483f" stroke-width="1"/><rect x="164.0" y="62.2" width="7.0" height="16.3" fill="#e0483f" rx="0.6"/><line x1="177.8" y1="51.9" x2="177.8" y2="69.0" stroke="#3ecb7c" stroke-width="1"/><rect x="174.3" y="55.4" width="7.0" height="10.7" fill="#3ecb7c" rx="0.6"/><line x1="188.1" y1="44.5" x2="188.1" y2="56.8" stroke="#3ecb7c" stroke-width="1"/><rect x="184.6" y="51.2" width="7.0" height="1.0" fill="#3ecb7c" rx="0.6"/><line x1="198.4" y1="43.5" x2="198.4" y2="54.0" stroke="#e0483f" stroke-width="1"/><rect x="194.9" y="46.1" width="7.0" height="5.6" fill="#e0483f" rx="0.6"/><line x1="208.7" y1="42.0" x2="208.7" y2="52.7" stroke="#e0483f" stroke-width="1"/><rect x="205.2" y="48.8" width="7.0" height="3.4" fill="#e0483f" rx="0.6"/><line x1="219.0" y1="64.0" x2="219.0" y2="74.3" stroke="#e0483f" stroke-width="1"/><rect x="215.5" y="68.2" width="7.0" height="2.5" fill="#e0483f" rx="0.6"/><line x1="229.3" y1="59.7" x2="229.3" y2="81.1" stroke="#e0483f" stroke-width="1"/><rect x="225.8" y="63.9" width="7.0" height="14.4" fill="#e0483f" rx="0.6"/><line x1="239.6" y1="70.2" x2="239.6" y2="84.9" stroke="#e0483f" stroke-width="1"/><rect x="236.1" y="75.0" width="7.0" height="5.8" fill="#e0483f" rx="0.6"/><line x1="249.9" y1="74.2" x2="249.9" y2="89.0" stroke="#e0483f" stroke-width="1"/><rect x="246.4" y="75.3" width="7.0" height="12.9" fill="#e0483f" rx="0.6"/><line x1="260.1" y1="85.2" x2="260.1" y2="114.4" stroke="#e0483f" stroke-width="1"/><rect x="256.6" y="85.4" width="7.0" height="24.7" fill="#e0483f" rx="0.6"/><line x1="270.4" y1="88.2" x2="270.4" y2="104.4" stroke="#3ecb7c" stroke-width="1"/><rect x="266.9" y="94.1" width="7.0" height="7.1" fill="#3ecb7c" rx="0.6"/><line x1="280.7" y1="92.1" x2="280.7" y2="107.4" stroke="#e0483f" stroke-width="1"/><rect x="277.2" y="95.5" width="7.0" height="10.4" fill="#e0483f" rx="0.6"/><line x1="291.0" y1="33.1" x2="291.0" y2="66.6" stroke="#3ecb7c" stroke-width="1"/><rect x="287.5" y="41.8" width="7.0" height="17.9" fill="#3ecb7c" rx="0.6"/><line x1="301.3" y1="37.3" x2="301.3" y2="80.9" stroke="#e0483f" stroke-width="1"/><rect x="297.8" y="44.0" width="7.0" height="34.3" fill="#e0483f" rx="0.6"/><line x1="311.6" y1="65.2" x2="311.6" y2="83.0" stroke="#3ecb7c" stroke-width="1"/><rect x="308.1" y="67.0" width="7.0" height="6.7" fill="#3ecb7c" rx="0.6"/><line x1="321.9" y1="68.3" x2="321.9" y2="86.9" stroke="#3ecb7c" stroke-width="1"/><rect x="318.4" y="78.7" width="7.0" height="2.4" fill="#3ecb7c" rx="0.6"/><line x1="332.2" y1="41.9" x2="332.2" y2="75.1" stroke="#3ecb7c" stroke-width="1"/><rect x="328.7" y="54.3" width="7.0" height="19.7" fill="#3ecb7c" rx="0.6"/><line x1="342.5" y1="33.4" x2="342.5" y2="53.1" stroke="#3ecb7c" stroke-width="1"/><rect x="339.0" y="40.2" width="7.0" height="8.5" fill="#3ecb7c" rx="0.6"/><line x1="352.8" y1="18.1" x2="352.8" y2="36.1" stroke="#e0483f" stroke-width="1"/><rect x="349.3" y="30.9" width="7.0" height="2.6" fill="#e0483f" rx="0.6"/><line x1="363.1" y1="21.8" x2="363.1" y2="52.8" stroke="#e0483f" stroke-width="1"/><rect x="359.6" y="23.9" width="7.0" height="25.8" fill="#e0483f" rx="0.6"/><line x1="373.4" y1="48.1" x2="373.4" y2="57.6" stroke="#e0483f" stroke-width="1"/><rect x="369.9" y="51.3" width="7.0" height="5.6" fill="#e0483f" rx="0.6"/><line x1="383.6" y1="66.3" x2="383.6" y2="79.5" stroke="#e0483f" stroke-width="1"/><rect x="380.1" y="67.9" width="7.0" height="7.6" fill="#e0483f" rx="0.6"/><line x1="393.9" y1="62.8" x2="393.9" y2="76.2" stroke="#e0483f" stroke-width="1"/><rect x="390.4" y="65.4" width="7.0" height="10.3" fill="#e0483f" rx="0.6"/><line x1="404.2" y1="95.0" x2="404.2" y2="108.5" stroke="#e0483f" stroke-width="1"/><rect x="400.7" y="100.4" width="7.0" height="1.0" fill="#e0483f" rx="0.6"/><line x1="414.5" y1="91.0" x2="414.5" y2="100.7" stroke="#e0483f" stroke-width="1"/><rect x="411.0" y="92.9" width="7.0" height="4.2" fill="#e0483f" rx="0.6"/><line x1="424.8" y1="81.1" x2="424.8" y2="96.0" stroke="#e0483f" stroke-width="1"/><rect x="421.3" y="90.3" width="7.0" height="1.0" fill="#e0483f" rx="0.6"/><line x1="435.1" y1="70.1" x2="435.1" y2="79.7" stroke="#3ecb7c" stroke-width="1"/><rect x="431.6" y="72.1" width="7.0" height="3.4" fill="#3ecb7c" rx="0.6"/><line x1="445.4" y1="60.2" x2="445.4" y2="76.6" stroke="#3ecb7c" stroke-width="1"/><rect x="441.9" y="61.8" width="7.0" height="10.2" fill="#3ecb7c" rx="0.6"/><line x1="455.7" y1="40.0" x2="455.7" y2="64.3" stroke="#3ecb7c" stroke-width="1"/><rect x="452.2" y="43.9" width="7.0" height="15.5" fill="#3ecb7c" rx="0.6"/><line x1="466.0" y1="34.8" x2="466.0" y2="47.0" stroke="#3ecb7c" stroke-width="1"/><rect x="462.5" y="38.7" width="7.0" height="7.1" fill="#3ecb7c" rx="0.6"/><line x1="476.3" y1="38.4" x2="476.3" y2="55.7" stroke="#e0483f" stroke-width="1"/><rect x="472.8" y="41.7" width="7.0" height="8.8" fill="#e0483f" rx="0.6"/><line x1="486.6" y1="52.5" x2="486.6" y2="65.9" stroke="#3ecb7c" stroke-width="1"/><rect x="483.1" y="53.7" width="7.0" height="8.7" fill="#3ecb7c" rx="0.6"/><line x1="496.9" y1="45.5" x2="496.9" y2="58.8" stroke="#e0483f" stroke-width="1"/><rect x="493.4" y="51.8" width="7.0" height="1.0" fill="#e0483f" rx="0.6"/><line x1="8" y1="52.0" x2="502" y2="52.0" stroke="#3ecb7c" stroke-dasharray="2 3" opacity="0.7"/><rect x="504" y="44.0" width="54" height="16" rx="2" fill="#3ecb7c"/><text x="509" y="56.0" class="pt">225.07</text><text x="10" y="10" class="pl"><tspan fill="#4a86ff">&#8212; SMA 20</tspan><tspan dx="10" fill="#8a8f98">Vol</tspan></text></svg><!-- /PROMO-CHART -->
-      <div class="ppc-acct">
-        <span><small>Account value</small><b>$10,000.00</b></span>
-        <span><small>Buying power</small><b>$10,000.00</b></span>
-        <span class="ppc-btns"><em class="ppc-buy">Buy</em><em class="ppc-sell">Sell</em></span>
+    <div class="ob-visual">
+      <div class="ob-frame">
+        <div class="ob-frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>agentictrading.info/app</span></div>
+        <img src="images/app/dashboard.webp" width="1440" height="900" alt="The Zelos dashboard: a virtual account worth $11,095, its value chart for the day, top gainers and the list of positions.">
       </div>
-    </a>
+      <div class="ob-phone"><img src="images/app/dashboard-phone.webp" width="585" height="996" alt="The same dashboard on a phone."></div>
+    </div>
+  </div>
+  <div class="shell">
+    <div class="ob-app-note"><span class="ob-app-note-icon" aria-hidden="true">i</span><div><b>Trading happens in the app.</b> This website introduces Zelos. Your account, trades, Trade Wars and lessons are all inside the app: tap <b>Open Practice</b> to go in. On a phone, add it to your home screen and it opens like an app.</div></div>
   </div>
 </section>
 
-<section class="section" id="strategies">
+<section class="ob-section" id="what">
   <div class="shell">
-    <div class="dash-grid">
-
-      <div class="dash-main">
-        <div class="section-head">
-          <h2>Trading Strategies</h2>
-          <a href="arsenal.html">View all &rarr;</a>
-        </div>
-
-        <div class="bot-grid">
-          <!-- Swing Trader — live -->
-          <div class="bot-card">
-            <div class="bot-card-top">
-              <span class="tag tag-live">Stocks &middot; live</span>
-              <span class="bot-cadence">Swing, days&ndash;weeks</span>
-            </div>
-            <div>
-              <h3>Swing Trader</h3>
-              <p class="bot-desc">Pullbacks in a healthy uptrend &mdash; alerts only when selling pressure looks like it's fading and risk/reward earns it.</p>
-            </div>
-            <svg viewBox="0 0 400 300" role="img" aria-label="Candlestick chart with entry and exit marked"><line x1="8" y1="16.0" x2="328" y2="16.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="19.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$74</text><line x1="8" y1="75.0" x2="328" y2="75.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="78.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$68</text><line x1="8" y1="134.0" x2="328" y2="134.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="137.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$62</text><line x1="8" y1="193.0" x2="328" y2="193.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="196.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$56</text><line x1="8" y1="252.0" x2="328" y2="252.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="255.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$50</text><line x1="14.2" y1="167.9" x2="14.2" y2="181.1" stroke="var(--accent)" stroke-width="1.4"/><rect x="10.8" y="172.2" width="6.8" height="5.3" fill="var(--accent)"/><line x1="26.5" y1="166.6" x2="26.5" y2="176.9" stroke="var(--accent)" stroke-width="1.4"/><rect x="23.1" y="170.6" width="6.8" height="2.0" fill="var(--accent)"/><line x1="38.8" y1="160.4" x2="38.8" y2="175.0" stroke="var(--accent)" stroke-width="1.4"/><rect x="35.4" y="165.2" width="6.8" height="5.4" fill="var(--accent)"/><line x1="51.1" y1="160.4" x2="51.1" y2="167.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="47.7" y="163.6" width="6.8" height="2.0" fill="var(--accent)"/><line x1="63.4" y1="152.5" x2="63.4" y2="167.6" stroke="var(--accent)" stroke-width="1.4"/><rect x="60.0" y="156.6" width="6.8" height="7.0" fill="var(--accent)"/><line x1="75.7" y1="141.1" x2="75.7" y2="161.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="72.3" y="146.2" width="6.8" height="10.4" fill="var(--accent)"/><line x1="88.0" y1="132.0" x2="88.0" y2="149.8" stroke="var(--accent)" stroke-width="1.4"/><rect x="84.6" y="134.8" width="6.8" height="11.4" fill="var(--accent)"/><line x1="100.3" y1="122.1" x2="100.3" y2="138.4" stroke="var(--accent)" stroke-width="1.4"/><rect x="96.9" y="126.6" width="6.8" height="8.2" fill="var(--accent)"/><line x1="112.6" y1="109.3" x2="112.6" y2="128.9" stroke="var(--accent)" stroke-width="1.4"/><rect x="109.2" y="114.7" width="6.8" height="11.9" fill="var(--accent)"/><line x1="124.9" y1="111.1" x2="124.9" y2="138.3" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="121.5" y="114.7" width="6.8" height="18.6" fill="var(--candle-down)"/><line x1="137.2" y1="128.0" x2="137.2" y2="151.6" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="133.8" y="133.3" width="6.8" height="14.4" fill="var(--candle-down)"/><line x1="149.5" y1="144.7" x2="149.5" y2="168.1" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="146.2" y="147.7" width="6.8" height="16.2" fill="var(--candle-down)"/><line x1="161.8" y1="160.7" x2="161.8" y2="193.7" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="158.5" y="163.9" width="6.8" height="25.2" fill="var(--candle-down)"/><line x1="174.2" y1="182.8" x2="174.2" y2="192.0" stroke="var(--accent)" stroke-width="1.4"/><rect x="170.8" y="186.1" width="6.8" height="3.1" fill="var(--accent)"/><line x1="186.5" y1="154.8" x2="186.5" y2="190.8" stroke="var(--accent)" stroke-width="1.4"/><rect x="183.1" y="159.0" width="6.8" height="27.1" fill="var(--accent)"/><line x1="198.8" y1="129.4" x2="198.8" y2="163.1" stroke="var(--accent)" stroke-width="1.4"/><rect x="195.4" y="133.2" width="6.8" height="25.8" fill="var(--accent)"/><line x1="211.1" y1="112.2" x2="211.1" y2="137.1" stroke="var(--accent)" stroke-width="1.4"/><rect x="207.7" y="116.2" width="6.8" height="16.9" fill="var(--accent)"/><line x1="223.4" y1="90.8" x2="223.4" y2="119.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="220.0" y="93.0" width="6.8" height="23.2" fill="var(--accent)"/><line x1="235.7" y1="75.3" x2="235.7" y2="96.9" stroke="var(--accent)" stroke-width="1.4"/><rect x="232.3" y="80.4" width="6.8" height="12.6" fill="var(--accent)"/><line x1="248.0" y1="61.9" x2="248.0" y2="85.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="244.6" y="66.7" width="6.8" height="13.7" fill="var(--accent)"/><line x1="260.3" y1="51.2" x2="260.3" y2="71.3" stroke="var(--accent)" stroke-width="1.4"/><rect x="256.9" y="53.5" width="6.8" height="13.2" fill="var(--accent)"/><line x1="272.6" y1="40.8" x2="272.6" y2="55.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="269.2" y="44.6" width="6.8" height="8.9" fill="var(--accent)"/><line x1="284.9" y1="37.0" x2="284.9" y2="48.5" stroke="var(--accent)" stroke-width="1.4"/><rect x="281.5" y="40.0" width="6.8" height="4.7" fill="var(--accent)"/><line x1="297.2" y1="27.3" x2="297.2" y2="45.0" stroke="var(--accent)" stroke-width="1.4"/><rect x="293.8" y="31.1" width="6.8" height="8.9" fill="var(--accent)"/><line x1="309.5" y1="17.6" x2="309.5" y2="35.9" stroke="var(--accent)" stroke-width="1.4"/><rect x="306.2" y="21.0" width="6.8" height="10.1" fill="var(--accent)"/><line x1="321.8" y1="16.0" x2="321.8" y2="26.3" stroke="var(--accent)" stroke-width="1.4"/><rect x="318.5" y="18.5" width="6.8" height="2.5" fill="var(--accent)"/><circle cx="174.2" cy="186.1" r="15" fill="var(--ink)" opacity="0.14"/><circle cx="174.2" cy="186.1" r="15" fill="none" stroke="var(--ink-2)" stroke-width="1.6"/><text x="197.2" y="190.1" font-family="var(--mono)" font-size="11" font-weight="700" letter-spacing="0.05em" fill="var(--ink)">ENTRY</text><circle cx="309.5" cy="21.0" r="15" fill="var(--ink)" opacity="0.14"/><circle cx="309.5" cy="21.0" r="15" fill="none" stroke="var(--accent)" stroke-width="1.6"/><text x="332.5" y="25.0" font-family="var(--mono)" font-size="11" font-weight="700" letter-spacing="0.05em" fill="var(--ink)">EXIT</text><text x="8" y="274" font-family="var(--sans)" font-size="12" font-weight="700" fill="var(--ink-2)">2026</text></svg>
-            <div class="bot-backtest">Live alert feed &middot; not a backtest, not a demo</div>
-            <a href="swing-trader.html" class="bot-cta" id="viewSwingTrader">See today's alert &rarr;</a>
-          </div>
-
-          <!-- Breakout Rider — live -->
-          <div class="bot-card">
-            <div class="bot-card-top">
-              <span class="tag tag-live">Stocks &middot; live</span>
-              <span class="bot-cadence">Swing, days&ndash;weeks</span>
-            </div>
-            <div>
-              <h3>Breakout Rider</h3>
-              <p class="bot-desc">Waits for a stock to clear resistance and hold above it &mdash; not just spike &mdash; before it ever gets on the list.</p>
-            </div>
-            <svg viewBox="0 0 400 300" role="img" aria-label="Candlestick chart with entry and exit marked"><line x1="8" y1="16.0" x2="328" y2="16.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="19.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$68</text><line x1="8" y1="75.0" x2="328" y2="75.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="78.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$63</text><line x1="8" y1="134.0" x2="328" y2="134.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="137.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$58</text><line x1="8" y1="193.0" x2="328" y2="193.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="196.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$53</text><line x1="8" y1="252.0" x2="328" y2="252.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="255.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$48</text><line x1="8" y1="164.1" x2="328" y2="164.1" stroke="var(--ink)" stroke-width="2.2"/><text x="12" y="157.1" font-family="var(--mono)" font-size="10.5" font-weight="700" letter-spacing="0.05em" fill="var(--ink)">RESISTANCE</text><line x1="14.2" y1="179.0" x2="14.2" y2="197.3" stroke="var(--accent)" stroke-width="1.4"/><rect x="10.8" y="185.4" width="6.8" height="7.5" fill="var(--accent)"/><line x1="26.5" y1="181.8" x2="26.5" y2="193.1" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="23.1" y="185.4" width="6.8" height="2.9" fill="var(--candle-down)"/><line x1="38.8" y1="172.8" x2="38.8" y2="194.0" stroke="var(--accent)" stroke-width="1.4"/><rect x="35.4" y="179.3" width="6.8" height="9.0" fill="var(--accent)"/><line x1="51.1" y1="172.5" x2="51.1" y2="192.8" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="47.7" y="179.3" width="6.8" height="8.3" fill="var(--candle-down)"/><line x1="63.4" y1="182.5" x2="63.4" y2="199.4" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="60.0" y="187.6" width="6.8" height="4.2" fill="var(--candle-down)"/><line x1="75.7" y1="187.8" x2="75.7" y2="198.7" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="72.3" y="191.8" width="6.8" height="2.7" fill="var(--candle-down)"/><line x1="88.0" y1="186.7" x2="88.0" y2="200.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="84.6" y="192.7" width="6.8" height="2.0" fill="var(--accent)"/><line x1="100.3" y1="182.0" x2="100.3" y2="198.6" stroke="var(--accent)" stroke-width="1.4"/><rect x="96.9" y="187.3" width="6.8" height="5.5" fill="var(--accent)"/><line x1="112.6" y1="174.3" x2="112.6" y2="193.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="109.2" y="179.7" width="6.8" height="7.6" fill="var(--accent)"/><line x1="124.9" y1="172.2" x2="124.9" y2="196.4" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="121.5" y="179.7" width="6.8" height="9.5" fill="var(--candle-down)"/><line x1="137.2" y1="182.9" x2="137.2" y2="199.0" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="133.8" y="189.2" width="6.8" height="4.4" fill="var(--candle-down)"/><line x1="149.5" y1="178.9" x2="149.5" y2="198.9" stroke="var(--accent)" stroke-width="1.4"/><rect x="146.2" y="186.7" width="6.8" height="6.9" fill="var(--accent)"/><line x1="161.8" y1="179.5" x2="161.8" y2="194.0" stroke="var(--accent)" stroke-width="1.4"/><rect x="158.5" y="185.7" width="6.8" height="2.0" fill="var(--accent)"/><line x1="174.2" y1="157.6" x2="174.2" y2="190.8" stroke="var(--accent)" stroke-width="1.4"/><rect x="170.8" y="164.1" width="6.8" height="21.7" fill="var(--accent)"/><line x1="186.5" y1="118.6" x2="186.5" y2="170.1" stroke="var(--accent)" stroke-width="1.4"/><rect x="183.1" y="125.4" width="6.8" height="38.7" fill="var(--accent)"/><line x1="198.8" y1="94.9" x2="198.8" y2="131.6" stroke="var(--accent)" stroke-width="1.4"/><rect x="195.4" y="102.4" width="6.8" height="23.0" fill="var(--accent)"/><line x1="211.1" y1="87.4" x2="211.1" y2="110.3" stroke="var(--accent)" stroke-width="1.4"/><rect x="207.7" y="93.2" width="6.8" height="9.3" fill="var(--accent)"/><line x1="223.4" y1="87.4" x2="223.4" y2="99.1" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="220.0" y="93.2" width="6.8" height="2.0" fill="var(--candle-down)"/><line x1="235.7" y1="74.8" x2="235.7" y2="101.8" stroke="var(--accent)" stroke-width="1.4"/><rect x="232.3" y="82.5" width="6.8" height="11.6" fill="var(--accent)"/><line x1="248.0" y1="67.4" x2="248.0" y2="86.0" stroke="var(--accent)" stroke-width="1.4"/><rect x="244.6" y="71.4" width="6.8" height="11.0" fill="var(--accent)"/><line x1="260.3" y1="51.9" x2="260.3" y2="78.9" stroke="var(--accent)" stroke-width="1.4"/><rect x="256.9" y="59.2" width="6.8" height="12.2" fill="var(--accent)"/><line x1="272.6" y1="48.3" x2="272.6" y2="63.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="269.2" y="53.3" width="6.8" height="5.9" fill="var(--accent)"/><line x1="284.9" y1="36.6" x2="284.9" y2="61.1" stroke="var(--accent)" stroke-width="1.4"/><rect x="281.5" y="43.1" width="6.8" height="10.3" fill="var(--accent)"/><line x1="297.2" y1="36.2" x2="297.2" y2="48.4" stroke="var(--accent)" stroke-width="1.4"/><rect x="293.8" y="40.4" width="6.8" height="2.7" fill="var(--accent)"/><line x1="309.5" y1="23.0" x2="309.5" y2="44.7" stroke="var(--accent)" stroke-width="1.4"/><rect x="306.2" y="29.4" width="6.8" height="11.0" fill="var(--accent)"/><line x1="321.8" y1="24.2" x2="321.8" y2="33.5" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="318.5" y="29.4" width="6.8" height="2.0" fill="var(--candle-down)"/><circle cx="186.5" cy="125.4" r="15" fill="var(--ink)" opacity="0.14"/><circle cx="186.5" cy="125.4" r="15" fill="none" stroke="var(--ink-2)" stroke-width="1.6"/><text x="209.5" y="129.4" font-family="var(--mono)" font-size="11" font-weight="700" letter-spacing="0.05em" fill="var(--ink)">ENTRY</text><circle cx="309.5" cy="29.4" r="15" fill="var(--ink)" opacity="0.14"/><circle cx="309.5" cy="29.4" r="15" fill="none" stroke="var(--accent)" stroke-width="1.6"/><text x="332.5" y="33.4" font-family="var(--mono)" font-size="11" font-weight="700" letter-spacing="0.05em" fill="var(--ink)">EXIT</text><text x="8" y="274" font-family="var(--sans)" font-size="12" font-weight="700" fill="var(--ink-2)">2026</text></svg>
-            <div class="bot-backtest">Same rules engine as Swing Trader &middot; live alert feed</div>
-            <a href="breakout-rider.html" class="bot-cta" id="viewBreakoutRider">See today's alert &rarr;</a>
-          </div>
-
-          <!-- Options Scanner — live -->
-          <div class="bot-card is-violet">
-            <div class="bot-card-top">
-              <span class="tag" style="color:var(--violet); background:var(--violet-soft);">Options &middot; live</span>
-              <span class="bot-cadence">Swing, days&ndash;weeks</span>
-            </div>
-            <div>
-              <h3>Options Scanner</h3>
-              <p class="bot-desc">Doubles as an add-on to Swing Trader and Breakout Rider &mdash; checks today's headline stock pick first, and translates it into a single long call or put if it clears the bar. Never spreads, multi-leg, short options, 0DTE, or weeklies.</p>
-            </div>
-            <svg viewBox="0 0 400 300" role="img" aria-label="Candlestick chart with entry and exit marked"><line x1="8" y1="16.0" x2="328" y2="16.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="19.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$64</text><line x1="8" y1="75.0" x2="328" y2="75.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="78.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$59</text><line x1="8" y1="134.0" x2="328" y2="134.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="137.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$54</text><line x1="8" y1="193.0" x2="328" y2="193.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="196.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$49</text><line x1="8" y1="252.0" x2="328" y2="252.0" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="2 3"/><text x="336" y="255.5" font-family="var(--mono)" font-size="10" fill="var(--muted)">$44</text><line x1="149.53846153846155" y1="16" x2="149.53846153846155" y2="252" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/><line x1="272.6153846153846" y1="16" x2="272.6153846153846" y2="252" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/><line x1="14.2" y1="181.1" x2="14.2" y2="199.9" stroke="var(--violet)" stroke-width="1.4"/><rect x="10.8" y="188.2" width="6.8" height="7.3" fill="var(--violet)"/><line x1="26.5" y1="169.3" x2="26.5" y2="194.2" stroke="var(--violet)" stroke-width="1.4"/><rect x="23.1" y="174.3" width="6.8" height="13.9" fill="var(--violet)"/><line x1="38.8" y1="162.9" x2="38.8" y2="180.5" stroke="var(--violet)" stroke-width="1.4"/><rect x="35.4" y="170.6" width="6.8" height="3.7" fill="var(--violet)"/><line x1="51.1" y1="158.2" x2="51.1" y2="175.0" stroke="var(--violet)" stroke-width="1.4"/><rect x="47.7" y="163.7" width="6.8" height="6.9" fill="var(--violet)"/><line x1="63.4" y1="145.3" x2="63.4" y2="168.0" stroke="var(--violet)" stroke-width="1.4"/><rect x="60.0" y="149.8" width="6.8" height="13.9" fill="var(--violet)"/><line x1="75.7" y1="132.6" x2="75.7" y2="157.3" stroke="var(--violet)" stroke-width="1.4"/><rect x="72.3" y="140.5" width="6.8" height="9.3" fill="var(--violet)"/><line x1="88.0" y1="131.8" x2="88.0" y2="146.3" stroke="var(--violet)" stroke-width="1.4"/><rect x="84.6" y="139.3" width="6.8" height="2.0" fill="var(--violet)"/><line x1="100.3" y1="118.5" x2="100.3" y2="144.0" stroke="var(--violet)" stroke-width="1.4"/><rect x="96.9" y="125.1" width="6.8" height="14.3" fill="var(--violet)"/><line x1="112.6" y1="119.6" x2="112.6" y2="142.4" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="109.2" y="125.1" width="6.8" height="13.4" fill="var(--candle-down)"/><line x1="124.9" y1="133.3" x2="124.9" y2="159.5" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="121.5" y="138.5" width="6.8" height="16.6" fill="var(--candle-down)"/><line x1="137.2" y1="151.4" x2="137.2" y2="172.5" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="133.8" y="155.1" width="6.8" height="9.8" fill="var(--candle-down)"/><line x1="149.5" y1="160.4" x2="149.5" y2="171.9" stroke="var(--violet)" stroke-width="1.4"/><rect x="146.2" y="164.0" width="6.8" height="2.0" fill="var(--violet)"/><line x1="161.8" y1="157.5" x2="161.8" y2="176.2" stroke="var(--candle-down)" stroke-width="1.4"/><rect x="158.5" y="164.0" width="6.8" height="8.5" fill="var(--candle-down)"/><line x1="174.2" y1="157.4" x2="174.2" y2="180.5" stroke="var(--violet)" stroke-width="1.4"/><rect x="170.8" y="162.9" width="6.8" height="9.7" fill="var(--violet)"/><line x1="186.5" y1="151.3" x2="186.5" y2="168.8" stroke="var(--violet)" stroke-width="1.4"/><rect x="183.1" y="159.3" width="6.8" height="3.6" fill="var(--violet)"/><line x1="198.8" y1="126.9" x2="198.8" y2="165.9" stroke="var(--violet)" stroke-width="1.4"/><rect x="195.4" y="133.8" width="6.8" height="25.4" fill="var(--violet)"/><line x1="211.1" y1="116.8" x2="211.1" y2="139.7" stroke="var(--violet)" stroke-width="1.4"/><rect x="207.7" y="121.4" width="6.8" height="12.4" fill="var(--violet)"/><line x1="223.4" y1="98.8" x2="223.4" y2="126.5" stroke="var(--violet)" stroke-width="1.4"/><rect x="220.0" y="104.9" width="6.8" height="16.5" fill="var(--violet)"/><line x1="235.7" y1="88.0" x2="235.7" y2="110.2" stroke="var(--violet)" stroke-width="1.4"/><rect x="232.3" y="95.2" width="6.8" height="9.7" fill="var(--violet)"/><line x1="248.0" y1="83.5" x2="248.0" y2="98.7" stroke="var(--violet)" stroke-width="1.4"/><rect x="244.6" y="90.3" width="6.8" height="4.9" fill="var(--violet)"/><line x1="260.3" y1="70.5" x2="260.3" y2="93.7" stroke="var(--violet)" stroke-width="1.4"/><rect x="256.9" y="75.9" width="6.8" height="14.4" fill="var(--violet)"/><line x1="272.6" y1="64.2" x2="272.6" y2="83.3" stroke="var(--violet)" stroke-width="1.4"/><rect x="269.2" y="70.5" width="6.8" height="5.4" fill="var(--violet)"/><line x1="284.9" y1="60.6" x2="284.9" y2="76.4" stroke="var(--violet)" stroke-width="1.4"/><rect x="281.5" y="66.4" width="6.8" height="4.1" fill="var(--violet)"/><line x1="297.2" y1="51.7" x2="297.2" y2="70.7" stroke="var(--violet)" stroke-width="1.4"/><rect x="293.8" y="57.9" width="6.8" height="8.5" fill="var(--violet)"/><line x1="309.5" y1="42.3" x2="309.5" y2="63.9" stroke="var(--violet)" stroke-width="1.4"/><rect x="306.2" y="47.4" width="6.8" height="10.5" fill="var(--violet)"/><line x1="321.8" y1="39.4" x2="321.8" y2="52.4" stroke="var(--violet)" stroke-width="1.4"/><rect x="318.5" y="45.7" width="6.8" height="2.0" fill="var(--violet)"/><circle cx="161.8" cy="172.6" r="15" fill="var(--ink)" opacity="0.14"/><circle cx="161.8" cy="172.6" r="15" fill="none" stroke="var(--violet)" stroke-width="1.6"/><text x="184.8" y="176.6" font-family="var(--mono)" font-size="11" font-weight="700" letter-spacing="0.05em" fill="var(--ink)">ENTRY</text><circle cx="297.2" cy="57.9" r="15" fill="var(--ink)" opacity="0.14"/><circle cx="297.2" cy="57.9" r="15" fill="none" stroke="var(--violet)" stroke-width="1.6"/><text x="320.2" y="61.9" font-family="var(--mono)" font-size="11" font-weight="700" letter-spacing="0.05em" fill="var(--ink)">TARGET</text><text x="8" y="274" font-family="var(--sans)" font-size="12" font-weight="700" fill="var(--ink-2)">2026</text></svg>
-            <div class="bot-backtest">Add-on to Swing Trader &amp; Breakout Rider, or standalone</div>
-            <a href="options-scanner.html" class="bot-cta is-violet" id="viewOptionsScanner">See today's alert &rarr;</a>
-          </div>
-        </div>
-
-        <div class="upcoming-block" style="margin-top:30px;">
-          <div class="section-head" style="margin-bottom:12px;">
-            <h2 style="font-size:1.05rem;">Upcoming Strategies</h2>
-            <span style="font-family:var(--mono); font-size:0.76rem; color:var(--muted);">In development &mdash; no launch date promised</span>
-          </div>
-          <div class="upcoming-row">
-            <div class="upcoming-card" data-strategy-id="earnings-drift">
-              <div class="upcoming-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V11"/><path d="M9.5 19V6"/><path d="M15 19V13"/><path d="M15 13 L20.5 7.5"/><path d="M16.5 7.5H20.5V11.5"/></svg></div>
-              <h4>Earnings Drift</h4>
-              <p>Looks to ride the days after a strong earnings beat, once the initial pop settles.</p>
-              <div class="upcoming-vote">
-                <div class="upcoming-vote-row">
-                  <span class="upcoming-vote-count" data-vote-count>0 votes</span>
-                  <button class="upcoming-vote-btn" type="button" data-vote-btn>Vote</button>
-                </div>
-                <div class="upcoming-vote-track"><div class="upcoming-vote-fill" data-vote-fill></div></div>
-              </div>
-            </div>
-            <div class="upcoming-card" data-strategy-id="dip-catcher">
-              <div class="upcoming-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19h15"/></svg></div>
-              <h4>Dip Catcher</h4>
-              <p>Watches for short, sharp pullbacks in otherwise strong stocks &mdash; sized down on purpose.</p>
-              <div class="upcoming-vote">
-                <div class="upcoming-vote-row">
-                  <span class="upcoming-vote-count" data-vote-count>0 votes</span>
-                  <button class="upcoming-vote-btn" type="button" data-vote-btn>Vote</button>
-                </div>
-                <div class="upcoming-vote-track"><div class="upcoming-vote-fill" data-vote-fill></div></div>
-              </div>
-            </div>
-            <div class="upcoming-card" data-strategy-id="range-runner">
-              <div class="upcoming-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16" stroke-dasharray="1.8 3.2"/><path d="M4 17h16" stroke-dasharray="1.8 3.2"/><path d="M6 7l4 10 4-10 4 10"/></svg></div>
-              <h4>Range Runner</h4>
-              <p>An intraday approach off the opening range that's flat by the close, on purpose.</p>
-              <div class="upcoming-vote">
-                <div class="upcoming-vote-row">
-                  <span class="upcoming-vote-count" data-vote-count>0 votes</span>
-                  <button class="upcoming-vote-btn" type="button" data-vote-btn>Vote</button>
-                </div>
-                <div class="upcoming-vote-track"><div class="upcoming-vote-fill" data-vote-fill></div></div>
-              </div>
-            </div>
-            <div class="upcoming-card" data-strategy-id="crypto-pulse">
-              <div class="upcoming-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.5l1.8-6 3.4 12 2-9.5 1.5 3.5H21"/></svg></div>
-              <h4>Crypto Pulse</h4>
-              <p>Extends the same rules-first approach to major coins, sized smaller for the swings.</p>
-              <div class="upcoming-vote">
-                <div class="upcoming-vote-row">
-                  <span class="upcoming-vote-count" data-vote-count>0 votes</span>
-                  <button class="upcoming-vote-btn" type="button" data-vote-btn>Vote</button>
-                </div>
-                <div class="upcoming-vote-track"><div class="upcoming-vote-fill" data-vote-fill></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <aside class="dash-side">
-        <div class="side-card alert-card" id="latestAlertCard">
-          <div class="side-card-head"><h3>Latest Alert</h3><a href="alert-history.html">View all &rarr;</a></div>
-          <div id="latestAlertBody"><span class="empty" style="color:var(--muted); font-size:0.85rem;">Loading&hellip;</span></div>
-        </div>
-
-        <div class="side-card">
-          <div class="side-card-head"><h3>Market Overview</h3><a href="live-chart.html">Full chart &rarr;</a></div>
-          <div id="marketOverviewWidget" data-zm="overview" data-sym="SPX"></div>
-        </div>
-
-        <div class="side-card">
-          <div class="side-card-head"><h3>Key Features</h3></div>
-          <div class="feature-list">
-            <div class="feature-item"><span class="feature-check">&check;</span>Rule-based, published scans</div>
-            <div class="feature-item"><span class="feature-check">&check;</span>Same alert for every subscriber</div>
-            <div class="feature-item"><span class="feature-check">&check;</span>Entry, stop &amp; target on every setup</div>
-            <div class="feature-item"><span class="feature-check">&check;</span>Full alert history, always archived</div>
-            <div class="feature-item"><span class="feature-check">&check;</span>XP, streaks &amp; a free arcade</div>
-          </div>
-        </div>
-      </aside>
-
+    <div class="eyebrow">What Zelos is</div>
+    <h2>A place to get comfortable with the market before you risk real money.</h2>
+    <p class="ob-intro">Zelos follows actual stocks, not currency pairs. You can talk about real companies, real price moves and today's financial news with other people who follow the same stocks, while every dollar you trade is virtual.</p>
+    <div class="ob-pillars">
+      <div class="ob-pillar"><small>Practice</small><h3>Virtual trading</h3><p>Buy and sell stocks and options with a $10,000 virtual account. Your gains and losses follow the real market.</p></div>
+      <div class="ob-pillar"><small>Information</small><h3>Market data &amp; news</h3><p>Live prices during market hours, charts with indicators, company research and market news in one place.</p></div>
+      <div class="ob-pillar"><small>Education</small><h3>Lessons that go deep</h3><p>Trading 101 covers the basics through advanced options. The Hall of Minds draws lessons from history.</p></div>
+      <div class="ob-pillar"><small>Research</small><h3>Strategies &amp; tools</h3><p>Rule-based strategy pages, alerts and training games that teach you to read a setup.</p></div>
+      <div class="ob-pillar"><small>Community</small><h3>People who follow the same stocks</h3><p>Share trades with your reasoning, wins and losses alike, and see what others are watching.</p></div>
+      <div class="ob-pillar"><small>Competition</small><h3>Trade War</h3><p>An intentionally game-like side of Zelos: battles, squads and leaderboards, to make practice more fun.</p></div>
     </div>
   </div>
 </section>
 
-<section class="section" id="why-zelos">
+<section class="ob-section" id="tour">
   <div class="shell">
-    <div class="eyebrow">Why "Zelos"</div>
-    <h2 style="font-size:1.7rem; margin-top:8px;">It's not envy. It's knowing you're capable.</h2>
-    <div class="card" style="margin-top:24px; max-width:76ch;">
-      <blockquote style="margin:0; padding:0; border:none; font-size:1.05rem; font-style:italic; color:var(--ink);">
-        &ldquo;Emulation is pain caused by seeing the presence, in persons whose nature is like our own, of good things that are highly valued and are possible for ourselves to acquire; but it is felt not because others have these goods, but because we have not got them ourselves.&rdquo;
-        <cite style="display:block; margin-top:12px; font-style:normal; font-family:var(--mono); font-size:0.75rem; color:var(--accent); letter-spacing:0.02em;">&mdash; Aristotle, Rhetoric, Book II, Ch. 11 (on &zeta;&#8134;&lambda;&omicron;&sigmaf; / zelos, &ldquo;emulation&rdquo;)</cite>
-      </blockquote>
-      <div style="margin-top:16px; display:flex; flex-direction:column; gap:12px;">
-        <p style="color:var(--ink-2); font-size:0.95rem;">Aristotle drew a sharp line between two feelings that look similar from the outside. <b style="color:var(--ink);">Envy</b> wants the other person to lose what they have. <b style="color:var(--ink);">Zelos</b> &mdash; emulation &mdash; wants what a capable peer has because you can see, clearly, that it's within reach for you too. He called it a feeling good people have.</p>
-        <p style="color:var(--ink-2); font-size:0.95rem;">That's the distinction this is named after. Not chasing a stock because someone else is up on it &mdash; that's the trade every Zelos strategy explicitly refuses to make. Going after the same kind of opportunity, on your own terms, when the setup is actually there for you.</p>
+    <div class="eyebrow">Inside the app</div>
+    <h2>Here's what you'll find when you open Practice.</h2>
+    <div class="ob-tour">
+      <div class="ob-tabs" role="tablist" aria-label="App features">
+        <button class="ob-tab" role="tab" id="tab-dashboard" aria-controls="shot-dashboard" aria-selected="true">Dashboard<small>Your virtual account at a glance</small></button>
+        <button class="ob-tab" role="tab" id="tab-chart" aria-controls="shot-chart" aria-selected="false" tabindex="-1">Charts &amp; research<small>Live prices, indicators and company info</small></button>
+        <button class="ob-tab" role="tab" id="tab-trade" aria-controls="shot-trade" aria-selected="false" tabindex="-1">Placing a trade<small>Market, limit and stop orders</small></button>
+        <button class="ob-tab" role="tab" id="tab-learn" aria-controls="shot-learn" aria-selected="false" tabindex="-1">Trading 101<small>Ten chapters, basics to advanced</small></button>
+        <button class="ob-tab" role="tab" id="tab-minds" aria-controls="shot-minds" aria-selected="false" tabindex="-1">Hall of Minds<small>Lessons from history</small></button>
+        <button class="ob-tab" role="tab" id="tab-news" aria-controls="shot-news" aria-selected="false" tabindex="-1">News<small>Filings, the Fed and market news</small></button>
+        <button class="ob-tab" role="tab" id="tab-training" aria-controls="shot-training" aria-selected="false" tabindex="-1">Training Ground<small>Drills on real charts</small></button>
+        <button class="ob-tab" role="tab" id="tab-strategies" aria-controls="shot-strategies" aria-selected="false" tabindex="-1">Strategies<small>Rule-based setups and alerts</small></button>
+        <button class="ob-tab" role="tab" id="tab-tradewar" aria-controls="shot-tradewar" aria-selected="false" tabindex="-1">Trade War<small>Battles, squads and leaderboards</small></button>
+      </div>
+      <div class="ob-shot">
+        <figure role="tabpanel" id="shot-dashboard" aria-labelledby="tab-dashboard">
+          <div class="ob-frame"><img src="images/app/dashboard.webp" width="1440" height="900" loading="lazy" alt="Dashboard with account value, a day chart, today's change, cash, top gainers and the positions table."></div>
+          <figcaption><b>Your account at a glance.</b> What your virtual account is worth, how it moved today, which positions are up or down since you bought them, and your pending orders. It's the first thing you see each time you open the app.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-chart" aria-labelledby="tab-chart" hidden>
+          <div class="ob-frame"><img src="images/app/chart.webp" width="1208" height="844" loading="lazy" alt="Apple's candlestick chart with moving averages, RSI and volume, today's open, high and low, and Buy and Sell buttons."></div>
+          <figcaption><b>Real prices, real charts.</b> Candlestick charts with indicators and drawing tools, today's numbers and company research. The most active stocks update every minute during market hours, so what you discuss matches what the market actually did.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-trade" aria-labelledby="tab-trade" hidden>
+          <div class="ob-frame"><img src="images/app/trade.webp" width="1208" height="844" loading="lazy" alt="Nvidia's trade page with a daily chart and an order ticket for shares or options."></div>
+          <figcaption><b>Practice the real mechanics.</b> Market, limit and stop orders, stop-loss and take-profit brackets, and options. Learning how orders work with virtual money means fewer surprises later.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-learn" aria-labelledby="tab-learn" hidden>
+          <div class="ob-frame"><img src="images/app/learn.webp" width="1208" height="844" loading="lazy" alt="Trading 101 shelf of chapter books with progress and quizzes."></div>
+          <figcaption><b>A course, not a glossary.</b> Ten chapters from stock basics, risk and charts through options and advanced strategy, each with short lessons and a quiz. The Mental Game chapter is open to everyone from the start.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-minds" aria-labelledby="tab-minds" hidden>
+          <div class="ob-frame"><img src="images/app/minds.webp" width="1208" height="844" loading="lazy" alt="Hall of Minds: portraits of Napoleon, Alexander the Great, Julius Caesar, Jesse Livermore, Aristotle and others, each with lessons."></div>
+          <figcaption><b>Lessons from history.</b> How figures like Jesse Livermore, Charles Dow, Napoleon and Aristotle thought and handled pressure, and what a trader can take from them today.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-news" aria-labelledby="tab-news" hidden>
+          <div class="ob-frame"><img src="images/app/news.webp" width="1208" height="844" loading="lazy" alt="News page with Zelos updates, SEC filings and Federal Reserve announcements."></div>
+          <figcaption><b>What's moving the market.</b> Company filings, Federal Reserve announcements and Zelos updates in one feed, so you can connect the news to the prices you're watching.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-training" aria-labelledby="tab-training" hidden>
+          <div class="ob-frame"><img src="images/app/training.webp" width="1208" height="844" loading="lazy" alt="Training Ground with the daily challenge, Chart Replay, Grade the Setup and stop-placement drills."></div>
+          <figcaption><b>Drills on real charts.</b> Replay a hidden chart bar by bar, grade a setup against a checklist, or practice where to put a stop. Short games that build the skills trades depend on.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-strategies" aria-labelledby="tab-strategies" hidden>
+          <div class="ob-frame"><img src="images/app/strategies.webp" width="1208" height="844" loading="lazy" alt="Strategies page with Swing Trader, Breakout Rider, Options Scanner and 3-Leg Options, each with an example chart."></div>
+          <figcaption><b>Rules you can study.</b> Each strategy is a fixed set of rules with an example chart, so you can see why a setup qualifies and follow its alerts in your practice account.</figcaption>
+        </figure>
+        <figure role="tabpanel" id="shot-tradewar" aria-labelledby="tab-tradewar" hidden>
+          <div class="ob-frame"><img src="images/app/tradewar.webp" width="1208" height="844" loading="lazy" alt="Trade War overview with Solo and Battle modes, leaderboards and squads."></div>
+          <figcaption><b>The game-like side.</b> Trade War is an experiment in making practice more engaging: challenge a friend to a battle, trade with a squad and climb the leaderboards. It's still evolving with feedback.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <p class="ob-fine">Screens from a demo account in the Zelos app, with prices from a real market day.</p>
+  </div>
+</section>
+
+<section class="ob-section" id="about">
+  <div class="shell">
+    <div class="eyebrow">Why Zelos exists</div>
+    <h2>Stock market education should be easier to start.</h2>
+    <p class="ob-intro">Many virtual trading platforms aren't built for beginners, and some focus on currencies rather than companies. Zelos is being built to make market education and virtual trading more accessible: a place to explore the market, practice trading, learn strategies and get comfortable understanding markets, all without risking your own money.</p>
+    <p class="ob-intro">It isn't meant to be just another simulator. The goal is to bring virtual trading, market information, education, research, community and competition together, for long-term learning rather than quick wins.</p>
+  </div>
+</section>
+
+<section class="ob-section" id="founder">
+  <div class="shell">
+    <div class="eyebrow">The founder</div>
+    <h2>Built by someone who wanted it to exist.</h2>
+    <div class="ob-founder">
+      <figure class="ob-founder-photo">
+        <img src="images/founder.webp" width="496" height="620" loading="lazy" alt="Nathan Groccia, founder of Zelos, standing in front of a stone wall.">
+        <figcaption><b>Nathan Groccia</b><span>Founder &middot; Massachusetts</span></figcaption>
+        <a class="ob-ig" href="https://www.instagram.com/nathan_groccia/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1" fill="currentColor" stroke="none"/></svg>
+          @nathan_groccia
+        </a>
+      </figure>
+      <div class="ob-bio">
+        <p>Zelos was founded by <b>Nathan Groccia</b>, a 19-year-old developer and investor from Massachusetts.</p>
+        <p>After trying virtual trading platforms, Nathan wanted something different: a beginner-friendly platform focused on actual stocks, real market prices and meaningful financial education. Some platforms had him trading the U.S. dollar against the Japanese yen when what he wanted was to practice with companies like Tesla, Nvidia or Amazon, and to talk about them with people following the same stocks.</p>
+        <blockquote class="ob-quote">&ldquo;I wanted to be able to say, &lsquo;I bought $400 of Tesla, and it went up,&rsquo; and have that conversation be based on real prices and real news, even with virtual money.&rdquo;</blockquote>
+        <p>He also wanted more in-depth tutorials on technical indicators, chart patterns, strategies and the fundamentals of the market. And he's always been interested in history: how people in the past carried themselves, approached challenges, and how their ideas apply to modern life and trading. That interest became the Hall of Minds.</p>
+        <p>Nathan's own experience is mostly long-term investing in positions he considers relatively safer, alongside some shorter-term and day trading. With an interest in investing, history and technology, he began building Zelos around one idea: learning about markets should be more accessible, engaging and approachable.</p>
+        <p>Today Zelos keeps growing through experimentation, development and feedback from the people who use it.</p>
+        <div class="ob-honest">Nathan isn't a professional trader, financial advisor or market expert, and Zelos isn't a financial advisory or trading service. It's a place to learn, practice and get more comfortable understanding the stock market.</div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section">
+<section class="ob-section" id="future">
   <div class="shell">
-    <div class="eyebrow">What's next</div>
-    <h2 style="font-size:1.7rem; margin-top:8px;">Built for more than this, if the licensing lines up.</h2>
-    <p style="margin-top:12px; color:var(--ink-2); max-width:60ch;">What you see today is deliberately narrow on purpose: rule-based strategies, the same published alert for every subscriber, and no account connection of any kind. That's the foundation, not the ceiling.</p>
-    <div style="margin-top:22px; display:flex; flex-direction:column; gap:14px; max-width:70ch;">
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="flex:none; width:24px; height:24px; border-radius:2px; background:var(--surface-2); color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:0.75rem;">&#128274;</div>
-        <p style="color:var(--ink-2); font-size:0.95rem;"><b style="color:var(--ink);">Optional account-connected execution.</b> Linking your own brokerage account so a qualifying setup can be reviewed and placed with your approval.</p>
+    <div class="eyebrow">The future of Zelos</div>
+    <h2>Still early, and actively growing.</h2>
+    <p class="ob-intro">Zelos is in development. Here's where it's headed. These are plans and possibilities, not promises.</p>
+    <div class="ob-future">
+      <div class="ob-future-item">
+        <h3>Virtual trading and education <small>Focus now</small></h3>
+        <p>The priority is helping new people learn the market and practice with virtual money, and keeping Zelos accessible and affordable, ideally free to get started. Especially for younger people and anyone who doesn't have money to risk yet: get comfortable first, then decide.</p>
       </div>
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="flex:none; width:24px; height:24px; border-radius:2px; background:var(--surface-2); color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:0.75rem;">&#128274;</div>
-        <p style="color:var(--ink-2); font-size:0.95rem;"><b style="color:var(--ink);">Sizing based on your full picture.</b> Position sizing that accounts for your broader goals and risk tolerance, not one formula for everyone.</p>
+      <div class="ob-future-item">
+        <h3>Better market data <small>Ongoing</small></h3>
+        <ul>
+          <li>Faster charts and more responsive live prices</li>
+          <li>More stocks to trade and more historical data</li>
+          <li>Better news and more detailed financial information</li>
+          <li>Expanded research tools and market coverage</li>
+        </ul>
       </div>
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="flex:none; width:24px; height:24px; border-radius:2px; background:var(--surface-2); color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:0.75rem;">&#128274;</div>
-        <p style="color:var(--ink-2); font-size:0.95rem;"><b style="color:var(--ink);">More than one strategy running for you.</b> Multiple approaches allocated across your account instead of a single scan.</p>
+      <div class="ob-future-item">
+        <h3>A bigger education library <small>Ongoing</small></h3>
+        <p>Deeper lessons on technical indicators, chart patterns and strategy, more historical market lessons, and in time lessons from experienced traders and creators who already teach their own audiences. Some of that could be unlocked with Zelos tokens.</p>
       </div>
-      <div style="display:flex; gap:14px; align-items:flex-start;">
-        <div style="flex:none; width:24px; height:24px; border-radius:2px; background:var(--surface-2); color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:0.75rem;">&#128274;</div>
-        <p style="color:var(--ink-2); font-size:0.95rem;"><b style="color:var(--ink);">An actual advisory relationship.</b> The accountability, disclosure, and fiduciary duty that come with being a licensed adviser.</p>
+      <div class="ob-future-item">
+        <h3>Community and competition <small>Experimenting</small></h3>
+        <p>Community posts, squads, leaderboards and Trade War are experiments in making practice more engaging. Trade War is deliberately more game-like than real trading. What stays and grows depends on what people actually enjoy.</p>
+      </div>
+      <div class="ob-future-item is-maybe">
+        <h3>Real trading <small>Maybe, long-term</small></h3>
+        <p>Zelos could one day expand into real trading, but it isn't the focus and isn't available. It would take substantial development, infrastructure, licensing and regulatory work, so treat it as a possible direction, not a plan.</p>
+      </div>
+      <div class="ob-future-item">
+        <h3>The long-term vision</h3>
+        <p>A complete place to learn about, practice and engage with the stock market: better data, more lessons and a stronger community, built up step by step.</p>
       </div>
     </div>
-    <div style="margin-top:20px; padding:14px 16px; border:1px solid var(--border); border-radius:3px; font-size:0.88rem; color:var(--muted); max-width:70ch;">None of this is available today, and it won't be until it's actually done properly &mdash; not before. Until then, every alert is general information &mdash; you decide what, if anything, to do with it.</div>
   </div>
 </section>
 
-<section class="section-tight">
+<section class="ob-section" id="updates">
   <div class="shell">
-    <div class="eyebrow">How this works</div>
-    <p style="margin-top:10px; color:var(--muted); font-size:0.85rem; max-width:66ch;">Each Zelos strategy is its own Claude skill that scans the market on a fixed schedule, scores what it finds against a published checklist, and posts the result as a public alert &mdash; the same setup, the same entry/stop/target, shown to every subscriber at the same time. Zelos never connects to your brokerage account, never sees your balance or positions, and never places a trade.</p>
-    <p style="margin-top:8px; color:var(--muted); font-size:0.85rem; max-width:66ch;">No alert here is personalized investment advice, and Zelos is not a registered investment adviser. Trading involves risk, including loss of principal. Past performance of any strategy does not guarantee future results. "Coming soon" strategies are not available for subscription yet and no launch date is promised.</p>
+    <div class="eyebrow">Development updates</div>
+    <h2>What we're working on.</h2>
+    <div class="ob-updates" id="obUpdates" aria-live="polite"></div>
   </div>
 </section>
+
+<section class="ob-section" id="explore">
+  <div class="shell">
+    <div class="eyebrow">Also on the website</div>
+    <h2>Free to explore, no account needed.</h2>
+    <div class="ob-explore">
+      <a class="ob-link" href="learn/index.html"><b>Learn</b><span>Plain-English guides to setups, indicators and risk.</span></a>
+      <a class="ob-link" href="arcade.html"><b>Training Ground</b><span>Chart Replay, Grade the Setup and the Daily Challenge.</span></a>
+      <a class="ob-link" href="arsenal.html"><b>Strategies</b><span>The rule-based strategy pages and their alert history.</span></a>
+      <a class="ob-link" href="leaderboard.html"><b>Leaderboards</b><span>Top scores in the training games and Trade War.</span></a>
+      <a class="ob-link" href="app/news"><b>News</b><span>Market news, filings and Zelos updates.</span><small>Opens in the app</small></a>
+      <a class="ob-link" href="app/communities"><b>Community</b><span>Trades and ideas shared by Zelos traders.</span><small>Opens in the app</small></a>
+    </div>
+  </div>
+</section>
+
+<section class="ob-final">
+  <div class="shell">
+    <h2>Ready to practice?</h2>
+    <p>Open your $10,000 virtual account and make your first trade. It's free.</p>
+    <div class="ob-go">
+      <a class="ob-practice" href="app/">Open Practice <span aria-hidden="true">&rarr;</span></a>
+    </div>
+  </div>
+</section>
+</main>
 
 <footer class="site-footer">
   <div class="shell">
     <div class="footer-grid">
       <a class="footer-brand" href="index.html"><span class="mark-dot" style="width:8px; height:8px; border-radius:50%; background:var(--accent);"></span>Zelos</a>
       <div class="footer-links">
-        <a href="index.html">Home</a>
+        <a href="app/">Open Practice</a>
+        <a href="learn/index.html">Learn</a>
+        <a href="arcade.html">Training Ground</a>
         <a href="arsenal.html">Strategies</a>
-        <a href="alert-history.html">Alerts</a>
-        <a href="daily-market.html">Market</a>
-        <a href="#why-zelos">About</a>
+        <a href="leaderboard.html">Leaderboards</a>
+        <a href="#founder">Founder</a>
         <a href="terms.html">Terms</a>
         <a href="privacy.html">Privacy</a>
       </div>
     </div>
-    <div class="footer-fine">Zelos is a catalog of rule-based scans, not a licensed financial advisor. Nothing on this page is personalized investment advice, and no strategy is guaranteed to be profitable. &copy; 2026 Zelos.</div>
+    <div class="footer-fine">Zelos is a practice and education platform. Trading in Zelos uses virtual money only. Zelos is not a broker or a registered investment advisor, and nothing on this site or in the app is personalized investment advice.</div>
   </div>
 </footer>
 
@@ -539,36 +518,6 @@
 <script src="zelos-challenge.js?v=a6884736"></script>
 <script src="zelos-tokens.js?v=5060b9a5"></script>
 <script src="zelos-alert-modal.js?v=869bebb6"></script>
-
-<!-- 3D globe (hero) — self-contained WebGL, no libraries. Real sun position and
-     real exchange open/closed state. Rendering pauses off-screen — see zelos-globe.js -->
-<script src="zelos-globe.js?v=8ee3ea50"></script>
-<script>
-(function(){
-  var el = document.getElementById('heroGlobe');
-  if (!el || !window.ZelosGlobe) return;
-  ZelosGlobe.mount({
-    style: 'blend',
-    el: el,
-    autoRotate: true,
-    enableZoom: false,
-    altitude: 2.3,
-    onReady: function(g){
-      var lab = document.getElementById('heroGlobeLabel');
-      function upd(){
-        if (!lab) return;
-        var open = g.exchanges().filter(function(x){ return x.open; });
-        lab.textContent = open.length ? (open.length + ' of 17 major exchanges open now') : 'All major exchanges closed right now';
-      }
-      function nyse(){
-        var x = g.exchanges().filter(function(e){ return e.id === 'NYSE'; })[0], c = document.getElementById('heroNyse');
-        if (x && c) c.innerHTML = 'NYSE &middot; <span class="' + (x.open ? 'up' : '') + '">' + x.label.replace(' local', ' ET') + '</span>';
-      }
-      upd(); nyse(); setInterval(function(){ upd(); nyse(); }, 60000);
-    }
-  });
-})();
-</script>
 
 <script>
 (function(){
@@ -606,61 +555,6 @@
     document.getElementById('navMobilePanel').addEventListener('click', function(e){
       if (e.target.tagName === 'A') siteNav.classList.remove('is-open');
     });
-  }
-})();
-</script>
-
-<script src="zelos-mdata.js?v=98cfde3a"></script>
-<script src="zelos-market.js?v=1a79d46a"></script>
-
-<script>
-(function(){
-  // ---- latest alert sidebar card ----
-  var STRATEGY_LABEL = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner' };
-  function fmtStamp(ts){
-    try {
-      var d = ts && ts.toDate ? ts.toDate() : new Date(ts);
-      return d.toLocaleString('en-US', { timeZone:'America/New_York', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) + ' ET';
-    } catch(e){ return ''; }
-  }
-  function statusTag(status){
-    if (status === 'qualified') return '<span class="tag tag-live">Qualified</span>';
-    if (status === 'watching') return '<span class="tag" style="color:var(--amber); background:var(--amber-soft);">Watching</span>';
-    return '<span class="tag tag-soon">No setup</span>';
-  }
-
-  var cfg = window.ZELOS_FIREBASE_CONFIG;
-  var ready = !!(cfg && cfg.projectId && window.firebase);
-  var db = null;
-  if (ready) {
-    try {
-      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
-      db = firebase.firestore();
-    } catch(e){ ready = false; }
-  }
-
-  var body = document.getElementById('latestAlertBody');
-  var card = document.getElementById('latestAlertCard');
-
-  function renderEmpty(msg){
-    body.innerHTML = '<span style="color:var(--muted); font-size:0.85rem;">' + msg + '</span>';
-  }
-
-  if (!ready) { renderEmpty('Can\'t reach Zelos data right now.'); }
-  else {
-    db.collection('alerts').orderBy('createdAt', 'desc').limit(1).get().then(function(snap){
-      if (snap.empty) { renderEmpty('No alerts yet.'); return; }
-      var doc = snap.docs[0];
-      var a = doc.data();
-      body.innerHTML =
-        '<div class="alert-card-top"><span class="alert-ticker-big">' + (a.locked && !a.ticker ? (a.afterClose ? '&#128274; Locked' : '&#128274; Live') : (a.ticker || '—')) + '</span>' + statusTag(a.status) + '</div>' +
-        '<div class="alert-stamp">' + (STRATEGY_LABEL[a.strategy] || a.strategy || '') + ' · ' + fmtStamp(a.createdAt) + '</div>' +
-        '<div class="alert-desc">' + (a.setupLabel || 'No summary available.') + '</div>' +
-        '<button class="btn btn-primary alert-view-btn" type="button">View details &rarr;</button>';
-      card.addEventListener('click', function(){
-        if (window.ZelosAlertModal) ZelosAlertModal.openWithData(doc.id, a);
-      });
-    }).catch(function(){ renderEmpty('Couldn\'t load the latest alert right now.'); });
   }
 })();
 </script>
@@ -730,7 +624,7 @@
     var pop = document.getElementById('authPop');
     var mode = 'signin'; // or 'signup'
 
-    function goToDashboardAfterAuth(){ if (location.pathname.indexOf('dashboard.html') === -1) { location.href = 'dashboard.html'; } }
+    function goToDashboardAfterAuth(){ location.href = 'app/'; }
     function setMsg(text, isError){
       var el = document.getElementById('authMsg');
       el.textContent = text || '';
@@ -842,109 +736,47 @@
 })();
 </script>
 
+<script src="zelos-updates.js?v=bbee6325"></script>
 <script>
 (function(){
-  // ---- Vote for the next strategy (Upcoming Strategies section) ----
-  // Anyone can vote, signed in or not — same trust model as XP: every
-  // visitor gets a real (possibly anonymous) Firebase uid, one vote doc per
-  // uid, public read so the tallies/bars show for everyone. See
-  // firestore.rules (strategyVotes) for the write rule this depends on.
-  var cfg = window.ZELOS_FIREBASE_CONFIG;
-  var ready = !!(cfg && cfg.projectId && window.firebase);
-  var db = null, auth = null;
-  if (ready) {
-    try {
-      if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
-      auth = firebase.auth(); db = firebase.firestore();
-    } catch(e){ ready = false; }
-  }
-  var cards = ready ? Array.prototype.slice.call(document.querySelectorAll('.upcoming-card[data-strategy-id]')) : [];
-  if (!ready || !cards.length) return;
-
-  var currentUid = null;
-  var myVote = null;
-  var tallies = {};
-
-  function render(){
-    var total = 0, maxCount = 0;
-    cards.forEach(function(c){
-      var n = tallies[c.getAttribute('data-strategy-id')] || 0;
-      total += n; maxCount = Math.max(maxCount, n);
+  // ---- the "Inside the app" tour: one screenshot at a time (arrow keys move between tabs) ----
+  var tabs = [].slice.call(document.querySelectorAll('.ob-tab'));
+  function pick(tab, focus){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
     });
-    cards.forEach(function(c){
-      var id = c.getAttribute('data-strategy-id');
-      var count = tallies[id] || 0;
-      var pct = total > 0 ? Math.round((count / total) * 100) : 0;
-      var countEl = c.querySelector('[data-vote-count]');
-      var fillEl = c.querySelector('[data-vote-fill]');
-      var btnEl = c.querySelector('[data-vote-btn]');
-      if (countEl) countEl.textContent = count + (count === 1 ? ' vote' : ' votes');
-      if (fillEl) fillEl.style.width = pct + '%';
-      var voted = myVote === id;
-      if (btnEl) { btnEl.textContent = voted ? 'Voted ✓' : 'Vote'; btnEl.classList.toggle('is-voted', voted); }
-      c.classList.toggle('is-leading', maxCount > 0 && count === maxCount);
-    });
+    if (focus) tab.focus();
+    if (tab.scrollIntoView && window.matchMedia('(max-width:980px)').matches) tab.scrollIntoView({ block:'nearest', inline:'center' });
   }
-
-  function loadTallies(){
-    db.collection('strategyVotes').get().then(function(snap){
-      tallies = {}; myVote = null;
-      snap.forEach(function(doc){
-        var d = doc.data() || {};
-        if (d.strategyId) tallies[d.strategyId] = (tallies[d.strategyId] || 0) + 1;
-        if (doc.id === currentUid && d.strategyId) myVote = d.strategyId;
-      });
-      render();
-    }).catch(function(){});
-  }
-
-  function castVote(strategyId){
-    if (!currentUid) return;
-    var ref = db.collection('strategyVotes').doc(currentUid);
-    if (myVote === strategyId) {
-      tallies[strategyId] = Math.max(0, (tallies[strategyId] || 1) - 1);
-      myVote = null;
-      render();
-      ref.delete().catch(function(){ loadTallies(); });
-    } else {
-      var prev = myVote;
-      if (prev) tallies[prev] = Math.max(0, (tallies[prev] || 1) - 1);
-      tallies[strategyId] = (tallies[strategyId] || 0) + 1;
-      myVote = strategyId;
-      render();
-      ref.set({ strategyId: strategyId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
-        .catch(function(){ loadTallies(); });
-    }
-  }
-
-  cards.forEach(function(c){
-    var btn = c.querySelector('[data-vote-btn]');
-    if (!btn) return;
-    btn.addEventListener('click', function(){
-      var id = c.getAttribute('data-strategy-id');
-      if (currentUid) return castVote(id);
-      // a guest account is made only when someone actually votes (owner 2026-10-20: not one
-      // for every visitor); the vote needs a Firebase user to be one-per-person
-      auth.signInAnonymously().then(function(r){ currentUid = r.user.uid; castVote(id); }).catch(function(){});
+  tabs.forEach(function(t, i){
+    t.addEventListener('click', function(){ pick(t); });
+    t.addEventListener('keydown', function(e){
+      var d = { ArrowDown:1, ArrowRight:1, ArrowUp:-1, ArrowLeft:-1 }[e.key];
+      if (!d) return;
+      e.preventDefault();
+      pick(tabs[(i + d + tabs.length) % tabs.length], true);
     });
   });
 
-  auth.onAuthStateChanged(function(user){
-    currentUid = user ? user.uid : null;
-    loadTallies(); // the counts are public
-  });
-})();
-</script>
+  // ---- development updates (edit zelos-updates.js to post one) ----
+  var box = document.getElementById('obUpdates'), U = window.ZELOS_UPDATES;
+  if (box && U) {
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); };
+    box.innerHTML = [['released', 'Recently released'], ['developing', 'Currently developing'], ['planned', 'Planned'], ['ideas', 'Long-term ideas']].map(function(c){
+      var list = U[c[0]] || [];
+      if (!list.length) return '';
+      return '<div class="ob-col is-' + c[0] + '"><h3><i></i>' + c[1] + '</h3><ul>' + list.map(function(x){
+        return '<li>' + (x.when ? '<time>' + esc(x.when) + '</time>' : '') + '<b>' + esc(x.title) + '</b><span>' + esc(x.text) + '</span></li>';
+      }).join('') + '</ul></div>';
+    }).join('');
+  }
 
-<script>
-(function(){
-  // Track clicks into the live bots from the home catalog.
-  ['viewSwingTrader','viewBreakoutRider','viewOptionsScanner'].forEach(function(id){
-    var link = document.getElementById(id);
-    if (!link || typeof gtag !== 'function') return;
-    link.addEventListener('click', function(){
-      gtag('event', 'click_view_bot', { event_category:'engagement', event_label: id });
-    });
+  // ---- how many people tap Open Practice from the homepage ----
+  document.querySelectorAll('a[href="app/"]').forEach(function(a){
+    a.addEventListener('click', function(){ if (typeof gtag === 'function') gtag('event', 'open_practice', { event_category:'engagement', event_label: a.id || a.className }); });
   });
 })();
 </script>
