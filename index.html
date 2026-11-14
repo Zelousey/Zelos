@@ -70,7 +70,10 @@
   .ob-frame-bar i{ width:8px; height:8px; border-radius:50%; background:var(--border); }
   .ob-frame-bar span{ margin-left:10px; font-family:var(--mono); font-size:0.68rem; color:var(--muted); }
   .ob-frame img{ display:block; width:100%; height:auto; }
-  .ob-phone{ position:absolute; right:-6px; bottom:0; width:30%; min-width:130px; border:6px solid #050608; border-radius:22px; overflow:hidden; background:#050608; box-shadow:0 24px 60px -18px rgba(0,0,0,0.75); }
+  .ob-phone{ position:absolute; right:-6px; bottom:0; width:30%; min-width:130px; border:9px solid #16191f; border-radius:28px; overflow:hidden; background:#16191f;
+    box-shadow:0 0 0 1.5px #4a5160, 0 0 0 5px rgba(5,6,8,0.85), inset 0 0 0 1px rgba(255,255,255,0.06), 0 26px 60px -16px rgba(0,0,0,0.8); }
+  .ob-phone img{ border-radius:18px; }
+  .ob-phone::before{ content:''; position:absolute; top:7px; left:50%; width:30%; height:10px; transform:translateX(-50%); border-radius:8px; background:#16191f; z-index:1; }
   .ob-phone img{ display:block; width:100%; height:auto; }
   .ob-app-note{ margin-top:30px; display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border:1px solid var(--accent-line); background:var(--accent-soft); border-radius:3px; color:var(--ink); font-size:0.92rem; max-width:62ch; }
   .ob-app-note b{ color:var(--accent); }
@@ -107,7 +110,10 @@
   /* founder */
   .ob-founder{ margin-top:40px; display:grid; grid-template-columns:minmax(0, 0.72fr) minmax(0, 1.28fr); gap:48px; align-items:start; }
   .ob-founder-photo{ margin:0; }
-  .ob-founder-photo img{ display:block; width:100%; aspect-ratio:4/5; object-fit:cover; border:1px solid var(--border); border-radius:4px; filter:saturate(0.92); }
+  .ob-founder-card{ position:relative; border-radius:4px; overflow:hidden; background:#d32014; }
+  .ob-founder-card img{ display:block; width:100%; height:auto; aspect-ratio:4/5; }
+  .ob-founder-name{ position:absolute; top:5%; left:0; right:0; text-align:center; color:#fff; font-family:var(--sans); font-weight:700;
+    font-size:clamp(1.3rem, 2.6vw, 1.9rem); letter-spacing:0.04em; text-transform:uppercase; text-shadow:0 2px 10px rgba(0,0,0,0.45); }
   .ob-founder-photo figcaption{ margin-top:12px; display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
   .ob-founder-photo figcaption b{ font-size:1.05rem; }
   .ob-founder-photo figcaption span{ font-family:var(--mono); font-size:0.74rem; color:var(--muted); }
@@ -189,6 +195,12 @@
     .ob-future{ grid-template-columns:1fr; }
     .ob-updates{ grid-template-columns:1fr; }
   }
+  /* things appear as you scroll to them (only once the script is running, so nothing stays hidden without it) */
+  .ob-js [data-reveal]{ opacity:0; transform:translateY(22px); transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); transition-delay:var(--d, 0s); }
+  .ob-js [data-reveal].is-in{ opacity:1; transform:none; }
+  .ob-js .ob-visual[data-reveal]{ transform:translateY(30px) scale(.985); }
+  .ob-js .ob-visual[data-reveal].is-in{ transform:none; }
+  @media (prefers-reduced-motion: reduce){ .ob-js [data-reveal]{ opacity:1; transform:none; transition:none; } }
   @media (prefers-reduced-motion: reduce){ .ob-practice{ transition:none; } .ob-practice:hover{ transform:none; } }
 </style>
 <script type="application/ld+json">
@@ -396,7 +408,7 @@
     <h2>Built by someone who wanted it to exist.</h2>
     <div class="ob-founder">
       <figure class="ob-founder-photo">
-        <img src="images/founder.webp" width="496" height="620" loading="lazy" alt="Nathan Groccia, founder of Zelos, standing in front of a stone wall.">
+        <div class="ob-founder-card"><span class="ob-founder-name" aria-hidden="true">Nathan Groccia</span><img src="images/founder.webp" width="960" height="1200" loading="lazy" alt="Nathan Groccia, founder of Zelos, in black and white on a red background."></div>
         <figcaption><b>Nathan Groccia</b><span>Founder &middot; Massachusetts</span></figcaption>
         <a class="ob-ig" href="https://www.instagram.com/nathan_groccia/" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1" fill="currentColor" stroke="none"/></svg>
@@ -405,8 +417,8 @@
       </figure>
       <div class="ob-bio">
         <p>Zelos was founded by <b>Nathan Groccia</b>, a 19-year-old developer and investor from Massachusetts.</p>
-        <p>After trying virtual trading platforms, Nathan wanted something different: a beginner-friendly platform focused on actual stocks, real market prices and meaningful financial education. Some platforms had him trading the U.S. dollar against the Japanese yen when what he wanted was to practice with companies like Tesla, Nvidia or Amazon, and to talk about them with people following the same stocks.</p>
-        <blockquote class="ob-quote">&ldquo;I wanted to be able to say, &lsquo;I bought $400 of Tesla, and it went up,&rsquo; and have that conversation be based on real prices and real news, even with virtual money.&rdquo;</blockquote>
+        <p>After trying virtual trading platforms, Nathan wanted something different: a beginner-friendly platform focused on actual stocks, real market prices and meaningful financial education. Some platforms were built around forex, trading currency pairs, when what he wanted was to practice with equities: companies everyone knows, like Tesla, Nvidia or Amazon, and to talk about them with people following the same stocks.</p>
+        <blockquote class="ob-quote">&ldquo;I wanted new traders who are still learning to be able to have real conversations with experienced traders who are trading the real market: the same stocks, the same indexes, the same news, and up to date.&rdquo;</blockquote>
         <p>He also wanted more in-depth tutorials on technical indicators, chart patterns, strategies and the fundamentals of the market. And he's always been interested in history: how people in the past carried themselves, approached challenges, and how their ideas apply to modern life and trading. That interest became the Hall of Minds.</p>
         <p>Nathan's own experience is mostly long-term investing in positions he considers relatively safer, alongside some shorter-term and day trading. With an interest in investing, history and technology, he began building Zelos around one idea: learning about markets should be more accessible, engaging and approachable.</p>
         <p>Today Zelos keeps growing through experimentation, development and feedback from the people who use it.</p>
@@ -736,6 +748,7 @@
 })();
 </script>
 
+<script>document.documentElement.classList.add('ob-js');</script>
 <script src="zelos-updates.js?v=bbee6325"></script>
 <script>
 (function(){
@@ -773,6 +786,23 @@
       }).join('') + '</ul></div>';
     }).join('');
   }
+
+  // ---- reveal on scroll: section headings, then their rows one after another ----
+  (function(){
+    var sel = '.ob-visual, .ob-app-note, .ob-section .eyebrow, .ob-section h2, .ob-intro, .ob-pillar, .ob-tour, .ob-founder-photo, .ob-bio, .ob-future-item, .ob-col, .ob-link, .ob-final h2, .ob-final p, .ob-final .ob-go';
+    var els = [].slice.call(document.querySelectorAll(sel));
+    els.forEach(function(el){
+      el.setAttribute('data-reveal', '');
+      var sibs = [].slice.call(el.parentNode.children).filter(function(x){ return x.matches(sel); });
+      var i = sibs.indexOf(el);
+      if (i > 0 && /ob-(pillar|future-item|col|link)/.test(el.className)) el.style.setProperty('--d', Math.min(i, 6) * 0.08 + 's');
+    });
+    if (!('IntersectionObserver' in window)) { els.forEach(function(el){ el.classList.add('is-in'); }); return; }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } });
+    }, { rootMargin:'0px 0px -8% 0px', threshold:0.08 });
+    els.forEach(function(el){ io.observe(el); });
+  })();
 
   // ---- how many people tap Open Practice from the homepage ----
   document.querySelectorAll('a[href="app/"]').forEach(function(a){
