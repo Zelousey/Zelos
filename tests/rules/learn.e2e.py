@@ -63,15 +63,15 @@ ok(r["passed"] and r["xp"] == 0 and u["xp"] == 50, "passing again pays nothing m
 
 fresh = "learn-fresh-%d" % now
 try:
-    main.learn_quiz_run(db, fresh, {"chapter": "charts", "answers": list(main.LEARN.CHAPTERS["charts"]["answers"])}, now)
+    main.learn_quiz_run(db, fresh, {"chapter": "risk", "answers": list(main.LEARN.CHAPTERS["risk"]["answers"])}, now)
     ok(False, "chapter 2 quiz must wait for chapter 1")
 except https_fn.HttpsError as e:
     ok("Chapter 1" in str(e.message) and not db.collection("users").document(fresh).get().exists, "chapter 2 quiz refused until chapter 1 is passed")
 
 xp_before = db.collection("users").document(uid).get().to_dict()["xp"]
-r = main.learn_quiz_run(db, uid, {"chapter": "charts", "answers": list(main.LEARN.CHAPTERS["charts"]["answers"])}, now + 3000)
+r = main.learn_quiz_run(db, uid, {"chapter": "risk", "answers": list(main.LEARN.CHAPTERS["risk"]["answers"])}, now + 3000)
 u = db.collection("users").document(uid).get().to_dict()
-ok(r["passed"] and r["xp"] == 50 and u["xp"] >= xp_before + 50 and u["learnPassed"]["charts"] == now + 3000 and "basics" in u["learnPassed"], "chapter 2 passes on its own and pays its own 50 XP")
+ok(r["passed"] and r["xp"] == 50 and u["xp"] >= xp_before + 50 and u["learnPassed"]["risk"] == now + 3000 and "basics" in u["learnPassed"], "chapter 2 passes on its own and pays its own 50 XP")
 
 for bad in ({"chapter": "basics", "answers": [0, 1]}, {"chapter": "nope", "answers": list(key)}, {"answers": list(key)}, None):
     try:
