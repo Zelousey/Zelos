@@ -23,8 +23,14 @@ for ch, c in L.CHAPTERS.items():
 ok(set(QZ) - {"_note"} == set(L.CHAPTERS), "every chapter in the app has a quiz on the server")
 # ...and the app's lessons are the ones the server pays XP for
 import re
-with open(os.path.join(ROOT, "webapp", "src", "features", "learn", "chapters.ts"), encoding="utf-8") as f:
-    APP_LESSONS = re.findall(r"^    id: '([a-z0-9-]+)',$", f.read(), re.M)
+APP_LESSONS = []
+for name in ("chapters.ts", "lessons1.ts", "lessons2.ts", "lessons3.ts", "lessons4.ts"):
+    with open(os.path.join(ROOT, "webapp", "src", "features", "learn", name), encoding="utf-8") as f:
+        src = f.read()
+    if name == "chapters.ts":  # the original lessons that are still used (o('id') in CHAPTERS)
+        APP_LESSONS += re.findall(r"o\('([a-z0-9-]+)'\)", src)
+    else:
+        APP_LESSONS += re.findall(r"lesson\(\s*'([a-z0-9-]+)'", src)
 ok(sorted(APP_LESSONS) == sorted(L.LESSON_IDS), "the app's lessons match the server's (%d)" % len(APP_LESSONS))
 
 key = L.CHAPTERS["basics"]["answers"]
@@ -42,8 +48,11 @@ ok(L.grade("nope", list(key)) is None and L.grade(None, list(key)) is None, "unk
 
 # chapters open in order
 ok(L.chapter_open("basics", {}) and not L.chapter_open("charts", {}) and not L.chapter_open("charts", None), "chapter 2 is shut until chapter 1 is passed")
-ok(L.chapter_open("charts", {"basics": 1}) and not L.chapter_open("nope", {"basics": 1}), "passing chapter 1 opens chapter 2")
-ok(L.lesson_chapter("rsi") == "charts" and L.lesson_chapter("stocks") == "basics" and L.lesson_chapter("x") is None, "lessons know their chapter")
+ok(L.chapter_open("risk", {"basics": 1}) and not L.chapter_open("charts", {"basics": 1}) and not L.chapter_open("nope", {"basics": 1}), "passing chapter 1 opens chapter 2 only")
+ok(L.chapter_open("mind", {}) and L.chapter_open("mind", None), "The mental game is always open (owner 2026-11-14)")
+ok(L.ORDER == ["basics", "risk", "charts", "signals", "patterns", "options", "options-manage", "adv-stocks", "adv-options", "mind"], "ten chapters in order, advanced near the end")
+ok(L.lesson_chapter("rsi") == "signals" and L.lesson_chapter("stops") == "risk" and L.lesson_chapter("ao-runner") == "adv-options" and L.lesson_chapter("x") is None, "lessons know their (new) chapter")
+ok(not any(l.startswith("ao-runner") for c in ("options", "options-manage") for l in L.CHAPTERS[c]["lessons"]), "runner contracts only in Advanced options")
 
 # XP: 10 a lesson (known lessons only), 50 a chapter (server only)
 ok(XP.decide("lesson", "stocks", "2026-10-21") == (10, "stocks", None), "lesson XP")

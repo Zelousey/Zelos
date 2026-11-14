@@ -3,55 +3,471 @@
   "basics": [
     {
       "q": "A share of stock is…",
-      "opts": ["A loan you give to a bank", "A small piece of a company", "A kind of digital coin"],
+      "opts": [
+        "A loan you give to a bank",
+        "A small piece of a company",
+        "A kind of digital coin"
+      ],
       "why": "A share is a small piece of a company. Own a share of Apple and you own a sliver of Apple."
     },
     {
       "q": "You buy 5 shares at $20. The price rises to $24. What is your profit?",
-      "opts": ["$20", "$4", "$24"],
+      "opts": [
+        "$20",
+        "$4",
+        "$24"
+      ],
       "why": "Each share went up $4, and you have 5 of them: 5 × $4 = $20."
     },
     {
-      "q": "What does a stop-loss do?",
-      "opts": ["Buys more shares when the price falls", "Promises you will make money", "Sells for you if the price falls to the level you picked"],
-      "why": "A stop-loss is your safety net: it sells when the price falls to your level, so one bad trade can’t hurt too much."
+      "q": "You want to buy only if the price drops to $45. Which order fits?",
+      "opts": [
+        "A market order",
+        "A limit buy at $45",
+        "A stop-loss"
+      ],
+      "why": "A limit buy only fills at your price or lower."
     },
     {
-      "q": "A red candle on a chart means…",
-      "opts": ["The company is losing money", "The price closed higher than it opened", "The price closed lower than it opened"],
-      "why": "Red means the price ended that period lower than it started. Green means it ended higher."
+      "q": "Your account is $10,000: $7,500 in stocks and $2,500 cash, no orders waiting. Your buying power is about…",
+      "opts": [
+        "$10,000",
+        "$7,500",
+        "$2,500"
+      ],
+      "why": "Buying power is the cash you can spend; the rest is already in stocks."
     },
     {
-      "q": "Who wins a battle with friends?",
-      "opts": ["Whoever grows their account by the biggest %", "Whoever makes the most trades", "Whoever spends the most money"],
-      "why": "Everyone starts with the same virtual cash. The biggest % gain wins, no matter how many trades."
+      "q": "A company beats its earnings estimate but the stock falls. The most likely reason?",
+      "opts": [
+        "Traders expected even better",
+        "Earnings never matter",
+        "The market was closed"
+      ],
+      "why": "Prices reflect expectations. If people hoped for more, even a beat can disappoint."
+    }
+  ],
+  "risk": [
+    {
+      "q": "Before buying, a planned trade should have…",
+      "opts": [
+        "Only an entry price",
+        "An entry, a stop and a target",
+        "A tip from a friend"
+      ],
+      "why": "Know where you get in, where you’re wrong and where you take profit before you buy."
+    },
+    {
+      "q": "Entry $40, stop $38, target $46. The reward-to-risk is…",
+      "opts": [
+        "1 to 1",
+        "2 to 1",
+        "3 to 1"
+      ],
+      "why": "Risk $2, reward $6: 3 to 1."
+    },
+    {
+      "q": "You’ll risk $200. Entry $50, stop $46. How many shares?",
+      "opts": [
+        "50",
+        "40",
+        "200"
+      ],
+      "why": "$4 risk per share: $200 ÷ $4 = 50 shares."
+    },
+    {
+      "q": "Bad news overnight and the stock opens far below your stop. Your stop…",
+      "opts": [
+        "Sells at exactly your stop price",
+        "Sells at the next available price, which can be much lower",
+        "Cancels itself"
+      ],
+      "why": "Stops can’t jump gaps: they sell at the next price available."
+    },
+    {
+      "q": "An account falls 50%. To get back to even it needs…",
+      "opts": [
+        "+50%",
+        "+100%",
+        "+25%"
+      ],
+      "why": "From half back to whole is a 100% gain. Avoiding big losses matters most."
     }
   ],
   "charts": [
     {
-      "q": "You see a big drop on a 5-minute chart. What should you check first?",
-      "opts": ["Nothing, sell right away", "The daily chart, to see the bigger picture", "The company’s logo"],
-      "why": "Zoom out first. A scary drop on a short chart can be a small dip in a bigger uptrend."
+      "q": "A red candle means…",
+      "opts": [
+        "The company is losing money",
+        "The price closed higher than it opened",
+        "The price closed lower than it opened"
+      ],
+      "why": "Red means the price ended that period lower than it started."
     },
     {
-      "q": "Higher highs and higher lows mean…",
-      "opts": ["A downtrend", "A sideways market", "An uptrend"],
-      "why": "Each high and each low is above the one before it: buyers are in control. That’s an uptrend."
+      "q": "You’re up $300 on a stock you still hold. That profit is…",
+      "opts": [
+        "Realized",
+        "Unrealized: it can still change",
+        "Already in your cash"
+      ],
+      "why": "Until you sell, P&L is unrealized and moves with the price."
     },
     {
-      "q": "A stock keeps getting stuck under $50. $50 is…",
-      "opts": ["Resistance", "Support", "The RSI"],
-      "why": "A price it keeps failing to get above is a ceiling: resistance."
+      "q": "A stock falls 10% and then rises 10%. Compared with the start it is…",
+      "opts": [
+        "Back to even",
+        "Down about 1%",
+        "Up 1%"
+      ],
+      "why": "100 → 90 → 99: percentages work from where you are now."
     },
     {
-      "q": "A price jumps on very low volume. That move is…",
-      "opts": ["Very strong", "Weaker: few traders are behind it", "Guaranteed to continue"],
-      "why": "Low volume means few people took part, so the move can fade fast. Big moves on big volume are more believable."
+      "q": "A stock is up 3% today. You bought at $80 and it’s now $70. Are you in profit on it?",
+      "opts": [
+        "Yes",
+        "No, you’re still below your cost",
+        "You can’t tell"
+      ],
+      "why": "Profit is measured from your cost, not today’s move."
     },
     {
-      "q": "RSI drops below 30. That means the stock…",
-      "opts": ["Has dropped fast and may be oversold", "Is sure to bounce tomorrow", "Has no buyers left at all"],
-      "why": "Below 30 is oversold: it fell fast, so a bounce is more likely, but never certain."
+      "q": "Higher highs and higher lows on a chart describe…",
+      "opts": [
+        "A downtrend",
+        "An uptrend",
+        "A sideways market"
+      ],
+      "why": "Rising highs and rising lows are the definition of an uptrend."
+    }
+  ],
+  "signals": [
+    {
+      "q": "Indicators are calculated from…",
+      "opts": [
+        "Future prices",
+        "Past prices and volume",
+        "Analyst opinions"
+      ],
+      "why": "Indicators summarise what already happened, so they lag."
+    },
+    {
+      "q": "MACD crossing above its signal line is usually read as…",
+      "opts": [
+        "Bullish momentum",
+        "Bearish momentum",
+        "A guaranteed rise"
+      ],
+      "why": "It’s a bullish momentum sign, never a guarantee."
+    },
+    {
+      "q": "A breakout on very low volume is…",
+      "opts": [
+        "More likely to fail than one on heavy volume",
+        "Always stronger",
+        "Impossible"
+      ],
+      "why": "Heavy volume shows broad agreement; thin breakouts fail more often."
+    },
+    {
+      "q": "An analyst target of $300 means…",
+      "opts": [
+        "The stock will reach $300",
+        "One estimate of where it could go; it may not",
+        "You must buy"
+      ],
+      "why": "Targets are estimates, often wrong. Use them as context."
+    },
+    {
+      "q": "Your price alert at $200 goes off. You now…",
+      "opts": [
+        "Own the stock at $200",
+        "Get notified; nothing was bought",
+        "Have sold the stock"
+      ],
+      "why": "An alert only tells you. An order is what actually buys or sells."
+    }
+  ],
+  "patterns": [
+    {
+      "q": "In a head and shoulders, the usual confirmation is…",
+      "opts": [
+        "The head forming",
+        "A close below the neckline",
+        "Any green candle"
+      ],
+      "why": "The neckline break confirms it; before that it’s only possible."
+    },
+    {
+      "q": "A double bottom confirms when price…",
+      "opts": [
+        "Touches the low again",
+        "Rises above the high between the two lows",
+        "Moves sideways"
+      ],
+      "why": "The break above the middle high is the confirmation."
+    },
+    {
+      "q": "Which triangle has a flat top and rising lows?",
+      "opts": [
+        "Ascending",
+        "Descending",
+        "Symmetrical"
+      ],
+      "why": "Flat ceiling, higher lows: ascending, often read as bullish."
+    },
+    {
+      "q": "A bull flag is…",
+      "opts": [
+        "A pause after a sharp rise that often continues up",
+        "A sign of a crash",
+        "A long, deep decline"
+      ],
+      "why": "A short, orderly pause in a strong uptrend."
+    },
+    {
+      "q": "Price breaks above resistance, then quickly falls back below it. That is…",
+      "opts": [
+        "A confirmed breakout",
+        "A false breakout",
+        "A cup and handle"
+      ],
+      "why": "When a break snaps back, it’s a false breakout; a stop limits the cost."
+    }
+  ],
+  "options": [
+    {
+      "q": "One options contract usually covers…",
+      "opts": [
+        "1 share",
+        "10 shares",
+        "100 shares"
+      ],
+      "why": "One contract is 100 shares, so a $2 price costs $200."
+    },
+    {
+      "q": "You buy a call. You make money when the stock…",
+      "opts": [
+        "Rises enough",
+        "Falls",
+        "Doesn’t move"
+      ],
+      "why": "Calls gain when the stock rises, especially above the strike."
+    },
+    {
+      "q": "The stock is at $95. A $100 put is…",
+      "opts": [
+        "In the money",
+        "At the money",
+        "Out of the money"
+      ],
+      "why": "A put is in the money when the stock is below the strike."
+    },
+    {
+      "q": "With the stock unchanged for a week, an option usually…",
+      "opts": [
+        "Gains value",
+        "Loses some value to time",
+        "Stays exactly the same"
+      ],
+      "why": "Time value melts away each day."
+    },
+    {
+      "q": "An option that is out of the money at expiration is worth…",
+      "opts": [
+        "What you paid",
+        "Nothing",
+        "Half of what you paid"
+      ],
+      "why": "Out of the money at expiration means it expires worthless."
+    }
+  ],
+  "options-manage": [
+    {
+      "q": "You paid $2.00 and the option is now $3.00. You’re up…",
+      "opts": [
+        "50%",
+        "100%",
+        "150%"
+      ],
+      "why": "$1 on $2 is 50%."
+    },
+    {
+      "q": "Time decay hurts an option fastest…",
+      "opts": [
+        "Months before expiration",
+        "In the last days before expiration",
+        "Never"
+      ],
+      "why": "Decay speeds up sharply near expiration."
+    },
+    {
+      "q": "After earnings, implied volatility drops. Option prices usually…",
+      "opts": [
+        "Fall",
+        "Rise",
+        "Stay the same"
+      ],
+      "why": "Lower IV means cheaper options: the IV crush."
+    },
+    {
+      "q": "You hold 5 contracts and sell 2. What happens?",
+      "opts": [
+        "All 5 close",
+        "2 close and 3 stay open",
+        "You buy 2 more"
+      ],
+      "why": "Selling some contracts closes only those."
+    },
+    {
+      "q": "A call and a put of the same size on the same stock, when the stock rises…",
+      "opts": [
+        "Both gain",
+        "The call gains, the put loses",
+        "Both lose"
+      ],
+      "why": "They work against each other."
+    }
+  ],
+  "adv-stocks": [
+    {
+      "q": "Why buy a retest of a breakout level?",
+      "opts": [
+        "A tighter, clearer stop just below the level",
+        "Retests always rise",
+        "It removes risk"
+      ],
+      "why": "It gives a logical, close stop. It can still fail."
+    },
+    {
+      "q": "Five chip stocks in one account are risky because…",
+      "opts": [
+        "They tend to move together",
+        "Chips never move",
+        "Five is illegal"
+      ],
+      "why": "Correlated positions act like one big bet."
+    },
+    {
+      "q": "A safer way to add to a position is…",
+      "opts": [
+        "Adding as it moves your way, raising the stop",
+        "Adding as it falls",
+        "Removing the stop"
+      ],
+      "why": "Add to strength and keep the total risk fixed."
+    },
+    {
+      "q": "The usual trade-off of a hedge is…",
+      "opts": [
+        "Less downside for some cost or less upside",
+        "More profit with no cost",
+        "No trade-off"
+      ],
+      "why": "Protection costs money, upside, or both."
+    },
+    {
+      "q": "A trading journal mainly helps you…",
+      "opts": [
+        "Spot your own repeated mistakes",
+        "Avoid every loss",
+        "Pay less tax"
+      ],
+      "why": "Reviewing your reasons shows what to repeat and what to stop."
+    }
+  ],
+  "adv-options": [
+    {
+      "q": "A protective put on shares you own…",
+      "opts": [
+        "Limits losses below the strike, for a cost",
+        "Guarantees a profit",
+        "Removes the cost of trading"
+      ],
+      "why": "It’s insurance: protection below the strike, paid with the premium."
+    },
+    {
+      "q": "The main trade-off of a covered call is…",
+      "opts": [
+        "Income now, but gains above the strike are capped",
+        "Unlimited upside",
+        "Full protection from losses"
+      ],
+      "why": "You’re paid now but give up upside, and still own the downside."
+    },
+    {
+      "q": "Selling a cash-secured put means you may have to…",
+      "opts": [
+        "Buy the shares at the strike",
+        "Sell shares you don’t own",
+        "Nothing"
+      ],
+      "why": "If the stock falls below the strike, you must buy at the strike."
+    },
+    {
+      "q": "You sold 3 of 4 profitable contracts. The one left is…",
+      "opts": [
+        "Risk-free",
+        "A runner that can still lose its value",
+        "Guaranteed to profit"
+      ],
+      "why": "Banking profit on the others reduces the trade’s risk, but the runner can still go to zero."
+    },
+    {
+      "q": "Why give a runner its own exit rule?",
+      "opts": [
+        "So it doesn’t ride back to a loss",
+        "Runners can’t lose",
+        "It’s required"
+      ],
+      "why": "Without a rule a runner can give back far more than planned."
+    }
+  ],
+  "mind": [
+    {
+      "q": "After a big loss yesterday, a healthy plan today is…",
+      "opts": [
+        "Double your size to win it back",
+        "Trade your normal plan and size",
+        "Trade everything you see"
+      ],
+      "why": "Chasing losses is revenge trading; normal size protects you."
+    },
+    {
+      "q": "A stock is up 40% and you feel you must buy now. That’s…",
+      "opts": [
+        "A reliable signal",
+        "FOMO: slow down and check your plan",
+        "Proof it will keep rising"
+      ],
+      "why": "FOMO pushes late, unplanned entries."
+    },
+    {
+      "q": "You followed your plan and hit your stop. That trade was…",
+      "opts": [
+        "A mistake",
+        "Part of good trading",
+        "Bad luck you must fix today"
+      ],
+      "why": "A planned, small loss is part of trading."
+    },
+    {
+      "q": "Why might a trader change chart colours?",
+      "opts": [
+        "To make moves feel less alarming",
+        "To change prices",
+        "To hide losses"
+      ],
+      "why": "Calmer colours can make the same data easier to read calmly."
+    },
+    {
+      "q": "Doing well with virtual money means…",
+      "opts": [
+        "You’ll do the same with real money",
+        "Good habits, but real money feels harder; start small",
+        "Nothing at all"
+      ],
+      "why": "Practice builds habits; real money brings stronger emotions."
     }
   ]
 }

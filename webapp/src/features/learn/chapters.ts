@@ -14,12 +14,17 @@ import { arrayUnion, doc, setDoc } from 'firebase/firestore';
 import { callFunction, db } from '../../lib/firebase';
 import quizzes from './quizzes.json';
 import type { Art } from './Scene';
+import * as L1 from './lessons1';
+import * as L2 from './lessons2';
+import * as L3 from './lessons3';
+import * as L4 from './lessons4';
 
 export type Step = { art: Art; title: string; text: string; tip?: string };
 export type Check = { q: string; opts: string[]; right: number; why: string[]; art?: Art };
 export type Lesson = { id: string; title: string; sub: string; minutes: number; steps: Step[]; check: Check; tryIt: { label: string; to: string } };
 export type QuizQuestion = { q: string; opts: string[]; why: string };
-export type Chapter = { id: string; n: number; title: string; sub: string; lessons: Lesson[]; quiz: QuizQuestion[]; pass: number };
+/** advanced: labelled Advanced, near the end. open: always unlocked (The mental game). */
+export type Chapter = { id: string; n: number; title: string; sub: string; lessons: Lesson[]; quiz: QuizQuestion[]; pass: number; advanced?: boolean; open?: boolean };
 
 export const LESSON_XP = 10;
 export const CHAPTER_XP = 50;
@@ -351,15 +356,72 @@ const CHARTS: Lesson[] = [
   },
 ];
 
+// The original lessons, by id, reused in the 2026-11-14 curriculum (same ids, so progress carries over).
+const ORIGINAL = Object.fromEntries([...BASICS, ...CHARTS].map((l) => [l.id, l])) as Record<string, Lesson>;
+const o = (id: string) => ORIGINAL[id]!;
+
+/**
+ * Trading 101, owner 2026-11-14: regular stock trading first (chapters 1-3), then indicators and
+ * patterns, then options, then the Advanced chapters, then The mental game (always open). Each
+ * chapter's quiz unlocks the next. Ids "basics" and "charts" are kept so earlier passes still count.
+ */
 export const CHAPTERS: Chapter[] = [
-  { id: 'basics', n: 1, title: 'The basics', sub: 'Stocks, prices, charts, your first trade and staying safe.', lessons: BASICS, quiz: quizzes.basics, pass: 4 },
-  { id: 'charts', n: 2, title: 'Charts & volume', sub: 'Timeframes, trends, support, averages, volume, candle shapes and RSI.', lessons: CHARTS, quiz: quizzes.charts, pass: 4 },
+  {
+    id: 'basics', n: 1, title: 'Stock trading fundamentals', sub: 'Stocks, the market, buying and selling, orders, buying power and the words traders use.',
+    lessons: [o('stocks'), L1.MARKET_WORKS, o('prices'), o('buy-sell'), L1.ORDER_TYPES, o('practice-money'), L1.BUYING_POWER, L1.PORTFOLIO_WORDS, L1.WHAT_MOVES, L1.TRADING_WORDS, o('battles')],
+    quiz: quizzes.basics, pass: 4,
+  },
+  {
+    id: 'risk', n: 2, title: 'Positions, entries, exits & risk', sub: 'Plan a trade: where you get in, where you get out, how much to risk and how to keep emotions out of it.',
+    lessons: [L1.POSITION, L1.ENTRY, L1.EXIT_PLAN, o('stops'), L1.STOP_LIMITS, o('take-profit'), L1.RISK_REWARD, L1.SIZING, L1.ONE_BASKET, L1.EMOTIONS_PLAN],
+    quiz: quizzes.risk, pass: 4,
+  },
+  {
+    id: 'charts', n: 3, title: 'Charts, managing trades & P&L', sub: 'Read a chart, understand realized and unrealized P&L, and manage a trade you already have.',
+    lessons: [o('charts'), o('candle-shapes'), o('timeframes'), o('trends'), o('volume'), L1.PNL_REAL, L1.PNL_PERCENT, L1.ACCOUNT_EFFECT, L1.MANAGE_TRADE, L1.RECONSIDER, L1.UP_NOT_PROFIT],
+    quiz: quizzes.charts, pass: 4,
+  },
+  {
+    id: 'signals', n: 4, title: 'Indicators, forecasts & alerts', sub: 'Moving averages, RSI, MACD and volume tools; what forecasts mean; alerts that watch for you.',
+    lessons: [L2.INDICATORS_WHAT, o('moving-averages'), o('rsi'), L2.MACD, L2.VOLUME_TOOLS, L2.COMBINE, L2.FORECASTS, L2.ALERTS_WHY, L2.ALERT_VS_ORDER],
+    quiz: quizzes.signals, pass: 4,
+  },
+  {
+    id: 'patterns', n: 5, title: 'Chart patterns', sub: 'Head and shoulders, doubles, triples, triangles, flags, wedges, cup and handle, and how patterns fail.',
+    lessons: [o('support-resistance'), L2.PAT_HS, L2.PAT_IHS, L2.PAT_DOUBLE, L2.PAT_TRIPLE, L2.PAT_TRIANGLES, L2.PAT_FLAGS, L2.PAT_WEDGES, L2.PAT_CUP, L2.PAT_CONFIRM, o('chart-checklist')],
+    quiz: quizzes.patterns, pass: 4,
+  },
+  {
+    id: 'options', n: 6, title: 'Options basics', sub: 'Calls and puts, strikes, expirations, premiums, in or out of the money, and why options can expire worthless.',
+    lessons: [L3.OPT_WHAT, L3.OPT_CALL, L3.OPT_PUT, L3.OPT_STRIKE_EXP, L3.OPT_PREMIUM, L3.OPT_MONEYNESS, L3.OPT_PRICING, L3.OPT_VS_STOCK, L3.OPT_RISK],
+    quiz: quizzes.options, pass: 4,
+  },
+  {
+    id: 'options-manage', n: 7, title: 'Managing options contracts', sub: 'Track performance, time decay, implied volatility, expirations, selling contracts one at a time and exposure.',
+    lessons: [L3.OM_PERFORMANCE, L3.OM_DECAY, L3.OM_IV, L3.OM_EXPIRY, L3.OM_PROFITS_LOSSES, L3.OM_CONTRACTS, L3.OM_OVERLAP, L3.OM_REVERSAL],
+    quiz: quizzes['options-manage'], pass: 4,
+  },
+  {
+    id: 'adv-stocks', n: 8, title: 'Advanced stock trading', sub: 'Retests and scaling out, daily limits and correlation, confluence, scaling in, hedging and the whole portfolio.', advanced: true,
+    lessons: [L4.AS_ENTRIES, L4.AS_RISK, L4.AS_COMBINE, L4.AS_SCALING, L4.AS_HEDGING, L4.AS_PORTFOLIO],
+    quiz: quizzes['adv-stocks'], pass: 4,
+  },
+  {
+    id: 'adv-options', n: 9, title: 'Advanced options trading', sub: 'Stocks and options together: protective puts, covered calls, cash-secured puts, hedging, and runner contracts.', advanced: true,
+    lessons: [L4.AO_COMBINE, L4.AO_PROTECTIVE_PUT, L4.AO_COVERED_CALL, L4.AO_CASH_SECURED, L4.AO_HEDGE, L4.AO_RUNNER, L4.AO_RUNNER_PLAN],
+    quiz: quizzes['adv-options'], pass: 4,
+  },
+  {
+    id: 'mind', n: 10, title: 'The mental game', sub: 'Revenge trading, FOMO, overconfidence, losses, overtrading, discipline, money, breaks, colours and real vs virtual.', open: true,
+    lessons: [L4.MG_REVENGE, L4.MG_FOMO, L4.MG_OVERCONFIDENCE, L4.MG_LOSSES, L4.MG_OVERTRADING, L4.MG_DISCIPLINE, L4.MG_MONEY, L4.MG_BREAKS, L4.MG_COLORS, L4.MG_VIRTUAL_REAL],
+    quiz: quizzes.mind, pass: 4,
+  },
 ];
 
 export const chapterById = (id: string) => CHAPTERS.find((c) => c.id === id) ?? null;
 export const ALL_LESSONS = CHAPTERS.flatMap((c) => c.lessons);
 /** Old one-page lessons (before chapters) → their new place. */
-export const OLD_LESSON: Record<string, string> = { stocks: 'basics/stocks', 'buy-sell': 'basics/buy-sell', orders: 'basics/buy-sell', stops: 'basics/stops', charts: 'basics/charts', battles: 'basics/battles' };
+export const OLD_LESSON: Record<string, string> = { stocks: 'basics/stocks', 'buy-sell': 'basics/buy-sell', orders: 'basics/buy-sell', stops: 'risk/stops', charts: 'charts/charts', battles: 'basics/battles' };
 
 export type ChapterState = { unlocked: boolean; passed: boolean; done: number; total: number; next: Lesson | null; complete: boolean };
 
@@ -369,7 +431,7 @@ export function chapterState(c: Chapter, learnDone: string[], learnPassed: Recor
   const i = CHAPTERS.indexOf(c);
   const prev = i > 0 ? CHAPTERS[i - 1]! : null;
   const passed = !!learnPassed[c.id];
-  const unlocked = !prev || !!learnPassed[prev.id] || passed;
+  const unlocked = !!c.open || !prev || !!learnPassed[prev.id] || passed;
   const done = c.lessons.filter((l) => learnDone.includes(l.id)).length;
   return { unlocked, passed, done, total: c.lessons.length, next: c.lessons.find((l) => !learnDone.includes(l.id)) ?? null, complete: done === c.lessons.length };
 }

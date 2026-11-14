@@ -39,9 +39,18 @@ describe('quiz', () => {
 
 describe('Trading 101 chapters', () => {
   const basics = CHAPTERS[0]!;
-  it('chapter 1 has 8 lessons with unique ids, scenes, a quick check and in-app Try it links', () => {
+  it('ten chapters (owner 2026-11-14), lessons with unique ids, scenes, a quick check and in-app Try it links', () => {
+    expect(CHAPTERS.map((c) => c.id)).toEqual(['basics', 'risk', 'charts', 'signals', 'patterns', 'options', 'options-manage', 'adv-stocks', 'adv-options', 'mind']);
+    expect(CHAPTERS.map((c) => c.n)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(CHAPTERS.filter((c) => c.advanced).map((c) => c.id)).toEqual(['adv-stocks', 'adv-options']);
     expect(basics.id).toBe('basics');
-    expect(basics.lessons).toHaveLength(8);
+    expect(basics.lessons).toHaveLength(11);
+    // runner contracts are kept for Advanced options
+    for (const c of CHAPTERS.filter((x) => x.id !== 'adv-options')) expect(c.lessons.some((l) => /runner/i.test(l.title))).toBe(false);
+    for (const c of CHAPTERS) {
+      expect(c.quiz).toHaveLength(5);
+      expect(c.lessons.length).toBeGreaterThanOrEqual(6);
+    }
     expect(new Set(ALL_LESSONS.map((l) => l.id)).size).toBe(ALL_LESSONS.length);
     for (const l of ALL_LESSONS) {
       expect(l.id).toMatch(/^[a-z-]{2,20}$/); // the shape users/{uid}.learnDone keeps
@@ -61,20 +70,21 @@ describe('Trading 101 chapters', () => {
     expect(lessonOpen(basics, 1, [], false)).toBe(false);
     expect(lessonOpen(basics, 1, ['stocks'], false)).toBe(true);
     expect(lessonOpen(basics, 5, [], true)).toBe(true);
-    const st = chapterState(basics, ['stocks', 'prices'], {});
-    expect(st).toMatchObject({ unlocked: true, passed: false, done: 2, total: 8, complete: false });
-    expect(st.next?.id).toBe('practice-money');
+    const st = chapterState(basics, ['stocks', 'market-works'], {});
+    expect(st).toMatchObject({ unlocked: true, passed: false, done: 2, total: 11, complete: false });
+    expect(st.next?.id).toBe('prices');
     expect(chapterState(basics, basics.lessons.map((l) => l.id), { basics: 1 })).toMatchObject({ passed: true, complete: true, next: null });
   });
-  it('chapter 2 opens once chapter 1 is passed (or by passing its own quiz)', () => {
-    const charts = CHAPTERS[1]!;
-    expect(charts).toMatchObject({ id: 'charts', n: 2, pass: 4 });
-    expect(charts.lessons).toHaveLength(8);
-    expect(charts.quiz).toHaveLength(5);
-    expect(chapterState(charts, [], {}).unlocked).toBe(false);
-    expect(chapterState(charts, [], { basics: 1 })).toMatchObject({ unlocked: true, passed: false, done: 0 });
-    expect(chapterState(charts, [], { charts: 1 }).unlocked).toBe(true);
-    expect(chapterState(charts, [], { basics: 1 }).next?.id).toBe('timeframes');
+  it('chapter 2 opens once chapter 1 is passed (or by passing its own quiz); The mental game is always open', () => {
+    const risk = CHAPTERS[1]!;
+    expect(risk).toMatchObject({ id: 'risk', n: 2, pass: 4 });
+    expect(chapterState(risk, [], {}).unlocked).toBe(false);
+    expect(chapterState(risk, [], { basics: 1 })).toMatchObject({ unlocked: true, passed: false, done: 0 });
+    expect(chapterState(risk, [], { risk: 1 }).unlocked).toBe(true);
+    expect(chapterState(risk, [], { basics: 1 }).next?.id).toBe('position');
+    // an earlier pass of the old Charts & volume chapter still counts for chapter 3
+    expect(chapterState(CHAPTERS[2]!, [], { charts: 1 })).toMatchObject({ unlocked: true, passed: true });
+    expect(chapterState(CHAPTERS[9]!, [], {})).toMatchObject({ unlocked: true });
   });
   it('old one-page lessons point at their new place', () => {
     for (const to of Object.values(OLD_LESSON)) {

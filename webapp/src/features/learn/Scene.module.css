@@ -3,6 +3,7 @@
 
 /* text */
 .lbl { font: 600 12px var(--sans); letter-spacing: 0.04em; }
+.halo { paint-order: stroke; stroke: var(--surface-2); stroke-width: 5px; stroke-linejoin: round; } /* readable over a line (the stage background) */
 .head { font: 700 15px var(--sans); }
 .big { font: 700 24px var(--mono); font-variant-numeric: tabular-nums; }
 .huge { font: 700 34px var(--mono); font-variant-numeric: tabular-nums; }

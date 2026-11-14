@@ -133,7 +133,8 @@ service cloud.firestore {
       // learnPassed: Trading 101 chapter quizzes passed, written by learn_quiz after grading them
       // xpBoostUntil: when a bought XP booster ends (xp_boost)
       // learnFailed: when each chapter quiz was last failed (free retake 12 hours later; learn_quiz)
-      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed', 'xpBoostUntil', 'learnFailed']; }
+      // squadMsgs / strategiesUsed / strategyActs: counted by the server for achievements (2026-11-14)
+      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed', 'xpBoostUntil', 'learnFailed', 'squadMsgs', 'strategiesUsed', 'strategyActs']; }
       // blocked: the traders you blocked (uids); termsAt: when you agreed to the Terms
       function validBlocked(b) { return b is list && b.size() <= 500; }
       allow read, delete: if request.auth != null && request.auth.uid == userId;
@@ -146,6 +147,9 @@ service cloud.firestore {
         && !('learnPassed' in request.resource.data)
         && !('xpBoostUntil' in request.resource.data)
         && !('learnFailed' in request.resource.data)
+        && !('squadMsgs' in request.resource.data)
+        && !('strategiesUsed' in request.resource.data)
+        && !('strategyActs' in request.resource.data)
         && validBlocked(request.resource.data.get('blocked', []));
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields())

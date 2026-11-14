@@ -63,7 +63,7 @@ export function LearnPage() {
                   <span className={s.cover} aria-hidden>
                     <span className={s.coverN}>{t('ln.bookN', { n: c.n })}</span>
                     <b className={s.coverTitle}>{c.title}</b>
-                    <span className={s.coverMark}>{t('nav.learn')}</span>
+                    <span className={s.coverMark}>{c.advanced ? t('ln.advanced') : c.open ? t('ln.alwaysOpen') : t('nav.learn')}</span>
                   </span>
                   <span className={s.bookInfo} aria-hidden>
                     <span className={s.muted}>{c.sub}</span>
@@ -112,7 +112,7 @@ export function BookPage() {
           <span className={s.cover} aria-hidden>
             <span className={s.coverN}>{t('ln.bookN', { n: c.n })}</span>
             <b className={s.coverTitle}>{c.title}</b>
-            <span className={s.coverMark}>{t('nav.learn')}</span>
+            <span className={s.coverMark}>{c.advanced ? t('ln.advanced') : c.open ? t('ln.alwaysOpen') : t('nav.learn')}</span>
           </span>
           <div className={s.bookChoices}>
             {locked ? (

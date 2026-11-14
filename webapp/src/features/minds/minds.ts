@@ -83,7 +83,12 @@ export const sectionPath = (figure: string, section: Section) => `/minds/${figur
 export const scrollTasks = (l: MindLesson) => (l.scroll?.slides ?? []).flatMap((x) => (x.task ? [x.task] : []));
 export const figureProgress = (f: Figure, done: string[]) => f.lessons.filter((l) => done.includes(lessonRef(f.id, l.id))).length;
 
-export const markMind = (uid: string, ref: string) => setDoc(doc(db(), 'users', uid), { mindsDone: arrayUnion(ref) }, { merge: true });
+/** A lesson read. Then the server checks whether every Hall of Minds lesson is done: Historic
+ *  Expert (owner 2026-11-14) is granted there, never claimed from here. */
+export const markMind = async (uid: string, ref: string) => {
+  await setDoc(doc(db(), 'users', uid), { mindsDone: arrayUnion(ref) }, { merge: true });
+  void callFunction<{ type: string; refId: string }, { awarded?: boolean }>('xp_award', { type: 'achievement', refId: 'historic-expert' }).catch(() => {});
+};
 export const stepXp = (ref: string) => callFunction<{ type: string; refId: string }, { awarded?: boolean; xp?: number; before?: number }>('xp_award', { type: 'mind-step', refId: ref });
 export const mindXp = (ref: string) => callFunction<{ type: string; refId: string }, { awarded?: boolean }>('xp_award', { type: 'mind', refId: ref });
 export const followFigure = (figure: string) => callFunction<{ figure: string }, { balance: number; charged: number }>('minds_follow', { figure });

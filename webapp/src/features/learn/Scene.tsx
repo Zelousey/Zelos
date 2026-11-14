@@ -37,7 +37,13 @@ export type Art =
   | { k: 'volspike'; plain?: boolean }
   | { k: 'shapes'; focus?: 0 | 1 | 2 }
   | { k: 'rsi'; zone: 'over' | 'under' | 'mid' }
-  | { k: 'checklist' };
+  | { k: 'checklist' }
+  // owner 2026-11-14 curriculum: one chart-style drawing for patterns, entries/exits, options and alerts.
+  // pts: prices 0-100 left to right; lines: levels across (support, neckline, stop, alert…);
+  // marks: a dot and a label at point i; zone: shade between two levels (e.g. the risk)
+  | { k: 'chart'; pts: number[]; lines?: ChartLine[]; marks?: ChartMark[]; title?: string; tone?: 'acc' | 'up' | 'dn'; zone?: [number, number, 'up' | 'dn'] };
+export type ChartLine = { y: number; label: string; tone?: 'up' | 'dn' | 'gold' | 'mut'; dash?: boolean };
+export type ChartMark = { i: number; label: string; tone?: 'up' | 'dn' | 'gold' | 'acc'; above?: boolean };
 
 const W = 400;
 const H = 300;
@@ -54,9 +60,9 @@ function Svg({ children }: { children: ReactNode }) {
     </svg>
   );
 }
-function Label({ x, y, children, tone = 'mut', anchor = 'middle', delay, size = 'lbl' }: { x: number; y: number; children: ReactNode; tone?: 'mut' | 'ink' | 'up' | 'dn' | 'gold'; anchor?: 'start' | 'middle' | 'end'; delay?: number; size?: 'lbl' | 'big' | 'huge' }) {
+function Label({ x, y, children, tone = 'mut', anchor = 'middle', delay, size = 'lbl', halo }: { x: number; y: number; children: ReactNode; tone?: 'mut' | 'ink' | 'up' | 'dn' | 'gold'; anchor?: 'start' | 'middle' | 'end'; delay?: number; size?: 'lbl' | 'big' | 'huge'; halo?: boolean }) {
   return (
-    <text x={x} y={y} textAnchor={anchor} className={[s[size], s[`t_${tone}`], delay != null && s.fade].filter(Boolean).join(' ')} style={delay != null ? d(delay) : undefined}>
+    <text x={x} y={y} textAnchor={anchor} className={[s[size], s[`t_${tone}`], delay != null && s.fade, halo && s.halo].filter(Boolean).join(' ')} style={delay != null ? d(delay) : undefined}>
       {children}
     </text>
   );
@@ -778,6 +784,47 @@ function Checklist() {
   );
 }
 
+/** A price path with levels and labelled points: every pattern and plan lesson draws with this. */
+function ChartArt({ pts, lines = [], marks = [], title, tone = 'acc', zone }: { pts: number[]; lines?: ChartLine[]; marks?: ChartMark[]; title?: string; tone?: 'acc' | 'up' | 'dn'; zone?: [number, number, 'up' | 'dn'] }) {
+  const X = (i: number) => 30 + (i * 340) / Math.max(1, pts.length - 1);
+  const Y = (v: number) => 250 - v * 1.75;
+  const xy = pts.map((v, i) => [X(i), Y(v)] as [number, number]);
+  const lineTone = { up: s.targetLine, dn: s.stopLine, gold: [s.avg, s.s_gold].join(' '), mut: s.grid };
+  return (
+    <>
+      <Grid />
+      {zone && <rect x={30} width={340} y={Y(Math.max(zone[0], zone[1]))} height={Math.abs(zone[0] - zone[1]) * 1.75} className={[zone[2] === 'up' ? s.f_upSoft : s.f_dnSoft, s.fade].join(' ')} style={d(0.9)} />}
+      {lines.map((l, k) => (
+        <g key={k} className={s.fade} style={d(0.2 + k * 0.15)}>
+          <line x1={30} x2={370} y1={Y(l.y)} y2={Y(l.y)} className={[lineTone[l.tone ?? 'mut'], l.dash && s.dashed].filter(Boolean).join(' ')} />
+          <Label x={36} y={Y(l.y) - 6} anchor="start" halo tone={l.tone === 'up' ? 'up' : l.tone === 'dn' ? 'dn' : l.tone === 'gold' ? 'gold' : 'mut'}>
+            {l.label}
+          </Label>
+        </g>
+      ))}
+      <path d={path(xy)} pathLength={DRAW} className={[s.line, tone === 'up' ? s.s_up : tone === 'dn' ? s.s_dn : s.s_acc, s.draw].join(' ')} />
+      {marks.map((m, k) => {
+        const [x, y] = xy[Math.min(m.i, xy.length - 1)]!;
+        const fill = m.tone === 'up' ? s.f_up : m.tone === 'dn' ? s.f_dn : m.tone === 'gold' ? s.f_gold : s.f_acc;
+        const above = m.above ?? true;
+        return (
+          <g key={k}>
+            <circle cx={x} cy={y} r={7} className={[fill, s.pop].join(' ')} style={d(1.2 + k * 0.2)} />
+            <Label x={x > 280 ? Math.min(370, x + 6) : x < 120 ? Math.max(30, x - 6) : x} anchor={x > 280 ? 'end' : x < 120 ? 'start' : 'middle'} halo y={above ? y - 14 : y + 24} tone={m.tone === 'up' ? 'up' : m.tone === 'dn' ? 'dn' : m.tone === 'gold' ? 'gold' : 'ink'} delay={1.3 + k * 0.2}>
+              {m.label}
+            </Label>
+          </g>
+        );
+      })}
+      {title && (
+        <Label x={36} y={44} anchor="start" tone="ink">
+          {title}
+        </Label>
+      )}
+    </>
+  );
+}
+
 export function Scene({ art }: { art: Art }) {
   let body: ReactNode;
   switch (art.k) {
@@ -853,6 +900,9 @@ export function Scene({ art }: { art: Art }) {
       break;
     case 'zoom':
       body = <Zoom tf={art.tf} />;
+      break;
+    case 'chart':
+      body = <ChartArt {...art} />;
       break;
     case 'trend':
       body = <Trend dir={art.dir} plain={art.plain} />;
