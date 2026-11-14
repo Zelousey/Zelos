@@ -424,6 +424,12 @@
     try { localStorage.setItem('zelosPracticeInd', JSON.stringify(this.show)); } catch (e) {}
     this.draw();
   };
+  // the entry pin under (x, y), with where it's drawn: { x, y, mark } or null
+  TradeChart.prototype.markAt = function (x, y) {
+    var best = null, hits = this.markHits || [];
+    for (var i = 0; i < hits.length; i++) { var h = hits[i], d = Math.hypot(h.x - x, h.y - y); if (d <= 14 && (!best || d < best.d)) best = { d: d, h: h }; }
+    return best ? best.h : null;
+  };
   TradeChart.prototype.barAt = function (x) {
     var g = this.geo, i = this.from + Math.floor((x - g.L.x0) / g.bw);
     return Math.max(this.from, Math.min(Math.min(this.to, this.s.n - 1), i));
@@ -1177,11 +1183,23 @@
       c.fillStyle = acc; c.fillRect(L.x1 + 1, ay - 8, 62, 16); c.fillStyle = '#ffffff'; c.font = '600 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif'; c.fillText(fmt(a.price), L.x1 + 6, ay);
       c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     });
-    // your fills
+    // your fills (triangles), or the entries of a position you still hold (pins: a small circle
+    // with a + on a short stem above the bar; markAt() finds the one under a pointer)
+    var hits = this.markHits = [];
     this.marks.forEach(function (mk) {
       var mi = s.kind ? s.at[mk.i] : mk.i;
       if (mi == null || mi < from || mi > to) return;
       var x2 = X(mi), y2 = Y(mk.price), dd = mk.side === 'buy' ? 1 : -1;
+      if (mk.pin) {
+        var py = Math.max(L.y0 + 9, y2 - 16);
+        c.strokeStyle = bull; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x2, y2); c.lineTo(x2, py + 7); c.stroke();
+        c.beginPath(); c.arc(x2, y2, 2.2, 0, Math.PI * 2); c.fillStyle = bull; c.fill();
+        c.beginPath(); c.arc(x2, py, 7.5, 0, Math.PI * 2); c.fillStyle = bull; c.fill();
+        c.lineWidth = 1.5; c.strokeStyle = '#ffffff'; c.stroke();
+        c.beginPath(); c.moveTo(x2 - 3.5, py); c.lineTo(x2 + 3.5, py); c.moveTo(x2, py - 3.5); c.lineTo(x2, py + 3.5); c.lineWidth = 1.8; c.stroke();
+        hits.push({ x: x2, y: py, mark: mk });
+        return;
+      }
       c.fillStyle = mk.side === 'buy' ? bull : bear;
       c.beginPath(); c.moveTo(x2, y2 + dd * 3); c.lineTo(x2 - 5, y2 + dd * 12); c.lineTo(x2 + 5, y2 + dd * 12); c.closePath(); c.fill();
     });

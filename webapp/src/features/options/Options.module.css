@@ -62,3 +62,10 @@
 .sellConfirm { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-2); padding: var(--space-3); border: 1px solid var(--down, #e0483f); border-radius: var(--radius); background: var(--surface-2); }
 .sellConfirm p { margin: 0; font-size: var(--text-sm); flex: 1 1 200px; }
 .sellConfirmActions { display: flex; gap: var(--space-2); }
+
+/* one position, opened from its row */
+.focus { display: grid; gap: var(--space-3); }
+.focus h3 { margin: var(--space-2) 0 0; font-size: var(--text-md); }
+.focusHead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.focusHead h3 { margin: 0; }
+.focusPnl { display: inline-flex; gap: var(--space-2); align-items: baseline; }

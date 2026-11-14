@@ -39,7 +39,7 @@ export function OptionPositions({ acct, rows, empty }: { acct: Account; rows: Ro
           return (
             <li key={r.id} className={s.position}>
               <span>
-                <Link to={`/options/${r.u}`} className={s.posLabel}>
+                <Link to={`/options/${r.u}?pos=${encodeURIComponent(r.id)}`} className={s.posLabel}>
                   {r.label}
                 </Link>
                 <span className={s.sub}>

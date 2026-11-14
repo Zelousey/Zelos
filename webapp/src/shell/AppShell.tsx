@@ -56,6 +56,7 @@ export function AppShell() {
   const online = useOnline();
   const [collapsed, setCollapsed] = useState(() => readString(COLLAPSE_KEY) === '1');
   const [sheet, setSheet] = useState<null | 'notifications' | 'profile' | 'menu'>(null);
+  const [helpSlot, setHelpSlot] = useState<HTMLElement | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const current = moduleForPath(location.pathname);
   const owner = navOwner(current);
@@ -146,6 +147,7 @@ export function AppShell() {
             <Avatar user={user} />
           </button>
           <TokenChip />
+          <span ref={setHelpSlot} className={s.helpSlot} />
           <Button variant="ghost" iconOnly size="lg" aria-label={inbox.unread ? `${t('notifications.open')} (${t('notifications.unread', { count: inbox.unread })})` : t('notifications.open')} onClick={() => setSheet('notifications')} className={s.bellBtn}>
             <Icon name="bell" />
             {inbox.unread > 0 && (
@@ -198,7 +200,7 @@ export function AppShell() {
       <LevelUpWatcher />
       <MindsQuoteCard />
       <LearnReturn />
-      <PageTours />
+      <PageTours slot={helpSlot} />
       <ShareAfterTrade />
       <MenuSheet open={sheet === 'menu'} onClose={() => setSheet(null)} />
     </div>

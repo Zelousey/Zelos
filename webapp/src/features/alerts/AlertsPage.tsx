@@ -14,6 +14,7 @@ import { t } from '../../lib/i18n';
 import { Badge, Button, Card, EmptyState, ErrorState, Icon, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
 import { STRATEGIES, strategy } from '../strategies/strategies';
 import { PushDevice } from './PushDevice';
+import { RecordDuel } from './RecordDuel';
 import { hasTrade, isOn, NOTIFY_GROUPS, toggle, trackRecord, useAlertList, type Alert } from './alerts';
 import { ResultBadge, StatusBadge } from './Badges';
 import s from './Alerts.module.css';
@@ -63,10 +64,7 @@ function AlertList() {
               <b>{rec.winRate}%</b>
               <span>{t('al.record.rate')}</span>
             </div>
-            <div className={s.recordBar} role="img" aria-label={t('al.record.bar', { wins: rec.wins, losses: rec.losses })}>
-              <i className={s.win} style={{ flex: rec.wins }} />
-              <i className={s.loss} style={{ flex: rec.losses }} />
-            </div>
+            <RecordDuel wins={rec.wins} losses={rec.losses} />
             <ul className={s.counts}>
               <li>
                 <b className="up">{rec.wins}</b> {t('al.wins')}

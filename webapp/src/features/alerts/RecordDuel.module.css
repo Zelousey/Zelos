@@ -1,0 +1,34 @@
+/* Bull vs bear track record. --p = the win share (0-100%). Timeline: 0-0.9s the two sides grow
+   and meet at --p, 0.9-1.2s heads bump, 1.3-1.7s the side that's behind lets go of its animal. */
+.duel { --icon: 40px; --grow: 0.9s; position: relative; height: calc(var(--icon) + 4px); }
+.track {
+  position: absolute; left: 0; right: 0; top: 50%; height: 10px; transform: translateY(-50%);
+  border-radius: var(--radius-pill); overflow: hidden; background: var(--surface-2);
+}
+.win, .loss { position: absolute; top: 0; bottom: 0; }
+.win { left: 0; width: var(--p); background: var(--bull); animation: winGrow var(--grow) var(--ease-out) both; }
+.loss { right: 0; width: calc(100% - var(--p)); background: var(--danger); animation: lossGrow var(--grow) var(--ease-out) both; }
+@keyframes winGrow { from { width: 0; } }
+@keyframes lossGrow { from { width: 0; } }
+
+.icon { position: absolute; top: 0; width: var(--icon); height: var(--icon); object-fit: contain; pointer-events: none; }
+/* each animal sits at the front of its own side, so they meet nose to nose at --p */
+.bull { left: clamp(0px, calc(var(--p) - var(--icon)), calc(100% - var(--icon))); animation: bullRun var(--grow) var(--ease-out) both, bump 0.3s ease-in-out var(--grow) both; }
+.bear { left: clamp(0px, var(--p), calc(100% - var(--icon))); animation: bearRun var(--grow) var(--ease-out) both, bump 0.3s ease-in-out var(--grow) both; }
+@keyframes bullRun { from { left: 0; } }
+@keyframes bearRun { from { left: calc(100% - var(--icon)); } }
+@keyframes bump { 50% { transform: scale(1.18); } }
+
+/* the side that's behind lets go; the leader stays, a little bigger */
+.duel[data-lead='bull'] .bear { animation: bearRun var(--grow) var(--ease-out) both, bump 0.3s ease-in-out var(--grow) both, fadeOut 0.4s ease-in calc(var(--grow) + 0.4s) forwards; }
+.duel[data-lead='bear'] .bull { animation: bullRun var(--grow) var(--ease-out) both, bump 0.3s ease-in-out var(--grow) both, fadeOut 0.4s ease-in calc(var(--grow) + 0.4s) forwards; }
+.duel[data-lead='bull'] .bull,
+.duel[data-lead='bear'] .bear { --icon: 46px; top: -3px; filter: drop-shadow(0 0 8px color-mix(in srgb, currentColor 30%, transparent)); }
+.duel[data-lead='bull'] .bull { color: var(--bull); }
+.duel[data-lead='bear'] .bear { color: var(--danger); }
+@keyframes fadeOut { to { opacity: 0; transform: scale(0.6); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .win, .loss, .icon { animation: none !important; }
+  .duel[data-lead='bull'] .bear, .duel[data-lead='bear'] .bull { opacity: 0; }
+}

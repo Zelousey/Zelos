@@ -5,7 +5,7 @@
  */
 import { instrument } from '../../data/universe';
 import type { CardChart } from './chartData';
-import type { BattleCard, PostSource, SoloCard } from './posts';
+import { heldFor, type BattleCard, type PostSource, type SoloCard } from './posts';
 
 const W = 1080;
 const H = 1350;
@@ -188,7 +188,7 @@ export async function drawCard(source: PostSource, card: SoloCard | BattleCard, 
   c.fillText(fit(c, handle, 700), 168, 212);
   c.fillStyle = 'rgba(255,255,255,0.6)';
   c.font = `500 30px ${FONT}`;
-  c.fillText(solo ? (sc.openDay && sc.closeDay ? `Closed a trade · ${day(sc.openDay)} → ${day(sc.closeDay)}` : 'Closed a trade') : 'Finished a Trade War battle', 168, 254);
+  c.fillText(solo ? (sc.openDay && sc.closeDay ? `Closed a trade · ${day(sc.openDay)} → ${day(sc.closeDay)} · ${heldFor(sc.openDay, sc.closeDay)}` : 'Closed a trade') : 'Finished a Trade War battle', 168, 254);
 
   // the thesis, if any
   let y = 316;

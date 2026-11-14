@@ -4,6 +4,7 @@
  * from the real record (functions/posts.py), so the numbers can't be made up; the app only sends
  * which trade or battle, and the thesis.
  */
+import { t } from '../../lib/i18n';
 import { collection, limit, orderBy, query, where, type DocumentData } from 'firebase/firestore';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
@@ -64,4 +65,10 @@ export function soloDraft(h: { id: string; sym: string; at: number; qty?: number
     buyAt: items.find((x) => x.kind === 'fill' && x.side === 'buy' && x.sym === h.sym && (x.opt ?? null) === (h.opt ?? null) && x.at <= h.at)?.at,
     card: { sym: h.sym, qty: h.qty ?? 0, entry: h.entry ?? 0, exit: h.exit ?? 0, pnl: h.pnl ?? 0, pct: h.pct ?? 0, option: h.opt ? (h.label ?? h.opt) : undefined, openDay: h.openDay, closeDay: h.closeDay },
   };
+}
+
+/** How long a trade was held, from its open and close New York days. */
+export function heldFor(open: string, close: string): string {
+  const d = Math.round((Date.parse(close + 'T12:00:00Z') - Date.parse(open + 'T12:00:00Z')) / 864e5);
+  return d <= 0 ? t('card.heldDay') : t(d === 1 ? 'card.heldOne' : 'card.held', { n: d });
 }

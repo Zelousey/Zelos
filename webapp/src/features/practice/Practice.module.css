@@ -76,3 +76,7 @@
 .closeBtn:hover:not(:disabled) { color: var(--down-ink) !important; }
 
 .shareBtn { margin-left: var(--space-1); min-height: 26px; padding: 0 var(--space-2); }
+
+/* a position row opens its stock's trade page */
+.tapRow { cursor: pointer; }
+.tapRow:hover { background: var(--surface-hover); }

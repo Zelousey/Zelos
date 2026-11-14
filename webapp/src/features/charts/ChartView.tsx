@@ -8,7 +8,9 @@
  */
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import type { Bar } from '../../data/markets';
-import { engine, SHAPE_POINTS, toSeries, type ChartStyle, type Forecast, type Shape, type ShapeColor, type ShapeKind, type TradeChart } from './engine';
+import { formatPrice } from '../../lib/format';
+import { t } from '../../lib/i18n';
+import { engine, SHAPE_POINTS, toSeries, type ChartMark, type Entry, type ChartStyle, type Forecast, type Shape, type ShapeColor, type ShapeKind, type TradeChart } from './engine';
 import { ChartTools, type ClearItem, type ToolsActions } from './ChartTools';
 import s from './ChartView.module.css';
 
@@ -48,9 +50,18 @@ export type ChartViewProps = {
   toolsNote?: ReactNode;
   /** intraday "1D": show only the latest session, with room for all its bars (e.g. 78 at 5m) */
   daySlots?: number;
+  /** the buys of a position you still hold: a pin on each one's bar, details on hover or tap */
+  entries?: Entry[];
 };
 
-export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots, compare, fibItems, clearItems }: ChartViewProps) {
+/** A buy's time as a bar label: New York 'YYYY-MM-DD' (daily) or 'YYYY-MM-DD HH:MM' (intraday). */
+export function entryKey(at: number, intraday: boolean): string {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(at)).map((x) => [x.type, x.value]));
+  const day = `${p.year}-${p.month}-${p.day}`;
+  return intraday ? `${day} ${p.hour}:${p.minute}` : day;
+}
+
+export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, refPrice, forecast, onForecastEdit, loading, label, shapes, drawTool, drawColor = 'blue', onDrawn, tools, under, toolsTop, toolbarExtra, toolsNote, daySlots, compare, fibItems, clearItems, entries }: ChartViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<TradeChart | null>(null);
   // chart tools: Fibonacci, placing an alert, and this symbol's alerts (rev bumps when the store changes)
@@ -204,14 +215,51 @@ export function ChartView({ sym, seriesKey, bars, live, intraday, range, style, 
     if (moved) onDrawn?.(d);
   };
 
+  // entry pins: each buy on the last bar at or before it (a New York day on daily/weekly bars,
+  // the day and minute on intraday ones)
+  const [pin, setPin] = useState<{ x: number; y: number; e: Entry } | null>(null);
+  const marks = useMemo(() => {
+    const out: ChartMark[] = [];
+    for (const e of entries ?? []) {
+      const key = entryKey(e.at, !!intraday);
+      let i = -1;
+      for (let k = bars.length - 1; k >= 0; k--)
+        if (bars[k]![0] <= key) {
+          i = k;
+          break;
+        }
+      if (i >= 0 && (intraday ? bars[i]![0].slice(0, 10) === key.slice(0, 10) : true)) out.push({ i, price: e.onBar ? bars[i]![4] : e.price, side: 'buy', pin: true, entry: e });
+    }
+    return out;
+  }, [entries, bars, intraday]);
+  useEffect(() => {
+    const c = chartRef.current;
+    if (!c) return;
+    c.marks = marks;
+    c.draw();
+  }, [marks, series]);
+  const findPin = (e: PointerEvent<HTMLCanvasElement>) => {
+    const c = chartRef.current;
+    const r = canvasRef.current?.getBoundingClientRect();
+    if (!c || !r || !entries?.length) return;
+    const h = c.markAt(e.clientX - r.left, e.clientY - r.top);
+    setPin(h?.mark.entry ? { x: h.x, y: h.y, e: h.mark.entry } : null);
+  };
+
   // a new range on the same series only moves the window
   useEffect(() => {
     chartRef.current?.setRange(range, daySlots);
   }, [range, daySlots]);
 
   const view = (
-    <div className={[s.wrap, loading && series && s.dim].filter(Boolean).join(' ')}>
-      <canvas ref={canvasRef} className={s.canvas} role="img" aria-label={label} />
+    <div className={[s.wrap, loading && series && s.dim].filter(Boolean).join(' ')} data-pins={marks.length || undefined}>
+      <canvas ref={canvasRef} className={s.canvas} role="img" aria-label={label} onPointerMove={findPin} onPointerDown={findPin} onPointerLeave={(e) => e.pointerType === 'mouse' && setPin(null)} />
+      {pin && (
+        <div className={s.pinTip} style={{ left: pin.x, top: pin.y }} role="tooltip">
+          <b>{t('chart.entry', { qty: pin.e.qty, price: formatPrice(pin.e.price) })}</b>
+          <span>{new Date(pin.e.at).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+        </div>
+      )}
       {drawTool && <div className={s.drawLayer} data-testid="draw-layer" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDraft(null)} />}
     </div>
   );

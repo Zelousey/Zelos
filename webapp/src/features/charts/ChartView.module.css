@@ -31,3 +31,11 @@
   .tools .toolRow > * { padding-inline: 7px; gap: 4px; font-size: 12px; }
   .tools .toolRow > * svg { width: 14px; height: 14px; }
 }
+
+/* an entry pin's details (hover or tap the pin) */
+.pinTip {
+  position: absolute; z-index: 3; transform: translate(-50%, calc(-100% - 12px)); display: grid; gap: 1px;
+  padding: 6px 10px; white-space: nowrap; pointer-events: none; font-size: var(--text-xs, 12px); color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--bull); border-radius: var(--radius); box-shadow: var(--shadow-pop);
+}
+.pinTip b { color: var(--ink); font-size: var(--text-sm); }
