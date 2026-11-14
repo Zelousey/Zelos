@@ -110,25 +110,38 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
   }
 
   return (
-    <section className={s.section} aria-labelledby="acct-title">
+    <section className={[s.section, phone ? '' : s.board].join(' ')} aria-labelledby="acct-title">
       <h2 id="acct-title" className="visually-hidden">
         {t('acct.title')}
       </h2>
       <div className={s.stack}>
-        <Card>
-          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} />
-          <div className={s.kpis}>
+        {/* computer (owner 2026-11-14 mock-up): the four numbers as tiles across the top */}
+        {!phone && (
+          <div className={s.kpiTiles}>
             <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
             <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
             <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
             <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
           </div>
+        )}
+        <Card className={s.chartCard}>
+          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} />
+          {phone && (
+            <div className={s.kpis}>
+              <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
+              <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
+              <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
+              <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
+            </div>
+          )}
         </Card>
 
         {phone && <PendingPanel uid={uid} />}
-        <YourMovers v={v} />
+        <div className={s.moversCell}>
+          <YourMovers v={v} />
+        </div>
 
-        <div className={s.grid}>
+        <div className={[s.grid, s.posCell].join(' ')}>
           <Card title={t('practice.positions')} flush className={s.solo}>
             {v.rows.length === 0 ? (
               <EmptyState icon="markets" body={t('practice.positions.empty')} compact actions={<Link className={buttonClass({ variant: 'secondary' })} to="/markets?find=1">{t('practice.findStock')}</Link>} />
