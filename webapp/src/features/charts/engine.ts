@@ -35,6 +35,11 @@ export type PatternKind = 'xabcd' | 'cypher' | 'headshoulders' | 'abcd' | 'trian
 export type ShapeKind = 'line' | 'ray' | 'arrow' | 'box' | 'hline' | 'hray' | 'vline' | 'measure' | 'text' | 'avwap' | 'pattern' | 'ghost' | FibKind | PatternKind;
 export type ShapeColor = 'blue' | 'green' | 'red' | 'gold';
 /** f: bars after the last bar, for a point placed in the empty space on the right (ghost feed) */
+/** i: bar index in the series. Pins carry the entry they stand for. */
+export type ChartMark = { i: number; price: number; side: 'buy' | 'sell'; pin?: boolean; entry?: Entry };
+/** One buy that's still open: when, at what price, how many. onBar: draw it on that bar's close
+ *  (an option bought, shown on its stock's chart); `price` is still what was paid. */
+export type Entry = { at: number; price: number; qty: number; onBar?: boolean };
 export type ShapePoint = { d: string; p: number; f?: number };
 export type Shape = { k: ShapeKind; c: ShapeColor; pts: ShapePoint[]; text?: string };
 export const SHAPE_POINTS: Record<ShapeKind, number> = { line: 2, ray: 2, arrow: 2, box: 2, hline: 1, hray: 1, vline: 1, measure: 2, text: 1, avwap: 1, pattern: 2, ghost: 1,
@@ -69,6 +74,10 @@ export interface TradeChart {
   /** a line to compare with (sector average, SPY, QQQ): one ratio per bar, started at this stock's price */
   compare: { label: string; color: string; r: (number | null)[] } | null;
   pointAt(x: number, y: number): ShapePoint | null;
+  /** fills as triangles, or (pin) the entries of a position you still hold */
+  marks: ChartMark[];
+  /** the entry pin under a pointer, with where it's drawn */
+  markAt(x: number, y: number): { x: number; y: number; mark: ChartMark } | null;
   fib: boolean;
   alerts: PriceAlert[];
   placing: 'alert' | null;

@@ -6,7 +6,8 @@
  * Every change goes through a Cloud Function; this only shows what the server holds.
  */
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import type { MouseEvent } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { useQuotes } from '../../data/markets';
 import { formatDate, formatMoney, formatPrice, formatRelative, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
@@ -69,6 +70,13 @@ export function AccountSection({ uid, ordersElsewhere }: { uid: string; ordersEl
 }
 
 function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: boolean }) {
+  const navigate = useNavigate();
+  // a tap anywhere on a position (not on its buttons) opens that stock's trade page: its chart with
+  // your entry pins, and Buy / Sell (owner 2026-11-13)
+  const openRow = (e: MouseEvent, sym: string) => {
+    if ((e.target as Element).closest('a, button, input, [role="group"]')) return;
+    navigate(`/practice/trade/${sym}`);
+  };
   const acctState = usePracticeAccount(uid);
   const quotes = useQuotes();
   const history = usePracticeHistory(uid);
@@ -143,9 +151,9 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
                     </thead>
                     <tbody className="num">
                       {v.rows.map((r) => (
-                        <tr key={r.sym}>
+                        <tr key={r.sym} className={s.tapRow} onClick={(e) => openRow(e, r.sym)}>
                           <td className={s.symCell}>
-                            <Link to={`/markets/${r.sym}`}>{r.sym}</Link>
+                            <Link to={`/practice/trade/${r.sym}`}>{r.sym}</Link>
                           </td>
                           <td>{r.qty}</td>
                           <td>{formatPrice(r.avg)}</td>
@@ -171,9 +179,9 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
                 </div>
                 <ul className={[s.cards, s.phoneOnly].join(' ')}>
                   {v.rows.map((r) => (
-                    <li key={r.sym} className={s.cardRow}>
+                    <li key={r.sym} className={[s.cardRow, s.tapRow].join(' ')} onClick={(e) => openRow(e, r.sym)}>
                       <span>
-                        <Link to={`/markets/${r.sym}`} className="num" style={{ color: 'var(--ink)', fontWeight: 600 }}>
+                        <Link to={`/practice/trade/${r.sym}`} className="num" style={{ color: 'var(--ink)', fontWeight: 600 }}>
                           {r.sym}
                         </Link>
                         <span className={s.sub}>

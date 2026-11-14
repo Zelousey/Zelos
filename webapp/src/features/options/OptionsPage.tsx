@@ -4,7 +4,7 @@
  * server re-prices and fills every order on the next price update after it's placed.
  */
 import { useId, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { SYMBOL_RE, useQuotes } from '../../data/markets';
 import { instrument, UNIVERSE } from '../../data/universe';
 import { useAuth } from '../../lib/auth';
@@ -18,6 +18,7 @@ import { cancelOrder, errorMessage } from '../practice/actions';
 import { daysTo, expirations, label, quote, strikes, useVolMap, volFor, type Kind, type OptionQuote } from './model';
 import { OptionBuyForm } from './OptionBuyForm';
 import { OptionPositions } from './OptionPositions';
+import { PositionFocus } from './PositionFocus';
 import { ChartButton } from './FloatingChart';
 import { CurrentPrice } from './CurrentPrice';
 import s from './Options.module.css';
@@ -65,10 +66,16 @@ export default function OptionsPage() {
     navigate(`/options/${next}`, { replace: true });
   };
 
+  // ?pos=<contract>: opened from a position row; that position (stock chart, contract chart, your
+  // contracts on this stock) comes first
+  const posId = useSearchParams()[0].get('pos');
+  const focus = v?.optionRows.find((r) => r.id === posId && r.u === sym) ?? null;
+
   return (
     <>
       <PageHeader title={t('nav.options')} subtitle={t('opt.subtitle')} actions={<Badge tone="accent">{t('practice.virtual')}</Badge>} />
       <div className={s.page}>
+        {focus && acct && <PositionFocus acct={acct} row={focus} rows={v!.optionRows.filter((r) => r.u === sym)} vols={vols} />}
         <Card pad>
           <div className={s.controls}>
             <label className={s.select} htmlFor={selectId}>

@@ -8,7 +8,7 @@ import { instrument } from '../../data/universe';
 import { formatDate } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import type { CardChart } from './chartData';
-import type { BattleCard, PostSource, SoloCard } from './posts';
+import { heldFor, type BattleCard, type PostSource, type SoloCard } from './posts';
 import s from './Posts.module.css';
 
 const pct = (n: number) => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(2) + '%';
@@ -69,7 +69,7 @@ export function ShareCard({ source, card }: { source: PostSource; card: SoloCard
           </b>
           <span className={s.cardChange} style={{ color }}>
             {up ? '▲' : '▼'} {pct(c.pct)}
-            <span className={s.cardSince}>{c.openDay && c.closeDay ? ` ${formatDate(c.openDay + 'T12:00:00Z')} → ${formatDate(c.closeDay + 'T12:00:00Z')}` : ''}</span>
+            <span className={s.cardSince}>{c.openDay && c.closeDay ? ` ${formatDate(c.openDay + 'T12:00:00Z')} → ${formatDate(c.closeDay + 'T12:00:00Z')} · ${heldFor(c.openDay, c.closeDay)}` : ''}</span>
           </span>
         </div>
         {c.chart ? <CardLine chart={c.chart} color={color} /> : <div className={s.noLine} />}

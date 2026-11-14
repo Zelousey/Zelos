@@ -1,25 +1,27 @@
 /**
- * Page tours (owner 2026-11-12): "for each section of the website ... some kind of tutorial on the
- * basics of all the different buttons", "a tiny little pop-up every so often ... specific for that
- * section, that brings you to the right tutorial", "new users: it should pop up automatically ...
- * if they click a new page", and players who've been around see it less.
+ * Page tours and the help button (owner 2026-11-12, reworked 2026-11-13).
  *
- *   - a new player (account under 14 days old) gets a page's tour by itself the first time they
- *     open that page; afterwards a small "Need help?" note at most every 3 days
- *   - nothing opens by itself for someone who isn't signed in (2026-11-13: a tour card covered the
- *     Dashboard's Sign in button on a phone, so a friend couldn't sign in); ?tour= still works
- *   - anyone else gets the note instead: every 7 days on a page whose tour they haven't seen,
- *     every 30 days once they have
- *   - never more than one note every 10 minutes, and never on top of another dialog
+ * A small "?" help button sits in the top bar on every page. Tapping it opens that page's tour
+ * (or Help & feedback where a page has no tour). Now and then a short message comes out of the
+ * button: "I'm here to help! Need information about this page? Tap here to learn more." It goes
+ * away by itself after a few seconds (no X to press) and never blocks the page; tapping it opens
+ * the tour. No tour opens by itself any more (2026-11-13: a tour card covered Sign in).
+ *
+ *   - a new player (account under 14 days old) gets the message the first time they open a page
+ *     whose tour they haven't seen; afterwards at most every 3 days
+ *   - anyone else: every 7 days on a page whose tour they haven't seen, every 30 days once they have
+ *   - nothing for someone who isn't signed in (the button is still there)
+ *   - never more than one message every 10 minutes, and never on top of another dialog
  *   - ?tour=<id> (Help → Tutorials) opens that page's tour at once
- * Remembered on this device. The e2e setup turns it off (zelosPageToursOff) except in its own test.
+ * Remembered on this device. The e2e setup turns the message off (zelosPageToursOff) except in its own test.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { readJSON, readString, writeString } from '../../lib/storage';
-import { Button, stepOnScreen, Tour, tourSeen, type TourStep } from '../../ui';
+import { Icon, stepOnScreen, Tour, tourSeen, type TourStep } from '../../ui';
 import { PAGE_TOURS, type TourDef } from './tours';
 import s from './PageTours.module.css';
 
@@ -28,6 +30,7 @@ const NUDGES = 'zelosPageHelp'; // { [tourId]: last time the note showed }
 const NUDGE_ANY = 'zelosPageHelpAt'; // last note on any page
 const DAY = 864e5;
 const NEW_FOR = 14 * DAY;
+const SHOW_MS = 7000; // the message fades out by itself after this
 
 function stamp(id: string) {
   const t0 = Date.now();
@@ -51,7 +54,8 @@ function whenSettled(cb: () => void, signal: { off: boolean }) {
   window.setTimeout(tick, 900);
 }
 
-export function PageTours() {
+/** `slot`: the top bar's place for the button (the tour itself stays outside the bar, so it isn't trapped under its layer). */
+export function PageTours({ slot }: { slot: HTMLElement | null }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isReal } = useAuth();
@@ -79,18 +83,15 @@ export function PageTours() {
     const now = Date.now();
     const isNew = created != null && now - created < NEW_FOR;
     const seen = tourSeen(tour.id);
-    if (isNew && !seen) {
-      whenSettled(start, sig);
-    } else {
-      const last = readJSON<Record<string, number>>(NUDGES, {})[tour.id] ?? 0;
-      const every = isNew ? 3 * DAY : seen ? 30 * DAY : 7 * DAY;
-      const anyLast = Number(readString(NUDGE_ANY) ?? 0);
-      if (now - last >= every && now - anyLast >= 10 * 60e3)
-        whenSettled(() => {
-          setNudge(tour);
-          stamp(tour.id);
-        }, sig);
-    }
+    const last = readJSON<Record<string, number>>(NUDGES, {})[tour.id] ?? 0;
+    const every = isNew ? (seen ? 3 * DAY : 0) : seen ? 30 * DAY : 7 * DAY;
+    const anyLast = Number(readString(NUDGE_ANY) ?? 0);
+    const due = last === 0 || now - last >= every;
+    if (due && now - anyLast >= 10 * 60e3)
+      whenSettled(() => {
+        setNudge(tour);
+        stamp(tour.id);
+      }, sig);
     return () => {
       sig.off = true;
       setNudge(null);
@@ -102,39 +103,40 @@ export function PageTours() {
   // the note goes away by itself after a while
   useEffect(() => {
     if (!nudge) return;
-    const id = window.setTimeout(() => setNudge(null), 15000);
+    const id = window.setTimeout(() => setNudge(null), SHOW_MS);
     return () => window.clearTimeout(id);
   }, [nudge]);
+
 
   const close = () => {
     setOpen(null);
     if (new URLSearchParams(location.search).has('tour')) navigate({ pathname: location.pathname }, { replace: true });
   };
+  const help = () => {
+    setNudge(null);
+    const steps = tour?.steps.filter(stepOnScreen) ?? [];
+    if (tour && steps.length) setOpen({ id: tour.id, steps });
+    else navigate('/help');
+  };
 
   return (
     <>
       {open && <Tour id={open.id} steps={open.steps} open onClose={close} />}
-      {nudge && !open && (
-        <div className={s.nudge} role="status">
-          <span className={s.text}>{t(tourSeen(nudge.id) ? 'help.nudgeAgain' : 'help.nudge', { page: t(nudge.title) })}</span>
-          <span className={s.actions}>
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => {
-                const steps = nudge.steps.filter(stepOnScreen);
-                setNudge(null);
-                if (steps.length) setOpen({ id: nudge.id, steps });
-              }}
-            >
-              {t('help.nudge.show')}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setNudge(null)}>
-              {t('help.nudge.close')}
-            </Button>
-          </span>
-        </div>
-      )}
+      {slot &&
+        createPortal(
+          <span className={s.wrap}>
+            <button type="button" className={s.btn} onClick={help} aria-label={tour ? t('help.button', { page: t(tour.title) }) : t('nav.help')} aria-haspopup="dialog">
+              <Icon name="help" size={22} />
+            </button>
+            {nudge && !open && (
+              <button type="button" className={s.bubble} onClick={help} role="status">
+                <b>{t('help.bubble.title')}</b>
+                <span>{t('help.bubble.body')}</span>
+              </button>
+            )}
+          </span>,
+          slot,
+        )}
     </>
   );
 }

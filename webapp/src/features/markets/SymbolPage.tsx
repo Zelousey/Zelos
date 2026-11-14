@@ -22,6 +22,7 @@ import { CompareMenu, sectorMembers, useCompare, type CompareTarget } from '../c
 import type { ChartStyle, Forecast } from '../charts/engine';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount } from '../practice/account';
+import { useHeldEntries } from '../practice/entries';
 import { useVolMap } from '../options/model';
 import { TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
@@ -75,6 +76,7 @@ export default function SymbolPage() {
 }
 
 function SymbolView({ sym, name }: { sym: string; name: string }) {
+  const pins = useHeldEntries(sym);
   // Day Trading or Long Term (owner 2026-11-10): every symbol is on one mode's list, so the chart
   // is in that mode. Arriving at a symbol of the other mode turns that mode on (and says so);
   // switching the mode here moves to a symbol of the new mode and explains why in a popup.
@@ -233,6 +235,7 @@ function SymbolView({ sym, name }: { sym: string; name: string }) {
           ) : (
             <div className={s.chartBody}>
               <ChartView
+                entries={pins}
                 sym={sym}
                 seriesKey={`${sym}:${tf}`}
                 bars={built.bars}

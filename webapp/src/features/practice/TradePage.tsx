@@ -42,6 +42,7 @@ import ls from "../learn/Learn.module.css";
 import { useVolMap } from "../options/model";
 import { OptionTicket } from "../options/OptionTicket";
 import { sellableShares, usePracticeAccount, valueAccount } from "./account";
+import { useHeldEntries } from "./entries";
 import { errorMessage, placeOrder } from "./actions";
 import { checkTicket, maxShares, type TicketInput } from "./ticket";
 import s from "./TradePage.module.css";
@@ -118,6 +119,7 @@ function Ticket({
 }) {
   const acctState = usePracticeAccount(uid);
   const acct = acctState.status === "ready" ? acctState.data : null;
+  const pins = useHeldEntries(sym);
   const [tf, setTfState] = useState<Timeframe>(() => {
     const v = readString(TF_KEY);
     return v === "15m" || v === "1h" || v === "D" ? v : "D";
@@ -290,6 +292,7 @@ function Ticket({
               />
             ) : (
               <ChartView
+                entries={pins}
                 sym={sym}
                 seriesKey={`${sym}:${tf}:trade`}
                 bars={built.bars}
