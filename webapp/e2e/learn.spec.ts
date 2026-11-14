@@ -29,15 +29,17 @@ test('Trading 101: chapter 1 path, an animated lesson with a quick check, old li
   await expect(page.getByRole('heading', { name: 'Trading 101', level: 1 })).toBeVisible();
   // every chapter is a book on a shelf (owner 2026-11-12); a book opens on two choices
   const shelf = page.getByRole('list', { name: 'Trading 101 books' });
-  await expect(shelf.getByRole('link')).toHaveCount(2);
+  await expect(shelf.getByRole('link')).toHaveCount(10); // owner 2026-11-14: ten books
+  await expect(shelf.getByRole('link', { name: /^Book 8: Advanced stock trading/ })).toContainText('Advanced');
+  await expect(shelf.getByRole('link', { name: /^Book 10: The mental game/ })).toContainText('Always open');
   await axe(page);
-  await shelf.getByRole('link', { name: /^Book 1: The basics/ }).click();
+  await shelf.getByRole('link', { name: /^Book 1: Stock trading fundamentals/ }).click();
   await expect(page).toHaveURL(/\/app\/learn\/basics$/);
   await expect(page.getByRole('link', { name: 'Learn from the start' })).toHaveAttribute('href', '/app/learn/basics/stocks');
   await expect(page.getByRole('link', { name: /Skip to the chapter quiz/ })).toHaveAttribute('href', '/app/learn/basics/quiz');
-  const ch = page.getByRole('region', { name: 'The basics' });
+  const ch = page.getByRole('region', { name: 'Stock trading fundamentals' });
   await expect(ch.getByText('Chapter 1')).toBeVisible();
-  await expect(ch.getByRole('listitem')).toHaveCount(9); // 8 lessons + the chapter quiz
+  await expect(ch.getByRole('listitem')).toHaveCount(12); // 11 lessons + the chapter quiz
   await expect(ch.getByRole('link', { name: /Chapter quiz/ })).toBeVisible();
   await axe(page);
 
@@ -58,7 +60,9 @@ test('Trading 101: chapter 1 path, an animated lesson with a quick check, old li
   await expect(page.getByRole('heading', { name: 'Lesson complete' })).toBeVisible();
   await expect(page.getByText('Sign in to save your progress and earn XP.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Look at real stocks' })).toHaveAttribute('href', /\/markets$/);
-  await page.getByRole('link', { name: 'Next: Why prices move' }).click();
+  await page.getByRole('link', { name: 'Next: How the stock market works' }).click();
+  await expect(page.getByRole('heading', { name: 'A giant marketplace' })).toBeVisible();
+  await page.goto('learn/basics/prices');
   await expect(page.getByRole('heading', { name: 'More buyers: the price goes up' })).toBeVisible();
   // lesson 2 also covers market hours (owner list D): pre-market / after-hours, world markets, time zones
   for (const next of ['More sellers: the price goes down', 'Good news brings buyers', 'Bad news brings sellers', 'It moves all day', 'Before and after the bell', 'The world takes turns', 'Mind the clock']) {
@@ -68,13 +72,13 @@ test('Trading 101: chapter 1 path, an animated lesson with a quick check, old li
   await expect(page.getByText(/London and New York are 4 hours apart instead of 5/)).toBeVisible();
   await axe(page);
 
-  // chapter 2: charts & volume (signed out, every lesson is open to read)
-  await page.goto('learn/charts');
-  const ch2 = page.getByRole('region', { name: 'Charts & volume' });
-  await expect(ch2.getByText('Chapter 2')).toBeVisible();
-  await expect(ch2.getByRole('listitem')).toHaveCount(9);
-  await ch2.getByRole('link', { name: 'Lesson 7: RSI' }).click();
-  await expect(page).toHaveURL(/\/app\/learn\/charts\/rsi$/);
+  // chapter 4: indicators, forecasts & alerts (signed out, every lesson is open to read); RSI moved here
+  await page.goto('learn/signals');
+  const ch2 = page.getByRole('region', { name: 'Indicators, forecasts & alerts' });
+  await expect(ch2.getByText('Chapter 4')).toBeVisible();
+  await expect(ch2.getByRole('listitem')).toHaveCount(10);
+  await ch2.getByRole('link', { name: 'Lesson 3: RSI' }).click();
+  await expect(page).toHaveURL(/\/app\/learn\/signals\/rsi$/);
   await expect(page.getByRole('heading', { name: 'A score from 0 to 100' })).toBeVisible();
   await axe(page);
   for (const next of ['Above 70: overbought', 'Below 30: oversold']) {
@@ -86,7 +90,14 @@ test('Trading 101: chapter 1 path, an animated lesson with a quick check, old li
   await expect(page.getByText(/Right. Above 70 is overbought/)).toBeVisible();
   await axe(page);
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('link', { name: 'Next: Your chart checklist' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Next: MACD' })).toBeVisible();
+
+  // a chart pattern drawn as a chart, and runner contracts only in Advanced options
+  await page.goto('learn/patterns/pat-hs');
+  await expect(page.getByRole('heading', { name: 'What it looks like' })).toBeVisible();
+  await axe(page);
+  await page.goto('learn/adv-options/ao-runner');
+  await expect(page.getByRole('heading', { name: 'Start with several' })).toBeVisible();
 
   // the old one-page lessons land on their new place
   await page.goto('learn/orders');
@@ -124,19 +135,23 @@ test.describe('signed in', () => {
 
     // a lesson, start to finish: 10 XP from the server, and the next lesson opens
     await page.goto('learn');
-    await expect(page.getByRole('link', { name: /^Book 2: Charts & volume\. locked/ })).toBeVisible();
-    const ch = page.getByRole('region', { name: 'The basics' });
-    const ch2 = page.getByRole('region', { name: 'Charts & volume' });
-    await page.goto('learn/charts');
+    await expect(page.getByRole('link', { name: /^Book 2: Positions, entries, exits & risk\. locked/ })).toBeVisible();
+    // The mental game is never locked (owner 2026-11-14)
+    await expect(page.getByRole('link', { name: /^Book 10: The mental game\. 0 of 10/ })).toBeVisible();
+    await page.goto('learn/mind');
+    await expect(page.getByRole('region', { name: 'The mental game' }).getByRole('link', { name: 'Lesson 1: Revenge trading' })).toBeVisible();
+    const ch = page.getByRole('region', { name: 'Stock trading fundamentals' });
+    const ch2 = page.getByRole('region', { name: 'Positions, entries, exits & risk' });
+    await page.goto('learn/risk');
     await expect(page.getByText('Finish Chapter 1 (or pass its quiz) to open this chapter.').first()).toBeVisible();
     await expect(ch2.getByRole('link')).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Skip to the chapter quiz/ })).toHaveCount(0);
     await page.goto('learn/basics');
     await expect(ch.getByRole('link', { name: /Lesson 2/ })).toHaveCount(0); // locked until lesson 1 is done
-    await page.goto('learn/charts/quiz');
+    await page.goto('learn/risk/quiz');
     await expect(page.getByText('Pass Chapter 1 first')).toBeVisible();
     await page.goto('learn');
-    await page.goto('learn/basics/prices');
+    await page.goto('learn/basics/market-works');
     await expect(page.getByText('This lesson isn’t open yet')).toBeVisible();
     await page.goto('learn/basics/stocks');
     for (let i = 0; i < 5; i++) await page.getByRole('button', { name: 'Continue' }).click();
@@ -145,13 +160,13 @@ test.describe('signed in', () => {
     await expect(page.getByText('+10 XP')).toBeVisible();
     await expect.poll(async () => (await get(`users/${uid}`)).fields?.learnDone?.arrayValue?.values?.map((v: { stringValue: string }) => v.stringValue)).toEqual(['stocks']);
     await page.goto('learn/basics');
-    await expect(ch.getByText('1 of 8 lessons done')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Continue: Why prices move' })).toHaveAttribute('href', '/app/learn/basics/prices');
-    await expect(ch.getByRole('link', { name: 'Lesson 2: Why prices move' })).toBeVisible();
+    await expect(ch.getByText('1 of 11 lessons done')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Continue: How the stock market works' })).toHaveAttribute('href', '/app/learn/basics/market-works');
+    await expect(ch.getByRole('link', { name: 'Lesson 2: How the stock market works' })).toBeVisible();
 
     // test out: the chapter quiz, graded by the server (wrong first, then right)
     await ch.getByRole('link', { name: /Chapter quiz/ }).click();
-    await expect(page.getByRole('heading', { name: 'Chapter 1 quiz: The basics', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Chapter 1 quiz: Stock trading fundamentals', level: 1 })).toBeVisible();
     const pick = async (answers: number[]) => {
       const qs = page.getByRole('group');
       for (const [i, a] of answers.entries()) await qs.nth(i).getByRole('radio').nth(a).check();
@@ -167,7 +182,7 @@ test.describe('signed in', () => {
     await put(`wallets/${uid}`, { balance: 12 });
     await page.getByRole('button', { name: 'Retake now · 10 tokens' }).click();
     await expect(page.getByText('This retake costs 10 tokens when you check your answers.')).toBeVisible();
-    await pick([1, 0, 2, 2, 0]);
+    await pick([1, 0, 1, 2, 0]);
     await page.getByRole('button', { name: 'Check my answers' }).click();
     await expect(page.getByText('You passed!')).toBeVisible();
     await expect(page.getByText('10 tokens spent on the retake.')).toBeVisible();
@@ -177,15 +192,15 @@ test.describe('signed in', () => {
     await expect.poll(async () => !!(await get(`users/${uid}`)).fields?.learnPassed?.mapValue?.fields?.basics).toBe(true);
     await page.goto('learn/basics');
     await expect(ch.getByText('Passed', { exact: true })).toBeVisible();
-    await expect(ch.getByRole('link', { name: 'Lesson 8: Battles with friends' })).toBeVisible(); // a passed chapter opens every lesson
-    await page.goto('learn/charts');
-    await expect(ch2.getByRole('link', { name: 'Lesson 1: Timeframes' })).toBeVisible(); // ...and the next chapter
+    await expect(ch.getByRole('link', { name: 'Lesson 11: Battles with friends' })).toBeVisible(); // a passed chapter opens every lesson
+    await page.goto('learn/risk');
+    await expect(ch2.getByRole('link', { name: 'Lesson 1: What a position is' })).toBeVisible(); // ...and the next chapter
     await expect(ch2.getByRole('link', { name: /Lesson 2/ })).toHaveCount(0);
-    await page.goto('learn/charts/trends');
+    await page.goto('learn/risk/entry');
     await expect(page.getByText('This lesson isn’t open yet')).toBeVisible();
-    await page.goto('learn/charts/timeframes');
+    await page.goto('learn/risk/position');
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Continue' }).click();
-    await page.getByRole('button', { name: 'One hour of trading' }).click();
+    await page.getByRole('button', { name: 'A 15-share position' }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByText('+10 XP')).toBeVisible();
 
@@ -246,7 +261,7 @@ test('leave a lesson or the quiz for a chart, then come straight back to the sam
   await nav.getByRole('link', { name: 'Market' }).click();
   await expect(back).toContainText('Chapter 1 quiz');
   await back.getByRole('link').click();
-  await expect(page.getByRole('heading', { name: 'Chapter 1 quiz: The basics', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Chapter 1 quiz: Stock trading fundamentals', level: 1 })).toBeVisible();
   await expect(page.getByRole('group').nth(0).getByRole('radio').nth(1)).toBeChecked();
   await expect(page.getByRole('group').nth(1).getByRole('radio').nth(2)).toBeChecked();
 

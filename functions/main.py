@@ -3985,6 +3985,16 @@ def tokens_spend(req, db, uid, tok, now_ms):
     wallet, line = txn(db.transaction())
     out = _tk_public(wallet)
     out["charged"] = -(line or {}).get("amount", 0)
+    if line:  # a strategy used: a pass bought or an alert unlocked (Strategist achievements)
+        try:
+            strat = strategy if kind == "pass" else (db.collection("alertsLocked").document(alert_id).get().to_dict() or {}).get("strategy")
+            if isinstance(strat, str) and strat:
+                uref = db.collection("users").document(uid)
+                uref.set({"strategiesUsed": firestore.ArrayUnion([strat]), "strategyActs": firestore.Increment(1)}, merge=True)
+                ud = uref.get().to_dict() or {}
+                out["achievements"] = award_achievements(db, uid, ACH.strategy_awards(ud.get("strategiesUsed"), int(ud.get("strategyActs") or 0)), now_ms)
+        except Exception as e:
+            print("[achievements] strategy use failed:", type(e).__name__)
     return out
 
 
@@ -4705,6 +4715,7 @@ def friend_ping(req, db, uid, tok, now_ms):
         guard.create({"at": now_ms})
     except Exception:
         return {"sent": False}
+    award_achievements(db, uid, ["first-friend"], now_ms)
     them = db.collection("users").document(to).get()
     mutual = uid in ((them.to_dict() or {}).get("friends") or [])
     who = _tw_name(db, uid, tok)
@@ -5086,6 +5097,40 @@ def square_reconcile(db, uid, now_ms):
 # Anonymous visitors earn XP as before (it carries over when they sign up).
 #   xpState/{uid}   server-only: {day, counts: {type: n}, xp} for the daily limits
 
+
+ACH_SERVER = frozenset(["student-market", "market-scholar", "historic-expert", "first-post", "first-victory", "honest-trader", "first-friend",
+                        "squad-talk", "conversationalist", "strategist", "multi-strategist", "strategy-regular", "round-trip"])
+
+
+def minds_all_lessons():
+    """Every Hall of Minds lesson as "figure:lesson" (what users/{uid}.mindsDone holds)."""
+    return frozenset("%s:%s" % (f, l["id"]) for f, fig in MINDS.FIGURES.items() for l in fig["lessons"])
+
+
+def award_achievements(db, uid, ids, now_ms):
+    """Grant achievements once each: users/{uid}.progress.achievements (what the app shows), the
+    public profile's list, and their XP (xp.ACHIEVEMENTS, once per id). Returns the new ones."""
+    ids = [i for i in dict.fromkeys(ids or []) if i in XP.ACHIEVEMENTS]
+    if not ids:
+        return []
+    uref = db.collection("users").document(uid)
+    u = uref.get()
+    have = (((u.to_dict() or {}).get("progress") or {}).get("achievements") or {}) if u.exists else {}
+    new = [i for i in ids if i not in have]
+    if not new:
+        return []
+    try:
+        uref.set({"progress": {"v": 1, "achievements": {i: now_ms for i in new}}}, merge=True)
+        pref = db.collection("practiceProfiles").document(uid)
+        if pref.get().exists:
+            pref.update({"achievements": firestore.ArrayUnion(new)})
+        for i in new:
+            xp_grant(db, uid, "achievement", i, now_ms)
+    except Exception as e:
+        print("[achievements] grant failed:", type(e).__name__)
+    return new
+
+
 @https_fn.on_call()
 def xp_award(req: https_fn.CallableRequest):
     a = req.auth
@@ -5098,6 +5143,14 @@ def xp_award(req: https_fn.CallableRequest):
     try:
         if kind in XP.SERVER_ONLY:  # missions and coaching are paid only by the server
             return {"awarded": False, "reason": "server-counted"}
+        # achievements the server grants itself can't be claimed from a page (owner 2026-11-14);
+        # Historic Expert is checked here against the lessons you've finished
+        if kind == "achievement" and data.get("refId") in ACH_SERVER:
+            if data.get("refId") != "historic-expert":
+                return {"awarded": False, "reason": "server-counted"}
+            u = db.collection("users").document(uid).get()
+            got = ACH.minds_award(((u.to_dict() or {}) if u.exists else {}).get("mindsDone"), minds_all_lessons())
+            return {"awarded": bool(award_achievements(db, uid, got, now_ms))}
         amount, ref_id, why = XP.decide(kind, data.get("refId"), today)
         if why:
             return {"awarded": False, "reason": why}
@@ -5129,6 +5182,7 @@ def xp_award(req: https_fn.CallableRequest):
 
 
 import learn as LEARN  # Trading 101 chapters: lesson ids, chapter quiz answers (functions/learn.py)
+import achievements as ACH  # server-granted achievements (functions/achievements.py)
 import minds as MINDS  # Hall of Minds: lessons, quotes, daily-quote subscriptions (functions/minds.py)
 
 
@@ -5164,6 +5218,7 @@ def learn_quiz_run(db, uid, data, now_ms):
         g = xp_grant(db, uid, "chapter", chapter, now_ms)
         if g.get("awarded"):
             out["xp"] = LEARN.CHAPTER_XP
+        out["achievements"] = award_achievements(db, uid, ACH.learn_awards(dict(ud.get("learnPassed") or {}, **{chapter: now_ms}), LEARN.ORDER), now_ms)
     return out
 
 
@@ -5904,6 +5959,8 @@ def practice_revalue_all(db, now_ms):
                 acct = snap.reference.get().to_dict()
             eq = PR.equity(acct, prices, vols, now_ms)
             PR.mark(acct, eq, now_ms, _user_xp(db, snap.id))
+            if ACH.round_trip(acct.get("peak"), eq):  # Gave It All Back (Solo only; a reset starts a new peak)
+                award_achievements(db, snap.id, ["round-trip"], now_ms)
             snap.reference.update({"peak": acct["peak"], "periods": acct["periods"], "hist": acct["hist"], "markedAt": now_ms, "openOptions": len(acct.get("options") or {})})
             _pr_publish(db, snap.id, now_ms, None, quotes, acct)
             n += 1
@@ -6788,7 +6845,18 @@ def _moderate(ref, doc, fields):
 @firestore_fn.on_document_created(document="squads/{sid}/messages/{mid}")
 def moderate_chat(event) -> None:
     if event.data is not None:
-        _moderate(event.data.reference, event.data.to_dict(), ("text", "name"))
+        doc = event.data.to_dict() or {}
+        _moderate(event.data.reference, doc, ("text", "name"))
+        author = doc.get("author")
+        if isinstance(author, str) and _TW_UID_RE.match(author):  # Say Hello / Conversationalist
+            try:
+                db = firestore.client()
+                uref = db.collection("users").document(author)
+                uref.set({"squadMsgs": firestore.Increment(1)}, merge=True)
+                n = int(((uref.get().to_dict() or {}).get("squadMsgs")) or 0)
+                award_achievements(db, author, ACH.squad_awards(n), int(_time.time() * 1000))
+            except Exception as e:
+                print("[achievements] squad chat count failed:", type(e).__name__)
 
 
 @firestore_fn.on_document_written(document="traders/{uid}")
@@ -6920,7 +6988,8 @@ def community_post(req, db, uid, tok, now_ms):
                      "card": card, "thesis": thesis, "createdAt": now_ms})
 
     write(db.transaction())
-    return {"ok": True, "id": pref.id}
+    got = award_achievements(db, uid, ACH.post_awards(card), now_ms)
+    return {"ok": True, "id": pref.id, "achievements": got}
 
 
 @https_fn.on_call()

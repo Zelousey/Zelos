@@ -44,7 +44,7 @@ test('level, streak, missions, achievements, recent XP and invites', async ({ pa
   await expect(daily.getByLabel('1 of 1, done')).toBeVisible();
   await expect(daily.getByLabel('2 of 3')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Weekly missions' })).toBeVisible();
-  await expect(page.getByText('1 of 29')).toBeVisible();
+  await expect(page.getByText('1 of 42')).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'First Trade' }).getByText('Earned')).toBeVisible();
   await expect(page.getByRole('listitem').filter({ hasText: 'Centurion' })).toContainText('+200');
   await expect(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Recent XP' }) })).toContainText('Trade War trade');

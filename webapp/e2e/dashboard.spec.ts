@@ -105,7 +105,7 @@ test('signed in: the Solo account and battles on Trading; trader card, missions 
   await expect(card).toContainText('275 XP');
   await expect(card).toContainText('125 XP to Platinum');
   await expect(card).toContainText('🔥 4');
-  await expect(card).toContainText('2/29'); // first-trade (progress) + centurion (public profile)
+  await expect(card).toContainText('2/42'); // first-trade (progress) + centurion (public profile)
   await expect(card.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
   const missions = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Daily missions' }) });
   await expect(missions.getByLabel('1 of 1, done')).toBeVisible();

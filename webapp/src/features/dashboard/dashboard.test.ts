@@ -37,7 +37,7 @@ describe('kept in step with the website and the server', () => {
     expect(Object.fromEntries(WEEKLY.map((m) => [m.id, m.xp]))).toEqual(table('WEEKLY_MISSIONS'));
     const base = ACHIEVEMENTS.filter((a) => !a.id.startsWith('season-'));
     expect(Object.fromEntries(base.map((a) => [a.id, a.xp]))).toEqual(table('ACHIEVEMENTS'));
-    expect(ACHIEVEMENTS).toHaveLength(29);
+    expect(ACHIEVEMENTS).toHaveLength(42); // 29 + 13 server-granted (owner 2026-11-14)
   });
 });
 

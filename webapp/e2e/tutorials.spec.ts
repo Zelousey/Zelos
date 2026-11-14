@@ -141,7 +141,7 @@ test('help button: a short message comes out of it now and then and fades by its
   await page.goto('learn');
   await page.getByRole('button', { name: 'Help with Trading 101' }).click();
   await expect(tour.getByRole('heading', { name: 'Trading 101' })).toBeVisible();
-  await page.getByRole('link', { name: /^Book 1: The basics/ }).click();
+  await page.getByRole('link', { name: /^Book 1: Stock trading fundamentals/ }).click();
   await expect(page).toHaveURL(/\/learn\/basics$/);
   await expect(tour).toHaveCount(0);
   // Help lists every page's tour and replays it on its page

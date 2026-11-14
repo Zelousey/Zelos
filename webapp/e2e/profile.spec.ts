@@ -51,7 +51,7 @@ test('someone else’s profile: numbers, record, achievements; add friend; chall
   await expect(page.getByText('Trade War: $13,250.50')).toBeVisible();
   await expect(page.getByText('🔥 6-day streak')).toBeVisible();
   await expect(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Trade War record' }) })).toContainText('Friday Night Fight');
-  await expect(page.getByText('4 of 29')).toBeVisible();
+  await expect(page.getByText('4 of 42')).toBeVisible();
   await expect(page.getByText('$12K Club')).toBeVisible();
   await expect(page.getByText('Best trade')).toBeVisible();
   await expect(page.getByRole('cell', { name: '+$812.25' })).toBeVisible();

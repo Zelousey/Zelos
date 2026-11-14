@@ -231,6 +231,19 @@
     ['ref-silver', 'Silver Recruiter', '3 friends joined from your invite', '🥈', 100, 'Referrals', function (c) { return c.referrals >= 3; }],
     ['ref-gold', 'Gold Recruiter', '10 friends joined from your invite', '🥇', 250, 'Referrals', function (c) { return c.referrals >= 10; }],
     ['ref-diamond', 'Diamond Recruiter', '25 friends joined from your invite', '💎', 500, 'Referrals', function (c) { return c.referrals >= 25; }]
+    ,['student-market', 'Student of the Market', 'Pass 3 Trading 101 chapter quizzes', '📘', 75, 'Learning', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['market-scholar', 'Market Scholar', 'Pass every Trading 101 chapter quiz', '🎓', 300, 'Learning', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['historic-expert', 'Historic Expert', 'Finish every lesson in the Hall of Minds', '🏛️', 200, 'Learning', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['first-post', 'On the Board', 'Share your first post with the community', '📣', 25, 'Community', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['first-victory', 'First Victory', 'Share a winning trade or battle with the community', '🏅', 50, 'Community', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['honest-trader', 'Honest Trader', 'Share a losing trade or battle with the community', '🤝', 50, 'Community', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['first-friend', 'Friendly', 'Add your first friend', '👋', 25, 'Community', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['squad-talk', 'Say Hello', 'Send your first message in a squad chat', '💬', 25, 'Community', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['conversationalist', 'Conversationalist', 'Send 25 messages in squad chats', '🗣️', 75, 'Community', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['strategist', 'Strategist', 'Use a strategy for the first time (a pass or an unlocked alert)', '🧠', 25, 'Strategies', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['multi-strategist', 'Strategy Explorer', 'Use 3 different strategies', '🗺️', 75, 'Strategies', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['strategy-regular', 'Strategy Regular', 'Use strategies 10 times', '📈', 100, 'Strategies', function () { return false; }] // server-granted (functions/achievements.py)
+    ,['round-trip', 'Gave It All Back', 'Reach +60% in Solo, then fall back below $10,000 (same account, no reset)', '🎢', 50, 'Milestones', function () { return false; }] // server-granted (functions/achievements.py)
   ];
   SEASONS.forEach(function (s) {
     A.push(['season-' + s.id + '-in', s.name + ' Competitor', 'Trade during ' + s.name + ' (' + s.title + ')', '🏁', 25, 'Seasons', function (c) { return !!(c.seasonTraded && c.seasonTraded[s.id]); }]);

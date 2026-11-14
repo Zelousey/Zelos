@@ -53,6 +53,10 @@ ACHIEVEMENTS = {
     "explorer": 50, "options-rookie": 25, "agent-handler": 50, "centurion": 200,
     "club-12k": 50, "club-25k": 150, "club-50k": 300, "club-100k": 500,
     "comeback-kid": 150, "comeback-brink": 300, "comeback-phoenix": 600,
+    # owner 2026-11-14, granted by the server (functions/achievements.py)
+    "student-market": 75, "market-scholar": 300, "historic-expert": 200, "first-post": 25, "first-victory": 50,
+    "honest-trader": 50, "first-friend": 25, "squad-talk": 25, "conversationalist": 75, "strategist": 25,
+    "multi-strategist": 75, "strategy-regular": 100, "round-trip": 50,
     "sharp-eye": 50, "on-a-roll": 75, "challenger": 50, "champion": 150, "squad-up": 25,
     "ref-bronze": 50, "ref-silver": 100, "ref-gold": 250, "ref-diamond": 500,
 }
