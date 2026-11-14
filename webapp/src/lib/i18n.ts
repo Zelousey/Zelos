@@ -6,6 +6,18 @@
  * language later means adding a catalogue, not touching every component.
  */
 const en = {
+  'pnn.title': 'Get trade alerts on this phone',
+  'pnn.sub': 'Even when Zelos is closed',
+  'pnn.body': 'A notification when a buy fills (with your entry price), when an option you hold is up or down 20, 50, 80 or 100%, and when a trade closes. Choose which in Alerts → Notifications.',
+  'pnn.ios': 'On iPhone, notifications work once Zelos is on your Home Screen: tap Share, then Add to Home Screen, open Zelos from the new icon and turn them on in Alerts → Notifications.',
+  'pnn.turnOn': 'Turn on notifications',
+  'pnn.later': 'Not now',
+  'pnn.done': 'Notifications are on for this device.',
+  'opt.today': 'Today',
+  'opt.todayExp': 'Today · expires at the 4:00 PM close',
+  'opt.expiresToday': 'expires today at the close',
+  'opt.fastOnly': 'Options are available on the day-trading stocks, which update every minute: {list}.',
+  'opt.openChain': 'Open the options chain',
   'opt.sellLess': 'One fewer',
   'opt.sellMore': 'One more',
   'opt.sellHowMany': 'Contracts to sell',

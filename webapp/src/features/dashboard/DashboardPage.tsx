@@ -27,6 +27,7 @@ import { useIsPhone } from '../../lib/useIsPhone';
 import { UpdateTimer } from '../markets/UpdateTimer';
 import { AppDrawer } from './AppDrawer';
 import { EarningsCard } from './Earnings';
+import { PushNudge } from '../alerts/PushNudge';
 import { StatusLine } from '../markets/StatusLine';
 import { useQuotes } from '../../data/markets';
 import { AchievementsCard, IndexStrip, LeaderboardCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
@@ -122,6 +123,7 @@ export default function DashboardPage() {
               {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
                 <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
               )}
+              {uid && <PushNudge uid={uid} />}
               <EarningsCard mine={mine} />
               <WarsCard uid={uid} />
               {/* owner 2026-11-10: Solo · Pending orders sits right under Battle */}

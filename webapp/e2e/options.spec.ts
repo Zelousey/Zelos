@@ -118,4 +118,11 @@ test('the trade ticket offers Options next to Shares, and the chart has Buy and 
   await expect(page.getByText('Order placed. It fills at the next price update.')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+
+  // options only on the day-trading stocks (owner 2026-11-14): a long-term stock says so
+  await page.goto('practice/trade/TSLA?mode=options');
+  await expect(page.getByText(/Options are available on the day-trading stocks, which update every minute: AAPL/)).toBeVisible();
+  await page.goto('options');
+  await expect(page.getByLabel('Stock').locator('option')).toHaveCount(8);
+  await expect(page.getByLabel('Stock').locator('option', { hasText: /^TSLA/ })).toHaveCount(0);
 });

@@ -15,7 +15,9 @@ import { Badge, Button, buttonClass, Card, EmptyState, LoadingState, PageHeader,
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, valueAccount, type Account } from '../practice/account';
 import { cancelOrder, errorMessage } from '../practice/actions';
-import { daysTo, expirations, label, quote, strikes, useVolMap, volFor, type Kind, type OptionQuote } from './model';
+import { expirations, label, listedExpirations, OPTION_STOCKS, optionable, quote, strikes, useVolMap, volFor, type Kind, type OptionQuote } from './model';
+import { expLabel } from './dates';
+import { useNow } from '../../lib/useNow';
 import { OptionBuyForm } from './OptionBuyForm';
 import { OptionPositions } from './OptionPositions';
 import { PositionFocus } from './PositionFocus';
@@ -32,7 +34,7 @@ export default function OptionsPage() {
   const raw = (useParams().sym ?? '').toUpperCase();
   const navigate = useNavigate();
   const remembered = readString(SYM_KEY);
-  const sym = SYMBOL_RE.test(raw) && instrument(raw) ? raw : remembered && instrument(remembered) ? remembered : 'AAPL';
+  const sym = SYMBOL_RE.test(raw) && instrument(raw) ? raw : remembered && optionable(remembered) ? remembered : 'AAPL';
   const { user, isReal } = useAuth();
   const uid = isReal && user ? user.uid : null;
   const acctState = usePracticeAccount(uid);
@@ -40,8 +42,13 @@ export default function OptionsPage() {
   const quotes = useQuotes();
   const vols = useVolMap();
   const [today] = useState(() => nyDay(Date.now()));
-  const exps = useMemo(() => expirations(today), [today]);
-  const [exp, setExp] = useState(exps[2] ?? exps[0]!);
+  const now = useNow(30_000);
+  const marketOpen = quotes.status === 'ready' && quotes.data.marketOpen;
+  const exps = useMemo(() => listedExpirations(today, now, marketOpen), [today, now, marketOpen]);
+  const [pickedExp, setExp] = useState(() => expirations(today)[2] ?? expirations(today)[0]!);
+  const exp = exps.includes(pickedExp) ? pickedExp : exps.find((e) => e !== today)!; // "Today" drops off at the cutoff
+  // options only on the day-trading stocks (owner 2026-11-14); a position held on another stock still opens here
+  const canBuy = optionable(sym);
   const [kind, setKind] = useState<Kind>('call');
   const [all, setAll] = useState(false);
   const [pick, setPick] = useState<Pick | null>(null);
@@ -56,8 +63,8 @@ export default function OptionsPage() {
     if (!S) return [];
     const list = strikes(S);
     const atm = list.reduce((b, k, i) => (Math.abs(k - S) < Math.abs(list[b]! - S) ? i : b), 0);
-    return list.map((k, i) => ({ strike: k, q: quote(kind, S, k, exp, today, vol), itm: kind === 'call' ? k < S : k > S, atm: i === atm, near: Math.abs(i - atm) <= NEAR }));
-  }, [S, kind, exp, today, vol]);
+    return list.map((k, i) => ({ strike: k, q: quote(kind, S, k, exp, today, vol, now), itm: kind === 'call' ? k < S : k > S, atm: i === atm, near: Math.abs(i - atm) <= NEAR }));
+  }, [S, kind, exp, today, vol, now]);
   const v = useMemo(() => (acct && qs ? valueAccount(acct, qs, today, vols) : null), [acct, qs, today, vols]);
   const optOrders = acct?.orders.filter((o) => o.opt) ?? [];
 
@@ -81,7 +88,7 @@ export default function OptionsPage() {
             <label className={s.select} htmlFor={selectId}>
               {t('opt.stock')}
               <select id={selectId} value={sym} onChange={(e) => choose(e.target.value)}>
-                {UNIVERSE.map((i) => (
+                {UNIVERSE.filter((i) => optionable(i.sym) || i.sym === sym).map((i) => (
                   <option key={i.sym} value={i.sym}>
                     {i.sym} · {i.name}
                   </option>
@@ -93,7 +100,7 @@ export default function OptionsPage() {
               <select id={expId} value={exp} onChange={(e) => setExp(e.target.value)}>
                 {exps.map((e) => (
                   <option key={e} value={e}>
-                    {formatDate(e + 'T12:00:00Z')} · {t('opt.days', { n: daysTo(e, today) })}
+                    {expLabel(e, today)}
                   </option>
                 ))}
               </select>
@@ -112,8 +119,10 @@ export default function OptionsPage() {
           <p className={s.explain}>{kind === 'call' ? t('opt.callExplain') : t('opt.putExplain')}</p>
         </Card>
 
-        <Card flush title={t('opt.chain', { kind: kind === 'call' ? t('opt.calls') : t('opt.puts'), date: formatDate(exp + 'T12:00:00Z') })}>
-          {quotes.status === 'loading' ? (
+        <Card flush title={t('opt.chain', { kind: kind === 'call' ? t('opt.calls') : t('opt.puts'), date: exp === today ? t('opt.today') : formatDate(exp + 'T12:00:00Z') })}>
+          {!canBuy ? (
+            <EmptyState icon="options" body={t('opt.fastOnly', { list: OPTION_STOCKS.join(', ') })} compact />
+          ) : quotes.status === 'loading' ? (
             <LoadingState rows={6} />
           ) : !S ? (
             <EmptyState icon="options" body={t('opt.noPrice', { sym })} compact />

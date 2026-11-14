@@ -44,7 +44,7 @@ export function PositionFocus({ acct, row, rows, vols }: { acct: Account; row: R
       .slice(-span)
       .filter((b) => barTime(b[0]) >= first - (built.intraday ? 15 * 60e3 : 864e5))
       .filter((b) => b[0].slice(0, 10) <= row.exp)
-      .map((b) => ({ t: barTime(b[0]), v: quote(row.kind, b[4], row.strike, row.exp, b[0].slice(0, 10), vol).mid }));
+      .map((b) => ({ t: barTime(b[0]), v: quote(row.kind, b[4], row.strike, row.exp, b[0].slice(0, 10), vol, row.exp === b[0].slice(0, 10) ? barTime(b[0]) : undefined).mid }));
   }, [built, def, bought, row, vol]);
 
   return (

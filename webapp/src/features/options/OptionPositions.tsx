@@ -43,7 +43,7 @@ export function OptionPositions({ acct, rows, empty }: { acct: Account; rows: Ro
                   {r.label}
                 </Link>
                 <span className={s.sub}>
-                  {t('opt.held', { qty: r.qty, avg: formatPrice(r.avg) })} · {r.expired ? t('opt.expiredNote') : t('opt.expires', { date: formatDate(r.exp + 'T12:00:00Z') })}
+                  {t('opt.held', { qty: r.qty, avg: formatPrice(r.avg) })} · {r.expired ? t('opt.expiredNote') : r.exp === today ? t('opt.expiresToday') : t('opt.expires', { date: formatDate(r.exp + 'T12:00:00Z') })}
                 </span>
               </span>
               <span className={s.right}>
