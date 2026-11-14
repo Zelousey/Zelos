@@ -1,5 +1,11 @@
 /**
- * Dashboard: the Trade War command center, as 4 pages (Phase 6, F14):
+ * Dashboard (owner 2026-11-14): compact, the account chart near the top. One small line on top,
+ * "Welcome back, Nate · Virtual money", with the market status and when prices update next. On a
+ * phone a pull-down under it opens the Zelos sections as app icons (AppDrawer); a computer has the
+ * sidebar. The old page row is gone; Profile, Market and Strategies have their own pages, and
+ * ?p=profile|market|strategies still opens the older panels for links people saved.
+ *
+ * Earlier: the Trade War command center, as 4 pages (Phase 6, F14):
  *   Trading     your Solo account (value, stock and option positions, open orders), first
  *               steps and your battles; every list says which mode it belongs to
  *   Profile     trader card, level, daily missions (counted by the server), achievements,
@@ -10,13 +16,18 @@
  * reads real server data or your own progress; nothing is mocked.
  */
 import { LevelCard } from '../learn/LevelCard';
-import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router';
 import { parseUserDoc, useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Card, useScrollFade, useToast } from '../../ui';
+import { Badge, Card, useToast } from '../../ui';
+import { useIsPhone } from '../../lib/useIsPhone';
+import { UpdateTimer } from '../markets/UpdateTimer';
+import { AppDrawer } from './AppDrawer';
+import { EarningsCard } from './Earnings';
+import { PushNudge } from '../alerts/PushNudge';
 import { StatusLine } from '../markets/StatusLine';
 import { useQuotes } from '../../data/markets';
 import { AchievementsCard, IndexStrip, LeaderboardCard, MissionsCard, MoversCard, TraderCard, WarsCard, WatchlistCard, WelcomeCard } from './Panels';
@@ -25,11 +36,11 @@ import { SectorBars } from '../markets/Sectors';
 import { achievementsView, mergeProgress, missionsView, readLocal } from './progress';
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
-import { AccountSection, OpenOrdersCard } from '../practice/AccountSection';
+import { AccountMore, AccountSection, OpenOrdersCard } from '../practice/AccountSection';
 import { FirstSteps } from '../welcome/FirstSteps';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import { lsGet, SKIP_KEY } from '../welcome/welcome';
-import { PAGE_LABEL, PAGES, pageFrom, stepPage, swipeBlocked, swipeDirection, type DashPage } from './pages';
+import { pageFrom, type DashPage } from './pages';
 import s from './DashboardPage.module.css';
 
 export default function DashboardPage() {
@@ -68,7 +79,11 @@ export default function DashboardPage() {
   const [params, setParams] = useSearchParams();
   const page = pageFrom(params.get('p'));
   const go = (p: DashPage) => setParams(p === 'trading' ? {} : { p }, { replace: true });
-  const swipe = useSwipe(page, go);
+  const phone = useIsPhone();
+  const acctData = acct.status === 'ready' ? acct.data : null;
+  // what this account holds or watches: for the update timer and upcoming earnings
+  const held = useMemo(() => (acctData ? Array.from(new Set([...acctData.positions.map((p) => p.sym), ...acctData.options.map((o) => o.u)])) : []), [acctData]);
+  const mine = useMemo(() => Array.from(new Set([...held, ...(watch.status === 'ready' ? watch.data : [])])), [held, watch]);
 
   if (fresh && !skipped) return <Navigate to="/welcome" replace />;
   const trader = uid ? (
@@ -79,30 +94,42 @@ export default function DashboardPage() {
   const status = (page === 'trading' || page === 'market') && (
     <div className={s.status}>
       <StatusLine quotes={quotes} />
+      {page === 'trading' && <UpdateTimer syms={held} />}
     </div>
   );
   return (
     <div className={s.dash}>
-      {/* owner 2026-11-08: no big title; one slim row with the greeting, the page row and the market status */}
+      {/* owner 2026-11-14: one small line on top, then the chart; no page row */}
       <h1 className="visually-hidden">{t('nav.dashboard')}</h1>
       <div className={s.top}>
-        <p className={s.hello}>{uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')}</p>
-        <PageNav page={page} go={go} />
+        <p className={s.hello}>
+          {uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')}
+          <Badge tone="accent">{t('practice.virtual')}</Badge>
+        </p>
         {status}
       </div>
-      <div className={s.pageBody} {...swipe} key={page} data-page={page}>
+      {phone && <AppDrawer />}
+      <div className={s.pageBody} key={page} data-page={page}>
         {page === 'trading' && (
           <div className={s.tradeGrid}>
-            {/* owner 2026-10-20: your account, open positions (stocks and options) and orders come first */}
-            <div className={s.main}>{uid ? <AccountSection uid={uid} ordersElsewhere /> : trader}</div>
+            {/* owner 2026-10-20: your account, positions (stocks and options) and orders come first.
+                Phone (2026-11-14): pending orders right under the chart while there are any, otherwise
+                down here; Activity & account settings at the very bottom. */}
+            <div className={s.main}>
+              {uid ? <AccountSection uid={uid} phone={phone} /> : trader}
+              {uid && !phone && <AccountMore uid={uid} />}
+            </div>
             <div className={s.side}>
               {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
                 <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
               )}
+              {uid && <PushNudge uid={uid} />}
+              <EarningsCard mine={mine} />
               <WarsCard uid={uid} />
-              {/* owner 2026-11-10: Solo · Open orders sits right under Battle */}
-              {uid && <OpenOrdersCard uid={uid} />}
+              {/* owner 2026-11-10: Solo · Pending orders sits right under Battle */}
+              {uid && <OpenOrdersCard uid={uid} only={phone ? 'none' : undefined} />}
             </div>
+            {uid && phone && <AccountMore uid={uid} />}
           </div>
         )}
         {page === 'profile' && (
@@ -149,50 +176,4 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-}
-
-/** The page row (F14). Links keep the page in the address; arrow keys move between pages. */
-function PageNav({ page, go }: { page: DashPage; go: (p: DashPage) => void }) {
-  const ref = useRef<HTMLElement>(null);
-  useScrollFade(ref);
-  function onKey(e: KeyboardEvent) {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    // step from the link that has focus (a fast second press can arrive before the page re-renders)
-    const from = pageFrom((e.target as HTMLElement).closest<HTMLElement>('[data-page]')?.dataset.page ?? page);
-    const next = stepPage(from, e.key === 'ArrowRight' ? 1 : -1);
-    if (!next) return;
-    e.preventDefault();
-    go(next);
-    requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>(`[data-page="${next}"]`)?.focus());
-  }
-  return (
-    <nav ref={ref} className={s.pageNav} aria-label={t('dash.pages')} onKeyDown={onKey}>
-      {PAGES.map((p) => (
-        <Link key={p} to={p === 'trading' ? '/dashboard' : `/dashboard?p=${p}`} replace data-page={p} className={s.pageLink} aria-current={p === page ? 'page' : undefined}>
-          {t(PAGE_LABEL[p])}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
-/** Phone swipe between pages: touch only, never from the screen edge, charts, fields or sideways rows. */
-function useSwipe(page: DashPage, go: (p: DashPage) => void) {
-  const start = useRef<{ x: number; y: number; at: number } | null>(null);
-  return {
-    onPointerDown(e: PointerEvent) {
-      start.current = e.pointerType === 'touch' && e.isPrimary && !swipeBlocked(e.target as Element) ? { x: e.clientX, y: e.clientY, at: e.timeStamp } : null;
-    },
-    onPointerUp(e: PointerEvent) {
-      const st = start.current;
-      start.current = null;
-      if (!st) return;
-      const by = swipeDirection({ x0: st.x, y0: st.y, x1: e.clientX, y1: e.clientY, ms: e.timeStamp - st.at, width: window.innerWidth });
-      const next = by ? stepPage(page, by) : null;
-      if (next) go(next);
-    },
-    onPointerCancel() {
-      start.current = null;
-    },
-  };
 }

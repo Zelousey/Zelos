@@ -210,7 +210,16 @@ export const NOTIFY_GROUPS: { title: string; items: { key: string; label: string
   { title: 'Strategy alerts', items: STRATEGIES.map((s) => ({ key: `s:${s.id}`, label: s.name, hint: 'A new alert is published' })) },
   { title: 'Battles', items: [{ key: 'challenges', label: 'Challenges', hint: 'Someone challenges you, or answers your challenge' }, { key: 'battles', label: 'Battle updates', hint: 'A Trade War starts, you lose the lead, final results' }] },
   { title: 'Friends & community', items: [{ key: 'friends', label: 'Friends', hint: 'Someone adds you as a friend' }, { key: 'community', label: 'Community', hint: 'New members, Founder milestones' }] },
-  { title: 'Your trades', items: [{ key: 'fills', label: 'Stop loss & take profit', hint: 'An automatic exit fills in one of your Trade Wars' }, { key: 'price', label: 'Price alerts', hint: 'A stock crosses a price alert you drew on a chart' }] },
+  {
+    title: 'Your trades',
+    items: [
+      { key: 'buys', label: 'Purchases', hint: 'A Solo buy fills: what you bought and your entry price' },
+      { key: 'closed', label: 'Closed trades', hint: 'A Solo trade closes or a contract expires: your result, with your share card' },
+      { key: 'optmove', label: 'Option gains & losses', hint: 'An option you hold is up or down 20, 50, 80 or 100% since you opened it' },
+      { key: 'fills', label: 'Stop loss & take profit', hint: 'An automatic exit fills in one of your Trade Wars' },
+      { key: 'price', label: 'Price alerts', hint: 'A stock crosses a price alert you drew on a chart' },
+    ],
+  },
   { title: 'Hall of Minds', items: [{ key: 'minds', label: 'Daily quotes', hint: 'Your daily quote from the greats you follow' }] },
 ];
 export type Prefs = { strategies: string[] | null; types: Record<string, boolean> };

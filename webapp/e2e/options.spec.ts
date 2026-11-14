@@ -68,7 +68,7 @@ test('buy a put, cancel it, and sell a contract you hold', async ({ page }, info
   await expect(page.getByText('Order placed. It fills at the next price update.')).toBeVisible();
   await expect(page.getByText(`Buy 2 AAPL $335 Put ${short(exp)}`)).toBeVisible();
   await page.getByRole('button', { name: `Cancel: Buy 2 AAPL $335 Put ${short(exp)}` }).click();
-  await expect(page.getByText('No open orders.')).toBeVisible();
+  await expect(page.getByText('No pending orders.')).toBeVisible();
 
   // a contract you hold (as if a buy had filled): sell it back
   const cid = `AAPL|${exp.replace(/-/g, '')}|C|33000`;
@@ -118,4 +118,11 @@ test('the trade ticket offers Options next to Shares, and the chart has Buy and 
   await expect(page.getByText('Order placed. It fills at the next price update.')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+
+  // options only on the day-trading stocks (owner 2026-11-14): a long-term stock says so
+  await page.goto('practice/trade/TSLA?mode=options');
+  await expect(page.getByText(/Options are available on the day-trading stocks, which update every minute: AAPL/)).toBeVisible();
+  await page.goto('options');
+  await expect(page.getByLabel('Stock').locator('option')).toHaveCount(8);
+  await expect(page.getByLabel('Stock').locator('option', { hasText: /^TSLA/ })).toHaveCount(0);
 });

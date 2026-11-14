@@ -771,6 +771,12 @@ def refresh_quotes(event: scheduler_fn.ScheduledEvent) -> None:
             print("[practice] orders pass:", practice_pass(db, fetched[0], fetched[1], int(now.timestamp() * 1000), fetched[2]))
     except Exception as e:
         print("[practice] orders pass failed:", type(e).__name__, e)
+    # option positions that moved 20 / 50 / 80 / 100% since they were opened: a push each
+    try:
+        if fetched is not None:
+            print("[practice] option moves:", practice_option_moves(db, fetched[0], int(now.timestamp() * 1000)))
+    except Exception as e:
+        print("[practice] option moves failed:", type(e).__name__, e)
     # price alerts people drew on charts: notify the ones these prices crossed (also separate)
     try:
         if fetched is not None:
@@ -5538,6 +5544,7 @@ def _pr_events(db, uid, events, t=None):
         rec["kind"] = e["kind"]
         rec["at"] = rec.get("closedAt") or rec.get("at") or int(_time.time() * 1000)
         ref = col.document()
+        e["hid"] = ref.id  # the history item, so a notification can open its share card
         if t is not None:
             t.set(ref, rec)
         else:
@@ -5685,7 +5692,7 @@ def practice_order(req, db, uid, tok, now_ms):
         acct = snap.to_dict()
         if data.get("kind") == "option":
             u = str(data.get("u") or "").upper()
-            o = PR.validate_option_order(acct, data, (quotes.get(u) or {}).get("c"), vols.get(u, OPT.DEFAULT_VOL), universe, now_ms, oid)
+            o = PR.validate_option_order(acct, data, (quotes.get(u) or {}).get("c"), vols.get(u, OPT.DEFAULT_VOL), universe, now_ms, oid, fast=FAST_SYMBOLS)
         else:
             o = PR.validate_order(acct, data, (quotes.get(sym) or {}).get("c"), universe, now_ms, oid)
         PR.add_order(acct, o)
@@ -5759,6 +5766,56 @@ def practice_settings(req, db, uid, tok, now_ms):
     return {"publicProfile": data["publicProfile"]}
 
 
+def _pr_notify(db, uid, events):
+    """Phone notifications for one account's fills: buys ("buys") and closed trades ("closed")."""
+    for e in events or []:
+        try:
+            n = PR.fill_note(e)
+            if n:
+                notify_users(db, [uid], "buys", n[0], n[1], n[2], "buy-" + (e.get("orderId") or "")[:24])
+                continue
+            n = PR.trade_note(e)
+            if n:
+                notify_users(db, [uid], "closed", n[0], n[1], n[2], "closed-" + (e.get("hid") or "")[:24])
+        except Exception as ex:
+            print("[practice] notify failed:", type(ex).__name__)
+
+
+def practice_option_moves(db, quotes, now_ms):
+    """After a price refresh: option positions that crossed 20 / 50 / 80 / 100% up or down since
+    they were opened get a push (once per level per position, PR.option_moves)."""
+    prices = {s: v.get("c") for s, v in (quotes or {}).items() if v and v.get("c")}
+    if not prices:
+        return {"accounts": 0, "sent": 0}
+    vols = _pr_vols(db, now_ms)
+    n = sent = 0
+    for snap in db.collection("practiceAccounts").where("openOptions", ">", 0).stream():
+        ref, uid = snap.reference, snap.id
+
+        @firestore.transactional
+        def txn(t):
+            s2 = ref.get(transaction=t)
+            acct = s2.to_dict() if s2.exists else None
+            if not acct or not acct.get("options"):
+                return []
+            moves = PR.option_moves(acct, prices, vols, now_ms)
+            if moves:
+                t.update(ref, {"options": acct["options"]})
+            return moves
+
+        try:
+            moves = txn(db.transaction())
+        except Exception as e:
+            print("[practice] option moves failed for one account:", type(e).__name__)
+            continue
+        n += 1
+        for m in moves:
+            title, body, path = PR.move_note(m)
+            notify_users(db, [uid], "optmove", title, body, path, "move-%s-%s" % (m["cid"][:24], m["level"]))
+            sent += 1
+    return {"accounts": n, "sent": sent}
+
+
 def practice_pass(db, quotes, raw_bars, now_ms, bar_min=PR.BAR_MIN):
     """After a price refresh: fill or expire open orders in every account that has some.
     bar_min: length of raw_bars in minutes (the Marketstack interval in use)."""
@@ -5801,6 +5858,7 @@ def practice_pass(db, quotes, raw_bars, now_ms, bar_min=PR.BAR_MIN):
                 _pr_after(db, uid, events, now_ms)
             except Exception as e:
                 print("[practice] after-fill update failed:", type(e).__name__)
+        _pr_notify(db, uid, events)
     return {"accounts": accounts, "fills": fills}
 
 
@@ -5820,6 +5878,7 @@ def _pr_settle(db, ref, uid, prices, now_ms):
         return events
 
     events = txn(db.transaction())
+    _pr_notify(db, uid, events)
     if any(e["kind"] == "trade" and e["trade"]["pnl"] > 0 for e in events):
         try:
             for e in events:
@@ -5845,7 +5904,7 @@ def practice_revalue_all(db, now_ms):
                 acct = snap.reference.get().to_dict()
             eq = PR.equity(acct, prices, vols, now_ms)
             PR.mark(acct, eq, now_ms, _user_xp(db, snap.id))
-            snap.reference.update({"peak": acct["peak"], "periods": acct["periods"], "hist": acct["hist"], "markedAt": now_ms})
+            snap.reference.update({"peak": acct["peak"], "periods": acct["periods"], "hist": acct["hist"], "markedAt": now_ms, "openOptions": len(acct.get("options") or {})})
             _pr_publish(db, snap.id, now_ms, None, quotes, acct)
             n += 1
         except Exception as e:

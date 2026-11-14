@@ -22,7 +22,7 @@ function nextFriday(): string {
 }
 const v = (x: unknown): Record<string, unknown> =>
   typeof x === 'string' ? { stringValue: x } : Number.isInteger(x) ? { integerValue: String(x) } : { doubleValue: x };
-const fields = (o: Record<string, unknown>) => ({ fields: Object.fromEntries(Object.entries(o).map(([k, x]) => [k, x && typeof x === 'object' ? { mapValue: fields(x as Record<string, unknown>) } : v(x)])) });
+const fields = (o: Record<string, unknown>): { fields: Record<string, unknown> } => ({ fields: Object.fromEntries(Object.entries(o).map(([k, x]) => [k, x && typeof x === 'object' ? { mapValue: fields(x as Record<string, unknown>) } : v(x)])) });
 
 test('the phone menu starts with Invite friends, bold', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'the ☰ menu is the phone layout');
@@ -74,4 +74,68 @@ test('a stock position opens its trade page with entry pins; an option position 
   await expect(page.getByRole('heading', { name: 'Your AAPL contracts' })).toBeVisible();
   await page.getByRole('tab', { name: 'D', exact: true }).first().click();
   await expect(page.locator('[data-pins="1"]').first()).toBeVisible();
+
+  // sell some contracts and keep one as a runner (owner 2026-11-14)
+  await page.getByRole('button', { name: `Sell: ${label}` }).first().click();
+  const confirmRow = page.getByRole('group', { name: 'Sell' });
+  await expect(confirmRow.getByLabel('Contracts to sell')).toHaveText('2 of 2');
+  await confirmRow.getByRole('button', { name: 'Keep 1 as a runner' }).click();
+  await expect(confirmRow).toContainText(`Sell 1 ${label} at the model price`);
+  await expect(confirmRow).toContainText('You keep 1.');
+  await confirmRow.getByRole('button', { name: 'Sell 1', exact: true }).last().click();
+  await expect(page.getByText(`Sell 1 ${label}`, { exact: true }).first()).toBeVisible();
+
+  // that order is pending: on a phone the Dashboard shows it right under the chart, above the positions
+  await page.goto('dashboard');
+  const pendingH = page.getByRole('heading', { name: 'Solo · Pending orders' });
+  await expect(pendingH).toBeVisible();
+  if (info.project.name === 'phone') {
+    const [p, pos] = await Promise.all([pendingH.boundingBox(), page.getByRole('heading', { name: 'Solo · Positions' }).boundingBox()]);
+    expect(p!.y).toBeLessThan(pos!.y);
+    // Activity & account settings is the last thing on the page
+    const more = page.getByText('Activity & account settings');
+    const [m, battles] = await Promise.all([more.boundingBox(), page.getByRole('heading', { name: 'Battle · Your battles' }).boundingBox()]);
+    expect(m!.y).toBeGreaterThan(battles!.y);
+  }
+});
+
+test('a closed-trade notification opens that trade’s result card; the phone prompt turns notifications on', async ({ page }, info) => {
+  test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs a server practice account (Functions emulator)');
+  await page.goto('practice');
+  const uid = await signIn(page, `share-${info.project.name}${Date.now()}@example.com`);
+  await page.getByRole('button', { name: 'Start with $10,000' }).click();
+  await expect(page.getByText('$10,000.00').first()).toBeVisible();
+  const trade = { kind: 'trade', sym: 'AAPL', qty: 5, entry: 300, exit: 316.84, pnl: 84.2, pct: 5.61, openDay: '2026-11-10', closeDay: '2026-11-13', at: Date.now() - 60_000 };
+  expect((await fetch(`${BASE}/practiceAccounts/${uid}/history/tradeX1`, { method: 'PATCH', headers: H, body: JSON.stringify(fields(trade)) })).ok).toBe(true);
+  // the link a "Closed AAPL: +$84.20" notification opens (functions/practice.py trade_note)
+  await page.goto('dashboard?share=tradeX1');
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toContainText('AAPL');
+  await expect(sheet).toContainText('held 3 days');
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.keyboard.press('Escape');
+
+  // the Dashboard asks once to turn on trade alerts for this device ("Not now" hides it)
+  await page.evaluate(() => localStorage.removeItem('zelosPushNudgeAt'));
+  await page.addInitScript(() => {
+    const w = window as unknown as Record<string, unknown>;
+    w.PushManager ??= function PushManager() {};
+    Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+  });
+  await page.reload();
+  const nudge = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Get trade alerts on this phone' }) });
+  if (info.project.name === 'phone') {
+    // an iPhone browser tab: first Add to Home Screen (Apple only allows it there)
+    await expect(nudge).toContainText('Add to Home Screen');
+  } else {
+    await expect(nudge.getByRole('button', { name: 'Turn on notifications' })).toBeVisible();
+  }
+  await nudge.getByRole('button', { name: 'Not now' }).click();
+  await expect(nudge).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Get trade alerts on this phone' })).toHaveCount(0);
+
+  // the new switches are on the Notifications tab
+  await page.goto('alerts?tab=notify');
+  for (const name of ['Purchases', 'Closed trades', 'Option gains & losses']) await expect(page.getByText(name, { exact: true })).toBeVisible();
 });

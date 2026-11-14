@@ -6,11 +6,14 @@
  */
 import { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { formatDate, formatPrice } from '../../lib/format';
+import { formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { buttonClass, EmptyState, Tabs } from '../../ui';
 import type { Account, Valued } from '../practice/account';
-import { daysTo, expirations, quote, strikes, useVolMap, volFor, type Kind } from './model';
+import { expirations, listedExpirations, OPTION_STOCKS, optionable, quote, strikes, useVolMap, volFor, type Kind } from './model';
+import { expLabel } from './dates';
+import { useNow } from '../../lib/useNow';
+import { useQuotes } from '../../data/markets';
 import { OptionBuyForm } from './OptionBuyForm';
 import { OptionPositions } from './OptionPositions';
 import { ChartButton } from './FloatingChart';
@@ -23,9 +26,13 @@ type Props = { sym: string; side: 'buy' | 'sell'; S: number | null; today: strin
 export function OptionTicket({ sym, side, S, today, acct, valued, initial }: Props) {
   const vols = useVolMap();
   const vol = volFor(vols, sym);
-  const exps = useMemo(() => expirations(today), [today]);
+  const now = useNow(30_000);
+  const quotes = useQuotes();
+  const marketOpen = quotes.status === 'ready' && quotes.data.marketOpen;
+  const exps = useMemo(() => listedExpirations(today, now, marketOpen), [today, now, marketOpen]);
   const [kind, setKind] = useState<Kind>(initial?.kind ?? 'call');
-  const [exp, setExp] = useState(initial && exps.includes(initial.exp) ? initial.exp : (exps[2] ?? exps[0]!));
+  const [pickedExp, setExp] = useState(() => (initial && expirations(today).includes(initial.exp) ? initial.exp : (expirations(today)[2] ?? expirations(today)[0]!)));
+  const exp = exps.includes(pickedExp) ? pickedExp : exps.find((e) => e !== today)!; // "Today" can drop off at the cutoff
   const list = useMemo(() => {
     const l = S ? strikes(S) : [];
     return initial && l.length && !l.includes(initial.strike) ? [...l, initial.strike].sort((a, b) => a - b) : l;
@@ -53,8 +60,21 @@ export function OptionTicket({ sym, side, S, today, acct, valued, initial }: Pro
       />
     );
   }
+  if (!optionable(sym))
+    return (
+      <EmptyState
+        icon="options"
+        body={t('opt.fastOnly', { list: OPTION_STOCKS.join(', ') })}
+        compact
+        actions={
+          <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to="/options">
+            {t('opt.openChain')}
+          </Link>
+        }
+      />
+    );
   if (!S || strike == null) return <EmptyState icon="options" body={t('opt.noPrice', { sym })} compact />;
-  const q = quote(kind, S, strike, exp, today, vol);
+  const q = quote(kind, S, strike, exp, today, vol, now);
   return (
     <div className={s.ticket}>
       {/* owner 2026-11-10: the chart opens from the card's left side, and the stock's price is easy to find */}
@@ -69,7 +89,7 @@ export function OptionTicket({ sym, side, S, today, acct, valued, initial }: Pro
           <select id={expId} value={exp} onChange={(e) => setExp(e.target.value)}>
             {exps.map((e) => (
               <option key={e} value={e}>
-                {formatDate(e + 'T12:00:00Z')} · {t('opt.days', { n: daysTo(e, today) })}
+                {expLabel(e, today)}
               </option>
             ))}
           </select>

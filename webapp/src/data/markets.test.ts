@@ -33,7 +33,7 @@ describe('market data parsing', () => {
 });
 
 describe('market status line', () => {
-  const base = { quotes: {}, source: 'marketstack', error: null, every: 15, everySlow: null, interval: '15m', paused: null };
+  const base = { quotes: {}, source: 'marketstack', error: null, every: 15, everySlow: null, interval: '15m', paused: null, fast: [] };
   it('open, with freshness and source', () => {
     const now = Date.parse('2026-10-07T14:10:00Z');
     const st = marketStatus({ ...base, marketOpen: true, updatedAt: '2026-10-07T14:01:00Z' }, now);

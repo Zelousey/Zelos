@@ -74,7 +74,6 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [] }
       </div>
       <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} />
       <Tabs label={t('acct.range')} value={range} onChange={setRange} items={(['1D', '1W', '1M', '3M'] as Range[]).map((r) => ({ value: r, label: r }))} />
-      {range === '1D' && (acct.positions.length > 0 || acct.options.length > 0 || fills.length > 0) && <p className={s.note}>{t('acct.todayNote')}</p>}
       <details className={s.table}>
         <summary>{t('acct.table')}</summary>
         <table aria-describedby={tableId}>

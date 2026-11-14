@@ -9,6 +9,7 @@ import { formatMoney, formatPrice } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { Card, Change, Tabs, ValueChart } from '../../ui';
 import { ChartView } from '../charts/ChartView';
+import { UpdateTimer } from '../markets/UpdateTimer';
 import { TIMEFRAMES, type Timeframe } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import type { Account, Valued } from '../practice/account';
@@ -43,7 +44,7 @@ export function PositionFocus({ acct, row, rows, vols }: { acct: Account; row: R
       .slice(-span)
       .filter((b) => barTime(b[0]) >= first - (built.intraday ? 15 * 60e3 : 864e5))
       .filter((b) => b[0].slice(0, 10) <= row.exp)
-      .map((b) => ({ t: barTime(b[0]), v: quote(row.kind, b[4], row.strike, row.exp, b[0].slice(0, 10), vol).mid }));
+      .map((b) => ({ t: barTime(b[0]), v: quote(row.kind, b[4], row.strike, row.exp, b[0].slice(0, 10), vol, row.exp === b[0].slice(0, 10) ? barTime(b[0]) : undefined).mid }));
   }, [built, def, bought, row, vol]);
 
   return (
@@ -51,6 +52,7 @@ export function PositionFocus({ acct, row, rows, vols }: { acct: Account; row: R
       <div className={s.focus}>
         <div className={s.focusHead}>
           <h3>{t('opt.focus.stock', { sym: row.u })}</h3>
+          <UpdateTimer syms={[row.u]} />
           <Tabs label={t('chart.timeframe')} value={tf} onChange={setTf} items={TFS.map((x) => ({ value: x, label: TIMEFRAMES.find((d) => d.id === x)!.label }))} />
         </div>
         <ChartView

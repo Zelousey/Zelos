@@ -18,7 +18,7 @@ export type Quote = { c: number; o: number; h: number; l: number; pc: number | n
 /** paused: our own Marketstack cap stopped live prices (functions/main.py ms_mark_paused): for the
  * rest of the day, or until the billing cycle restarts on `until` (YYYY-MM-DD). */
 export type Paused = { reason: 'day' | 'cycle'; until: string | null };
-export type QuotesDoc = { quotes: Record<string, Quote>; marketOpen: boolean; updatedAt: string | null; source: string; error: string | null; every: number | null; everySlow: number | null; interval: string | null; paused: Paused | null };
+export type QuotesDoc = { quotes: Record<string, Quote>; marketOpen: boolean; updatedAt: string | null; source: string; error: string | null; every: number | null; everySlow: number | null; interval: string | null; paused: Paused | null; /** the Day trading list, updated every `every` minutes; the rest every `everySlow` */ fast: string[] };
 export type Mover = { sym: string; name: string; price: number | null; chPct: number | null };
 export type MoversDoc = { gainers: Mover[]; losers: Mover[]; actives: Mover[]; sectors: { sector: string; chPct: number }[]; updatedAt: string | null; scope: string };
 export type SnapshotItem = { sym: string; label: string; price: number; prev: number; chg: number; pct: number | null; asOf: string };
@@ -49,7 +49,7 @@ export function parseQuotesDoc(d: DocumentData): QuotesDoc {
   }
   const p = d.paused as Record<string, unknown> | null | undefined;
   const paused: Paused | null = p && (p.reason === 'day' || p.reason === 'cycle') ? { reason: p.reason, until: typeof p.until === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.until) ? p.until : null } : null;
-  return { quotes, marketOpen: !!d.marketOpen, updatedAt: str(d.updatedAt), source: str(d.source) ?? '', error: str(d.error), every: num(d.every), everySlow: num(d.everySlow), interval: str(d.interval), paused };
+  return { quotes, marketOpen: !!d.marketOpen, updatedAt: str(d.updatedAt), source: str(d.source) ?? '', error: str(d.error), every: num(d.every), everySlow: num(d.everySlow), interval: str(d.interval), paused, fast: Array.isArray(d.fast) ? d.fast.filter((x): x is string => typeof x === 'string') : [] };
 }
 
 function parseMovers(list: unknown): Mover[] {

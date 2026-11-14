@@ -98,9 +98,19 @@ def strikes(S, count=STRIKE_COUNT):
     return [round(atm + k * st, 2) for k in range(-half, half + 1) if atm + k * st > 0]
 
 
-def quote(kind, S, K, exp, today, sigma):
+YEAR_MS = 365 * 864e5
+TODAY_CUTOFF_MIN = 30  # "Today" contracts: no new buys in the last 30 minutes before the close
+
+
+def quote(kind, S, K, exp, today, sigma, now_ms=None, close_ms=None):
+    """Model quote per share. A contract that expires today (owner 2026-11-14, "Today") is priced
+    on the minutes left until the close when now_ms/close_ms are given, so it loses value through
+    the day and swings hard near the close; longer ones use whole days (at least half a day)."""
     dte = max(0, days_to(exp, today))
-    T = max(dte, 0.5) / 365
+    if dte == 0 and now_ms is not None and close_ms is not None:
+        T = max(close_ms - now_ms, 60_000) / YEAR_MS
+    else:
+        T = max(dte, 0.5) / 365
     q = bs(kind, S, K, T, sigma)
     mid = max(0.01, q["price"])
     spread = max(0.02, min(0.5, mid * 0.04))
@@ -131,10 +141,10 @@ def intrinsic(c, S):
     return max(0.0, S - c["strike"]) if c["kind"] == "call" else max(0.0, c["strike"] - S)
 
 
-def value(pos, S, vol, today):
+def value(pos, S, vol, today, now_ms=None, close_ms=None):
     """Mark value of a position (per contract, per share) at the model mid; intrinsic once expired."""
     if S is None:
         return pos["avg"]
-    if pos["exp"] < today:
+    if pos["exp"] < today or (pos["exp"] == today and now_ms is not None and close_ms is not None and now_ms >= close_ms):
         return intrinsic(pos, S)
-    return quote(pos["kind"], S, pos["strike"], pos["exp"], today, vol)["mid"]
+    return quote(pos["kind"], S, pos["strike"], pos["exp"], today, vol, now_ms, close_ms)["mid"]

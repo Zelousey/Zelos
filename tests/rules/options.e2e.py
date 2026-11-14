@@ -56,6 +56,17 @@ ok((u.get("progress") or {}).get("achievements", {}).get("options-rookie"), "Opt
 ok(u["xp"] >= 25 + 5, "XP for the first option and the fill (%s)" % u["xp"])
 prof = db.collection("practiceProfiles").document(uid).get().to_dict()
 ok("options-rookie" in prof.get("achievements", []), "the badge is on the public profile")
+inbox = lambda: [x.to_dict() for x in db.collection("users").document(uid).collection("inbox").stream()]  # noqa: E731
+buy = [x for x in inbox() if x["kind"] == "buys"]
+ok(len(buy) == 1 and buy[0]["title"].startswith("Bought 2 AAPL $115 Put") and "Your entry: $" in buy[0]["body"], "a buy confirmation with the entry price (%s)" % (buy[0]["title"] if buy else None))
+ok(a.get("openOptions") == 1, "the account counts its option positions for the move pass")
+# AAPL drops to $105: the $115 puts are up well over 100% -> one "up 100%" notification, once
+mv_at = PR.bar_start_ms(D + " 14:00")
+r1 = main.practice_option_moves(db, {"AAPL": {"c": 105.0}}, mv_at)
+r2 = main.practice_option_moves(db, {"AAPL": {"c": 105.0}}, mv_at + 60000)
+moves = [x for x in inbox() if x["kind"] == "optmove"]
+ok(r1["sent"] == 1 and r2["sent"] == 0 and len(moves) == 1 and moves[0]["title"].endswith("is up 100%"), "option move: once, the furthest level (%s)" % [m["title"] for m in moves])
+ok(moves[0]["link"].startswith("app/options/AAPL?pos="), "it opens the position")
 
 # expiry: Friday after the close, AAPL at $110 -> the $115 puts are worth $5 each
 db.collection("markets").document("quotes").set({"quotes": {"AAPL": {"c": 110, "t": PR.bar_start_ms("2026-10-09 15:59") // 1000}}})
@@ -64,4 +75,6 @@ a = db.collection("practiceAccounts").document(uid).get().to_dict()
 ok(a.get("options") == {} and abs(a["cash"] - round(10000 - ask * 200 + 1000, 2)) < 1e-6, "expired puts settled at $5 intrinsic (cash %s)" % a["cash"])
 hist = [h.to_dict() for h in db.collection("practiceAccounts").document(uid).collection("history").stream()]
 ok(any(h["kind"] == "trade" and h.get("role") == "expired" for h in hist), "the expiry is in the history as a trade")
+closed = [x for x in inbox() if x["kind"] == "closed"]
+ok(len(closed) == 1 and closed[0]["title"].startswith("Expired AAPL $115 Put") and closed[0]["link"].startswith("app/dashboard?share="), "a closed-trade notification that opens the result card (%s)" % (closed[0]["title"] if closed else None))
 print("\n%d options checks passed" % passed)

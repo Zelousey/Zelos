@@ -19,10 +19,12 @@ Shapes (all money in dollars, times in epoch ms, days "YYYY-MM-DD" New York):
 """
 
 import re
+import urllib.parse
 import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+import mdata as MD
 import options as OPT
 
 NY = ZoneInfo("America/New_York")
@@ -94,6 +96,22 @@ def session_close_ms(day):
     return int(d.timestamp() * 1000)
 
 
+def today_close_ms(day):
+    """This day's real close (1:00 pm on an early close), for pricing contracts that expire today."""
+    d = datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=NY) + timedelta(minutes=MD.session_close_min(day))
+    return int(d.timestamp() * 1000)
+
+
+def listed_expirations(now_ms):
+    """The expirations you can buy now: the weekly and monthly ones, plus "Today" (owner 2026-11-14)
+    on a trading day until 30 minutes before the close."""
+    today = ny_day(now_ms)
+    out = OPT.expirations(today)
+    if is_weekday(today) and not MD.market_holiday(today) and minutes(now_ms) < MD.session_close_min(today) - OPT.TODAY_CUTOFF_MIN:
+        out = [today] + out
+    return out
+
+
 def bar_start_ms(label):
     d = datetime.strptime(label[:16], "%Y-%m-%d %H:%M").replace(tzinfo=NY)
     return int(d.timestamp() * 1000)
@@ -149,7 +167,9 @@ def option_value(acct, prices, vols=None, now_ms=None):
         return 0.0
     today = ny_day(now_ms if now_ms is not None else int(time.time() * 1000))
     vols = vols or {}
-    return sum(p["qty"] * 100 * OPT.value(p, prices.get(p["u"]), vols.get(p["u"], OPT.DEFAULT_VOL), today) for p in opts.values())
+    now = now_ms if now_ms is not None else int(time.time() * 1000)
+    close = today_close_ms(today)
+    return sum(p["qty"] * 100 * OPT.value(p, prices.get(p["u"]), vols.get(p["u"], OPT.DEFAULT_VOL), today, now, close) for p in opts.values())
 
 
 def equity(acct, prices, vols=None, now_ms=None):
@@ -274,7 +294,7 @@ def validate_order(acct, req, last_price, universe, now_ms, new_id):
             "session": active_session(now_ms), "createdAt": now_ms, "bracket": bracket, "oco": None, "role": None, "parent": None}
 
 
-def validate_option_order(acct, req, last_price, vol, universe, now_ms, new_id):
+def validate_option_order(acct, req, last_price, vol, universe, now_ms, new_id, fast=None):
     """{kind: "option", u, type: "call"|"put", strike, exp, side, qty} -> a clean option order.
     Long calls and puts only: buy to open, sell to close. Market orders, filled on the next
     price; the cost check uses today's model ask, the fill uses the price at fill time."""
@@ -283,6 +303,9 @@ def validate_option_order(acct, req, last_price, vol, universe, now_ms, new_id):
     u = str(req.get("u") or "").upper()
     if not SYM_RE.match(u) or u not in universe:
         raise OrderError("That stock isn't in the Zelos stock list.")
+    if fast is not None and u not in fast and req.get("side") == "buy":
+        # options only on the day-trading stocks, priced every minute (owner 2026-11-14)
+        raise OrderError("Options are available on the day-trading stocks only: %s." % ", ".join(fast))
     if not last_price:
         raise OrderError("There's no price for %s yet. Try again in a few minutes." % u)
     kind = req.get("type")
@@ -310,13 +333,15 @@ def validate_option_order(acct, req, last_price, vol, universe, now_ms, new_id):
     cid = OPT.contract_id(u, kind, strike, exp) if re.match(r"^\d{4}-\d{2}-\d{2}$", exp) else None
     held = ((acct.get("options") or {}).get(cid) or {}).get("qty", 0) if cid else 0
     if side == "buy":
-        if exp not in OPT.expirations(today):
+        if exp not in listed_expirations(now_ms):
+            if exp == today:
+                raise OrderError("Contracts that expire today can be bought until 30 minutes before the close.")
             raise OrderError("Pick one of the listed expiration dates.")
         if strike not in OPT.strikes(last_price):
             raise OrderError("Pick one of the listed strike prices.")
         if not held and len(acct.get("options") or {}) >= OPT.MAX_OPTION_POSITIONS:
             raise OrderError("You can hold up to %d different option contracts." % OPT.MAX_OPTION_POSITIONS)
-        q = OPT.quote(kind, last_price, strike, exp, today, vol)
+        q = OPT.quote(kind, last_price, strike, exp, today, vol, now_ms, today_close_ms(today))
         est = r2(q["ask"] * 100 * qty)
         bp = buying_power(acct, {u: last_price})
         if est > bp + 0.005:
@@ -378,7 +403,7 @@ def fill_option(acct, o, S, when_ms, events, vols):
     acct["orders"].pop(o["id"], None)
     c = o["contract"]
     acct.setdefault("options", {})
-    q = OPT.quote(c["kind"], S, c["strike"], c["exp"], day, (vols or {}).get(c["u"], OPT.DEFAULT_VOL))
+    q = OPT.quote(c["kind"], S, c["strike"], c["exp"], day, (vols or {}).get(c["u"], OPT.DEFAULT_VOL), when_ms, today_close_ms(day))
     if o["side"] == "buy":
         px, qty = q["ask"], o["qty"]
         cost = r2(px * 100 * qty)
@@ -430,7 +455,7 @@ def settle_expired(acct, prices, now_ms):
     events = []
     today = ny_day(now_ms)
     for cid, pos in list((acct.get("options") or {}).items()):
-        if pos["exp"] > today or (pos["exp"] == today and now_ms < session_close_ms(today)):
+        if pos["exp"] > today or (pos["exp"] == today and now_ms < today_close_ms(today)):
             continue
         S = prices.get(pos["u"])
         if S is None:
@@ -439,7 +464,7 @@ def settle_expired(acct, prices, now_ms):
         for o in [x for x in acct["orders"].values() if x.get("opt") == cid]:
             acct["orders"].pop(o["id"], None)
             events.append({"kind": "order", "order": dict(o, status="cancelled", note="Contract expired", closedAt=now_ms)})
-        _close_option(acct, cid, pos, pos["qty"], px, max(now_ms, session_close_ms(pos["exp"])), events, role="expired")
+        _close_option(acct, cid, pos, pos["qty"], px, max(now_ms, today_close_ms(pos["exp"])), events, role="expired")
     _recount(acct)
     return events
 
@@ -513,6 +538,7 @@ def fill(acct, o, px, when_ms, events, vols=None):
 
 def _recount(acct):
     acct["openOrders"] = len(acct["orders"])
+    acct["openOptions"] = len(acct.get("options") or {})  # the option-move pass reads accounts with some
 
 
 def _life(acct, sym):
@@ -744,3 +770,86 @@ def archive_classic(practice):
         return float(v) if isinstance(v, (int, float)) else None
     return {"verified": False, "equity": num(summ.get("equity")), "cash": num(practice.get("cash")), "resets": int(practice.get("resets") or 0) if isinstance(practice.get("resets"), (int, float)) else 0,
             "createdAt": practice.get("createdAt") if isinstance(practice.get("createdAt"), (int, float)) else None, "trades": clean}
+
+
+# ------------------------------------------------------------------ option moves (notifications)
+MOVE_LEVELS = (20, 50, 80, 100)  # owner 2026-11-14: up or down this much since the position was opened
+
+
+def option_moves(acct, prices, vols, now_ms):
+    """Option positions that crossed a new gain or loss level since they were opened.
+
+    Each position remembers the levels already sent (pos["moves"], e.g. [20, -50]), so a level
+    is sent once per position; a position closed and opened again starts fresh. If a price jumps
+    past several levels at once, only the furthest is returned (one notification, not three), and
+    the ones it passed are marked sent too. -100% counts at -99% or worse (a contract's model price
+    never quite reaches $0 before it expires). Changes acct; returns
+    [{"cid", "label", "u", "level", "pct", "avg", "mark", "qty"}].
+    """
+    today = ny_day(now_ms)
+    close = today_close_ms(today)
+    out = []
+    for cid, pos in (acct.get("options") or {}).items():
+        S = prices.get(pos["u"])
+        if S is None or not pos.get("avg") or pos["exp"] < today:
+            continue
+        mark = OPT.value(pos, S, (vols or {}).get(pos["u"], OPT.DEFAULT_VOL), today, now_ms, close)
+        pct = (mark / pos["avg"] - 1) * 100
+        sent = set(pos.get("moves") or [])
+        hit = [lv for lv in MOVE_LEVELS if pct >= lv] if pct > 0 else [-lv for lv in MOVE_LEVELS if pct <= (-99 if lv == 100 else -lv)]
+        new = [lv for lv in hit if lv not in sent]
+        if not new:
+            continue
+        pos["moves"] = sorted(sent | set(hit))
+        top = max(new, key=abs)
+        out.append({"cid": cid, "label": pos.get("label") or cid, "u": pos["u"], "level": top, "pct": round(pct, 1), "avg": pos["avg"], "mark": round(mark, 2), "qty": pos["qty"]})
+    return out
+
+# ------------------------------------------------------------------ notification text
+def _money(x):
+    return ("-$" if x < 0 else "$") + format(abs(x), ",.2f")
+
+
+def _signed(x):
+    return ("+" if x >= 0 else "-") + "$" + format(abs(x), ",.2f")
+
+
+def fill_note(e):
+    """A buy confirmation (owner 2026-11-14: confirm the entry price). (title, body, path) or None."""
+    if e.get("kind") != "fill" or e.get("side") != "buy":
+        return None
+    qty, px = e.get("qty") or 0, float(e.get("price") or 0)
+    if e.get("opt"):
+        what = e.get("label") or e["opt"]
+        return ("Bought %d %s at %s" % (qty, what, _money(px)),
+                "Your entry: %s a share, %s for %d contract%s. Solo account, virtual money." % (_money(px), _money(px * 100 * qty), qty, "" if qty == 1 else "s"),
+                "app/options/%s?pos=%s" % (e["sym"], urllib.parse.quote(e["opt"], safe="")))
+    return ("Bought %d %s at %s" % (qty, e["sym"], _money(px)),
+            "Your entry: %s a share, %s in all. Solo account, virtual money." % (_money(px), _money(px * qty)),
+            "app/practice/trade/%s" % e["sym"])
+
+
+def trade_note(e):
+    """A closed trade, with the way to its share card. (title, body, path) or None."""
+    if e.get("kind") != "trade":
+        return None
+    tr = e.get("trade") or {}
+    name = tr.get("label") or tr.get("sym") or ""
+    pnl, pct = float(tr.get("pnl") or 0), float(tr.get("pct") or 0)
+    held = ""
+    if tr.get("openDay") and tr.get("closeDay"):
+        d = (datetime.strptime(tr["closeDay"], "%Y-%m-%d") - datetime.strptime(tr["openDay"], "%Y-%m-%d")).days
+        held = " · same-day trade" if d <= 0 else " · held %d day%s" % (d, "" if d == 1 else "s")
+    how = "Expired" if tr.get("role") == "expired" else "Closed"
+    body = "Entry %s, exit %s%s. Tap to see your result card." % (_money(float(tr.get("entry") or 0)), _money(float(tr.get("exit") or 0)), held)
+    path = "app/dashboard" + ("?share=" + e["hid"] if e.get("hid") else "")
+    return ("%s %s: %s (%+.1f%%)" % (how, name, _signed(pnl), pct), body, path)
+
+
+def move_note(m):
+    """An option position up or down a level since it was opened. (title, body, path)."""
+    up = m["level"] > 0
+    per = (m["mark"] - m["avg"]) * 100 * m["qty"]
+    title = "%s is %s %d%%" % (m["label"], "up" if up else "down", abs(m["level"]))
+    body = "Since you opened it: %s → %s a share (%+.0f%%), %s on %d contract%s." % (_money(m["avg"]), _money(m["mark"]), m["pct"], _signed(per), m["qty"], "" if m["qty"] == 1 else "s")
+    return title, body, "app/options/%s?pos=%s" % (m["u"], urllib.parse.quote(m["cid"], safe=""))
