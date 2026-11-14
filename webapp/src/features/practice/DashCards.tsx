@@ -58,7 +58,6 @@ function MoverList({ tone, title, items, empty, onOpen }: { tone: 'up' | 'down';
               <button type="button" className={s.row} onClick={() => onOpen(c)}>
                 <span className={s.name}>
                   {c.name}
-                  {c.kind === 'option' && <em className={s.kind}>{t('dc.option')}</em>}
                 </span>
                 <span className={`num ${tone}`}>
                   {formatSignedMoney(c.pnl)} <small>({formatPercent(c.pnlPct, { signed: true })})</small>

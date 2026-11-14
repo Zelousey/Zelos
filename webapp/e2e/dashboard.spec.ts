@@ -85,8 +85,8 @@ test('signed in: the Solo account and battles on Trading; trader card, missions 
   // no pending orders: two small cards cycle through today's market movers instead (owner 2026-11-15),
   // labelled as the market, not your account
   await expect(page.getByRole('heading', { name: 'Solo · Pending orders' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /^Market · top gainers today: / })).toBeVisible();
-  await expect(page.getByRole('link', { name: /^Market · top losers today: / })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Market · gainers: / })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Market · losers: / })).toBeVisible();
   // your own top gainers and losers today (green and red cards), then the positions, then Battle
   const gain = page.getByRole('region', { name: 'Your top gainers' });
   await expect(gain).toBeVisible();

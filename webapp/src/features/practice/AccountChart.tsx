@@ -24,12 +24,12 @@ const H = 180;
 const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
-type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[] };
+type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[] };
 type Opts = { table: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
 const OPTS_KEY = 'zelosAcctChart';
 const DEFAULT_OPTS: Opts = { table: false, markers: true, wins: true, losses: true, drawdown: true };
 
-export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [] }: Props) {
+export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [] }: Props) {
   const [range, setRange] = useState<Range>('1D');
   const [opts, setOptsState] = useState<Opts>(() => ({ ...DEFAULT_OPTS, ...readJSON<Partial<Opts>>(OPTS_KEY, {}) }));
   const setOpt = (k: keyof Opts) =>
@@ -51,17 +51,17 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
     for (const p of acct.positions) val.set(p.sym, (val.get(p.sym) ?? 0) + p.qty * (quotes[p.sym]?.c ?? p.avg));
     for (const o of acct.options) val.set(o.u, (val.get(o.u) ?? 0) + o.qty * 100 * o.avg);
     // what you sold today too, so the morning still shows it
-    for (const h of history) if (h.kind === 'fill' && h.sym && nyDay(h.at) === today && !val.has(h.sym)) val.set(h.sym, (h.qty ?? 0) * (h.price ?? 0) * (h.opt ? 100 : 1));
+    for (const h of allFills.length ? allFills : history) if (h.kind === 'fill' && h.sym && nyDay(h.at) === today && !val.has(h.sym)) val.set(h.sym, (h.qty ?? 0) * (h.price ?? 0) * (h.opt ? 100 : 1));
     return [...val.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_FEEDS).map(([sym]) => sym);
-  }, [acct.positions, acct.options, quotes, history, today]);
+  }, [acct.positions, acct.options, quotes, history, allFills, today]);
 
   const session = sessionDay(bars, today);
   const fills = useMemo<DayFill[]>(
     () =>
-      history
+      (allFills.length ? allFills : history)
         .filter((h) => h.kind === 'fill' && h.sym && (h.side === 'buy' || h.side === 'sell') && h.qty && h.price != null && nyDay(h.at) === session)
         .map((h) => ({ m: nyMinute(h.at), sym: h.sym, opt: h.opt, side: h.side as 'buy' | 'sell', qty: h.qty!, price: h.price! })),
-    [history, session],
+    [allFills, history, session],
   );
   const base1d = previousClose(acct.hist, session, START_CASH);
   const points = useMemo<ValuePoint[]>(

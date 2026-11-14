@@ -51,6 +51,8 @@
 .quick { position: relative; z-index: 5; }
 .search { display: flex; align-items: center; gap: var(--space-2); min-height: 38px; padding: 0 var(--space-3); background: var(--glass-bg); border: 1px solid var(--glass-line); border-radius: var(--radius); color: var(--muted); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
 .search:focus-within { border-color: var(--accent); }
+/* one box when focused (owner 2026-11-15: two blue boxes): the field's border shows focus, not the input inside */
+.search input:focus-visible { box-shadow: none; }
 .search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; color: var(--ink); font-size: var(--text-sm); min-height: 36px; }
 @media (pointer: coarse) { .search, .search input { min-height: var(--tap); font-size: 1rem; } }
 .results { position: absolute; left: 0; right: 0; top: calc(100% + 4px); max-height: 360px; overflow-y: auto; padding: var(--space-1) var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-pop); }

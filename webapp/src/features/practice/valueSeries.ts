@@ -7,7 +7,7 @@
  * shows it going up and back down", also after you sell). Its last point is always the live value.
  */
 import type { Bar, Quote } from '../../data/markets';
-import { markValue, parseContract, volFor, type Vols } from '../options/model';
+import { closeMs, markValue, parseContract, volFor, type Vols } from '../options/model';
 import type { Account, DayValue } from './account';
 
 export type ValuePoint = { t: number; v: number; label: string };
@@ -110,7 +110,9 @@ export function intradayPoints(a: Account, bars: Record<string, Bar[]>, quotes: 
     for (const [sym, p] of h.shares) if (p.qty > 0) v += p.qty * (price(sym) ?? p.avg);
     for (const [id, o] of h.options) {
       const c = o.qty > 0 ? parseContract(id) : null;
-      if (c) v += o.qty * 100 * markValue({ ...c, avg: o.avg }, price(c.u), volFor(vols, c.u), session);
+      // priced at that minute (a contract expiring that day loses time value through the day; with
+      // the clock's "now" every past minute would be valued as if it had already expired)
+      if (c) v += o.qty * 100 * markValue({ ...c, avg: o.avg }, price(c.u), volFor(vols, c.u), session, closeMs(session) - (CLOSE_MIN - m) * 60_000);
     }
     out.push({ t: m, v, label: `${session} ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}` });
   }
