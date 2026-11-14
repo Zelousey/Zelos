@@ -88,9 +88,9 @@ test('signed in: the Solo account and battles on Trading; trader card, missions 
   await expect(page.getByRole('link', { name: /^Market · top gainers today: / })).toBeVisible();
   await expect(page.getByRole('link', { name: /^Market · top losers today: / })).toBeVisible();
   // your own top gainers and losers today (green and red cards), then the positions, then Battle
-  const gain = page.getByRole('region', { name: 'Your top gainers today' });
+  const gain = page.getByRole('region', { name: 'Your top gainers' });
   await expect(gain).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Your top losers today' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your top losers' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'What’s moving your account' })).toHaveCount(0);
   const earn = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Upcoming earnings' }) });
   await expect(earn).toContainText('Your stocks reporting soon');
@@ -104,7 +104,7 @@ test('signed in: the Solo account and battles on Trading; trader card, missions 
   // a gainer opens its detail: your effect today, open P&L, earnings and filings
   if (await gain.getByRole('button').count()) {
     await gain.getByRole('button').first().click();
-    await expect(page.getByRole('dialog')).toContainText('Your account today');
+    await expect(page.getByRole('dialog')).toContainText('since you opened it');
     await page.keyboard.press('Escape');
   }
   await expect(page.getByRole('link', { name: /Friday Showdown/ })).toContainText(/Live · [56]h left/);

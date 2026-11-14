@@ -1,9 +1,9 @@
 /**
  * Dashboard cards (owner 2026-11-15):
- *   YourMovers     two cards, green "Your top gainers today" and red "Your top losers today": what
- *                  your stocks and options added to or took from the account today (analysis.ts
- *                  contributors). Tap one for its detail: the move, your effect, your open P&L,
- *                  the next earnings and recent SEC filings for it.
+ *   YourMovers     two cards, green "Your top gainers" and red "Your top losers": your open stock
+ *                  and option positions ranked by what they're up or down since you opened them
+ *                  (analysis.ts contributors; "your option call is up $40"). Tap one for its
+ *                  detail: open P&L, today's move, the next earnings and recent SEC filings.
  *   PendingPanel   Solo · Pending orders as one compact bar each (tap for the order's details,
  *                  Cancel on the bar); with none, two small cards that cycle through today's
  *                  market movers instead (markets/movers: real stock gainers and losers, labelled
@@ -60,7 +60,9 @@ function MoverList({ tone, title, items, empty, onOpen }: { tone: 'up' | 'down';
                   {c.name}
                   {c.kind === 'option' && <em className={s.kind}>{t('dc.option')}</em>}
                 </span>
-                <span className={`num ${tone}`}>{formatSignedMoney(c.amount)}</span>
+                <span className={`num ${tone}`}>
+                  {formatSignedMoney(c.pnl)} <small>({formatPercent(c.pnlPct, { signed: true })})</small>
+                </span>
               </button>
             </li>
           ))}
@@ -76,30 +78,32 @@ function MoverSheet({ item, onClose }: { item: Contributor | null; onClose: () =
   const news = useOfficialNews();
   const filings = item && news.status === 'ready' ? news.data.filter((n) => n.sym === item.sym).slice(0, 3) : [];
   if (!item) return null;
-  const up = item.amount >= 0;
+  const up = item.pnl >= 0;
   return (
     <Sheet open onClose={onClose} title={item.name} labelledBy={titleId}>
       <div className={s.sheet}>
         <dl className={s.facts}>
           <div>
-            <dt>{t('dc.today')}</dt>
+            <dt>{t('dc.openPnl')}</dt>
             <dd className={`num ${up ? 'up' : 'down'}`}>
-              {formatSignedMoney(item.amount)}
-              {item.pct != null && ` (${formatPercent(item.pct, { signed: true })})`}
+              {formatSignedMoney(item.pnl)} ({formatPercent(item.pnlPct, { signed: true })})
             </dd>
           </div>
+          {item.today != null && (
+            <div>
+              <dt>{t('dc.today')}</dt>
+              <dd className={`num ${item.today >= 0 ? 'up' : 'down'}`}>
+                {formatSignedMoney(item.today)}
+                {item.todayPct != null && ` (${formatPercent(item.todayPct, { signed: true })})`}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>{item.kind === 'option' ? t('dc.contractNow') : t('dc.priceNow')}</dt>
             <dd className="num">{formatPrice(item.last)}</dd>
           </div>
-          <div>
-            <dt>{t('dc.openPnl')}</dt>
-            <dd className={`num ${item.pnl >= 0 ? 'up' : 'down'}`}>
-              {formatSignedMoney(item.pnl)} ({formatPercent(item.pnlPct, { signed: true })})
-            </dd>
-          </div>
         </dl>
-        <p className={s.why}>{t(up ? 'dc.whyUp' : 'dc.whyDown', { name: item.name, amt: formatMoney(Math.abs(item.amount)) })}</p>
+        <p className={s.why}>{t(up ? 'dc.whyUp' : 'dc.whyDown', { name: item.name, amt: formatMoney(Math.abs(item.pnl)) })}</p>
         {item.kind === 'option' && <p className={s.muted}>{t('dc.optionNote', { sym: item.sym })}</p>}
         <h4 className={s.sub}>{t('dc.context', { sym: item.sym })}</h4>
         <ul className={s.context}>

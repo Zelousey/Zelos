@@ -39,30 +39,33 @@ export function analyze(v: Valued): Analysis | null {
 }
 
 /**
- * Your top gainers and losers today (owner 2026-11-15): what each holding added to or took from
- * the account today, stocks and options together. A stock: shares × (price − previous close, or
- * your cost if bought today). An option: its model price now minus its model price at the
- * stock's previous close (the same model the account is valued with), × 100 × contracts.
+ * Your top gainers and losers (owner 2026-11-15, clarified: "your option call is up $40"): every
+ * open stock and option position ranked by its open P&L, what it's up or down since you opened
+ * it. Today's move is kept for the detail: a stock, shares × (price − previous close, or your
+ * cost if bought today); an option, its model price now minus its model price at the stock's
+ * previous close (the model the account is valued with), × 100 × contracts.
  */
-export type Contributor = { key: string; kind: 'stock' | 'option'; name: string; sym: string; amount: number; pct: number | null; last: number | null; pnl: number; pnlPct: number; to: string };
+export type Contributor = { key: string; kind: 'stock' | 'option'; name: string; sym: string; pnl: number; pnlPct: number; today: number | null; todayPct: number | null; last: number | null; to: string };
 
 export function contributors(v: Valued, quotes: Record<string, Quote>, vols: Vols | null, today: string): { gainers: Contributor[]; losers: Contributor[] } {
   const all: Contributor[] = [];
   for (const r of v.rows) {
-    if (r.dayChange == null || Math.abs(r.dayChange) < 0.005) continue;
-    const start = r.value - r.dayChange;
-    all.push({ key: r.sym, kind: 'stock', name: r.sym, sym: r.sym, amount: r.dayChange, pct: start > 0 ? (r.dayChange / start) * 100 : null, last: r.last, pnl: r.pnl, pnlPct: r.pnlPct, to: `/practice/trade/${r.sym}` });
+    const start = r.dayChange != null ? r.value - r.dayChange : 0;
+    all.push({ key: r.sym, kind: 'stock', name: r.sym, sym: r.sym, pnl: r.pnl, pnlPct: r.pnlPct, today: r.dayChange, todayPct: r.dayChange != null && start > 0 ? (r.dayChange / start) * 100 : null, last: r.last, to: `/practice/trade/${r.sym}` });
   }
   for (const o of v.optionRows) {
+    if (o.expired) continue;
     const q = quotes[o.u];
-    if (o.expired || !q?.c || !q.pc) continue;
-    const before = markValue(o, q.pc, volFor(vols, o.u), today);
-    const amount = (o.mark - before) * 100 * o.qty;
-    if (Math.abs(amount) < 0.005) continue;
-    all.push({ key: o.id, kind: 'option', name: o.label, sym: o.u, amount, pct: before > 0 ? (o.mark / before - 1) * 100 : null, last: o.mark, pnl: o.pnl, pnlPct: o.pnlPct, to: `/options/${o.u}?pos=${encodeURIComponent(o.id)}` });
+    const before = q?.c && q.pc ? markValue(o, q.pc, volFor(vols, o.u), today) : null;
+    all.push({
+      key: o.id, kind: 'option', name: o.label, sym: o.u, pnl: o.pnl, pnlPct: o.pnlPct,
+      today: before != null ? (o.mark - before) * 100 * o.qty : null, todayPct: before ? (o.mark / before - 1) * 100 : null,
+      last: o.mark, to: `/options/${o.u}?pos=${encodeURIComponent(o.id)}`,
+    });
   }
+  const open = all.filter((c) => Math.abs(c.pnl) >= 0.005);
   return {
-    gainers: all.filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 3),
-    losers: all.filter((c) => c.amount < 0).sort((a, b) => a.amount - b.amount).slice(0, 3),
+    gainers: open.filter((c) => c.pnl > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 3),
+    losers: open.filter((c) => c.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 3),
   };
 }
