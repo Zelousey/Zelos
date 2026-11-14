@@ -11,7 +11,7 @@ import { t } from '../../lib/i18n';
 import { Card, Skeleton } from '../../ui';
 import s from './Earnings.module.css';
 
-type Report = { sym: string; date: string; eps: number | null };
+export type Report = { sym: string; date: string; eps: number | null };
 
 const parse = (d: DocumentData): Report[] =>
   Object.entries((d.bySymbol as Record<string, { date?: unknown; eps?: unknown }>) ?? {})
@@ -65,4 +65,11 @@ export function EarningsCard({ mine }: { mine: string[] }) {
       )}
     </Card>
   );
+}
+
+/** The next earnings report for one stock, if it's within the calendar (45 days). */
+export function useNextEarnings(sym: string | null): Report | null {
+  const doc = useLiveDoc(sym ? 'markets/earnings' : null, parse);
+  if (!sym || doc.status !== 'ready') return null;
+  return doc.data.filter((r) => r.sym === sym && r.date >= nyToday()).sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
 }

@@ -11,7 +11,7 @@
 .toolRow > :first-child { margin-right: var(--space-2); }
 @media (pointer: fine) { .toolRow [data-tip] { width: 32px; } }
 /* phones: one row that scrolls sideways, so the toolbar never takes two lines */
-@media (max-width: 760px) { .toolRow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: var(--space-1); } .toolRow::-webkit-scrollbar { display: none; } .toolRow > * { flex: none; } }
+@media (max-width: 760px) { .toolRow { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; gap: var(--space-1); } /* sideways only (owner 2026-11-15): no vertical drift; a vertical swipe still scrolls the page */ .toolRow::-webkit-scrollbar { display: none; } .toolRow > * { flex: none; } }
 /* Remove sits after the tools, before Trade options at the far right */
 .rmWrap { order: 1; }
 /* owner 2026-11-12: only Indicators keeps its name; on phones it's an icon too, so the row fits */

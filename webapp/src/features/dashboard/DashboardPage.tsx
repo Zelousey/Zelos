@@ -36,7 +36,8 @@ import { SectorBars } from '../markets/Sectors';
 import { achievementsView, mergeProgress, missionsView, readLocal } from './progress';
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
-import { AccountMore, AccountSection, OpenOrdersCard } from '../practice/AccountSection';
+import { AccountMore, AccountSection } from '../practice/AccountSection';
+import { PendingPanel } from '../practice/DashCards';
 import { FirstSteps } from '../welcome/FirstSteps';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import { lsGet, SKIP_KEY } from '../welcome/welcome';
@@ -101,6 +102,7 @@ export default function DashboardPage() {
     <div className={s.dash}>
       {/* owner 2026-11-14: one small line on top, then the chart; no page row */}
       <h1 className="visually-hidden">{t('nav.dashboard')}</h1>
+      {phone && <AppDrawer />}
       <div className={s.top}>
         <p className={s.hello}>
           {uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')}
@@ -108,7 +110,6 @@ export default function DashboardPage() {
         </p>
         {status}
       </div>
-      {phone && <AppDrawer />}
       <div className={s.pageBody} key={page} data-page={page}>
         {page === 'trading' && (
           <div className={s.tradeGrid}>
@@ -120,14 +121,15 @@ export default function DashboardPage() {
               {uid && !phone && <AccountMore uid={uid} />}
             </div>
             <div className={s.side}>
+              {/* computer: pending orders (or today's market movers) first; on a phone they sit under the chart */}
+              {uid && !phone && <PendingPanel uid={uid} />}
+              {/* owner 2026-11-15: Battle right under Solo positions and options */}
+              <WarsCard uid={uid} />
               {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
                 <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
               )}
               {uid && <PushNudge uid={uid} />}
               <EarningsCard mine={mine} />
-              <WarsCard uid={uid} />
-              {/* owner 2026-11-10: Solo · Pending orders sits right under Battle */}
-              {uid && <OpenOrdersCard uid={uid} only={phone ? 'none' : undefined} />}
             </div>
             {uid && phone && <AccountMore uid={uid} />}
           </div>

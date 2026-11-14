@@ -114,13 +114,13 @@
       "why": "Until you sell, P&L is unrealized and moves with the price."
     },
     {
-      "q": "A stock falls 10% and then rises 10%. Compared with the start it is…",
+      "q": "A $100 stock falls 10% to $90, then rises 10%. Where does it end up?",
       "opts": [
-        "Back to even",
-        "Down about 1%",
-        "Up 1%"
+        "Back at $100",
+        "At $99, $1 below where it started",
+        "At $101"
       ],
-      "why": "100 → 90 → 99: percentages work from where you are now."
+      "why": "10% of $90 is $9, so it ends at $99. A rise is worked out on the smaller price, so it doesn’t fully make up the fall."
     },
     {
       "q": "A stock is up 3% today. You bought at $80 and it’s now $70. Are you in profit on it?",

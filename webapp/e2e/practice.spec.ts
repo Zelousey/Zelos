@@ -54,11 +54,16 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
   await expect(page.getByText(/Buy order for 5 AAPL placed/)).toBeVisible();
 
   // the server holds the order; cash is untouched until it fills
-  await expect(page.getByText('Buy 5 AAPL · Market')).toBeVisible();
+  // one compact bar (owner 2026-11-15); tap it for the details
+  const bar = page.getByRole('button', { name: 'Buy 5 AAPL · Market Pending' });
+  await expect(bar).toBeVisible();
   await noSidewaysScroll(page);
-  await expect(page.getByText(/Orders fill on the next price update/)).toBeVisible();
-  await page.getByRole('button', { name: /Cancel: Buy 5 AAPL/ }).click();
-  await expect(page.getByText('No pending orders.')).toBeVisible();
+  await bar.click();
+  const sheet = page.getByRole('dialog', { name: 'Buy 5 AAPL · Market' });
+  await expect(sheet).toContainText('Today only');
+  await expect(sheet).toContainText(/Fills on the next price update|Fills when the market opens/);
+  await sheet.getByRole('button', { name: 'Cancel order' }).click();
+  await expect(page.getByRole('heading', { name: 'Solo · Pending orders' })).toHaveCount(0);
   await page.getByText('Activity & account settings').click(); // history is folded away under the positions
   await expect(page.getByText(/Buy 5 AAPL cancelled · Cancelled by you/)).toBeVisible();
 
@@ -145,9 +150,23 @@ test('account value chart: today and longer ranges, with a table (owner 2026-10-
   await page.getByRole('tab', { name: '1W' }).click();
   await expect(page.getByText('Past week', { exact: true })).toBeVisible();
   await expect(page.getByText(/^\+\$200\.00 \(\+2\.04%\)$/)).toBeVisible(); // vs 9,800 three days ago
-  await page.getByText('Show as a table').click();
+  // the table is in the chart options (owner 2026-11-15)
+  await page.getByRole('button', { name: 'Chart options' }).click();
+  await page.getByLabel('Show as a table').check();
   await expect(page.getByRole('table', { name: /Account value ·/ })).toContainText('$9,800.00');
-  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
+  // trade markers (owner 2026-11-15): a closed trade two days ago is a dot on the line; tap to read it
+  const closeDay = day(2).slice(1).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+  const tr = { kind: { stringValue: 'trade' }, sym: { stringValue: 'MSFT' }, qty: { integerValue: '3' }, entry: { doubleValue: 500 }, exit: { doubleValue: 540 }, pnl: { doubleValue: 120 }, pct: { doubleValue: 8 }, closeDay: { stringValue: closeDay }, at: { integerValue: String(Date.parse(closeDay + 'T19:00:00Z')) } };
+  expect((await fetch(`${BASE}/practiceAccounts/${uid}/history/trMark1`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: tr }) })).ok).toBe(true);
+  const mark = page.getByRole('button', { name: /^Closed MSFT \+\$120\.00 \(\+8\.0%\)/ });
+  await expect(mark).toBeAttached();
+  await mark.dispatchEvent('click');
+  await expect(page.getByRole('status').filter({ hasText: 'Closed MSFT +$120.00' })).toContainText('in $500.00, out $540.00');
+  await page.getByLabel('Winning trades').uncheck();
+  await expect(mark).toHaveCount(0);
+  await page.getByLabel('Winning trades').check();
+  await page.getByRole('button', { name: 'Chart options' }).click(); // closes the menu
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => `${x.id}: ${x.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
 });
 
 test('a removed stock you still hold can only be sold, at the next close (owner 2026-10-22)', async ({ page }, info) => {
