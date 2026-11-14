@@ -5,7 +5,7 @@
  * value it on screen with the latest quotes, the same way the server does, so what you see
  * matches the leaderboard. Nothing computed here is ever sent back as truth.
  */
-import { collection, limit, onSnapshot, orderBy, query, type DocumentData } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query, where, type DocumentData } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useLiveDoc } from '../../data/liveDoc';
 import type { Quote } from '../../data/markets';
@@ -157,4 +157,19 @@ export function usePracticeHistory(uid: string | null) {
     );
   }, [uid]);
   return state.uid === uid ? state : { uid, items: [], ready: false };
+}
+
+/** Your closed trades (up to 300, newest first), for the account chart's markers. */
+export function usePracticeTrades(uid: string | null) {
+  const [state, setState] = useState<{ uid: string | null; items: HistoryItem[] }>({ uid: null, items: [] });
+  useEffect(() => {
+    if (!uid) return;
+    const q = query(collection(db(), 'practiceAccounts', uid, 'history'), where('kind', '==', 'trade'), limit(300));
+    return onSnapshot(
+      q,
+      (snap) => setState({ uid, items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HistoryItem, 'id'>) })).sort((a, b) => b.at - a.at) }),
+      () => setState({ uid, items: [] }),
+    );
+  }, [uid]);
+  return state.uid === uid ? state.items : [];
 }

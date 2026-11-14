@@ -9,7 +9,8 @@ import { useScrollFade } from './useScrollFade';
 
 export type TabItem<T extends string> = { value: T; label: string };
 
-export function Tabs<T extends string>({ items, value, onChange, label, stretch }: { items: TabItem<T>[]; value: T; onChange: (v: T) => void; label: string; stretch?: boolean }) {
+/** compact: a smaller look (a 28 px pill) with the same finger-sized touch area. */
+export function Tabs<T extends string>({ items, value, onChange, label, stretch, compact }: { items: TabItem<T>[]; value: T; onChange: (v: T) => void; label: string; stretch?: boolean; compact?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useScrollFade(ref);
   function onKey(e: KeyboardEvent) {
@@ -22,7 +23,7 @@ export function Tabs<T extends string>({ items, value, onChange, label, stretch 
     e.preventDefault();
   }
   return (
-    <div ref={ref} role="tablist" aria-label={label} className={[s.list, stretch && s.stretch].filter(Boolean).join(' ')} onKeyDown={onKey}>
+    <div ref={ref} role="tablist" aria-label={label} className={[s.list, stretch && s.stretch, compact && s.compact].filter(Boolean).join(' ')} onKeyDown={onKey}>
       {items.map((it) => (
         <button key={it.value} type="button" role="tab" data-value={it.value} aria-selected={it.value === value} tabIndex={it.value === value ? 0 : -1} className={s.tab} onClick={() => onChange(it.value)}>
           {it.label}

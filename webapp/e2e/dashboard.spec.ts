@@ -82,18 +82,31 @@ test('signed in: the Solo account and battles on Trading; trader card, missions 
   await expect(acct.getByRole('link', { name: 'AAPL', exact: true }).filter({ visible: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Solo · Positions' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Battle · Your battles' })).toBeVisible();
-  // Solo · Pending orders sits under Battle (owner 2026-11-10; renamed 2026-11-14)
-  const orders = page.getByRole('heading', { name: 'Solo · Pending orders' });
-  await expect(orders).toBeVisible();
-  await expect(page.getByText('No pending orders.')).toBeVisible();
-  // what's moving the account, and upcoming earnings for what you hold or watch
-  await expect(page.getByRole('heading', { name: 'What’s moving your account' })).toBeVisible();
+  // no pending orders: two small cards cycle through today's market movers instead (owner 2026-11-15),
+  // labelled as the market, not your account
+  await expect(page.getByRole('heading', { name: 'Solo · Pending orders' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /^Market · top gainers today: / })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Market · top losers today: / })).toBeVisible();
+  // your own top gainers and losers today (green and red cards), then the positions, then Battle
+  const gain = page.getByRole('region', { name: 'Your top gainers today' });
+  await expect(gain).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Your top losers today' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What’s moving your account' })).toHaveCount(0);
   const earn = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Upcoming earnings' }) });
   await expect(earn).toContainText('Your stocks reporting soon');
   await expect(earn.getByRole('link').first()).toContainText('NVDA');
   await expect(page.getByText('Today’s line follows your trades', { exact: false })).toHaveCount(0);
-  const [battleBox, ordersBox] = await Promise.all([page.getByRole('heading', { name: 'Battle · Your battles' }).boundingBox(), orders.boundingBox()]);
-  expect(ordersBox!.y).toBeGreaterThan(battleBox!.y);
+  if (info.project.name === 'phone') {
+    const [gainBox, posBox, battleBox] = await Promise.all([gain.boundingBox(), page.getByRole('heading', { name: 'Solo · Positions' }).boundingBox(), page.getByRole('heading', { name: 'Battle · Your battles' }).boundingBox()]);
+    expect(gainBox!.y).toBeLessThan(posBox!.y);
+    expect(posBox!.y).toBeLessThan(battleBox!.y);
+  }
+  // a gainer opens its detail: your effect today, open P&L, earnings and filings
+  if (await gain.getByRole('button').count()) {
+    await gain.getByRole('button').first().click();
+    await expect(page.getByRole('dialog')).toContainText('Your account today');
+    await page.keyboard.press('Escape');
+  }
   await expect(page.getByRole('link', { name: /Friday Showdown/ })).toContainText(/Live · [56]h left/);
   await page.waitForTimeout(600);
   const axe = async () => (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
@@ -135,6 +148,19 @@ test('the top is one small line; on a phone a pull-down opens the sections as ap
   await handle.click();
   await expect(apps).toBeVisible();
   for (const name of ['Trade War', 'Strategies', 'Leaderboard', 'Training Ground', 'Hall of Minds', 'Profile']) await expect(apps.getByRole('link', { name })).toBeVisible();
+  await page.getByRole('button', { name: 'Hide sections' }).click();
+  await expect(apps).toBeHidden();
+  // a swipe down from the top of the page opens it too (owner 2026-11-15), and Android's
+  // pull-to-refresh is off on the Dashboard so the swipe isn't a reload
+  await expect(apps).toBeHidden();
+  await page.evaluate(() => {
+    const t = (y: number) => new Touch({ identifier: 1, target: document.body, clientX: 180, clientY: y });
+    window.dispatchEvent(new TouchEvent('touchstart', { touches: [t(120)] }));
+    window.dispatchEvent(new TouchEvent('touchmove', { touches: [t(260)] }));
+    window.dispatchEvent(new TouchEvent('touchend', { touches: [] }));
+  });
+  await expect(apps).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.style.overscrollBehaviorY)).toBe('contain');
   await page.getByRole('button', { name: 'Hide sections' }).click();
   await expect(apps).toBeHidden();
   // pulling the handle down opens it too

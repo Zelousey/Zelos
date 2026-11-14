@@ -54,7 +54,7 @@ export const minuteOf = (label: string) => +label.slice(11, 13) * 60 + +label.sl
 export const OPEN_MIN = 9 * 60 + 30;
 export const CLOSE_MIN = 16 * 60;
 
-const dayNum = (day: string) => Date.parse(day + 'T12:00:00Z') / 864e5;
+export const dayNum = (day: string) => Date.parse(day + 'T12:00:00Z') / 864e5;
 
 /** The trading day 1D shows: the newest day with 1-minute prices (Friday on a weekend), at most today. */
 export function sessionDay(bars: Record<string, Bar[]>, today: string): string {

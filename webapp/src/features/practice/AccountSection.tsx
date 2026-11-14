@@ -19,8 +19,8 @@ import { useIdentity } from '../dashboard/social';
 import { ShareSheet } from '../posts/ShareSheet';
 import { soloDraft, type Draft } from '../posts/posts';
 import { OptionPositions } from '../options/OptionPositions';
-import { AccountAnalysis } from './AccountAnalysis';
-import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeHistory, valueAccount, type HistoryItem, type Order } from './account';
+import { PendingPanel, YourMovers } from './DashCards';
+import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeHistory, usePracticeTrades, valueAccount, type HistoryItem, type Order } from './account';
 import { cancelOrder, errorMessage, openAccount, placeOrder, resetAccount, setPublic } from './actions';
 import s from './Practice.module.css';
 
@@ -85,6 +85,7 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
   const acctState = usePracticeAccount(uid);
   const quotes = useQuotes();
   const history = usePracticeHistory(uid);
+  const trades = usePracticeTrades(uid);
   const toast = useToast();
   const acct = acctState.status === 'ready' ? acctState.data : null;
   const qs = useMemo(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
@@ -114,7 +115,7 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
       </h2>
       <div className={s.stack}>
         <Card>
-          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} />
+          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} />
           <div className={s.kpis}>
             <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
             <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
@@ -123,10 +124,11 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
           </div>
         </Card>
 
-        {phone && <OpenOrdersCard uid={uid} only="any" />}
+        {phone && <PendingPanel uid={uid} />}
+        <YourMovers v={v} />
 
         <div className={s.grid}>
-          <Card title={t('practice.positions')} flush>
+          <Card title={t('practice.positions')} flush className={s.solo}>
             {v.rows.length === 0 ? (
               <EmptyState icon="markets" body={t('practice.positions.empty')} compact actions={<Link className={buttonClass({ variant: 'secondary' })} to="/markets?find=1">{t('practice.findStock')}</Link>} />
             ) : (
@@ -164,7 +166,7 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
                               <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to={`/practice/trade/${r.sym}`}>
                                 {t('practice.trade')}
                               </Link>
-                              <Button variant="ghost" size="sm" className={s.closeBtn} onClick={() => setClosing({ sym: r.sym, qty: sellableShares(acct, r.sym) })} disabled={pending || sellableShares(acct, r.sym) === 0}>
+                              <Button variant="sell" size="sm" className={s.closeBtn} onClick={() => setClosing({ sym: r.sym, qty: sellableShares(acct, r.sym) })} disabled={pending || sellableShares(acct, r.sym) === 0}>
                                 {t('practice.close')}
                               </Button>
                             </span>
@@ -193,7 +195,7 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
                         <Link className={buttonClass({ variant: 'secondary', size: 'sm' })} to={`/practice/trade/${r.sym}`}>
                           {t('practice.trade')}
                         </Link>
-                        <Button variant="ghost" size="sm" onClick={() => setClosing({ sym: r.sym, qty: sellableShares(acct, r.sym) })} disabled={pending || sellableShares(acct, r.sym) === 0}>
+                        <Button variant="sell" size="sm" onClick={() => setClosing({ sym: r.sym, qty: sellableShares(acct, r.sym) })} disabled={pending || sellableShares(acct, r.sym) === 0}>
                           {t('practice.close')}
                         </Button>
                       </span>
@@ -208,6 +210,7 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
             <Card
               title={t('opt.positions')}
               flush
+              className={s.solo}
               actions={
                 <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/options">
                   {t('acct.optionChain')}
@@ -219,7 +222,6 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
           )}
 
         </div>
-        <AccountAnalysis v={v} />
 
       </div>
 

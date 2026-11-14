@@ -59,7 +59,7 @@ export function OptionPositions({ acct, rows, empty }: { acct: Account; rows: Ro
                 {r.expired ? (
                   <Badge>{t('opt.settling')}</Badge>
                 ) : (
-                  <Button variant="secondary" size="sm" disabled={busy || free === 0} onClick={() => setSelling(selling?.row.id === r.id ? null : { row: r, qty: free, max: free })} aria-expanded={selling?.row.id === r.id} aria-label={`${t('opt.sell')}: ${r.label}`}>
+                  <Button variant="sell" size="sm" disabled={busy || free === 0} onClick={() => setSelling(selling?.row.id === r.id ? null : { row: r, qty: free, max: free })} aria-expanded={selling?.row.id === r.id} aria-label={`${t('opt.sell')}: ${r.label}`}>
                     {t('opt.sell')}
                   </Button>
                 )}

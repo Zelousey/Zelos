@@ -91,8 +91,9 @@ test('buy a put, cancel it, and sell a contract you hold', async ({ page }, info
 
   // Practice shows them too, and counts them in the account value
   await page.goto('practice');
-  await expect(page.getByRole('heading', { name: 'Your options' })).toBeVisible();
-  await expect(page.getByText(`Sell 3 AAPL $330 Call ${short(exp)} · Market`)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Solo · Options' })).toBeVisible();
+  // pending orders are one compact bar each (owner 2026-11-15)
+  await expect(page.getByRole('button', { name: `Sell 3 AAPL $330 Call ${short(exp)} · Market Pending` })).toBeVisible();
 });
 
 test('the trade ticket offers Options next to Shares, and the chart has Buy and Sell', async ({ page }, info) => {

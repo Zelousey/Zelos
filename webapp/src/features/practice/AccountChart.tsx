@@ -2,14 +2,18 @@
  * Account value chart (Practice page): 1D / 1W / 1M / 3M like a brokerage app. The value and the
  * newest point follow live prices (markets/quotes and the 1-minute price docs of what you hold);
  * the line is green when you're up over the range and red when you're down. Touch or hover to
- * read any point; "Show as a table" lists the numbers.
+ * read any point. The ⋯ button (owner 2026-11-15) holds "Show as a table" and the trade markers:
+ * your biggest winning and losing closed trades in the range and the biggest drop (chartMarks.ts),
+ * each a dot on the line; tap one to read it. Choices are remembered on this device.
  */
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useIntraday, type Bar, type Quote } from '../../data/markets';
 import { formatDate, formatMoney, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Tabs } from '../../ui';
+import { readJSON, writeString } from '../../lib/storage';
+import { Button, Icon, Tabs } from '../../ui';
+import { chartMarks, type Mark } from './chartMarks';
 import type { Vols } from '../options/model';
 import { START_CASH, type Account, type HistoryItem } from './account';
 import s from './AccountChart.module.css';
@@ -20,10 +24,22 @@ const H = 180;
 const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
-type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[] };
+type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[] };
+type Opts = { table: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
+const OPTS_KEY = 'zelosAcctChart';
+const DEFAULT_OPTS: Opts = { table: false, markers: true, wins: true, losses: true, drawdown: true };
 
-export function AccountChart({ acct, equity, quotes, vols, today, history = [] }: Props) {
+export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [] }: Props) {
   const [range, setRange] = useState<Range>('1D');
+  const [opts, setOptsState] = useState<Opts>(() => ({ ...DEFAULT_OPTS, ...readJSON<Partial<Opts>>(OPTS_KEY, {}) }));
+  const setOpt = (k: keyof Opts) =>
+    setOptsState((o) => {
+      const n = { ...o, [k]: !o[k] };
+      writeString(OPTS_KEY, JSON.stringify(n));
+      return n;
+    });
+  const [menu, setMenu] = useState(false);
+  const [picked, setPicked] = useState<Mark | null>(null);
   const [bars, setBars] = useState<Record<string, Bar[]>>({});
   const now = useNow(60_000);
   const nowMin = useMemo(() => {
@@ -58,6 +74,8 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [] }
   const shown = hover ?? points[points.length - 1];
   const dir = ch.abs >= 0 ? 'up' : 'down';
   const tableId = useId();
+  const marks = useMemo(() => (opts.markers ? chartMarks(trades.length ? trades : history, points, range, session, opts) : []), [opts, trades, history, points, range, session]);
+  const menuId = useId();
 
   return (
     <div className={s.wrap}>
@@ -72,10 +90,47 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [] }
         </span>
         <span className={s.when}>{hover ? whenLabel(hover, range) : range === '1D' && session !== today ? formatDate(session + 'T12:00:00Z') : t(`acct.range.${range}`)}</span>
       </div>
-      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} />
-      <Tabs label={t('acct.range')} value={range} onChange={setRange} items={(['1D', '1W', '1M', '3M'] as Range[]).map((r) => ({ value: r, label: r }))} />
-      <details className={s.table}>
-        <summary>{t('acct.table')}</summary>
+      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} marks={marks} picked={picked} onPick={setPicked} />
+      {picked && (
+        <div className={[s.pick, s[picked.kind]].join(' ')} role="status">
+          <span>
+            <b>{picked.title}</b>
+            <small>{picked.detail}</small>
+          </span>
+          <Button variant="ghost" size="sm" iconOnly aria-label={t('common.close')} onClick={() => setPicked(null)}>
+            <Icon name="close" size={16} />
+          </Button>
+        </div>
+      )}
+      <div className={s.controls}>
+        <Tabs compact label={t('acct.range')} value={range} onChange={(r) => (setRange(r), setPicked(null))} items={(['1D', '1W', '1M', '3M'] as Range[]).map((r) => ({ value: r, label: r }))} />
+        <span className={s.menuWrap}>
+          <Button variant="ghost" size="sm" iconOnly aria-label={t('cho.title')} aria-haspopup="true" aria-expanded={menu} aria-controls={menuId} onClick={() => setMenu((m) => !m)}>
+            <Icon name="more" size={18} />
+          </Button>
+          {menu && (
+            <div className={s.menu} id={menuId} role="group" aria-label={t('cho.title')}>
+              {(
+                [
+                  ['table', 'cho.table'],
+                  ['markers', 'cho.markers'],
+                  ['wins', 'cho.wins'],
+                  ['losses', 'cho.losses'],
+                  ['drawdown', 'cho.drawdown'],
+                ] as const
+              ).map(([k, label]) => (
+                <label key={k} className={[s.opt, k !== 'table' && k !== 'markers' && s.sub, k !== 'table' && k !== 'markers' && !opts.markers && s.off].filter(Boolean).join(' ')}>
+                  <input type="checkbox" checked={opts[k]} disabled={k !== 'table' && k !== 'markers' && !opts.markers} onChange={() => setOpt(k)} />
+                  {t(label)}
+                </label>
+              ))}
+              {opts.markers && !marks.some((m) => m.kind !== 'drawdown') && <p className={s.menuNote}>{t('cho.none')}</p>}
+            </div>
+          )}
+        </span>
+      </div>
+      {opts.table && (
+      <div className={s.table}>
         <table aria-describedby={tableId}>
           <caption id={tableId}>{t('acct.tableCaption', { range: t(`acct.range.${range}`) })}</caption>
           <thead>
@@ -93,7 +148,8 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [] }
             ))}
           </tbody>
         </table>
-      </details>
+      </div>
+      )}
     </div>
   );
 }
@@ -129,7 +185,7 @@ function thin(points: ValuePoint[], n: number): ValuePoint[] {
   return out;
 }
 
-function Plot({ points, base, range, dir, onHover }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void }) {
+function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(600);
   useEffect(() => {
@@ -196,6 +252,18 @@ function Plot({ points, base, range, dir, onHover }: { points: ValuePoint[]; bas
         {hp && <line x1={x(hp.t)} x2={x(hp.t)} y1={PAD.t} y2={H - PAD.b} className={s.cross} />}
         {hp && <circle cx={x(hp.t)} cy={y(hp.v)} r={4} className={s.crossDot} />}
       </svg>
+      {/* trade markers: real buttons over the line (a button can't sit inside the chart image) */}
+      {marks.map((m, i) => (
+        <button
+          key={i}
+          type="button"
+          aria-label={`${m.title}. ${m.detail}`}
+          aria-pressed={picked === m}
+          className={[s.mark, s[m.kind], picked === m && s.markOn].filter(Boolean).join(' ')}
+          style={{ left: `${(x(m.t) / W) * 100}%`, top: y(m.v) }}
+          onClick={() => onPick?.(picked === m ? null : m)}
+        />
+      ))}
     </div>
   );
 }
