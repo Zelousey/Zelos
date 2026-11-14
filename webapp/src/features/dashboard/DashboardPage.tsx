@@ -37,7 +37,8 @@ import { achievementsView, mergeProgress, missionsView, readLocal } from './prog
 import { useIdentity, useMyProfile, useMyRank } from './social';
 import { usePracticeAccount } from '../practice/account';
 import { AccountMore, AccountSection } from '../practice/AccountSection';
-import { PendingPanel } from '../practice/DashCards';
+import { MarketMovers, PendingOnly } from '../practice/DashCards';
+import { EtfChart } from './EtfChart';
 import { FirstSteps } from '../welcome/FirstSteps';
 import { StrategiesPromo } from '../strategies/StrategiesPromo';
 import { lsGet, SKIP_KEY } from '../welcome/welcome';
@@ -128,18 +129,25 @@ export default function DashboardPage() {
               {uid && <AccountMore uid={uid} />}
             </div>
           ) : (
-            /* computer (owner 2026-11-14 mock-up): one board that fits the screen. Row 1 the four
-               account numbers; row 2 the chart with pending orders (or market movers) and battles beside it;
-               row 3 positions with your gainers and losers; then the rest. */
+            /* computer (owner 2026-11-14 mock-up, round 2): one board that fills the screen.
+               Left: tiles (today, total P&L, buying power), the chart about halfway down, then Solo
+               positions and Solo options. Right: market movers (tap to open the lists), pending
+               orders and battles, a live ETF chart, then first steps (daily missions once done). */
             <div className={[s.tradeGrid, uid ? s.board : ''].join(' ')}>
               {uid ? <AccountSection uid={uid} phone={false} /> : <div className={s.main}>{trader}</div>}
+              {uid && (
+                <div className={s.bMv}>
+                  <MarketMovers />
+                </div>
+              )}
               <div className={s.bPend}>
-                {uid && <PendingPanel uid={uid} />}
+                {uid && <PendingOnly uid={uid} />}
                 <WarsCard uid={uid} />
               </div>
+              <EtfChart className={s.bEtf} />
               <div className={[s.side, s.bSide].join(' ')}>
                 {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
-                  <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} />
+                  <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} fallback={<MissionsCard progress={progress} xpLog={local.xpLog} />} />
                 )}
                 {uid && <PushNudge uid={uid} />}
                 <EarningsCard mine={mine} />

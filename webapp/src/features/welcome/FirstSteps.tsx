@@ -3,7 +3,7 @@
  * Hidden once every required step is done, or with Hide (shared with the website's checklist).
  * Help shows it even when hidden (`inHelp`, Phase 8 F22), with a button to bring it back to the Dashboard.
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import type { UserDoc } from '../../data/userDoc';
 import { t, type MessageKey } from '../../lib/i18n';
@@ -12,15 +12,16 @@ import { useAsStudent } from '../coach/coach';
 import { DONE_KEY, firstSteps, HIDE_KEY, lsGet, lsSet } from './welcome';
 import s from './Welcome.module.css';
 
-export function FirstSteps({ uid, me, hasUsername, hasAccount, inHelp = false }: { uid: string; me: UserDoc; hasUsername: boolean; hasAccount: boolean; inHelp?: boolean }) {
+/** `fallback` shows in its place once the steps are done or hidden (the computer Dashboard: daily missions). */
+export function FirstSteps({ uid, me, hasUsername, hasAccount, inHelp = false, fallback = null }: { uid: string; me: UserDoc; hasUsername: boolean; hasAccount: boolean; inHelp?: boolean; fallback?: ReactNode }) {
   const [hidden, setHidden] = useState(() => lsGet(HIDE_KEY) === '1' || lsGet(DONE_KEY) === '1');
   const coach = useAsStudent(me.experience === 'new' && !hidden ? uid : null);
   const hasCoach = coach.status === 'ready' && coach.data.length > 0;
   const steps = firstSteps({ onboard: me.onboard, hasUsername, hasAccount, experience: me.experience, hasCoach });
   const required = steps.filter((x) => !x.optional);
   const done = required.filter((x) => x.done).length;
-  if (done === required.length) return inHelp ? <Card pad><p className={s.allDone}>{t('fs.allDone')}</p></Card> : null;
-  if (hidden && !inHelp) return null;
+  if (done === required.length) return inHelp ? <Card pad><p className={s.allDone}>{t('fs.allDone')}</p></Card> : <>{fallback}</>;
+  if (hidden && !inHelp) return <>{fallback}</>;
   const hide = () => {
     lsSet(HIDE_KEY, '1');
     setHidden(true);

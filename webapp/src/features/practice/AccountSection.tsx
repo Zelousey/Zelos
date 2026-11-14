@@ -33,6 +33,11 @@ const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'd
  * Dashboard shows the card further down otherwise, and beside the account on a computer).
  * Activity & account settings is AccountMore, which the Dashboard puts at the very bottom.
  */
+/** The account line's height on the computer Dashboard: the chart card reaches about halfway down the screen. */
+function boardPlotH(): number {
+  return typeof window === 'undefined' ? 240 : Math.max(200, Math.min(420, Math.round(window.innerHeight * 0.3)));
+}
+
 export function AccountSection({ uid, phone }: { uid: string; phone?: boolean }) {
   const acct = usePracticeAccount(uid);
   const toast = useToast();
@@ -118,14 +123,14 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
         {/* computer (owner 2026-11-14 mock-up): the four numbers as tiles across the top */}
         {!phone && (
           <div className={s.kpiTiles}>
+            {/* owner 2026-11-14: cash and buying power read as the same number; buying power only */}
             <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
             <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
-            <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
             <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
           </div>
         )}
         <Card className={s.chartCard}>
-          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} />
+          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} plotHeight={phone ? undefined : boardPlotH()} />
           {phone && (
             <div className={s.kpis}>
               <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
@@ -137,12 +142,11 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
         </Card>
 
         {phone && <PendingPanel uid={uid} />}
-        <div className={s.moversCell}>
-          <YourMovers v={v} />
-        </div>
+        {/* computer: the market movers on top expand instead (owner 2026-11-14: two gainers/losers boxes was one too many) */}
+        {phone && <YourMovers v={v} />}
 
         <div className={[s.grid, s.posCell].join(' ')}>
-          <Card title={t('practice.positions')} flush className={s.solo}>
+          <Card title={t('practice.positions')} flush className={[s.solo, s.posCard].join(' ')}>
             {v.rows.length === 0 ? (
               <EmptyState icon="markets" body={t('practice.positions.empty')} compact actions={<Link className={buttonClass({ variant: 'secondary' })} to="/markets?find=1">{t('practice.findStock')}</Link>} />
             ) : (
@@ -220,18 +224,22 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
             )}
           </Card>
 
-          {v.optionRows.length > 0 && (
+          {(v.optionRows.length > 0 || !phone) && (
             <Card
               title={t('opt.positions')}
               flush
-              className={s.solo}
+              className={[s.solo, s.optCard].join(' ')}
               actions={
                 <Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/options">
                   {t('acct.optionChain')}
                 </Link>
               }
             >
-              <OptionPositions acct={acct} rows={v.optionRows} />
+              {v.optionRows.length ? (
+                <OptionPositions acct={acct} rows={v.optionRows} />
+              ) : (
+                <EmptyState icon="options" body={t('opt.positions.none')} compact actions={<Link className={buttonClass({ variant: 'secondary' })} to="/options">{t('acct.optionChain')}</Link>} />
+              )}
             </Card>
           )}
 

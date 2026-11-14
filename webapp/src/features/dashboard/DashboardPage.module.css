@@ -175,17 +175,21 @@
 @media (min-width: 1100px) { .mHero { --hero-chart-h: clamp(360px, calc(100vh - 218px), 780px); } }
 .mSide :global(ul[aria-label='Watchlist']) { max-height: 216px; overflow-y: auto; scrollbar-width: thin; }
 
-/* ---- computer board (owner 2026-11-14 mock-up): fits a monitor. 4 columns:
-   k k k k / chart chart chart pend / pos pos pos movers / more more more side */
+/* ---- computer board (owner 2026-11-14 mock-up, round 2): fills the screen, no empty space.
+   k k k mv / chart chart chart pend / chart chart chart etf / pos pos pos side / opt opt opt side / more more more side */
 @media (min-width: 1100px) {
   .board {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-areas: 'k k k k' 'chart chart chart pend' 'pos pos pos movers' 'more more more side';
+    grid-template-rows: auto auto minmax(0, 1fr) auto 1fr auto;
+    grid-template-areas: 'k k k mv' 'chart chart chart pend' 'chart chart chart etf' 'pos pos pos side' 'opt opt opt side' 'more more more side';
     align-items: stretch;
+    min-height: calc(100dvh - 150px);
   }
-  .board > * { grid-area: auto; }
-  .bPend { grid-area: pend; }
-  .bSide { grid-area: side; align-self: start; }
-  .bMore { grid-area: more; align-self: start; }
-  .bPend { min-width: 0; display: grid; gap: var(--space-3); align-content: start; }
+  .bMv { grid-area: mv; min-width: 0; display: grid; }
+  .bPend { grid-area: pend; min-width: 0; display: grid; gap: var(--space-3); align-content: start; }
+  .bEtf { grid-area: etf; min-width: 0; }
+  .bSide { grid-area: side; display: flex; flex-direction: column; gap: var(--space-3); }
+  .bSide > :first-child { flex: 1; } /* first steps, then daily missions, fill the bottom right */
+  .bMore { grid-area: more; display: grid; }
+  .bMore > * { height: 100%; }
 }

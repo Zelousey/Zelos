@@ -20,16 +20,16 @@ import s from './AccountChart.module.css';
 import { nyDay } from '../charts/series';
 import { change, CLOSE_MIN, dailyPoints, feedDays, intradayPoints, nyMinute, OPEN_MIN, previousClose, sessionDay, type DayFill, type Range, type ValuePoint } from './valueSeries';
 
-const H = 180;
+const PLOT_H = 180;
 const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
-type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[] };
+type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number };
 type Opts = { table: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
 const OPTS_KEY = 'zelosAcctChart';
 const DEFAULT_OPTS: Opts = { table: false, markers: true, wins: true, losses: true, drawdown: true };
 
-export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [] }: Props) {
+export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight }: Props) {
   const [range, setRange] = useState<Range>('1D');
   const [opts, setOptsState] = useState<Opts>(() => ({ ...DEFAULT_OPTS, ...readJSON<Partial<Opts>>(OPTS_KEY, {}) }));
   const setOpt = (k: keyof Opts) =>
@@ -94,7 +94,7 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
         </span>
         <span className={s.when}>{hover ? whenLabel(hover, range) : range === '1D' && session !== today ? formatDate(session + 'T12:00:00Z') : t(`acct.range.${range}`)}</span>
       </div>
-      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} marks={marks} picked={picked} onPick={setPicked} />
+      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} marks={marks} picked={picked} onPick={setPicked} H={plotHeight} />
       {picked && (
         <div className={[s.pick, s[picked.kind]].join(' ')} role="status">
           <span>
@@ -189,7 +189,7 @@ function thin(points: ValuePoint[], n: number): ValuePoint[] {
   return out;
 }
 
-function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void }) {
+function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H = PLOT_H }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void; H?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(600);
   useEffect(() => {
