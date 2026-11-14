@@ -58,7 +58,7 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
   await noSidewaysScroll(page);
   await expect(page.getByText(/Orders fill on the next price update/)).toBeVisible();
   await page.getByRole('button', { name: /Cancel: Buy 5 AAPL/ }).click();
-  await expect(page.getByText('No open orders.')).toBeVisible();
+  await expect(page.getByText('No pending orders.')).toBeVisible();
   await page.getByText('Activity & account settings').click(); // history is folded away under the positions
   await expect(page.getByText(/Buy 5 AAPL cancelled · Cancelled by you/)).toBeVisible();
 

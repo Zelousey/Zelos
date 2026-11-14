@@ -1,0 +1,30 @@
+/* the phone Dashboard's pull-down of app icons */
+.drawer { display: grid; }
+.panel { overflow: hidden; animation: open var(--dur-med, 220ms) var(--ease-out); }
+.panel[hidden] { display: none; }
+@keyframes open { from { opacity: 0; transform: translateY(-10px); } }
+.grid { list-style: none; margin: 0; padding: var(--space-2) 0 var(--space-1); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3) var(--space-2); }
+.app { display: grid; justify-items: center; gap: 6px; color: var(--ink); text-align: center; }
+.tile {
+  display: grid; place-items: center; width: 56px; height: 56px; overflow: hidden; border-radius: 16px;
+  border: 1px solid var(--glass-line, var(--border)); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --tone: var(--accent);
+  background: radial-gradient(120% 120% at 30% 20%, color-mix(in srgb, var(--tone) 45%, transparent), transparent 70%), var(--surface-2);
+  color: color-mix(in srgb, var(--tone) 70%, #fff);
+}
+.tile[data-tone='red'] { --tone: var(--danger); }
+.tile[data-tone='green'] { --tone: var(--bull); }
+.tile[data-tone='gold'] { --tone: var(--gold); }
+.tile[data-tone='violet'] { --tone: var(--violet, #8b7bff); }
+.tile img { width: 100%; height: 100%; object-fit: cover; }
+.app:active .tile { transform: scale(0.94); }
+.label { font-size: 0.72rem; line-height: 1.2; color: var(--ink-2); }
+/* the handle: a grip line and a small arrow; only it takes the drag */
+.handle {
+  justify-self: center; display: grid; justify-items: center; align-content: center; gap: 0; width: 120px; height: var(--tap, 44px); margin: -12px 0 -10px; padding: 0;
+  border: 0; background: transparent; color: var(--muted); cursor: pointer; touch-action: none;
+}
+.grip { width: 36px; height: 4px; border-radius: 2px; background: var(--border); }
+.chev { transform: rotate(90deg); transition: transform var(--dur-fast, 150ms) var(--ease-out); }
+.drawer[data-open] .chev { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } .chev { transition: none; } }

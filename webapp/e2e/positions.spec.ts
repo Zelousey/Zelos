@@ -22,7 +22,7 @@ function nextFriday(): string {
 }
 const v = (x: unknown): Record<string, unknown> =>
   typeof x === 'string' ? { stringValue: x } : Number.isInteger(x) ? { integerValue: String(x) } : { doubleValue: x };
-const fields = (o: Record<string, unknown>) => ({ fields: Object.fromEntries(Object.entries(o).map(([k, x]) => [k, x && typeof x === 'object' ? { mapValue: fields(x as Record<string, unknown>) } : v(x)])) });
+const fields = (o: Record<string, unknown>): { fields: Record<string, unknown> } => ({ fields: Object.fromEntries(Object.entries(o).map(([k, x]) => [k, x && typeof x === 'object' ? { mapValue: fields(x as Record<string, unknown>) } : v(x)])) });
 
 test('the phone menu starts with Invite friends, bold', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'the ☰ menu is the phone layout');
@@ -74,4 +74,27 @@ test('a stock position opens its trade page with entry pins; an option position 
   await expect(page.getByRole('heading', { name: 'Your AAPL contracts' })).toBeVisible();
   await page.getByRole('tab', { name: 'D', exact: true }).first().click();
   await expect(page.locator('[data-pins="1"]').first()).toBeVisible();
+
+  // sell some contracts and keep one as a runner (owner 2026-11-14)
+  await page.getByRole('button', { name: `Sell: ${label}` }).first().click();
+  const confirmRow = page.getByRole('group', { name: 'Sell' });
+  await expect(confirmRow.getByLabel('Contracts to sell')).toHaveText('2 of 2');
+  await confirmRow.getByRole('button', { name: 'Keep 1 as a runner' }).click();
+  await expect(confirmRow).toContainText(`Sell 1 ${label} at the model price`);
+  await expect(confirmRow).toContainText('You keep 1.');
+  await confirmRow.getByRole('button', { name: 'Sell 1', exact: true }).last().click();
+  await expect(page.getByText(`Sell 1 ${label}`, { exact: true }).first()).toBeVisible();
+
+  // that order is pending: on a phone the Dashboard shows it right under the chart, above the positions
+  await page.goto('dashboard');
+  const pendingH = page.getByRole('heading', { name: 'Solo · Pending orders' });
+  await expect(pendingH).toBeVisible();
+  if (info.project.name === 'phone') {
+    const [p, pos] = await Promise.all([pendingH.boundingBox(), page.getByRole('heading', { name: 'Solo · Positions' }).boundingBox()]);
+    expect(p!.y).toBeLessThan(pos!.y);
+    // Activity & account settings is the last thing on the page
+    const more = page.getByText('Activity & account settings');
+    const [m, battles] = await Promise.all([more.boundingBox(), page.getByRole('heading', { name: 'Battle · Your battles' }).boundingBox()]);
+    expect(m!.y).toBeGreaterThan(battles!.y);
+  }
 });

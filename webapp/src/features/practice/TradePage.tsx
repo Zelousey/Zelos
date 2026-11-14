@@ -30,6 +30,7 @@ import {
   Ticker,
 } from "../../ui";
 import { ChartView } from "../charts/ChartView";
+import { UpdateTimer } from "../markets/UpdateTimer";
 import type { Forecast } from "../charts/engine";
 import { nyDay, TIMEFRAMES, type Timeframe } from "../charts/series";
 import { useSymbolBars } from "../charts/useSymbolBars";
@@ -278,6 +279,7 @@ function Ticket({
                 label: TIMEFRAMES.find((z) => z.id === id)!.label,
               }))}
             />
+            <UpdateTimer syms={[sym]} />
           </div>
           <div className={s.chartBody}>
             {built.bars.length === 0 && !loading ? (

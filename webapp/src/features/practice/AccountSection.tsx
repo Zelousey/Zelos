@@ -19,6 +19,7 @@ import { useIdentity } from '../dashboard/social';
 import { ShareSheet } from '../posts/ShareSheet';
 import { soloDraft, type Draft } from '../posts/posts';
 import { OptionPositions } from '../options/OptionPositions';
+import { AccountAnalysis } from './AccountAnalysis';
 import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeHistory, valueAccount, type HistoryItem, type Order } from './account';
 import { cancelOrder, errorMessage, openAccount, placeOrder, resetAccount, setPublic } from './actions';
 import s from './Practice.module.css';
@@ -27,8 +28,12 @@ const STATUS: Record<string, 'status.cancelled' | 'status.expired' | 'status.rej
 const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'down' | 'flat';
 
 /** The account for a signed-in player: a start button until they open one, then the account. */
-/** ordersElsewhere: the page shows OpenOrdersCard on its own (the Dashboard puts it under Battle). */
-export function AccountSection({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: boolean }) {
+/**
+ * phone (owner 2026-11-14): Pending orders sit right under the chart while there are any (the
+ * Dashboard shows the card further down otherwise, and beside the account on a computer).
+ * Activity & account settings is AccountMore, which the Dashboard puts at the very bottom.
+ */
+export function AccountSection({ uid, phone }: { uid: string; phone?: boolean }) {
   const acct = usePracticeAccount(uid);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -66,10 +71,10 @@ export function AccountSection({ uid, ordersElsewhere }: { uid: string; ordersEl
       </Card>
     );
   }
-  return <AccountView uid={uid} ordersElsewhere={ordersElsewhere} />;
+  return <AccountView uid={uid} phone={!!phone} />;
 }
 
-function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: boolean }) {
+function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
   const navigate = useNavigate();
   // a tap anywhere on a position (not on its buttons) opens that stock's trade page: its chart with
   // your entry pins, and Buy / Sell (owner 2026-11-13)
@@ -80,17 +85,13 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
   const acctState = usePracticeAccount(uid);
   const quotes = useQuotes();
   const history = usePracticeHistory(uid);
-  const ident = useIdentity(uid);
-  const [share, setShare] = useState<Draft | null>(null);
   const toast = useToast();
   const acct = acctState.status === 'ready' ? acctState.data : null;
-  const archive = useArchive(uid, !!acct?.archivedClassic);
   const qs = useMemo(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
   const [today] = useState(() => nyDay(Date.now()));
   const vols = useVolMap();
   const v = useMemo(() => (acct ? valueAccount(acct, qs, today, vols) : null), [acct, qs, today, vols]);
   const [closing, setClosing] = useState<{ sym: string; qty: number } | null>(null);
-  const [resetting, setResetting] = useState(false);
   const [pending, setPending] = useState(false);
   if (!acct || !v) return <Skeleton height={220} />;
 
@@ -108,15 +109,9 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
 
   return (
     <section className={s.section} aria-labelledby="acct-title">
-      <div className={s.sectionHead}>
-        <h2 id="acct-title" className={s.sectionTitle}>
-          {t('acct.title')}
-        </h2>
-        <Badge tone="accent">{t('practice.virtual')}</Badge>
-        <Link className={[buttonClass({ variant: 'primary', size: 'sm' }), s.sectionAction].join(' ')} to="/markets?find=1">
-          {t('practice.findStock')}
-        </Link>
-      </div>
+      <h2 id="acct-title" className="visually-hidden">
+        {t('acct.title')}
+      </h2>
       <div className={s.stack}>
         <Card>
           <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} />
@@ -127,6 +122,8 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
             <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
           </div>
         </Card>
+
+        {phone && <OpenOrdersCard uid={uid} only="any" />}
 
         <div className={s.grid}>
           <Card title={t('practice.positions')} flush>
@@ -221,38 +218,9 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
             </Card>
           )}
 
-          {!ordersElsewhere && <OpenOrdersCard uid={uid} />}
         </div>
+        <AccountAnalysis v={v} />
 
-        <details className={s.more}>
-          <summary>{t('acct.more')}</summary>
-          <div className={s.stack}>
-        <Card title={t('practice.history')} flush>
-          {!history.ready ? <Skeleton height={120} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} onShare={(h) => setShare(soloDraft(h, history.items, { name: ident.status === 'ready' ? ident.data.name : '', username: ident.status === 'ready' ? ident.data.username : null }))} />}
-        </Card>
-
-        {acct.archivedClassic && archive.status === 'ready' && (
-          <Card title={t('practice.archive')}>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-2)' }}>{t('practice.archive.body', { value: formatMoney(archive.data.equity), trades: archive.data.trades })}</p>
-          </Card>
-        )}
-
-        <Card>
-          <div className={s.settings}>
-            <label className={s.toggle}>
-              <input type="checkbox" checked={acct.publicProfile} disabled={pending} onChange={(e) => void run(() => setPublic(e.target.checked), e.target.checked ? t('practice.publicOn') : t('practice.publicOff'))} />
-              {t('practice.public')}
-            </label>
-            <span style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>
-              <Button variant="secondary" size="sm" disabled={pending || v.equity >= RESET_BELOW} onClick={() => setResetting(true)}>
-                {t('practice.reset')}
-              </Button>
-              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{t('practice.reset.hint')}</span>
-            </span>
-          </div>
-        </Card>
-          </div>
-        </details>
       </div>
 
       <Confirm
@@ -269,6 +237,74 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
       >
         {closing && t('practice.closeConfirm', { qty: closing.qty, sym: closing.sym })}
       </Confirm>
+    </section>
+  );
+}
+
+/**
+ * Activity & account settings (recent activity with Share, the archived classic account, public
+ * profile and reset), folded. On a phone the Dashboard puts it at the very bottom (owner 2026-11-14).
+ */
+export function AccountMore({ uid }: { uid: string }) {
+  const acctState = usePracticeAccount(uid);
+  const quotes = useQuotes();
+  const history = usePracticeHistory(uid);
+  const ident = useIdentity(uid);
+  const toast = useToast();
+  const acct = acctState.status === 'ready' ? acctState.data : null;
+  const archive = useArchive(uid, !!acct?.archivedClassic);
+  const qs = useMemo(() => (quotes.status === 'ready' ? quotes.data.quotes : {}), [quotes]);
+  const [today] = useState(() => nyDay(Date.now()));
+  const vols = useVolMap();
+  const v = useMemo(() => (acct ? valueAccount(acct, qs, today, vols) : null), [acct, qs, today, vols]);
+  const [share, setShare] = useState<Draft | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [pending, setPending] = useState(false);
+  if (!acct || !v) return null;
+
+  async function run(fn: () => Promise<unknown>, okMsg: string) {
+    setPending(true);
+    try {
+      await fn();
+      toast.show(okMsg, 'success');
+    } catch (e) {
+      toast.show(errorMessage(e), 'error');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <>
+      <details className={s.more}>
+        <summary>{t('acct.more')}</summary>
+        <div className={s.stack}>
+      <Card title={t('practice.history')} flush>
+        {!history.ready ? <Skeleton height={120} /> : history.items.length === 0 ? <EmptyState icon="inbox" body={t('practice.history.empty')} compact /> : <HistoryList items={history.items} onShare={(h) => setShare(soloDraft(h, history.items, { name: ident.status === 'ready' ? ident.data.name : '', username: ident.status === 'ready' ? ident.data.username : null }))} />}
+      </Card>
+
+      {acct.archivedClassic && archive.status === 'ready' && (
+        <Card title={t('practice.archive')}>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-2)' }}>{t('practice.archive.body', { value: formatMoney(archive.data.equity), trades: archive.data.trades })}</p>
+        </Card>
+      )}
+
+      <Card>
+        <div className={s.settings}>
+          <label className={s.toggle}>
+            <input type="checkbox" checked={acct.publicProfile} disabled={pending} onChange={(e) => void run(() => setPublic(e.target.checked), e.target.checked ? t('practice.publicOn') : t('practice.publicOff'))} />
+            {t('practice.public')}
+          </label>
+          <span style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>
+            <Button variant="secondary" size="sm" disabled={pending || v.equity >= RESET_BELOW} onClick={() => setResetting(true)}>
+              {t('practice.reset')}
+            </Button>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--muted)' }}>{t('practice.reset.hint')}</span>
+          </span>
+        </div>
+      </Card>
+        </div>
+      </details>
       <Confirm
         open={resetting}
         title={t('practice.reset')}
@@ -281,7 +317,7 @@ function AccountView({ uid, ordersElsewhere }: { uid: string; ordersElsewhere?: 
         {t('practice.reset.confirm', { n: acct.resets + 1 })}
       </Confirm>
       <ShareSheet draft={share} onClose={() => setShare(null)} />
-    </section>
+    </>
   );
 }
 
@@ -299,13 +335,15 @@ function orderText(o: Order): string {
  * The server takes a cancelled order out of the account in one transaction, so it can't fill
  * afterwards. Filled and cancelled orders are in the history, never here.
  */
-export function OpenOrdersCard({ uid }: { uid: string }) {
+/** only: 'any' = show it only while there are pending orders, 'none' = only while there are none. */
+export function OpenOrdersCard({ uid, only }: { uid: string; only?: 'any' | 'none' }) {
   const acctState = usePracticeAccount(uid);
   const quotes = useQuotes();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const acct = acctState.status === 'ready' ? acctState.data : null;
   if (!acct) return null;
+  if ((only === 'any' && !acct.orders.length) || (only === 'none' && acct.orders.length)) return null;
   const marketOpen = quotes.status === 'ready' ? quotes.data.marketOpen : true;
   const cancel = (o: Order) => {
     setBusy(o.id);
