@@ -146,10 +146,10 @@ test('account value chart: today and longer ranges, with a table (owner 2026-10-
   await expect(chart).toBeVisible();
   await expect(page.getByText('$10,000.00').first()).toBeVisible(); // 6,663.70 cash + 10 AAPL at 333.63
   // today = the newest day with 1-minute prices (the fixture's); no saved close before it, so vs $10,000
-  await expect(page.getByText(/^\$0\.00 \(\+0\.00%\)$/)).toBeVisible();
+  await expect(page.getByText(/^[▲▼]?\$0\.00 \(\+0\.00%\)$/)).toBeVisible();
   await page.getByRole('tab', { name: '1W' }).click();
   await expect(page.getByText('Past week', { exact: true })).toBeVisible();
-  await expect(page.getByText(/^\+\$200\.00 \(\+2\.04%\)$/)).toBeVisible(); // vs 9,800 three days ago
+  await expect(page.getByText(/^[▲▼]?\+\$200\.00 \(\+2\.04%\)$/)).toBeVisible(); // vs 9,800 three days ago
   // the table is in the chart options (owner 2026-11-15)
   await page.getByRole('button', { name: 'Chart options' }).click();
   await page.getByLabel('Show as a table').check();

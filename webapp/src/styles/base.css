@@ -209,3 +209,8 @@ button, a[role="button"], [role="button"], [role="tab"], [role="tablist"], [role
 @media (pointer: coarse) {
   input:not([type='checkbox']):not([type='radio']):not([type='range']), select, textarea { font-size: max(16px, 1em) !important; }
 }
+
+/* A number that just changed (owner 2026-11-15): a quick soft highlight behind it, in the number's
+   own colour, so live updates catch the eye without moving anything. */
+.tick-flash { border-radius: 4px; animation: tick-flash 900ms ease-out; }
+@keyframes tick-flash { from { background: color-mix(in srgb, currentColor 22%, transparent); } to { background: transparent; } }

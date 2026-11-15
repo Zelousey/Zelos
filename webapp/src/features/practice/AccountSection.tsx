@@ -34,6 +34,15 @@ const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'd
  * Dashboard shows the card further down otherwise, and beside the account on a computer).
  * Activity & account settings is AccountMore, which the Dashboard puts at the very bottom.
  */
+/** A number that lights up briefly when it changes (owner 2026-11-15: the Dashboard should feel live). */
+function Flash({ v }: { v: string }) {
+  return (
+    <span key={v} className="tick-flash">
+      {v}
+    </span>
+  );
+}
+
 /** The account line's height on the computer Dashboard: the chart card reaches about halfway down the screen. */
 function boardPlotH(): number {
   return typeof window === 'undefined' ? 240 : Math.max(200, Math.min(420, Math.round(window.innerHeight * 0.26)));
@@ -125,9 +134,9 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
         {!phone && (
           <div className={s.kpiTiles}>
             {/* owner 2026-11-14: cash and buying power read as the same number; buying power only */}
-            <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
-            <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
-            <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
+            <Stat label={t('practice.dayPnl')} value={<Flash v={formatSignedMoney(v.dayPnl)} />} tone={dir(v.dayPnl)} />
+            <Stat label={t('practice.netPnl')} value={<Flash v={formatSignedMoney(v.netPnl)} />} tone={dir(v.netPnl)} />
+            <Stat label={t('practice.buyingPower')} value={<Flash v={formatMoney(v.buyingPower)} />} />
           </div>
         )}
         <div className={s.chartCell}>
@@ -135,10 +144,10 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
             <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills.items} fillsReady={fills.ready} plotHeight={phone ? undefined : boardPlotH()} grow={!phone} />
             {phone && (
               <div className={s.kpis}>
-                <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
-                <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
+                <Stat label={t('practice.dayPnl')} value={<Flash v={formatSignedMoney(v.dayPnl)} />} tone={dir(v.dayPnl)} />
+                <Stat label={t('practice.netPnl')} value={<Flash v={formatSignedMoney(v.netPnl)} />} tone={dir(v.netPnl)} />
                 <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
-                <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
+                <Stat label={t('practice.buyingPower')} value={<Flash v={formatMoney(v.buyingPower)} />} />
               </div>
             )}
           </Card>
