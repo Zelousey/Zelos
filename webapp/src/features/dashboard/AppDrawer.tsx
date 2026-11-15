@@ -16,19 +16,20 @@ import s from './AppDrawer.module.css';
 
 const B = import.meta.env.BASE_URL;
 type App = { to: string; label: MessageKey; art?: string; icon?: IconName; tone: string };
+// owner 2026-11-15: one icon set for the pull-down (art/app-*.webp); Coaching keeps its own art
 export const APPS: App[] = [
-  { to: '/trade-war', label: 'nav.tradeWar', art: `${B}icons/icon-192.png`, tone: 'blue' },
-  { to: '/battles', label: 'nav.battles', art: `${B}art/bear.webp`, tone: 'red' },
-  { to: '/strategies', label: 'nav.strategies', art: `${B}art/strategy.webp`, tone: 'violet' },
-  { to: '/leaderboard', label: 'nav.leaderboard', icon: 'trophy', tone: 'gold' },
-  { to: '/training', label: 'nav.training', icon: 'arcade', tone: 'green' },
-  { to: '/minds', label: 'nav.minds', art: `${B}minds/livermore.webp`, tone: 'gold' },
-  { to: '/learn', label: 'nav.learn', icon: 'learn', tone: 'blue' },
-  { to: '/missions', label: 'nav.missions', icon: 'missions', tone: 'gold' },
+  { to: '/trade-war', label: 'nav.tradeWar', art: `${B}art/app-tradewar.webp`, tone: 'blue' },
+  { to: '/battles', label: 'nav.battles', art: `${B}art/app-battles.webp`, tone: 'red' },
+  { to: '/strategies', label: 'nav.strategies', art: `${B}art/app-strategy.webp`, tone: 'violet' },
+  { to: '/leaderboard', label: 'nav.leaderboard', art: `${B}art/app-leaderboard.webp`, tone: 'gold' },
+  { to: '/training', label: 'nav.training', art: `${B}art/app-training.webp`, tone: 'green' },
+  { to: '/minds', label: 'nav.minds', art: `${B}art/app-minds.webp`, tone: 'gold' },
+  { to: '/learn', label: 'nav.learn', art: `${B}art/app-learn.webp`, tone: 'blue' },
+  { to: '/missions', label: 'nav.missions', art: `${B}art/app-missions.webp`, tone: 'gold' },
   { to: '/coach', label: 'nav.coach', art: `${B}art/coach.webp`, tone: 'blue' },
-  { to: '/social', label: 'nav.social', art: `${B}art/teamup.webp`, tone: 'violet' },
-  { to: '/communities', label: 'nav.communities', icon: 'chat', tone: 'green' },
-  { to: '/profile', label: 'nav.profile', icon: 'profile', tone: 'blue' },
+  { to: '/social', label: 'nav.social', art: `${B}art/app-social.webp`, tone: 'violet' },
+  { to: '/communities', label: 'nav.communities', art: `${B}art/app-communities.webp`, tone: 'green' },
+  { to: '/profile', label: 'nav.profile', art: `${B}art/app-profile.webp`, tone: 'blue' },
 ];
 
 export function AppDrawer() {

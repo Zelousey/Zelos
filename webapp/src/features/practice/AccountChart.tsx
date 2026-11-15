@@ -11,6 +11,7 @@ import { useIntraday, type Bar, type Quote } from '../../data/markets';
 import { formatDate, formatMoney, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
+import { useTween } from '../../lib/useTween';
 import { readJSON, writeString } from '../../lib/storage';
 import { Button, Icon, Tabs } from '../../ui';
 import { chartMarks, type Mark } from './chartMarks';
@@ -78,19 +79,22 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
   const ch = change(points, base);
   const [hover, setHover] = useState<ValuePoint | null>(null);
   const shown = hover ?? points[points.length - 1];
+  const tweenEq = useTween(shown?.v ?? equity);
   const dir = ch.abs >= 0 ? 'up' : 'down';
   const tableId = useId();
   const marks = useMemo(() => (opts.markers ? chartMarks(trades.length ? trades : history, points, range, session, opts) : []), [opts, trades, history, points, range, session]);
   const menuId = useId();
 
   return (
-    <div className={[s.wrap, grow && s.wrapGrow].filter(Boolean).join(' ')}>
+    <div className={[s.wrap, grow && s.wrapGrow].filter(Boolean).join(' ')} data-dir={dir}>
       {feeds.map((sym) => (
         <Feed key={sym} sym={sym} onBars={(b) => (barsCache.set(sym, b), setBars((x) => (x[sym] === b ? x : { ...x, [sym]: b })))} />
       ))}
       <div className={s.head} aria-live="polite">
-        <span className={s.value}>{formatMoney(shown?.v ?? equity)}</span>
-        <span className={dir === 'up' ? s.up : s.down}>
+        {/* the value glides to each new number; while you scrub the line it shows that point exactly */}
+        <span className={s.value}>{formatMoney(hover ? (shown?.v ?? equity) : tweenEq)}</span>
+        <span className={[s.pill, (shown?.v ?? equity) - base >= 0 ? s.pillUp : s.pillDown].join(' ')}>
+          <span aria-hidden="true">{(shown?.v ?? equity) - base >= 0 ? '▲' : '▼'}</span>
           {formatSignedMoney((shown?.v ?? equity) - base)} ({(((shown?.v ?? equity) - base) / (base || 1)) * 100 >= 0 ? '+' : ''}
           {((((shown?.v ?? equity) - base) / (base || 1)) * 100).toFixed(2)}%)
         </span>
@@ -316,9 +320,14 @@ function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H
             <stop offset="1" className={dir === 'up' ? s.gUp : s.gDown} stopOpacity="0" />
           </linearGradient>
         </defs>
+        {/* faint price lines behind the account line */}
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line key={f} x1={PAD.l} x2={W - PAD.r} y1={PAD.t + f * (H - PAD.t - PAD.b)} y2={PAD.t + f * (H - PAD.t - PAD.b)} className={s.grid} />
+        ))}
         {showBase && <line x1={PAD.l} x2={W - PAD.r} y1={y(base)} y2={y(base)} className={s.base} />}
         {area && fill && <path d={area} fill={`url(#${gradId})`} />}
         {points.length > 1 && <path d={d} className={dir === 'up' ? s.lineUp : s.lineDown} />}
+        {last && <circle cx={x(last.t)} cy={y(last.v)} r={4} className={[s.ring, dir === 'up' ? s.ringUp : s.ringDown].join(' ')} />}
         {last && <circle cx={x(last.t)} cy={y(last.v)} r={4} className={dir === 'up' ? s.dotUp : s.dotDown} />}
         {hp && <line x1={x(hp.t)} x2={x(hp.t)} y1={PAD.t} y2={H - PAD.b} className={s.cross} />}
         {hp && <circle cx={x(hp.t)} cy={y(hp.v)} r={4} className={s.crossDot} />}
