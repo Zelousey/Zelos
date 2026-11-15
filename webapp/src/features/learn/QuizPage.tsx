@@ -22,7 +22,7 @@ export default function QuizPage() {
   if (!isReal || !user)
     return <EmptyState icon="learn" body={t('qz.signIn')} actions={<Button variant="primary" onClick={() => void openSignIn()}>{t('auth.signIn')}</Button>} />;
   return (
-    <div className={s.narrow}>
+    <div className={[s.narrow, s.t101].join(' ')}>
       {done ? (
         <Card pad>
           <div className={s.result}>
