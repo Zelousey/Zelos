@@ -131,7 +131,7 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
         )}
         <div className={s.chartCell}>
           <Card className={s.chartCard}>
-            <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} plotHeight={phone ? undefined : boardPlotH()} />
+            <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} plotHeight={phone ? undefined : boardPlotH()} grow={!phone} />
             {phone && (
               <div className={s.kpis}>
                 <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />

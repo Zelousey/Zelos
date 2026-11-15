@@ -24,12 +24,12 @@ const PLOT_H = 180;
 const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
-type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number };
+type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number; /** the line fills all the height the card gets (computer Dashboard) */ grow?: boolean };
 type Opts = { table: boolean; fill: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
 const OPTS_KEY = 'zelosAcctChart';
 const DEFAULT_OPTS: Opts = { table: false, fill: true, markers: true, wins: true, losses: true, drawdown: true };
 
-export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight }: Props) {
+export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight, grow = false }: Props) {
   const [range, setRange] = useState<Range>('1D');
   const [opts, setOptsState] = useState<Opts>(() => ({ ...DEFAULT_OPTS, ...readJSON<Partial<Opts>>(OPTS_KEY, {}) }));
   const setOpt = (k: keyof Opts) =>
@@ -82,7 +82,7 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
   const menuId = useId();
 
   return (
-    <div className={s.wrap}>
+    <div className={[s.wrap, grow && s.wrapGrow].filter(Boolean).join(' ')}>
       {feeds.map((sym) => (
         <Feed key={sym} sym={sym} onBars={(b) => setBars((x) => (x[sym] === b ? x : { ...x, [sym]: b }))} />
       ))}
@@ -94,7 +94,7 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
         </span>
         <span className={s.when}>{hover ? whenLabel(hover, range) : range === '1D' && session !== today ? formatDate(session + 'T12:00:00Z') : t(`acct.range.${range}`)}</span>
       </div>
-      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} marks={marks} picked={picked} onPick={setPicked} H={plotHeight} fill={opts.fill} />
+      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} marks={marks} picked={picked} onPick={setPicked} H={plotHeight} fill={opts.fill} grow={grow} />
       {picked && (
         <div className={[s.pick, s[picked.kind]].join(' ')} role="status">
           <span>
@@ -190,16 +190,23 @@ function thin(points: ValuePoint[], n: number): ValuePoint[] {
   return out;
 }
 
-function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H = PLOT_H, fill = true }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void; H?: number; fill?: boolean }) {
+function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H: fixedH = PLOT_H, fill = true, grow = false }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void; H?: number; fill?: boolean; grow?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(600);
+  // grow (computer Dashboard, owner 2026-11-15): the line takes all the height its box has, so
+  // there's never empty space under it when the column beside it is taller
+  const [boxH, setBoxH] = useState(fixedH);
+  const H = grow ? boxH : fixedH;
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof ResizeObserver !== 'function') return;
-    const ro = new ResizeObserver(([e]) => setW(Math.max(220, Math.round(e!.contentRect.width))));
+    const ro = new ResizeObserver(([e]) => {
+      setW(Math.max(220, Math.round(e!.contentRect.width)));
+      if (grow) setBoxH(Math.max(160, Math.round(e!.contentRect.height)));
+    });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [grow]);
   const [x0, x1] = range === '1D' ? [OPEN_MIN, CLOSE_MIN] : [points[0]?.t ?? 0, points[points.length - 1]?.t ?? 1];
   // the scale follows the line; the starting value joins it only when it's near, so one far-off
   // reference (a big deposit, a reset) doesn't squash the day's moves into a flat line
@@ -226,7 +233,7 @@ function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H
   const nearest = (px: number) => points.reduce((b, p) => (Math.abs(x(p.t) - px) < Math.abs(x(b.t) - px) ? p : b), points[0]!);
   const hp = hx != null && points.length ? nearest(hx) : null;
   return (
-    <div ref={ref} className={s.plot}>
+    <div ref={ref} className={[s.plot, grow && s.plotGrow].filter(Boolean).join(' ')}>
       <svg
         width={W}
         height={H}

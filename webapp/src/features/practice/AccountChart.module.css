@@ -49,3 +49,8 @@
 .pick.win { border-left-color: var(--bull); }
 .pick.loss { border-left-color: var(--danger); }
 .pick.drawdown { border-left-color: var(--gold); }
+
+/* computer Dashboard: the card takes the row's height and the line fills it (no empty space under it) */
+.wrapGrow { height: 100%; grid-template-rows: auto minmax(0, 1fr) auto; align-content: stretch; }
+.plotGrow { min-height: 180px; height: 100%; }
+.plotGrow > svg { position: absolute; inset: 0 auto auto 0; }
