@@ -9,6 +9,7 @@
  *                  market movers instead (markets/movers: real stock gainers and losers, labelled
  *                  as the market, never as your account).
  */
+import { haptic } from '../../lib/haptics';
 import { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useMovers, useQuotes, type Mover } from '../../data/markets';
@@ -256,6 +257,7 @@ function PendingOrders({ orders }: { orders: Order[] }) {
   const marketOpen = quotes.status === 'ready' ? quotes.data.marketOpen : true;
   const titleId = useId();
   const cancel = (o: Order) => {
+    haptic('warn'); // cancelling is a deliberate action: a firmer buzz
     setBusy(o.id);
     cancelOrder(o.id)
       .then(() => {

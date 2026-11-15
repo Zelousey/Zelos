@@ -11,6 +11,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties
 import { Link } from 'react-router';
 import { t, type MessageKey } from '../../lib/i18n';
 import { Icon, type IconName } from '../../ui';
+import { haptic } from '../../lib/haptics';
 import s from './AppDrawer.module.css';
 
 const B = import.meta.env.BASE_URL;
@@ -46,10 +47,12 @@ export function AppDrawer() {
   }, [p]);
   // the icons' full height, measured once they're rendered (it's what 100% open means)
   const [fullH, setFullH] = useState(280);
-  const settle = (from: number, vy: number) => {
+  const settle = (from: number, vy: number, p0 = 0) => {
     setDragging(false);
     // a quick flick decides on its own; otherwise past a third of the way opens
-    setP(vy > 0.35 ? 1 : vy < -0.35 ? 0 : from > 0.35 ? 1 : 0);
+    const next = vy > 0.35 ? 1 : vy < -0.35 ? 0 : from > 0.35 ? 1 : 0;
+    if (next === 1 && p0 === 0) haptic('tap'); // a light tap as the icons lock open
+    setP(next);
   };
 
   // the handle: drag it (mouse or finger) or tap it
@@ -73,9 +76,12 @@ export function AppDrawer() {
     const d = drag.current;
     drag.current = null;
     if (!d) return;
-    if (!d.moved) return setP((x) => (x > 0.5 ? 0 : 1)); // a plain tap toggles
+    if (!d.moved) {
+      if (pRef.current <= 0.5) haptic('tap');
+      return setP((x) => (x > 0.5 ? 0 : 1)); // a plain tap toggles
+    }
     const vy = (e.clientY - d.last) / Math.max(16, e.timeStamp - d.t);
-    settle(pRef.current, vy);
+    settle(pRef.current, vy, d.p0);
   };
 
   // a pull down from the top part of the page (while it's scrolled to the top) follows the finger;
@@ -108,7 +114,7 @@ export function AppDrawer() {
       g.lastT = e.timeStamp;
     };
     const end = () => {
-      if (g?.mode === 'pull') settle(pRef.current, g.vy);
+      if (g?.mode === 'pull') settle(pRef.current, g.vy, g.p0);
       g = null;
     };
     window.addEventListener('touchstart', onStart, { passive: true });

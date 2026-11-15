@@ -5,6 +5,7 @@
  *  size: sm · md · lg (lg = 44px tall, the minimum touch target on phones)
  * Renders an <a> when `href` is given so links look like buttons without nesting.
  */
+import { haptic } from '../lib/haptics';
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 import s from './Button.module.css';
 
@@ -16,8 +17,10 @@ export function buttonClass({ variant = 'secondary', size = 'md', block, iconOnl
   return [s.btn, s[variant], size !== 'md' && s[size], block && s.block, iconOnly && s.icon, extra].filter(Boolean).join(' ');
 }
 
-export function Button({ variant, size, block, iconOnly, className, type = 'button', ...rest }: Common & ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button type={type} className={buttonClass({ variant, size, block, iconOnly }, className)} {...rest} />;
+export function Button({ variant, size, block, iconOnly, className, type = 'button', onClick, ...rest }: Common & ButtonHTMLAttributes<HTMLButtonElement>) {
+  // Buy and Sell buttons give a small buzz on phones that can (lib/haptics.ts; off in Settings)
+  const click: typeof onClick = variant === 'buy' || variant === 'sell' ? (e) => (haptic('tap'), onClick?.(e)) : onClick;
+  return <button type={type} className={buttonClass({ variant, size, block, iconOnly }, className)} onClick={click} {...rest} />;
 }
 
 export function ButtonLink({ variant, size, block, iconOnly, className, ...rest }: Common & AnchorHTMLAttributes<HTMLAnchorElement>) {

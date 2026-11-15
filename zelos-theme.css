@@ -989,3 +989,14 @@ body.zt-body::after{
 .zb-xpchip i b{ width:18px; height:18px; border-radius:50%; background:var(--bg, #0b0e15); display:flex; align-items:center; justify-content:center; font-size:.66rem; }
 @media (max-width:1100px){ .zb-xpchip span{ display:none; } .zb-xpchip{ padding:4px; } }
 @media (max-width:760px){ .zb-xpchip{ display:none; } }
+
+/* Page changes on the website (owner 2026-11-15): a short cross-fade between pages instead of a
+   blank flash, with the top menu staying put. Uses the browser's built-in page transitions
+   (Chrome/Edge 126+, Safari 18.2+); other browsers just change page as before. Off with
+   "reduce motion". */
+@view-transition { navigation: auto; }
+.site-nav { view-transition-name: site-nav; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 200ms; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}

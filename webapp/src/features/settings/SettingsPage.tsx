@@ -8,6 +8,7 @@ import { Card, Icon, PageHeader, Tabs } from '../../ui';
 import { ChartColors } from './ChartColors';
 import { SHARE_AFTER_KEY, shareAfterOn } from '../posts/ShareAfterTrade';
 import { writeString } from '../../lib/storage';
+import { haptic, hapticsOn, hapticsSupported, setHaptics } from '../../lib/haptics';
 import { IndicatorColors } from './IndicatorColors';
 import { DeleteAccount } from './DeleteAccount';
 import { BlockedList } from '../safety/BlockedList';
@@ -17,7 +18,8 @@ const THEME_LABEL = { black: 'settings.theme.black', blue: 'settings.theme.blue'
 
 export default function SettingsPage() {
   const [theme, setThemeState] = useState<Theme>(getTheme());
-  const [shareAfter, setShareAfter] = useState(shareAfterOn); // the share card after every trade, on by default
+  const [shareAfter, setShareAfter] = useState(shareAfterOn);
+  const [buzz, setBuzz] = useState(hapticsOn); // a small vibration on Buy, Sell, cancel and the pull-down // the share card after every trade, on by default
   // which colour line is open; coming from a chart's Chart settings button opens the candle colours
   const [pick, setPick] = useState<string | null>(() => (window.location.hash === '#chart' ? 'candles' : null));
   const { hash } = useLocation();
@@ -80,6 +82,32 @@ export default function SettingsPage() {
               </button>
             </div>
           </Card>
+          {hapticsSupported() && (
+            <Card group title={t('settings.phone')} className={s.o4}>
+              <div className={s.row}>
+                <div>
+                  <div className={s.rowLabel} id="haptics">
+                    {t('settings.haptics')}
+                  </div>
+                  <div className={s.note}>{t('settings.haptics.help')}</div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={buzz}
+                  aria-labelledby="haptics"
+                  className={s.switch}
+                  onClick={() => {
+                    setHaptics(!buzz);
+                    setBuzz(!buzz);
+                    if (!buzz) haptic('tap');
+                  }}
+                >
+                  <span className={s.knob} />
+                </button>
+              </div>
+            </Card>
+          )}
           <div className={s.o4}>
             <BlockedList />
           </div>
