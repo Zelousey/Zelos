@@ -26,6 +26,7 @@ import { PageTours } from '../features/tutorials/PageTours';
 import { ShareAfterTrade } from '../features/posts/ShareAfterTrade';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import { preloadScreens } from '../app/router';
 import { GROUP_LABEL, GROUP_ORDER, moduleForPath, navModules, navOwner, tabModules } from '../app/modules';
 import { useNewsUnseen } from '../features/news/news';
 import { useAuth } from '../lib/auth';
@@ -66,6 +67,14 @@ export function AppShell() {
   useEffect(() => {
     document.title = `${title} · ${t('app.name')}`;
   }, [title]);
+
+  // a few seconds after start, fetch every page's code in the background so changing pages
+  // never shows a loading placeholder (owner 2026-11-15: pages snapped into place)
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    const id = window.setTimeout(() => (w.requestIdleCallback ? w.requestIdleCallback(preloadScreens) : preloadScreens()), 2500);
+    return () => window.clearTimeout(id);
+  }, []);
 
   // New screen: start at the top and move focus to it for keyboard/screen-reader users.
   useEffect(() => {

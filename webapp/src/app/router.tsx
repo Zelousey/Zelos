@@ -10,13 +10,39 @@
  * sends unknown /app/… paths back here as /app/?r=<path> and restoreRedirect() puts
  * the real path back before the router starts.
  */
-import { lazy } from 'react';
+import { lazy, type ComponentType } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { AppShell } from '../shell/AppShell';
 import { DEFAULT_PATH, MODULES } from './modules';
 
 const NotFoundPage = lazy(() => import('../features/notfound/NotFoundPage'));
 
+
+// Page code that has already downloaded renders straight away, with no loading placeholder in
+// between (owner 2026-11-15: pages snapped into place). preloadScreens() fetches it all quietly
+// once the app is idle, so moving between pages is instant after the first few seconds.
+type Mod = (typeof MODULES)[number];
+const loaded = new Map<string, ComponentType>();
+function screenFor(m: Mod) {
+  const Lazy = lazy(() => m.load().then((mod) => (loaded.set(m.id, mod.default), mod)));
+  return function Screen() {
+    const C = loaded.get(m.id);
+    return C ? <C /> : <Lazy />;
+  };
+}
+export function preloadScreens(): void {
+  let i = 0;
+  const next = () => {
+    const m = MODULES[i++];
+    if (!m) return;
+    if (loaded.has(m.id)) return next();
+    m.load()
+      .then((mod) => loaded.set(m.id, mod.default))
+      .catch(() => {})
+      .finally(() => setTimeout(next, 150));
+  };
+  next();
+}
 
 export function buildRoutes(): RouteObject[] {
   return [
@@ -26,7 +52,7 @@ export function buildRoutes(): RouteObject[] {
       children: [
         { index: true, element: <Navigate to={`/${DEFAULT_PATH}`} replace /> },
         ...MODULES.map((m) => {
-          const Screen = lazy(m.load);
+          const Screen = screenFor(m);
           return { path: `${m.path}/*`, element: <Screen /> };
         }),
         { path: '*', element: <NotFoundPage /> },

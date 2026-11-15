@@ -6,7 +6,7 @@
  * your biggest winning and losing closed trades in the range and the biggest drop (chartMarks.ts),
  * each a dot on the line; tap one to read it. Choices are remembered on this device.
  */
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useIntraday, type Bar, type Quote } from '../../data/markets';
 import { formatDate, formatMoney, formatSignedMoney } from '../../lib/format';
 import { t } from '../../lib/i18n';
@@ -21,15 +21,17 @@ import { nyDay } from '../charts/series';
 import { change, CLOSE_MIN, dailyPoints, feedDays, intradayPoints, nyMinute, OPEN_MIN, previousClose, sessionDay, type DayFill, type Range, type ValuePoint } from './valueSeries';
 
 const PLOT_H = 180;
+/** the last 1-minute prices of each holding, kept while the app is open so the 1D line is right the moment you come back */
+const barsCache = new Map<string, Bar[]>();
 const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
-type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number; /** the line fills all the height the card gets (computer Dashboard) */ grow?: boolean };
+type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number; /** the line fills all the height the card gets (computer Dashboard) */ grow?: boolean; /** false until today's fills have loaded: 1D waits instead of drawing the day without your trades */ fillsReady?: boolean };
 type Opts = { table: boolean; fill: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
 const OPTS_KEY = 'zelosAcctChart';
 const DEFAULT_OPTS: Opts = { table: false, fill: true, markers: true, wins: true, losses: true, drawdown: true };
 
-export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight, grow = false }: Props) {
+export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight, grow = false, fillsReady = true }: Props) {
   const [range, setRange] = useState<Range>('1D');
   const [opts, setOptsState] = useState<Opts>(() => ({ ...DEFAULT_OPTS, ...readJSON<Partial<Opts>>(OPTS_KEY, {}) }));
   const setOpt = (k: keyof Opts) =>
@@ -40,7 +42,7 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
     });
   const [menu, setMenu] = useState(false);
   const [picked, setPicked] = useState<Mark | null>(null);
-  const [bars, setBars] = useState<Record<string, Bar[]>>({});
+  const [bars, setBars] = useState<Record<string, Bar[]>>(() => Object.fromEntries(barsCache));
   const now = useNow(60_000);
   const nowMin = useMemo(() => {
     const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(now));
@@ -69,8 +71,8 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
   );
   const base1d = previousClose(acct.hist, session, START_CASH);
   const points = useMemo<ValuePoint[]>(
-    () => (range === '1D' ? intradayPoints(acct, bars, quotes, session, today, vols, equity, nowMin, fills) : dailyPoints(acct.hist, today, equity, range)),
-    [range, acct, bars, quotes, session, today, vols, equity, nowMin, fills],
+    () => (range === '1D' ? (fillsReady ? intradayPoints(acct, bars, quotes, session, today, vols, equity, nowMin, fills) : []) : dailyPoints(acct.hist, today, equity, range)),
+    [range, acct, bars, quotes, session, today, vols, equity, nowMin, fills, fillsReady],
   );
   const base = range === '1D' ? base1d : (points[0]?.v ?? equity);
   const ch = change(points, base);
@@ -84,7 +86,7 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
   return (
     <div className={[s.wrap, grow && s.wrapGrow].filter(Boolean).join(' ')}>
       {feeds.map((sym) => (
-        <Feed key={sym} sym={sym} onBars={(b) => setBars((x) => (x[sym] === b ? x : { ...x, [sym]: b }))} />
+        <Feed key={sym} sym={sym} onBars={(b) => (barsCache.set(sym, b), setBars((x) => (x[sym] === b ? x : { ...x, [sym]: b })))} />
       ))}
       <div className={s.head} aria-live="polite">
         <span className={s.value}>{formatMoney(shown?.v ?? equity)}</span>
@@ -197,9 +199,14 @@ function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H
   // there's never empty space under it when the column beside it is taller
   const [boxH, setBoxH] = useState(fixedH);
   const H = grow ? boxH : fixedH;
-  useEffect(() => {
+  // measured before the first paint, so the line never draws at a guessed size and then jumps
+  useLayoutEffect(() => {
     const el = ref.current;
-    if (!el || typeof ResizeObserver !== 'function') return;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.width) setW(Math.max(220, Math.round(r.width)));
+    if (grow && r.height) setBoxH(Math.max(160, Math.round(r.height)));
+    if (typeof ResizeObserver !== 'function') return;
     const ro = new ResizeObserver(([e]) => {
       setW(Math.max(220, Math.round(e!.contentRect.width)));
       if (grow) setBoxH(Math.max(160, Math.round(e!.contentRect.height)));
@@ -232,6 +239,58 @@ function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H
   const [hx, setHx] = useState<number | null>(null);
   const nearest = (px: number) => points.reduce((b, p) => (Math.abs(x(p.t) - px) < Math.abs(x(b.t) - px) ? p : b), points[0]!);
   const hp = hx != null && points.length ? nearest(hx) : null;
+  // Phones (owner 2026-11-15): a finger dragged sideways across the line moves the crosshair and
+  // holds the page still; a mostly-vertical drag still scrolls the page. The direction is decided on
+  // the first move (iPhone Safari only lets a page scroll be stopped at its very start).
+  const scrub = useRef<(clientX: number | null) => void>(() => {});
+  useEffect(() => {
+    scrub.current = (cx) => {
+      const el = ref.current?.querySelector('svg');
+      if (cx == null || !el || !points.length) {
+        setHx(null);
+        onHover(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const px = ((cx - r.left) / (r.width || 1)) * W;
+      setHx(px);
+      onHover(nearest(px));
+    };
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let start: { x: number; y: number } | null = null;
+    let lock: 'x' | 'y' | null = null;
+    const onStart = (e: TouchEvent) => {
+      const t0 = e.touches[0];
+      start = t0 && e.touches.length === 1 ? { x: t0.clientX, y: t0.clientY } : null;
+      lock = null;
+    };
+    const onMove = (e: TouchEvent) => {
+      const t0 = e.touches[0];
+      if (!start || !t0) return;
+      if (!lock) lock = Math.abs(t0.clientX - start.x) >= Math.abs(t0.clientY - start.y) ? 'x' : 'y';
+      if (lock !== 'x') return;
+      e.preventDefault();
+      scrub.current(t0.clientX);
+    };
+    const onEnd = () => {
+      if (lock === 'x') scrub.current(null);
+      start = null;
+      lock = null;
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+  }, []);
   return (
     <div ref={ref} className={[s.plot, grow && s.plotGrow].filter(Boolean).join(' ')}>
       <svg
