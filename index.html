@@ -36,7 +36,8 @@
 <meta name="twitter:title" content="Zelos — Practice the stock market with virtual money">
 <meta name="twitter:description" content="Zelos is a stock market practice and learning platform: trade real stocks at real prices with a $10,000 virtual account, take Trading 101, and learn from history. Free, virtual money only.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
-<link rel="stylesheet" href="zelos-theme.css?v=cd483bbd">
+<link rel="stylesheet" href="zelos-demo.css?v=2e903c0b">
+<link rel="stylesheet" href="zelos-theme.css?v=f4ac53b0">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{ color-scheme: dark; }
@@ -163,6 +164,32 @@
   .ob-hero p.ob-lede{ margin-top:18px; }
   .ob-section p.ob-intro{ margin-top:14px; }
   .ob-section p.ob-intro + p.ob-intro{ margin-top:12px; }
+  /* the screens in the hero open the interactive demo (zelos-demo.js) */
+  [data-demo]{ cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
+  .ob-frame[data-demo]:hover, .ob-frame[data-demo]:focus-visible{ transform:translateY(-3px); box-shadow:0 0 0 1px var(--accent-line), 0 36px 90px -30px rgba(0,0,0,0.7); outline:none; }
+  .ob-phone[data-demo]:hover, .ob-phone[data-demo]:focus-visible{ transform:translateY(-4px); outline:none; }
+  .ob-demo-hint{ position:absolute; z-index:2; top:-34px; left:0; margin:0; display:inline-flex; align-items:center; gap:8px; padding:5px 11px; border:1px solid var(--accent-line); border-radius:999px; background:color-mix(in srgb, var(--surface) 88%, transparent); font-family:var(--mono); font-size:0.7rem; color:var(--ink-2); letter-spacing:0.02em; animation:ob-hint-in .6s 1.2s both; }
+  .ob-demo-hint[hidden]{ display:none; }
+  .ob-demo-hint i{ width:7px; height:7px; border-radius:50%; background:var(--bull); box-shadow:0 0 0 0 rgba(62,203,124,.6); animation:ob-hint-pulse 2s infinite; }
+  .ob-hint-narrow{ display:none; }
+  @keyframes ob-hint-in{ from{ opacity:0; transform:translateY(4px); } }
+  @keyframes ob-hint-pulse{ 70%{ box-shadow:0 0 0 7px rgba(62,203,124,0); } 100%{ box-shadow:0 0 0 0 rgba(62,203,124,0); } }
+
+  /* the background chart (zelos-scroll-chart.js): a short sale drawn as you scroll, kept faint */
+  .sc-host{ position:fixed; inset:0; z-index:-1; pointer-events:none; }
+  .sc-svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .sc-line{ fill:none; stroke:var(--danger); stroke-width:2; opacity:.32; stroke-linejoin:round; }
+  .sc-area{ fill:var(--danger); opacity:.045; }
+  .sc-entry{ stroke:var(--muted-2, #555); stroke-width:1; stroke-dasharray:3 6; opacity:.45; }
+  .sc-entry-label{ fill:var(--muted); font-family:var(--mono); font-size:11px; text-anchor:end; opacity:.6; }
+  .sc-dot{ fill:var(--danger); opacity:.7; }
+  .sc-tag{ position:absolute; top:0; left:0; display:grid; gap:1px; padding:6px 10px; border:1px solid color-mix(in srgb, var(--bull) 40%, var(--border)); border-radius:4px; background:color-mix(in srgb, var(--bg) 82%, transparent); opacity:.82; will-change:transform; }
+  .sc-tag-k{ font-family:var(--mono); font-size:0.6rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .sc-tag-v{ font-family:var(--mono); font-size:0.95rem; color:var(--bull); }
+  .sc-tag.is-down .sc-tag-v{ color:var(--danger); }
+  .sc-tag{ transition:opacity .3s ease; } .sc-tag.is-hidden{ opacity:0; }
+  @media (max-width:760px){ .sc-line{ opacity:.22; } .sc-tag{ opacity:.7; } }
+
   @media (max-width:980px){
     .ob-hero-grid{ grid-template-columns:1fr; gap:34px; }
     .ob-tour{ grid-template-columns:1fr; gap:20px; }
@@ -183,6 +210,8 @@
     .ob-go-note, .ob-more{ align-self:center; }
     .ob-visual{ padding-bottom:0; }
     .ob-visual .ob-frame{ display:none; }
+    .ob-demo-hint{ position:static; margin:0 auto 12px; display:flex; width:max-content; max-width:100%; }
+    .ob-hint-wide{ display:none; } .ob-hint-narrow{ display:inline; }
     .ob-phone{ position:relative; right:auto; width:62%; margin:0 auto; }
     .ob-section{ padding:60px 0; }
     .ob-pillars, .ob-explore{ grid-template-columns:1fr; }
@@ -215,6 +244,7 @@
 </script>
 </head>
 <body class="zt zt-body">
+<div class="sc-host" data-scroll-chart aria-hidden="true"></div>
 
 <nav class="site-nav">
   <div class="shell">
@@ -303,11 +333,12 @@
       </div>
     </div>
     <div class="ob-visual">
-      <div class="ob-frame">
+      <p class="ob-demo-hint" data-demo-hint hidden><i aria-hidden="true"></i><span class="ob-hint-wide">Live demo: click the screen or the phone to try it</span><span class="ob-hint-narrow">Live demo: tap the phone to try it</span></p>
+      <div class="ob-frame" data-demo="desktop" aria-label="Open the interactive desktop demo">
         <div class="ob-frame-bar" aria-hidden="true"><i></i><i></i><i></i><span>agentictrading.info/app</span></div>
         <img src="images/app/dashboard.webp" width="1440" height="900" alt="The Zelos dashboard: a virtual account worth $11,095, its value chart for the day, top gainers and the list of positions.">
       </div>
-      <div class="ob-phone"><img src="images/app/dashboard-phone.webp" width="585" height="996" alt="The same dashboard on a phone."></div>
+      <div class="ob-phone" data-demo="phone" aria-label="Open the interactive phone demo"><img src="images/app/dashboard-phone.webp" width="585" height="996" alt="The same dashboard on a phone."></div>
     </div>
   </div>
   <div class="shell">
@@ -746,6 +777,8 @@
 </script>
 
 <script>document.documentElement.classList.add('ob-js');</script>
+<script src="zelos-scroll-chart.js?v=cdabbf09"></script>
+<script src="zelos-demo.js?v=8cf6f081"></script>
 <script src="zelos-updates.js?v=bbee6325"></script>
 <script>
 (function(){

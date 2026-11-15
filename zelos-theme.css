@@ -396,17 +396,22 @@ body.zt-body{
 .hero .cta-note{ margin-top:16px; font-family:var(--mono); font-size:0.76rem; color:var(--muted); max-width:52ch; }
 .hero-ctas{ display:flex; gap:12px; margin-top:26px; flex-wrap:wrap; }
 
-/* drifting dot-grid backdrop, GPU-cheap (background-position only).
-   Fixed to the viewport on <body> (not scoped to .hero) so it covers the
-   full height of every page, long/scrolled ones included, not just the
-   hero banner at the top. z-index:-1 keeps it behind all normal content;
-   body's own background (painted at the canvas level) sits beneath it. */
+/* Background (owner 2026-11-15: no more drifting dots). A faint chart-paper grid, like the price
+   lines behind a chart: thin horizontal rules every 64px and fainter verticals every 128px, fading
+   out toward the bottom of the screen. Fixed to the viewport, behind everything, never animated. */
 body.zt-body::before{
-  content:""; position:fixed; inset:-10% -10%; z-index:-1; pointer-events:none;
-  background-image:radial-gradient(rgba(248,239,221,0.10) 1px, transparent 1px);
-  background-size:26px 26px;
-  animation:zt-grid-drift 50s linear infinite;
-  opacity:0.6;
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image:
+    linear-gradient(to bottom, rgba(248,239,221,0.045) 1px, transparent 1px),
+    linear-gradient(to right, rgba(248,239,221,0.025) 1px, transparent 1px);
+  background-size:100% 64px, 128px 100%;
+  -webkit-mask-image:linear-gradient(to bottom, black 0%, rgba(0,0,0,0.55) 70%, transparent 100%);
+  mask-image:linear-gradient(to bottom, black 0%, rgba(0,0,0,0.55) 70%, transparent 100%);
+}
+:root[data-theme="white"] body.zt-body::before{
+  background-image:
+    linear-gradient(to bottom, rgba(18,21,27,0.05) 1px, transparent 1px),
+    linear-gradient(to right, rgba(18,21,27,0.03) 1px, transparent 1px);
 }
 /* Market-mood hook: zelos-mood.js sets data-mood on <body> from the latest
    alert's regime (bullish/bearish/neutral). Neutral/unknown just leaves
