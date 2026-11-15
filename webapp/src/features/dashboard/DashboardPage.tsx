@@ -133,7 +133,7 @@ export default function DashboardPage() {
                Left: tiles (today, total P&L, buying power), the chart about halfway down, then Solo
                positions and Solo options. Right: market movers (tap to open the lists), pending
                orders and battles, a live ETF chart, then first steps (daily missions once done). */
-            <div className={[s.tradeGrid, uid ? s.board : ''].join(' ')}>
+            <div className={[s.tradeGrid, uid ? s.deskBoard : ''].join(' ')}>
               {uid ? <AccountSection uid={uid} phone={false} /> : <div className={s.main}>{trader}</div>}
               {uid && (
                 <div className={s.bMv}>
@@ -149,6 +149,8 @@ export default function DashboardPage() {
                 {uid && meDoc && acct.status !== 'loading' && identity.status !== 'loading' && (
                   <FirstSteps uid={uid} me={meDoc} hasUsername={hasUsername} hasAccount={acct.status === 'ready' && !!acct.data} fallback={<MissionsCard progress={progress} xpLog={local.xpLog} />} />
                 )}
+                {/* owner 2026-11-15: the Solo leaderboard shares the space with first steps / missions */}
+                <LeaderboardCard uid={uid} rank={rank} me={me} />
                 {uid && <PushNudge uid={uid} />}
                 <EarningsCard mine={mine} />
               </div>

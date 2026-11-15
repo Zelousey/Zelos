@@ -19,7 +19,7 @@ import { useIdentity } from '../dashboard/social';
 import { ShareSheet } from '../posts/ShareSheet';
 import { soloDraft, type Draft } from '../posts/posts';
 import { OptionPositions } from '../options/OptionPositions';
-import { PendingPanel, YourMovers } from './DashCards';
+import { PendingPanel, WhyStrip, YourMovers } from './DashCards';
 import { RESET_BELOW, sellableShares, useArchive, usePracticeAccount, usePracticeFills, usePracticeHistory, usePracticeTrades, valueAccount, type HistoryItem, type Order } from './account';
 import { cancelOrder, errorMessage, openAccount, placeOrder, resetAccount, setPublic } from './actions';
 import s from './Practice.module.css';
@@ -35,7 +35,7 @@ const dir = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : 'flat') as 'up' | 'd
  */
 /** The account line's height on the computer Dashboard: the chart card reaches about halfway down the screen. */
 function boardPlotH(): number {
-  return typeof window === 'undefined' ? 240 : Math.max(200, Math.min(420, Math.round(window.innerHeight * 0.3)));
+  return typeof window === 'undefined' ? 240 : Math.max(200, Math.min(420, Math.round(window.innerHeight * 0.26)));
 }
 
 export function AccountSection({ uid, phone }: { uid: string; phone?: boolean }) {
@@ -129,17 +129,21 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
             <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
           </div>
         )}
-        <Card className={s.chartCard}>
-          <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} plotHeight={phone ? undefined : boardPlotH()} />
-          {phone && (
-            <div className={s.kpis}>
-              <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
-              <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
-              <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
-              <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
-            </div>
-          )}
-        </Card>
+        <div className={s.chartCell}>
+          <Card className={s.chartCard}>
+            <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} plotHeight={phone ? undefined : boardPlotH()} />
+            {phone && (
+              <div className={s.kpis}>
+                <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
+                <Stat label={t('practice.netPnl')} value={formatSignedMoney(v.netPnl)} tone={dir(v.netPnl)} />
+                <Stat label={t('practice.cash')} value={formatMoney(acct.cash)} />
+                <Stat label={t('practice.buyingPower')} value={formatMoney(v.buyingPower)} />
+              </div>
+            )}
+          </Card>
+          {/* computer: why the account is moving, right under the chart (owner 2026-11-15) */}
+          {!phone && <WhyStrip v={v} />}
+        </div>
 
         {phone && <PendingPanel uid={uid} />}
         {/* computer: the market movers on top expand instead (owner 2026-11-14: two gainers/losers boxes was one too many) */}

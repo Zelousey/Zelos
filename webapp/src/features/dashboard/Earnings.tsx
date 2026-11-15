@@ -73,3 +73,9 @@ export function useNextEarnings(sym: string | null): Report | null {
   if (!sym || doc.status !== 'ready') return null;
   return doc.data.filter((r) => r.sym === sym && r.date >= nyToday()).sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
 }
+
+/** Every upcoming report in the calendar (the Dashboard's news ticker picks your stocks from it). */
+export function useEarningsList(): Report[] {
+  const doc = useLiveDoc('markets/earnings', parse);
+  return doc.status === 'ready' ? doc.data : [];
+}
