@@ -13,11 +13,29 @@ export const hapticsOn = (): boolean => readString(HAPTICS_KEY) !== 'off';
 export const setHaptics = (on: boolean): void => writeString(HAPTICS_KEY, on ? 'on' : 'off');
 
 const PATTERN = { tap: 8, success: [10, 40, 14], warn: [18, 30, 18] } as const;
-let iosLabel: HTMLLabelElement | null = null;
-const isIOS = () => typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
+const isIOS = () => typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 /** Whether this device can do it at all (Settings only shows the switch where it can). */
 export const hapticsSupported = (): boolean => typeof navigator !== 'undefined' && (typeof navigator.vibrate === 'function' || isIOS());
+
+/**
+ * iPhone (iOS 18+): Safari gives the system's light tap when a switch control is toggled. The
+ * known-good way to trigger it from a script (owner 2026-11-15: the first version didn't buzz):
+ * a fresh hidden <label> wrapping an <input type="checkbox" switch>, clicked once inside the tap
+ * handler, then removed. Needs iOS 18+ and Settings → Sounds & Haptics → System Haptics on.
+ */
+function iosTap(): void {
+  const label = document.createElement('label');
+  label.setAttribute('aria-hidden', 'true');
+  label.style.display = 'none';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.setAttribute('switch', '');
+  label.appendChild(input);
+  document.head.appendChild(label);
+  label.click();
+  document.head.removeChild(label);
+}
 
 export function haptic(kind: keyof typeof PATTERN = 'tap'): void {
   if (!hapticsOn() || typeof navigator === 'undefined') return;
@@ -27,20 +45,9 @@ export function haptic(kind: keyof typeof PATTERN = 'tap'): void {
       return;
     }
     if (!isIOS()) return;
-    if (!iosLabel) {
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.setAttribute('switch', '');
-      input.id = 'zelos-haptic';
-      input.tabIndex = -1;
-      input.setAttribute('aria-hidden', 'true');
-      iosLabel = document.createElement('label');
-      iosLabel.htmlFor = input.id;
-      iosLabel.setAttribute('aria-hidden', 'true');
-      for (const el of [input, iosLabel]) el.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
-      document.body.append(input, iosLabel);
-    }
-    iosLabel.click();
+    iosTap();
+    // a firmer buzz on iPhone: a second tap right after (inside the same tap, so it still counts)
+    if (kind !== 'tap') iosTap();
   } catch {
     /* no buzz is fine */
   }
