@@ -2136,7 +2136,7 @@ const en = {
   'settings.sharing': "Sharing",
   'settings.phone': 'On your phone',
   'settings.haptics': 'Vibrate on key taps',
-  'settings.haptics.help': 'A small buzz when you tap Buy or Sell, cancel an order or open the Dashboard pull-down. Android phones and iPhones on iOS 18 or newer.',
+  'settings.haptics.help': 'A small buzz when you tap Buy or Sell, cancel an order or open the Dashboard pull-down. iPhone: needs iOS 18 or newer and System Haptics on (iPhone Settings → Sounds & Haptics). Turning this on gives a test buzz.',
   'settings.shareAfter': "Share card after every trade",
   'settings.shareAfter.help': "When a Solo trade closes, your share card pops up so you can post it or save the image.",
   'post.title': "Share your trade",
