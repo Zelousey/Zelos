@@ -25,9 +25,9 @@ const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
 type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number };
-type Opts = { table: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
+type Opts = { table: boolean; fill: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
 const OPTS_KEY = 'zelosAcctChart';
-const DEFAULT_OPTS: Opts = { table: false, markers: true, wins: true, losses: true, drawdown: true };
+const DEFAULT_OPTS: Opts = { table: false, fill: true, markers: true, wins: true, losses: true, drawdown: true };
 
 export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight }: Props) {
   const [range, setRange] = useState<Range>('1D');
@@ -94,7 +94,7 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
         </span>
         <span className={s.when}>{hover ? whenLabel(hover, range) : range === '1D' && session !== today ? formatDate(session + 'T12:00:00Z') : t(`acct.range.${range}`)}</span>
       </div>
-      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} marks={marks} picked={picked} onPick={setPicked} H={plotHeight} />
+      <Plot points={points} base={base} range={range} dir={dir} onHover={setHover} marks={marks} picked={picked} onPick={setPicked} H={plotHeight} fill={opts.fill} />
       {picked && (
         <div className={[s.pick, s[picked.kind]].join(' ')} role="status">
           <span>
@@ -117,14 +117,15 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
               {(
                 [
                   ['table', 'cho.table'],
+                  ['fill', 'cho.fill'],
                   ['markers', 'cho.markers'],
                   ['wins', 'cho.wins'],
                   ['losses', 'cho.losses'],
                   ['drawdown', 'cho.drawdown'],
                 ] as const
               ).map(([k, label]) => (
-                <label key={k} className={[s.opt, k !== 'table' && k !== 'markers' && s.sub, k !== 'table' && k !== 'markers' && !opts.markers && s.off].filter(Boolean).join(' ')}>
-                  <input type="checkbox" checked={opts[k]} disabled={k !== 'table' && k !== 'markers' && !opts.markers} onChange={() => setOpt(k)} />
+                <label key={k} className={[s.opt, k !== 'table' && k !== 'fill' && k !== 'markers' && s.sub, k !== 'table' && k !== 'fill' && k !== 'markers' && !opts.markers && s.off].filter(Boolean).join(' ')}>
+                  <input type="checkbox" checked={opts[k]} disabled={k !== 'table' && k !== 'fill' && k !== 'markers' && !opts.markers} onChange={() => setOpt(k)} />
                   {t(label)}
                 </label>
               ))}
@@ -189,7 +190,7 @@ function thin(points: ValuePoint[], n: number): ValuePoint[] {
   return out;
 }
 
-function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H = PLOT_H }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void; H?: number }) {
+function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H = PLOT_H, fill = true }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void; H?: number; fill?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(600);
   useEffect(() => {
@@ -250,7 +251,7 @@ function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H
           </linearGradient>
         </defs>
         {showBase && <line x1={PAD.l} x2={W - PAD.r} y1={y(base)} y2={y(base)} className={s.base} />}
-        {area && <path d={area} fill={`url(#${gradId})`} />}
+        {area && fill && <path d={area} fill={`url(#${gradId})`} />}
         {points.length > 1 && <path d={d} className={dir === 'up' ? s.lineUp : s.lineDown} />}
         {last && <circle cx={x(last.t)} cy={y(last.v)} r={4} className={dir === 'up' ? s.dotUp : s.dotDown} />}
         {hp && <line x1={x(hp.t)} x2={x(hp.t)} y1={PAD.t} y2={H - PAD.b} className={s.cross} />}

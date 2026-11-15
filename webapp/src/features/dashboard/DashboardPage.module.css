@@ -178,7 +178,7 @@
 /* ---- computer board (owner 2026-11-14 mock-up, round 2): fills the screen, no empty space.
    k k k mv / chart chart chart pend / chart chart chart etf / pos pos pos side / opt opt opt side / more more more side */
 @media (min-width: 1100px) {
-  .board {
+  .deskBoard {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-rows: auto auto minmax(0, 1fr) auto 1fr auto;
     grid-template-areas: 'k k k mv' 'chart chart chart pend' 'chart chart chart etf' 'pos pos pos side' 'opt opt opt side' 'more more more side';
@@ -189,7 +189,7 @@
   .bPend { grid-area: pend; min-width: 0; display: grid; gap: var(--space-3); align-content: start; }
   .bEtf { grid-area: etf; min-width: 0; }
   .bSide { grid-area: side; display: flex; flex-direction: column; gap: var(--space-3); }
-  .bSide > :first-child { flex: 1; } /* first steps, then daily missions, fill the bottom right */
+  .bSide > :nth-child(-n + 2) { flex: 1 1 0; } /* first steps (then daily missions) and the Solo leaderboard share the bottom right */
   .bMore { grid-area: more; display: grid; }
   .bMore > * { height: 100%; }
 }

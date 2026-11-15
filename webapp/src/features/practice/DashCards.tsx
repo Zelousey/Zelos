@@ -18,7 +18,7 @@ import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Button, buttonClass, Card, Sheet, Skeleton, useToast } from '../../ui';
 import { useOfficialNews } from '../news/news';
-import { useNextEarnings } from '../dashboard/Earnings';
+import { useEarningsList, useNextEarnings } from '../dashboard/Earnings';
 import { useVolMap } from '../options/model';
 import { nyDay } from '../charts/series';
 import { usePracticeAccount, type Order, type Valued } from './account';
@@ -122,6 +122,106 @@ function MoverSheet({ item, onClose }: { item: Contributor | null; onClose: () =
         </Link>
       </div>
     </Sheet>
+  );
+}
+
+// ------------------------------------------------------------------ why your account is moving (computer)
+/**
+ * Owner 2026-11-15: right under the account chart on a computer, three small cards that cycle like
+ * the market movers: what's pushing your account up, what's pulling it down (since you opened each
+ * position; tap for its detail), and news on your stocks (earnings coming up, new SEC filings, a
+ * Fed announcement, a big move today). Only what the data says; nothing when there's nothing.
+ */
+type NewsTick = { key: string; label: string; to?: string; href?: string };
+const DAY_MS = 864e5;
+
+export function WhyStrip({ v }: { v: Valued }) {
+  const quotes = useQuotes();
+  const vols = useVolMap();
+  const [today] = useState(() => nyDay(Date.now()));
+  const c = useMemo(() => contributors(v, quotes.status === 'ready' ? quotes.data.quotes : {}, vols, today), [v, quotes, vols, today]);
+  const earnings = useEarningsList();
+  const official = useOfficialNews();
+  const tick = useNow(5000);
+  const [open, setOpen] = useState<Contributor | null>(null);
+  const held = useMemo(() => new Set([...v.rows.map((r) => r.sym), ...v.optionRows.map((o) => o.u)]), [v]);
+  const news = useMemo(() => {
+    const out: NewsTick[] = [];
+    const soon = new Date(Date.parse(today + 'T12:00:00Z') + 14 * DAY_MS).toISOString().slice(0, 10);
+    for (const r of earnings.filter((r) => held.has(r.sym) && r.date >= today && r.date <= soon).sort((a, b) => a.date.localeCompare(b.date)))
+      out.push({ key: `e${r.sym}`, label: t('why.earnings', { sym: r.sym, date: formatDate(r.date + 'T12:00:00Z') }), to: `/markets/${r.sym}` });
+    const items = official.status === 'ready' ? official.data : [];
+    const now = tick;
+    for (const n of items) {
+      if (n.kind === 'filing' && n.sym && held.has(n.sym) && now - n.at < 7 * DAY_MS) out.push({ key: n.id, label: t('why.filing', { sym: n.sym, form: n.form ?? 'SEC', date: formatDate(n.at) }), href: n.url });
+      else if (n.kind === 'fed' && now - n.at < 2 * DAY_MS) out.push({ key: n.id, label: t('why.fed', { title: n.title }), href: n.url });
+    }
+    for (const x of [...c.gainers, ...c.losers]) if (x.kind === 'stock' && x.todayPct != null && Math.abs(x.todayPct) >= 3) out.push({ key: `m${x.key}`, label: t('why.bigMove', { sym: x.sym, pct: formatPercent(x.todayPct, { signed: true }) }), to: x.to });
+    return out;
+  }, [earnings, official, held, today, c, tick]);
+  if (!v.rows.length && !v.optionRows.length) return null;
+  const i = Math.floor(tick / 5000);
+  const up = c.gainers[i % Math.max(1, c.gainers.length)];
+  const down = c.losers[i % Math.max(1, c.losers.length)];
+  const n = news[i % Math.max(1, news.length)];
+  return (
+    <>
+      <div className={s.trio} aria-label={t('why.title')}>
+        <WhyCard tone="up" title={t('why.up')} item={up} count={c.gainers.length} i={i} empty={t('dc.noGainers')} onOpen={setOpen} />
+        <WhyCard tone="down" title={t('why.down')} item={down} count={c.losers.length} i={i} empty={t('dc.noLosers')} onOpen={setOpen} />
+        <div className={[s.card, s.ticker, s.newsCard].join(' ')}>
+          <span className={s.cardTitle}>{t('why.news')}</span>
+          {n ? (
+            n.href ? (
+              <a key={n.key} className={s.newsLine} href={n.href} target="_blank" rel="noopener noreferrer">
+                {n.label}
+              </a>
+            ) : (
+              <Link key={n.key} className={s.newsLine} to={n.to!}>
+                {n.label}
+              </Link>
+            )
+          ) : (
+            <span className={s.empty}>{t('why.noNews')}</span>
+          )}
+          <Dots n={news.length} k={i % Math.max(1, news.length)} />
+        </div>
+      </div>
+      <MoverSheet item={open} onClose={() => setOpen(null)} />
+    </>
+  );
+}
+
+function WhyCard({ tone, title, item, count, i, empty, onOpen }: { tone: 'up' | 'down'; title: string; item: Contributor | undefined; count: number; i: number; empty: string; onOpen: (c: Contributor) => void }) {
+  const cls = [s.card, s.ticker, tone === 'up' ? s.green : s.red].join(' ');
+  if (!item) return (
+    <div className={cls}>
+      <span className={s.cardTitle}>{title}</span>
+      <span className={s.empty}>{empty}</span>
+    </div>
+  );
+  return (
+    <button type="button" className={cls} onClick={() => onOpen(item)} aria-label={`${title}: ${item.name} ${formatSignedMoney(item.pnl)}`}>
+      <span className={s.cardTitle}>{title}</span>
+      <span key={item.key} className={s.tickRow}>
+        <b>{item.name}</b>
+        <span className={`num ${tone}`}>
+          {formatSignedMoney(item.pnl)} <small>({formatPercent(item.pnlPct, { signed: true })})</small>
+        </span>
+      </span>
+      <Dots n={count} k={i % Math.max(1, count)} />
+    </button>
+  );
+}
+
+function Dots({ n, k }: { n: number; k: number }) {
+  if (n < 2) return null;
+  return (
+    <span className={s.dots} aria-hidden>
+      {Array.from({ length: Math.min(n, 8) }, (_, j) => (
+        <i key={j} className={j === k ? s.dotOn : undefined} />
+      ))}
+    </span>
   );
 }
 
