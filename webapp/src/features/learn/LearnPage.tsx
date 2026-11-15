@@ -13,10 +13,11 @@
 import { Link, Navigate, useParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
-import { Badge, buttonClass, Card, Icon, PageHeader, useToast } from '../../ui';
+import { Badge, buttonClass, Icon, PageHeader, useToast } from '../../ui';
 import { CHAPTER_XP, CHAPTERS, chapterState, LESSON_XP, lessonOpen, OLD_LESSON, type Chapter } from './chapters';
 import { levelLabel } from './Quiz';
 import { useSkill } from './useSkill';
+import { Candles, Cover } from './T101Art';
 import s from './Learn.module.css';
 
 export function LearnPage() {
@@ -31,27 +32,24 @@ export function LearnPage() {
       <PageHeader title={t('nav.learn')} subtitle={t('ln.sub')} />
       <div className={s.stack}>
         {isReal ? (
-          <Card pad>
-            <div className={s.levelRow}>
-              <div>
-                <span className={s.kicker}>{t('qz.yourLevel')}</span>
-                <b className={s.levelName}>{level ? levelLabel(level) : t('ln.noLevel')}</b>
-                <span className={s.muted}>{t('ln.progressXp', { n: done, of: lessons.length, xp })}</span>
-              </div>
-              <Link className={buttonClass({ variant: quizTaken ? 'ghost' : 'primary', size: 'sm' })} to="/quiz?next=/learn">
-                {quizTaken ? t('ln.retake') : t('ln.takeQuiz')}
-              </Link>
-            </div>
-          </Card>
+          <section className={s.lvl} aria-label={t('qz.yourLevel')}>
+            <Candles seed={11} n={26} className={s.lvlArt} />
+            <span className={s.kicker}>{t('qz.yourLevel')}</span>
+            <b className={s.lvlName}>{level ? levelLabel(level) : t('ln.noLevel')}</b>
+            <span className={s.lvlSub}>{t('ln.progressXp', { n: done, of: lessons.length, xp })}</span>
+            <Link className={s.lvlBtn} to="/quiz?next=/learn">
+              <Icon name="refresh" size={18} />
+              {quizTaken ? t('ln.retake') : t('ln.takeQuiz')}
+            </Link>
+          </section>
         ) : (
-          <Card pad>
-            <div className={s.levelRow}>
-              <span className={s.muted}>{t('ln.signInToSave')}</span>
-              <button type="button" className={buttonClass({ variant: 'primary', size: 'sm' })} onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
-                {t('auth.signIn')}
-              </button>
-            </div>
-          </Card>
+          <section className={s.lvl}>
+            <Candles seed={11} n={26} className={s.lvlArt} />
+            <span className={s.lvlSub}>{t('ln.signInToSave')}</span>
+            <button type="button" className={s.lvlBtn} onClick={() => void openSignIn().catch(() => toast.show(t('auth.signInFailed'), 'error'))}>
+              {t('auth.signIn')}
+            </button>
+          </section>
         )}
         <ul className={s.shelf} aria-label={t('ln.books')}>
           {CHAPTERS.map((c) => {
@@ -60,11 +58,7 @@ export function LearnPage() {
             return (
               <li key={c.id}>
                 <Link to={`/learn/${c.id}`} className={[s.book, locked && s.bookLocked].filter(Boolean).join(' ')} data-n={c.n} aria-label={`${t('ln.bookN', { n: c.n })}: ${c.title}. ${locked ? t('ln.lockedShort') : st.passed ? t('ln.passed') : t('ln.progress', { n: st.done, of: st.total })}`}>
-                  <span className={s.cover} aria-hidden>
-                    <span className={s.coverN}>{t('ln.bookN', { n: c.n })}</span>
-                    <b className={s.coverTitle}>{c.title}</b>
-                    <span className={s.coverMark}>{c.advanced ? t('ln.advanced') : c.open ? t('ln.alwaysOpen') : t('nav.learn')}</span>
-                  </span>
+                  <Cover c={c} />
                   <span className={s.bookInfo} aria-hidden>
                     <span className={s.muted}>{c.sub}</span>
                     <span className={s.bookBar}>
@@ -74,7 +68,10 @@ export function LearnPage() {
                       {locked ? (
                         <>🔒 {t('ln.lockedShort')}</>
                       ) : st.passed ? (
-                        <Badge tone="up">{t('ln.passed')}</Badge>
+                        <span className={s.passed}>
+                          <Icon name="check" size={14} />
+                          {t('ln.passed')}
+                        </span>
                       ) : (
                         t('ln.progress', { n: st.done, of: st.total })
                       )}
@@ -109,11 +106,7 @@ export function BookPage() {
       </Link>
       <div className={s.stack}>
         <div className={s.bookHero} data-n={c.n}>
-          <span className={s.cover} aria-hidden>
-            <span className={s.coverN}>{t('ln.bookN', { n: c.n })}</span>
-            <b className={s.coverTitle}>{c.title}</b>
-            <span className={s.coverMark}>{c.advanced ? t('ln.advanced') : c.open ? t('ln.alwaysOpen') : t('nav.learn')}</span>
-          </span>
+          <Cover c={c} big />
           <div className={s.bookChoices}>
             {locked ? (
               <p className={s.locked}>{t('ln.chapterLocked', { n: c.n - 1 })}</p>

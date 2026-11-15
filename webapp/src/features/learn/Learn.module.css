@@ -167,3 +167,80 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
   .bookHero { grid-template-columns: 112px minmax(0, 1fr); }
   .cover { padding: 10px 6px 8px 13px; }
 }
+
+/* ================================================================ Trading 101 look (owner 2026-11-15)
+   Black cards with a thin red edge and a soft red glow, red progress, green "Passed", and covers in
+   black and red. The whole section (/learn/*, the level quiz) uses it, in every theme: red takes
+   the place of the accent blue, so buttons, the "you are here" dot and quiz picks are red too. */
+.t101 {
+  --t-red: #e5302e;
+  --t-red-soft: rgba(229, 48, 46, 0.14);
+  --t-red-line: rgba(229, 48, 46, 0.5);
+  --accent: #ff4a47;
+  --accent-fill: #c62828;
+  --accent-fill-hover: #b71c1c;
+  --accent-soft: rgba(229, 48, 46, 0.14);
+  --accent-line: rgba(229, 48, 46, 0.5);
+  --link: #ff6b68;
+  --on-fill: #fff;
+  --surface: #0c0c0e;
+  --surface-2: #17171a;
+  --surface-hover: #1e1e22;
+  --border: #2a2a2f;
+  --border-soft: #202024;
+  --ink: #f4f5f7;
+  --ink-2: #b9bcc4;
+  --muted: #8b8f99;
+  color: var(--ink);
+}
+.t101 .book, .t101 .chapter, .t101 .bookHero, .t101 .player, .t101 :global(section[class*='card']), .lvl {
+  background: radial-gradient(120% 90% at 100% 0%, rgba(229, 48, 46, 0.08), transparent 55%), #0c0c0e;
+  border: 1px solid var(--t-red-line);
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(229, 48, 46, 0.06), 0 10px 30px -18px rgba(229, 48, 46, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.t101 .book { padding: var(--space-4); transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease; }
+.t101 .book:hover { border-color: var(--t-red); box-shadow: 0 0 0 1px rgba(229, 48, 46, 0.25), 0 14px 36px -16px rgba(229, 48, 46, 0.7); }
+.t101 .shelf { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+@media (max-width: 520px) { .t101 .shelf { grid-template-columns: minmax(0, 1fr); } }
+.t101 .book .muted { font-size: var(--text-md); line-height: 1.45; color: var(--ink-2); }
+.t101 .bookBar, .t101 .pathBar { height: 6px; background: #1d1d21; }
+.t101 .bookBar i, .t101 .pathBar i { background: linear-gradient(90deg, #b3201e, var(--t-red)); box-shadow: 0 0 8px rgba(229, 48, 46, 0.6); }
+.passed { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 8px; border-radius: 999px; background: rgba(46, 204, 113, 0.14); color: #4ade80; font-size: var(--text-sm); font-weight: 600; }
+.passed svg { width: 18px; height: 18px; padding: 3px; border-radius: 50%; background: #22c55e; color: #052e14; stroke-width: 3; }
+
+/* the level card: YOUR LEVEL, the level, progress, Retake the quiz, red candles on the right */
+.lvl { position: relative; overflow: hidden; display: grid; gap: 4px; justify-items: start; padding: var(--space-4) var(--space-5); }
+.lvlArt { position: absolute; right: 0; bottom: 0; width: 42%; height: 92%; opacity: 0.75; pointer-events: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 55%); mask-image: linear-gradient(90deg, transparent, #000 55%); }
+.lvl > :not(.lvlArt) { position: relative; max-width: 72%; }
+@media (max-width: 520px) { .lvl > :not(.lvlArt) { max-width: 100%; } .lvlArt { width: 36%; opacity: 0.55; } }
+.lvlName { font-size: 1.75rem; line-height: 1.15; font-weight: 800; }
+.lvlSub { color: var(--ink-2); font-size: var(--text-md); }
+.lvlBtn { display: inline-flex; align-items: center; gap: 10px; margin-top: var(--space-3); min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid #3a3a40; background: rgba(255, 255, 255, 0.03); color: var(--ink); font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+.lvlBtn:hover { border-color: var(--t-red); }
+
+/* covers in black and red */
+.t101 .cover {
+  --c1: #141416; --c2: #050506;
+  border: 1px solid #2c2c31;
+  box-shadow: inset 6px 0 0 rgba(0, 0, 0, 0.5), inset 7px 0 0 rgba(255, 255, 255, 0.06), inset -1px 0 0 rgba(229, 48, 46, 0.6), 0 10px 22px rgba(0, 0, 0, 0.6), 0 0 18px -6px rgba(229, 48, 46, 0.5);
+  grid-template-rows: auto auto 1fr auto; overflow: hidden;
+}
+.t101 .coverN { letter-spacing: 0.2em; opacity: 0.9; }
+.t101 .cover { container-type: inline-size; }
+.t101 .coverTitle { align-self: start; text-transform: uppercase; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; font-size: 12.5cqw; overflow-wrap: normal; word-break: keep-all; hyphens: none; }
+.t101 .book .coverTitle, .t101 .bookHero .coverTitle { font-size: 12.5cqw; }
+.coverRed { color: #ff3a36; text-shadow: 0 0 12px rgba(229, 48, 46, 0.5); }
+.coverArt { align-self: end; width: 100%; height: 100%; min-height: 26px; }
+.t101 .coverMark { justify-self: center; letter-spacing: 0.22em; opacity: 0.85; }
+
+
+/* inside a book, a lesson and the quizzes */
+.t101 .done .dot { background: #22c55e; border-color: #22c55e; }
+.t101 .step.done:has(+ .step)::after { background: #22c55e; }
+.t101 .now .dot { box-shadow: 0 0 0 6px rgba(229, 48, 46, 0.18); }
+@keyframes lnPulseRed { 50% { box-shadow: 0 0 0 10px rgba(229, 48, 46, 0.12); } }
+.t101 .now .dot { animation-name: lnPulseRed; }
+.t101 .stage { background: #111114; }
+.t101 .opt { background: #131316; }
+.t101 .tip, .t101 .guide { background: rgba(229, 48, 46, 0.08); border-color: var(--t-red-line); }
