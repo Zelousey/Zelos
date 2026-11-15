@@ -206,7 +206,7 @@ function OpenOrder({ id, text }: { id: string; text: string }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   return (
-    <div className={s.orderRow}>
+    <div className={[s.orderRow, 'pending-pulse'].join(' ')}>
       <span className={s.orderText}>
         <Badge tone="gold">{t('orders.open')}</Badge> <span>{text}</span>
       </span>

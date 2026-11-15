@@ -149,36 +149,55 @@ export function useArchive(uid: string | null, enabled: boolean) {
   return useLiveDoc(uid && enabled ? `practiceArchive/${uid}` : null, (d) => ({ equity: typeof d.equity === 'number' ? d.equity : null, trades: Array.isArray(d.trades) ? d.trades.length : 0 }));
 }
 
+// The last copy of each history list, kept while the app is open (owner 2026-11-15): coming back
+// to the Dashboard draws the chart from it straight away instead of first drawing the day without
+// your trades (the old smooth line) and then snapping to the real one. Live updates still replace it.
+const historyCache = new Map<string, HistoryItem[]>();
+
 /** Last 40 history events (closed orders, fills, trades), newest first. */
 export function usePracticeHistory(uid: string | null) {
-  const [state, setState] = useState<{ uid: string | null; items: HistoryItem[]; ready: boolean }>({ uid: null, items: [], ready: false });
+  const cached = uid ? historyCache.get(`${uid}:last40`) : undefined;
+  const [state, setState] = useState<{ uid: string | null; items: HistoryItem[]; ready: boolean }>(() => (uid && cached ? { uid, items: cached, ready: true } : { uid: null, items: [], ready: false }));
   useEffect(() => {
     if (!uid) return;
     const q = query(collection(db(), 'practiceAccounts', uid, 'history'), orderBy('at', 'desc'), limit(40));
     return onSnapshot(
       q,
-      (snap) => setState({ uid, ready: true, items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HistoryItem, 'id'>) })) }),
+      (snap) => {
+        const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HistoryItem, 'id'>) }));
+        historyCache.set(`${uid}:last40`, items);
+        setState({ uid, ready: true, items });
+      },
       () => setState({ uid, ready: true, items: [] }),
     );
   }, [uid]);
-  return state.uid === uid ? state : { uid, items: [], ready: false };
+  if (state.uid === uid) return state;
+  return cached ? { uid, items: cached, ready: true } : { uid, items: [], ready: false };
 }
 
 /** Your history of one kind (up to 300, newest first): closed trades for the chart's markers,
  *  fills for its 1D line (the last-40 list misses a busy day's morning fills). */
-function useHistoryKind(uid: string | null, kind: 'trade' | 'fill') {
-  const [state, setState] = useState<{ key: string; items: HistoryItem[] }>({ key: '', items: [] });
+function useHistoryKind(uid: string | null, kind: 'trade' | 'fill'): { items: HistoryItem[]; ready: boolean } {
   const key = uid ? `${uid}:${kind}` : '';
+  const [state, setState] = useState<{ key: string; items: HistoryItem[] }>(() => ({ key: historyCache.has(key) ? key : '', items: historyCache.get(key) ?? [] }));
   useEffect(() => {
     if (!uid) return;
+    const k = `${uid}:${kind}`;
     const q = query(collection(db(), 'practiceAccounts', uid, 'history'), where('kind', '==', kind), limit(300));
     return onSnapshot(
       q,
-      (snap) => setState({ key: `${uid}:${kind}`, items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HistoryItem, 'id'>) })).sort((a, b) => b.at - a.at) }),
-      () => setState({ key: `${uid}:${kind}`, items: [] }),
+      (snap) => {
+        const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<HistoryItem, 'id'>) })).sort((a, b) => b.at - a.at);
+        historyCache.set(k, items);
+        setState({ key: k, items });
+      },
+      () => setState({ key: k, items: [] }),
     );
   }, [uid, kind]);
-  return state.key === key ? state.items : [];
+  if (state.key === key && key) return { items: state.items, ready: true };
+  const cached = historyCache.get(key);
+  return cached ? { items: cached, ready: true } : { items: [], ready: false };
 }
-export const usePracticeTrades = (uid: string | null) => useHistoryKind(uid, 'trade');
+export const usePracticeTrades = (uid: string | null) => useHistoryKind(uid, 'trade').items;
+/** fills plus whether they've loaded (the 1D line waits for them rather than drawing the day without your trades) */
 export const usePracticeFills = (uid: string | null) => useHistoryKind(uid, 'fill');

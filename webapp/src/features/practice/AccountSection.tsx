@@ -131,7 +131,7 @@ function AccountView({ uid, phone }: { uid: string; phone: boolean }) {
         )}
         <div className={s.chartCell}>
           <Card className={s.chartCard}>
-            <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills} plotHeight={phone ? undefined : boardPlotH()} grow={!phone} />
+            <AccountChart acct={acct} equity={v.equity} quotes={qs} vols={vols} today={today} history={history.items} trades={trades} fills={fills.items} fillsReady={fills.ready} plotHeight={phone ? undefined : boardPlotH()} grow={!phone} />
             {phone && (
               <div className={s.kpis}>
                 <Stat label={t('practice.dayPnl')} value={formatSignedMoney(v.dayPnl)} tone={dir(v.dayPnl)} />
@@ -387,7 +387,7 @@ export function OpenOrdersCard({ uid, only }: { uid: string; only?: 'any' | 'non
       ) : (
         <ul className={s.orderList}>
           {acct.orders.map((o) => (
-            <li key={o.id}>
+            <li key={o.id} className="pending-pulse">
               <OrderRow o={o} marketOpen={marketOpen} disabled={busy != null} busy={busy === o.id} onCancel={() => cancel(o)} />
             </li>
           ))}

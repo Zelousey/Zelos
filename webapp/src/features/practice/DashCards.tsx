@@ -269,7 +269,7 @@ function PendingOrders({ orders }: { orders: Order[] }) {
     <Card title={t('practice.orders')} flush>
       <ul className={s.bars}>
         {orders.map((o) => (
-          <li key={o.id} className={s.bar}>
+          <li key={o.id} className={[s.bar, 'pending-pulse'].join(' ')}>
             <button type="button" className={s.barMain} onClick={() => setOpen(o)} aria-haspopup="dialog">
               <span className={[s.side, o.side === 'buy' ? s.buy : s.sell].join(' ')}>{o.side === 'buy' ? t('trade.buy') : t('trade.sell')}</span>
               <span className={s.barText}>{orderLine(o).replace(/^\S+ /, '')}</span>
