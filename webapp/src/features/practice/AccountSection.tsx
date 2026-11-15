@@ -5,6 +5,7 @@
  * activity, the archived classic account, privacy and reset folded under "Activity & settings".
  * Every change goes through a Cloud Function; this only shows what the server holds.
  */
+import { haptic } from '../../lib/haptics';
 import { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -374,6 +375,7 @@ export function OpenOrdersCard({ uid, only }: { uid: string; only?: 'any' | 'non
   if ((only === 'any' && !acct.orders.length) || (only === 'none' && acct.orders.length)) return null;
   const marketOpen = quotes.status === 'ready' ? quotes.data.marketOpen : true;
   const cancel = (o: Order) => {
+    haptic('warn'); // cancelling is a deliberate action: a firmer buzz
     setBusy(o.id);
     cancelOrder(o.id)
       .then(() => toast.show(t('practice.cancelled'), 'success'))

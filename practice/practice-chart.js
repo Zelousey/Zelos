@@ -346,10 +346,11 @@
         var f = fingerList(); if (f.length < 2) return;
         var L = self.layout(), w = L.x1 - L.x0, n = self.s.n;
         var d = Math.max(24, Math.abs(f[0].x - f[1].x));
-        var ns = Math.max(Math.min(8, n), Math.min(n, Math.round(pinch.span * pinch.d0 / d)));
+        var m0 = self.minFrom();
+        var ns = Math.max(Math.min(8, n - m0), Math.min(n - m0, Math.round(pinch.span * pinch.d0 / d)));
         var rel = Math.max(0, Math.min(1, ((f[0].x + f[1].x) / 2 - L.x0) / w));
         var from = Math.round(pinch.anchor - rel * ns);
-        from = Math.max(0, Math.min(n - ns, from));
+        from = Math.max(m0, Math.min(n - ns, from));
         self.from = from; self.to = from + ns - 1; self.hover = null; self.draw();
         return;
       }
@@ -358,7 +359,7 @@
         if (Math.abs(drag.x - p.x) > 6) lastTap = null;
         var bw = self.barW(); var shift = Math.round((drag.x - p.x) / bw);
         var span = drag.to - drag.from;
-        var to = Math.max(span, Math.min(self.s.n - 1, drag.to + shift));
+        var to = Math.max(self.minFrom() + span, Math.min(self.s.n - 1, drag.to + shift));
         self.from = to - span; self.to = to;
       } else canvas.style.cursor = self.placing ? 'crosshair' : self.hitTest(p) ? 'ns-resize' : '';
       if (self.placing === 'abc') canvas.style.cursor = 'crosshair';
@@ -419,9 +420,21 @@
     global.removeEventListener('zelos:theme', this._onTheme);
     this.anim = null; this.s = null;
   };
+  // The first bar the chart lets you see (owner 2026-11-15: indicators should run edge to edge when
+  // zoomed out). An indicator needs a few bars before its first value (Bollinger 20, SMA 200 ...);
+  // those warm-up bars stay just off the left edge, so every line on screen is complete. Nothing is
+  // recalculated or stretched. Only when there's plenty of data (3x the warm-up), else from 0.
+  TradeChart.prototype.minFrom = function () {
+    var s = this.s, show = this.show, need = 0;
+    if (!s) return 0;
+    INDICATORS.forEach(function (d) { if (show[d.id] && d.need) need = Math.max(need, d.need); });
+    return need && s.n >= need * 3 ? need - 1 : 0;
+  };
   TradeChart.prototype.toggle = function (id, on) {
     this.show[id] = on == null ? !this.show[id] : !!on;
     try { localStorage.setItem('zelosPracticeInd', JSON.stringify(this.show)); } catch (e) {}
+    var m = this.minFrom();
+    if (this.s && this.from < m) { this.from = m; if (this.to < m) this.to = Math.min(this.s.n - 1, m + 8); }
     this.draw();
   };
   // the entry pin under (x, y), with where it's drawn: { x, y, mark } or null
@@ -493,7 +506,7 @@
     var keep = this.s && this.s.key === s.key && this.to === this.s.n - 1;
     var span = this.s ? this.to - this.from : null;
     this.s = s;
-    if (keep && span != null && !this.fullDay) { this.to = s.n - 1; this.from = Math.max(0, this.to - span); this.draw(); }
+    if (keep && span != null && !this.fullDay) { this.to = s.n - 1; this.from = Math.max(this.minFrom(), this.to - span); this.draw(); }
     else if (keep && this.fullDay) { this.to = s.n - 1; this.draw(); } // a new bar joins today's session
     else this.setRange(bars || 126, daySlots);
   };
@@ -516,15 +529,16 @@
       var day = this.s.d[this.to].slice(0, 10), f = this.to;
       while (f > 0 && this.s.d[f - 1].slice(0, 10) === day) f--;
       this.from = f; this.fullDay = daySlots;
-    } else this.from = bars === 'all' ? 0 : Math.max(0, this.to - bars + 1);
+    } else this.from = Math.max(this.minFrom(), bars === 'all' ? 0 : this.to - bars + 1);
     this.draw();
   };
   TradeChart.prototype.zoom = function (f, x) {
     if (!this.s) return;
-    var span = this.to - this.from + 1, ns = Math.max(Math.min(8, this.s.n), Math.min(this.s.n, Math.round(span * f)));
+    var m = this.minFrom(), room = this.s.n - m;
+    var span = this.to - this.from + 1, ns = Math.max(Math.min(8, room), Math.min(room, Math.round(span * f)));
     var L = this.layout(), rel = x == null ? 1 : Math.max(0, Math.min(1, (x - L.x0) / (L.x1 - L.x0)));
     var anchor = this.from + rel * span, from = Math.round(anchor - rel * ns);
-    from = Math.max(0, Math.min(this.s.n - ns, from));
+    from = Math.max(m, Math.min(this.s.n - ns, from));
     this.from = from; this.to = from + ns - 1; this.fullDay = null; this.draw();
   };
   TradeChart.prototype.padBars = function () {
