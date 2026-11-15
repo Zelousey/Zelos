@@ -18,7 +18,7 @@ import { Button, Card, EmptyState, ErrorState, Icon, LoadingState, PageHeader, T
 import { MarketList } from './MarketRow';
 import { MiniChart } from './MiniChart';
 import { useMinis } from './miniSeries';
-import { SectorBars } from './Sectors';
+import { SectorHeat } from './SectorHeat';
 import { StatusLine } from './StatusLine';
 import { MarketView } from './MarketView';
 import { TradeChoice } from './TradeChoice';
@@ -69,7 +69,7 @@ export default function MarketsPage() {
             <h2 id="mk-sectors" className={s.panelTitle}>
               {t('dash.sectors')}
             </h2>
-            <SectorBars />
+            <SectorHeat />
           </section>
         </aside>
         <Glance speed={speed} setSpeed={setSpeed} />
