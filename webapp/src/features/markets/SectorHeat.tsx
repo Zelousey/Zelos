@@ -16,7 +16,8 @@ import s from './SectorHeat.module.css';
 
 const tone = (pct: number): CSSProperties => ({ '--heat': `${Math.round(heat(pct) * 100)}%` }) as CSSProperties;
 
-export function SectorHeat() {
+/** large: the Market page's middle section (bigger tiles). */
+export function SectorHeat({ large = false }: { large?: boolean }) {
   const movers = useMovers();
   const quotes = useQuotes();
   const [open, setOpen] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export function SectorHeat() {
         .sort((a, b) => (b.pct ?? -1e9) - (a.pct ?? -1e9))
     : [];
   return (
-    <div className={s.wrap}>
+    <div className={[s.wrap, large && s.large].filter(Boolean).join(' ')}>
       <ul className={s.grid} aria-label={t('heat.title')}>
         {sectors.map((x) => (
           <li key={x.sector}>

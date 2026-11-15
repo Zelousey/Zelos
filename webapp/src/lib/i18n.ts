@@ -574,6 +574,7 @@ const en = {
   'mv.switch': 'Market view',
   'mv.chart': 'Chart',
   'mv.globe': 'Globe',
+  'mv.sectors': 'Sectors',
   'mv.chart.title': 'US indexes',
   'mv.chart.sub': 'The big three indexes, live',
   'mv.index': 'Index',

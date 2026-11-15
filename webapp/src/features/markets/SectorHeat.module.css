@@ -22,3 +22,13 @@
 .stock span { font-family: var(--mono); font-size: var(--text-xs); font-weight: 600; }
 .muted { margin: 0; color: var(--muted); font-size: var(--text-sm); }
 .note { margin: 0; color: var(--muted); font-size: 0.6875rem; }
+
+/* the Market page's middle section: bigger tiles, three or four across */
+.large { padding: var(--space-2) 0; }
+.large .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+.large .tile { min-height: 92px; padding: 12px 14px; }
+.large .name { font-size: var(--text-sm); }
+.large .pct { font-size: var(--text-lg, 1.125rem); }
+.large .stocks { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+.large .stock { min-height: 60px; }
+@media (max-width: 560px) { .large .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .large .tile { min-height: 64px; padding: 9px 11px; } .large .pct { font-size: var(--text-md); } }

@@ -2,7 +2,8 @@
  * The market view on Market and the Dashboard (owner decision 2026-10-09): opens on a chart
  * of the US indexes; "Globe" switches to the live globe with the exchanges. Same switch and
  * same remembered choice as the classic dashboard (localStorage zelosDashboardViz), but the
- * app opens on the chart until someone picks the globe.
+ * app opens on the chart until someone picks the globe. "Sectors" (owner 2026-11-15) shows the
+ * sector heat map in the same spot.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -17,11 +18,15 @@ import { TIMEFRAMES } from '../charts/series';
 import { useSymbolBars } from '../charts/useSymbolBars';
 import { useOpenExchanges, WorldMarkets } from './WorldMarkets';
 import { ModeBadge, ModeToggle } from './ModeToggle';
+import { SectorHeat } from './SectorHeat';
 import s from './MarketView.module.css';
 
 export const VIZ_KEY = 'zelosDashboardViz'; // shared with dashboard.html
-export type Viz = 'chart' | 'globe';
-export const readViz = (): Viz => (readString(VIZ_KEY) === 'globe' ? 'globe' : 'chart');
+export type Viz = 'chart' | 'globe' | 'sectors';
+export const readViz = (): Viz => {
+  const v = readString(VIZ_KEY);
+  return v === 'globe' || v === 'sectors' ? v : 'chart';
+};
 
 /** hero: the Market page's main chart, no box around it, as tall as the screen allows. */
 export function MarketView({ className, globeHeight, phoneGlobeHeight, all, hero }: { className?: string; globeHeight: number; phoneGlobeHeight?: number; all?: boolean; hero?: boolean }) {
@@ -31,12 +36,22 @@ export function MarketView({ className, globeHeight, phoneGlobeHeight, all, hero
     setVizState(v);
     writeString(VIZ_KEY, v);
   };
-  const switcher = <Tabs label={t('mv.switch')} value={viz} onChange={setViz} items={[{ value: 'chart', label: t('mv.chart') }, { value: 'globe', label: t('mv.globe') }]} />;
+  const switcher = <Tabs label={t('mv.switch')} value={viz} onChange={setViz} items={[{ value: 'chart', label: t('mv.chart') }, { value: 'globe', label: t('mv.globe') }, { value: 'sectors', label: t('mv.sectors') }]} />;
   if (hero)
     return (
       <section className={[s.hero, className].filter(Boolean).join(' ')} aria-labelledby="mv-hero-title">
         {viz === 'chart' ? (
           <IndexChart hero title={<h2 id="mv-hero-title" className={s.heroTitle}>{t('mv.chart.title')}</h2>} switcher={switcher} />
+        ) : viz === 'sectors' ? (
+          <>
+            <div className={s.heroBar}>
+              <h2 id="mv-hero-title" className={s.heroTitle}>
+                {t('dash.sectors')}
+              </h2>
+              <span className={s.push}>{switcher}</span>
+            </div>
+            <SectorHeat large />
+          </>
         ) : (
           <>
             <div className={s.heroBar}>
@@ -54,11 +69,11 @@ export function MarketView({ className, globeHeight, phoneGlobeHeight, all, hero
   return (
     <Card
       className={className}
-      title={viz === 'chart' ? t('mv.chart.title') : t('market.world')}
-      subtitle={viz === 'globe' ? summary : t('mv.chart.sub')}
+      title={viz === 'chart' ? t('mv.chart.title') : viz === 'sectors' ? t('dash.sectors') : t('market.world')}
+      subtitle={viz === 'globe' ? summary : viz === 'sectors' ? undefined : t('mv.chart.sub')}
       actions={switcher}
     >
-      {viz === 'chart' ? <IndexChart /> : <WorldMarkets height={globeHeight} phoneHeight={phoneGlobeHeight} all={all} />}
+      {viz === 'chart' ? <IndexChart /> : viz === 'sectors' ? <SectorHeat /> : <WorldMarkets height={globeHeight} phoneHeight={phoneGlobeHeight} all={all} />}
     </Card>
   );
 }
