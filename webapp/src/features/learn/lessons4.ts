@@ -161,7 +161,7 @@ export const AO_RUNNER: Lesson = lesson(
     { art: big('THE RUNNER CAN STILL GO TO $0', ''), title: 'Not risk-free', text: 'The runner can still fall or expire worthless. Selling the others already locked in a profit, so the overall trade stays positive, but the runner’s own value can still be lost.' },
   ],
   check('After selling 3 of 4 profitable contracts, the 1 left open is…', ['Completely risk-free', 'A runner that can still lose its value', 'Automatically sold at expiry for a profit'], 1, 'Banking profit on the others reduces the trade’s risk, but the runner can still fall to zero.'),
-  { label: 'Keep 1 as a runner', to: '/options' },
+  { label: 'Open your options', to: '/options' },
 );
 
 export const AO_RUNNER_PLAN: Lesson = lesson(
@@ -170,7 +170,7 @@ export const AO_RUNNER_PLAN: Lesson = lesson(
   'Rules for the contract you keep',
   [
     { art: chart([60, 66, 72, 78, 74, 70, 64], { lines: [{ y: 70, label: 'RUNNER EXIT RULE', tone: 'gold', dash: true }], marks: [{ i: 6, label: 'SOLD ON THE RULE', tone: 'dn', above: false }] }), title: 'Give it an exit too', text: 'Decide when the runner goes: a level on the stock, a percentage of the gain given back, or a date before expiration.' },
-    { art: big('KEEP 1 AS A RUNNER', 'ONE TAP IN ZELOS'), title: 'In Zelos', text: 'When you hold 2 or more contracts, Sell offers “Keep 1 as a runner”: it sells all but one for you.' },
+    { art: big('CHOOSE HOW MANY TO SELL', 'IN ZELOS'), title: 'In Zelos', text: 'When you hold 2 or more contracts, Sell lets you choose how many to sell. Sell all but one and the one left open is your runner.' },
     { art: big('SIZE THE RUNNER SMALL', ''), title: 'Keep it a small piece', text: 'A runner should be the smaller part of the position, so locking in profit on the rest really reduces your risk.' },
   ],
   check('Why give a runner its own exit rule?', ['So it doesn’t ride all the way back to a loss', 'Runners can’t lose', 'It’s required'], 0, 'Without a rule, a runner can give back far more than planned.'),

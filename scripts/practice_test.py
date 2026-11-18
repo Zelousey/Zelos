@@ -240,5 +240,35 @@ class MatchesTheBrowser(unittest.TestCase):
         self.assertIn("START_CASH = 10000, RESET_BELOW = 2500", src)
 
 
+class InstantFillTest(unittest.TestCase):
+    """Owner 2026-11-18: market orders on the fast stocks fill at once, at the price on screen."""
+
+    def test_instant_price(self):
+        from datetime import timezone, timedelta
+        now = int(datetime(2026, 11, 16, 11, 0, tzinfo=P.NY).timestamp() * 1000)  # a Monday, 11:00 New York
+        q = {"c": 101.5, "t": now // 1000 - 30}
+        fast = {"NVDA"}
+        self.assertEqual(P.instant_price({"type": "market", "sym": "NVDA"}, q, now, fast), 101.5)
+        self.assertIsNone(P.instant_price({"type": "limit", "sym": "NVDA"}, q, now, fast))
+        self.assertIsNone(P.instant_price({"type": "market", "sym": "HOOD"}, q, now, fast))  # a 15-minute stock
+        self.assertIsNone(P.instant_price({"type": "market", "sym": "NVDA"}, {"c": 101.5, "t": now // 1000 - 600}, now, fast))  # stale
+        self.assertEqual(P.instant_price({"type": "market", "opt": "x", "contract": {"u": "NVDA"}}, q, now, fast), 101.5)
+        night = int(datetime(2026, 11, 16, 20, 0, tzinfo=P.NY).timestamp() * 1000)
+        self.assertIsNone(P.instant_price({"type": "market", "sym": "NVDA"}, {"c": 1, "t": night // 1000}, night, fast))  # closed
+
+    def test_instant_fill_sells_at_that_price(self):
+        now = int(datetime(2026, 11, 16, 11, 0, tzinfo=P.NY).timestamp() * 1000)
+        acct = P.new_account(now - 86400000)
+        acct["positions"]["NVDA"] = {"qty": 4, "avg": 100.0, "openedDay": "2026-11-13"}
+        o = {"id": "o1", "sym": "NVDA", "side": "sell", "type": "market", "qty": 4, "limit": None, "stop": None, "tif": "day", "session": "2026-11-16", "createdAt": now, "bracket": None}
+        P.add_order(acct, o)
+        events = []
+        P.fill(acct, o, P.instant_price(o, {"c": 110.0, "t": now // 1000 - 20}, now, {"NVDA"}), now, events)
+        self.assertNotIn("NVDA", acct["positions"])
+        self.assertEqual(acct["orders"], {})
+        self.assertEqual([e for e in events if e["kind"] == "fill"][0]["price"], 110.0)
+
+
 if __name__ == "__main__":
     unittest.main()
+

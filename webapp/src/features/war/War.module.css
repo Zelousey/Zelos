@@ -174,3 +174,6 @@ a.zoneCard:active, button.zoneCard:active { transform: translateY(1px); }
 /* Buy green, Sell red, always (owner 2026-11-15) */
 .sideTabs[data-side='buy'] [role='tab'][aria-selected='true'] { background: var(--buy-fill); color: var(--on-fill); }
 .sideTabs[data-side='sell'] [role='tab'][aria-selected='true'] { background: var(--sell-fill); color: var(--on-fill); }
+
+/* War zone notifications: off until turned on (owner 2026-11-18) */
+.notifyRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius); background: var(--surface); font-size: var(--text-sm); color: var(--ink-2); }

@@ -61,7 +61,7 @@ test('open the account, buy from a chart with a bracket, see and cancel the orde
   await bar.click();
   const sheet = page.getByRole('dialog', { name: 'Buy 5 AAPL · Market' });
   await expect(sheet).toContainText('Today only');
-  await expect(sheet).toContainText(/Fills on the next price update|Fills when the market opens/);
+  await expect(sheet).toContainText(/Fills with the next prices|nothing can fill until it opens/);
   await sheet.getByRole('button', { name: 'Cancel order' }).click();
   await expect(page.getByRole('heading', { name: 'Solo · Pending orders' })).toHaveCount(0);
   await page.getByText('Activity & account settings').click(); // history is folded away under the positions

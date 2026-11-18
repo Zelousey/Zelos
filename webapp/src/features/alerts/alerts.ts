@@ -220,6 +220,7 @@ export const NOTIFY_GROUPS: { title: string; items: { key: string; label: string
       { key: 'price', label: 'Price alerts', hint: 'A stock crosses a price alert you drew on a chart' },
     ],
   },
+  { title: 'War zone (simulated)', items: [{ key: 'war', label: 'War zone', hint: 'Chaos events, attacks and invites in the simulated War zone. Off until you turn it on' }] },
   { title: 'Hall of Minds', items: [{ key: 'minds', label: 'Daily quotes', hint: 'Your daily quote from the greats you follow' }] },
 ];
 export type Prefs = { strategies: string[] | null; types: Record<string, boolean> };
@@ -230,7 +231,9 @@ export function parsePrefs(d: DocumentData | null | undefined): Prefs {
   if (p.types && typeof p.types === 'object') for (const [k, v] of Object.entries(p.types as Record<string, unknown>)) if (typeof v === 'boolean') types[k] = v;
   return { strategies, types };
 }
-export const isOn = (p: Prefs, key: string) => (key.startsWith('s:') ? (p.strategies ?? STRATEGIES.map((s) => s.id)).includes(key.slice(2)) : p.types[key] !== false);
+/** Kinds that are off until turned on (the simulated War zone, owner 2026-11-18; same list as functions/main.py OPT_IN_KINDS). */
+export const OPT_IN = new Set(['war']);
+export const isOn = (p: Prefs, key: string) => (key.startsWith('s:') ? (p.strategies ?? STRATEGIES.map((s) => s.id)).includes(key.slice(2)) : OPT_IN.has(key) ? p.types[key] === true : p.types[key] !== false);
 /** The update for users/{uid} after flipping one switch. */
 export function toggle(p: Prefs, key: string, on: boolean): Record<string, unknown> {
   if (key.startsWith('s:')) {

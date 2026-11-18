@@ -60,10 +60,17 @@ db.collection("warMarket").document("chaos").delete()
 main.war_market_pass(db, B + 5 * M, random.Random(5))
 ok(not db.collection("warMarket").document("chaos").get().exists, "nothing about an event is public before its warning")
 sm = ((B // M) % 1440) // 15 * 15
-for uid, quiet in (("warAwake01", {"start": 0, "end": 0, "tz": "UTC"}), ("warSleep01", {"start": sm, "end": (sm + 180) % 1440, "tz": "UTC"})):
+for uid, quiet in (("warAwake01", {"start": 0, "end": 0, "tz": "UTC"}), ("warSleep01", {"start": sm, "end": (sm + 180) % 1440, "tz": "UTC"}), ("warOff01", {"start": 0, "end": 0, "tz": "UTC"})):
     db.collection("warProfiles").document(uid).set(dict(WM.new_profile(B, "UTC"), quiet=quiet))
+    # War notifications are opt-in (owner 2026-11-18): two players turned them on, warOff01 didn't
+    db.collection("users").document(uid).set({"notificationPrefs": {"types": {"war": uid != "warOff01"}}}, merge=True)
     for d in db.collection("users").document(uid).collection("inbox").stream():
         d.reference.delete()
+
+
+# War zone notifications are opt-in (owner 2026-11-18): these players turned them on
+for _uid in ("baseAnn01", "zoneAnn01"):
+    db.collection("users").document(_uid).set({"notificationPrefs": {"types": {"war": True}}}, merge=True)
 
 
 def inbox(uid):
@@ -74,6 +81,7 @@ main.war_market_pass(db, B + 10 * M, random.Random(6))
 c = db.collection("warMarket").document("chaos").get().to_dict()
 ok(c["phase"] == "warned" and c["scopeName"] == "Energy" and c["startsAt"] == B + 40 * M, "30 minutes before, the warning is public: Energy at its start time")
 ok("moves" not in c and "endsAt" not in c, "but not its size, direction or end")
+ok(inbox("warOff01") == [], "a player who hasn't turned War notifications on gets nothing, not even the bell")
 aw = inbox("warAwake01")
 ok(len(aw) == 1 and aw[0]["kind"] == "war" and aw[0]["title"] == "Chaos incoming: Energy in 30 min" and "Simulated" in aw[0]["body"] and aw[0]["link"] == "app/war",
    "a player who's awake is told: Chaos incoming: Energy in 30 min (simulated)")

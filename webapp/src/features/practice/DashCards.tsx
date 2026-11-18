@@ -25,6 +25,7 @@ import { nyDay } from '../charts/series';
 import { usePracticeAccount, type Order, type Valued } from './account';
 import { cancelOrder, errorMessage } from './actions';
 import { contributors, type Contributor } from './analysis';
+import { explainOrder } from './orderExplain';
 import s from './DashCards.module.css';
 
 // ------------------------------------------------------------------ your gainers and losers
@@ -251,34 +252,42 @@ function orderLine(o: Order): string {
 
 function PendingOrders({ orders }: { orders: Order[] }) {
   const toast = useToast();
-  const [busy, setBusy] = useState<string | null>(null);
   const [open, setOpen] = useState<Order | null>(null);
   const quotes = useQuotes();
   const marketOpen = quotes.status === 'ready' ? quotes.data.marketOpen : true;
   const titleId = useId();
+  // owner 2026-11-18 ("it takes way too long"): the order leaves the list the moment you tap
+  // Cancel; if the server says no, it comes back with the reason
+  const [gone, setGone] = useState<Set<string>>(new Set());
   const cancel = (o: Order) => {
     haptic('warn'); // cancelling is a deliberate action: a firmer buzz
-    setBusy(o.id);
+    setGone((g) => new Set(g).add(o.id));
+    setOpen(null);
     cancelOrder(o.id)
-      .then(() => {
-        toast.show(t('practice.cancelled'), 'success');
-        setOpen(null);
-      })
-      .catch((e) => toast.show(errorMessage(e), 'error'))
-      .finally(() => setBusy(null));
+      .then(() => toast.show(t('practice.cancelled'), 'success'))
+      .catch((e) => {
+        setGone((g) => {
+          const n = new Set(g);
+          n.delete(o.id);
+          return n;
+        });
+        toast.show(errorMessage(e), 'error');
+      });
   };
+  const shown = orders.filter((o) => !gone.has(o.id));
+  if (!shown.length) return null;
   return (
     <Card title={t('practice.orders')} flush>
       <ul className={s.bars}>
-        {orders.map((o) => (
+        {shown.map((o) => (
           <li key={o.id} className={[s.bar, 'pending-pulse'].join(' ')}>
             <button type="button" className={s.barMain} onClick={() => setOpen(o)} aria-haspopup="dialog">
               <span className={[s.side, o.side === 'buy' ? s.buy : s.sell].join(' ')}>{o.side === 'buy' ? t('trade.buy') : t('trade.sell')}</span>
               <span className={s.barText}>{orderLine(o).replace(/^\S+ /, '')}</span>
               <span className={s.pending}>{t('dc.pending')}</span>
             </button>
-            <Button variant="ghost" size="sm" disabled={busy != null} onClick={() => cancel(o)} aria-label={`${t('orders.cancel')}: ${orderLine(o)}`}>
-              {busy === o.id ? t('orders.cancelling') : t('dc.cancel')}
+            <Button variant="ghost" size="sm" onClick={() => cancel(o)} aria-label={`${t('orders.cancel')}: ${orderLine(o)}`}>
+              {t('dc.cancel')}
             </Button>
           </li>
         ))}
@@ -336,22 +345,15 @@ function PendingOrders({ orders }: { orders: Order[] }) {
                 </div>
               )}
             </dl>
-            <p className={s.muted}>{waiting(open, marketOpen)}</p>
-            <Button variant="danger" block disabled={busy != null} onClick={() => cancel(open)}>
-              {busy === open.id ? t('orders.cancelling') : t('orders.cancel')}
+            <p className={s.why}>{explainOrder(open, quotes.status === 'ready' ? quotes.data.quotes[open.sym]?.c : null, marketOpen)}</p>
+            <Button variant="danger" block onClick={() => cancel(open)}>
+              {t('orders.cancel')}
             </Button>
           </div>
         </Sheet>
       )}
     </Card>
   );
-}
-
-function waiting(o: Order, marketOpen: boolean): string {
-  if (!marketOpen) return t('orders.waitOpen');
-  if (o.type === 'limit' && o.limit != null) return t('orders.waitPrice', { price: formatPrice(o.limit) });
-  if (o.type === 'stop' && o.stop != null) return t('orders.waitPrice', { price: formatPrice(o.stop) });
-  return t('orders.waitNext');
 }
 
 /** Two small cards that cycle through today's market gainers and losers (real stock movers). */

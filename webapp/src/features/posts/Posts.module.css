@@ -5,7 +5,11 @@
 .cardBig { font-size: 1.9rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .cardChange { font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
 .cardSince { color: rgb(255 255 255 / 0.7); font-weight: 500; }
+.lineWrap { position: relative; }
 .line { display: block; width: 100%; height: clamp(130px, 28vw, 190px); }
+.mark { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; box-shadow: 0 0 0 3px #0b0d12; display: grid; place-items: center; pointer-events: none; }
+.mark svg { width: 16px; height: 16px; overflow: visible; }
+.markDot { width: 14px; height: 14px; margin: -7px 0 0 -7px; box-shadow: none; }
 .noLine { height: var(--space-3); }
 .cardFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid rgb(255 255 255 / 0.12); }
 .footText { display: grid; gap: 2px; min-width: 0; font-size: var(--text-sm); color: rgb(255 255 255 / 0.85); font-variant-numeric: tabular-nums; }
@@ -20,11 +24,13 @@
 .sheetActions { display: grid; gap: var(--space-2); }
 .postedLink { display: grid; place-items: center; min-height: var(--tap); color: var(--link); font-weight: 600; text-decoration: none; }
 .fine { margin: 0; font-size: var(--text-xs); color: var(--muted); }
-.feed { display: grid; gap: var(--space-3); max-width: 760px; }
+.feed { display: grid; gap: var(--space-3); max-width: 1120px; }
 .feedHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .h2 { margin: 0; font-size: var(--text-lg); }
 .muted { margin: 0; color: var(--ink-2); font-size: var(--text-sm); }
-.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); align-items: start; }
+/* on a monitor the posts sit side by side instead of one card stretched across the screen */
+@media (min-width: 1000px) { .list { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); } }
 .post { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); }
 .postHead { display: flex; align-items: center; gap: var(--space-2); }
 .author { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; color: var(--ink); text-decoration: none; font-size: var(--text-sm); }

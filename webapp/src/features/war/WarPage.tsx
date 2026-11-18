@@ -14,6 +14,7 @@ import { Badge, Button, Card, Change, Confirm, EmptyState, Icon, LoadingState, P
 import { ChartView } from '../charts/ChartView';
 import { errorText } from '../invites/invites';
 import { WarGate } from './Gate';
+import { WarNotify } from './WarNotify';
 import { Seasons } from './WarZones';
 import { Leaderboard } from './Leaderboard';
 import { ZoneGrid } from './ZoneGrid';
@@ -78,6 +79,7 @@ function WarZone({ uid }: { uid: string }) {
         }
       />
       <TradeWarNav />
+      <WarNotify uid={uid} />
       {chaos && banner && <ChaosBanner c={chaos} live={banner === 'live'} />}
       <ZoneGrid uid={uid} p={p} />
       <Leaderboard uid={uid} />

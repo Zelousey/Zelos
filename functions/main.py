@@ -3681,10 +3681,13 @@ def _tw_challenge(req, db, uid, now_ms, data, rematch=None):
     existing, paid = txn(db.transaction())
     if existing:
         return {"warId": existing, "again": True, "charged": 0}
+    # owner 2026-11-18: a notification every time someone battles you (challenge or rematch),
+    # and it opens the Battles page in the app
+    title = ("%s wants a rematch" % pname) if rematch else ("%s challenged you to a battle" % pname)
     for to in targets:
-        notify_users(db, [to], "challenges", "%s challenged you to a Trade War" % pname,
+        notify_users(db, [to], "challenges", title,
                      "%s · %s virtual buy-in · %d day%s. Tap to accept or decline." % (name, _tw_money(buy_in).split(".")[0], days, "" if days == 1 else "s")
-                     + (" Last Man Standing." if lms else ""), "practice/index.html", "inv-" + wid, action={"type": "tw", "id": inv_ids[to]})
+                     + (" Last Man Standing." if lms else ""), "app/battles", "inv-" + wid, action={"type": "tw", "id": inv_ids[to]})
     return {"warId": wid, "invited": len(targets), "mode": mode, "again": False, "charged": TOKENS["slot"] if paid else 0}
 
 
@@ -4664,25 +4667,39 @@ def alert_push(db, alert_id, alert):
 NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price", "minds", "war")
 
 
+# Kinds that are off until the person turns them on (owner 2026-11-18): the War zone runs on a
+# simulated market while it's being built, so its notifications stay quiet (no push, no bell) until
+# someone opens the War zone and taps "Turn on War notifications".
+OPT_IN_KINDS = {"war"}
+
+
 def notify_wants(prefs, kind):
-    return ((prefs or {}).get("types") or {}).get(kind) is not False
+    v = ((prefs or {}).get("types") or {}).get(kind)
+    return v is True if kind in OPT_IN_KINDS else v is not False
 
 
-def notify_users(db, uids, kind, title, body, path, tag, action=None, push=True):
+def notify_users(db, uids, kind, title, body, path, tag, action=None, push=True, direct=False):
     """Inbox + push for each uid. Never raises: a notification must never break the action that caused it.
     action (optional): what the bell can do inline, e.g. {"type": "invite", "code": ...} (Accept in
     the app) or {"type": "tw", "id": twInviteId} (Accept / Decline a Trade War challenge).
-    push=False: the bell only (War quiet hours)."""
+    push=False: the bell only (War quiet hours).
+    direct=True: something a person did to you by name (a private War invite): it gets through an
+    opt-in kind that isn't turned on yet, unless you turned that kind off yourself."""
     sent, now_ms = 0, int(_time.time() * 1000)
     for uid in dict.fromkeys(u for u in (uids or []) if u):
         try:
             uref = db.collection("users").document(uid)
             u = uref.get()
+            prefs = (u.to_dict() or {}).get("notificationPrefs") if u.exists else None
+            types = (prefs or {}).get("types") if isinstance(prefs, dict) else None
+            wants = (not isinstance(types, dict) or types.get(kind) is not False) if direct else notify_wants(prefs, kind)
+            if kind in OPT_IN_KINDS and not wants:
+                continue  # not turned on: not even the bell
             item = {"kind": kind, "title": str(title)[:120], "body": str(body)[:240], "link": path, "at": now_ms, "read": False}
             if isinstance(action, dict):
                 item["action"] = action
             uref.collection("inbox").add(item)
-            if not push or not notify_wants((u.to_dict() or {}).get("notificationPrefs") if u.exists else None, kind):
+            if not push or not wants:
                 continue
             toks = [(x.id, (x.to_dict() or {}).get("token")) for x in db.collection("pushTokens").where("uid", "==", uid).stream()]
             toks = [t for t in toks if t[1]]
@@ -5751,11 +5768,26 @@ def practice_order(req, db, uid, tok, now_ms):
         else:
             o = PR.validate_order(acct, data, (quotes.get(sym) or {}).get("c"), universe, now_ms, oid)
         PR.add_order(acct, o)
+        # a market order on a fast stock fills right now at the price on screen (PR.instant_price)
+        events = []
+        px = PR.instant_price(o, quotes.get(str((o.get("contract") or {}).get("u") or o.get("sym") or "").upper()), now_ms, FAST_SYMBOLS)
+        if px is not None:
+            PR.fill(acct, o, px, now_ms, events, vols)
         acct["updatedAt"] = now_ms
         t.set(ref, acct)
-        return o
+        if events:
+            _pr_events(db, uid, events, t)
+        return o, events
 
-    return {"order": txn(db.transaction())}
+    o, events = txn(db.transaction())
+    if any(e["kind"] == "fill" for e in events):
+        try:
+            _pr_after(db, uid, events, now_ms)
+        except Exception as e:
+            print("[practice] after-fill update failed:", type(e).__name__)
+        _pr_notify(db, uid, events)
+    filled = next((e for e in events if e["kind"] == "fill"), None)
+    return {"order": o, "filled": {"price": filled["price"], "qty": filled["qty"]} if filled else None}
 
 
 @https_fn.on_call()
@@ -7417,7 +7449,7 @@ def war_market_pass(db, now_ms, rng=None):
     return minutes
 
 
-def war_notify(db, players, title, body, line, tag, now_ms, path="app/war", action=None, bell_when_quiet=False):
+def war_notify(db, players, title, body, line, tag, now_ms, path="app/war", action=None, bell_when_quiet=False, direct=False):
     """A War notification to [(uid, quiet hours)]: a push and the bell now, or, for anyone in
     their quiet hours, a line in their morning summary instead (§22), plus the bell without a
     push when bell_when_quiet (e.g. an invite they can answer later). Never raises."""
@@ -7428,9 +7460,9 @@ def war_notify(db, players, title, body, line, tag, now_ms, path="app/war", acti
             if ends:
                 db.collection("warProfiles").document(uid).update({"overnight": firestore.ArrayUnion([line]), "summaryAt": ends})
                 if bell_when_quiet:
-                    notify_users(db, [uid], "war", title, body, path, tag, action=action, push=False)
+                    notify_users(db, [uid], "war", title, body, path, tag, action=action, push=False, direct=direct)
             else:
-                sent += notify_users(db, [uid], "war", title, body, path, tag, action=action)
+                sent += notify_users(db, [uid], "war", title, body, path, tag, action=action, direct=direct)
         except Exception as e:
             print("[war] notify failed: %s" % type(e).__name__)
     return sent
@@ -7727,11 +7759,11 @@ def war_lobby(req, db, uid, now_ms):
         war_notify(db, _war_quiet_of(db, [to]), "%s invited you to a War" % name,
                    "%s: %d day%s, up to %d players. Prices in the War zone are simulated." % (wname, war["days"], "" if war["days"] == 1 else "s", war["maxPlayers"]),
                    "%s invited you to %s." % (name, wname), "war-inv-" + wid, now_ms, path="app/war/" + wid,
-                   action={"type": "war", "id": wid}, bell_when_quiet=True)
+                   action={"type": "war", "id": wid}, bell_when_quiet=True, direct=True)
     elif action == "join" and war.get("status") == "lobby":
         war_notify(db, _war_quiet_of(db, [war["organizer"]]), "%s joined %s" % (name, war.get("name") or "your War"),
                    "%d of %d players are in." % (len(war["players"]), war["maxPlayers"]), "%s joined %s." % (name, war.get("name") or "your War"),
-                   "war-" + wid, now_ms, path="app/war/" + wid)
+                   "war-" + wid, now_ms, path="app/war/" + wid, direct=True)
     _war_announce(db, before, war, wid, now_ms)
     if before.get("status") == "lobby" and war.get("status") != "lobby" and action not in ("start", "cancel"):
         raise WM.WarError("FAILED_PRECONDITION", "The lobby deadline has passed.")
@@ -8562,10 +8594,10 @@ def _war_attack_notify(db, war, wid, events, now_ms):
         if kind == "new":
             war_notify(db, _war_quiet_of(db, [a["defender"]]), "%s is attacking %s" % (who, terr),
                        "Accept (Counter-pick allowed) or decline within 2 hours; no answer means it's accepted. $5,000 War stake; simulated War zone.",
-                       "%s attacked %s (waiting for you)." % (who, terr), tag, now_ms, path=path)
+                       "%s attacked %s (waiting for you)." % (who, terr), tag, now_ms, path=path, direct=True)
         elif kind == "remind":
             war_notify(db, _war_quiet_of(db, [a["defender"]]), "30 minutes to answer %s" % who, "%s's attack on %s is accepted automatically if you don't answer." % (who, terr),
-                       "%s's attack on %s is waiting." % (who, terr), tag, now_ms, path=path)
+                       "%s's attack on %s is waiting." % (who, terr), tag, now_ms, path=path, direct=True)
         elif kind in ("accepted", "auto"):
             war_notify(db, _war_quiet_of(db, [a["attacker"], a["defender"]] if kind == "auto" else [a["attacker"]]),
                        "The battle for %s is on" % terr, "%s · 1 hour on simulated War zone prices." % ("Accepted automatically" if kind == "auto" else "%s accepted" % them),

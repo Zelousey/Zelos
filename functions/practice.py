@@ -643,6 +643,26 @@ def _first_trigger(o, bars, quote, now_ms, bar_min=BAR_MIN):
     return None
 
 
+INSTANT_MAX_AGE_MS = 150_000  # a fast stock's quote is at most ~1 minute old in market hours
+
+
+def instant_price(o, quote, now_ms, fast):
+    """Owner 2026-11-18 ("it takes way too long ... you sell at one price and then it changes"):
+    a market order on one of the fast stocks (prices every minute) fills right away at the latest
+    price, the one the app is showing, instead of waiting for the next minute's prices. Only in
+    market hours and only with a fresh quote; anything else (limit/stop orders, the 15-minute
+    stocks, a stale or missing price) still fills on the next prices, as before."""
+    if o.get("type") != "market" or not quote or not quote.get("c"):
+        return None
+    sym = (o.get("contract") or {}).get("u") if o.get("opt") else o.get("sym")
+    if sym not in (fast or ()):
+        return None
+    t_ms = int(quote.get("t") or 0) * 1000
+    if not market_open(now_ms) or now_ms - t_ms > INSTANT_MAX_AGE_MS or t_ms > now_ms + 60_000:
+        return None
+    return float(quote["c"])
+
+
 def session_open_ms(day):
     d = datetime.strptime(day, "%Y-%m-%d").replace(hour=9, minute=30, tzinfo=NY)
     return int(d.timestamp() * 1000)
