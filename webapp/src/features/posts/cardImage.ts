@@ -53,15 +53,6 @@ function wrap(c: CanvasRenderingContext2D, text: string, max: number, lines: num
   return out;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((res) => {
-    const im = new Image();
-    im.onload = () => res(im);
-    im.onerror = () => res(null);
-    im.src = src;
-  });
-}
-
 function drawLine(c: CanvasRenderingContext2D, ch: CardChart, color: string, x0: number, y0: number, w: number, h: number, base?: number) {
   const ys = ch.p;
   const ref = base ?? (ch.buy != null ? ys[ch.buy]! : ys[0]!);
@@ -159,39 +150,29 @@ export async function drawCard(source: PostSource, card: SoloCard | BattleCard, 
   c.fillStyle = g2;
   c.fillRect(0, 0, W, H);
 
-  // the brand bar: logo and the app's name
-  const logo = await loadImage(`${import.meta.env.BASE_URL}icons/icon-192.png`);
-  if (logo) {
-    c.save();
-    round(c, 72, 64, 72, 72, 16);
-    c.clip();
-    c.drawImage(logo, 72, 64, 72, 72);
-    c.restore();
-  }
-  c.fillStyle = '#ffffff';
-  c.font = `900 40px ${FONT}`;
+  // owner 2026-11-18: no brand bar on top: the card starts with who you are and what you said
+  // ("Trade it on Zelos Trade War" stays at the bottom)
   c.textBaseline = 'middle';
-  c.fillText('ZELOS TRADE WAR', logo ? 164 : 72, 100);
 
   // who: the trader
   const handle = username ? '@' + username : name;
   c.beginPath();
-  c.arc(108, 228, 36, 0, Math.PI * 2);
+  c.arc(108, 116, 36, 0, Math.PI * 2);
   c.fillStyle = '#1b2233';
   c.fill();
   c.fillStyle = '#ffffff';
   c.font = `800 34px ${FONT}`;
   c.textAlign = 'center';
-  c.fillText((name || '?').slice(0, 1).toUpperCase(), 108, 230);
+  c.fillText((name || '?').slice(0, 1).toUpperCase(), 108, 118);
   c.textAlign = 'left';
   c.font = `800 40px ${FONT}`;
-  c.fillText(fit(c, handle, 700), 168, 212);
+  c.fillText(fit(c, handle, 700), 168, 100);
   c.fillStyle = 'rgba(255,255,255,0.6)';
   c.font = `500 30px ${FONT}`;
-  c.fillText(solo ? (sc.openDay && sc.closeDay ? `Closed a trade · ${day(sc.openDay)} → ${day(sc.closeDay)} · ${heldFor(sc.openDay, sc.closeDay)}` : 'Closed a trade') : 'Finished a Trade War battle', 168, 254);
+  c.fillText(solo ? (sc.openDay && sc.closeDay ? `Closed a trade · ${day(sc.openDay)} → ${day(sc.closeDay)} · ${heldFor(sc.openDay, sc.closeDay)}` : 'Closed a trade') : 'Finished a Trade War battle', 168, 142);
 
   // the thesis, if any
-  let y = 316;
+  let y = 204;
   if (thesis.trim()) {
     c.fillStyle = '#ffffff';
     c.font = `500 36px ${FONT}`;

@@ -327,7 +327,6 @@ function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H
         {showBase && <line x1={PAD.l} x2={W - PAD.r} y1={y(base)} y2={y(base)} className={s.base} />}
         {area && fill && <path d={area} fill={`url(#${gradId})`} />}
         {points.length > 1 && <path d={d} className={dir === 'up' ? s.lineUp : s.lineDown} />}
-        {last && <circle cx={x(last.t)} cy={y(last.v)} r={4} className={[s.ring, dir === 'up' ? s.ringUp : s.ringDown].join(' ')} />}
         {last && <circle cx={x(last.t)} cy={y(last.v)} r={4} className={dir === 'up' ? s.dotUp : s.dotDown} />}
         {hp && <line x1={x(hp.t)} x2={x(hp.t)} y1={PAD.t} y2={H - PAD.b} className={s.cross} />}
         {hp && <circle cx={x(hp.t)} cy={y(hp.v)} r={4} className={s.crossDot} />}

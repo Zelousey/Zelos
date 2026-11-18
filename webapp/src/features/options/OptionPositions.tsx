@@ -67,30 +67,37 @@ export function OptionPositions({ acct, rows, empty }: { acct: Account; rows: Ro
               {selling?.row.id === r.id && (
                 <div className={s.sellConfirm} role="group" aria-label={t('opt.sell')}>
                   {selling.max > 1 && (
-                    // owner 2026-11-14: sell some contracts and keep the rest, e.g. one as a runner
+                    // owner 2026-11-18: pick how many contracts to sell (no "sell one / keep a runner")
                     <div className={s.sellQty}>
+                      <label className={s.qtyLabel} htmlFor={`sellqty-${r.id}`}>
+                        {t('opt.sellHowMany')}
+                      </label>
                       <span className={s.stepper}>
                         <Button variant="ghost" size="sm" iconOnly aria-label={t('opt.sellLess')} disabled={busy || selling.qty <= 1} onClick={() => setSelling({ ...selling, qty: selling.qty - 1 })}>
                           −
                         </Button>
-                        <output aria-live="polite" aria-label={t('opt.sellHowMany')}>
-                          {t('opt.sellOf', { n: selling.qty, max: selling.max })}
-                        </output>
+                        <input
+                          id={`sellqty-${r.id}`}
+                          className={s.qtyInput}
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={selling.max}
+                          value={selling.qty}
+                          disabled={busy}
+                          onChange={(e) => {
+                            const n = Math.round(Number(e.target.value));
+                            if (Number.isFinite(n)) setSelling({ ...selling, qty: Math.min(selling.max, Math.max(1, n)) });
+                          }}
+                        />
+                        <span className={s.qtyOf}>{t('opt.sellOfMax', { max: selling.max })}</span>
                         <Button variant="ghost" size="sm" iconOnly aria-label={t('opt.sellMore')} disabled={busy || selling.qty >= selling.max} onClick={() => setSelling({ ...selling, qty: selling.qty + 1 })}>
                           +
                         </Button>
                       </span>
-                      <span className={s.quick}>
-                        <Button variant="ghost" size="sm" disabled={busy} aria-pressed={selling.qty === 1} onClick={() => setSelling({ ...selling, qty: 1 })}>
-                          {t('opt.sellOne')}
-                        </Button>
-                        <Button variant="ghost" size="sm" disabled={busy} aria-pressed={selling.qty === selling.max - 1} onClick={() => setSelling({ ...selling, qty: selling.max - 1 })}>
-                          {t('opt.keepRunner')}
-                        </Button>
-                        <Button variant="ghost" size="sm" disabled={busy} aria-pressed={selling.qty === selling.max} onClick={() => setSelling({ ...selling, qty: selling.max })}>
-                          {t('opt.sellAll')}
-                        </Button>
-                      </span>
+                      <Button variant="ghost" size="sm" disabled={busy} aria-pressed={selling.qty === selling.max} onClick={() => setSelling({ ...selling, qty: selling.max })}>
+                        {t('opt.sellAll')}
+                      </Button>
                     </div>
                   )}
                   <p>{t('opt.sellConfirm', { qty: selling.qty, label: r.label })}{selling.qty < selling.max ? ` ${t('opt.sellKeeps', { n: selling.max - selling.qty })}` : ''}</p>

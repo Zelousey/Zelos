@@ -75,11 +75,13 @@ test('a stock position opens its trade page with entry pins; an option position 
   await page.getByRole('tab', { name: 'D', exact: true }).first().click();
   await expect(page.locator('[data-pins="1"]').first()).toBeVisible();
 
-  // sell some contracts and keep one as a runner (owner 2026-11-14)
+  // choose how many contracts to sell (owner 2026-11-18)
   await page.getByRole('button', { name: `Sell: ${label}` }).first().click();
   const confirmRow = page.getByRole('group', { name: 'Sell' });
-  await expect(confirmRow.getByLabel('Contracts to sell')).toHaveText('2 of 2');
-  await confirmRow.getByRole('button', { name: 'Keep 1 as a runner' }).click();
+  const howMany = confirmRow.getByLabel('Contracts to sell');
+  await expect(howMany).toHaveValue('2');
+  await expect(confirmRow.getByRole('button', { name: 'Keep 1 as a runner' })).toHaveCount(0);
+  await howMany.fill('1');
   await expect(confirmRow).toContainText(`Sell 1 ${label} at the model price`);
   await expect(confirmRow).toContainText('You keep 1.');
   await confirmRow.getByRole('button', { name: 'Sell 1', exact: true }).last().click();

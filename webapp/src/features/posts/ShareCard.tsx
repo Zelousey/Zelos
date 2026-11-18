@@ -30,27 +30,33 @@ export function CardLine({ chart, color, base }: { chart: CardChart; color: stri
   const x = (i: number) => P + (i / (ys.length - 1)) * (W - 2 * P);
   const y = (v: number) => P + (1 - (v - lo) / span) * (H - 2 * P);
   const d = ys.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  // the markers sit on top of the line as HTML so they stay round however wide the card is
+  // (the line itself stretches to fill; owner 2026-11-18: posts looked stretched on a monitor)
+  const at = (i: number) => ({ left: `${(x(i) / W) * 100}%`, top: `${(y(ys[i]!) / H) * 100}%` });
   const mark = (i: number, kind: 'buy' | 'sell') => (
-    <g key={kind}>
-      <circle cx={x(i)} cy={y(ys[i]!)} r={11} fill={color} stroke="#0b0d12" strokeWidth={3} />
-      <path d={kind === 'buy' ? `M${x(i) - 5},${y(ys[i]!)}h10M${x(i)},${y(ys[i]!) - 5}v10` : `M${x(i) - 5},${y(ys[i]!)}h10`} stroke="#0b0d12" strokeWidth={2.6} strokeLinecap="round" />
-    </g>
+    <span key={kind} className={s.mark} style={{ ...at(i), background: color }}>
+      <svg viewBox="-8 -8 16 16" aria-hidden="true">
+        <path d={kind === 'buy' ? 'M-5,0h10M0,-5v10' : 'M-5,0h10'} stroke="#0b0d12" strokeWidth={2.6} strokeLinecap="round" />
+      </svg>
+    </span>
   );
   return (
-    <svg className={s.line} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor={color} stopOpacity="0.28" />
-          <stop offset="1" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <line x1={P} x2={W - P} y1={y(ref)} y2={y(ref)} stroke="rgba(255,255,255,0.35)" strokeWidth={2} strokeDasharray="2 9" strokeLinecap="round" />
-      <path d={`${d}L${x(ys.length - 1)},${H}L${x(0)},${H}Z`} fill={`url(#${id})`} />
-      <path d={d} fill="none" stroke={color} strokeWidth={3.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    <div className={s.lineWrap}>
+      <svg className={s.line} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor={color} stopOpacity="0.28" />
+            <stop offset="1" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <line x1={P} x2={W - P} y1={y(ref)} y2={y(ref)} stroke="rgba(255,255,255,0.35)" strokeWidth={2} strokeDasharray="2 9" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <path d={`${d}L${x(ys.length - 1)},${H}L${x(0)},${H}Z`} fill={`url(#${id})`} />
+        <path d={d} fill="none" stroke={color} strokeWidth={3.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
       {chart.buy != null && mark(chart.buy, 'buy')}
       {chart.sell != null && mark(chart.sell, 'sell')}
-      {chart.buy == null && <circle cx={x(ys.length - 1)} cy={y(ys[ys.length - 1]!)} r={7} fill={color} />}
-    </svg>
+      {chart.buy == null && <span className={`${s.mark} ${s.markDot}`} style={{ ...at(ys.length - 1), background: color }} aria-hidden="true" />}
+    </div>
   );
 }
 

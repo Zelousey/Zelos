@@ -538,6 +538,12 @@ class NotifySurrender(unittest.TestCase):
         self.assertTrue(m.notify_wants({"types": {"friends": False}}, "battles"))
         self.assertFalse(m.notify_wants({"types": {"friends": False}}, "friends"))
 
+    def test_war_zone_notifications_are_opt_in(self):
+        # owner 2026-11-18: the simulated War zone stays quiet until it's turned on
+        self.assertFalse(m.notify_wants(None, "war"))
+        self.assertFalse(m.notify_wants({"types": {}}, "war"))
+        self.assertTrue(m.notify_wants({"types": {"war": True}}, "war"))
+
     def test_record_counts_surrender_as_loss(self):
         r = m.tw_record_update(None, {"uid": "a", "rank": 1, "pnlPct": 4.0}, 3, "Fight", "w1", T0)
         self.assertEqual((r["played"], r["wins"], r["losses"], r["surrenders"]), (1, 1, 0, 0))
