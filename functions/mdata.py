@@ -500,6 +500,45 @@ def merge_intraday(existing, fresh, keep_sessions=INTRADAY_SESSIONS_KEEP):
     return [r for r in rows if r[:10] in days]
 
 
+INTRADAY_HISTORY_KEEP = 20  # sessions of 5-minute bars in markets/intradayHist_<SYM> (owner 2026-11-18)
+
+
+def to_5min(rows):
+    """Intraday bar strings (any length up to 5 minutes) -> 5-minute bars from the 9:30 open."""
+    out, cur = [], None
+    for r in rows or []:
+        p = str(r).split(",")
+        if len(p) < 5 or len(p[0]) < 16:
+            continue
+        try:
+            mins = int(p[0][11:13]) * 60 + int(p[0][14:16])
+            o, h, l, c = (float(x) for x in p[1:5])
+            v = int(float(p[5])) if len(p) > 5 and p[5] else 0
+        except ValueError:
+            continue
+        if mins < SESSION_OPEN or mins >= SESSION_CLOSE:
+            continue
+        b = SESSION_OPEN + (mins - SESSION_OPEN) // 5 * 5
+        label = "%s %02d:%02d" % (p[0][:10], b // 60, b % 60)
+        if cur and cur[0] == label:
+            cur[2], cur[3], cur[4], cur[5] = max(cur[2], h), min(cur[3], l), c, cur[5] + v
+        else:
+            cur = [label, o, h, l, c, v]
+            out.append(cur)
+    return ["%s,%s,%s,%s,%s,%d" % (b[0], b[1], b[2], b[3], b[4], b[5]) for b in out]
+
+
+def intraday_history(stored, live, keep=INTRADAY_HISTORY_KEEP):
+    """Older sessions for the intraday charts: the stored 5-minute history with every session in
+    today's live doc (1-minute bars) folded in as 5-minute bars, the last `keep` sessions.
+    A session in the live doc replaces the stored copy of that session."""
+    fresh = to_5min(live)
+    days = {r[:10] for r in fresh}
+    rows = sorted([str(r) for r in stored or [] if str(r)[:10] not in days] + fresh)
+    keep_days = set(sorted({r[:10] for r in rows})[-keep:])
+    return [r for r in rows if r[:10] in keep_days]
+
+
 def prev_close(daily_rows, today):
     for r in reversed(daily_rows or []):
         p = str(r).split(",")

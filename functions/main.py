@@ -7106,6 +7106,29 @@ def _eod_since(hist_rows, today, back_days):
     return max(date.fromisoformat(last) + timedelta(days=1), t - timedelta(days=10)).isoformat()
 
 
+def _save_intraday_history(db, now):
+    """Once a day after the close (no Marketstack calls): fold each stock's live intraday bars
+    into markets/intradayHist_<SYM>, the last 20 sessions as 5-minute bars, so the 15-minute and
+    hourly charts have enough candles for their averages and bands (owner 2026-11-18). A separate
+    doc so the live doc, which phones re-download every minute, stays small."""
+    syms = list(PRACTICE_SYMBOLS)
+    n = 0
+    for part in MD.chunks(syms, 100):
+        live = {s.id[len("intraday_"):]: s for s in db.get_all([db.collection("markets").document("intraday_" + x) for x in part])}
+        hist = {s.id[len("intradayHist_"):]: s for s in db.get_all([db.collection("markets").document("intradayHist_" + x) for x in part])}
+        batch = db.batch()
+        for sym in part:
+            ls, hs = live.get(sym), hist.get(sym)
+            lb = [str(x) for x in ((ls.to_dict() or {}).get("bars") or [])] if ls is not None and ls.exists else []
+            hb = [str(x) for x in ((hs.to_dict() or {}).get("bars") or [])] if hs is not None and hs.exists else []
+            if not lb:
+                continue
+            batch.set(db.collection("markets").document("intradayHist_" + sym), {"interval": "5m", "updatedAt": now.isoformat(), "bars": MD.intraday_history(hb, lb)})
+            n += 1
+        batch.commit()
+    return n
+
+
 def ms_daily_close(db, key, now):
     """The day's final prices, once, as cheaply as Marketstack allows (owner, 2026-10-22):
       1. one call: is SPY's bar for today out yet? (No: return None, try again in 30 minutes.)
@@ -7153,6 +7176,10 @@ def ms_daily_close(db, key, now):
         if recent.get(s) or old or hist.get(s):
             bars[s] = MD.merge_series(old or (hist.get(s) or [])[-MD.DAILY_BARS_KEEP:], recent.get(s) or [], MD.DAILY_BARS_KEEP)
     ref.set({"updatedAt": now.isoformat(), "source": "Marketstack", "bars": bars})
+    try:
+        print("[market] intraday history: %d stocks" % _save_intraday_history(db, now))
+    except Exception as e:
+        print("[market] intraday history failed: %s" % type(e).__name__)
     # ticker tape / market overview
     snapd = MD.build_snapshot({s: hist[s] for s in MD.SNAP_SYMBOLS if hist.get(s)}, now)
     if snapd["items"]:
