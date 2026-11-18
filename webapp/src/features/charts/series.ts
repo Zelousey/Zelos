@@ -14,7 +14,8 @@ export type Timeframe = '5m' | '15m' | '1h' | 'D' | 'W';
 export const TIMEFRAMES: { id: Timeframe; label: string; ranges: [string, number | 'all'][]; def: number | 'all' }[] = [
   { id: '5m', label: '5m', ranges: [['1D', 78], ['2D', 156], ['5D', 390]], def: 78 },
   { id: '15m', label: '15m', ranges: [['1D', 26], ['2D', 52], ['5D', 130]], def: 52 },
-  { id: '1h', label: '1H', ranges: [['1D', 7], ['5D', 35]], def: 35 },
+  // no 1D on the hourly chart: one day is only 7 hourly candles (owner 2026-11-18: "five little blocks")
+  { id: '1h', label: '1H', ranges: [['5D', 35], ['All', 'all']], def: 35 },
   { id: 'D', label: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
   { id: 'W', label: 'W', ranges: [['6M', 26], ['1Y', 52], ['All', 'all']], def: 52 },
 ];

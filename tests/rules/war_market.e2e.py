@@ -68,6 +68,11 @@ for uid, quiet in (("warAwake01", {"start": 0, "end": 0, "tz": "UTC"}), ("warSle
         d.reference.delete()
 
 
+# War zone notifications are opt-in (owner 2026-11-18): these players turned them on
+for _uid in ("baseAnn01", "zoneAnn01"):
+    db.collection("users").document(_uid).set({"notificationPrefs": {"types": {"war": True}}}, merge=True)
+
+
 def inbox(uid):
     return [d.to_dict() for d in db.collection("users").document(uid).collection("inbox").stream()]
 
