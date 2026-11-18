@@ -89,6 +89,10 @@ export const useQuotes = () => useLiveDoc('markets/quotes', parseQuotesDoc);
 export const useMovers = () => useLiveDoc('markets/movers', parseMoversDoc);
 export const useSnapshot = () => useLiveDoc('markets/snapshot', parseSnapshotDoc);
 export const useIntraday = (sym: string | null) => useLiveDoc(sym && SYMBOL_RE.test(sym) ? `markets/intraday_${sym}` : null, (d) => parseBarStrings(d.bars));
+/** Older sessions as 5-minute bars (markets/intradayHist_SYM, last 20 sessions, written once a day
+ * after the close by functions/main.py _save_intraday_history), so 15m / 1H charts have enough
+ * candles for their averages and bands (owner 2026-11-18). */
+export const useIntradayHistory = (sym: string | null) => useLiveDoc(sym && SYMBOL_RE.test(sym) ? `markets/intradayHist_${sym}` : null, (d) => parseBarStrings(d.bars));
 
 /** ~2 years of daily bars for every chartable symbol. Read once per session (5 small doc reads), then cached. */
 let historyPromise: Promise<Record<string, Bar[]>> | null = null;

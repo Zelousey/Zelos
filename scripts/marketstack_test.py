@@ -228,5 +228,13 @@ ok(MD.hard_cap() == 200000, "the hard cap is never below the live cap")
 for k in ("MS_CYCLE_SEED", "MS_LIVE_CAP", "MS_HARD_CAP"):
     del os.environ[k]
 
+# intraday history (owner 2026-11-18): 1-minute bars become 5-minute bars, 20 sessions kept
+one = ["2026-11-17 09:30,10,11,9.5,10.5,100", "2026-11-17 09:31,10.5,12,10,11,50", "2026-11-17 09:35,11,11.2,10.8,11.1,7", "2026-11-17 16:00,1,1,1,1,1"]
+ok(MD.to_5min(one) == ["2026-11-17 09:30,10.0,12.0,9.5,11.0,150", "2026-11-17 09:35,11.0,11.2,10.8,11.1,7"], "1-minute bars fold into 5-minute bars; 16:00 is left out")
+stored = ["2026-10-%02d 09:30,1,1,1,1,1" % d for d in range(1, 31)] + ["2026-11-17 09:30,9,9,9,9,9"]
+h = MD.intraday_history(stored, one)
+ok(len({r[:10] for r in h}) == 20 and h[-2:] == MD.to_5min(one), "today's live bars replace the stored copy; the last 20 sessions are kept")
+ok(MD.intraday_history([], []) == [], "nothing in, nothing out")
+
 print("ALL CHECKS PASSED" if not fails else "%d FAILED" % fails)
 sys.exit(1 if fails else 0)

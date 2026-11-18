@@ -86,8 +86,13 @@ state["spy_ready"] = True
 asked.clear()
 MD.CALLS[0] = 0
 ok(main.ms_budget_start(db, NOW, "essential", 1) == 98000, "the daily close gets the essential allowance")
+# today's 1-minute bars for AAPL (what refresh_quotes stores); the close folds them into the 5-minute history
+db.collection("markets").document("intraday_AAPL").set({"interval": "1m", "bars": ["%s 09:30,10,11,9,10.5,100" % TODAY, "%s 09:31,10.5,12,10,11,50" % TODAY]})
+db.collection("markets").document("intradayHist_AAPL").set({"interval": "5m", "bars": ["2020-01-02 09:30,1,1,1,1,1"]})
 h = main.ms_daily_close(db, "k", NOW)
 MD.BUDGET[0] = None
+ih = db.collection("markets").document("intradayHist_AAPL").get().to_dict()["bars"]
+ok(ih == ["2020-01-02 09:30,1,1,1,1,1", "%s 09:30,10.0,12.0,9.0,11.0,150" % TODAY], "the close keeps older sessions and adds today as 5-minute bars (no extra calls)")
 everything = set(hist_syms) | set(globe_syms)
 ok(h is not None and h["SPY"][-1].startswith(TODAY), "today's bar is added to the history")
 ok(all(frm == TODAY for frm, _ in asked[1:]) and all(len(s) <= 100 for _, s in asked), "only today's bars are asked for, 100 symbols a request at most")

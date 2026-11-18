@@ -2,7 +2,8 @@
  * Turning stored bars into what a chart shows, per timeframe. Pure functions (unit-tested),
  * ported from the classic practice page so both draw the same bars.
  *
- *   5m / 15m / 1H  from markets/intraday_SYM (5-minute bars, last 5 sessions), grouped
+ *   5m / 15m / 1H  from markets/intraday_SYM (live, last 5 sessions) after markets/intradayHist_SYM
+ *             (5-minute bars, up to 20 sessions), grouped
  *             into 5-minute, 15-minute or hourly buckets anchored at 9:30 ET
  *   D         from ~2 years of daily history; the live quote updates (or adds) today's bar
  *   W         daily bars grouped by week (Monday)
@@ -13,7 +14,7 @@ export type Timeframe = '5m' | '15m' | '1h' | 'D' | 'W';
 
 export const TIMEFRAMES: { id: Timeframe; label: string; ranges: [string, number | 'all'][]; def: number | 'all' }[] = [
   { id: '5m', label: '5m', ranges: [['1D', 78], ['2D', 156], ['5D', 390]], def: 78 },
-  { id: '15m', label: '15m', ranges: [['1D', 26], ['2D', 52], ['5D', 130]], def: 52 },
+  { id: '15m', label: '15m', ranges: [['1D', 26], ['2D', 52], ['5D', 130], ['All', 'all']], def: 52 },
   // no 1D on the hourly chart: one day is only 7 hourly candles (owner 2026-11-18: "five little blocks")
   { id: '1h', label: '1H', ranges: [['5D', 35], ['All', 'all']], def: 35 },
   { id: 'D', label: 'D', ranges: [['1M', 21], ['3M', 63], ['6M', 126], ['1Y', 252], ['All', 'all']], def: 126 },
@@ -68,6 +69,14 @@ export function weeklyBars(daily: Bar[]): Bar[] {
     }
   }
   return out;
+}
+
+/** The older 5-minute sessions in front of the live doc's sessions (the live doc wins for any day it has). */
+export function joinIntraday(older: Bar[], live: Bar[]): Bar[] {
+  if (!older.length) return live;
+  const first = live[0]?.[0].slice(0, 10);
+  const before = first ? older.filter((b) => b[0].slice(0, 10) < first) : older;
+  return before.length ? [...before, ...live] : live;
 }
 
 /** Group intraday bars into `step`-minute buckets from the 9:30 ET open; the live quote moves today's last bar. */

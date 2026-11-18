@@ -1227,18 +1227,34 @@
     });
     // each average's latest value as a small tag on the price axis, in its colour, so you can
     // tell the lines apart without the legend (the last-price tag below stays on top)
-    c.font = '600 9.5px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
+    // the last price always gets its tag (the app's charts don't set lastPrice; use the latest close)
+    var lastP = this.lastPrice != null ? this.lastPrice : to === s.n - 1 ? (s.kind ? s.raw.c[s.raw.n - 1] : s.c[s.n - 1]) : null;
+    // the averages' tags never sit on top of each other or the last price's (owner 2026-11-18:
+    // stacked tags were unreadable on a phone): each one moves just clear, or is left out
+    var fixedY = lastP != null ? Y(this.anim ? this.animValue() : lastP) : null;
+    var otags = [];
     overlays.forEach(function (d) {
       if (d.band) return;
       var ov = s.ind[d.id][to]; if (ov == null) return;
       var oy = Y(ov); if (oy < L.y0 + 6 || oy > L.y1 - 6) return;
-      var oc = col(d.color, acc); pill(c, L.x1 + 2, oy - 8, 60, 16, oc);
-      c.fillStyle = lum(oc) > 0.55 ? '#0b0c0f' : '#ffffff'; c.fillText(fmt(ov), L.x1 + 9, oy);
+      otags.push({ y: oy, v: ov, c: col(d.color, acc) });
+    });
+    otags.sort(function (a, b) { return a.y - b.y; });
+    var prevB = -Infinity;
+    otags.forEach(function (tg) {
+      var y = Math.max(tg.y, prevB + 8.5);
+      if (fixedY != null && Math.abs(y - fixedY) < 18.5) y = y < fixedY && fixedY - 18.5 > prevB + 8.5 ? fixedY - 18.5 : fixedY + 18.5;
+      if (y > L.y1 - 6) { tg.skip = true; return; }
+      tg.y = y; prevB = y + 8;
+    });
+    c.font = '600 9.5px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
+    otags.forEach(function (tg) {
+      if (tg.skip) return;
+      pill(c, L.x1 + 2, tg.y - 8, 60, 16, tg.c);
+      c.fillStyle = lum(tg.c) > 0.55 ? '#0b0c0f' : '#ffffff'; c.fillText(fmt(tg.v), L.x1 + 9, tg.y);
     });
     c.font = '500 10px "IBM Plex Sans", system-ui, -apple-system, sans-serif';
     // last price tag
-    // the last price always gets its tag (the app's charts don't set lastPrice; use the latest close)
-    var lastP = this.lastPrice != null ? this.lastPrice : to === s.n - 1 ? (s.kind ? s.raw.c[s.raw.n - 1] : s.c[s.n - 1]) : null;
     if (lastP != null) {
       var lp = this.anim ? this.animValue() : lastP;
       var ly = Y(lp), up2 = lineMode ? lp >= (this.refPrice || s.o[from] || lp) : lastP >= (s.c[s.n - 2] || lastP), pc2 = up2 ? bull : bear;
@@ -1310,7 +1326,7 @@
     this.hoverIdx = hi2;
     // the legend: one row each for the prices, the averages, each band and volume; names in ink,
     // values in colour (prices green or red with the candle)
-    var cUp = s.c[li] >= s.o[li], pcol = cUp ? bull : bear;
+    var cUp = s.c[li] >= s.o[li], pcol = cUp ? bull : bear, narrow = this.W < 520;
     var lab = function (t) { return [t, ink, 'l']; }, sub = function (t) { return [t, muted, 's']; }, val = function (t, cc) { return [t, cc, 'v']; };
     var rows = [[lab('O'), val(fmt(s.o[li]), pcol), lab('H'), val(fmt(s.h[li]), pcol), lab('L'), val(fmt(s.l[li]), pcol), lab('C'), val(fmt(s.c[li]), pcol)].concat(s.v[li] ? [lab('V'), val(fmtVol(s.v[li]), pcol)] : [])];
     if (s.kind) rows[0] = [sub(s.note), lab('Open'), val(fmt(s.o[li]), pcol), lab('Close'), val(fmt(s.c[li]), pcol)];
@@ -1319,11 +1335,15 @@
       var v = s.ind[d.id], name = d.label.split(' (')[0], cc = d.id === 'bb' && hexOk(IC.bb) ? IC.bb : col(d.color, acc);
       if (d.intradayOnly && !s.intraday) return; // e.g. VWAP on a daily chart: nothing to show
       if (!hasVals([{ arr: d.band ? v.up : v }], from, to)) { avg.push(lab(name), sub(needText(d, s))); return; }
-      if (d.band) rows.push([lab(name === 'Bollinger Bands' ? 'BB (20)' : name === 'Donchian Channel' ? 'DC (20)' : name), sub('Lower'), val(fmt(v.lo[li]), cc)].concat(v.mid ? [sub('Mid'), val(fmt(v.mid[li]), cc)] : []).concat([sub('Upper'), val(fmt(v.up[li]), cc)]));
-      else avg.push(lab(name), val(fmt(v[li]), cc));
+      var bname = name === 'Bollinger Bands' ? 'BB' : name === 'Donchian Channel' ? 'DC' : name;
+      // on a phone a band is one short pair (low – high) next to the averages, so the legend
+      // takes two lines instead of four and the chart gets the room (owner 2026-11-18)
+      if (d.band && narrow) avg.push(lab(bname), val(fmt(v.lo[li]) + '–' + fmt(v.up[li]), cc));
+      else if (d.band) rows.push([lab(bname + ' (20)'), sub('Lower'), val(fmt(v.lo[li]), cc)].concat(v.mid ? [sub('Mid'), val(fmt(v.mid[li]), cc)] : []).concat([sub('Upper'), val(fmt(v.up[li]), cc)]));
+      else avg.push(lab(narrow ? name.replace('SMA ', 'SMA').replace('EMA ', 'EMA') : name), val(fmt(v[li]), cc));
     });
     if (avg.length) rows.push(avg);
-    if (L.vol) rows.push([lab('Volume'), val(fmtVol(s.v[li]), pcol)]);
+    if (L.vol && !narrow) rows.push([lab('Volume'), val(fmtVol(s.v[li]), pcol)]); // a phone has it as V in the first line
     if (cmpAt) {
       var f0 = null; for (var fk = from; fk <= li; fk++) if (CMP.r[fk] != null) { f0 = fk; break; }
       if (f0 != null && CMP.r[li] != null) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Bar, Quote } from '../../data/markets';
-import { barsFor, dailyBars, intradayBars, weekKey, weeklyBars } from './series';
+import { barsFor, dailyBars, intradayBars, joinIntraday, weekKey, weeklyBars } from './series';
 
 const q = (c: number, isoNy: string, extra: Partial<Quote> = {}): Quote => ({ c, o: 100, h: c, l: c, pc: 100, t: Date.parse(isoNy) / 1000, v: 10, chPct: null, ...extra });
 
@@ -49,5 +49,12 @@ describe('series', () => {
   it('barsFor picks the right source', () => {
     expect(barsFor('W', { history: hist }).intraday).toBe(false);
     expect(barsFor('15m', { intraday: [] })).toEqual({ bars: [], live: false, intraday: true });
+  });
+  it('older 5-minute sessions go in front of the live ones; the live doc wins for a day it has', () => {
+    const older: Bar[] = [['2026-11-10 09:30', 1, 1, 1, 1, 1], ['2026-11-11 09:30', 2, 2, 2, 2, 2]];
+    const live: Bar[] = [['2026-11-11 09:30', 3, 3, 3, 3, 3], ['2026-11-12 09:30', 4, 4, 4, 4, 4]];
+    expect(joinIntraday(older, live).map((b) => b[1])).toEqual([1, 3, 4]);
+    expect(joinIntraday([], live)).toBe(live);
+    expect(joinIntraday(older, []).length).toBe(2);
   });
 });
