@@ -607,15 +607,13 @@ test('a hold made with the keyboard keeps going when the pointer passes over the
 
 test.describe('signed in', () => {
   test.skip(process.env.E2E_FUNCTIONS !== '1', 'needs the Functions emulator (functions/venv)');
-  test('read a lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {
-    await page.goto('minds/tesla/lessons');
+  test('a step of a new lesson for XP, then turn on daily quotes for 15 tokens', async ({ page }, info) => {
+    // owner 2026-11-19: Tesla's lessons are scroll lessons now (every figure's are): 2 XP a step
+    await page.goto('minds/tesla/learn/imagine');
     const uid = await signIn(page, `minds-${info.project.name}-${Date.now()}`);
-    const lesson = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Build it in your head first' }) });
-    await lesson.getByRole('button', { name: 'Done reading · +10 XP' }).click();
-    await expect(page.getByText('+10 XP', { exact: true })).toBeVisible();
-    await expect(lesson.getByText('Read ✓')).toBeVisible();
-    await page.getByRole('link', { name: '← Nikola Tesla' }).click();
-    await expect(page.getByText('1 of 4 lessons read')).toBeVisible();
+    await tap(page, page.getByRole('button', { name: 'Pictured it running in his mind and fixed it there' }));
+    await expect(page.getByText('+2 XP · 1 of 4 steps')).toBeVisible();
+    await page.goto('minds/tesla');
     await fetch(`${BASE}/wallets/${uid}`, { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { balance: { integerValue: '20' } } }) });
     await page.getByRole('button', { name: 'Turn on · 15 tokens' }).click();
     await expect(page.getByText('Daily quotes from Nikola are on for 30 days')).toBeVisible();

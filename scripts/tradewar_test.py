@@ -538,6 +538,19 @@ class NotifySurrender(unittest.TestCase):
         self.assertTrue(m.notify_wants({"types": {"friends": False}}, "battles"))
         self.assertFalse(m.notify_wants({"types": {"friends": False}}, "friends"))
 
+    def test_battle_warnings_are_sent_once(self):
+        # owner 2026-11-19: an hour left for everyone; last place an hour before a Last Man Standing cut
+        now = 1_000_000_000
+        accts = {"a": {"pnlPct": 2.0}, "b": {"pnlPct": -1.5}, "c": {"pnlPct": 0.4}}
+        war = {"endAt": now + 30 * 60000, "lms": {"cutHours": 24}, "nextCutAt": now + 40 * 60000}
+        up = {}
+        notes = m.tw_warnings(war, accts, ["a", "b", "c"], now, up, "Friday", "app/battles/x")
+        self.assertEqual(sorted(n[0] for n in notes if n[2].startswith("1 hour left")), ["a", "b", "c"])
+        self.assertEqual([n[0] for n in notes if "last place" in n[2]], ["b"])
+        self.assertEqual(up, {"warnedEnd": True, "cutWarned": war["nextCutAt"]})
+        self.assertEqual(m.tw_warnings(dict(war, **up), accts, ["a", "b", "c"], now, {}, "Friday", "p"), [])
+        self.assertEqual(m.tw_warnings({"endAt": now + 5 * 3600000}, accts, ["a"], now, {}, "F", "p"), [])
+
     def test_war_zone_notifications_are_opt_in(self):
         # owner 2026-11-18: the simulated War zone stays quiet until it's turned on
         self.assertFalse(m.notify_wants(None, "war"))

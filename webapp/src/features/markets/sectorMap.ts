@@ -4,8 +4,8 @@
  * add a line when a stock joins the list. ETFs aren't in a sector.
  */
 export const SECTOR_OF: Record<string, string> = {
-  AAPL: 'Technology', MSFT: 'Technology', NVDA: 'Technology', AMD: 'Technology', MU: 'Technology', INTC: 'Technology', ARM: 'Technology', ORCL: 'Technology', PLTR: 'Technology', UBER: 'Technology',
-  GOOGL: 'Communication Services', META: 'Communication Services',
+  AAPL: 'Technology', MSFT: 'Technology', NVDA: 'Technology', AMD: 'Technology', MU: 'Technology', INTC: 'Technology', ARM: 'Technology', ORCL: 'Technology', PLTR: 'Technology',
+  GOOGL: 'Communication Services', META: 'Communication Services', TTWO: 'Communication Services',
   AMZN: 'Consumer Cyclical', TSLA: 'Consumer Cyclical', ABNB: 'Consumer Cyclical',
   JPM: 'Financial Services', GS: 'Financial Services', SOFI: 'Financial Services', HOOD: 'Financial Services',
   UNH: 'Healthcare', MRNA: 'Healthcare',

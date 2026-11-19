@@ -2224,6 +2224,24 @@ def tw_settle_bounty(b, accts):
     return "refunded", b["by"]
 
 
+def tw_warnings(war, accts, alive, now_ms, update, wname, wpath):
+    """Heads-ups during a live battle (owner 2026-11-19), each sent once (flags go in `update`):
+    an hour left for everyone still in, and, in Last Man Standing, the trader in last place an
+    hour before the next cut. Returns [(uid, kind, title, body, path)]."""
+    out = []
+    end = war.get("endAt") or 0
+    if end and 0 < end - now_ms <= 3600000 and not war.get("warnedEnd"):
+        update["warnedEnd"] = True
+        for u in alive:
+            out.append((u, "battles", "1 hour left in %s" % wname, "Last chance to make your move.", wpath))
+    cut = war.get("nextCutAt") or 0
+    if (war.get("lms") or {}) and cut and 0 < cut - now_ms <= 3600000 and war.get("cutWarned") != cut and len(alive) > 1:
+        update["cutWarned"] = cut
+        last = min(alive, key=lambda u: (accts[u].get("pnlPct") or 0))
+        out.append((last, "battles", "You're in last place in %s" % wname, "The next cut is in under an hour. Climb out or you're knocked out.", wpath))
+    return out
+
+
 def tw_leader(accts, alive):
     rows = [(a.get("pnlPct") or 0, u) for u, a in accts.items() if u in alive and not a.get("out")]
     best = max(rows) if rows else None
@@ -2637,9 +2655,16 @@ def _tw_join(db, wid, uid, pname, now_ms, extra=False):
         t.set(war_ref.collection("books").document(uid), tw_new_book())
         if pay:
             pay()
+        joined.update(host=war.get("host"), name=war.get("name") or "your battle", n=len(war["players"]) + 1, max=war["maxPlayers"])
         return bool(pay)
 
-    return bool(txn(db.transaction()))
+    joined = {}
+    paid = bool(txn(db.transaction()))
+    # owner 2026-11-19: more battle notifications. The host hears when someone joins.
+    if joined.get("host") and joined["host"] != uid:
+        notify_users(db, [joined["host"]], "battles", "%s joined %s" % (pname, joined["name"]),
+                     "%d of %d players are in." % (joined["n"], joined["max"]), "app/battles/" + wid, "war-" + wid)
+    return paid
 
 
 @https_fn.on_call()
@@ -2701,7 +2726,7 @@ def tw_start(req, db, uid, now_ms):
     _tw_close_invites(db, wid, "expired", now_ms)  # the buy-in is locked: unanswered invites lapse
     w = (war_ref.get().to_dict() or {})
     notify_users(db, [p for p in w.get("players") or [] if p != uid], "battles", "%s has started" % (w.get("name") or "Your Trade War"),
-                 "The clock is running: %d day%s. Good luck." % (w.get("days") or 0, "" if w.get("days") == 1 else "s"), "practice/war.html?w=" + wid, "war-" + wid)
+                 "The clock is running: %d day%s. Good luck." % (w.get("days") or 0, "" if w.get("days") == 1 else "s"), "app/battles/" + wid, "war-" + wid)
     return {"ok": True}
 
 
@@ -2761,7 +2786,7 @@ def tw_cancel(req, db, uid, now_ms):
     war_ref.update({"status": "cancelled"})
     _tw_close_invites(db, wid, "cancelled", now_ms)
     notify_users(db, [p for p in war.get("players") or [] if p != uid], "battles", "%s was cancelled" % (war.get("name") or "A Trade War"),
-                 "The host cancelled it before it started. Nothing counts on anyone's record.", "practice/index.html", "war-" + wid)
+                 "The host cancelled it before it started. Nothing counts on anyone's record.", "app/battles", "war-" + wid)
     return {"ok": True}
 
 
@@ -3060,6 +3085,10 @@ def tw_bounty(req, db, uid, now_ms):
         return b
 
     b = txn(db.transaction())
+    if b.get("target") and b["target"] != uid:
+        notify_users(db, [b["target"]], "battles", "%s put a bounty on you" % (b.get("byName") or "Someone"),
+                     "%s if you're still behind them in %d hours. Beat them, or use a Shield Token." % (_tw_money(b["amount"]), hours),
+                     "app/battles/" + war_ref.id, "war-" + war_ref.id)
     return {"id": b["id"], "amount": b["amount"], "end": b["end"]}
 
 
@@ -3139,7 +3168,7 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
         war = wsnap.to_dict() if wsnap.exists else None
         if not war or war.get("status") != "active":
             return False
-        wname, wpath = war.get("name") or "your Trade War", "practice/war.html?w=" + ref.id
+        wname, wpath = war.get("name") or "your Trade War", "app/battles/" + ref.id
         accts, books = {}, {}
         for uid in war.get("players") or []:
             a = ref.collection("accounts").document(uid).get(transaction=t)
@@ -3218,6 +3247,8 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
             if new:
                 update["storm"] = new
                 events.append(tw_event("storm", "VOLATILITY STORM (virtual): " + tw_storm_text(new) + " for 30 minutes.", now_ms))
+                for u in alive:
+                    notes.append((u, "battles", "Volatility storm in %s" % wname, tw_storm_text(new) + " for 30 minutes (virtual).", wpath))
             lead = tw_leader(accts, alive)
             if lead and lead != war.get("leader"):
                 update["leader"] = lead
@@ -3225,6 +3256,9 @@ def tw_mark_war(db, ref, now_ms, prices, market_open=False, rng=None):
                 if war.get("leader") in alive:
                     notes.append((war["leader"], "battles", "You lost the lead in %s" % wname,
                                   "%s took first place (%+.2f%%). Time to answer." % (names.get(lead, "Trader"), accts[lead]["pnlPct"]), wpath))
+                    notes.append((lead, "battles", "You took the lead in %s" % wname,
+                                  "You're in first place (%+.2f%%). Hold on to it." % accts[lead]["pnlPct"], wpath))
+            notes.extend(tw_warnings(war, accts, alive, now_ms, update, wname, wpath))
         else:
             rows = [{"uid": uid, "name": a.get("name"), "start": a["start"], "final": a["equity"], "pnl": a["pnl"],
                      "pnlPct": a["pnlPct"], "trades": a.get("trades", 0), "wins": a.get("wins", 0), "losses": a.get("losses", 0),
@@ -3338,9 +3372,18 @@ def tw_draft_step(db, ref, now_ms, uid=None, sym=None, rng=None):
         t.update(ref, upd)
         for ev in events:
             _tw_log(t, ref, ev)
+        if not upd["draft"].get("done") and events:
+            nxt = tw_draft_on_clock(upd["draft"])
+            if nxt:
+                turn.update(uid=nxt, name=war.get("name") or "your battle")
         return upd
 
-    return txn(db.transaction())
+    turn = {}
+    upd = txn(db.transaction())
+    if turn.get("uid"):
+        notify_users(db, [turn["uid"]], "battles", "Your pick in %s" % turn["name"], "You're on the clock in the draft.",
+                     "app/battles/" + ref.id, "war-" + ref.id)
+    return upd
 
 
 def tw_mark_all(db, now_ms, prices, market_open=False):
@@ -3759,7 +3802,7 @@ def tw_respond(req, db, uid, now_ms):
         notify_users(db, [seen["from"]], "challenges", "%s %s your challenge" % (who, "accepted" if ok else "declined"),
                      ("%s is on. %s" % (seen.get("warName") or "Your Trade War", "It has started." if out.get("started") else "Start it when everyone's in."))
                      if ok else "%s won't be playing %s." % (who, seen.get("warName") or "this Trade War"),
-                     "practice/war.html?w=" + urllib.parse.quote(seen.get("warId") or ""), "inv-" + (seen.get("warId") or ""))
+                     "app/battles/" + urllib.parse.quote(seen.get("warId") or ""), "inv-" + (seen.get("warId") or ""))
     return out
 
 
@@ -6439,7 +6482,7 @@ def invite_accept(req, db, uid, tok, now_ms):
             out.update({"referral": True, "xp": XP.FIXED["referral-welcome"]})
         elif inv["kind"] == "battle":
             notify_users(db, [inv["from"]], "challenges", "%s joined %s" % (pname, inv.get("warName") or "your Trade War"),
-                         "Start it when everyone's in.", "practice/war.html?w=" + urllib.parse.quote(inv["warId"]), "inv-" + inv["warId"])
+                         "Start it when everyone's in.", "app/battles/" + urllib.parse.quote(inv["warId"]), "inv-" + inv["warId"])
     return out
 
 
