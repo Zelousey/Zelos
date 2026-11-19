@@ -102,12 +102,15 @@ class Quote(unittest.TestCase):
 
 
 class Xp(unittest.TestCase):
-    def test_lessons_pay_10_once_each(self):
-        self.assertEqual(XP.decide("mind", "edison:work", "2026-10-22")[0], 10)
-        self.assertEqual(XP.decide("mind", "livermore:sit", "2026-10-22")[0], 10)
+    def test_every_lesson_is_a_scroll_lesson_paid_by_its_steps(self):
+        # owner 2026-11-19: the last six figures got their scroll lessons, so every lesson pays per
+        # step and none pays once at the end (that would pay twice)
+        self.assertEqual(M.XP_REFS, frozenset())
+        self.assertEqual(XP.decide("mind-step", "edison:work:perspire", "2026-11-19")[0], 2)
+        self.assertEqual(XP.decide("mind-step", "livermore:sit:sitting", "2026-11-19")[0], 2)
+        self.assertEqual(XP.decide("mind", "edison:work", "2026-11-19")[2], "bad-ref")
         self.assertEqual(XP.decide("mind", "vs:edison-tesla", "2026-10-22")[2], "bad-ref")  # pairs are gone
-        self.assertEqual(XP.decide("mind", "napoleon:nope", "2026-10-22")[2], "bad-ref")
-        self.assertEqual(XP.decide("mind", "edison:work", "2026-10-22", {"mind": 20})[2], "daily-limit")
+        self.assertEqual(XP.decide("mind-step", "napoleon:nope:x", "2026-10-22")[2], "bad-ref")
 
     def test_scroll_lessons_pay_2_a_step_about_10_a_lesson(self):
         # owner 2026-10-23: a little XP for each task, about the same 10 per lesson

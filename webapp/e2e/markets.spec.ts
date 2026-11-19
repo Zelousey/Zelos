@@ -195,10 +195,10 @@ test('phone: chart controls fit one row and the trade bar is above the tab bar',
 });
 
 test('a stock with no fresh price shows its last good one, marked delayed', async ({ page }) => {
-  await page.goto('markets/UBER');
-  await expect(page.getByRole('heading', { name: 'UBER' })).toBeVisible();
+  await page.goto('markets/TTWO');
+  await expect(page.getByRole('heading', { name: 'TTWO' })).toBeVisible();
   await expect(page.getByText('Price feed delayed')).toBeVisible();
-  await expect(page.getByLabel(`Price ${price('UBER')}`)).toBeVisible();
+  await expect(page.getByLabel(`Price ${price('TTWO')}`)).toBeVisible();
   await page.goto('markets/AAPL');
   await expect(page.getByRole('heading', { name: 'AAPL' })).toBeVisible();
   await expect(page.getByText('Price feed delayed')).toHaveCount(0);

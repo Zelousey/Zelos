@@ -115,6 +115,11 @@
    "sym": "IWM",
    "name": "Russell 2000 ETF",
    "group": "ETF"
+  },
+  {
+   "sym": "UBER",
+   "name": "Uber",
+   "group": "Consumer"
   }
  ]
 }

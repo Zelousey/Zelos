@@ -223,12 +223,12 @@ await fetch(`http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/document
 re1 = null; try { await call('tw_challenge', { to: rep.uid, buyIn: 1000, days: 1, name: 'Duel' }); } catch (x) { re1 = x; }
 ok(re1 && /can.t challenge/.test(re1.message), 'someone you blocked cannot challenge you');
 
-// --- Hall of Minds: lessons pay 10 XP once; daily quotes cost 15 tokens for 30 days
+// --- Hall of Minds: every lesson is a scroll lesson now (owner 2026-11-19); daily quotes cost 15 tokens for 30 days
+r = await call('xp_award', { type: 'mind-step', refId: 'livermore:sit:sitting' });
+ok(r.awarded && r.xp - r.before === 2, 'a step in one of the new lessons pays XP');
 r = await call('xp_award', { type: 'mind', refId: 'livermore:sit' });
-ok(r.awarded, 'a Hall of Minds lesson pays XP');
-r = await call('xp_award', { type: 'mind', refId: 'livermore:sit' });
-ok(!r.awarded, 'but only once');
-// scroll lessons (owner 2026-10-23) pay 2 XP a task instead, once each
+ok(!r.awarded, 'and the lesson is not paid again at the end');
+// scroll lessons (owner 2026-10-23) pay 2 XP a task, once each
 r = await call('xp_award', { type: 'mind-step', refId: 'napoleon:speed:march' });
 ok(r.awarded && r.xp - r.before === 2, 'a scroll-lesson step pays 2 XP');
 r = await call('xp_award', { type: 'mind-step', refId: 'napoleon:speed:march' });
@@ -255,8 +255,8 @@ ok(re1 && /aren.t available in this drill/.test(re1.message), 'no hints in the D
 await admin('wallets/' + troll.uid, { balance: { integerValue: 30 } });
 r = await call('xp_boost', {});
 ok(r.charged === 25 && r.balance === 5 && r.xpBoostUntil > Date.now() + 23 * 36e5, 'XP booster: 25 tokens for 24 hours');
-r = await call('xp_award', { type: 'mind', refId: 'edison:work' });
-ok(r.awarded && r.xp - r.before === 20, 'a lesson pays double while it runs');
+r = await call('xp_award', { type: 'mind-step', refId: 'edison:work:perspire' });
+ok(r.awarded && r.xp - r.before === 4, 'a lesson step pays double while it runs');
 r = await call('xp_award', { type: 'daily-checkin', refId: nyDay() });
 ok(!r.awarded || r.xp - r.before === 3, 'the daily check-in is not doubled');
 re1 = null; try { await call('xp_boost', {}); } catch (x) { re1 = x; }

@@ -3072,7 +3072,93 @@
       "Edison said genius is mostly hard work, not a flash of brilliance.",
       "His lab tested thousands of materials to find a light bulb filament that lasted."
      ],
-     "trading": "There is no magic setup. Steady practice, review and patience make a trader."
+     "trading": "There is no magic setup. Steady practice, review and patience make a trader.",
+     "scroll": {
+      "image": "edison.webp",
+      "credit": "Thomas Edison, photograph by Louis Bachrach (1922). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Edison is said to have put it this way:",
+         "“Genius is one per cent inspiration, ninety-nine per cent perspiration.”"
+        ],
+        "source": "Thomas Edison, spoken c. 1903 (as published in Harper's Monthly, September 1932)",
+        "image": true,
+        "task": {
+         "id": "perspire",
+         "kind": "quiz",
+         "question": "What did Edison mean by “perspiration”?",
+         "options": [
+          "Luck",
+          "Hard, steady work",
+          "Being born clever"
+         ],
+         "answer": 1,
+         "why": "Most of what looks like genius is the work nobody sees."
+        }
+       },
+       {
+        "lines": [
+         "His lab tested thousands of materials to find a light bulb filament that lasted.",
+         "Each test was one small step."
+        ],
+        "task": {
+         "id": "tests",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Test 1",
+         "to": "It lasts",
+         "label": "Hold to run the tests",
+         "done": "Thousands of tests, one at a time, until one lasted."
+        }
+       },
+       {
+        "lines": [
+         "A trader is built the same way: not by one great idea, by repeated work."
+        ],
+        "task": {
+         "id": "practice",
+         "kind": "collect",
+         "label": "Drag what makes a trader into the box, or tap it",
+         "target": "Makes a trader",
+         "items": [
+          {
+           "label": "Practising on charts every week"
+          },
+          {
+           "label": "Waiting for one magic setup",
+           "wrong": true
+          },
+          {
+           "label": "Reviewing every trade"
+          },
+          {
+           "label": "Being patient"
+          }
+         ],
+         "wrong": "There is no magic setup.",
+         "done": "Steady practice, review and patience."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "week",
+         "kind": "quiz",
+         "question": "Which trader is most likely to improve?",
+         "options": [
+          "Trades only when they feel inspired",
+          "Practises and reviews a little every day",
+          "Copies a new tip every week"
+         ],
+         "answer": 1,
+         "why": "Small, steady work adds up, the way Edison's tests did."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "failure",
@@ -3081,7 +3167,106 @@
       "When a helper felt sorry about thousands of failed tests, Edison said he had lots of results: he now knew thousands of things that didn't work.",
       "A failed test is still a result."
      ],
-     "trading": "A losing trade that followed your rules isn't a failure. It's data. Write down what happened and keep going."
+     "trading": "A losing trade that followed your rules isn't a failure. It's data. Write down what happened and keep going.",
+     "scroll": {
+      "image": "edison.webp",
+      "credit": "Thomas Edison, photograph by Louis Bachrach (1922). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "A helper felt sorry about thousands of failed tests.",
+         "Edison answered:",
+         "“Why, man, I have gotten lots of results! I know several thousand things that won't work.”"
+        ],
+        "source": "Frank Dyer and T. C. Martin, Edison: His Life and Inventions (1910), as remembered by his associate Walter Mallory",
+        "image": true,
+        "task": {
+         "id": "results",
+         "kind": "quiz",
+         "question": "To Edison, a failed test was…",
+         "options": [
+          "Wasted time",
+          "A result: one more thing he knew",
+          "A reason to quit"
+         ],
+         "answer": 1,
+         "why": "A failed test still tells you something."
+        }
+       },
+       {
+        "lines": [
+         "In trading, a loss that followed your rules works the same way.",
+         "It's information, not failure."
+        ],
+        "task": {
+         "id": "loss",
+         "kind": "target",
+         "label": "You lost $40 on a trade that followed your plan. Where does it go? Drag it there (or tap)",
+         "token": "-$40 loss",
+         "zones": [
+          {
+           "label": "Proof you're a bad trader",
+           "why": "One loss proves nothing. Plans have losing trades."
+          },
+          {
+           "label": "Your journal, as data",
+           "right": true
+          },
+          {
+           "label": "A reason to win it back right now",
+           "why": "That's revenge trading."
+          }
+         ],
+         "done": "Write it down and keep going."
+        }
+       },
+       {
+        "lines": [
+         "What makes a loss useful is what you write down about it."
+        ],
+        "task": {
+         "id": "note",
+         "kind": "pick",
+         "label": "Pick the 2 things worth writing down after a loss",
+         "need": 2,
+         "options": [
+          {
+           "label": "Did I follow my plan?",
+           "right": true
+          },
+          {
+           "label": "What did the chart look like when I entered?",
+           "right": true
+          },
+          {
+           "label": "How angry I feel at the market"
+          },
+          {
+           "label": "Which stock to dump next"
+          }
+         ],
+         "why": "Your plan and the setup are what you can learn from."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "rule",
+         "kind": "quiz",
+         "question": "A trade hits your stop exactly as planned. Was it a failure?",
+         "options": [
+          "Yes, money was lost",
+          "No, the plan worked: the loss stayed small",
+          "Only if the stock goes back up"
+         ],
+         "answer": 1,
+         "why": "Losing small on plan is a good result."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "system",
@@ -3090,7 +3275,98 @@
       "At Menlo Park, Edison built a lab where a team invented things on a schedule. It was the first invention factory.",
       "He turned invention from luck into a process."
      ],
-     "trading": "Turn trading into a routine: scan, plan, enter, manage, review. A process you repeat beats waiting for inspiration."
+     "trading": "Turn trading into a routine: scan, plan, enter, manage, review. A process you repeat beats waiting for inspiration.",
+     "scroll": {
+      "image": "edison.webp",
+      "credit": "Thomas Edison, photograph by Louis Bachrach (1922). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "At Menlo Park, Edison built a lab where a team invented things on a schedule.",
+         "It was the first invention factory."
+        ],
+        "image": "lessons/edison-menlo.webp",
+        "credit": "Edison's laboratory at Menlo Park and its team (1879), Thomas Edison National Historical Park. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "factory",
+         "kind": "quiz",
+         "question": "What did Edison turn invention into?",
+         "options": [
+          "A lucky guess",
+          "A process he could repeat",
+          "A secret"
+         ],
+         "answer": 1,
+         "why": "Not luck: a process."
+        }
+       },
+       {
+        "lines": [
+         "A trader's process has steps too, done in the same order every time."
+        ],
+        "task": {
+         "id": "routine",
+         "kind": "collect",
+         "label": "Drag the steps of a trading routine into the box, or tap them",
+         "target": "My routine",
+         "items": [
+          {
+           "label": "Scan"
+          },
+          {
+           "label": "Plan"
+          },
+          {
+           "label": "Enter"
+          },
+          {
+           "label": "Manage"
+          },
+          {
+           "label": "Review"
+          },
+          {
+           "label": "Buy whatever's trending on social media",
+           "wrong": true
+          }
+         ],
+         "wrong": "That's a tip, not a step.",
+         "done": "Scan, plan, enter, manage, review."
+        }
+       },
+       {
+        "lines": [
+         "Run the process day after day and it gets faster and calmer."
+        ],
+        "task": {
+         "id": "days",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Day 1",
+         "to": "Day 30",
+         "label": "Hold to run your routine for a month",
+         "done": "Same steps, every day. That's a system."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "first",
+         "kind": "quiz",
+         "question": "In a routine, what comes before you enter a trade?",
+         "options": [
+          "Review",
+          "A plan",
+          "Nothing, just click Buy"
+         ],
+         "answer": 1,
+         "why": "Plan first, then enter."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "useful",
@@ -3099,7 +3375,100 @@
       "Edison aimed his lab at inventions people would actually buy and use: light, sound recording, movies.",
       "Clever doesn't count if nobody can use it."
      ],
-     "trading": "Use tools you understand. A simple strategy you follow is worth more than a complicated one you don't."
+     "trading": "Use tools you understand. A simple strategy you follow is worth more than a complicated one you don't.",
+     "scroll": {
+      "image": "edison.webp",
+      "credit": "Thomas Edison, photograph by Louis Bachrach (1922). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Edison aimed his lab at inventions people would actually buy and use: light, sound recording, movies.",
+         "Clever doesn't count if nobody can use it."
+        ],
+        "image": "lessons/edison-phonograph.webp",
+        "credit": "Thomas Edison with his phonograph, photographed at Mathew Brady's studio (1878), Library of Congress. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "buy",
+         "kind": "quiz",
+         "question": "Which of these did Edison's lab work on?",
+         "options": [
+          "Sound recording",
+          "Space rockets",
+          "Smartphones"
+         ],
+         "answer": 0,
+         "why": "Light, sound recording and movies: things people used."
+        }
+       },
+       {
+        "lines": [
+         "In trading, a tool is only useful if you understand it and actually follow it."
+        ],
+        "task": {
+         "id": "tool",
+         "kind": "target",
+         "label": "Which strategy is worth more? Drag your money there (or tap)",
+         "token": "Your $10,000",
+         "zones": [
+          {
+           "label": "A simple plan you follow every time",
+           "right": true
+          },
+          {
+           "label": "A complicated system you don't understand",
+           "why": "If you can't explain it, you won't follow it when it gets hard."
+          }
+         ],
+         "done": "Simple and followed beats clever and ignored."
+        }
+       },
+       {
+        "lines": [
+         "Start with a few tools and learn them well."
+        ],
+        "task": {
+         "id": "tools",
+         "kind": "pick",
+         "label": "Pick 2 simple tools a new trader can really use",
+         "need": 2,
+         "options": [
+          {
+           "label": "A stop-loss on every trade",
+           "right": true
+          },
+          {
+           "label": "The 20 and 50 moving averages",
+           "right": true
+          },
+          {
+           "label": "Twelve indicators at once"
+          },
+          {
+           "label": "Tips from strangers"
+          }
+         ],
+         "why": "A few tools you understand beat a crowded screen."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "simple",
+         "kind": "quiz",
+         "question": "Your strategy has so many rules you forget half of them. What should you do?",
+         "options": [
+          "Add more rules",
+          "Make it simpler, so you can follow it",
+          "Ignore the rules"
+         ],
+         "answer": 1,
+         "why": "A strategy only works if you can follow it."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
@@ -3188,7 +3557,100 @@
       "Tesla said he didn't rush to build. He pictured each machine in his mind, ran it, and fixed it there before touching any metal.",
       "Thinking first saved him months of trial and error."
      ],
-     "trading": "Picture the trade before you take it: where you get in, where you're wrong, where you take profit. If you can't see it clearly, don't take it."
+     "trading": "Picture the trade before you take it: where you get in, where you're wrong, where you take profit. If you can't see it clearly, don't take it.",
+     "scroll": {
+      "image": "tesla.webp",
+      "credit": "Nikola Tesla, photograph by Napoleon Sarony (about 1890). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Tesla wrote:",
+         "“My method is different. I do not rush into actual work. When I get an idea I start at once building it up in my imagination.”"
+        ],
+        "source": "Nikola Tesla, My Inventions (1919), ch. 1",
+        "image": true,
+        "task": {
+         "id": "method",
+         "kind": "quiz",
+         "question": "What did Tesla do before building a machine?",
+         "options": [
+          "Built it straight away",
+          "Pictured it running in his mind and fixed it there",
+          "Asked others to build it"
+         ],
+         "answer": 1,
+         "why": "Thinking first saved him months of trial and error."
+        }
+       },
+       {
+        "lines": [
+         "Picture a trade the same way before you take it."
+        ],
+        "task": {
+         "id": "picture",
+         "kind": "collect",
+         "label": "Drag what you should picture before a trade into the box, or tap it",
+         "target": "Before I buy",
+         "items": [
+          {
+           "label": "Where I get in"
+          },
+          {
+           "label": "Where I'm wrong (my stop)"
+          },
+          {
+           "label": "Where I take profit"
+          },
+          {
+           "label": "How rich I'll be",
+           "wrong": true
+          }
+         ],
+         "wrong": "Dreaming isn't planning.",
+         "done": "Entry, stop, target."
+        }
+       },
+       {
+        "lines": [
+         "If you can't see the trade clearly, you don't take it."
+        ],
+        "task": {
+         "id": "unclear",
+         "kind": "target",
+         "label": "You can't decide where your stop goes. What do you do? Drag it there (or tap)",
+         "token": "This trade",
+         "zones": [
+          {
+           "label": "Skip it",
+           "right": true
+          },
+          {
+           "label": "Buy anyway and decide later",
+           "why": "Deciding later is how small losses become big ones."
+          }
+         ],
+         "done": "No clear plan, no trade."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "when",
+         "kind": "quiz",
+         "question": "When is the best time to decide your stop-loss?",
+         "options": [
+          "Before you enter",
+          "After the price falls",
+          "Never"
+         ],
+         "answer": 0,
+         "why": "Decide it while you're calm, before the money is at risk."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "theory",
@@ -3197,7 +3659,100 @@
       "Tesla once worked for Edison. He felt Edison tried things blindly, when a little math would have saved most of the effort.",
       "Understanding why beats guessing."
      ],
-     "trading": "Learn why a setup works (trend, support, volume), not just what it looks like. Then you can spot when it won't work."
+     "trading": "Learn why a setup works (trend, support, volume), not just what it looks like. Then you can spot when it won't work.",
+     "scroll": {
+      "image": "tesla.webp",
+      "credit": "Nikola Tesla, photograph by Napoleon Sarony (about 1890). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Tesla once worked for Edison.",
+         "He felt Edison tried things blindly, when a little math would have saved most of the effort."
+        ],
+        "source": "Nikola Tesla, quoted in The New York Times, 19 October 1931",
+        "image": true,
+        "task": {
+         "id": "needle",
+         "kind": "quiz",
+         "question": "Tesla's point was that…",
+         "options": [
+          "Trying everything is always best",
+          "Understanding why saves a lot of work",
+          "Math is useless"
+         ],
+         "answer": 1,
+         "why": "A little theory saves a lot of trial and error."
+        }
+       },
+       {
+        "lines": [
+         "In trading, learn why a setup works, not just what it looks like."
+        ],
+        "task": {
+         "id": "why",
+         "kind": "pick",
+         "label": "Pick the 2 reasons a breakout is more likely to hold",
+         "need": 2,
+         "options": [
+          {
+           "label": "It breaks out on big volume",
+           "right": true
+          },
+          {
+           "label": "The whole market is going up",
+           "right": true
+          },
+          {
+           "label": "The candle is a nice colour"
+          },
+          {
+           "label": "Someone online said so"
+          }
+         ],
+         "why": "Volume and the market's direction explain why it can work."
+        }
+       },
+       {
+        "lines": [
+         "When you know why it works, you also know when it won't."
+        ],
+        "task": {
+         "id": "fail",
+         "kind": "target",
+         "label": "A breakout happens on tiny volume while the market falls. Drag it where it belongs (or tap)",
+         "token": "This breakout",
+         "zones": [
+          {
+           "label": "More likely to fail",
+           "right": true
+          },
+          {
+           "label": "A sure thing",
+           "why": "Nothing is sure, and this one has the reasons against it."
+          }
+         ],
+         "done": "The reasons were missing, so be careful."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "copy",
+         "kind": "quiz",
+         "question": "Copying a setup without knowing why it works is like…",
+         "options": [
+          "Looking for a needle straw by straw",
+          "Using a map",
+          "Having a plan"
+         ],
+         "answer": 0,
+         "why": "That's the slow, blind way Tesla described."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "future",
@@ -3206,7 +3761,87 @@
       "Tesla's AC power won the 'war of the currents' against Edison's DC system and still powers homes today. He kept looking decades ahead.",
       "Big ideas take time to pay off."
      ],
-     "trading": "Not every idea is a day trade. The Long-term section of Market is for ideas that need weeks or months to work."
+     "trading": "Not every idea is a day trade. The Long-term section of Market is for ideas that need weeks or months to work.",
+     "scroll": {
+      "image": "tesla.webp",
+      "credit": "Nikola Tesla, photograph by Napoleon Sarony (about 1890). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Tesla's AC power won the “war of the currents” against Edison's DC system.",
+         "It still powers homes today."
+        ],
+        "image": "lessons/tesla-lab.webp",
+        "credit": "Tesla's Colorado Springs laboratory, photograph by Charles Alley (1899). Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "ac",
+         "kind": "quiz",
+         "question": "Whose power system still runs most homes today?",
+         "options": [
+          "Edison's DC",
+          "Tesla's AC",
+          "Neither"
+         ],
+         "answer": 1,
+         "why": "Tesla kept looking decades ahead."
+        }
+       },
+       {
+        "lines": [
+         "Big ideas take time to pay off.",
+         "Some trades do too."
+        ],
+        "task": {
+         "id": "wait",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Week 1",
+         "to": "Month 6",
+         "label": "Hold to give a long-term idea time",
+         "done": "Weeks and months, not minutes."
+        }
+       },
+       {
+        "lines": [
+         "Match the idea to the time it needs."
+        ],
+        "task": {
+         "id": "long",
+         "kind": "target",
+         "label": "A company you believe will grow for years. Which section fits? Drag it there (or tap)",
+         "token": "This idea",
+         "zones": [
+          {
+           "label": "Day trading",
+           "why": "A day trade is over by the close."
+          },
+          {
+           "label": "Long term",
+           "right": true
+          }
+         ],
+         "done": "The Long-term section of Market is for ideas that need weeks or months."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "patience",
+         "kind": "quiz",
+         "question": "Your long-term stock dips 2% on its first day. What does Tesla's lesson suggest?",
+         "options": [
+          "Sell right away",
+          "Remember why you bought it and give it time",
+          "Buy ten more without thinking"
+         ],
+         "answer": 1,
+         "why": "Long-term ideas need room to work."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "focus",
@@ -3215,7 +3850,90 @@
       "Tesla worked long hours alone, deep in one problem at a time.",
       "Big breakthroughs need long stretches without distraction."
      ],
-     "trading": "Turn off what distracts you when you study charts. One focused hour beats a whole day half-watching."
+     "trading": "Turn off what distracts you when you study charts. One focused hour beats a whole day half-watching.",
+     "scroll": {
+      "image": "tesla.webp",
+      "credit": "Nikola Tesla, photograph by Napoleon Sarony (about 1890). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Tesla worked long hours alone, deep in one problem at a time."
+        ],
+        "image": "lessons/tesla-sparks.webp",
+        "credit": "Nikola Tesla in his Colorado Springs laboratory, photograph by Dickenson V. Alley (1899, a double exposure). Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "one",
+         "kind": "quiz",
+         "question": "How did Tesla work on his problems?",
+         "options": [
+          "Ten at once",
+          "One at a time, without distraction",
+          "Only when someone watched"
+         ],
+         "answer": 1,
+         "why": "Big breakthroughs need long stretches without distraction."
+        }
+       },
+       {
+        "lines": [
+         "Studying charts works the same way."
+        ],
+        "task": {
+         "id": "quiet",
+         "kind": "collect",
+         "label": "Drag what helps you focus on charts into the box, or tap it",
+         "target": "Focus",
+         "items": [
+          {
+           "label": "Phone notifications off"
+          },
+          {
+           "label": "One chart at a time"
+          },
+          {
+           "label": "A set time to study"
+          },
+          {
+           "label": "TV and three group chats on",
+           "wrong": true
+          }
+         ],
+         "wrong": "That splits your attention.",
+         "done": "One focused hour beats a whole day half-watching."
+        }
+       },
+       {
+        "lines": [
+         "Give it one focused stretch."
+        ],
+        "task": {
+         "id": "deep",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "0 min",
+         "to": "60 min",
+         "label": "Hold for one focused hour",
+         "done": "One hour, one problem."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "better",
+         "kind": "quiz",
+         "question": "Which teaches you more?",
+         "options": [
+          "A whole day half-watching charts",
+          "One focused hour of study"
+         ],
+         "answer": 1,
+         "why": "Attention matters more than hours."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
@@ -3311,7 +4029,87 @@
       "Livermore believed prices move in the easiest direction, like water running downhill, and keep going until something stops them.",
       "He didn't try to guess tops and bottoms. He waited for the market to show its direction, then went with it."
      ],
-     "trading": "Trade with the trend, not against it. If a stock keeps making higher highs and higher lows, don't keep shorting it because it 'must' fall."
+     "trading": "Trade with the trend, not against it. If a stock keeps making higher highs and higher lows, don't keep shorting it because it 'must' fall.",
+     "scroll": {
+      "image": "livermore.webp",
+      "credit": "Jesse Livermore, portrait photograph (about 1923). Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "In Livermore's story:",
+         "“Prices, like everything else, move along the line of least resistance.”"
+        ],
+        "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923): the thinly disguised story of Livermore's life, told in his voice",
+        "image": true,
+        "task": {
+         "id": "water",
+         "kind": "quiz",
+         "question": "Livermore compared prices to…",
+         "options": [
+          "Water running downhill",
+          "A coin toss",
+          "A clock"
+         ],
+         "answer": 0,
+         "why": "They move the easiest way, and keep going until something stops them."
+        }
+       },
+       {
+        "lines": [
+         "He didn't try to guess tops and bottoms.",
+         "He waited for the market to show its direction, then went with it."
+        ],
+        "task": {
+         "id": "side",
+         "kind": "target",
+         "label": "A stock keeps making higher highs and higher lows. Drag your trade to the side that goes with it (or tap)",
+         "token": "Your trade",
+         "zones": [
+          {
+           "label": "Buy (with the trend)",
+           "right": true
+          },
+          {
+           "label": "Short it because it “must” fall",
+           "why": "Fighting a trend is how traders get run over."
+          }
+         ],
+         "done": "Trade with the trend, not against it."
+        }
+       },
+       {
+        "lines": [
+         "Watch a trend go its own way."
+        ],
+        "task": {
+         "id": "ride",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Start",
+         "to": "Higher high",
+         "label": "Hold to ride the trend",
+         "done": "It keeps going until something stops it."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "guess",
+         "kind": "quiz",
+         "question": "What did Livermore wait for before he traded?",
+         "options": [
+          "The exact bottom",
+          "The market to show its direction",
+          "A tip from a friend"
+         ],
+         "answer": 1,
+         "why": "He let the market tell him which way."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "sit",
@@ -3320,7 +4118,93 @@
       "He said his big profits never came from clever thinking. They came from sitting tight in a winning trade while the move played out.",
       "Most people take a small profit too early, and hold their losers too long."
      ],
-     "trading": "Let winners run with a trailing stop. Cut losers fast at your stop. Most beginners do the opposite."
+     "trading": "Let winners run with a trailing stop. Cut losers fast at your stop. Most beginners do the opposite.",
+     "scroll": {
+      "image": "livermore.webp",
+      "credit": "Jesse Livermore, portrait photograph (about 1923). Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "In Livermore's story:",
+         "“It never was my thinking that made the big money for me. It always was my sitting.”"
+        ],
+        "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923), ch. 5",
+        "image": true,
+        "task": {
+         "id": "sitting",
+         "kind": "quiz",
+         "question": "What did “sitting” mean?",
+         "options": [
+          "Not trading at all",
+          "Staying in a winning trade while the move played out",
+          "Watching charts all day"
+         ],
+         "answer": 1,
+         "why": "His big profits came from holding winners."
+        }
+       },
+       {
+        "lines": [
+         "Most people do the opposite: take a small profit too early, and hold their losers too long."
+        ],
+        "task": {
+         "id": "habits",
+         "kind": "collect",
+         "label": "Drag the good habits into the box, or tap them",
+         "target": "Good habits",
+         "items": [
+          {
+           "label": "Let winners run with a trailing stop"
+          },
+          {
+           "label": "Cut losers fast at your stop"
+          },
+          {
+           "label": "Sell a winner at the first +1%",
+           "wrong": true
+          },
+          {
+           "label": "Hold a loser hoping it comes back",
+           "wrong": true
+          }
+         ],
+         "wrong": "That's the beginner's way round.",
+         "done": "Winners run, losers get cut."
+        }
+       },
+       {
+        "lines": [
+         "Sit with a winner and let the move play out."
+        ],
+        "task": {
+         "id": "hold",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "+2%",
+         "to": "+15%",
+         "label": "Hold to sit with your winner",
+         "done": "The money is in the sitting."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "trail",
+         "kind": "quiz",
+         "question": "Your trade is up 8% and still trending. What fits Livermore's lesson?",
+         "options": [
+          "Sell everything now",
+          "Move your stop up and let it run",
+          "Remove your stop"
+         ],
+         "answer": 1,
+         "why": "A trailing stop lets it run and protects the gain."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "records",
@@ -3329,7 +4213,100 @@
       "As a teenage clerk writing prices on a board, he kept a notebook of how prices moved before big changes, and tested his guesses on paper before risking a cent.",
       "His 'feel' for the market came from years of written records."
      ],
-     "trading": "Journal every trade and every pattern you notice. Your notes become your edge."
+     "trading": "Journal every trade and every pattern you notice. Your notes become your edge.",
+     "scroll": {
+      "image": "livermore.webp",
+      "credit": "Jesse Livermore, portrait photograph (about 1923). Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "As a teenage clerk writing prices on a board, Livermore kept a notebook of how prices moved before big changes."
+        ],
+        "image": "lessons/livermore-floor.webp",
+        "credit": "The floor of the New York Stock Exchange, by Helen D. Van Eaton, Leslie's Monthly Magazine (1908). Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "notebook",
+         "kind": "quiz",
+         "question": "Where did his “feel” for the market come from?",
+         "options": [
+          "Luck",
+          "Years of written records",
+          "A secret formula"
+         ],
+         "answer": 1,
+         "why": "His notes became his edge."
+        }
+       },
+       {
+        "lines": [
+         "He tested his guesses on paper before risking a cent."
+        ],
+        "task": {
+         "id": "test",
+         "kind": "target",
+         "label": "You have a new idea. Where do you try it first? Drag it there (or tap)",
+         "token": "New idea",
+         "zones": [
+          {
+           "label": "Practice money and a journal",
+           "right": true
+          },
+          {
+           "label": "Your biggest trade ever",
+           "why": "Test it small first, the way he did on paper."
+          }
+         ],
+         "done": "Test before you risk real money."
+        }
+       },
+       {
+        "lines": [
+         "A good journal has a few things in every entry."
+        ],
+        "task": {
+         "id": "journal",
+         "kind": "pick",
+         "label": "Pick the 3 things to write in your trade journal",
+         "need": 3,
+         "options": [
+          {
+           "label": "Why you entered",
+           "right": true
+          },
+          {
+           "label": "Your stop and target",
+           "right": true
+          },
+          {
+           "label": "What happened and what you learned",
+           "right": true
+          },
+          {
+           "label": "Only the wins"
+          }
+         ],
+         "why": "Every trade, wins and losses."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "edge",
+         "kind": "quiz",
+         "question": "Why keep notes on every trade?",
+         "options": [
+          "To show off",
+          "So patterns in your own trading become clear",
+          "Because it's required"
+         ],
+         "answer": 1,
+         "why": "Your notes become your edge."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "ruin",
@@ -3338,7 +4315,101 @@
       "Livermore went broke more than once: by trading too big, trusting tips and breaking his own rules.",
       "Each comeback started with admitting exactly what he'd done wrong."
      ],
-     "trading": "Never risk so much that one bad run wipes you out. Small, fixed risk per trade keeps you in the game."
+     "trading": "Never risk so much that one bad run wipes you out. Small, fixed risk per trade keeps you in the game.",
+     "scroll": {
+      "image": "livermore.webp",
+      "credit": "Jesse Livermore, portrait photograph (about 1923). Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "Livermore went broke more than once: by trading too big, trusting tips and breaking his own rules.",
+         "“The game taught me the game. And it didn't spare the rod while teaching.”"
+        ],
+        "source": "Edwin Lefèvre, Reminiscences of a Stock Operator (1923)",
+        "image": "lessons/livermore-panic.webp",
+        "credit": "A crowd on Wall Street in the Panic of 1907, New York Public Library. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "why",
+         "kind": "quiz",
+         "question": "Which of these helped sink Livermore?",
+         "options": [
+          "Trading too big",
+          "Keeping a journal",
+          "Following the trend"
+         ],
+         "answer": 0,
+         "why": "Too big, tips, and broken rules."
+        }
+       },
+       {
+        "lines": [
+         "Each comeback started with admitting exactly what he'd done wrong."
+        ],
+        "task": {
+         "id": "mistakes",
+         "kind": "collect",
+         "label": "Drag the mistakes that can wipe out an account into the box, or tap them",
+         "target": "Account killers",
+         "items": [
+          {
+           "label": "Trading too big"
+          },
+          {
+           "label": "Trusting tips"
+          },
+          {
+           "label": "Breaking your own rules"
+          },
+          {
+           "label": "Risking 1% per trade",
+           "wrong": true
+          }
+         ],
+         "wrong": "Small, fixed risk is the cure, not the problem.",
+         "done": "Name them, so you can avoid them."
+        }
+       },
+       {
+        "lines": [
+         "Small, fixed risk per trade keeps you in the game."
+        ],
+        "task": {
+         "id": "size",
+         "kind": "target",
+         "label": "You have $10,000. Which risk per trade keeps you in the game? Drag it there (or tap)",
+         "token": "Your next trade",
+         "zones": [
+          {
+           "label": "Risk about $100 (1%)",
+           "right": true
+          },
+          {
+           "label": "Risk $5,000 to win it all back",
+           "why": "Two of those and the account is gone."
+          }
+         ],
+         "done": "Small and fixed, every time."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "best",
+         "kind": "quiz",
+         "question": "Even the best traders can go broke. What protects you most?",
+         "options": [
+          "Bigger trades",
+          "Small risk on every trade",
+          "More tips"
+         ],
+         "answer": 1,
+         "why": "Never risk so much that one bad run wipes you out."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
@@ -3438,7 +4509,85 @@
       "In 1884 Dow simply added up the prices of 11 big stocks, mostly railroads, and divided by the number. It was the first stock market average.",
       "One number showed whether the market as a whole was rising or falling."
      ],
-     "trading": "Before trading a stock, check the market. Most stocks follow SPY and QQQ; swimming against the whole market is hard."
+     "trading": "Before trading a stock, check the market. Most stocks follow SPY and QQQ; swimming against the whole market is hard.",
+     "scroll": {
+      "image": "dow.webp",
+      "credit": "Charles Henry Dow, portrait photograph. Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "In 1884 Dow added up the prices of 11 big stocks, mostly railroads, and divided by the number.",
+         "It was the first stock market average."
+        ],
+        "image": true,
+        "task": {
+         "id": "first",
+         "kind": "quiz",
+         "question": "What did Dow's average show?",
+         "options": [
+          "One company's profit",
+          "Whether the market as a whole was rising or falling",
+          "Tomorrow's price"
+         ],
+         "answer": 1,
+         "why": "One number for the whole market."
+        }
+       },
+       {
+        "lines": [
+         "Today SPY and QQQ do that job. Most stocks follow them."
+        ],
+        "task": {
+         "id": "check",
+         "kind": "target",
+         "label": "Before you buy a stock, what do you check first? Drag it there (or tap)",
+         "token": "Before buying",
+         "zones": [
+          {
+           "label": "SPY and QQQ: is the market going up?",
+           "right": true
+          },
+          {
+           "label": "Only that one stock's chart",
+           "why": "Swimming against the whole market is hard."
+          }
+         ],
+         "done": "Check the market first."
+        }
+       },
+       {
+        "lines": [
+         "Watch the whole market lift most boats."
+        ],
+        "task": {
+         "id": "lift",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Market flat",
+         "to": "Market up",
+         "label": "Hold as the market rises",
+         "done": "When the market rises, most stocks go with it."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "against",
+         "kind": "quiz",
+         "question": "The whole market is falling hard. Buying a stock now is usually…",
+         "options": [
+          "Easier",
+          "Harder, because most stocks follow the market",
+          "Exactly the same"
+         ],
+         "answer": 1,
+         "why": "Most stocks follow the market."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "tides",
@@ -3447,7 +4596,105 @@
       "Dow wrote that the market has three movements at once: the big main trend that lasts years, shorter swings of weeks, and small day-to-day moves.",
       "He compared them to the tide, the waves and the ripples on a beach."
      ],
-     "trading": "Know which one you're trading. A day trader rides ripples, a swing trader waves, a long-term investor the tide. Check the bigger trend before you enter."
+     "trading": "Know which one you're trading. A day trader rides ripples, a swing trader waves, a long-term investor the tide. Check the bigger trend before you enter.",
+     "scroll": {
+      "image": "dow.webp",
+      "credit": "Charles Henry Dow, portrait photograph. Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "Dow wrote:",
+         "“The market is always to be considered as having three movements, all going at the same time.”"
+        ],
+        "source": "Charles Dow, The Wall Street Journal (editorial, 1902), as collected in S. A. Nelson, The ABC of Stock Speculation (1902)",
+        "image": "lessons/dow-journal.webp",
+        "credit": "The first issue of The Wall Street Journal (8 July 1889), Dow Jones & Company. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "three",
+         "kind": "quiz",
+         "question": "He compared the three movements to…",
+         "options": [
+          "The tide, the waves and the ripples",
+          "Wind, rain and snow",
+          "Morning, noon and night"
+         ],
+         "answer": 0,
+         "why": "The tide lasts years, waves weeks, ripples days."
+        }
+       },
+       {
+        "lines": [
+         "Each kind of trader rides a different one."
+        ],
+        "task": {
+         "id": "ripple",
+         "kind": "target",
+         "label": "A day trader rides which one? Drag it there (or tap)",
+         "token": "Day trader",
+         "zones": [
+          {
+           "label": "The ripples",
+           "right": true
+          },
+          {
+           "label": "The waves",
+           "why": "That's a swing trader."
+          },
+          {
+           "label": "The tide",
+           "why": "That's a long-term investor."
+          }
+         ],
+         "done": "Day traders ride the ripples."
+        }
+       },
+       {
+        "lines": [
+         "The big tide matters even to a ripple rider."
+        ],
+        "task": {
+         "id": "bigger",
+         "kind": "pick",
+         "label": "Pick the 2 things to check before a short-term trade",
+         "need": 2,
+         "options": [
+          {
+           "label": "The bigger trend (daily chart)",
+           "right": true
+          },
+          {
+           "label": "The market's direction",
+           "right": true
+          },
+          {
+           "label": "Only the last 5 minutes"
+          },
+          {
+           "label": "Nothing, just go"
+          }
+         ],
+         "why": "Check the bigger trend before you enter."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "swing",
+         "kind": "quiz",
+         "question": "A swing trader holds for a few weeks. Which movement is that?",
+         "options": [
+          "Ripples",
+          "Waves",
+          "Tide"
+         ],
+         "answer": 1,
+         "why": "Weeks are the waves."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "confirm",
@@ -3456,7 +4703,101 @@
       "Dow and those who carried on his ideas watched for the industrial and railroad averages to move together. One alone could be a false signal; both together meant a real trend.",
       "One clue is a hint. Two clues that agree are evidence."
      ],
-     "trading": "Don't trade on one signal. Look for price, volume and the market's direction to agree."
+     "trading": "Don't trade on one signal. Look for price, volume and the market's direction to agree.",
+     "scroll": {
+      "image": "dow.webp",
+      "credit": "Charles Henry Dow, portrait photograph. Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "Dow and those who carried on his ideas watched for the industrial and railroad averages to move together.",
+         "One alone could be a false signal; both together meant a real trend."
+        ],
+        "image": "lessons/dow-ticker.webp",
+        "credit": "Thomas Edison's stock ticker, National Museum of American History, photograph by Jaclyn Nash. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "two",
+         "kind": "quiz",
+         "question": "When did they trust a trend?",
+         "options": [
+          "When one average moved",
+          "When both averages moved together",
+          "Never"
+         ],
+         "answer": 1,
+         "why": "One clue is a hint. Two that agree are evidence."
+        }
+       },
+       {
+        "lines": [
+         "In a trade, look for clues that agree."
+        ],
+        "task": {
+         "id": "agree",
+         "kind": "pick",
+         "label": "Pick the 3 clues that should agree before a buy",
+         "need": 3,
+         "options": [
+          {
+           "label": "Price breaking higher",
+           "right": true
+          },
+          {
+           "label": "Volume rising",
+           "right": true
+          },
+          {
+           "label": "The market going up",
+           "right": true
+          },
+          {
+           "label": "A friend's text"
+          }
+         ],
+         "why": "Price, volume and the market's direction."
+        }
+       },
+       {
+        "lines": [
+         "One clue alone isn't enough."
+        ],
+        "task": {
+         "id": "alone",
+         "kind": "target",
+         "label": "Price breaks out, but volume is low and the market is falling. Drag it there (or tap)",
+         "token": "This signal",
+         "zones": [
+          {
+           "label": "Wait for confirmation",
+           "right": true
+          },
+          {
+           "label": "Buy big right away",
+           "why": "Only one clue agrees."
+          }
+         ],
+         "done": "Wait for the clues to agree."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "evidence",
+         "kind": "quiz",
+         "question": "Two signals that agree are…",
+         "options": [
+          "Evidence",
+          "A coincidence",
+          "A reason to trade bigger than usual"
+         ],
+         "answer": 0,
+         "why": "Agreeing clues are evidence, still not a promise."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "facts",
@@ -3465,7 +4806,100 @@
       "Dow was a reporter first. His paper's job was to give traders fast, accurate facts, not tips.",
       "He built his reputation on being careful and correct."
      ],
-     "trading": "Separate facts (price, volume, earnings) from opinions (tips, hype). Trade the facts."
+     "trading": "Separate facts (price, volume, earnings) from opinions (tips, hype). Trade the facts.",
+     "scroll": {
+      "image": "dow.webp",
+      "credit": "Charles Henry Dow, portrait photograph. Public domain.",
+      "slides": [
+       {
+        "lines": [
+         "Dow was a reporter first.",
+         "His paper's job was to give traders fast, accurate facts, not tips."
+        ],
+        "image": "lessons/dow-journal.webp",
+        "credit": "The first issue of The Wall Street Journal (8 July 1889), Dow Jones & Company. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "job",
+         "kind": "quiz",
+         "question": "What did Dow's paper give traders?",
+         "options": [
+          "Hot tips",
+          "Fast, accurate facts",
+          "Guesses"
+         ],
+         "answer": 1,
+         "why": "He built his reputation on being careful and correct."
+        }
+       },
+       {
+        "lines": [
+         "Sort facts from opinions."
+        ],
+        "task": {
+         "id": "facts",
+         "kind": "collect",
+         "label": "Drag the facts into the box, or tap them",
+         "target": "Facts",
+         "items": [
+          {
+           "label": "The price is $52.10"
+          },
+          {
+           "label": "Volume is twice normal"
+          },
+          {
+           "label": "Earnings came out at $1.20 a share"
+          },
+          {
+           "label": "“This stock is going to the moon”",
+           "wrong": true
+          }
+         ],
+         "wrong": "That's an opinion, not a fact.",
+         "done": "Trade the facts."
+        }
+       },
+       {
+        "lines": [
+         "Opinions are loud. Facts are quiet."
+        ],
+        "task": {
+         "id": "hype",
+         "kind": "target",
+         "label": "A video says a stock will double. What do you do? Drag it there (or tap)",
+         "token": "The hype",
+         "zones": [
+          {
+           "label": "Check the chart and the facts yourself",
+           "right": true
+          },
+          {
+           "label": "Buy now before it's too late",
+           "why": "That's trading an opinion."
+          }
+         ],
+         "done": "Facts first."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "tip",
+         "kind": "quiz",
+         "question": "Which is a fact?",
+         "options": [
+          "“It's about to explode”",
+          "“It closed at $48 today”",
+          "“Everyone's buying it”"
+         ],
+         "answer": 1,
+         "why": "A price is a fact. The rest are opinions."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
@@ -3543,7 +4977,85 @@
       "In 1720 shares in the South Sea Company soared. Newton bought, sold early with a good profit, then watched the price keep climbing without him.",
       "He bought back in, much higher, just before the crash, and lost a fortune."
      ],
-     "trading": "Missing a move is not a loss. Chasing it is how you buy the top. If you missed it, wait for the next setup."
+     "trading": "Missing a move is not a loss. Chasing it is how you buy the top. If you missed it, wait for the next setup.",
+     "scroll": {
+      "image": "newton.webp",
+      "credit": "Godfrey Kneller, Portrait of Sir Isaac Newton (1689). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "In 1720 shares in the South Sea Company soared.",
+         "Newton bought, and sold early with a good profit."
+        ],
+        "image": true,
+        "task": {
+         "id": "first",
+         "kind": "quiz",
+         "question": "How did Newton's first South Sea trade go?",
+         "options": [
+          "He lost money",
+          "He sold early with a good profit",
+          "He never traded"
+         ],
+         "answer": 1,
+         "why": "So far, so good."
+        }
+       },
+       {
+        "lines": [
+         "Then he watched the price keep climbing without him."
+        ],
+        "task": {
+         "id": "fomo",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "His sale",
+         "to": "Much higher",
+         "label": "Hold and watch it climb without you",
+         "done": "It hurts to watch. That feeling is FOMO."
+        }
+       },
+       {
+        "lines": [
+         "He bought back in, much higher, just before the crash, and lost a fortune."
+        ],
+        "task": {
+         "id": "chase",
+         "kind": "target",
+         "label": "You sold a winner and it keeps rising. What do you do? Drag it there (or tap)",
+         "token": "Your next move",
+         "zones": [
+          {
+           "label": "Wait for the next setup",
+           "right": true
+          },
+          {
+           "label": "Buy back in, higher, so you don't miss more",
+           "why": "That's exactly what Newton did, just before the crash."
+          }
+         ],
+         "done": "Missing a move is not a loss."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "lesson",
+         "kind": "quiz",
+         "question": "What does Newton's South Sea trade teach?",
+         "options": [
+          "Geniuses never lose",
+          "Chasing a move is how you buy the top",
+          "Always buy back in"
+         ],
+         "answer": 1,
+         "why": "Even a genius can catch the fever."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "giants",
@@ -3552,7 +5064,92 @@
       "Newton built on the work of Galileo, Kepler and others before him, and said so.",
       "Even the greatest mind of his age started by studying the best who came before."
      ],
-     "trading": "Learn proven methods first, then improve on them."
+     "trading": "Learn proven methods first, then improve on them.",
+     "scroll": {
+      "image": "newton.webp",
+      "credit": "Godfrey Kneller, Portrait of Sir Isaac Newton (1689). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Newton wrote to Robert Hooke:",
+         "“If I have seen further it is by standing on the shoulders of Giants.”"
+        ],
+        "source": "Isaac Newton, letter to Robert Hooke, 5 February 1676",
+        "image": true,
+        "task": {
+         "id": "giants",
+         "kind": "quiz",
+         "question": "Who were the giants?",
+         "options": [
+          "Real giants",
+          "Thinkers before him, like Galileo and Kepler",
+          "His rivals"
+         ],
+         "answer": 1,
+         "why": "He built on the best who came before."
+        }
+       },
+       {
+        "lines": [
+         "You can stand on giants' shoulders too: learn proven methods first."
+        ],
+        "task": {
+         "id": "proven",
+         "kind": "collect",
+         "label": "Drag the proven methods into the box, or tap them",
+         "target": "Learn first",
+         "items": [
+          {
+           "label": "Trading with the trend"
+          },
+          {
+           "label": "Using a stop-loss"
+          },
+          {
+           "label": "Keeping a journal"
+          },
+          {
+           "label": "A secret system from a stranger",
+           "wrong": true
+          }
+         ],
+         "wrong": "Proven means tested by many traders over many years.",
+         "done": "Learn what works, then improve on it."
+        }
+       },
+       {
+        "lines": [
+         "Then you build on them."
+        ],
+        "task": {
+         "id": "build",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Learn",
+         "to": "Improve",
+         "label": "Hold to build on what you learned",
+         "done": "First learn, then improve."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "start",
+         "kind": "quiz",
+         "question": "Where should a new trader start?",
+         "options": [
+          "Inventing a brand-new system",
+          "Learning proven methods",
+          "Copying random tips"
+         ],
+         "answer": 1,
+         "why": "Even the greatest mind of his age started by studying."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "evidence",
@@ -3561,7 +5158,101 @@
       "Newton built his ideas on careful measurements and experiments, not on guesses. He wrote that he did not 'frame hypotheses' he couldn't support.",
       "If the evidence didn't fit, the idea had to go."
      ],
-     "trading": "Back up your strategy with evidence: test it on old charts and with practice money before trusting it."
+     "trading": "Back up your strategy with evidence: test it on old charts and with practice money before trusting it.",
+     "scroll": {
+      "image": "newton.webp",
+      "credit": "Godfrey Kneller, Portrait of Sir Isaac Newton (1689). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Newton built his ideas on careful measurements and experiments.",
+         "He wrote: “I frame no hypotheses.”"
+        ],
+        "source": "Isaac Newton, Principia, General Scholium (2nd edition, 1713)",
+        "image": "lessons/newton-principia.webp",
+        "credit": "The title page of Newton's Principia (1687), first edition, University of Strasbourg library. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "hyp",
+         "kind": "quiz",
+         "question": "If the evidence didn't fit an idea, Newton…",
+         "options": [
+          "Kept the idea anyway",
+          "Let the idea go",
+          "Ignored the evidence"
+         ],
+         "answer": 1,
+         "why": "The evidence decides."
+        }
+       },
+       {
+        "lines": [
+         "Test a strategy before you trust it."
+        ],
+        "task": {
+         "id": "test",
+         "kind": "pick",
+         "label": "Pick the 2 ways to test a strategy",
+         "need": 2,
+         "options": [
+          {
+           "label": "Check it on old charts",
+           "right": true
+          },
+          {
+           "label": "Trade it with practice money",
+           "right": true
+          },
+          {
+           "label": "Believe it because it sounds smart"
+          },
+          {
+           "label": "Put your whole account on it"
+          }
+         ],
+         "why": "Back it up with evidence."
+        }
+       },
+       {
+        "lines": [
+         "Then let the results decide."
+        ],
+        "task": {
+         "id": "results",
+         "kind": "target",
+         "label": "Your strategy lost on 15 of 20 practice trades. Drag it there (or tap)",
+         "token": "Your strategy",
+         "zones": [
+          {
+           "label": "Change it or drop it",
+           "right": true
+          },
+          {
+           "label": "Trade it bigger with real money",
+           "why": "The evidence says it doesn't work yet."
+          }
+         ],
+         "done": "If the evidence doesn't fit, the idea has to go."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "trust",
+         "kind": "quiz",
+         "question": "When should you trust a strategy?",
+         "options": [
+          "When it feels right",
+          "When the evidence backs it up",
+          "When someone famous uses it"
+         ],
+         "answer": 1,
+         "why": "Evidence first."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "focus",
@@ -3570,7 +5261,92 @@
       "When Cambridge closed during the plague of 1665–66, Newton went home and, mostly alone, worked out the beginnings of calculus, his ideas on light and on gravity.",
       "Long, uninterrupted focus produced his biggest breakthroughs."
      ],
-     "trading": "Give your learning real, focused time. A distracted hour on the charts teaches little."
+     "trading": "Give your learning real, focused time. A distracted hour on the charts teaches little.",
+     "scroll": {
+      "image": "newton.webp",
+      "credit": "Godfrey Kneller, Portrait of Sir Isaac Newton (1689). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "When Cambridge closed during the plague of 1665–66, Newton went home.",
+         "Mostly alone, he worked out the beginnings of calculus and his ideas on light and gravity."
+        ],
+        "image": "lessons/newton-blake.webp",
+        "credit": "William Blake, Newton (about 1795–1805). Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "plague",
+         "kind": "quiz",
+         "question": "What made those years so productive?",
+         "options": [
+          "Long, uninterrupted focus",
+          "Lots of parties",
+          "A big team"
+         ],
+         "answer": 0,
+         "why": "Focus produced his biggest breakthroughs."
+        }
+       },
+       {
+        "lines": [
+         "Give your learning real, focused time."
+        ],
+        "task": {
+         "id": "study",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Start",
+         "to": "Done",
+         "label": "Hold for a focused study session",
+         "done": "No distractions, one subject."
+        }
+       },
+       {
+        "lines": [
+         "Plan your study time like Newton's quiet years."
+        ],
+        "task": {
+         "id": "plan",
+         "kind": "collect",
+         "label": "Drag what makes a good study session into the box, or tap it",
+         "target": "Good session",
+         "items": [
+          {
+           "label": "A set time"
+          },
+          {
+           "label": "One topic, like support and resistance"
+          },
+          {
+           "label": "Notes of what you learned"
+          },
+          {
+           "label": "Scrolling social media between charts",
+           "wrong": true
+          }
+         ],
+         "wrong": "That breaks the focus.",
+         "done": "Focused time teaches."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "teach",
+         "kind": "quiz",
+         "question": "A distracted hour on the charts teaches…",
+         "options": [
+          "A lot",
+          "Little",
+          "Everything"
+         ],
+         "answer": 1,
+         "why": "Focus is what makes the hour count."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
@@ -3654,7 +5430,92 @@
       "In October 1907 banks were failing and people were queuing to pull out their money. Morgan, 70 years old, took charge.",
       "He sorted the banks that could be saved from those that couldn't, and organized the money to save them."
      ],
-     "trading": "Panic sells at the bottom. Have your plan (stops, position size) ready before the market gets wild, so you act instead of panic."
+     "trading": "Panic sells at the bottom. Have your plan (stops, position size) ready before the market gets wild, so you act instead of panic.",
+     "scroll": {
+      "image": "morgan.webp",
+      "credit": "J.P. Morgan, photograph by Pach Brothers (1902). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "October 1907. Banks were failing and people were queuing to pull out their money.",
+         "Morgan, 70 years old, took charge."
+        ],
+        "image": "lessons/morgan-puck.webp",
+        "credit": "Frank A. Nankivell, The Central Bank, a cover of Puck magazine (1910), Library of Congress. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "charge",
+         "kind": "quiz",
+         "question": "What did Morgan do in the panic?",
+         "options": [
+          "Sold everything",
+          "Sorted the banks that could be saved and organized money to save them",
+          "Left town"
+         ],
+         "answer": 1,
+         "why": "Calm action, while others panicked."
+        }
+       },
+       {
+        "lines": [
+         "Panic sells at the bottom. A plan made before the storm stops you from panicking."
+        ],
+        "task": {
+         "id": "ready",
+         "kind": "collect",
+         "label": "Drag what you should have ready before the market gets wild, or tap it",
+         "target": "Ready",
+         "items": [
+          {
+           "label": "Stops on your trades"
+          },
+          {
+           "label": "Position sizes you can live with"
+          },
+          {
+           "label": "A plan for what you'll do"
+          },
+          {
+           "label": "A plan to sell everything if it drops 1%",
+           "wrong": true
+          }
+         ],
+         "wrong": "That's panic written down.",
+         "done": "Act on your plan, not your fear."
+        }
+       },
+       {
+        "lines": [
+         "Stay calm through the drop."
+        ],
+        "task": {
+         "id": "steady",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Panic",
+         "to": "Calm",
+         "label": "Hold steady through the panic",
+         "done": "Your plan does the work."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "panic",
+         "kind": "quiz",
+         "question": "The market drops 4% in a morning. Your stops are set. What now?",
+         "options": [
+          "Sell everything in a panic",
+          "Let your plan work",
+          "Remove all your stops"
+         ],
+         "answer": 1,
+         "why": "Plans made calmly beat decisions made in fear."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "character",
@@ -3663,7 +5524,100 @@
       "Asked by Congress whether loans were based on money or property, Morgan said the first thing was character.",
       "He lent to people he trusted, and stayed away from those he didn't, however rich."
      ],
-     "trading": "Your discipline is your 'character' as a trader: doing what your plan says, every time."
+     "trading": "Your discipline is your 'character' as a trader: doing what your plan says, every time.",
+     "scroll": {
+      "image": "morgan.webp",
+      "credit": "J.P. Morgan, photograph by Pach Brothers (1902). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Congress asked Morgan whether loans were based on money or property.",
+         "“The first thing is character.”"
+        ],
+        "source": "J.P. Morgan, testimony to Congress (the Pujo Committee), 19 December 1912",
+        "image": true,
+        "task": {
+         "id": "first",
+         "kind": "quiz",
+         "question": "What came first for Morgan?",
+         "options": [
+          "Money",
+          "Property",
+          "Character"
+         ],
+         "answer": 2,
+         "why": "“Before money or anything else. Money cannot buy it.”"
+        }
+       },
+       {
+        "lines": [
+         "A trader's character is discipline: doing what your plan says, every time."
+        ],
+        "task": {
+         "id": "disc",
+         "kind": "collect",
+         "label": "Drag the signs of discipline into the box, or tap them",
+         "target": "Discipline",
+         "items": [
+          {
+           "label": "Taking the stop when it hits"
+          },
+          {
+           "label": "Sticking to your position size"
+          },
+          {
+           "label": "Skipping trades that don't fit your plan"
+          },
+          {
+           "label": "Moving your stop lower to avoid a loss",
+           "wrong": true
+          }
+         ],
+         "wrong": "That's breaking your plan.",
+         "done": "Doing what your plan says, every time."
+        }
+       },
+       {
+        "lines": [
+         "Discipline is tested when it's hardest."
+        ],
+        "task": {
+         "id": "test",
+         "kind": "target",
+         "label": "Your stop is about to hit. What does character look like? Drag it there (or tap)",
+         "token": "This moment",
+         "zones": [
+          {
+           "label": "Let the stop do its job",
+           "right": true
+          },
+          {
+           "label": "Cancel the stop and hope",
+           "why": "Hope isn't a plan."
+          }
+         ],
+         "done": "Character first."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "buy",
+         "kind": "quiz",
+         "question": "Morgan said money cannot buy character. In trading, discipline comes from…",
+         "options": [
+          "A bigger account",
+          "Following your plan every time",
+          "Luck"
+         ],
+         "answer": 1,
+         "why": "It's built one trade at a time."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "big",
@@ -3672,7 +5626,100 @@
       "Morgan reorganized failing railroads and in 1901 merged steel companies into U.S. Steel, the first company worth over a billion dollars.",
       "He made messy industries simple and stable."
      ],
-     "trading": "Organize your trading: a clear watchlist, a routine and simple rules beat a messy screen full of ideas."
+     "trading": "Organize your trading: a clear watchlist, a routine and simple rules beat a messy screen full of ideas.",
+     "scroll": {
+      "image": "morgan.webp",
+      "credit": "J.P. Morgan, photograph by Pach Brothers (1902). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Morgan reorganized failing railroads.",
+         "In 1901 he merged steel companies into U.S. Steel, the first company worth over a billion dollars."
+        ],
+        "image": "lessons/morgan-steichen.webp",
+        "credit": "Edward Steichen, J.P. Morgan (1903), The Morgan Library & Museum. Public domain, via Wikimedia Commons.",
+        "task": {
+         "id": "steel",
+         "kind": "quiz",
+         "question": "What was special about U.S. Steel?",
+         "options": [
+          "It was the first company worth over a billion dollars",
+          "It sold railroads",
+          "It was tiny"
+         ],
+         "answer": 0,
+         "why": "He made messy industries simple and stable."
+        }
+       },
+       {
+        "lines": [
+         "Organize your trading the same way."
+        ],
+        "task": {
+         "id": "order",
+         "kind": "collect",
+         "label": "Drag what organizes your trading into the box, or tap it",
+         "target": "Organized",
+         "items": [
+          {
+           "label": "A short, clear watchlist"
+          },
+          {
+           "label": "A daily routine"
+          },
+          {
+           "label": "Simple written rules"
+          },
+          {
+           "label": "50 charts open at once",
+           "wrong": true
+          }
+         ],
+         "wrong": "A messy screen hides the good ideas.",
+         "done": "Clear and simple beats messy."
+        }
+       },
+       {
+        "lines": [
+         "Simple rules are easy to follow."
+        ],
+        "task": {
+         "id": "rules",
+         "kind": "target",
+         "label": "Which set of rules will you actually follow? Drag it there (or tap)",
+         "token": "Your rules",
+         "zones": [
+          {
+           "label": "Three clear rules",
+           "right": true
+          },
+          {
+           "label": "Forty rules you made up last night",
+           "why": "Too many rules don't get followed."
+          }
+         ],
+         "done": "Simple and stable."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "watch",
+         "kind": "quiz",
+         "question": "Your watchlist has 80 stocks and you can't keep up. What helps?",
+         "options": [
+          "Add more",
+          "Cut it to the few you follow closely",
+          "Delete it all"
+         ],
+         "answer": 1,
+         "why": "Organize to make it simple."
+        }
+       }
+      ]
+     }
     },
     {
      "id": "liquidity",
@@ -3681,7 +5728,85 @@
       "Morgan could stop the panic because he and his friends had cash when everyone else was desperate for it.",
       "In a crash, whoever has cash has choices."
      ],
-     "trading": "Keep some buying power free. After a sharp drop, the best setups need cash you didn't already spend."
+     "trading": "Keep some buying power free. After a sharp drop, the best setups need cash you didn't already spend.",
+     "scroll": {
+      "image": "morgan.webp",
+      "credit": "J.P. Morgan, photograph by Pach Brothers (1902). Public domain, via Wikimedia Commons.",
+      "slides": [
+       {
+        "lines": [
+         "Morgan could stop the panic because he and his friends had cash when everyone else was desperate for it."
+        ],
+        "image": true,
+        "task": {
+         "id": "cash",
+         "kind": "quiz",
+         "question": "Why could Morgan act in 1907?",
+         "options": [
+          "He had cash when others needed it",
+          "He predicted the date",
+          "He was lucky"
+         ],
+         "answer": 0,
+         "why": "In a crash, whoever has cash has choices."
+        }
+       },
+       {
+        "lines": [
+         "Keep some buying power free.",
+         "After a sharp drop, the best setups need cash you didn't already spend."
+        ],
+        "task": {
+         "id": "free",
+         "kind": "target",
+         "label": "You have $10,000. Which keeps you ready for a great setup? Drag it there (or tap)",
+         "token": "Your account",
+         "zones": [
+          {
+           "label": "Keep part of it as free buying power",
+           "right": true
+          },
+          {
+           "label": "Put every dollar into trades right away",
+           "why": "Then you have no choices when the best setup appears."
+          }
+         ],
+         "done": "Cash is a weapon."
+        }
+       },
+       {
+        "lines": [
+         "Watch cash turn a crash into a chance."
+        ],
+        "task": {
+         "id": "chance",
+         "kind": "hold",
+         "scene": "rally",
+         "from": "Drop",
+         "to": "Your setup",
+         "label": "Hold through the drop with cash ready",
+         "done": "When others must sell, you can choose."
+        }
+       },
+       {
+        "lines": [
+         "One last check."
+        ],
+        "task": {
+         "id": "weapon",
+         "kind": "quiz",
+         "question": "Why did Morgan treat cash as a weapon?",
+         "options": [
+          "It earns the most",
+          "It gives you choices when others have none",
+          "It never changes"
+         ],
+         "answer": 1,
+         "why": "Whoever has cash has choices."
+        }
+       }
+      ]
+     }
     }
    ],
    "quotes": [
