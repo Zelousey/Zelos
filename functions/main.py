@@ -7129,10 +7129,12 @@ def report_content(req, db, uid, tok, now_ms):
 # State: serverMeta/scanners {day, done, outcomes, alerts}.
 import scanner as SC  # noqa: E402
 import options_scan as OSC  # noqa: E402
+import three_leg_scan as TLS  # noqa: E402
 import outcomes as OC  # noqa: E402
 
 # the Options Scanner runs last: today's Swing Trader / Breakout Rider headline is its first candidate
-SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout, OSC.STRATEGY: OSC.scan_options}
+# 3-Leg runs last: it starts from that day's Swing Trader / Breakout Rider headline (owner 2026-11-19)
+SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout, OSC.STRATEGY: OSC.scan_options, TLS.STRATEGY: TLS.scan_three_leg}
 SCAN_HOLD_SESSIONS = 10  # a swing idea that hits neither level in ~2 weeks is "expired"
 
 
@@ -7283,7 +7285,7 @@ def scanners_pass(db, hist, today, now_utc):
             continue
         # only stocks the practice account trades (one tap from the alert), none already open
         bars = {s: r for s, r in rows.items() if s in PRACTICE_SYMBOLS and s not in busy[strat]}
-        if strat == OSC.STRATEGY:
+        if strat in (OSC.STRATEGY, TLS.STRATEGY):
             linked = []
             for k in ("swing-trader", "breakout-rider"):
                 ls = db.collection("alertsLocked").document("%s-%s" % (k, today)).get()

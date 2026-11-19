@@ -77,8 +77,16 @@ ok(opt["contract"]["kind"] == "call" and 30 <= opt["contract"]["dte"] <= 60 and 
    and opt["contract"]["estMid"] > 0 and "estimate" in opt["riskNotes"], "with a 30-60 day, delta ~0.65 contract at an estimated price")
 ok(opt["entry"] == full["entry"] and opt["stop"] == full["stop"], "using the breakout's own levels")
 
+tid = "three-leg-" + today
+tl = db.collection("alertsLocked").document(tid).get().to_dict()
+ok(tl and tl["status"] == "qualified" and tl["ticker"] == "AMD" and tl["kind"] == "bull-butterfly" and len(tl["legs"]) == 3,
+   "3-Leg Options (owner 2026-11-19) turned the breakout into a bull call butterfly")
+ok(tl["maxProfit"] >= 2 * tl["maxLoss"] and tl["netCost"] == tl["maxLoss"] and len(tl["breakevens"]) == 2 and tl["source"] == "server",
+   "paying at least 2:1, the most you can lose being its cost")
+ok(db.collection("alertPushes").document(tid).get().exists, "and 3-Leg subscribers were notified")
+
 s2 = main.scanners_pass(db, hist, today, now)
-ok(s2["alerts"] == {"swing-trader": "already published", "breakout-rider": "already published", "options-scanner": "already published"} and s2["outcomes"] == 0,
+ok(s2["alerts"] == {"swing-trader": "already published", "breakout-rider": "already published", "options-scanner": "already published", "three-leg": "already published"} and s2["outcomes"] == 0,
    "a second run the same day changes nothing")
 
 # the next day, AMD is still open: it isn't alerted again

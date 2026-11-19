@@ -1,4 +1,4 @@
-# Server-run scanners (Swing Trader, Breakout Rider, Options Scanner)
+# Server-run scanners (Swing Trader, Breakout Rider, Options Scanner, 3-Leg Options)
 
 **Why (owner, 2026-10-22):** the paid scanners used to be Claude skills that someone had to run on a
 schedule. Nobody was running them, so the last real alert was 2026-09-20 and pass holders got
@@ -71,6 +71,17 @@ numbers so every run is the same and testable (scripts/scanner_test.py, tests/ru
   on the stock's move (stop = invalidation), as the skill's track record always was.
 - **One tap:** **Trade this setup** opens the practice options ticket on that exact contract.
 
+**3-Leg Options** (functions/three_leg_scan.py, owner 2026-11-19; one bull call butterfly a day).
+- **The setup** comes from the tested stock rules: today's Swing Trader / Breakout Rider headline first, then any
+  stock passing the Breakout Rider or Swing Trader pullback rule. Same size check as the Options Scanner ($15+,
+  1M+ shares a day).
+- **The butterfly:** buy 1 call at the money, sell 2 calls halfway to the setup's first target, buy 1 call the
+  same distance above; expiration 10–40 days out, closest to 21. It needs max profit at least 2× max loss (the
+  cost). Prices are the practice account's estimates.
+- **Graded at expiration** from the stock's close (outcomes.three_leg_outcome); a stock with an open 3-Leg alert
+  isn't alerted again until it expires.
+- Bear put butterflies and jade lizards were tried and are not published (see below).
+
 **Swing Trader (a pullback in an uptrend).**
 - The stock is in an uptrend: price above the 50-day average, the 50-day above the 200-day, and the
   20-day rising above the 50-day.
@@ -109,6 +120,27 @@ What these numbers mean:
 - **Most trades end by stop or time-out, not at the target.** The public track record will show
   that, which is the honest picture.
 - **Nothing here is a promise of future results.** The app and alerts already say so.
+
+## How often they find something, and 3-Leg designs (re-checked 2026-11-19)
+
+The owner saw several days in a row with no setup and asked whether the scanners find enough. Replayed day by day
+from 2025-01-15 to 2026-09-24 (≈400 market days) on stored daily history:
+
+| Scanner | 23-stock list: days with a setup | ≈50 stocks: days with a setup | Avg result |
+|---|---|---|---|
+| Swing Trader | 29% | 45% | +0.10R / +0.14R |
+| Breakout Rider | 6% | 10% | +0.33R / +0.10R |
+| Options Scanner (stock move) | 28% | 47% | 0.00R / −0.01R |
+| 3-Leg Options (bull call butterfly) | 24% | 42% | +10% / +15% of the cost |
+
+- **Several quiet days in a row is normal**, and Breakout Rider is rare (about once every 3–4 weeks on the list).
+  The list size is what limits it: twice the stocks gives roughly twice the setups at about the same quality.
+- **A higher score did not mean a better result** (Swing Trader's 72+ alerts did worst), so raising or lowering
+  the bar wouldn't help quality; the rules stay as they are.
+- **3-Leg designs tried** (21 days, held to expiration): bull call butterfly on the stock rules' setups +15% of
+  the cost, 31% wins (most lose the small cost, a few pay several times it); bear put butterfly −60%, 13% wins;
+  jade lizard +1%, 81% wins, with a big loss when the stock drops. Only the bull call butterfly is published.
+- Same caveats as above: small samples, model prices (no live option chain), no fees or slippage.
 
 **Re-checking later:** keep the alerts' public outcomes as the real record. Once there are ~100
 live alerts per scanner, compare them with the numbers above before changing any rule.
