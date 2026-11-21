@@ -97,7 +97,7 @@ other tools, the priority order) is in `MASTER_PLAN.md`; the product spec is in 
 - **Square checkout test** (recommended before launch).
 - **Open War to everyone** (only on "open War"; watch `war_market_tick` the first week, see `docs/WAR_LAUNCH_CHECK.md`).
 - **Options payoff drill** (Training Ground).
-- **Options Scanner / 3-Leg server scanner** (the 3-leg strategy exists; its alerts aren't produced on the server yet).
+- **3-Leg server scanner**: done 2026-11-19 (functions/three_leg_scan.py, bull call butterflies; docs/SERVER_SCANNERS.md).
 - Swipe lessons for the other 6 figures: **Edison, Tesla, Livermore, Dow, Newton, Morgan**
   (pictures already in `webapp/public/minds/lessons/`). When Edison converts, move the old-style 10 XP test
   lesson `edison:work` (in `scripts/minds_test.py` and `tests/rules/functions.e2e.mjs`) to a figure that's still old-style.

@@ -1,7 +1,7 @@
 /** Calls into the server practice account (functions/main.py practice_*). Errors carry a player-readable message. */
 import { callFunction } from '../../lib/firebase';
 
-export type OrderRequest = { sym: string; side: 'buy' | 'sell'; type: 'market' | 'limit' | 'stop'; qty: number; limit?: number; stop?: number; tif: 'day' | 'gtc'; bracket?: { sl?: number; tp?: number } };
+export type OrderRequest = { sym: string; side: 'buy' | 'sell'; type: 'market' | 'limit' | 'stop'; qty: number; limit?: number; stop?: number; tif: 'day' | 'gtc'; bracket?: { sl?: number; tp?: number; days?: number } };
 
 export function errorMessage(e: unknown): string {
   const m = (e as { message?: string })?.message;

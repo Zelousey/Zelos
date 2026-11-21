@@ -33,7 +33,7 @@ describe('alerts', () => {
     const none = parsePrefs({});
     expect(isOn(none, 's:swing-trader')).toBe(true);
     expect(isOn(none, 'battles')).toBe(true);
-    expect(toggle(none, 's:breakout-rider', false)).toEqual({ notificationPrefs: { strategies: ['swing-trader', 'options-scanner', 'three-leg'] } });
+    expect(toggle(none, 's:breakout-rider', false)).toEqual({ notificationPrefs: { strategies: ['momentum-trader', 'momentum-max', 'swing-trader', 'options-scanner', 'three-leg'] } });
     expect(toggle(none, 'friends', false)).toEqual({ notificationPrefs: { types: { friends: false } } });
     const p = parsePrefs({ notificationPrefs: { strategies: ['options-scanner', 'evil'], types: { friends: false, x: 'no' } } });
     expect(p).toEqual({ strategies: ['options-scanner'], types: { friends: false } });
@@ -80,5 +80,25 @@ describe('3-Leg payoff (same numbers as functions/three_leg.py)', () => {
       { type: 'call', side: 'buy', strike: 200, qty: 1, price: 1 },
     ];
     expect(at(legs, -420, pts)).toEqual([-1580, 420, 420, 420, 420, 420, -80, -80]);
+  });
+});
+
+import { sharesFor } from './decisions';
+import { strategyBoard } from './StrategyBoard';
+import { STRATEGIES } from '../strategies/strategies';
+describe('take a trade and the scoreboard (owner 2026-11-19)', () => {
+  it('shares risk about 1% of the account, never more than a quarter of it in one idea', () => {
+    expect(sharesFor(10_000, 50, 49)).toBe(50); // $100 risk at $1 a share = 100 shares, capped by $2,500 / $50
+    expect(sharesFor(10_000, 50, 48)).toBe(50);
+    expect(sharesFor(10_000, 50, 45)).toBe(20); // $5 risk a share: 20 shares
+    expect(sharesFor(10_000, 50, 50)).toBe(1);
+  });
+  it('the scoreboard puts the best win rate first', () => {
+    const mk = (strategy: string, result: string) => ({ ...parseAlert(`${strategy}-2026-11-1${Math.floor(Math.random() * 9)}`, { strategy, status: 'qualified', ticker: 'AMD', outcome: { result } })! });
+    const list = [mk('swing-trader', 'hit-target'), mk('swing-trader', 'stopped-out'), mk('momentum-trader', 'hit-target'), mk('momentum-trader', 'hit-target')];
+    const rows = strategyBoard(list, STRATEGIES);
+    expect(rows[0]!.st.id).toBe('momentum-trader');
+    expect(rows[0]!.rec.winRate).toBe(100);
+    expect(rows[1]!.st.id).toBe('swing-trader');
   });
 });

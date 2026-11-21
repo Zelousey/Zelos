@@ -6,11 +6,12 @@ import swing from './art/swing-trader.svg?raw';
 import breakout from './art/breakout-rider.svg?raw';
 import options from './art/options-scanner.svg?raw';
 import threeLeg from './art/three-leg.svg?raw';
+import momentum from './art/momentum-trader.svg?raw';
 import { t } from '../../lib/i18n';
 import type { StrategyId } from './strategies';
 import s from './Strategies.module.css';
 
-const ART: Record<StrategyId, string> = { 'swing-trader': swing, 'breakout-rider': breakout, 'options-scanner': options, 'three-leg': threeLeg };
+const ART: Record<StrategyId, string> = { 'momentum-trader': momentum, 'momentum-max': momentum, 'swing-trader': swing, 'breakout-rider': breakout, 'options-scanner': options, 'three-leg': threeLeg };
 
 export function StrategyArt({ id, name, size = 'md' }: { id: StrategyId; name: string; size?: 'sm' | 'md' | 'lg' }) {
   return <div className={[s.art, s[`art-${size}`]].join(' ')} role="img" aria-label={t('st.art', { name })} dangerouslySetInnerHTML={{ __html: ART[id] }} />;

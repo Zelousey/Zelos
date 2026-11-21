@@ -32,7 +32,7 @@ test('find strategies from Trade War and the Dashboard; see what each looks for'
   await expect(page.getByRole('link', { name: 'Swing Trader', exact: true })).toBeVisible();
   await expect(page.getByText('Flat-base breakout')).toBeVisible(); // the live alert teaser, ticker hidden
   await expect(page.getByText('TEST123')).toHaveCount(0); // test docs never show
-  await expect(page.getByRole('button', { name: 'Sign in to get a pass' })).toHaveCount(4);
+  await expect(page.getByRole('button', { name: 'Sign in to get a pass' })).toHaveCount(5); // Momentum Trader joined (owner 2026-11-19)
   await expect(page.getByText(/not investment advice/)).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((v) => v.id)).toEqual([]);
   await page.getByRole('link', { name: 'Breakout Rider', exact: true }).click();
@@ -56,7 +56,7 @@ test.describe('signed in', () => {
     await expect(dialog.getByText(/You’ll have 80 tokens left/)).toBeVisible();
     await dialog.getByRole('button', { name: 'Pay 120 tokens' }).click();
     await expect(page.getByText('Swing Trader pass active for 7 days')).toBeVisible();
-    await expect(card.getByText(/^After-close pass until/)).toBeVisible(); // passes sold from 2026-11-10 open alerts after the close
+    await expect(card.getByText(/^Pass until/)).toBeVisible(); // every pass opens alerts live (owner 2026-11-19)
     await expect(card.getByRole('link', { name: /Open alerts/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Your tokens: 80/ })).toBeVisible();
     // a 1-day pass to try a scanner (owner 2026-10-22); 80 tokens isn't enough for a week

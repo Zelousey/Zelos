@@ -88,3 +88,36 @@
 .nowLabel { font-family: var(--mono); font-size: 10px; fill: var(--gold); }
 .more { composes: hit from global; } /* finger-sized touch area on touch screens (base.css, Phase 4 M-5) */
 .nudgeActions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+
+/* the strategy scoreboard (owner 2026-11-19) */
+.board { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.board li { display: grid; grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); }
+.boardName { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--ink); font-weight: 600; font-size: var(--text-sm); text-decoration: none; }
+.boardBar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--surface-2); min-width: 24px; }
+.boardBar i { display: block; height: 100%; }
+.boardEmpty { flex: 1; background: var(--surface-2); }
+.boardNum { font-family: var(--mono); font-size: var(--text-sm); color: var(--ink-2); white-space: nowrap; }
+@media (max-width: 520px) { .board li { grid-template-columns: 1fr auto; } .boardBar { grid-column: 1 / -1; grid-row: 2; } }
+.declinedLink { color: var(--link); font-weight: 600; font-size: var(--text-sm); text-decoration: none; white-space: nowrap; }
+
+/* Take this trade (owner 2026-11-19) */
+.takeCard { border-color: var(--accent-line); }
+.preview { margin: 0; display: grid; gap: 4px; }
+.preview > svg { width: 100%; height: auto; display: block; }
+.preview > a { justify-self: start; }
+.previewCap { display: flex; justify-content: space-between; color: var(--muted); font-size: var(--text-xs); }
+.takeNums { margin: var(--space-3) 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
+.takeNums div { display: grid; gap: 2px; }
+.takeNums dt { color: var(--muted); font-size: var(--text-xs); }
+.takeNums dd { margin: 0; font-family: var(--mono); font-weight: 700; }
+.checks { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.checks li { padding: 4px 10px; border-radius: 999px; font-size: var(--text-xs); border: 1px solid var(--border-soft); }
+.checkOk { color: var(--bull); border-color: color-mix(in srgb, var(--bull) 40%, transparent) !important; }
+.checkNo { color: var(--muted); text-decoration: line-through; }
+.checkInfo { color: var(--ink-2); }
+.takeForm { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.takeForm label { display: grid; gap: 4px; font-size: var(--text-sm); color: var(--ink-2); font-weight: 600; }
+.takeForm input, .takeForm select { width: 100%; min-width: 0; box-sizing: border-box; min-height: var(--tap); padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
+.takeActions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.takeDone { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-2) 0 0; font-weight: 600; }
+@media (max-width: 520px) { .takeNums { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

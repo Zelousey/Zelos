@@ -103,19 +103,31 @@ class Wallet(unittest.TestCase):
         self.assertFalse(m.tk_has_access(w, "options-scanner", "a", T0 + 5))
 
 
-    def test_new_passes_open_alerts_after_the_close_only(self):
-        # owner 2026-11-10: a pass bought now opens alerts after the close; a live alert is a token unlock
+    def test_passes_open_alerts_live(self):
+        # owner 2026-11-19: alerts go out at 10 am, so a pass opens them live (no extra unlock)
         w = dict(m.tk_new_wallet(T0), balance=200)
         w, _ = m.tk_spend(w, "pass", T0, "swing-trader")
-        self.assertNotIn("swing-trader", w["passes"])
-        self.assertFalse(m.tk_has_access(w, "swing-trader", "a", T0, closed=False))
+        self.assertTrue(m.tk_has_access(w, "swing-trader", "a", T0, closed=False))
         self.assertTrue(m.tk_has_access(w, "swing-trader", "a", T0, closed=True))
         live = {"strategy": "swing-trader", "released": False, "lockedUntil": T0 + 3600000}
-        w2, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-11-10", locked=live)
-        self.assertEqual(line["amount"], -m.TOKENS["unlock"])  # live: still paid
-        closed = {"strategy": "swing-trader", "released": True, "lockedUntil": T0 - 1}
-        w3, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-11-09", locked=closed)
-        self.assertEqual((w3["balance"], line), (w["balance"], None))  # after the close: covered by the pass
+        w2, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-11-20", locked=live)
+        self.assertEqual((w2["balance"], line), (w["balance"], None))  # covered by the pass
+        self.assertFalse(m.tk_has_access(w, "breakout-rider", "a", T0, closed=False))  # only its own strategy
+
+    def test_alerts_from_your_pass_stay_yours(self):
+        # owner 2026-11-19: what came out during your 7 days stays yours; new ones stop when it ends
+        w = dict(m.tk_new_wallet(T0), balance=500)
+        w, _ = m.tk_spend(w, "pass", T0, "swing-trader")
+        self.assertEqual(w["passesFrom"]["swing-trader"], T0)
+        during, after = T0 + 3 * 86400000, T0 + 8 * 86400000
+        later = T0 + 10 * 86400000
+        self.assertTrue(m.tk_has_access(w, "swing-trader", "a", later, False, during))
+        self.assertFalse(m.tk_has_access(w, "swing-trader", "a", later, False, after))
+        self.assertFalse(m.tk_has_access(w, "swing-trader", "a", later, False, T0 - 1))  # before you bought it
+        w2, _ = m.tk_spend(w, "pass", T0 + 86400000, "swing-trader")  # extending keeps the start
+        self.assertEqual(w2["passesFrom"]["swing-trader"], T0)
+        w3, _ = m.tk_spend(w, "pass", later, "swing-trader")  # a new pass after it ran out starts again
+        self.assertEqual(w3["passesFrom"]["swing-trader"], later)
 
     def test_passes_sold_before_keep_live_access(self):
         w = dict(m.tk_new_wallet(T0), balance=0, passes={"breakout-rider": T0 + 99})
@@ -315,15 +327,18 @@ class Push(unittest.TestCase):
         self.assertFalse(m.push_wants({"strategies": ["swing-trader"]}, "options-scanner"))
         self.assertFalse(m.push_wants({"strategies": []}, "swing-trader"))
 
-    def test_message_is_a_teaser(self):
-        a = dict(AlertLocking.FULL, strategy="breakout-rider")
+    def test_message_is_the_trade(self):
+        # owner 2026-11-19: only pass holders get these, so it's the trade itself
+        a = dict(AlertLocking.FULL, strategy="breakout-rider", holdDays=10)
         title, body, link, image = m.push_alert_message("breakout-rider-2026-10-01", a)
-        self.assertEqual(title, "New Breakout Rider alert")
-        self.assertIn("score 59/80", body)
-        self.assertNotIn("PFE", title + body)       # never the ticker
-        self.assertNotIn("27.72", body)             # or the levels
-        self.assertEqual(link, "https://agentictrading.info/app/alerts/breakout-rider-2026-10-01")  # opens in the app (Trade button)
+        self.assertTrue(title.startswith("Breakout Rider: %s" % a["ticker"]))
+        self.assertIn("stop $%.2f" % a["stop"], body)
+        self.assertIn("hold up to 10 days", body)
+        self.assertIn("take it or decline", body)
+        self.assertEqual(link, "https://agentictrading.info/app/alerts/breakout-rider-2026-10-01")  # opens in the app
         self.assertTrue(image.endswith("/images/alert-breakout-rider.png"))
+        t2, b2, _, _ = m.push_alert_message("x-2026-10-01", {"strategy": "swing-trader", "setupLabel": "Pullback"})
+        self.assertEqual(t2, "New Swing Trader alert")  # nothing to show: the old teaser
 
     def test_send_drops_dead_tokens(self):
         import types

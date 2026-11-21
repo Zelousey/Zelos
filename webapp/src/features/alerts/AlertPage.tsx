@@ -19,6 +19,7 @@ import { TokensSheet, useTokens } from '../strategies/Tokens';
 import { awardOpen, hasTrade, ID_RE, isClosedForUnlock, isShort, payoffAt, unlockAlert, useAlertDoc, useFullAlert, type Alert } from './alerts';
 import { ResultBadge, StatusBadge } from './Badges';
 import { ResearchCard } from '../markets/Research';
+import { canTakeInOneTap, TakeTrade } from './TakeTrade';
 import s from './Alerts.module.css';
 
 const SITE = 'https://agentictrading.info/app';
@@ -90,6 +91,7 @@ function View({ a, uid, onUnlocked }: { a: Alert; uid: string | null; onUnlocked
         {a.score != null && <Badge tone="violet">{t('al.score', { n: a.score, of: a.scoreMax ?? 80 })}</Badge>}
       </div>
       <div className={s.detail}>
+        {!a.locked && canTakeInOneTap(a) && <TakeTrade a={a} uid={uid} />}
         {a.locked ? (
           <LockCard a={a} uid={uid} onUnlocked={onUnlocked} />
         ) : trade && a.legs.length === 3 ? (
@@ -122,7 +124,8 @@ function View({ a, uid, onUnlocked }: { a: Alert; uid: string | null; onUnlocked
 }
 
 function PlanCard({ a }: { a: Alert }) {
-  const rr = a.rewardRisk ?? (a.riskPerShare && a.rewardPerShare ? a.rewardPerShare / a.riskPerShare : null);
+  // the scanners store the risk per share as a negative number: compare sizes, not signs
+  const rr = a.rewardRisk ?? (a.riskPerShare && a.rewardPerShare ? Math.abs(a.rewardPerShare / a.riskPerShare) : null);
   const rows: [string, number | null][] = [
     [t('al.entry'), a.entry],
     [t('al.stop'), a.stop],
@@ -139,7 +142,7 @@ function PlanCard({ a }: { a: Alert }) {
           .map(([k, v]) => (
             <div key={k}>
               <dt>{k}</dt>
-              <dd>${formatPrice(v)}</dd>
+              <dd>${formatPrice(v != null ? Math.abs(v) : v)}</dd>
             </div>
           ))}
       </dl>

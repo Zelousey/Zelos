@@ -55,6 +55,13 @@ export type Alert = {
   maxProfit: number | null; // null = unlimited (or not a 3-Leg alert)
   maxLoss: number | null;
   breakevens: number[];
+  // owner 2026-11-19: the recommended hold, the checklist (Momentum Trader / Max), high risk, 10 am plan
+  holdDays: number | null;
+  checks: [string, boolean][];
+  highRisk: boolean;
+  publishedAt: number | null;
+  plannedAt: string | null;
+  signalClose: number | null;
 };
 export type OptionContract = { id: string; label: string; kind: 'call' | 'put'; exp: string; strike: number; dte: number | null; delta: number | null; estMid: number | null };
 const CONTRACT_RE = /^([A-Z][A-Z0-9.-]{0,9})\|(\d{8})\|([CP])\|(\d{1,9})$/; // functions/options.py CONTRACT_RE
@@ -157,6 +164,21 @@ export function parseAlert(id: string, d: DocumentData): Alert | null {
     maxProfit: num(d.maxProfit),
     maxLoss: num(d.maxLoss),
     breakevens: Array.isArray(d.breakevens) ? (d.breakevens as unknown[]).map(num).filter((x): x is number => x != null).slice(0, 4) : [],
+    holdDays: (() => {
+      const n = num(d.holdDays);
+      return n != null && n >= 1 && n <= 30 ? Math.round(n) : null;
+    })(),
+    checks:
+      d.checks && typeof d.checks === 'object' && !Array.isArray(d.checks)
+        ? Object.entries(d.checks as Record<string, unknown>)
+            .filter(([k, v]) => /^[a-zA-Z]{2,20}$/.test(k) && typeof v === 'boolean')
+            .slice(0, 20)
+            .map(([k, v]) => [k, v as boolean])
+        : [],
+    highRisk: d.highRisk === true,
+    publishedAt: num(d.publishedAt),
+    plannedAt: str(d.plannedAt, 10),
+    signalClose: num(d.signalClose),
   };
 }
 

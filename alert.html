@@ -322,7 +322,7 @@
 <script src="firebase-config.js?v=d17d99d7"></script>
 <script src="zelos-xp.js?v=4f74402e"></script>
 <script src="zelos-challenge.js?v=a6884736"></script>
-<script src="zelos-tokens.js?v=5060b9a5"></script>
+<script src="zelos-tokens.js?v=8157ad6e"></script>
 <script src="zelos-push.js?v=3c36384d"></script>
 <script>document.addEventListener("DOMContentLoaded",function(){if(window.ZelosPush)ZelosPush.mount(document.getElementById("pushRow"));});</script>
 <script>
@@ -362,7 +362,7 @@
     document.getElementById('fTicker').textContent = a.ticker || '—';
     document.title = 'Zelos Alert — ' + (a.ticker || '');
 
-    var NAMES = { 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner', 'three-leg':'3-Leg Options' };
+    var NAMES = { 'momentum-trader':'Momentum Trader', 'momentum-max':'Momentum Max', 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner', 'three-leg':'3-Leg Options' };
     var dir = String(a.direction || '').toLowerCase(), short = /short|put|bear/.test(dir);
     document.getElementById('fKicker').textContent = (NAMES[a.strategy] || 'Zelos') + (dir ? ' · ' + dir : '');
     document.getElementById('fHero').classList.toggle('is-short', short);
