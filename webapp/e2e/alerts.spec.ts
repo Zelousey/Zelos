@@ -49,7 +49,7 @@ test.beforeAll(async () => {
 test('the list, the track record and a finished alert', async ({ page }) => {
   await page.goto('alerts');
   await expect(page.getByRole('heading', { name: 'Alerts', level: 1 })).toBeVisible();
-  await expect(page.getByText('50%')).toBeVisible(); // 1 win, 1 loss
+  await expect(page.getByText('50%', { exact: true })).toBeVisible(); // 1 win, 1 loss (the scoreboard says it too, with the counts)
   const list = page.locator('section').filter({ has: page.getByRole('heading', { name: 'All alerts' }) });
   await expect(list.getByRole('link', { name: /NVDA/ })).toBeVisible();
   await expect(list.getByRole('link', { name: /🔒 Live Swing Trader Bull flag/ })).toBeVisible(); // live: ticker hidden
@@ -108,7 +108,7 @@ test.describe('signed in', () => {
     await page.getByRole('button', { name: 'Unlock · 25 tokens' }).click();
     // the first tokens_spend call starts its emulator worker (~5 s here, more on a busy CI runner)
     await expect(page.getByRole('heading', { name: 'MSFT', level: 1 })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText('$95.00')).toBeVisible();
+    await expect(page.getByText('$95.00').last()).toBeVisible(); // the plan (the Take this trade card shows it too)
     const w = await get(`wallets/${uid}`);
     expect(w.fields.balance.integerValue).toBe('25');
 
@@ -137,7 +137,7 @@ test.describe('signed in', () => {
     // saved on the account (the switch flips at once; the write lands a moment later)
     await expect
       .poll(async () => ((await get(`users/${uid}`)).fields?.notificationPrefs?.mapValue?.fields?.strategies?.arrayValue?.values ?? []).map((x: { stringValue: string }) => x.stringValue))
-      .toEqual(['momentum-trader', 'swing-trader', 'options-scanner', 'three-leg']);
+      .toEqual(['momentum-trader', 'momentum-max', 'swing-trader', 'options-scanner', 'three-leg']);
     expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   });
 });

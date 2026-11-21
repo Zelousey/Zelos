@@ -21,9 +21,10 @@
     ['Scanner alerts', [['s:swing-trader', 'Swing Trader', 'A new alert is published'],
       ['s:breakout-rider', 'Breakout Rider', 'A new alert is published'], ['s:options-scanner', 'Options Scanner', 'A new alert is published'],
       ['s:three-leg', '3-Leg Options', 'A new alert is published'],
-      ['s:momentum-trader', 'Momentum Trader', 'A new alert is published']]]
+      ['s:momentum-trader', 'Momentum Trader', 'A new alert is published'],
+      ['s:momentum-max', 'Momentum Max (high risk)', 'A new alert is published']]]
   ];
-  var STRATS = ['momentum-trader', 'swing-trader', 'breakout-rider', 'options-scanner', 'three-leg'];
+  var STRATS = ['momentum-trader', 'momentum-max', 'swing-trader', 'breakout-rider', 'options-scanner', 'three-leg'];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function style() {
     if (d.getElementById('znsStyle')) return;

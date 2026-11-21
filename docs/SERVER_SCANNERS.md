@@ -24,10 +24,23 @@ Since 2026-11-19:
 | Scanner | Length | Days with a pick | Avg (entering at the next open) |
 |---|---|---|---|
 | Momentum Trader (new) | up to 3 market days | 94% | +0.10R (halves +0.13 / +0.08) |
+| Momentum Max (high risk, hidden unless turned on) | up to 3 market days | 95% | +0.17R, 44% wins (halves +0.20 / +0.15) |
 | Swing Trader (kinds A, B) | up to 10 market days | 38% | +0.17R (halves +0.19 / +0.15) |
 | Options Scanner | 10 market days | 63% | +0.13R stock move (halves +0.22 / +0.02) |
 | Breakout Rider | 10 market days | ~6% | unchanged |
 | 3-Leg Options | to expiration (~3 weeks) | ~24% | +8% of the cost |
+
+**Momentum Max** (same file, owner 2026-11-19: "a little more extreme"): the same checklist, but the most
+volatile stock that passes, a stop 3/4 of a day's range under the entry and a 3:1 target, up to 3 days. The app
+hides it unless "Show high-risk strategies" is on (per device). Shorter holds were tried for the medium
+strategies (Swing 10 → 7 → 5 days: +0.17 → +0.10 → +0.08R) and made them worse, so the tested holds stay
+the recommended ones; people choose their own when they take a trade (a time exit, practice.py `bracket.days`).
+
+**Passes and notifications (2026-11-19):** a pass records when it started (`passesFrom`); every alert carries
+`publishedAt`; an alert published inside your pass window stays readable after the pass ends (rules +
+`tk_in_pass_window`). Push notifications go only to people with an active pass for that strategy, and since
+they have access, the notification is the trade itself (stock, entry, stop, target, hold). Declining is free
+(`users/{uid}/alertDecisions`); taking one back costs 2 tokens while its trade is live (`alert_reactivate`).
 
 **Momentum Trader** (functions/momentum_scan.py): the stock passing the most of 13 chart checks (trend: above
 the 50-day, 50 over 200, above the 20-day; MACD histogram rising, MACD over its signal; RSI(14) 45–65 and

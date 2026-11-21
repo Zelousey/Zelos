@@ -83,6 +83,20 @@ def market_open(ms):
     return is_weekday(ny_day(ms)) and SESSION_OPEN <= minutes(ms) < SESSION_CLOSE
 
 
+MAX_HOLD_DAYS = 30
+TIME_EXIT_MIN = 5  # the time exit sells 5 minutes before the close of its last day
+
+
+def exit_day(day, days):
+    """The last market day of a hold of `days` market days that starts on `day` (day 1)."""
+    d = day
+    for _ in range(days - 1):
+        d = next_weekday(d)
+        while MD.market_holiday(d):
+            d = next_weekday(d)
+    return d
+
+
 def active_session(ms):
     """The session an order placed now belongs to: today until the close, else the next weekday."""
     day = ny_day(ms)
@@ -273,8 +287,17 @@ def validate_order(acct, req, last_price, universe, now_ms, new_id):
             _in_band(tp, last_price, "take-profit")
             if tp <= ref:
                 raise OrderError("The take-profit must be above the entry price.")
-        if sl is not None or tp is not None:
+        # owner 2026-11-19: close it after N market days (an alert's recommended hold, or your own)
+        days = b.get("days")
+        if days not in (None, ""):
+            if not isinstance(days, int) or isinstance(days, bool) or not 1 <= days <= MAX_HOLD_DAYS:
+                raise OrderError("Choose 1 to %d days to hold." % MAX_HOLD_DAYS)
+        else:
+            days = None
+        if sl is not None or tp is not None or days:
             bracket = {"sl": sl, "tp": tp}
+            if days:
+                bracket["days"] = days
 
     prices = {sym: last_price}
     if side == "buy":
@@ -492,8 +515,13 @@ def fill(acct, o, px, when_ms, events, vols=None):
         events.append({"kind": "order", "order": dict(o, status="filled", fillPrice=px, filledAt=when_ms, closedAt=when_ms)})
         events.append({"kind": "fill", "sym": sym, "side": "buy", "qty": qty, "price": px, "at": when_ms, "day": day, "orderId": o["id"]})
         br = o.get("bracket") or {}
-        if br.get("sl") or br.get("tp"):
+        if br.get("sl") or br.get("tp") or br.get("days"):
             group = _new_id(o["id"], "g")
+            if br.get("days"):
+                last = exit_day(day, br["days"])
+                add_order(acct, {"id": _new_id(o["id"], "x"), "sym": sym, "side": "sell", "type": "market", "qty": qty, "limit": None, "stop": None,
+                                 "tif": "gtc", "session": last, "createdAt": when_ms, "bracket": None, "oco": group, "role": "time", "parent": o["id"],
+                                 "notBefore": session_close_ms(last) - TIME_EXIT_MIN * 60000, "exitDay": last})
             if br.get("sl"):
                 add_order(acct, {"id": _new_id(o["id"], "s"), "sym": sym, "side": "sell", "type": "stop", "qty": qty, "limit": None, "stop": br["sl"], "tif": "gtc",
                                  "session": active_session(when_ms), "createdAt": when_ms, "bracket": None, "oco": group, "role": "sl", "parent": o["id"]})
@@ -615,6 +643,8 @@ def _first_trigger(o, bars, quote, now_ms, bar_min=BAR_MIN):
     """(price, when_ms) of the earliest fill after the order was placed, or None."""
     created = o["createdAt"]
     first_ok = session_open_ms(o["session"]) if o["session"] > ny_day(created) else created
+    if o.get("notBefore"):  # a time exit waits for its day's last minutes
+        first_ok = max(first_ok, o["notBefore"])
     last_ok = session_close_ms(o["session"]) if o["tif"] == "day" else None
     for b in bars:
         start = bar_start_ms(b[0])

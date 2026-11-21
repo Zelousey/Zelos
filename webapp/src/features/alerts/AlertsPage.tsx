@@ -12,7 +12,9 @@ import { db } from '../../lib/firebase';
 import { formatDate } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { Badge, Button, Card, EmptyState, ErrorState, Icon, LoadingState, PageHeader, Tabs, useToast } from '../../ui';
-import { STRATEGIES, strategy } from '../strategies/strategies';
+import { useShowHighRisk, visibleStrategies } from '../strategies/highRisk';
+import { strategy } from '../strategies/strategies';
+import { StrategyBoard } from './StrategyBoard';
 import { PushDevice } from './PushDevice';
 import { RecordDuel } from './RecordDuel';
 import { hasTrade, isOn, NOTIFY_GROUPS, toggle, trackRecord, useAlertList, type Alert } from './alerts';
@@ -46,12 +48,18 @@ export default function AlertsPage() {
 function AlertList() {
   const alerts = useAlertList();
   const [filter, setFilter] = useState<string>('all');
-  const list = useMemo(() => (alerts.status === 'ready' ? alerts.data.filter((a) => filter === 'all' || a.strategy === filter) : []), [alerts, filter]);
+  const showRisky = useShowHighRisk();
+  const shown = visibleStrategies(showRisky);
+  const all = useMemo(() => (alerts.status === 'ready' ? alerts.data.filter((a) => shown.some((x) => x.id === a.strategy)) : []), [alerts, shown]);
+  const list = useMemo(() => all.filter((a) => filter === 'all' || a.strategy === filter), [all, filter]);
   const rec = trackRecord(list);
   return (
     <div className={s.stack}>
       <div className={s.filters}>
-        <Tabs label={t('al.filter')} value={filter} onChange={setFilter} items={[{ value: 'all', label: t('markets.all') }, ...STRATEGIES.map((x) => ({ value: x.id, label: x.name }))]} />
+        <Tabs label={t('al.filter')} value={filter} onChange={setFilter} items={[{ value: 'all', label: t('markets.all') }, ...shown.map((x) => ({ value: x.id, label: x.name }))]} />
+        <Link to="/alerts/declined" className={s.declinedLink}>
+          {t('al.declined.link')} →
+        </Link>
       </div>
       <Card title={t('al.record')} subtitle={t('al.record.sub')}>
         {alerts.status === 'loading' ? (
@@ -80,6 +88,7 @@ function AlertList() {
           </div>
         )}
       </Card>
+      {filter === 'all' && alerts.status === 'ready' && <StrategyBoard list={all} strategies={shown} />}
       <Card title={t('al.list')} flush>
         {alerts.status === 'loading' ? (
           <LoadingState rows={5} />

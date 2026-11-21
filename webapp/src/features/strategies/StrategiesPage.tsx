@@ -11,6 +11,7 @@ import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
 import { Badge, Button, Card, Confirm, Icon, PageHeader, Skeleton, useToast } from '../../ui';
 import { errorText } from '../invites/invites';
+import { setShowHighRisk, useShowHighRisk, visibleStrategies } from './highRisk';
 import { buyPass, passPrice, passUntil, STRATEGIES, useAlerts, type Alert, type PassDays, type Strategy, type WalletDoc, type WalletInfo } from './strategies';
 import { StrategyArt } from './StrategyArt';
 import { TokensSheet, useTokens } from './Tokens';
@@ -21,14 +22,23 @@ export default function StrategiesPage() {
   const [sheet, setSheet] = useState(false);
   const alerts = useAlerts();
   const list = alerts.status === 'ready' ? alerts.data : [];
+  const showRisky = useShowHighRisk();
   return (
     <>
       <PageHeader title={t('nav.strategies')} subtitle={t('st.subtitle')} />
+      <p className={s.passHow}>{t('st.pass.how')}</p>
       <div className={s.list}>
-        {STRATEGIES.map((x) => (
+        {visibleStrategies(showRisky).map((x) => (
           <StrategyCard key={x.id} st={x} latest={list.find((a) => a.strategy === x.id) ?? null} loading={alerts.status === 'loading'} wallet={tk.wallet} info={tk.info} balance={tk.balance} onTokens={() => setSheet(true)} />
         ))}
       </div>
+      <label className={s.riskToggle}>
+        <input type="checkbox" checked={showRisky} onChange={(e) => setShowHighRisk(e.target.checked)} />
+        <span>
+          <b>{t('st.highRisk.show')}</b>
+          <small>{t('st.highRisk.sub', { names: STRATEGIES.filter((x) => x.highRisk).map((x) => x.name).join(', ') })}</small>
+        </span>
+      </label>
       <p className={s.fine}>{t('st.disclaimer')}</p>
       <TokensSheet open={sheet} onClose={() => setSheet(false)} info={tk.info} balance={tk.balance} />
     </>

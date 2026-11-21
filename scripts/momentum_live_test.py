@@ -50,6 +50,21 @@ class Momentum(unittest.TestCase):
         self.assertIn("RSI", a["technicals"])
         self.assertIn("MACD", a["technicals"])
 
+    def test_momentum_max_takes_the_most_volatile_with_a_tighter_plan(self):
+        def strong(wiggle):
+            c = trend(259, 50, 0.003, wiggle) + [0]
+            c[-1] = c[-2] * 1.012
+            rows = series(c, [3_000_000] * 259 + [4_000_000])
+            rows[-1][1], rows[-1][3] = c[-2], c[-2] * 0.999
+            return rows
+        bars = {"CALM": strong(0.004), "WILD": strong(0.012)}
+        calm = MOM.scan_momentum(bars, self.spy, self.spy)
+        wild = MOM.scan_momentum_max(bars, self.spy, self.spy)
+        self.assertEqual((wild["strategy"], wild["ticker"], wild["highRisk"]), ("momentum-max", "WILD", True))
+        risk = wild["entry"] - wild["stop"]
+        self.assertAlmostEqual(wild["target1"] - wild["entry"], 3 * risk, delta=0.02)
+        self.assertFalse(calm["highRisk"])
+
     def test_a_downtrend_is_not_picked(self):
         rows = series(trend(260, 120, -0.003, 0.004))
         a = MOM.scan_momentum({"DOWN": rows}, self.spy, self.spy)

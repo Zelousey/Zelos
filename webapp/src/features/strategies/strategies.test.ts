@@ -3,7 +3,7 @@ import { parseAlert, parseWallet, passPrice, passUntil, safeCheckout, STRATEGIES
 
 describe('strategies', () => {
   it('the same strategies as the server (main.py ALLOWED_STRATEGIES)', () => {
-    expect(STRATEGIES.map((s) => s.id)).toEqual(['momentum-trader', 'swing-trader', 'breakout-rider', 'options-scanner', 'three-leg']);
+    expect(STRATEGIES.map((s) => s.id)).toEqual(['momentum-trader', 'momentum-max', 'swing-trader', 'breakout-rider', 'options-scanner', 'three-leg']);
   });
   it('pass price: 3-Leg Options costs more (owner 2026-10-15), the server price wins', () => {
     expect(passPrice(null, 'swing-trader')).toBe(120);

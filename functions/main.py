@@ -65,7 +65,7 @@ import three_leg as TL  # the 3-Leg Options strategy: legs, cost, max profit/los
 
 initialize_app()
 
-ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner", "three-leg", "momentum-trader"}
+ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner", "three-leg", "momentum-trader", "momentum-max"}
 
 
 def _secret_ok(provided):
@@ -90,7 +90,7 @@ def alert_has_trade(alert):
 
 
 def alert_teaser(alert):
-    t = {k: alert[k] for k in ALERT_PUBLIC_FIELDS if k in alert}
+    t = {k: alert[k] for k in ALERT_PUBLIC_FIELDS + ("publishedAt", "highRisk", "holdDays") if k in alert}
     st = alert.get("scanStats")
     if isinstance(st, dict):
         t["scanStats"] = {k: st[k] for k in ("scanned", "passedFilters") if k in st}
@@ -148,7 +148,7 @@ def release_alert_public(db, alert_id, outcome, now_ms):
 def alert_store(db, alert_id, alert, now_utc):
     """Save a scanner's alert. A live one is a public teaser plus the full alert in alertsLocked
     for token holders (a scanner pass or a single unlock); it goes public once its trade ends."""
-    alert = dict(alert, createdAt=firestore.SERVER_TIMESTAMP)
+    alert = dict(alert, createdAt=firestore.SERVER_TIMESTAMP, publishedAt=int(now_utc.timestamp() * 1000))
     if alert_has_trade(alert):
         until = alert_lock_until(now_utc)
         db.collection("alertsLocked").document(alert_id).set(dict(alert, lockedUntil=until, released=False))
@@ -3881,7 +3881,16 @@ def tk_welcome(wallet, verified, now_ms):
     return w, tk_ledger("welcome", TOKENS["welcome"], w["balance"], now_ms, "Welcome tokens")
 
 
-def tk_has_access(wallet, strategy, alert_id, now_ms, closed=True):
+def tk_in_pass_window(wallet, strategy, published):
+    """Owner 2026-11-19: an alert that went out while your pass was on stays yours after it ends."""
+    if not published:
+        return False
+    start = (wallet.get("passesFrom") or {}).get(strategy)
+    until = max((wallet.get("passesClose") or {}).get(strategy, 0), (wallet.get("passes") or {}).get(strategy, 0))
+    return bool(start) and start <= published <= until
+
+
+def tk_has_access(wallet, strategy, alert_id, now_ms, closed=True, published=None):
     """Who can read a gated alert (owner 2026-11-10):
     - passes{strategy: until}: passes sold before 2026-11-10, live and after the close, until they run out;
     - passesClose{strategy: until}: passes sold from 2026-11-10; after the close only until 2026-11-19, live again since
@@ -3892,6 +3901,8 @@ def tk_has_access(wallet, strategy, alert_id, now_ms, closed=True):
         return True
     # owner 2026-11-19: alerts go out at 10 am, so every pass opens them live again
     if (wallet.get("passesClose") or {}).get(strategy, 0) > now_ms:
+        return True
+    if tk_in_pass_window(wallet, strategy, published):
         return True
     return alert_id in (wallet.get("unlocked") or [])
 
@@ -3921,7 +3932,7 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None, da
             raise TWError("FAILED_PRECONDITION", "This alert is already free to read.")
         strategy = locked.get("strategy")
         closed = bool(locked.get("released") or (locked.get("lockedUntil") or 0) <= now_ms)
-        if tk_has_access(wallet, strategy, alert_id, now_ms, closed):
+        if tk_has_access(wallet, strategy, alert_id, now_ms, closed, locked.get("publishedAt")):
             return wallet, None
         cost, ref = TOKENS["unlockClosed" if closed else "unlock"], alert_id
     else:
@@ -3933,8 +3944,12 @@ def tk_spend(wallet, kind, now_ms, strategy=None, alert_id=None, locked=None, da
         # owner 2026-11-10: a pass opens the scanner's alerts after the close (before they go public);
         # live alerts before the close are token unlocks. Passes sold earlier keep live access.
         passes = dict(wallet.get("passesClose") or {})
+        starts = dict(wallet.get("passesFrom") or {})
+        if passes.get(strategy, 0) <= now_ms:  # a new pass (not an extension): its window starts now
+            starts[strategy] = now_ms
         passes[strategy] = max(passes.get(strategy, 0), now_ms) + days * 86400000
         w["passesClose"] = passes
+        w["passesFrom"] = starts
         note = "%s pass (%d day%s)" % (PUSH_NAMES.get(strategy) or strategy.replace("-", " ").title(), days, "" if days == 1 else "s")
     else:
         w["unlocked"] = ((wallet.get("unlocked") or []) + [alert_id])[-TK_UNLOCKED_MAX:]
@@ -3964,8 +3979,48 @@ def _tk_call(fn):
 
 
 def _tk_public(wallet):
-    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "passesClose": wallet.get("passesClose") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:],
+    return {"balance": wallet["balance"], "passes": wallet.get("passes") or {}, "passesClose": wallet.get("passesClose") or {},
+            "passesFrom": wallet.get("passesFrom") or {}, "unlocked": (wallet.get("unlocked") or [])[-50:],
             "mindQuotes": wallet.get("mindQuotes") or {}}
+
+
+REACTIVATE_COST = 2  # tokens to take back an alert you declined (owner 2026-11-19: "1 token, 2, 5 maybe")
+
+
+@https_fn.on_call()
+@_tk_call
+def alert_reactivate(req, db, uid, tok, now_ms):
+    """{alertId}: take back an alert you declined, while its trade is still live, for REACTIVATE_COST
+    tokens. You need access to it (your pass at the time, or an unlock). users/{uid}/alertDecisions."""
+    alert_id = str((req.data or {}).get("alertId") or "")
+    if not _re.match(r"^[a-z-]+-\d{4}-\d{2}-\d{2}$", alert_id):
+        raise TWError("INVALID_ARGUMENT", "That alert isn't valid.")
+    wref = db.collection("wallets").document(uid)
+    dref = db.collection("users").document(uid).collection("alertDecisions").document(alert_id)
+
+    @firestore.transactional
+    def txn(t):
+        dec = dref.get(transaction=t)
+        if not dec.exists or (dec.to_dict() or {}).get("status") != "declined":
+            raise TWError("FAILED_PRECONDITION", "Only an alert you declined can be taken back.")
+        ls = db.collection("alertsLocked").document(alert_id).get(transaction=t)
+        locked = ls.to_dict() if ls.exists else None
+        if not locked or locked.get("public") or (locked.get("outcome") or {}).get("result") not in (None, "open"):
+            raise TWError("FAILED_PRECONDITION", "This trade has already finished. It's free to read on the alert.")
+        snap = wref.get(transaction=t)
+        wallet = snap.to_dict() if snap.exists else tk_new_wallet(now_ms)
+        if not tk_has_access(wallet, locked.get("strategy"), alert_id, now_ms, True, locked.get("publishedAt")):
+            raise TWError("PERMISSION_DENIED", "This alert came out when you had no pass. Unlock it first.")
+        if wallet["balance"] < REACTIVATE_COST:
+            raise TWError("FAILED_PRECONDITION", "You need %d tokens and have %d." % (REACTIVATE_COST, wallet["balance"]))
+        w = dict(wallet, balance=wallet["balance"] - REACTIVATE_COST, updatedAt=now_ms)
+        t.set(wref, w)
+        t.set(wref.collection("ledger").document(), tk_ledger("reactivate", -REACTIVATE_COST, w["balance"], now_ms, "Took back %s" % alert_id, alert_id))
+        t.set(dref, {"status": "reactivated", "at": now_ms})
+        return w
+
+    w = txn(db.transaction())
+    return dict(_tk_public(w), charged=REACTIVATE_COST)
 
 
 @https_fn.on_call(secrets=["SQUARE_ACCESS_TOKEN"])
@@ -4622,7 +4677,7 @@ def community_activity(db, uid, tok, today, now_ms, iph):
 # ---------------------------------------------------------------------------
 ALERT_IMAGES = ("swing-trader", "breakout-rider", "options-scanner")  # images/alert-<id>.png that exist
 PUSH_NAMES = {"swing-trader": "Swing Trader", "breakout-rider": "Breakout Rider", "options-scanner": "Options Scanner", "three-leg": "3-Leg Options",
-              "momentum-trader": "Momentum Trader"}
+              "momentum-trader": "Momentum Trader", "momentum-max": "Momentum Max"}
 PUSH_MAX_TOKENS = 10
 
 
@@ -4637,16 +4692,26 @@ def push_wants(prefs, strategy):
 
 
 def push_alert_message(alert_id, alert):
-    """Pure: (title, body, link, image) for a new alert. Teaser only."""
+    """Pure: (title, body, link, image) for a new alert. Since 2026-11-19 only people with a pass get
+    these, so it's the trade itself: the stock, the plan and the hold (owner: "how you get the
+    notification, all the information, and you can click to do it")."""
     name = PUSH_NAMES.get(alert.get("strategy"), "Zelos")
+    sym = alert.get("ticker")
+    link = "%s/app/alerts/%s" % (SITE_URL, urllib.parse.quote(alert_id))
+    image = "%s/images/alert-%s.png" % (SITE_URL, alert.get("strategy") if alert.get("strategy") in ALERT_IMAGES else "zelos")
+    if sym and alert.get("entry") is not None and alert.get("stop") is not None and alert.get("target1") is not None:
+        hold = (" · hold up to %d days" % alert["holdDays"]) if alert.get("holdDays") else ""
+        body = "%s near $%.2f · stop $%.2f · target $%.2f%s. Tap to take it or decline." % (
+            "Buy" if alert.get("target1") > alert.get("entry") else "Sell short", alert["entry"], alert["stop"], alert["target1"], hold)
+        return ("%s: %s · %s" % (name, sym, alert.get("setupLabel") or "new setup"), body, link, image)
+    if sym and alert.get("legs"):
+        return ("%s: %s · %s" % (name, sym, alert.get("kindLabel") or "3-leg trade"),
+                "Cost about $%s, can make up to $%s by %s. Tap to see the legs." % (
+                    format(abs(alert.get("netCost") or 0), ",.0f"), format(alert.get("maxProfit") or 0, ",.0f"), alert.get("expiration")), link, image)
     bits = [alert.get("setupLabel") or (alert.get("direction") or "").title() or "New setup"]
     if alert.get("score") is not None and alert.get("scoreMax"):
         bits.append("score %s/%s" % (alert["score"], alert["scoreMax"]))
-    if alert.get("marketRegime"):
-        bits.append("%s market" % alert["marketRegime"])
-    body = " · ".join(b for b in bits if b) + ". Tap to see it on Zelos."
-    return ("New %s alert" % name, body, "%s/app/alerts/%s" % (SITE_URL, urllib.parse.quote(alert_id)),
-            "%s/images/alert-%s.png" % (SITE_URL, alert.get("strategy") if alert.get("strategy") in ALERT_IMAGES else "zelos"))
+    return ("New %s alert" % name, " · ".join(b for b in bits if b) + ". Tap to see it on Zelos.", link, image)
 
 
 def _push_send(tokens, title, body, link, image, tag):
@@ -4687,7 +4752,13 @@ def alert_push(db, alert_id, alert):
         if d.get("uid") and d.get("token"):
             by_uid.setdefault(d["uid"], []).append((snap.id, d["token"]))
     tokens = []
+    now_ms = int(_time.time() * 1000)
     for uid, toks in by_uid.items():
+        # owner 2026-11-19: new alerts are for people with a pass on (when it ends, the notifications stop)
+        w = db.collection("wallets").document(uid).get()
+        wd = (w.to_dict() or {}) if w.exists else {}
+        if max((wd.get("passesClose") or {}).get(strategy, 0), (wd.get("passes") or {}).get(strategy, 0)) <= now_ms:
+            continue
         u = db.collection("users").document(uid).get()
         if push_wants((u.to_dict() or {}).get("notificationPrefs") if u.exists else None, strategy):
             tokens += toks
@@ -7139,10 +7210,11 @@ import outcomes as OC  # noqa: E402
 # the Options Scanner runs last: today's Swing Trader / Breakout Rider headline is its first candidate
 # 3-Leg runs last: it starts from that day's Swing Trader / Breakout Rider headline (owner 2026-11-19)
 SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout, MOM.STRATEGY: MOM.scan_momentum,
+                   MOM.STRATEGY_MAX: MOM.scan_momentum_max,
                    OSC.STRATEGY: OSC.scan_options, TLS.STRATEGY: TLS.scan_three_leg}
 SCAN_HOLD_SESSIONS = 10  # a swing idea that hits neither level in ~2 weeks is "expired"
 # Swing Trader is a short-term pick (owner 2026-11-19): it expires after 5 market days
-SCAN_HOLD_SESSIONS_BY = {"swing-trader": SC.SWING_HOLD_DAYS, MOM.STRATEGY: MOM.HOLD_DAYS}
+SCAN_HOLD_SESSIONS_BY = {"swing-trader": SC.SWING_HOLD_DAYS, MOM.STRATEGY: MOM.HOLD_DAYS, MOM.STRATEGY_MAX: MOM.HOLD_DAYS}
 
 
 GLOBE_KEEP = 30  # sessions of daily bars kept for the globe (it shows the day's and the month's move)

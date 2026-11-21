@@ -213,6 +213,7 @@
       <button data-strategy="options-scanner" type="button">Options Scanner</button>
       <button data-strategy="three-leg" type="button">3-Leg Options</button>
       <button data-strategy="momentum-trader" type="button">Momentum Trader</button>
+      <button data-strategy="momentum-max" type="button">Momentum Max</button>
     </div>
 
     <div class="record" id="record" hidden></div>
@@ -282,9 +283,9 @@
 <script src="zelos-mood.js?v=15cc718b"></script>
 <script src="zelos-xp.js?v=4f74402e"></script>
 <script src="zelos-challenge.js?v=a6884736"></script>
-<script src="zelos-tokens.js?v=8ba25bd2"></script>
+<script src="zelos-tokens.js?v=8157ad6e"></script>
 <script src="zelos-push.js?v=3c36384d"></script>
-<script src="zelos-notify-settings.js?v=07bf69a8"></script>
+<script src="zelos-notify-settings.js?v=d0bf52f6"></script>
 <script>
 (function(){
   // Alert history | Notifications (alert-history.html#notifications opens the switches)
@@ -445,7 +446,7 @@
 
 <script>
 (function(){
-  var STRATEGY_LABEL = { 'momentum-trader':'Momentum Trader', 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner', 'three-leg':'3-Leg Options' };
+  var STRATEGY_LABEL = { 'momentum-trader':'Momentum Trader', 'momentum-max':'Momentum Max', 'swing-trader':'Swing Trader', 'breakout-rider':'Breakout Rider', 'options-scanner':'Options Scanner', 'three-leg':'3-Leg Options' };
   var OUTCOME_LABEL = { 'hit-target':'Hit target', 'stopped-out':'Stopped out', 'open':'Still open', 'expired':'Expired', 'no-trade':'No trade' };
 
   var cfg = window.ZELOS_FIREBASE_CONFIG;

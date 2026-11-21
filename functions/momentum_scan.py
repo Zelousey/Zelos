@@ -24,6 +24,14 @@ pick on 95% of market days, average +0.15R a trade, 55% winners (+0.13R in the f
 import scanner as SC
 
 STRATEGY = "momentum-trader"
+# Momentum Max (owner 2026-11-19: "one more that's a little more extreme ... a little higher, a little
+# more risk"): the same checklist, but the MOST VOLATILE stock that passes, a tighter stop (3/4 of a
+# day's range) and a 3:1 target, up to 3 days. Replayed the same way: a pick on 95% of days, average
+# +0.17R (+0.20R / +0.15R by half), 44% winners: more losers, bigger winners.
+STRATEGY_MAX = "momentum-max"
+MAX_STOP_ATR = 0.75
+MAX_TARGET_R = 3.0
+MAX_TARGET2_R = 4.0
 MIN_CHECKS = 8
 STOP_ATR = 1.0
 TARGET_R = 1.5
@@ -94,8 +102,14 @@ def checklist(rows, spy_c):
     return k, nums
 
 
-def scan_momentum(bars, spy, qqq):
-    """Today's short-term call-out, or "no-qualifying-setup"."""
+def scan_momentum_max(bars, spy, qqq):
+    return scan_momentum(bars, spy, qqq, extreme=True)
+
+
+def scan_momentum(bars, spy, qqq, extreme=False):
+    """Today's short-term call-out, or "no-qualifying-setup". extreme: Momentum Max."""
+    strategy = STRATEGY_MAX if extreme else STRATEGY
+    stop_atr, tr, tr2 = (MAX_STOP_ATR, MAX_TARGET_R, MAX_TARGET2_R) if extreme else (STOP_ATR, TARGET_R, TARGET2_R)
     mood, line = SC.regime(spy, qqq)
     spy_c = SC._cols(spy)[3]
     found, rejected, scanned = [], [], 0
@@ -114,12 +128,14 @@ def scan_momentum(bars, spy, qqq):
         if n < MIN_CHECKS:
             rejected.append({"ticker": sym, "reason": "%d of %d checks (needs %d)" % (n, len(k), MIN_CHECKS)})
             continue
-        found.append((n, SC.ret(SC._cols(bars[sym])[3], 20), sym, k, nums))
-    found.sort(key=lambda f: (-f[0], -f[1], f[2]))
+        _, hh, ll, cc, _ = SC._cols(bars[sym])
+        rank = SC.atr(hh, ll, cc) / cc[-1] if extreme else SC.ret(cc, 20)  # Max: the most volatile first
+        found.append((n, rank, sym, k, nums))
+    found.sort(key=lambda f: (-f[1], -f[0], f[2]) if extreme else (-f[0], -f[1], f[2]))
     stats = {"scanned": scanned, "passedFilters": len(found), "rejected": rejected[:12],
              "qualified": [{"ticker": f[2], "score": f[0], "setup": "%d of 13 checks" % f[0]} for f in found[:8]]}
     if not found:
-        return {"strategy": STRATEGY, "status": "no-qualifying-setup", "marketRegime": line,
+        return {"strategy": strategy, "status": "no-qualifying-setup", "marketRegime": line,
                 "reasoning": "No qualifying setup today. No stock passed %d of the 13 chart checks." % MIN_CHECKS,
                 "scanStats": stats}
     n, _, sym, k, nums = found[0]
@@ -127,22 +143,26 @@ def scan_momentum(bars, spy, qqq):
     d, h, l, c, v = SC._cols(rows)
     at = SC.atr(h, l, c)
     entry = c[-1]
-    stop = entry - STOP_ATR * at
+    stop = entry - stop_atr * at
     risk = entry - stop
-    t1, t2 = entry + TARGET_R * risk, entry + TARGET2_R * risk
+    t1, t2 = entry + tr * risk, entry + tr2 * risk
     passed = [CHECK_NAMES[x] for x, ok in k.items() if ok]
     missed = [CHECK_NAMES[x] for x, ok in k.items() if not ok]
     reasoning = ("%s passed %d of the 13 chart checks: %s.%s RSI %s, MACD %s over its signal %s. The plan, for up to %d "
-                 "market days: enter near $%.2f, stop $%.2f (one normal day's range), first target $%.2f (1.5 times the "
-                 "risk), second target $%.2f."
+                 "market days: enter near $%.2f, stop $%.2f (%s), first target $%.2f (%s the "
+                 "risk), second target $%.2f.%s"
                  % (sym, n, ", ".join(p.lower() for p in passed[:6]) + (" and more" if len(passed) > 6 else ""),
                     (" Missing: %s." % ", ".join(x.lower() for x in missed)) if missed else "",
-                    nums["RSI"], nums["MACD"], nums["MACD signal"], HOLD_DAYS, entry, stop, t1, t2))
+                    nums["RSI"], nums["MACD"], nums["MACD signal"], HOLD_DAYS, entry, stop,
+                    "three quarters of a normal day's range" if extreme else "one normal day's range", t1,
+                    "3 times" if extreme else "1.5 times", t2,
+                    " High risk: the most volatile stock that passed, with a tight stop. Expect more losers and bigger winners."
+                    if extreme else ""))
     return {
-        "strategy": STRATEGY, "status": "qualified", "ticker": sym, "direction": "long",
+        "strategy": strategy, "status": "qualified", "ticker": sym, "direction": "long", "highRisk": extreme,
         "setupLabel": "%d of 13 checks" % n, "score": n, "scoreMax": 13, "checks": k,
         "entry": SC._r2(entry), "stop": SC._r2(stop), "target1": SC._r2(t1), "target2": SC._r2(t2),
-        "riskPerShare": SC._r2(stop - entry), "rewardPerShare": SC._r2(t1 - entry), "rewardRiskRatio": "%.1f : 1" % TARGET_R,
+        "riskPerShare": SC._r2(stop - entry), "rewardPerShare": SC._r2(t1 - entry), "rewardRiskRatio": "%.1f : 1" % tr,
         "holdDays": HOLD_DAYS, "reasoning": reasoning, "asOf": d[-1], "marketRegime": line, "technicals": nums,
         "suggestedSizeNote": SIZE_NOTE, "riskNotes": SC.RISK_NOTE, "scanStats": stats,
     }

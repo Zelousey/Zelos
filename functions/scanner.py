@@ -390,7 +390,7 @@ def _breakout_one(sym, rows, spy_c, qqq_c, mood):
         "ticker": sym, "score": sum(pts.values()), "scoreParts": pts, "setupLabel": label,
         "entry": _r2(entry), "stop": _r2(stop), "target1": _r2(target1), "target2": _r2(target2),
         "riskPerShare": _r2(stop - entry), "rewardPerShare": _r2(target1 - entry), "rewardRiskRatio": "%.1f : 1" % rr,
-        "reasoning": reasoning, "asOf": d[-1],
+        "holdDays": 10, "reasoning": reasoning, "asOf": d[-1],
         "technicals": {"RSI": round(r), "ADX": round(a), "Resistance": _r2(R), "ATR": _r2(at),
                        "Breakout volume": "%.1fx" % vb, "15-day return": "%+.1f%%" % (mine * 100)},
     }, ""

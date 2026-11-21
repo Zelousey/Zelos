@@ -245,6 +245,6 @@ def scan_options(bars, spy, qqq, today, linked=()):
         "contract": contract,
         "reasoning": "%s The rule points at the %s (about %d days, delta %.2f), estimated at $%.2f a share ($%.0f a contract). %s"
                      % (idea["reasoning"], contract["label"], contract["dte"], contract["delta"], contract["estMid"], contract["estCost"], vol_line),
-        "technicals": tech, "asOf": idea.get("asOf"), "linkedTo": idea.get("linkedTo"),
+        "technicals": tech, "asOf": idea.get("asOf"), "linkedTo": idea.get("linkedTo"), "holdDays": 10,
         "suggestedSizeNote": SIZE_NOTE, "riskNotes": SC.RISK_NOTE + " " + ESTIMATE_NOTE, "scanStats": stats,
     }

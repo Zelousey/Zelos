@@ -101,6 +101,11 @@ service cloud.firestore {
           // owner 2026-11-19: alerts go out at 10 am, so every pass opens them live again
           // (2026-11-10 to 11-19 passes opened them after the close only)
           || wallet().get('passesClose', {}).get(resource.data.strategy, 0) > request.time.toMillis()
+          // an alert that went out while your pass was on stays yours after it ends (owner 2026-11-19)
+          || (resource.data.get('publishedAt', 0) > 0
+              && wallet().get('passesFrom', {}).get(resource.data.strategy, 0) > 0
+              && wallet().get('passesFrom', {}).get(resource.data.strategy, 0) <= resource.data.publishedAt
+              && resource.data.publishedAt <= wallet().get('passesClose', {}).get(resource.data.strategy, 0))
           || alertId in wallet().get('unlocked', []));
       allow list, write: if false;
     }
@@ -166,6 +171,20 @@ service cloud.firestore {
 
       // The bell: notifications about you (challenges, battles, friends, community,
       // fills), written by the server. You can read them, mark them read, or delete them.
+      // Strategy alerts you took or declined (owner 2026-11-19). Declining is free and yours to
+      // record; taking back a declined one is a paid server call (alert_reactivate), so a
+      // declined decision can't be changed here.
+      match /alertDecisions/{alertId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create, update: if request.auth != null && request.auth.uid == userId
+          && alertId.matches('^[a-z-]+-[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.keys().hasOnly(['status', 'at'])
+          && request.resource.data.status in ['declined', 'taken']
+          && request.resource.data.at is int
+          && (resource == null || resource.data.status != 'declined');
+        allow delete: if false;
+      }
+
       match /inbox/{noteId} {
         allow read, delete: if request.auth != null && request.auth.uid == userId;
         allow update: if request.auth != null && request.auth.uid == userId

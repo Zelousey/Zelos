@@ -133,6 +133,33 @@ class Fills(unittest.TestCase):
         self.assertEqual(self.a["life"]["tpExits"], 1)
         self.assertEqual(self.a["stats"]["wins"], 1)
 
+    def test_time_exit_sells_on_the_last_day_and_cancels_the_bracket(self):
+        # owner 2026-11-19: hold for N market days (the alert's recommended time, or your own)
+        order(self.a, ms(D, "09:40"), sym="AAPL", side="buy", qty=10, bracket={"sl": 95, "tp": 110, "days": 3}, _id="tme001")
+        P.process_orders(self.a, {}, {"AAPL": [bar(D, "09:45", 100, 101, 99, 100)]}, ms(D, "10:00"))
+        tx = [o for o in self.a["orders"].values() if o["role"] == "time"]
+        self.assertEqual(len(tx), 1)
+        self.assertEqual(tx[0]["exitDay"], "2026-10-09")  # Wed, Thu, Fri
+        quiet = [bar("2026-10-08", "12:00", 101, 102, 100, 101), bar("2026-10-09", "15:00", 102, 103, 101, 102)]
+        P.process_orders(self.a, {}, {"AAPL": [bar(D, "09:45", 100, 101, 99, 100)] + quiet}, ms("2026-10-09", "15:20"))
+        self.assertIn("AAPL", self.a["positions"])  # not before its last minutes
+        late = quiet + [bar("2026-10-09", "15:45", 103, 104.5, 102.5, 104)]  # the last 15-minute bar: its close is after 15:55
+        ev = P.process_orders(self.a, {}, {"AAPL": [bar(D, "09:45", 100, 101, 99, 100)] + late}, ms("2026-10-09", "16:01"))
+        self.assertNotIn("AAPL", self.a["positions"])
+        self.assertEqual(self.a["orders"], {})
+        fill = [e for e in ev if e["kind"] == "fill"][0]
+        self.assertEqual((fill["price"], fill["role"]), (104, "time"))
+        self.assertEqual(sorted(e["order"]["role"] for e in ev if e["kind"] == "order" and e["order"]["status"] == "cancelled"), ["sl", "tp"])
+
+    def test_hold_days_are_checked(self):
+        with self.assertRaises(P.OrderError):
+            P.validate_order(self.a, {"sym": "AAPL", "side": "buy", "qty": 1, "bracket": {"days": 0}}, 100.0, UNI, ms(D, "10:00"), "x9")
+        with self.assertRaises(P.OrderError):
+            P.validate_order(self.a, {"sym": "AAPL", "side": "buy", "qty": 1, "bracket": {"days": 99}}, 100.0, UNI, ms(D, "10:00"), "x9")
+        o = P.validate_order(self.a, {"sym": "AAPL", "side": "buy", "qty": 1, "bracket": {"days": 5}}, 100.0, UNI, ms(D, "10:00"), "x9")
+        self.assertEqual(o["bracket"], {"sl": None, "tp": None, "days": 5})
+        self.assertEqual(P.exit_day("2026-10-09", 2), "2026-10-12")  # Friday + 1 = Monday
+
     def test_stop_loss_fills_at_stop_or_gap(self):
         self.a["positions"]["AAPL"] = {"qty": 5, "avg": 100.0, "openedDay": D}
         self.a["cash"] = 9500.0

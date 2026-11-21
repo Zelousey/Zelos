@@ -89,7 +89,7 @@ s2 = main.scanners_pass(db, hist, today, now)
 mom = db.collection("alerts").document("momentum-trader-" + today).get().to_dict()
 ok(mom and mom["status"] in ("qualified", "no-qualifying-setup") and mom["source"] == "server", "Momentum Trader (owner 2026-11-19) published its result too")
 
-ok(s2["alerts"] == {k: "already published" for k in ("swing-trader", "breakout-rider", "momentum-trader", "options-scanner", "three-leg")}
+ok(s2["alerts"] == {k: "already published" for k in ("swing-trader", "breakout-rider", "momentum-trader", "momentum-max", "options-scanner", "three-leg")}
    and s2["outcomes"] == 0,
    "a second run the same day changes nothing")
 

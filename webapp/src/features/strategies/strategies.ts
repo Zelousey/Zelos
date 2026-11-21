@@ -9,8 +9,9 @@ import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
 
-export type StrategyId = 'momentum-trader' | 'swing-trader' | 'breakout-rider' | 'options-scanner' | 'three-leg';
-export type Strategy = { id: StrategyId; name: string; tagline: string; looksFor: string[]; avoids: string[]; page: string; tone: 'accent' | 'gold' | 'violet' };
+export type StrategyId = 'momentum-trader' | 'momentum-max' | 'swing-trader' | 'breakout-rider' | 'options-scanner' | 'three-leg';
+/** hold: the recommended market days (the tested one; you can choose your own when you take the trade). highRisk: hidden unless you turn them on. */
+export type Strategy = { id: StrategyId; name: string; tagline: string; looksFor: string[]; avoids: string[]; page: string; tone: 'accent' | 'gold' | 'violet'; hold: number | null; highRisk?: boolean };
 
 // Same as functions/main.py ALLOWED_STRATEGIES; copy from the website's strategy pages.
 export const STRATEGIES: Strategy[] = [
@@ -23,6 +24,19 @@ export const STRATEGIES: Strategy[] = [
     avoids: ['Stocks under their 50-day or stretched far above their 20-day', 'Thin, cheap stocks'],
     page: '',
     tone: 'accent',
+    hold: 3,
+  },
+  {
+    // owner 2026-11-19: "one more that's a little more extreme"; shown only if you turn high-risk on
+    id: 'momentum-max',
+    name: 'Momentum Max',
+    tagline: 'High risk: the most volatile stock that passes Momentum Trader’s chart checks, with a tight stop and a 3:1 target, held 1 to 3 days. More losers, bigger winners.',
+    looksFor: ['At least 8 of the 13 chart checks', 'The most volatile stock among them', 'A stop three quarters of a normal day’s range under, first target 3 times the risk'],
+    avoids: ['Anything Momentum Trader avoids', 'Small accounts that can’t take a run of losses'],
+    page: '',
+    tone: 'gold',
+    hold: 3,
+    highRisk: true,
   },
   {
     id: 'swing-trader',
@@ -33,6 +47,7 @@ export const STRATEGIES: Strategy[] = [
     avoids: ['Downtrends and broken charts', 'Setups where the risk is bigger than the reward'],
     page: 'swing-trader.html',
     tone: 'accent',
+    hold: 10,
   },
   {
     id: 'breakout-rider',
@@ -42,6 +57,7 @@ export const STRATEGIES: Strategy[] = [
     avoids: ['One-candle spikes that fade', 'Breakouts in a weak market'],
     page: 'breakout-rider.html',
     tone: 'gold',
+    hold: 10,
   },
   {
     id: 'options-scanner',
@@ -51,6 +67,7 @@ export const STRATEGIES: Strategy[] = [
     avoids: ['Spreads and multi-leg trades', 'Selling options, 0DTE and weeklies'],
     page: 'options-scanner.html',
     tone: 'violet',
+    hold: 10,
   },
   {
     id: 'three-leg',
@@ -61,6 +78,7 @@ export const STRATEGIES: Strategy[] = [
     avoids: ['Small or thinly traded stocks', '0DTE and same-week expirations', 'Trades where the most you can lose isn’t known up front'],
     page: '',
     tone: 'violet',
+    hold: null,
   },
 ];
 export const strategy = (id: string) => STRATEGIES.find((x) => x.id === id);
