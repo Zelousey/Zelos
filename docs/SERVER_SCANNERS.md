@@ -82,13 +82,18 @@ numbers so every run is the same and testable (scripts/scanner_test.py, tests/ru
   isn't alerted again until it expires.
 - Bear put butterflies and jade lizards were tried and are not published (see below).
 
-**Swing Trader (a pullback in an uptrend).**
-- The stock is in an uptrend: price above the 50-day average, the 50-day above the 200-day, and the
-  20-day rising above the 50-day.
-- It is beating SPY over the last month, and SPY is above its own rising 50-day average.
-- Today it dipped to its 20-day average and closed back above it, with RSI ≤ 65.
-- Stop 1.5 normal days' range under the entry; first target 2× the risk; second target the recent
-  high.
+**Swing Trader: the daily short-term pick** (owner 2026-11-19: "I want a strategy popping up almost every day").
+- The stock is in an uptrend and has pulled back toward its 20-day average. Five kinds, best first:
+  - **A**, the classic: dipped to a rising 20-day and closed back above it, beating SPY, in a rising market.
+  - **B**: a near-dip (within 2%) to a rising 20-day in a strong trend.
+  - **C**: dipped to the 20-day in the last 3 days and is holding above it.
+  - **D**: a leader 3%+ off its 2-week high.
+  - **E**: above a rising 50-day and within 3% of its 20-day.
+- The day's pick is the best kind found, then the stock with the strongest last month. No score bar.
+- The plan: stop one normal day's range under the entry, first target 1.5× the risk, second 2.5× (or the recent
+  high), held up to **5 market days** (`SCAN_HOLD_SESSIONS_BY`).
+- The Options Scanner turns the pick into a call with its own wider plan (stop 1.5 days' range, target 2×); 3-Leg
+  only uses kind A and breakouts (the looser kinds lost as butterflies).
 
 Every alert carries the skills' general 1–2% rule of thumb, worded the same for everyone, and the
 "rule-based scan only, not personalized advice" note.
@@ -120,6 +125,20 @@ What these numbers mean:
 - **Most trades end by stop or time-out, not at the target.** The public track record will show
   that, which is the honest picture.
 - **Nothing here is a promise of future results.** The app and alerts already say so.
+
+## The daily Swing Trader (2026-11-19)
+
+Replayed on the Zelos list, 2025-01-15 to 2026-09-24, with the production code:
+
+| Scanner | Days with a pick before | After | Avg result after |
+|---|---|---|---|
+| Swing Trader (5-day hold) | 29% | 85% | +0.09R (first half +0.10R, second +0.09R in the rule test) |
+| Options Scanner | 28% | 65% | +0.06R (stock move) |
+| Breakout Rider | 6% | 6% | unchanged |
+| 3-Leg Options | 24% | 24% | +8% of the cost |
+
+On the days left without a Swing pick, no stock on the list is anywhere near a pullback in an uptrend (mostly
+falling markets). Small edges, small samples, no fees or slippage: nothing here is a promise.
 
 ## How often they find something, and 3-Leg designs (re-checked 2026-11-19)
 

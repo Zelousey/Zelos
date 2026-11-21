@@ -17,8 +17,9 @@ export const STRATEGIES: Strategy[] = [
   {
     id: 'swing-trader',
     name: 'Swing Trader',
-    tagline: 'Pullbacks in a healthy uptrend, alerted only when selling pressure looks like it’s fading and the risk/reward earns it.',
-    looksFor: ['A stock in a clear uptrend', 'A pullback or bull flag toward support', 'Selling pressure fading, with room to the next target', 'A stop and two targets set before entry'],
+    // owner 2026-11-19: the short-term pick, almost every market day (functions/scanner.py)
+    tagline: 'A short-term pick almost every market day: the best pullback in an uptrend, with the stop and targets set, held up to 5 days.',
+    looksFor: ['A stock in an uptrend', 'A pullback toward its 20-day average', 'The best kind of pullback that day, strongest stock first', 'A stop one normal day’s range under, first target 1.5 times the risk'],
     avoids: ['Downtrends and broken charts', 'Setups where the risk is bigger than the reward'],
     page: 'swing-trader.html',
     tone: 'accent',
@@ -44,9 +45,10 @@ export const STRATEGIES: Strategy[] = [
   {
     id: 'three-leg',
     name: '3-Leg Options',
-    tagline: 'One options trade built from three positions (a butterfly or a jade lizard), with the cost, the most it can make or lose, and the breakevens worked out for you.',
-    looksFor: ['A stock likely to settle near a price by expiration', 'Three legs on one expiration: buy, sell and buy (or a credit jade lizard)', 'A defined cost, max profit and max loss before you enter', 'Breakevens and the profit zone at expiration'],
-    avoids: ['Earnings inside the trade', 'Thin options with wide bid/ask spreads', '0DTE and weeklies'],
+    // owner 2026-11-19: run by the server; bull call butterflies (functions/three_leg_scan.py)
+    tagline: 'One options trade built from three positions (a bull call butterfly), with the cost, the most it can make or lose, and the breakevens worked out for you.',
+    looksFor: ['A clean pullback or breakout with room to rise', 'Three calls on one expiration about 3 weeks out: buy, sell two, buy', 'The most it can make at least twice what it costs', 'Breakevens and the profit zone at expiration'],
+    avoids: ['Small or thinly traded stocks', '0DTE and same-week expirations', 'Trades where the most you can lose isn’t known up front'],
     page: '',
     tone: 'violet',
   },

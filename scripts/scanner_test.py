@@ -132,23 +132,33 @@ class Swing(unittest.TestCase):
         spy, qqq = self.market(len(rows))
         a = SC.scan_swing({"TEST": rows}, spy, qqq)
         self.assertEqual(a["status"], "qualified", a.get("scanStats"))
-        self.assertEqual((a["strategy"], a["ticker"], a["setupLabel"]), ("swing-trader", "TEST", "Pullback in an uptrend"))
+        self.assertEqual((a["strategy"], a["ticker"], a["setupLabel"], a["tier"]), ("swing-trader", "TEST", "Pullback in an uptrend", "A"))
+        # owner 2026-11-19: a short-term plan: stop one day's range under, first target 1.5x the risk, up to 5 days
         risk = a["entry"] - a["stop"]
-        self.assertAlmostEqual(a["target1"] - a["entry"], 2 * risk, delta=0.02)
-        self.assertGreaterEqual(a["score"], SC.PASS_SCORE)
+        self.assertAlmostEqual(a["target1"] - a["entry"], 1.5 * risk, delta=0.02)
+        self.assertGreater(a["target2"], a["target1"])
+        self.assertEqual(a["holdDays"], 5)
 
-    def test_not_in_a_falling_market(self):
+    def test_in_a_falling_market_it_is_still_a_pick_but_not_the_classic_kind(self):
+        # the daily Swing Trader (owner 2026-11-19) still picks the pullback; it's just not kind A
         rows = swing_rows()
         spy, qqq = self.market(len(rows), step=-0.002)
         a = SC.scan_swing({"TEST": rows}, spy, qqq)
-        self.assertEqual(a["status"], "no-qualifying-setup")
+        self.assertEqual(a["status"], "qualified")
+        self.assertNotEqual(a["tier"], "A")
 
-    def test_a_stock_lagging_the_market_is_skipped(self):
+    def test_a_stock_lagging_the_market_is_not_the_classic_kind(self):
         rows = swing_rows()
         spy, qqq = self.market(len(rows), step=0.004)  # SPY up faster than the stock this month
         a = SC.scan_swing({"TEST": rows}, spy, qqq)
+        self.assertNotEqual(a.get("tier"), "A")
+
+    def test_nothing_near_the_20_day_is_skipped(self):
+        c = rising(240, 50, 0.01)  # straight up, far above its 20-day
+        rows = series(c, [3_000_000] * len(c), spread=0.003)
+        spy, qqq = self.market(len(rows))
+        a = SC.scan_swing({"TEST": rows}, spy, qqq)
         self.assertEqual(a["status"], "no-qualifying-setup")
-        self.assertIn("lagging SPY", a["scanStats"]["rejected"][0]["reason"])
 
     def test_still_falling_through_the_average_is_skipped(self):
         rows = swing_rows()

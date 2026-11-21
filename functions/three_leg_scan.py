@@ -94,13 +94,20 @@ def scan_three_leg(bars, spy, qqq, today, linked=()):
             idea, label, why = None, "", ""
             for one, name in ((SC._breakout_one, "breakout"), (SC._swing_one, "pullback in an uptrend")):
                 idea, why = one(sym, rows, spy_c, qqq_c, mood)
+                # only the classic pullback (kind A): the looser daily Swing Trader kinds didn't hold up as
+                # butterflies (replayed 2026-11-19: -8% of the cost)
+                if idea and name.startswith("pullback") and idea.get("tier") != "A":
+                    idea, why = None, "not a classic pullback (Swing Trader's A kind)"
                 if idea:
                     label = name
                     break
             if not idea:
                 rejected.append({"ticker": sym, "reason": why})
                 continue
-            trade = butterfly(sym, c[-1], idea["target1"], c, today)
+            # the butterfly aims halfway to a 2:1 target on a 1.5-day-range stop (what it was tested on)
+            _, h, l, _, _ = SC._cols(rows)
+            aim = c[-1] + 3.0 * SC.atr(h, l, c) if label.startswith("pullback") else idea["target1"]
+            trade = butterfly(sym, c[-1], aim, c, today)
             if not trade:
                 rejected.append({"ticker": sym, "reason": "no butterfly with 2:1 payoff"})
                 continue

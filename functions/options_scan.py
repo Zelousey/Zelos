@@ -123,12 +123,24 @@ def _put_one(sym, rows, spy_c, qqq_c, mood):
                            "ATR": SC._r2(at), "Month return": "%+.1f%%" % (mine * 100)}}, ""
 
 
+CALL_STOP_ATR, CALL_TARGET_R = 1.5, 2.0  # a call is judged on a wider stop and a 2:1 target than the 5-day stock pick
+
+
 def _call_one(sym, rows, spy_c, qqq_c, mood):
     hit, why = SC._swing_one(sym, rows, spy_c, qqq_c, mood)
     if not hit:
         return None, why
-    return dict({k: hit[k] for k in ("ticker", "entry", "stop", "target1", "target2", "reasoning", "asOf", "technicals")},
-                direction="long-call", setupLabel="Pullback in an uptrend"), ""
+    _, h, l, c, _ = SC._cols(rows)
+    at = SC.atr(h, l, c)
+    entry = hit["entry"]
+    stop = entry - CALL_STOP_ATR * at
+    target1 = entry + CALL_TARGET_R * (entry - stop)
+    plan = (" The idea is wrong if it closes under $%.2f (1.5 normal days' range); first target $%.2f (twice the risk)."
+            % (stop, target1))
+    return dict({k: hit[k] for k in ("ticker", "asOf", "technicals")}, entry=entry, stop=SC._r2(stop),
+                target1=SC._r2(target1), target2=SC._r2(max(hit["target2"], target1 + (entry - stop))),
+                reasoning=hit["reasoning"].split(" The plan")[0] + plan, direction="long-call",
+                setupLabel=hit["setupLabel"]), ""
 
 
 def _linked(alert):

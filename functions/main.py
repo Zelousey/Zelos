@@ -7136,6 +7136,8 @@ import outcomes as OC  # noqa: E402
 # 3-Leg runs last: it starts from that day's Swing Trader / Breakout Rider headline (owner 2026-11-19)
 SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout, OSC.STRATEGY: OSC.scan_options, TLS.STRATEGY: TLS.scan_three_leg}
 SCAN_HOLD_SESSIONS = 10  # a swing idea that hits neither level in ~2 weeks is "expired"
+# Swing Trader is a short-term pick (owner 2026-11-19): it expires after 5 market days
+SCAN_HOLD_SESSIONS_BY = {"swing-trader": SC.SWING_HOLD_DAYS}
 
 
 GLOBE_KEEP = 30  # sessions of daily bars kept for the globe (it shows the day's and the month's move)
@@ -7269,7 +7271,7 @@ def scanners_pass(db, hist, today, now_utc):
             continue
         start = str(a.get("asOf") or snap.id[-10:])
         after = [{"date": r[0], "high": r[2], "low": r[3], "close": r[4]} for r in rows.get(a.get("ticker"), []) if r[0] > start]
-        o = OC.outcome_for_alert(a, after, max_hold_sessions=SCAN_HOLD_SESSIONS)
+        o = OC.outcome_for_alert(a, after, max_hold_sessions=SCAN_HOLD_SESSIONS_BY.get(strat, SCAN_HOLD_SESSIONS))
         prev = a.get("outcome") or {}
         changed = o["result"] != prev.get("result") or o.get("target2Hit") != prev.get("target2Hit")
         if changed and not (o["result"] == "open" and not prev):  # nothing to write while a new trade is still open
