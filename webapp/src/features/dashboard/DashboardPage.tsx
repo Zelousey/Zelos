@@ -22,7 +22,7 @@ import { parseUserDoc, useUserDoc } from '../../data/userDoc';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { useNow } from '../../lib/useNow';
-import { Badge, Card, useToast } from '../../ui';
+import { Badge, Card, Icon, useToast } from '../../ui';
 import { useIsPhone } from '../../lib/useIsPhone';
 import { UpdateTimer } from '../markets/UpdateTimer';
 import { AppDrawer } from './AppDrawer';
@@ -108,6 +108,11 @@ export default function DashboardPage() {
         <p className={s.hello}>
           {uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')}
           <Badge tone="accent">{t('practice.virtual')}</Badge>
+          {uid && (
+            <Link to="/practice/calendar" className={s.calLink}>
+              <Icon name="calendar" size={16} /> {t('cal.link')}
+            </Link>
+          )}
         </p>
         {status}
       </div>

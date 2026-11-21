@@ -193,3 +193,7 @@
   .bMore { grid-area: more; display: grid; }
   .bMore > * { height: 100%; }
 }
+
+/* owner 2026-11-19: the profit calendar, one tap from the top of the Dashboard */
+.calLink { display: inline-flex; align-items: center; gap: 4px; margin-left: var(--space-2); padding: 2px 10px; min-height: 28px; border: 1px solid var(--border-soft); border-radius: 999px; color: var(--ink); font-size: var(--text-xs); font-weight: 700; text-decoration: none; }
+.calLink:hover { border-color: var(--accent-line); }
