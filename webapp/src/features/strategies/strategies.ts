@@ -9,17 +9,27 @@ import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
 
-export type StrategyId = 'swing-trader' | 'breakout-rider' | 'options-scanner' | 'three-leg';
+export type StrategyId = 'momentum-trader' | 'swing-trader' | 'breakout-rider' | 'options-scanner' | 'three-leg';
 export type Strategy = { id: StrategyId; name: string; tagline: string; looksFor: string[]; avoids: string[]; page: string; tone: 'accent' | 'gold' | 'violet' };
 
 // Same as functions/main.py ALLOWED_STRATEGIES; copy from the website's strategy pages.
 export const STRATEGIES: Strategy[] = [
   {
+    // owner 2026-11-19: the short-term call-out, almost every market day (functions/momentum_scan.py)
+    id: 'momentum-trader',
+    name: 'Momentum Trader',
+    tagline: 'A short-term call-out almost every market day at about 10 am: the stock that passes the most chart checks (RSI, MACD, averages, volume), held 1 to 3 days.',
+    looksFor: ['At least 8 of 13 chart checks: trend, MACD turning up, RSI with room to run, a strong close on good volume', 'A stock beating the market, not stretched above its 20-day average', 'A stop one normal day’s range under, first target 1.5 times the risk', 'Priced at the live price at about 10 am'],
+    avoids: ['Stocks under their 50-day or stretched far above their 20-day', 'Thin, cheap stocks'],
+    page: '',
+    tone: 'accent',
+  },
+  {
     id: 'swing-trader',
     name: 'Swing Trader',
-    // owner 2026-11-19: the short-term pick, almost every market day (functions/scanner.py)
-    tagline: 'A short-term pick almost every market day: the best pullback in an uptrend, with the stop and targets set, held up to 5 days.',
-    looksFor: ['A stock in an uptrend', 'A pullback toward its 20-day average', 'The best kind of pullback that day, strongest stock first', 'A stop one normal day’s range under, first target 1.5 times the risk'],
+    // owner 2026-11-19: a medium-length swing, up to two weeks (functions/scanner.py)
+    tagline: 'A medium-length swing: a pullback in a healthy uptrend, held up to two weeks, with the stop and targets set before entry.',
+    looksFor: ['A stock in an uptrend, beating the market', 'A pullback to its rising 20-day average that holds', 'A stop 1.5 normal days’ range under, first target twice the risk', 'Sent at about 10 am at the live price'],
     avoids: ['Downtrends and broken charts', 'Setups where the risk is bigger than the reward'],
     page: 'swing-trader.html',
     tone: 'accent',
@@ -97,7 +107,7 @@ export const alertUrl = (id: string) => `alert.html?id=${encodeURIComponent(id)}
 
 // ------------------------------------------------------------------ tokens
 /** mindQuotes: Hall of Minds daily quotes, {figure id: until ms} (functions/minds.py). */
-/** passes: sold before 2026-11-10 (live + after the close); passesClose: sold since (after the close only). */
+/** passes: sold before 2026-11-10; passesClose: sold since (after the close only until 2026-11-19; both open alerts live now). */
 export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>>; passesClose: Partial<Record<StrategyId, number>>; mindQuotes: Record<string, number> };
 export function parseWallet(d: DocumentData): WalletDoc {
   const read = (raw: unknown) => {
@@ -125,7 +135,6 @@ export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
   return u > now ? u : null;
 };
 /** True when your pass is the after-the-close kind (sold from 2026-11-10). */
-export const passIsAfterClose = (w: WalletDoc | null, id: StrategyId, now: number) => !((w?.passes[id] ?? 0) > now) && (w?.passesClose[id] ?? 0) > now;
 
 export type Pack = { id: string; tokens: number; cents: number };
 export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; dayPass?: number; dayPassPrices?: Partial<Record<StrategyId, number>>; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };

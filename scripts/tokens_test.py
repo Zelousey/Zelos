@@ -103,19 +103,16 @@ class Wallet(unittest.TestCase):
         self.assertFalse(m.tk_has_access(w, "options-scanner", "a", T0 + 5))
 
 
-    def test_new_passes_open_alerts_after_the_close_only(self):
-        # owner 2026-11-10: a pass bought now opens alerts after the close; a live alert is a token unlock
+    def test_passes_open_alerts_live(self):
+        # owner 2026-11-19: alerts go out at 10 am, so a pass opens them live (no extra unlock)
         w = dict(m.tk_new_wallet(T0), balance=200)
         w, _ = m.tk_spend(w, "pass", T0, "swing-trader")
-        self.assertNotIn("swing-trader", w["passes"])
-        self.assertFalse(m.tk_has_access(w, "swing-trader", "a", T0, closed=False))
+        self.assertTrue(m.tk_has_access(w, "swing-trader", "a", T0, closed=False))
         self.assertTrue(m.tk_has_access(w, "swing-trader", "a", T0, closed=True))
         live = {"strategy": "swing-trader", "released": False, "lockedUntil": T0 + 3600000}
-        w2, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-11-10", locked=live)
-        self.assertEqual(line["amount"], -m.TOKENS["unlock"])  # live: still paid
-        closed = {"strategy": "swing-trader", "released": True, "lockedUntil": T0 - 1}
-        w3, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-11-09", locked=closed)
-        self.assertEqual((w3["balance"], line), (w["balance"], None))  # after the close: covered by the pass
+        w2, line = m.tk_spend(w, "unlock", T0, alert_id="swing-trader-2026-11-20", locked=live)
+        self.assertEqual((w2["balance"], line), (w["balance"], None))  # covered by the pass
+        self.assertFalse(m.tk_has_access(w, "breakout-rider", "a", T0, closed=False))  # only its own strategy
 
     def test_passes_sold_before_keep_live_access(self):
         w = dict(m.tk_new_wallet(T0), balance=0, passes={"breakout-rider": T0 + 99})

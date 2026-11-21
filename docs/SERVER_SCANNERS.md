@@ -1,8 +1,41 @@
-# Server-run scanners (Swing Trader, Breakout Rider, Options Scanner, 3-Leg Options)
+# Server-run scanners (Momentum Trader, Swing Trader, Breakout Rider, Options Scanner, 3-Leg Options)
 
 **Why (owner, 2026-10-22):** the paid scanners used to be Claude skills that someone had to run on a
 schedule. Nobody was running them, so the last real alert was 2026-09-20 and pass holders got
 nothing. Now the server runs them every market day. Nothing depends on anyone's Claude usage.
+
+## Alerts go out at 10 am (owner 2026-11-19)
+
+"You only get a notification at the end of the day? ... I'd want it in the beginning of the day, around 10."
+Since 2026-11-19:
+
+- **Evening** (`run_scanners`, from 6:05 pm): the day's final prices and grading of open alerts only. It no
+  longer publishes (`scanners_pass(..., publish=False)`).
+- **10:00 am New York time** (`morning_alerts`, retried at 10:10, 10:20, 10:30 if the morning prices aren't
+  in): every scanner runs on the finished daily bars through yesterday, then the plan is moved to the live
+  price (`functions/live_plan.py`): entry = the live price, the stop and targets keep their distance, the
+  Options Scanner's contract is picked again, a 3-Leg butterfly is built again. A stock already through its
+  stop or first target is passed over and the scan runs again without it (up to 6 tries). No Marketstack
+  calls: stored history plus the live quotes. On a market holiday there are no fresh quotes, so nothing goes out.
+- **Passes open alerts live again** (rules + `tk_has_access`): a pass sold from 2026-11-10 to 11-19 opened them
+  after the close only; with alerts at 10 am that would have locked out the people who paid.
+- Grading still uses daily bars from the signal day on, so the first morning's bar (before 10 am) counts too.
+
+| Scanner | Length | Days with a pick | Avg (entering at the next open) |
+|---|---|---|---|
+| Momentum Trader (new) | up to 3 market days | 94% | +0.10R (halves +0.13 / +0.08) |
+| Swing Trader (kinds A, B) | up to 10 market days | 38% | +0.17R (halves +0.19 / +0.15) |
+| Options Scanner | 10 market days | 63% | +0.13R stock move (halves +0.22 / +0.02) |
+| Breakout Rider | 10 market days | ~6% | unchanged |
+| 3-Leg Options | to expiration (~3 weeks) | ~24% | +8% of the cost |
+
+**Momentum Trader** (functions/momentum_scan.py): the stock passing the most of 13 chart checks (trend: above
+the 50-day, 50 over 200, above the 20-day; MACD histogram rising, MACD over its signal; RSI(14) 45–65 and
+turning up; a green day closing in the top 40% of its range on at least average volume; SPY above its
+20-day; beating SPY over the month; not stretched), at least 8. Stop one normal day's range under the entry,
+first target 1.5× the risk, second 2.5×, up to 3 market days. Tried first: single signals (RSI(2) snap-backs,
+MACD crosses, coils, surges) gave picks on ~90% of days but their results flipped between halves; the
+checklist held up in both.
 
 ## What runs, and when
 

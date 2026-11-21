@@ -127,7 +127,7 @@ CALL_STOP_ATR, CALL_TARGET_R = 1.5, 2.0  # a call is judged on a wider stop and 
 
 
 def _call_one(sym, rows, spy_c, qqq_c, mood):
-    hit, why = SC._swing_one(sym, rows, spy_c, qqq_c, mood)
+    hit, why = SC._swing_one(sym, rows, spy_c, qqq_c, mood, kinds="ABCDE")
     if not hit:
         return None, why
     _, h, l, c, _ = SC._cols(rows)

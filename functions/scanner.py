@@ -195,26 +195,25 @@ def _alert(strategy, mood_line, scanned, passed, rejected, best, bar):
 
 
 # ------------------------------------------------------------------ Swing Trader
-# A short-term pullback in an uptrend, one pick almost every market day (owner 2026-11-19: "I want a
-# strategy popping up almost every day ... good stop loss, good everything").
+# A medium-length swing: a pullback in an uptrend, held up to two weeks (owner 2026-11-19: "swing
+# trades are like a medium length ... I want to move the swing trader to like a medium length"; the
+# every-day short-term pick is the Momentum Trader, functions/momentum_scan.py).
 #
-# The stock is in an uptrend (price over the 50-day, the 50-day over the 200-day; for E, just over a
-# rising 50-day) and has pulled back toward its 20-day average. Five kinds, best first; the day's pick is the best kind found, then the
-# highest score:
+# The stock is in an uptrend (price over the 50-day, the 50-day over the 200-day; for kind E, just
+# over a rising 50-day) and has pulled back toward its 20-day average. The kinds, best first:
 #   A  the classic: dipped to a rising 20-day and closed back above it, beating SPY, in a rising market
 #   B  a near-dip (within 2%) to a rising 20-day in a strong trend
 #   C  dipped to the 20-day in the last 3 days and is holding above it
 #   D  a leader (beating SPY, rising 20-day) 3%+ off its 2-week high
 #   E  above a rising 50-day and within 3% of its 20-day
-# The plan: stop one normal day's range under the entry, first target 1.5x the risk, held up to 5
-# market days (main.SCAN_HOLD_SESSIONS_BY). Replayed on 2025-01..2026-09 daily history of the Zelos
-# list: a pick on 90% of days, average +0.09R a trade (+0.10R first half, +0.09R second half), every
-# kind at or above break-even. The old version (A only, 2-week hold) picked on 29% of days
-# (docs/SERVER_SCANNERS.md).
-SWING_STOP_ATR = 1.0     # stop one normal day's range under the entry
-SWING_TARGET_R = 1.5     # first target 1.5x the risk
-SWING_TARGET2_R = 2.5    # second target (or the recent high, if that's further)
-SWING_HOLD_DAYS = 5
+# Swing Trader takes A and B, with a stop 1.5 normal days' range under the entry, first target twice
+# the risk, held up to 10 market days. The Options Scanner's calls use all five kinds (they carry
+# their own plan). Replays: docs/SERVER_SCANNERS.md.
+SWING_KINDS_USED = "AB"
+SWING_STOP_ATR = 1.5     # stop 1.5 normal days' range under the entry
+SWING_TARGET_R = 2.0     # first target twice the risk
+SWING_TARGET2_R = 3.0    # second target (or the recent high, if that's further)
+SWING_HOLD_DAYS = 10
 SWING_KINDS = {
     "A": "Pullback in an uptrend",
     "B": "Near-dip in a strong uptrend",
@@ -250,7 +249,9 @@ def _swing_kind(c, h, l, spy_c, s20, s50, s200, r):
     return None, "no pullback to its 20-day average to buy"
 
 
-def _swing_one(sym, rows, spy_c, qqq_c, mood):
+def _swing_one(sym, rows, spy_c, qqq_c, mood, kinds=None):
+    """Swing Trader's pick for one stock (kinds A and B), or any of `kinds` (the Options Scanner's calls)."""
+    kinds = kinds or SWING_KINDS_USED
     d, h, l, c, v = _cols(rows)
     if len(c) < 210:
         return None, "not enough history"
@@ -265,6 +266,8 @@ def _swing_one(sym, rows, spy_c, qqq_c, mood):
     kind, why = _swing_kind(c, h, l, spy_c, s20, s50, s200, r)
     if not kind:
         return None, why
+    if kind not in kinds:
+        return None, "only a looser pullback (%s), not a swing setup" % SWING_KINDS[kind].lower()
     mine, bench = ret(c, 20), ret(spy_c, 20)
     at = atr(h, l, c)
     entry = c[-1]
@@ -292,8 +295,8 @@ def _swing_one(sym, rows, spy_c, qqq_c, mood):
     reasoning = (
         "%s is in an uptrend (above its rising 50-day average) and %s over the last month against SPY's %+.1f%%. "
         "%s: it is %.1f%% from its 20-day average ($%.2f) and %.1f%% under its recent high, on %s volume. RSI %.0f. "
-        "The plan, for up to %d market days: enter near $%.2f, stop $%.2f (one normal day's range), first target $%.2f "
-        "(1.5 times the risk), second target $%.2f."
+        "The plan, for up to %d market days: enter near $%.2f, stop $%.2f (1.5 normal days' range), first target $%.2f "
+        "(twice the risk), second target $%.2f."
         % (sym, "is up %+.1f%%" % (mine * 100) if mine >= 0 else "is %+.1f%%" % (mine * 100), bench * 100, label,
            abs(c[-1] / s20 - 1) * 100, s20, depth * 100, "lighter" if vr < 1 else "heavier", r, SWING_HOLD_DAYS,
            entry, stop, target1, target2))

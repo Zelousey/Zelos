@@ -137,7 +137,7 @@ test.describe('signed in', () => {
     // saved on the account (the switch flips at once; the write lands a moment later)
     await expect
       .poll(async () => ((await get(`users/${uid}`)).fields?.notificationPrefs?.mapValue?.fields?.strategies?.arrayValue?.values ?? []).map((x: { stringValue: string }) => x.stringValue))
-      .toEqual(['swing-trader', 'options-scanner', 'three-leg']);
+      .toEqual(['momentum-trader', 'swing-trader', 'options-scanner', 'three-leg']);
     expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   });
 });

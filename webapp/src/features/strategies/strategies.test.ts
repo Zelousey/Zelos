@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseAlert, parseWallet, passIsAfterClose, passPrice, passUntil, safeCheckout, STRATEGIES } from './strategies';
+import { parseAlert, parseWallet, passPrice, passUntil, safeCheckout, STRATEGIES } from './strategies';
 
 describe('strategies', () => {
   it('the same strategies as the server (main.py ALLOWED_STRATEGIES)', () => {
-    expect(STRATEGIES.map((s) => s.id)).toEqual(['swing-trader', 'breakout-rider', 'options-scanner', 'three-leg']);
+    expect(STRATEGIES.map((s) => s.id)).toEqual(['momentum-trader', 'swing-trader', 'breakout-rider', 'options-scanner', 'three-leg']);
   });
   it('pass price: 3-Leg Options costs more (owner 2026-10-15), the server price wins', () => {
     expect(passPrice(null, 'swing-trader')).toBe(120);
@@ -29,11 +29,9 @@ describe('strategies', () => {
     expect(passUntil(w, 'swing-trader', 1000)).toBe(2000);
     expect(passUntil(w, 'swing-trader', 3000)).toBeNull();
     expect(passUntil(null, 'breakout-rider', 0)).toBeNull();
-    // passes sold from 2026-11-10 are after-the-close passes (passesClose)
+    // passes sold from 2026-11-10 (passesClose) count the same: live since 2026-11-19
     const c = parseWallet({ balance: 1, passesClose: { 'breakout-rider': 5000 } });
     expect(passUntil(c, 'breakout-rider', 1000)).toBe(5000);
-    expect(passIsAfterClose(c, 'breakout-rider', 1000)).toBe(true);
-    expect(passIsAfterClose(w, 'swing-trader', 1000)).toBe(false);
   });
   it('checkout only ever goes to an https page', () => {
     expect(safeCheckout('https://square.link/u/abc')).toBe(true);

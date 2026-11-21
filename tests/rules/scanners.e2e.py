@@ -86,7 +86,11 @@ ok(tl["maxProfit"] >= 2 * tl["maxLoss"] and tl["netCost"] == tl["maxLoss"] and l
 ok(db.collection("alertPushes").document(tid).get().exists, "and 3-Leg subscribers were notified")
 
 s2 = main.scanners_pass(db, hist, today, now)
-ok(s2["alerts"] == {"swing-trader": "already published", "breakout-rider": "already published", "options-scanner": "already published", "three-leg": "already published"} and s2["outcomes"] == 0,
+mom = db.collection("alerts").document("momentum-trader-" + today).get().to_dict()
+ok(mom and mom["status"] in ("qualified", "no-qualifying-setup") and mom["source"] == "server", "Momentum Trader (owner 2026-11-19) published its result too")
+
+ok(s2["alerts"] == {k: "already published" for k in ("swing-trader", "breakout-rider", "momentum-trader", "options-scanner", "three-leg")}
+   and s2["outcomes"] == 0,
    "a second run the same day changes nothing")
 
 # the next day, AMD is still open: it isn't alerted again
@@ -97,4 +101,28 @@ again = db.collection("alertsLocked").document("breakout-rider-" + nxt).get()
 ok(not again.exists or again.to_dict().get("ticker") != "AMD", "a stock with an open alert isn't alerted again")
 ok(db.collection("alertsLocked").document(bid).get().to_dict().get("outcome", {}).get("result") in (None, "open"),
    "and its trade is still open")
+
+# owner 2026-11-19: the evening only grades; the alerts go out at 10 am at the live price
+nx2 = (date.fromisoformat(nxt) + timedelta(days=1)).isoformat()
+hist3 = {k: rows + [rows[-1].replace(rows[-1][:10], nx2)] for k, rows in hist2.items()}
+ev = main.scanners_pass(db, hist3, nx2, now, publish=False)
+ok(ev["alerts"] == {} and not db.collection("alerts").document("breakout-rider-" + nx2).get().exists, "the evening run publishes nothing")
+db.collection("alertsLocked").document(bid).update({"outcome": {"result": "stopped-out"}, "public": True})  # free AMD up again
+nx3 = (date.fromisoformat(nx2) + timedelta(days=1)).isoformat()
+t10 = int(datetime.fromisoformat(nx3 + "T10:00:00-05:00").timestamp())
+last = float(hist3["AMD"][-1].split(",")[4])
+quotes = {"AMD": {"c": round(last * 1.004, 2), "t": t10}, "NVDA": {"c": 112.0, "t": t10}, "SPY": {"c": 500.0, "t": t10}, "QQQ": {"c": 500.0, "t": t10}}
+mo = main.scanners_pass(db, hist3, nx3, now, publish=True, quotes=quotes)
+br = db.collection("alertsLocked").document("breakout-rider-" + nx3).get().to_dict()
+ok(br and br["ticker"] == "AMD" and br["entry"] == quotes["AMD"]["c"] and br["plannedAt"] == "10:00",
+   "at 10 am the breakout is planned at the live price")
+ok(br["stop"] < br["entry"] < br["target1"] and "Priced at about 10:00 am" in br["reasoning"], "with its stop and targets moved with it")
+# a stock that already went through its stop is passed over
+quotes2 = dict(quotes, AMD={"c": round(br["stop"] - 5, 2), "t": t10})
+nx4 = (date.fromisoformat(nx3) + timedelta(days=1)).isoformat()
+db.collection("alertsLocked").document("breakout-rider-" + nx3).update({"outcome": {"result": "stopped-out"}, "public": True})
+main.scanners_pass(db, {k: v + [v[-1].replace(v[-1][:10], nx4)] for k, v in hist3.items()}, nx4, now, publish=True,
+                   quotes=dict(quotes2, **{k: {"c": v["c"], "t": t10 + 86400} for k, v in quotes2.items()}))
+gone = db.collection("alerts").document("breakout-rider-" + nx4).get().to_dict()
+ok(gone and gone.get("ticker") != "AMD", "a stock already through its stop at 10 am is passed over")
 print("\n%d server scanner checks passed" % passed)

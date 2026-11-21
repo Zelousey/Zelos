@@ -133,14 +133,14 @@ class Swing(unittest.TestCase):
         a = SC.scan_swing({"TEST": rows}, spy, qqq)
         self.assertEqual(a["status"], "qualified", a.get("scanStats"))
         self.assertEqual((a["strategy"], a["ticker"], a["setupLabel"], a["tier"]), ("swing-trader", "TEST", "Pullback in an uptrend", "A"))
-        # owner 2026-11-19: a short-term plan: stop one day's range under, first target 1.5x the risk, up to 5 days
+        # owner 2026-11-19: a medium-length swing: stop 1.5 days' range under, first target twice the risk, up to 10 days
         risk = a["entry"] - a["stop"]
-        self.assertAlmostEqual(a["target1"] - a["entry"], 1.5 * risk, delta=0.02)
+        self.assertAlmostEqual(a["target1"] - a["entry"], 2 * risk, delta=0.02)
         self.assertGreater(a["target2"], a["target1"])
-        self.assertEqual(a["holdDays"], 5)
+        self.assertEqual(a["holdDays"], 10)
 
     def test_in_a_falling_market_it_is_still_a_pick_but_not_the_classic_kind(self):
-        # the daily Swing Trader (owner 2026-11-19) still picks the pullback; it's just not kind A
+        # a near-dip in a strong trend (kind B) still counts; it's just not the classic kind A
         rows = swing_rows()
         spy, qqq = self.market(len(rows), step=-0.002)
         a = SC.scan_swing({"TEST": rows}, spy, qqq)

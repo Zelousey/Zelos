@@ -27,7 +27,7 @@
   'use strict';
   var d = document, ROOT = /\/(games|learn|scan|practice|real)\//.test(location.pathname) ? '../' : '';
   var FNS_URL = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js';
-  var NAMES = { 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner', 'three-leg': '3-Leg Options' };
+  var NAMES = { 'momentum-trader': 'Momentum Trader', 'swing-trader': 'Swing Trader', 'breakout-rider': 'Breakout Rider', 'options-scanner': 'Options Scanner', 'three-leg': '3-Leg Options' };
   var fnsP = null, wallet = null, walletUnsub = null, prices = null, me = null, listeners = [];
 
   // a strategy's 1-week pass price (3-Leg Options costs more: main.py TOKENS["passPrices"])

@@ -33,7 +33,7 @@ describe('alerts', () => {
     const none = parsePrefs({});
     expect(isOn(none, 's:swing-trader')).toBe(true);
     expect(isOn(none, 'battles')).toBe(true);
-    expect(toggle(none, 's:breakout-rider', false)).toEqual({ notificationPrefs: { strategies: ['swing-trader', 'options-scanner', 'three-leg'] } });
+    expect(toggle(none, 's:breakout-rider', false)).toEqual({ notificationPrefs: { strategies: ['momentum-trader', 'swing-trader', 'options-scanner', 'three-leg'] } });
     expect(toggle(none, 'friends', false)).toEqual({ notificationPrefs: { types: { friends: false } } });
     const p = parsePrefs({ notificationPrefs: { strategies: ['options-scanner', 'evil'], types: { friends: false, x: 'no' } } });
     expect(p).toEqual({ strategies: ['options-scanner'], types: { friends: false } });
