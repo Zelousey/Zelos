@@ -1,8 +1,41 @@
-# Server-run scanners (Swing Trader, Breakout Rider, Options Scanner)
+# Server-run scanners (Momentum Trader, Swing Trader, Breakout Rider, Options Scanner, 3-Leg Options)
 
 **Why (owner, 2026-10-22):** the paid scanners used to be Claude skills that someone had to run on a
 schedule. Nobody was running them, so the last real alert was 2026-09-20 and pass holders got
 nothing. Now the server runs them every market day. Nothing depends on anyone's Claude usage.
+
+## Alerts go out at 10 am (owner 2026-11-19)
+
+"You only get a notification at the end of the day? ... I'd want it in the beginning of the day, around 10."
+Since 2026-11-19:
+
+- **Evening** (`run_scanners`, from 6:05 pm): the day's final prices and grading of open alerts only. It no
+  longer publishes (`scanners_pass(..., publish=False)`).
+- **10:00 am New York time** (`morning_alerts`, retried at 10:10, 10:20, 10:30 if the morning prices aren't
+  in): every scanner runs on the finished daily bars through yesterday, then the plan is moved to the live
+  price (`functions/live_plan.py`): entry = the live price, the stop and targets keep their distance, the
+  Options Scanner's contract is picked again, a 3-Leg butterfly is built again. A stock already through its
+  stop or first target is passed over and the scan runs again without it (up to 6 tries). No Marketstack
+  calls: stored history plus the live quotes. On a market holiday there are no fresh quotes, so nothing goes out.
+- **Passes open alerts live again** (rules + `tk_has_access`): a pass sold from 2026-11-10 to 11-19 opened them
+  after the close only; with alerts at 10 am that would have locked out the people who paid.
+- Grading still uses daily bars from the signal day on, so the first morning's bar (before 10 am) counts too.
+
+| Scanner | Length | Days with a pick | Avg (entering at the next open) |
+|---|---|---|---|
+| Momentum Trader (new) | up to 3 market days | 94% | +0.10R (halves +0.13 / +0.08) |
+| Swing Trader (kinds A, B) | up to 10 market days | 38% | +0.17R (halves +0.19 / +0.15) |
+| Options Scanner | 10 market days | 63% | +0.13R stock move (halves +0.22 / +0.02) |
+| Breakout Rider | 10 market days | ~6% | unchanged |
+| 3-Leg Options | to expiration (~3 weeks) | ~24% | +8% of the cost |
+
+**Momentum Trader** (functions/momentum_scan.py): the stock passing the most of 13 chart checks (trend: above
+the 50-day, 50 over 200, above the 20-day; MACD histogram rising, MACD over its signal; RSI(14) 45–65 and
+turning up; a green day closing in the top 40% of its range on at least average volume; SPY above its
+20-day; beating SPY over the month; not stretched), at least 8. Stop one normal day's range under the entry,
+first target 1.5× the risk, second 2.5×, up to 3 market days. Tried first: single signals (RSI(2) snap-backs,
+MACD crosses, coils, surges) gave picks on ~90% of days but their results flipped between halves; the
+checklist held up in both.
 
 ## What runs, and when
 
@@ -71,13 +104,29 @@ numbers so every run is the same and testable (scripts/scanner_test.py, tests/ru
   on the stock's move (stop = invalidation), as the skill's track record always was.
 - **One tap:** **Trade this setup** opens the practice options ticket on that exact contract.
 
-**Swing Trader (a pullback in an uptrend).**
-- The stock is in an uptrend: price above the 50-day average, the 50-day above the 200-day, and the
-  20-day rising above the 50-day.
-- It is beating SPY over the last month, and SPY is above its own rising 50-day average.
-- Today it dipped to its 20-day average and closed back above it, with RSI ≤ 65.
-- Stop 1.5 normal days' range under the entry; first target 2× the risk; second target the recent
-  high.
+**3-Leg Options** (functions/three_leg_scan.py, owner 2026-11-19; one bull call butterfly a day).
+- **The setup** comes from the tested stock rules: today's Swing Trader / Breakout Rider headline first, then any
+  stock passing the Breakout Rider or Swing Trader pullback rule. Same size check as the Options Scanner ($15+,
+  1M+ shares a day).
+- **The butterfly:** buy 1 call at the money, sell 2 calls halfway to the setup's first target, buy 1 call the
+  same distance above; expiration 10–40 days out, closest to 21. It needs max profit at least 2× max loss (the
+  cost). Prices are the practice account's estimates.
+- **Graded at expiration** from the stock's close (outcomes.three_leg_outcome); a stock with an open 3-Leg alert
+  isn't alerted again until it expires.
+- Bear put butterflies and jade lizards were tried and are not published (see below).
+
+**Swing Trader: the daily short-term pick** (owner 2026-11-19: "I want a strategy popping up almost every day").
+- The stock is in an uptrend and has pulled back toward its 20-day average. Five kinds, best first:
+  - **A**, the classic: dipped to a rising 20-day and closed back above it, beating SPY, in a rising market.
+  - **B**: a near-dip (within 2%) to a rising 20-day in a strong trend.
+  - **C**: dipped to the 20-day in the last 3 days and is holding above it.
+  - **D**: a leader 3%+ off its 2-week high.
+  - **E**: above a rising 50-day and within 3% of its 20-day.
+- The day's pick is the best kind found, then the stock with the strongest last month. No score bar.
+- The plan: stop one normal day's range under the entry, first target 1.5× the risk, second 2.5× (or the recent
+  high), held up to **5 market days** (`SCAN_HOLD_SESSIONS_BY`).
+- The Options Scanner turns the pick into a call with its own wider plan (stop 1.5 days' range, target 2×); 3-Leg
+  only uses kind A and breakouts (the looser kinds lost as butterflies).
 
 Every alert carries the skills' general 1–2% rule of thumb, worded the same for everyone, and the
 "rule-based scan only, not personalized advice" note.
@@ -109,6 +158,41 @@ What these numbers mean:
 - **Most trades end by stop or time-out, not at the target.** The public track record will show
   that, which is the honest picture.
 - **Nothing here is a promise of future results.** The app and alerts already say so.
+
+## The daily Swing Trader (2026-11-19)
+
+Replayed on the Zelos list, 2025-01-15 to 2026-09-24, with the production code:
+
+| Scanner | Days with a pick before | After | Avg result after |
+|---|---|---|---|
+| Swing Trader (5-day hold) | 29% | 85% | +0.09R (first half +0.10R, second +0.09R in the rule test) |
+| Options Scanner | 28% | 65% | +0.06R (stock move) |
+| Breakout Rider | 6% | 6% | unchanged |
+| 3-Leg Options | 24% | 24% | +8% of the cost |
+
+On the days left without a Swing pick, no stock on the list is anywhere near a pullback in an uptrend (mostly
+falling markets). Small edges, small samples, no fees or slippage: nothing here is a promise.
+
+## How often they find something, and 3-Leg designs (re-checked 2026-11-19)
+
+The owner saw several days in a row with no setup and asked whether the scanners find enough. Replayed day by day
+from 2025-01-15 to 2026-09-24 (≈400 market days) on stored daily history:
+
+| Scanner | 23-stock list: days with a setup | ≈50 stocks: days with a setup | Avg result |
+|---|---|---|---|
+| Swing Trader | 29% | 45% | +0.10R / +0.14R |
+| Breakout Rider | 6% | 10% | +0.33R / +0.10R |
+| Options Scanner (stock move) | 28% | 47% | 0.00R / −0.01R |
+| 3-Leg Options (bull call butterfly) | 24% | 42% | +10% / +15% of the cost |
+
+- **Several quiet days in a row is normal**, and Breakout Rider is rare (about once every 3–4 weeks on the list).
+  The list size is what limits it: twice the stocks gives roughly twice the setups at about the same quality.
+- **A higher score did not mean a better result** (Swing Trader's 72+ alerts did worst), so raising or lowering
+  the bar wouldn't help quality; the rules stay as they are.
+- **3-Leg designs tried** (21 days, held to expiration): bull call butterfly on the stock rules' setups +15% of
+  the cost, 31% wins (most lose the small cost, a few pay several times it); bear put butterfly −60%, 13% wins;
+  jade lizard +1%, 81% wins, with a big loss when the stock drops. Only the bull call butterfly is published.
+- Same caveats as above: small samples, model prices (no live option chain), no fees or slippage.
 
 **Re-checking later:** keep the alerts' public outcomes as the real record. Once there are ~100
 live alerts per scanner, compare them with the numbers above before changing any rule.

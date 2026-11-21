@@ -195,16 +195,63 @@ def _alert(strategy, mood_line, scanned, passed, rejected, best, bar):
 
 
 # ------------------------------------------------------------------ Swing Trader
-# A pullback in an uptrend: the stock is trending up (price over the 50-day, the 50-day over the
-# 200-day, the 20-day rising over the 50-day), beating SPY over the last month, in a market that's
-# rising too, and today it dipped to its 20-day average and closed back above it. This version held
-# up on both years of the Zelos stock list; the first, looser one (any pullback near support) lost
-# money on the second year (docs/SERVER_SCANNERS.md).
+# A medium-length swing: a pullback in an uptrend, held up to two weeks (owner 2026-11-19: "swing
+# trades are like a medium length ... I want to move the swing trader to like a medium length"; the
+# every-day short-term pick is the Momentum Trader, functions/momentum_scan.py).
+#
+# The stock is in an uptrend (price over the 50-day, the 50-day over the 200-day; for kind E, just
+# over a rising 50-day) and has pulled back toward its 20-day average. The kinds, best first:
+#   A  the classic: dipped to a rising 20-day and closed back above it, beating SPY, in a rising market
+#   B  a near-dip (within 2%) to a rising 20-day in a strong trend
+#   C  dipped to the 20-day in the last 3 days and is holding above it
+#   D  a leader (beating SPY, rising 20-day) 3%+ off its 2-week high
+#   E  above a rising 50-day and within 3% of its 20-day
+# Swing Trader takes A and B, with a stop 1.5 normal days' range under the entry, first target twice
+# the risk, held up to 10 market days. The Options Scanner's calls use all five kinds (they carry
+# their own plan). Replays: docs/SERVER_SCANNERS.md.
+SWING_KINDS_USED = "AB"
 SWING_STOP_ATR = 1.5     # stop 1.5 normal days' range under the entry
-SWING_TARGET_R = 2.0     # first target twice the risk; the recent high is the second
+SWING_TARGET_R = 2.0     # first target twice the risk
+SWING_TARGET2_R = 3.0    # second target (or the recent high, if that's further)
+SWING_HOLD_DAYS = 10
+SWING_KINDS = {
+    "A": "Pullback in an uptrend",
+    "B": "Near-dip in a strong uptrend",
+    "C": "Holding its 20-day after a dip",
+    "D": "Leader off its high",
+    "E": "Riding a rising 50-day",
+}
 
 
-def _swing_one(sym, rows, spy_c, qqq_c, mood):
+def _swing_kind(c, h, l, spy_c, s20, s50, s200, r):
+    """(kind, why-not) for the pullback kinds above, best first."""
+    up = c[-1] > s50 > s200
+    riding = c[-1] > s50 and s50 > sma(c[:-5], 50) and 40 <= r <= 68 and abs(c[-1] / s20 - 1) <= 0.03
+    if not up:
+        # E doesn't need the long-term (200-day) order, only a rising 50-day (as tested)
+        return ("E", "") if riding else (None, "not in an uptrend (price, 50-day and 200-day out of order)")
+    rising = s20 > s50 and s20 > sma(c[:-5], 20)
+    lead = ret(c, 20) > ret(spy_c, 20)
+    s50m = sma(spy_c, 50)
+    market_up = spy_c[-1] > s50m and s50m > sma(spy_c[:-5], 50)
+    if rising and lead and market_up and l[-1] <= s20 * 1.01 and c[-1] > s20 and r <= 65:
+        return "A", ""
+    if rising and l[-1] <= s20 * 1.02 and c[-1] > s20 and r <= 68:
+        return "B", ""
+    if min(l[-3:]) <= s20 * 1.015 and c[-1] > s20 and r <= 65:
+        return "C", ""
+    if rising and lead and c[-1] < max(h[-10:]) * 0.97 and r <= 62:
+        return "D", ""
+    if riding:
+        return "E", ""
+    if r > 68:
+        return None, "RSI %.0f too high for a pullback" % r
+    return None, "no pullback to its 20-day average to buy"
+
+
+def _swing_one(sym, rows, spy_c, qqq_c, mood, kinds=None):
+    """Swing Trader's pick for one stock (kinds A and B), or any of `kinds` (the Options Scanner's calls)."""
+    kinds = kinds or SWING_KINDS_USED
     d, h, l, c, v = _cols(rows)
     if len(c) < 210:
         return None, "not enough history"
@@ -213,28 +260,23 @@ def _swing_one(sym, rows, spy_c, qqq_c, mood):
     if sum(v[-20:]) / 20 <= 500_000:
         return None, "thin volume"
     s20, s50, s200 = sma(c, 20), sma(c, 50), sma(c, 200)
-    if not (c[-1] > s50 > s200):
-        return None, "not in an uptrend (price, 50-day and 200-day out of order)"
-    if not (s20 > s50 and s20 > sma(c[:-5], 20)):
-        return None, "20-day average not rising above the 50-day"
-    mine, bench = ret(c, 20), ret(spy_c, 20)
-    if mine <= bench:
-        return None, "lagging SPY over the last month"
-    s50m = sma(spy_c, 50)
-    if not (spy_c[-1] > s50m and s50m > sma(spy_c[:-5], 50)):
-        return None, "market not rising (SPY under a rising 50-day)"
-    if not (l[-1] <= s20 * 1.01 and c[-1] > s20):
-        return None, "hasn't dipped to its 20-day average and held it today"
     r, a = rsi(c), adx(h, l, c)
-    if r is None or r > 65:
-        return None, "RSI %.0f too high for a pullback" % (r or 0)
+    if r is None:
+        return None, "not enough history"
+    kind, why = _swing_kind(c, h, l, spy_c, s20, s50, s200, r)
+    if not kind:
+        return None, why
+    if kind not in kinds:
+        return None, "only a looser pullback (%s), not a swing setup" % SWING_KINDS[kind].lower()
+    mine, bench = ret(c, 20), ret(spy_c, 20)
     at = atr(h, l, c)
     entry = c[-1]
     stop = entry - SWING_STOP_ATR * at
-    target1 = entry + SWING_TARGET_R * (entry - stop)
+    risk = entry - stop
+    target1 = entry + SWING_TARGET_R * risk
     recent_high = max(h[-30:])
-    target2 = recent_high if recent_high > target1 * 1.01 else target1 + (entry - stop)
-    rr = (target1 - entry) / (entry - stop)
+    target2 = max(recent_high, entry + SWING_TARGET2_R * risk) if recent_high > target1 * 1.01 else entry + SWING_TARGET2_R * risk
+    rr = (target1 - entry) / risk
     depth = 1 - c[-1] / recent_high
     v_pull = sum(v[-5:]) / 5
     vr = v_pull / (sum(v[-25:-5]) / 20) if sum(v[-25:-5]) else 1.0
@@ -242,32 +284,36 @@ def _swing_one(sym, rows, spy_c, qqq_c, mood):
     pts = {
         "trend": 10 if s50 > sma(c[:-10], 50) else 8,
         "regime": _regime_points(mood),
-        "support": 10 if abs(l[-1] / s20 - 1) <= 0.005 else 8,
-        "setup": 9 if 0.03 <= depth <= 0.10 else 7,
+        "support": 10 if abs(l[-1] / s20 - 1) <= 0.005 else 8 if abs(c[-1] / s20 - 1) <= 0.02 else 6,
+        "setup": {"A": 10, "B": 9, "C": 8, "D": 7, "E": 6}[kind],
         "volume": 10 if vr < 0.8 else 8 if vr < 1.0 else 6,
-        "relativeStrength": 10 if beats_qqq else 8,
+        "relativeStrength": 10 if mine > bench and beats_qqq else 8 if mine > bench else 6,
         "rewardRisk": _rr_points(rr),
         "liquidity": _liq_points(c, v),
     }
-    label = "Pullback in an uptrend"
+    label = SWING_KINDS[kind]
     reasoning = (
-        "%s is in an uptrend (above a rising 20-day, 50-day and 200-day average) and is up %+.1f%% over the last month "
-        "against SPY's %+.1f%%. Today it dipped to its 20-day average ($%.2f) and closed back above it, %.1f%% under its "
-        "recent high, on %s volume. RSI %.0f. The plan: enter near $%.2f, stop $%.2f (1.5 normal days' range), first "
-        "target $%.2f (twice the risk), second target $%.2f."
-        % (sym, mine * 100, bench * 100, s20, depth * 100, "lighter" if vr < 1 else "heavier", r, entry, stop, target1, target2))
+        "%s is in an uptrend (above its rising 50-day average) and %s over the last month against SPY's %+.1f%%. "
+        "%s: it is %.1f%% from its 20-day average ($%.2f) and %.1f%% under its recent high, on %s volume. RSI %.0f. "
+        "The plan, for up to %d market days: enter near $%.2f, stop $%.2f (1.5 normal days' range), first target $%.2f "
+        "(twice the risk), second target $%.2f."
+        % (sym, "is up %+.1f%%" % (mine * 100) if mine >= 0 else "is %+.1f%%" % (mine * 100), bench * 100, label,
+           abs(c[-1] / s20 - 1) * 100, s20, depth * 100, "lighter" if vr < 1 else "heavier", r, SWING_HOLD_DAYS,
+           entry, stop, target1, target2))
     return {
-        "ticker": sym, "score": sum(pts.values()), "scoreParts": pts, "setupLabel": label,
+        "ticker": sym, "score": sum(pts.values()), "scoreParts": pts, "setupLabel": label, "tier": kind,
+        "rank": -round(mine, 4),  # within a kind, the strongest stock over the last month goes first
         "entry": _r2(entry), "stop": _r2(stop), "target1": _r2(target1), "target2": _r2(target2),
         "riskPerShare": _r2(stop - entry), "rewardPerShare": _r2(target1 - entry), "rewardRiskRatio": "%.1f : 1" % rr,
-        "reasoning": reasoning, "asOf": d[-1],
+        "holdDays": SWING_HOLD_DAYS, "reasoning": reasoning, "asOf": d[-1],
         "technicals": {"RSI": round(r), "ADX": round(a or 0), "SMA20": _r2(s20), "SMA50": _r2(s50), "SMA200": _r2(s200),
                        "ATR": _r2(at), "Volume vs month": "%.1fx" % vr, "Month return": "%+.1f%%" % (mine * 100)},
     }, ""
 
 
 def scan_swing(bars, spy, qqq):
-    return _scan("swing-trader", _swing_one, bars, spy, qqq, strict_neutral=False)
+    # every kind that passes is a setup (no score bar): the kind and the plan carry the quality
+    return _scan("swing-trader", _swing_one, bars, spy, qqq, strict_neutral=False, use_bar=False)
 
 
 # ------------------------------------------------------------------ Breakout Rider
@@ -356,10 +402,12 @@ def scan_breakout(bars, spy, qqq):
 
 
 # ------------------------------------------------------------------ running a scan
-def _scan(strategy, one, bars, spy, qqq, strict_neutral):
+def _scan(strategy, one, bars, spy, qqq, strict_neutral, use_bar=True):
     mood, line = regime(spy, qqq)
     spy_c, qqq_c = _cols(spy)[3], _cols(qqq)[3]
     bar = PASS_SCORE_BEARISH if mood == "bearish" else PASS_SCORE + (4 if strict_neutral and mood == "neutral" else 0)
+    if not use_bar:
+        bar = 0
     found, rejected, scanned, passed = [], [], 0, 0
     for sym in sorted(bars):
         if sym in NOT_STOCKS:
@@ -374,5 +422,5 @@ def _scan(strategy, one, bars, spy, qqq, strict_neutral):
             found.append(hit)
         else:
             rejected.append({"ticker": sym, "reason": why})
-    found.sort(key=lambda x: (-x["score"], x["ticker"]))
+    found.sort(key=lambda x: (x.get("tier", ""), x.get("rank", -x["score"]), x["ticker"]))
     return _alert(strategy, line, scanned, passed, rejected, found, bar)

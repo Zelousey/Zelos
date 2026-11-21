@@ -9,16 +9,27 @@ import { useLiveDoc } from '../../data/liveDoc';
 import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
 
-export type StrategyId = 'swing-trader' | 'breakout-rider' | 'options-scanner' | 'three-leg';
+export type StrategyId = 'momentum-trader' | 'swing-trader' | 'breakout-rider' | 'options-scanner' | 'three-leg';
 export type Strategy = { id: StrategyId; name: string; tagline: string; looksFor: string[]; avoids: string[]; page: string; tone: 'accent' | 'gold' | 'violet' };
 
 // Same as functions/main.py ALLOWED_STRATEGIES; copy from the website's strategy pages.
 export const STRATEGIES: Strategy[] = [
   {
+    // owner 2026-11-19: the short-term call-out, almost every market day (functions/momentum_scan.py)
+    id: 'momentum-trader',
+    name: 'Momentum Trader',
+    tagline: 'A short-term call-out almost every market day at about 10 am: the stock that passes the most chart checks (RSI, MACD, averages, volume), held 1 to 3 days.',
+    looksFor: ['At least 8 of 13 chart checks: trend, MACD turning up, RSI with room to run, a strong close on good volume', 'A stock beating the market, not stretched above its 20-day average', 'A stop one normal day’s range under, first target 1.5 times the risk', 'Priced at the live price at about 10 am'],
+    avoids: ['Stocks under their 50-day or stretched far above their 20-day', 'Thin, cheap stocks'],
+    page: '',
+    tone: 'accent',
+  },
+  {
     id: 'swing-trader',
     name: 'Swing Trader',
-    tagline: 'Pullbacks in a healthy uptrend, alerted only when selling pressure looks like it’s fading and the risk/reward earns it.',
-    looksFor: ['A stock in a clear uptrend', 'A pullback or bull flag toward support', 'Selling pressure fading, with room to the next target', 'A stop and two targets set before entry'],
+    // owner 2026-11-19: a medium-length swing, up to two weeks (functions/scanner.py)
+    tagline: 'A medium-length swing: a pullback in a healthy uptrend, held up to two weeks, with the stop and targets set before entry.',
+    looksFor: ['A stock in an uptrend, beating the market', 'A pullback to its rising 20-day average that holds', 'A stop 1.5 normal days’ range under, first target twice the risk', 'Sent at about 10 am at the live price'],
     avoids: ['Downtrends and broken charts', 'Setups where the risk is bigger than the reward'],
     page: 'swing-trader.html',
     tone: 'accent',
@@ -44,9 +55,10 @@ export const STRATEGIES: Strategy[] = [
   {
     id: 'three-leg',
     name: '3-Leg Options',
-    tagline: 'One options trade built from three positions (a butterfly or a jade lizard), with the cost, the most it can make or lose, and the breakevens worked out for you.',
-    looksFor: ['A stock likely to settle near a price by expiration', 'Three legs on one expiration: buy, sell and buy (or a credit jade lizard)', 'A defined cost, max profit and max loss before you enter', 'Breakevens and the profit zone at expiration'],
-    avoids: ['Earnings inside the trade', 'Thin options with wide bid/ask spreads', '0DTE and weeklies'],
+    // owner 2026-11-19: run by the server; bull call butterflies (functions/three_leg_scan.py)
+    tagline: 'One options trade built from three positions (a bull call butterfly), with the cost, the most it can make or lose, and the breakevens worked out for you.',
+    looksFor: ['A clean pullback or breakout with room to rise', 'Three calls on one expiration about 3 weeks out: buy, sell two, buy', 'The most it can make at least twice what it costs', 'Breakevens and the profit zone at expiration'],
+    avoids: ['Small or thinly traded stocks', '0DTE and same-week expirations', 'Trades where the most you can lose isn’t known up front'],
     page: '',
     tone: 'violet',
   },
@@ -95,7 +107,7 @@ export const alertUrl = (id: string) => `alert.html?id=${encodeURIComponent(id)}
 
 // ------------------------------------------------------------------ tokens
 /** mindQuotes: Hall of Minds daily quotes, {figure id: until ms} (functions/minds.py). */
-/** passes: sold before 2026-11-10 (live + after the close); passesClose: sold since (after the close only). */
+/** passes: sold before 2026-11-10; passesClose: sold since (after the close only until 2026-11-19; both open alerts live now). */
 export type WalletDoc = { balance: number; passes: Partial<Record<StrategyId, number>>; passesClose: Partial<Record<StrategyId, number>>; mindQuotes: Record<string, number> };
 export function parseWallet(d: DocumentData): WalletDoc {
   const read = (raw: unknown) => {
@@ -123,7 +135,6 @@ export const passUntil = (w: WalletDoc | null, id: StrategyId, now: number) => {
   return u > now ? u : null;
 };
 /** True when your pass is the after-the-close kind (sold from 2026-11-10). */
-export const passIsAfterClose = (w: WalletDoc | null, id: StrategyId, now: number) => !((w?.passes[id] ?? 0) > now) && (w?.passesClose[id] ?? 0) > now;
 
 export type Pack = { id: string; tokens: number; cents: number };
 export type WalletInfo = { balance: number; welcomed: boolean; canBuy: boolean; needsVerify: boolean; prices: { pass: number; passPrices?: Partial<Record<StrategyId, number>>; passDays: number; dayPass?: number; dayPassPrices?: Partial<Record<StrategyId, number>>; unlock: number; unlockClosed: number; welcome: number }; packs: Pack[] };

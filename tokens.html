@@ -22,19 +22,19 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="Zelos">
 <meta name="theme-color" content="#0c0d10">
-<meta name="description" content="Tokens unlock Zelos scanner alerts: a single live alert, or a 1-week scanner pass for every alert after the close. After the close it costs less, and every alert is free once its trade finishes.">
+<meta name="description" content="Tokens unlock Zelos scanner alerts: a single live alert, or a 1-week scanner pass for every alert, live from about 10 am New York time. A single alert costs less after the close, and every alert is free once its trade finishes.">
 <link rel="canonical" href="https://agentictrading.info/tokens.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Zelos">
 <meta property="og:title" content="Zelos Tokens">
-<meta property="og:description" content="Tokens unlock Zelos scanner alerts: a single live alert, or a 1-week scanner pass for every alert after the close. After the close it costs less, and every alert is free once its trade finishes.">
+<meta property="og:description" content="Tokens unlock Zelos scanner alerts: a single live alert, or a 1-week scanner pass for every alert, live from about 10 am New York time. A single alert costs less after the close, and every alert is free once its trade finishes.">
 <meta property="og:url" content="https://agentictrading.info/tokens.html">
 <meta property="og:image" content="https://agentictrading.info/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Zelos Tokens">
-<meta name="twitter:description" content="Tokens unlock Zelos scanner alerts: a single live alert, or a 1-week scanner pass for every alert after the close. After the close it costs less, and every alert is free once its trade finishes.">
+<meta name="twitter:description" content="Tokens unlock Zelos scanner alerts: a single live alert, or a 1-week scanner pass for every alert, live from about 10 am New York time. A single alert costs less after the close, and every alert is free once its trade finishes.">
 <meta name="twitter:image" content="https://agentictrading.info/og-image.jpg">
 <link rel="stylesheet" href="zelos-theme.css?v=6b80b1ad">
 <script>(function(){var t='black';try{var s=localStorage.getItem('zelosTheme');if(s==='blue'||s==='white')t=s;}catch(e){}document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -150,7 +150,7 @@
     <div id="tkMsg" class="tk-msg" role="status" hidden></div>
 
     <div class="tk-section"><h2>Scanner passes</h2>
-      <p class="status-line" style="margin-top:6px;">A pass shows every alert from that scanner after the 4:00 pm ET close, for 7 days (live alerts before the close are unlocked one at a time). Buying another pass adds 7 more days.</p>
+      <p class="status-line" style="margin-top:6px;">A pass shows every alert from that scanner as it goes out (about 10 am New York time), for 7 days. Buying another pass adds 7 more days.</p>
       <div class="tk-grid" id="tkPasses">
         <div class="tk-card" data-s="swing-trader"><h3>Swing Trader</h3><p>Pullbacks, bull flags and breakout retests in strong stocks.</p><div class="price"><span data-price="pass">120</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="swing-trader">Get the pass</button></div>
         <div class="tk-card" data-s="breakout-rider"><h3>Breakout Rider</h3><p>Flat bases and ascending triangles clearing resistance.</p><div class="price"><span data-price="pass">120</span> <small>tokens / week</small></div><span class="tk-pass-on" hidden></span><button type="button" class="gold" data-pass="breakout-rider">Get the pass</button></div>
@@ -256,7 +256,7 @@
 <script src="zelos-mood.js?v=15cc718b"></script>
 <script src="zelos-xp.js?v=4f74402e"></script>
 <script src="zelos-challenge.js?v=a6884736"></script>
-<script src="zelos-tokens.js?v=5060b9a5"></script>
+<script src="zelos-tokens.js?v=8ba25bd2"></script>
 <script src="zelos-signin.js?v=d00a05f1"></script>
 <script>
 (function () {
@@ -298,7 +298,7 @@
     document.querySelectorAll('[data-pass]').forEach(function (b) { b.onclick = function () {
       var u = firebase.auth().currentUser; if (!u || u.isAnonymous) return say('Sign in first: new accounts get free tokens.');
       b.disabled = true;
-      T.call('tokens_spend', { kind: 'pass', strategy: b.getAttribute('data-pass') }).then(function (w) { say('Pass active. Every alert from this scanner is unlocked for you after the 4:00 pm ET close.', true); b.disabled = false; },
+      T.call('tokens_spend', { kind: 'pass', strategy: b.getAttribute('data-pass') }).then(function (w) { say('Pass active. Every alert from this scanner is unlocked for you as it goes out.', true); b.disabled = false; },
         function (e) { b.disabled = false; say(String(e.message || e).replace(/^FirebaseError: /, '')); });
     }; });
     document.querySelectorAll('[data-pack]').forEach(function (b) { b.onclick = function () {

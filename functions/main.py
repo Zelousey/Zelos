@@ -65,7 +65,7 @@ import three_leg as TL  # the 3-Leg Options strategy: legs, cost, max profit/los
 
 initialize_app()
 
-ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner", "three-leg"}
+ALLOWED_STRATEGIES = {"swing-trader", "breakout-rider", "options-scanner", "three-leg", "momentum-trader"}
 
 
 def _secret_ok(provided):
@@ -3810,7 +3810,7 @@ def tw_respond(req, db, uid, now_ms):
 # Tokens: the site's paid currency (replaces the old $20 Gumroad purchase).
 #
 #   wallets/{uid}                 { balance, passes: {strategy: untilMs} (sold before 2026-11-10: live + after close),
-#                                   passesClose: {strategy: untilMs} (after the close only), unlocked: [alertId],
+#                                   passesClose: {strategy: untilMs} (live again since 2026-11-19), unlocked: [alertId],
 #                                   welcomed, createdAt, updatedAt }   owner-read, server-write
 #   wallets/{uid}/ledger/{id}     { type, amount (+/-), balanceAfter, note, ref, at }
 #   purchases/sq_{orderId}        { uid, pack, tokens, amountCents, provider, paymentId, at }  server only
@@ -3884,13 +3884,14 @@ def tk_welcome(wallet, verified, now_ms):
 def tk_has_access(wallet, strategy, alert_id, now_ms, closed=True):
     """Who can read a gated alert (owner 2026-11-10):
     - passes{strategy: until}: passes sold before 2026-11-10, live and after the close, until they run out;
-    - passesClose{strategy: until}: passes sold from 2026-11-10, after the close only (until the trade
+    - passesClose{strategy: until}: passes sold from 2026-11-10; after the close only until 2026-11-19, live again since
       finishes and the alert goes public); a live alert before the close is a token unlock;
     - unlocked: single-alert unlocks.
     closed: the alert is past its close (released, or lockedUntil has passed)."""
     if (wallet.get("passes") or {}).get(strategy, 0) > now_ms:
         return True
-    if closed and (wallet.get("passesClose") or {}).get(strategy, 0) > now_ms:
+    # owner 2026-11-19: alerts go out at 10 am, so every pass opens them live again
+    if (wallet.get("passesClose") or {}).get(strategy, 0) > now_ms:
         return True
     return alert_id in (wallet.get("unlocked") or [])
 
@@ -4620,7 +4621,8 @@ def community_activity(db, uid, tok, today, now_ms, iph):
 # so it doesn't give away a token-gated alert. Tapping it opens the alert page.
 # ---------------------------------------------------------------------------
 ALERT_IMAGES = ("swing-trader", "breakout-rider", "options-scanner")  # images/alert-<id>.png that exist
-PUSH_NAMES = {"swing-trader": "Swing Trader", "breakout-rider": "Breakout Rider", "options-scanner": "Options Scanner", "three-leg": "3-Leg Options"}
+PUSH_NAMES = {"swing-trader": "Swing Trader", "breakout-rider": "Breakout Rider", "options-scanner": "Options Scanner", "three-leg": "3-Leg Options",
+              "momentum-trader": "Momentum Trader"}
 PUSH_MAX_TOKENS = 10
 
 
@@ -7129,11 +7131,18 @@ def report_content(req, db, uid, tok, now_ms):
 # State: serverMeta/scanners {day, done, outcomes, alerts}.
 import scanner as SC  # noqa: E402
 import options_scan as OSC  # noqa: E402
+import three_leg_scan as TLS  # noqa: E402
+import momentum_scan as MOM  # noqa: E402
+import live_plan as LP  # noqa: E402
 import outcomes as OC  # noqa: E402
 
 # the Options Scanner runs last: today's Swing Trader / Breakout Rider headline is its first candidate
-SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout, OSC.STRATEGY: OSC.scan_options}
+# 3-Leg runs last: it starts from that day's Swing Trader / Breakout Rider headline (owner 2026-11-19)
+SERVER_SCANNERS = {"swing-trader": SC.scan_swing, "breakout-rider": SC.scan_breakout, MOM.STRATEGY: MOM.scan_momentum,
+                   OSC.STRATEGY: OSC.scan_options, TLS.STRATEGY: TLS.scan_three_leg}
 SCAN_HOLD_SESSIONS = 10  # a swing idea that hits neither level in ~2 weeks is "expired"
+# Swing Trader is a short-term pick (owner 2026-11-19): it expires after 5 market days
+SCAN_HOLD_SESSIONS_BY = {"swing-trader": SC.SWING_HOLD_DAYS, MOM.STRATEGY: MOM.HOLD_DAYS}
 
 
 GLOBE_KEEP = 30  # sessions of daily bars kept for the globe (it shows the day's and the month's move)
@@ -7255,10 +7264,8 @@ def ms_daily_close(db, key, now):
     return hist
 
 
-def scanners_pass(db, hist, today, now_utc):
-    """Outcomes for open alerts, then today's alert from each server scanner. Returns a summary."""
-    rows = {s: MD.history_rows(r) for s, r in hist.items()}
-    summary = {"outcomes": 0, "alerts": {}}
+def grade_alerts(db, rows, summary):
+    """Outcomes for open alerts on the finished daily bars. Returns {strategy: tickers still open}."""
     busy = {k: set() for k in SERVER_SCANNERS}
     for snap in db.collection("alertsLocked").stream():
         a = snap.to_dict() or {}
@@ -7267,7 +7274,7 @@ def scanners_pass(db, hist, today, now_utc):
             continue
         start = str(a.get("asOf") or snap.id[-10:])
         after = [{"date": r[0], "high": r[2], "low": r[3], "close": r[4]} for r in rows.get(a.get("ticker"), []) if r[0] > start]
-        o = OC.outcome_for_alert(a, after, max_hold_sessions=SCAN_HOLD_SESSIONS)
+        o = OC.outcome_for_alert(a, after, max_hold_sessions=SCAN_HOLD_SESSIONS_BY.get(strat, SCAN_HOLD_SESSIONS))
         prev = a.get("outcome") or {}
         changed = o["result"] != prev.get("result") or o.get("target2Hit") != prev.get("target2Hit")
         if changed and not (o["result"] == "open" and not prev):  # nothing to write while a new trade is still open
@@ -7275,6 +7282,16 @@ def scanners_pass(db, hist, today, now_utc):
             summary["outcomes"] += 0 if err else 1
         if o["result"] == "open":
             busy[strat].add(a.get("ticker"))
+    return busy
+
+
+MORNING_TRIES = 6  # stocks tried per scanner when the price has already gone through the plan
+
+
+def publish_alerts(db, rows, busy, today, now_utc, summary, quotes=None):
+    """Today's alert from each server scanner. With quotes (the 10 am run), each plan is moved to the
+    live price first (functions/live_plan.py); a stock already through its stop or target is set
+    aside and the scan runs again without it."""
     spy, qqq = rows.get("SPY") or [], rows.get("QQQ") or []
     for strat, scan in SERVER_SCANNERS.items():
         alert_id = "%s-%s" % (strat, today)
@@ -7283,18 +7300,43 @@ def scanners_pass(db, hist, today, now_utc):
             continue
         # only stocks the practice account trades (one tap from the alert), none already open
         bars = {s: r for s, r in rows.items() if s in PRACTICE_SYMBOLS and s not in busy[strat]}
-        if strat == OSC.STRATEGY:
-            linked = []
+        linked = []
+        if strat in (OSC.STRATEGY, TLS.STRATEGY):
             for k in ("swing-trader", "breakout-rider"):
                 ls = db.collection("alertsLocked").document("%s-%s" % (k, today)).get()
                 if ls.exists and (ls.to_dict() or {}).get("status") == "qualified":
                     linked.append(dict(ls.to_dict(), strategy=k))
-            alert = dict(scan(bars, spy, qqq, today, linked), source="server")
+        gone = []
+        for _ in range(MORNING_TRIES):
+            alert = scan(bars, spy, qqq, today, [a for a in linked if a.get("ticker") in bars]) \
+                if strat in (OSC.STRATEGY, TLS.STRATEGY) else scan(bars, spy, qqq)
+            if quotes is None or alert.get("status") != "qualified":
+                break
+            sym = alert["ticker"]
+            live = LP.adjust(alert, LP.live_price(quotes.get(sym), today), [r[4] for r in bars[sym]], today)
+            if live is not None:
+                alert = live
+                break
+            gone.append(sym)
+            bars = {s: r for s, r in bars.items() if s != sym}
         else:
-            alert = dict(scan(bars, spy, qqq), source="server")
+            alert = {"strategy": strat, "status": "no-qualifying-setup", "reasoning": "No qualifying setup today: "
+                     "the best ones had already moved through their stop or target by the morning."}
+        if gone:
+            alert["passedOver"] = gone
+        alert = dict(alert, source="server")
         alert_store(db, alert_id, alert, now_utc)
         sent = alert_notify(db, alert_id, alert)
         summary["alerts"][strat] = "%s %s (%s devices)" % (alert["status"], alert.get("ticker") or "", sent)
+
+
+def scanners_pass(db, hist, today, now_utc, publish=True, quotes=None):
+    """Outcomes for open alerts, then (publish) today's alert from each server scanner. Returns a summary."""
+    rows = {s: MD.history_rows(r) for s, r in hist.items()}
+    summary = {"outcomes": 0, "alerts": {}}
+    busy = grade_alerts(db, rows, summary)
+    if publish:
+        publish_alerts(db, rows, busy, today, now_utc, summary, quotes)
     return summary
 
 
@@ -7319,7 +7361,8 @@ def run_scanners(event: scheduler_fn.ScheduledEvent) -> None:
         if hist is None:
             state["waiting"] = "no final bars for %s yet" % today if key else "missing Marketstack key"
         else:
-            state.update(scanners_pass(db, hist, today, datetime.now(timezone.utc)), done=True)
+            # owner 2026-11-19: alerts go out in the morning (morning_alerts); the evening grades
+            state.update(scanners_pass(db, hist, today, datetime.now(timezone.utc), publish=False), done=True)
             print("[scanners]", state)
     except (MD.MsKeyRejected, MD.MsQuota) as e:
         state["error"] = type(e).__name__
@@ -7333,6 +7376,37 @@ def run_scanners(event: scheduler_fn.ScheduledEvent) -> None:
         ms_count_calls(db, now, MD.CALLS[0] - calls0)
     except Exception as e:
         print("[scanners] usage count failed:", type(e).__name__)
+
+
+@scheduler_fn.on_schedule(schedule="0,10,20,30 10 * * 1-5", timezone=scheduler_fn.Timezone("America/New_York"),
+                          timeout_sec=300, memory=512)
+def morning_alerts(event: scheduler_fn.ScheduledEvent) -> None:
+    """The day's strategy alerts at about 10:00 New York time (owner 2026-11-19), planned at the live
+    price. Tries again at 10:10, 10:20 and 10:30 if the morning prices aren't in yet. No Marketstack
+    calls: it reads the stored history (finished last night) and the live quotes."""
+    now = datetime.now(NY)
+    today = now.strftime("%Y-%m-%d")
+    db = firestore.client()
+    sref = db.collection("serverMeta").document("morningAlerts")
+    snap = sref.get()
+    st = (snap.to_dict() or {}) if snap.exists else {}
+    if st.get("day") == today and st.get("done"):
+        return
+    st = {"day": today, "done": False, "ranAt": now.isoformat()}
+    try:
+        qd = db.collection("markets").document("quotes").get().to_dict() or {}
+        quotes = qd.get("quotes") or {}
+        fresh = [s for s in PRACTICE_SYMBOLS if LP.live_price(quotes.get(s), today)]
+        if len(fresh) < len(PRACTICE_SYMBOLS) // 2:
+            st["waiting"] = "morning prices not in yet (%d of %d)" % (len(fresh), len(PRACTICE_SYMBOLS))  # or a market holiday
+        else:
+            hist = _read_history(db)
+            st.update(scanners_pass(db, hist, today, datetime.now(timezone.utc), publish=True, quotes=quotes), done=True)
+            print("[morning_alerts]", st)
+    except Exception as e:
+        st["error"] = type(e).__name__
+        print("[morning_alerts] failed:", type(e).__name__, e)
+    sref.set(st)
 
 
 # ---------------------------------------------------------------------------

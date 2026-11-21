@@ -88,5 +88,32 @@ class Pass(unittest.TestCase):
             m.tk_spend(dict(m.tk_new_wallet(0), balance=179), "pass", 0, "three-leg")
 
 
+class Scanner(unittest.TestCase):
+    """The server's 3-Leg scanner (functions/three_leg_scan.py, owner 2026-11-19)."""
+    def setUp(self):
+        import three_leg_scan as TLS
+        self.TLS = TLS
+
+    def test_butterfly_halfway_to_the_target(self):
+        closes = [100 * (1 + 0.01 * ((i % 7) - 3)) for i in range(60)] + [100.0]
+        t = self.TLS.butterfly("AMD", 100.0, 110.0, closes, "2026-11-18")
+        self.assertEqual(t["kind"], "bull-butterfly")
+        k1, k2, k3 = (l["strike"] for l in t["legs"])
+        self.assertEqual((k1, k2, k3), (100, 105, 110))
+        self.assertEqual([l["qty"] for l in t["legs"]], [1, 2, 1])
+        self.assertTrue(10 <= t["dte"] <= 40)
+        self.assertEqual(t["maxLoss"], t["netCost"])
+        self.assertGreaterEqual(t["maxProfit"], 2 * t["maxLoss"])
+
+    def test_no_butterfly_without_room_to_the_target(self):
+        self.assertIsNone(self.TLS.butterfly("AMD", 100.0, 99.0, [100.0] * 60, "2026-11-18"))
+
+    def test_nothing_to_scan_is_a_no_setup_day(self):
+        flat = [["2026-01-%02d" % (i % 28 + 1), 10, 10, 10, 10, 100] for i in range(60)]
+        a = self.TLS.scan_three_leg({}, flat, flat, "2026-11-18")
+        self.assertEqual(a["status"], "no-qualifying-setup")
+        self.assertEqual(a["strategy"], "three-leg")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
