@@ -13,6 +13,7 @@ Pure functions; functions/main.py does the reads and writes:
   users/{uid}.learnLoop  {streak: {days, best, last}, day: {date, xp}, week: {key, xp}}  server-only
   users/{uid}.review     {qid: {box, due}}                                               server-only
   users/{uid}.learnGoal  10 | 20 | 30 | 50 (yours to set)
+  users/{uid}.learnRemindedOn  the New York day the streak reminder last went out (server-only)
   learnLeague/{week}/rows/{uid}  {name, xp, updatedAt}  public, server-written
 
 Question ids: "c:<lesson id>" (a lesson's quick check), "q:<chapter id>:<n>" (chapter quiz question n).
@@ -127,3 +128,26 @@ def view(loop, today):
         "today": int(day.get("xp") or 0) if day.get("date") == today else 0,
         "week": int(week.get("xp") or 0) if week.get("key") == week_key(today) else 0,
     }
+
+
+# ---------------------------------------------------------------- the streak reminder (2026-11-22)
+# One nudge a day at most, at 7 pm New York time, and only when a streak is about to break: you
+# kept it yesterday and haven't learned today. Bell + push, kind "learn" (Notifications ->
+# "Learning streak", on unless you turn it off). Nothing about trading.
+REMIND_HOUR = 19
+
+
+def reminder_due(loop, today, reminded_on):
+    """True when this person should get tonight's reminder."""
+    st = (loop.get("streak") or {}) if isinstance(loop, dict) else {}
+    return int(st.get("days") or 0) >= 1 and st.get("last") == add_day(today, -1) and reminded_on != today
+
+
+def reminder_text(days, due_reviews):
+    """(title, body) for the reminder."""
+    title = "Keep your %d-day learning streak" % days if days > 1 else "Keep your learning streak going"
+    if due_reviews:
+        body = "%d question%s from your review %s waiting. Reviewing is free and keeps the streak." % (due_reviews, "" if due_reviews == 1 else "s", "is" if due_reviews == 1 else "are")
+    else:
+        body = "One short Trading 101 lesson keeps it going."
+    return title, body

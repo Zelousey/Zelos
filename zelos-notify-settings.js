@@ -18,6 +18,7 @@
       ['community', 'Community', 'New members in your community, Founder milestones']]],
     ['Your trades', [['fills', 'Stop loss & take profit', 'An automatic exit fills in one of your Trade Wars'],
       ['price', 'Price alerts', 'A stock crosses a price alert you drew on a chart']]],
+    ['Learning', [['learn', 'Learning streak', 'One reminder at 7 pm New York time, only on a day your streak is about to break']]],
     ['Scanner alerts', [['s:swing-trader', 'Swing Trader', 'A new alert is published'],
       ['s:breakout-rider', 'Breakout Rider', 'A new alert is published'], ['s:options-scanner', 'Options Scanner', 'A new alert is published'],
       ['s:three-leg', '3-Leg Options', 'A new alert is published'],

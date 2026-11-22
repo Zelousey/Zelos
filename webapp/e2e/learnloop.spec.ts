@@ -85,4 +85,13 @@ test('a missed question comes back for free review; lessons build the streak, th
   await expect(me).toContainText('12 XP');
   await expect(me).toContainText('you');
   await axe(page);
+
+  // one evening reminder when the streak is about to break: on unless you switch it off
+  await page.goto('alerts?tab=notify');
+  const remind = page.getByRole('switch', { name: 'Learning streak' });
+  await expect(remind).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByText('One reminder at 7 pm New York time, only on a day your streak is about to break')).toBeVisible();
+  await remind.click();
+  await expect(remind).toHaveAttribute('aria-checked', 'false');
+  await expect.poll(async () => JSON.stringify((await get(`users/${uid}`)).fields?.notificationPrefs ?? {})).toContain('"learn":{"booleanValue":false}');
 });

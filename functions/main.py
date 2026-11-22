@@ -4780,7 +4780,7 @@ def alert_push(db, alert_id, alert):
 # in users/{uid}/inbox (the bell on every page) and, if that kind is switched on in
 # Alerts -> Notifications (users/{uid}.notificationPrefs.types; missing = on), as a
 # push to every device the person turned notifications on for.
-NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price", "minds", "war")
+NOTIFY_KINDS = ("challenges", "battles", "friends", "community", "fills", "price", "minds", "war", "learn")
 
 
 # Kinds that are off until the person turns them on (owner 2026-11-18): the War zone runs on a
@@ -7713,6 +7713,33 @@ def minds_quote_pass(db, now):
                      "/app/minds/%s?q=%s" % (fid, q["id"]), "mind-" + day)
         sent += 1
     return sent
+
+
+def learn_reminder_pass(db, now_ms):
+    """The learning streak reminder (learnloop.reminder_due): only people whose streak was last kept
+    yesterday are read (one equality query), each reminded at most once a day. Returns how many."""
+    today, yesterday = _ny_day(now_ms), _ny_day(now_ms, -1)
+    sent = 0
+    for snap in db.collection("users").where("learnLoop.streak.last", "==", yesterday).stream():
+        try:
+            u = snap.to_dict() or {}
+            loop = u.get("learnLoop")
+            if not LOOP.reminder_due(loop, today, u.get("learnRemindedOn")):
+                continue
+            if not notify_wants(u.get("notificationPrefs"), "learn"):
+                continue  # switched off: no push and no bell either (a nudge you turned off is just clutter)
+            snap.reference.update({"learnRemindedOn": today})  # first, so a retry never sends twice
+            title, body = LOOP.reminder_text(int(loop["streak"]["days"]), len(LOOP.due(u.get("review"), today)))
+            notify_users(db, [snap.id], "learn", title, body, "/app/learn", "learn-" + today)
+            sent += 1
+        except Exception as e:
+            print("[learn] reminder for one user failed:", type(e).__name__)
+    return sent
+
+
+@scheduler_fn.on_schedule(schedule="0 19 * * *", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=300, memory=256)
+def learn_reminder(event: scheduler_fn.ScheduledEvent) -> None:
+    print("[learn] streak reminders:", learn_reminder_pass(firestore.client(), int(_time.time() * 1000)))
 
 
 @scheduler_fn.on_schedule(schedule="5 9 * * *", timezone=scheduler_fn.Timezone("America/New_York"), timeout_sec=300, memory=256)

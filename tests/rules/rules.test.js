@@ -39,6 +39,7 @@ test('learning loop: learnLoop and review are server-only, learnGoal is one of t
   const db = real('alice').firestore();
   await assertFails(updateDoc(doc(db, 'users/alice'), { learnLoop: { streak: { days: 400, best: 400, last: '2026-11-22' } } }));
   await assertFails(updateDoc(doc(db, 'users/alice'), { review: {} }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { learnRemindedOn: '2026-11-24' })); // the reminder's once-a-day record
   await assertSucceeds(updateDoc(doc(db, 'users/alice'), { learnGoal: 30 }));
   await assertFails(updateDoc(doc(db, 'users/alice'), { learnGoal: 31 }));
   await assertFails(setDoc(doc(real('newbie').firestore(), 'users/newbie'), { xp: 0, learnLoop: {} }));

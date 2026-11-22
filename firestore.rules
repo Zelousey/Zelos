@@ -141,7 +141,7 @@ service cloud.firestore {
       // squadMsgs / strategiesUsed / strategyActs: counted by the server for achievements (2026-11-14)
       // learnLoop / review: the learning streak, today's and this week's learning XP, and the
       // questions due for review (functions/learnloop.py); learnGoal: your daily goal, yours to set
-      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed', 'xpBoostUntil', 'learnFailed', 'squadMsgs', 'strategiesUsed', 'strategyActs', 'learnLoop', 'review']; }
+      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed', 'xpBoostUntil', 'learnFailed', 'squadMsgs', 'strategiesUsed', 'strategyActs', 'learnLoop', 'review', 'learnRemindedOn']; }
       function validLearnGoal(d) { return !('learnGoal' in d) || d.learnGoal in [10, 20, 30, 50]; }
       // blocked: the traders you blocked (uids); termsAt: when you agreed to the Terms
       function validBlocked(b) { return b is list && b.size() <= 500; }
@@ -160,6 +160,7 @@ service cloud.firestore {
         && !('strategyActs' in request.resource.data)
         && !('learnLoop' in request.resource.data)
         && !('review' in request.resource.data)
+        && !('learnRemindedOn' in request.resource.data)
         && validLearnGoal(request.resource.data)
         && validBlocked(request.resource.data.get('blocked', []));
       allow update: if request.auth != null && request.auth.uid == userId
