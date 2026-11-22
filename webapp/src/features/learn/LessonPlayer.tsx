@@ -15,6 +15,7 @@ import { t } from '../../lib/i18n';
 import { Button, buttonClass, EmptyState, useToast } from '../../ui';
 import { chapterById, chapterState, LESSON_XP, lessonOpen, lessonXp, markLesson } from './chapters';
 import { noteLearnPlace } from './learnReturn';
+import { learnCheck } from './loop';
 import { Scene } from './Scene';
 import { useSkill } from './useSkill';
 import s from './Learn.module.css';
@@ -77,6 +78,12 @@ function Player({ chapterId, idx }: { chapterId: string; idx: number }) {
       .catch(() => setEarned(wasDone.current ? 'already' : 'none'));
   }, [finished, isReal, user, lesson.id, toast]);
 
+  // the server grades the quick check too: a miss comes back later for review (learning loop)
+  const pickAnswer = (i: number) => {
+    setPicked(i);
+    if (isReal && user) void learnCheck(lesson.id, i).catch(() => undefined);
+  };
+
   const step = !finished && at < lesson.steps.length ? lesson.steps[at]! : null;
   const check = !finished && !step ? lesson.check : null;
   const ok = check && picked != null ? picked === check.right : null;
@@ -122,7 +129,7 @@ function Player({ chapterId, idx }: { chapterId: string; idx: number }) {
               {check.opts.map((o, i) => {
                 const cls = picked == null ? '' : i === check.right ? s.optRight : i === picked ? s.optWrong : '';
                 return (
-                  <button key={i} type="button" className={[s.opt, cls].join(' ')} disabled={picked != null} aria-pressed={picked === i} onClick={() => setPicked(i)}>
+                  <button key={i} type="button" className={[s.opt, cls].join(' ')} disabled={picked != null} aria-pressed={picked === i} onClick={() => pickAnswer(i)}>
                     <span>{o}</span>
                     <span aria-hidden="true">{picked == null ? '' : i === check.right ? '✓' : i === picked ? '✗' : ''}</span>
                   </button>

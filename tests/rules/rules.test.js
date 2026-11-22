@@ -33,6 +33,22 @@ test('owner can still edit ordinary fields (merge)', async () => {
   await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'users/alice'), { xp: 10 }));
   await assertSucceeds(setDoc(doc(real('alice').firestore(), 'users/alice'), { watchlist: ['AAPL'] }, { merge: true }));
 });
+// the learning loop (2026-11-22): the streak and review queue are the server's; the goal is yours
+test('learning loop: learnLoop and review are server-only, learnGoal is one of the choices', async () => {
+  await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'users/alice'), { xp: 0 }));
+  const db = real('alice').firestore();
+  await assertFails(updateDoc(doc(db, 'users/alice'), { learnLoop: { streak: { days: 400, best: 400, last: '2026-11-22' } } }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { review: {} }));
+  await assertSucceeds(updateDoc(doc(db, 'users/alice'), { learnGoal: 30 }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { learnGoal: 31 }));
+  await assertFails(setDoc(doc(real('newbie').firestore(), 'users/newbie'), { xp: 0, learnLoop: {} }));
+  await assertFails(setDoc(doc(real('newbie').firestore(), 'users/newbie'), { xp: 0, learnGoal: 1000 }));
+});
+test('learning league: anyone can read it, nobody writes it from a browser', async () => {
+  await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'learnLeague/2026-W48/rows/alice'), { name: 'Alice', xp: 40 }));
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'learnLeague/2026-W48/rows/alice')));
+  await assertFails(setDoc(doc(real('alice').firestore(), 'learnLeague/2026-W48/rows/alice'), { name: 'Alice', xp: 9999 }));
+});
 test('anonymous visitor cannot mint xp either', async () => {
   await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), 'users/guest1'), { xp: 0 }));
   await assertFails(updateDoc(doc(anon('guest1').firestore(), 'users/guest1'), { xp: 1000 }));
@@ -42,7 +58,7 @@ test('nobody reads someone else\'s user doc', async () => {
   await assertFails(getDoc(doc(real('bob').firestore(), 'users/alice')));
 });
 // ---------------------------------------------------------------- Firestore: gated alerts (owner 2026-11-10)
-test('gated alerts: passes sold from now on open alerts after the close only; older passes and unlocks keep working', async () => {
+test('gated alerts: every pass opens live and closed alerts (owner 2026-11-19); single unlocks keep working', async () => {
   const now = Date.now();
   await env.withSecurityRulesDisabled(async (c) => {
     const f = c.firestore();
@@ -54,7 +70,7 @@ test('gated alerts: passes sold from now on open alerts after the close only; ol
     await setDoc(doc(f, 'wallets/nobody'), { balance: 0, passes: {}, unlocked: [] });
   });
   const read = (uid, id) => getDoc(doc(real(uid).firestore(), `alertsLocked/${id}`));
-  await assertFails(read('newpass', 'swing-trader-live'));
+  await assertSucceeds(read('newpass', 'swing-trader-live')); // alerts go out at 10 am, so passes open them live again
   await assertSucceeds(read('newpass', 'swing-trader-closed'));
   await assertSucceeds(read('oldpass', 'swing-trader-live'));
   await assertSucceeds(read('oldpass', 'swing-trader-closed'));
