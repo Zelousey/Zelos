@@ -19,7 +19,7 @@ export type Position = { sym: string; qty: number; avg: number; openedDay: strin
 export type OptionPosition = Contract & { id: string; qty: number; avg: number; label: string; openedDay?: string | null };
 /** `opt` is set on option orders: the contract id; `sym` is then the underlying stock. */
 export type Order = { id: string; sym: string; opt: string | null; label: string | null; est: number; side: 'buy' | 'sell'; type: 'market' | 'limit' | 'stop'; qty: number; limit: number | null; stop: number | null; tif: 'day' | 'gtc'; session: string; createdAt: number; bracket: { sl: number | null; tp: number | null } | null; role: 'sl' | 'tp' | null; oco: string | null };
-export type Account = { cash: number; positions: Position[]; options: OptionPosition[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number; hist: DayValue[] };
+export type Account = { cash: number; positions: Position[]; options: OptionPosition[]; orders: Order[]; realized: number; resets: number; resetHistory: { equityBefore: number; day: string | null }[]; publicProfile: boolean; archivedClassic: boolean; stats: { trades: number; wins: number; losses: number }; peak: number; updatedAt: number; hist: DayValue[] };
 /** One New York day's closing account value (server: practice.py, kept 90 days). */
 export type DayValue = { day: string; e: number };
 export type HistoryItem = { id: string; kind: 'order' | 'fill' | 'trade'; at: number; sym: string; opt?: string; label?: string; side?: string; qty?: number; price?: number; pnl?: number; pct?: number; status?: string; note?: string; type?: string; role?: string | null; fillPrice?: number; entry?: number; exit?: number; openDay?: string; closeDay?: string };
@@ -66,7 +66,7 @@ export function parseAccount(d: DocumentData): Account {
     orders,
     realized: n(d.realized),
     resets: n(d.resets),
-    resetHistory: Array.isArray(d.resetHistory) ? (d.resetHistory as Record<string, unknown>[]).map((r) => ({ equityBefore: n(r.equityBefore, START_CASH) })) : [],
+    resetHistory: Array.isArray(d.resetHistory) ? (d.resetHistory as Record<string, unknown>[]).map((r) => ({ equityBefore: n(r.equityBefore, START_CASH), day: typeof r.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.day) ? r.day : null })) : [],
     publicProfile: d.publicProfile !== false,
     archivedClassic: !!d.archivedClassic,
     stats: { trades: n(st.trades), wins: n(st.wins), losses: n(st.losses) },
