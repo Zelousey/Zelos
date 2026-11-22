@@ -69,7 +69,7 @@ describe('levels', () => {
 describe('progress', () => {
   const now = Date.parse('2026-10-08T15:00:00Z'); // Thu 11:00 ET
   const today = nyDate(now);
-  const raw = { v: 1, updatedAt: 5, day: { date: today, counts: { trade: 1, analyze: 2 }, done: { trade: true } }, week: { key: weekKey(today), counts: { trade: 4 }, done: {} }, streak: { days: 3, best: 5, lastDate: nyDate(now, -1) }, achievements: { 'first-trade': 100 } };
+  const raw = { v: 1, updatedAt: 5, day: { date: today, counts: { learn: 1, analyze: 2 }, done: { learn: true } }, week: { key: weekKey(today), counts: { learn: 4 }, done: {} }, streak: { days: 3, best: 5, lastDate: nyDate(now, -1) }, achievements: { 'first-trade': 100 } };
 
   it('reads the classic shape and rejects junk', () => {
     expect(parseProgress({ v: 2 })).toBeNull();
@@ -81,7 +81,7 @@ describe('progress', () => {
   it('mission view: counts, done, streak and the XP log', () => {
     expect(weekKey('2026-10-08')).toBe('w2026_41');
     const m = missionsView(parseProgress(raw), { day: { date: today, xp: 140 } }, now);
-    expect(m.daily.find((x) => x.id === 'trade')).toMatchObject({ done: true, count: 1 });
+    expect(m.daily.find((x) => x.id === 'learn')).toMatchObject({ done: true, count: 1 });
     expect(m.daily.find((x) => x.id === 'analyze')).toMatchObject({ done: false, count: 2, goal: 3 });
     expect(m.daily.find((x) => x.id === 'xp')).toMatchObject({ count: 100 }); // capped at the goal
     expect(m.streak).toBe(3); // last kept yesterday: still alive
@@ -93,20 +93,20 @@ describe('progress', () => {
   });
   it('merges two copies like the website does', () => {
     const a = parseProgress(raw)!;
-    const b = parseProgress({ ...raw, day: { date: today, counts: { trade: 0, analyze: 3 }, done: { analyze: true } }, streak: { days: 4, best: 4, lastDate: today }, achievements: { 'first-trade': 50, 'first-win': 60 } })!;
+    const b = parseProgress({ ...raw, day: { date: today, counts: { learn: 0, analyze: 3 }, done: { analyze: true } }, streak: { days: 4, best: 4, lastDate: today }, achievements: { 'first-trade': 50, 'first-win': 60 } })!;
     const m = mergeProgress(a, b)!;
-    expect(m.day.counts).toEqual({ trade: 1, analyze: 3 });
-    expect(m.day.done).toEqual({ trade: true, analyze: true });
+    expect(m.day.counts).toEqual({ learn: 1, analyze: 3 });
+    expect(m.day.done).toEqual({ learn: true, analyze: true });
     expect(m.streak).toEqual({ days: 4, best: 5, lastDate: today });
     expect(m.achievements).toEqual({ 'first-trade': 50, 'first-win': 60 });
     expect(mergeProgress(null, b)).toBe(b);
   });
   it("the server's mission count is read and merged (it wins where it counted more)", () => {
     expect(parseServerMissions(null)).toBeNull();
-    const srv = parseServerMissions({ day: { date: today, counts: { trade: 2, xp: 130 }, done: { trade: true, xp: true } }, week: { key: weekKey(today), counts: { trade: 2 }, done: {} }, streak: { days: 4, best: 5, lastDate: today } })!;
+    const srv = parseServerMissions({ day: { date: today, counts: { learn: 2, xp: 130 }, done: { learn: true, xp: true } }, week: { key: weekKey(today), counts: { learn: 2 }, done: {} }, streak: { days: 4, best: 5, lastDate: today } })!;
     const local = parseProgress({ ...raw, day: { date: today, counts: { analyze: 1 }, done: {} } })!;
     const m = missionsView(mergeProgress(local, srv), {}, now);
-    expect(m.daily.find((x) => x.id === 'trade')).toMatchObject({ done: true, count: 1 });
+    expect(m.daily.find((x) => x.id === 'learn')).toMatchObject({ done: true, count: 1 });
     expect(m.daily.find((x) => x.id === 'xp')).toMatchObject({ done: true, count: 100 });
     expect(m.daily.find((x) => x.id === 'analyze')).toMatchObject({ count: 1 });
     expect(m.streak).toBe(4); // the server carried yesterday's streak on and kept it today

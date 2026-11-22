@@ -20,15 +20,15 @@ export type Progress = {
 export type MissionView = { id: string; label: string; goal: number; count: number; done: boolean; xp: number; href?: string };
 
 export const DAILY: MissionDef[] = [
-  { id: 'trade', label: 'Make 1 Trade War trade', goal: 1, xp: 10, ev: 'trade', href: '/markets' },
+  { id: 'learn', label: 'Finish a Trading 101 lesson', goal: 1, xp: 10, ev: 'learn', href: '/learn' },
   { id: 'analyze', label: 'Analyze 3 stocks', goal: 3, xp: 10, ev: 'analyze', href: '/markets' },
   { id: 'grade', label: 'Complete a Grade the Setup round', goal: 1, xp: 10, ev: 'grade', href: '/training/grade-the-setup' },
   { id: 'news', label: 'Check the market news', goal: 1, xp: 5, ev: 'news', href: '/news' },
   { id: 'xp', label: 'Earn 100 XP', goal: 100, xp: 20, ev: 'xp' },
 ];
 export const WEEKLY: MissionDef[] = [
-  { id: 'trades10', label: 'Make 10 Trade War trades', goal: 10, xp: 40, ev: 'trade' },
-  { id: 'wins3', label: 'Close 3 winning trades', goal: 3, xp: 50, ev: 'win' },
+  { id: 'learn5', label: 'Finish 5 Trading 101 lessons', goal: 5, xp: 40, ev: 'learn', href: '/learn' },
+  { id: 'plan3', label: 'Set a stop-loss before 3 practice trades', goal: 3, xp: 50, ev: 'plan', href: '/markets' },
   { id: 'grade10', label: 'Grade 10 setups', goal: 10, xp: 40, ev: 'grade' },
   { id: 'days5', label: 'Keep your streak 5 days this week', goal: 5, xp: 75, ev: 'mday' },
   { id: 'xp300', label: 'Earn 300 XP', goal: 300, xp: 60, ev: 'xp' },

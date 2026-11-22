@@ -201,7 +201,7 @@
       '<div class="zd-card zd-pos"><h4>Solo · Positions</h4><table><thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Last</th><th>P&L</th><th></th></tr></thead><tbody>' +
       acct.pos.map(function (p) { var m = mkt[p[0]], pl = (m.px - p[2]) * p[1]; return '<tr><td><b>' + p[0] + '</b></td><td>' + p[1] + '</td><td>' + p[2].toFixed(2) + '</td><td>' + m.px.toFixed(2) + '</td><td class="' + cls(pl) + '">' + signed(pl) + '</td><td><button type="button" class="zd-sell" data-locked>Close</button></td></tr>'; }).join('') +
       '</tbody></table></div>' +
-      '<div class="zd-card zd-missions"><h4>Daily missions</h4><div class="zd-row"><span>✓ Make 1 Trade War trade</span><b>+10 XP</b></div><div class="zd-row"><span>✓ Analyze 3 stocks</span><b>+10 XP</b></div><div class="zd-row"><span>○ Check the market news</span><b>+5 XP</b></div></div>' +
+      '<div class="zd-card zd-missions"><h4>Daily missions</h4><div class="zd-row"><span>✓ Finish a Trading 101 lesson</span><b>+10 XP</b></div><div class="zd-row"><span>✓ Analyze 3 stocks</span><b>+10 XP</b></div><div class="zd-row"><span>○ Check the market news</span><b>+5 XP</b></div></div>' +
       '</div>'
     );
   }

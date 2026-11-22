@@ -44,8 +44,9 @@ SOURCES = {
     "mind": ("learn", "Hall of Minds lesson"), "mind-step": ("learn", "Hall of Minds lesson step"),
 }
 
-DAILY_MISSIONS = {"trade": 10, "analyze": 10, "grade": 10, "news": 5, "xp": 20}
-WEEKLY_MISSIONS = {"trades10": 40, "wins3": 50, "grade10": 40, "days5": 75, "xp300": 60}
+# learning, not trading (2026-11-22): "trade" -> "learn", "trades10" -> "learn5", "wins3" -> "plan3"
+DAILY_MISSIONS = {"learn": 10, "analyze": 10, "grade": 10, "news": 5, "xp": 20}
+WEEKLY_MISSIONS = {"learn5": 40, "plan3": 50, "grade10": 40, "days5": 75, "xp300": 60}
 STREAK_REWARDS = {3: 25, 7: 75, 14: 150, 30: 300}
 ONBOARD = {"profile": 25, "trade": 25, "app": 50, "notify": 50}
 ACHIEVEMENTS = {

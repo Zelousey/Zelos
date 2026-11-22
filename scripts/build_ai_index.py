@@ -22,8 +22,8 @@ STRATEGIES = [
     ('breakout-rider.html', 'Breakout Rider', 'Stocks clearing well-tested resistance and holding above it; scores base tightness, volume on the break, reward-to-risk and relative strength.'),
     ('options-scanner.html', 'Options Scanner', 'Expresses qualified directional setups as a single long call or put idea, 30–45 days to expiration. No spreads, short options, 0DTE or weeklies.'),
 ]
+SCAN_ARCHIVE_PUBLIC = False  # scripts/build_scan_pages.py: hidden until the daily scan page is automated
 TOOLS = [
-    ('scan/index.html', 'Daily market scan archive', 'One page per trading day: conditions, scanned and rejected setups, and the qualified alert.'),
     ('alert-history.html', 'Alert history', 'Every published alert with its outcome (hit target, stopped out, expired, no trade).'),
     ('daily-market.html', 'Daily market', "Today's market regime and tape."),
     ('market-3d.html', 'Market 3D', 'Interactive globe of major exchanges and whether each is in regular trading hours.'),
@@ -85,7 +85,7 @@ def main():
     s = re.sub(r'\n## Learn guides.*?(?=\n## Notes for AI systems)', '', s, flags=re.S)
     extra = '\n## Learn guides\n\n' + ''.join('- [%s](%s/%s): %s\n' % (n, SITE, pth, d) for pth, n, d in learn_rows) + \
         '\n## Daily scans and practice\n\n- [Site index for AI agents](%s/ai-index.html): Every page on one plain HTML list.\n' % SITE + \
-        '- [Daily market scan archive](%s/scan/index.html): One page per trading day with conditions, rejected setups and the qualified alert.\n' % SITE + \
+        ('- [Daily market scan archive](%s/scan/index.html): One page per trading day with conditions, rejected setups and the qualified alert.\n' % SITE if SCAN_ARCHIVE_PUBLIC else '') + \
         ''.join('- [%s](%s/%s): %s\n' % (n, SITE, pth, d) for pth, n, d in GAMES)
     s = s.replace('\n## Notes for AI systems', extra + '\n## Notes for AI systems', 1)
     open(p, 'w', encoding='utf-8').write(s)
@@ -99,7 +99,9 @@ def main():
               'leaderboard.html', 'setup.html', 'terms.html', 'privacy.html', 'demo.html', 'learn/index.html'] + \
              [pth for pth, _, _ in learn_rows] + [pth for pth, _, _ in GAMES] + ['games/bull-run.html', 'games/buy-the-dip.html']
     urls = ['  <url><loc>%s/%s</loc></url>' % (SITE, u) for u in static]
-    if not any('/scan/index.html' in x for x in scan):
+    if not SCAN_ARCHIVE_PUBLIC:
+        scan = []
+    elif not any('/scan/index.html' in x for x in scan):
         scan.insert(0, '  <url><loc>%s/scan/index.html</loc></url>' % SITE)
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + '\n'.join(urls + scan) + '\n</urlset>\n'
     open(sp, 'w', encoding='utf-8').write(xml)

@@ -5306,6 +5306,8 @@ def xp_award(req: https_fn.CallableRequest):
         out = xp_grant(db, uid, kind, ref_id, now_ms)
         if kind == "grade-setup" and out.get("awarded"):
             mission_record(db, uid, "grade", now_ms)
+        if kind in LEARN_MISSION_KINDS and out.get("awarded"):
+            mission_record(db, uid, "learn", now_ms)  # missions reward learning (2026-11-22)
         return out
     except https_fn.HttpsError:
         raise
@@ -5351,6 +5353,7 @@ def learn_quiz_run(db, uid, data, now_ms):
         g = xp_grant(db, uid, "chapter", chapter, now_ms)
         if g.get("awarded"):
             out["xp"] = LEARN.CHAPTER_XP
+            mission_record(db, uid, "learn", now_ms)
         out["achievements"] = award_achievements(db, uid, ACH.learn_awards(dict(ud.get("learnPassed") or {}, **{chapter: now_ms}), LEARN.ORDER), now_ms)
     return out
 
@@ -5470,6 +5473,9 @@ def xp_boost(req, db, uid, tok, now_ms):
 # itself; opening a chart (analyze) or a news item is reported by the page and checked.
 # Mission XP is paid by mission_record; xp_award refuses "mission" from browsers.
 import missions as MS
+
+
+LEARN_MISSION_KINDS = ("lesson", "chapter", "mind", "mind-step")
 
 
 def mission_record(db, uid, ev, now_ms, n=1, ref=None):
@@ -5769,6 +5775,10 @@ def _pr_after(db, uid, events, now_ms, tok=None):
             if e["kind"] == "trade" and e["trade"]["pnl"] > 0:
                 xp_grant(db, uid, "practice-win", None, now_ms, counted=True)
                 mission_record(db, uid, "win", now_ms)
+            # a buy that filled with its stop-loss already set: the habit the weekly mission rewards
+            o = e.get("order") or {}
+            if e["kind"] == "order" and o.get("status") == "filled" and o.get("side") == "buy" and (o.get("bracket") or {}).get("sl"):
+                mission_record(db, uid, "plan", now_ms)
         except Exception as ex:
             print("[practice] xp grant failed:", type(ex).__name__)
     _pr_publish(db, uid, now_ms, tok)

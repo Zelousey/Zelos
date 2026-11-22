@@ -146,6 +146,10 @@
   .ob-col li time{ display:block; font-family:var(--mono); font-size:0.68rem; color:var(--muted); margin-bottom:3px; }
 
   /* explore the website */
+  .ob-tokens-lead{ max-width:62ch; color:var(--ink-2); margin:12px 0 0; }
+  .ob-link a{ color:var(--accent); }
+  #tokens .ob-link b::after{ content:none; }
+  #tokens .ob-link span span{ display:inline; margin:0; font-size:inherit; }
   .ob-explore{ margin-top:32px; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); border-top:1px solid var(--border); }
   .ob-link{ display:block; padding:20px 20px 20px 0; border-bottom:1px solid var(--border-soft); text-decoration:none; color:var(--ink); }
   .ob-link + .ob-link{ padding-left:20px; border-left:1px solid var(--border-soft); }
@@ -503,6 +507,19 @@
   </div>
 </section>
 
+<section class="ob-section" id="tokens">
+  <div class="shell">
+    <div class="eyebrow">How tokens work</div>
+    <h2>Learning and practice are free. Tokens are optional.</h2>
+    <p class="ob-tokens-lead">The $10,000 practice account, Trading 101, the Training Ground and battles with friends cost nothing. Tokens are site credit for extras, and you can earn them without paying.</p>
+    <div class="ob-explore">
+      <div class="ob-link"><b>What they unlock</b><span>Strategy alerts: a 7-day pass is <span data-tk="pass">120</span> tokens, one alert is <span data-tk="unlock">25</span> (<span data-tk="unlockClosed">8</span> after the 4:00 pm ET close), and every alert is free once its trade finishes. Also drill hints and extra battle slots.</span></div>
+      <div class="ob-link"><b>How you get them</b><span><span data-tk="welcome">50</span> free when you join, +2 for each day you check in, more from the Founder Program. Packs start at 100 tokens for $3.</span></div>
+      <div class="ob-link"><b>No subscription</b><span>Nothing renews and nothing to cancel. A pass simply runs out. <a href="tokens.html">Token details &rarr;</a></span></div>
+    </div>
+  </div>
+</section>
+
 <section class="ob-section" id="explore">
   <div class="shell">
     <div class="eyebrow">Also on the website</div>
@@ -778,7 +795,7 @@
 
 <script>document.documentElement.classList.add('ob-js');</script>
 <script src="zelos-scroll-chart.js?v=cdabbf09"></script>
-<script src="zelos-demo.js?v=8cf6f081"></script>
+<script src="zelos-demo.js?v=96cf20a4"></script>
 <script src="zelos-updates.js?v=bbee6325"></script>
 <script>
 (function(){

@@ -19,28 +19,34 @@ All the logic is in `functions/main.py` (Tokens section); the browser side is
   stays open. Alerts with no qualifying setup are never locked. The outcome
   checker reads gated alerts through `alerts_open` (shared secret).
   Alerts released for free before this change stay public.
-- **A scanner pass** (owner 2026-11-10) unlocks every gated alert from that scanner **after the close**
-  (until it goes public). A live alert before the close is a single unlock. New passes are stored in
-  `wallets/{uid}.passesClose`; passes sold before 2026-11-10 stay in `passes` and keep live access
-  until they run out (`tk_has_access`, and the `alertsLocked` rule in `firestore.rules`).
+- **A scanner pass** opens every gated alert from that scanner **as it goes out** (about 10 am New York
+  time, `morning_alerts`), for 1 or 7 days. Since 2026-11-19 an alert that went out while your pass was
+  on stays yours after the pass ends (`passesFrom` + the alert's `publishedAt`; `tk_in_pass_window` and
+  the `alertsLocked` rule in `firestore.rules`); new alerts and their notifications stop when it ends.
+  Passes are stored in `wallets/{uid}.passesClose` (2026-11-10 to 11-19 they opened alerts after the close
+  only); passes sold before 2026-11-10 are in `passes`.
+- **Taking back a declined alert** costs `REACTIVATE_COST` (2) tokens while its trade is live (`alert_reactivate`).
 - **Win rate** is independent of publication: `update_alert_outcomes` writes each result to the
   alert's public doc (`alerts/{id}.outcome`) right away, even while the full alert is still gated,
   so the track record counts it at once.
 - **A single unlock** opens one alert.
 - **New accounts** get welcome tokens once (Google sign-in or a verified email).
 
-## Prices (provisional)
+## Prices
 
-In `TOKENS` in `functions/main.py`. The static pages (`tokens.html`, the
-scanner pages, the Terms) quote the same numbers; update them together.
+`TOKENS` in `functions/main.py` is the only source. The pages read the live numbers from
+`tokens_wallet`, and their built-in fallbacks (for visitors before the script loads and for search
+engines) must match: `scripts/site_copy_test.py` fails if any page or this table drifts.
 
 | | Tokens | |
 |---|---|---|
-| Welcome bonus | 75 | once per verified account |
-| 1-week scanner pass | 40 | |
-| 1-week 3-Leg Options pass | 60 | `TOKENS["passPrices"]` (owner 2026-10-15: three positions per trade) |
-| One live alert | 10 | before the 4 pm ET close |
-| One alert after the close | 3 | until its trade finishes, then free |
+| Welcome bonus | 50 | once per verified account |
+| 7-day scanner pass | 120 | `TOKENS["pass"]` |
+| 7-day 3-Leg Options pass | 180 | `TOKENS["passPrices"]` (three positions per trade) |
+| 1-day pass | 30 (3-Leg 45) | `TOKENS["dayPass"]`, `dayPassPrices` |
+| One live alert | 25 | before the 4 pm ET close |
+| One alert after the close | 8 | until its trade finishes, then free |
+| Take back a declined alert | 2 | `REACTIVATE_COST` |
 | Pack p100 | 100 | $3.00 |
 | Pack p350 | 350 | $10.00 |
 | Pack p750 | 750 | $20.00 |

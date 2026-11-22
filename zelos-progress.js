@@ -12,6 +12,7 @@
  *
  * Exposes window.ZelosProgress:
  *   track(event, ref)          'trade' | 'win' | 'analyze' (ref = symbol) | 'grade' | 'news'
+ *   (missions reward learning since 2026-11-22: 'learn' and 'plan' are counted by the server only)
  *   bump(total, n)             lifetime counters social pages feed: challenges, challengeWins, squads
  *   missions()                 { daily: [...], weekly: [...], streak: {days, best, today} }
  *   checkAchievements(ctx)     unlocks + awards anything ctx now satisfies; returns the new ids
@@ -127,15 +128,15 @@
 
   // ------------------------------------------------------------ missions
   var DAILY = [
-    { id: 'trade', label: 'Make 1 Trade War trade', goal: 1, xp: 10, ev: 'trade', href: 'practice/' },
+    { id: 'learn', label: 'Finish a Trading 101 lesson', goal: 1, xp: 10, ev: 'learn', href: 'app/learn' },
     { id: 'analyze', label: 'Analyze 3 stocks', goal: 3, xp: 10, ev: 'analyze', href: 'practice/', hint: 'Open 3 different charts in Trade War or the Real Trade Journal' },
     { id: 'grade', label: 'Complete a Grade the Setup round', goal: 1, xp: 10, ev: 'grade', href: 'games/grade-the-setup.html' },
     { id: 'news', label: 'Check the market news', goal: 1, xp: 5, ev: 'news', href: 'dashboard.html', hint: 'Open a headline in the Command Center' },
     { id: 'xp', label: 'Earn 100 XP', goal: 100, xp: 20, ev: 'xp' }
   ];
   var WEEKLY = [
-    { id: 'trades10', label: 'Make 10 Trade War trades', goal: 10, xp: 40, ev: 'trade', href: 'practice/' },
-    { id: 'wins3', label: 'Close 3 winning trades', goal: 3, xp: 50, ev: 'win', href: 'practice/' },
+    { id: 'learn5', label: 'Finish 5 Trading 101 lessons', goal: 5, xp: 40, ev: 'learn', href: 'app/learn' },
+    { id: 'plan3', label: 'Set a stop-loss before 3 practice trades', goal: 3, xp: 50, ev: 'plan', href: 'practice/' },
     { id: 'grade10', label: 'Grade 10 setups', goal: 10, xp: 40, ev: 'grade', href: 'games/grade-the-setup.html' },
     { id: 'days5', label: 'Keep your streak 5 days this week', goal: 5, xp: 75, ev: 'mday' },
     { id: 'xp300', label: 'Earn 300 XP', goal: 300, xp: 60, ev: 'xp' }

@@ -2,8 +2,10 @@
 
 Owner decision 2026-10-08: missions move to the server so they count everywhere (the app and
 the website) and nobody can fake them. The server sees most events itself:
-  trade   a practice fill or a Trade War trade         (practice pass, tw_trade)
-  win     a practice trade closed in profit            (practice pass)
+  trade   a practice fill or a Trade War trade         (practice pass, tw_trade; no mission uses it)
+  win     a practice trade closed in profit            (practice pass; no mission uses it)
+  learn   a lesson / chapter quiz / Hall of Minds step  (xp_award)
+  plan    a practice buy filled with a stop-loss set    (practice pass)
   grade   a finished Grade the Setup round             (xp_award "grade-setup")
   xp      XP earned                                     (every xp_grant)
 and the browser reports two through mission_event, checked here:
@@ -17,11 +19,16 @@ Same missions, goals and streak rule as zelos-progress.js (scripts/missions_test
 """
 import copy
 
-DAILY = (("trade", "trade", 1), ("analyze", "analyze", 3), ("grade", "grade", 1), ("news", "news", 1), ("xp", "xp", 100))
-WEEKLY = (("trades10", "trade", 10), ("wins3", "win", 3), ("grade10", "grade", 10), ("days5", "mday", 5), ("xp300", "xp", 300))
+# Missions reward learning and good habits, never how often you trade or whether you profit
+# (2026-11-22 research review; the Massachusetts Robinhood settlement barred rewarding trading
+# frequency). "trade" and "win" are still counted for the coach, but no mission or streak uses them:
+#   learn   a Trading 101 lesson, chapter quiz or Hall of Minds step that paid XP (xp_award)
+#   plan    a practice buy that filled with its stop-loss set before you bought (practice pass)
+DAILY = (("learn", "learn", 1), ("analyze", "analyze", 3), ("grade", "grade", 1), ("news", "news", 1), ("xp", "xp", 100))
+WEEKLY = (("learn5", "learn", 5), ("plan3", "plan", 3), ("grade10", "grade", 10), ("days5", "mday", 5), ("xp300", "xp", 300))
 STREAK_NEED = 2
 STREAK_DAYS = (3, 7, 14, 30)
-EVENTS = ("trade", "win", "grade", "xp", "analyze", "news")
+EVENTS = ("trade", "win", "grade", "xp", "analyze", "news", "learn", "plan")
 CLIENT_EVENTS = ("analyze", "news")
 MAX_ANALYZED = 50
 

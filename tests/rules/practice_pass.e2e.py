@@ -45,10 +45,11 @@ hist = [h.to_dict() for h in db.collection("practiceAccounts").document(uid).col
 kinds = sorted(h["kind"] for h in hist)
 ok(kinds == ["fill", "fill", "order", "order", "trade"], "history has both fills, both orders and the trade (%s)" % kinds)
 u = db.collection("users").document(uid).get().to_dict()
-ok(u["xp"] == 5 + 5 + 10 + 10 + 25, "server granted XP for 2 fills, 1 win, the daily trade mission and the first-trade step (%s)" % u["xp"])
+ok(u["xp"] == 5 + 5 + 10 + 25, "server granted XP for 2 fills, 1 win and the first-trade step; no mission pays for trading (%s)" % u["xp"])
 m = u.get("missions") or {}
-ok(m["day"]["counts"].get("trade") == 2 and m["day"]["done"].get("trade") and m["week"]["counts"].get("win") == 1,
-   "the server counted the fills and the win toward missions (%s)" % m.get("day"))
+ok(m["day"]["counts"].get("trade") == 2 and not m["day"]["done"] and m["week"]["counts"].get("win") == 1 and not m["week"]["done"],
+   "the server counts fills and wins but no mission is completed by them (%s)" % m.get("day"))
+ok(not (m["week"]["counts"].get("plan")), "a buy without a stop-loss is not a planned trade (%s)" % m.get("week"))
 prof = db.collection("practiceProfiles").document(uid).get().to_dict()
 ok(prof["name"] == "Passy" and prof["trades"] == 1 and prof["source"] == "server", "public profile rebuilt by the server")
 res2 = main.practice_pass(db, quotes, bars, PR.bar_start_ms(D + " 10:46"))

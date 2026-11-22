@@ -45,12 +45,16 @@ HEAD = ('<link rel="stylesheet" href="../zelos-theme.css">\n<link rel="styleshee
         '<link rel="stylesheet" href="scan.css">\n')
 e = html.escape
 DELAY_NOTE = ('<aside class="sc-delay"><b>Why this is published after the close</b>'
-              '<span>Subscribers get each alert when it publishes, before the market opens. This public page goes up after the 4:00 pm ET close, '
+              '<span>Subscribers get each alert when it goes out, at about 10 am New York time. This public page goes up after the 4:00 pm ET close, '
               'so it is a record of what the scan found and how it was reasoned, not a live trading signal. By the time you read it, the '
               'entry price may no longer be available.</span></aside>')
 
 
 # ------------------------------------------------------------ Firestore REST
+# Hidden (noindex, out of the sitemap and the menus) until the daily public scan page is automated
+# (2026-11-22 research review: an archive with only two weekend pages reads as abandoned).
+SCAN_ARCHIVE_PUBLIC = False
+
 def _val(v):
     if 'stringValue' in v: return v['stringValue']
     if 'integerValue' in v: return int(v['integerValue'])
@@ -187,7 +191,7 @@ def day_page(day, alerts, prev_day, next_day):
     <h2>How this scan works</h2>
     <p>Every trading day, each Zelos strategy screens the market with fixed rules, scores candidates out of 80 on trend, support, volume, reward-to-risk and relative strength, and publishes an alert only when a setup clears the bar. On days when nothing qualifies, the page says so. Every alert's outcome is tracked afterwards on the <a href="../alert-history.html">alert history</a> page, winners and losers alike.</p>
     <p>New to the setups? Read <a href="../learn/what-is-a-pullback-trading-strategy.html">what a pullback strategy is</a>, <a href="../learn/how-to-trade-breakouts.html">how to trade breakouts</a> and <a href="../learn/what-is-reward-to-risk-ratio.html">how reward-to-risk works</a>.</p>
-    <aside class="lr-cta"><div><b>Want these alerts the moment they publish?</b><span>Subscribers get each alert in the morning, before the market opens, the same alert every subscriber sees.</span></div><a class="btn btn-primary" href="../arsenal.html">See the strategies &rarr;</a></aside>
+    <aside class="lr-cta"><div><b>Want these alerts the moment they publish?</b><span>Subscribers get each alert at about 10 am New York time, the same alert every subscriber sees.</span></div><a class="btn btn-primary" href="../arsenal.html">See the strategies &rarr;</a></aside>
   </article>
   {pn}
   <p class="lr-disclaimer">General information published the same way to every reader. Not personalized investment advice and not a recommendation to buy or sell any security. Zelos is not a registered investment adviser. Past alerts and outcomes do not guarantee future results. See the <a href="../terms.html">terms</a>.</p>
@@ -199,7 +203,7 @@ def day_page(day, alerts, prev_day, next_day):
            'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
            'image': SITE + '/og-image.png', 'about': ['Stock market', 'Swing trading'] + tickers},
           breadcrumbs([('Zelos', ''), ('Market scans', 'scan/index.html'), (long_date(day), None)])]
-    render(path, title, desc, body, HEAD, '', jsonld=ld, og_type='article', include_shared_scripts=True)
+    render(path, title, desc, body, HEAD, '', jsonld=ld, og_type='article', include_shared_scripts=True, robots=None if SCAN_ARCHIVE_PUBLIC else 'noindex, follow')
     return {'date': iso, 'title': title, 'tickers': tickers,
             'none': not tickers}
 
@@ -219,13 +223,16 @@ def index_page(days):
 </main>'''
     render('scan/index.html', 'Daily Market Scan Archive: Every Zelos Scan, Day by Day',
            'Archive of every Zelos daily market scan: conditions, scanned and rejected stocks, and qualified swing, breakout and options setups.',
-           body, HEAD, '', jsonld=[breadcrumbs([('Zelos', ''), ('Market scans', None)])])
+           body, HEAD, '', jsonld=[breadcrumbs([('Zelos', ''), ('Market scans', None)])], robots=None if SCAN_ARCHIVE_PUBLIC else 'noindex, follow')
 
 
 def update_sitemap(days):
     p = os.path.join(ROOT, 'sitemap.xml')
     s = open(p, encoding='utf-8').read()
     s = re.sub(r'\s*<url><loc>https://agentictrading\.info/scan/[^<]+</loc>(<lastmod>[^<]*</lastmod>)?</url>', '', s)
+    if not SCAN_ARCHIVE_PUBLIC:  # hidden until the daily page is automated
+        open(p, 'w', encoding='utf-8').write(s)
+        return
     add = '\n  <url><loc>%s/scan/index.html</loc></url>' % SITE + ''.join(
         '\n  <url><loc>%s/scan/%s.html</loc><lastmod>%s</lastmod></url>' % (SITE, d['date'], d['date']) for d in days)
     s = s.replace('\n</urlset>', add + '\n</urlset>')
