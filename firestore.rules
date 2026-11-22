@@ -139,7 +139,10 @@ service cloud.firestore {
       // xpBoostUntil: when a bought XP booster ends (xp_boost)
       // learnFailed: when each chapter quiz was last failed (free retake 12 hours later; learn_quiz)
       // squadMsgs / strategiesUsed / strategyActs: counted by the server for achievements (2026-11-14)
-      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed', 'xpBoostUntil', 'learnFailed', 'squadMsgs', 'strategiesUsed', 'strategyActs']; }
+      // learnLoop / review: the learning streak, today's and this week's learning XP, and the
+      // questions due for review (functions/learnloop.py); learnGoal: your daily goal, yours to set
+      function serverFields() { return ['xp', 'streakDays', 'lastAlertOpenDate', 'missions', 'learnPassed', 'xpBoostUntil', 'learnFailed', 'squadMsgs', 'strategiesUsed', 'strategyActs', 'learnLoop', 'review']; }
+      function validLearnGoal(d) { return !('learnGoal' in d) || d.learnGoal in [10, 20, 30, 50]; }
       // blocked: the traders you blocked (uids); termsAt: when you agreed to the Terms
       function validBlocked(b) { return b is list && b.size() <= 500; }
       allow read, delete: if request.auth != null && request.auth.uid == userId;
@@ -155,9 +158,13 @@ service cloud.firestore {
         && !('squadMsgs' in request.resource.data)
         && !('strategiesUsed' in request.resource.data)
         && !('strategyActs' in request.resource.data)
+        && !('learnLoop' in request.resource.data)
+        && !('review' in request.resource.data)
+        && validLearnGoal(request.resource.data)
         && validBlocked(request.resource.data.get('blocked', []));
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverFields())
+        && validLearnGoal(request.resource.data)
         && validBlocked(request.resource.data.get('blocked', []))
         && request.resource.data.get('termsAt', 0) is number;
 
@@ -210,6 +217,13 @@ service cloud.firestore {
     match /strategyVotes/{userId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // The weekly learning league (2026-11-22): learning XP this week, written by the server
+    // (functions/main.py learn_progress). Public, like the other leaderboards.
+    match /learnLeague/{week}/rows/{userId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // Public practice profiles (leaderboards, practice/profile.html). Since 2026-10-07 the

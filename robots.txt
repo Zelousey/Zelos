@@ -3,11 +3,6 @@ Allow: /
 Disallow: /thank-you.html
 Disallow: /sales.html
 Disallow: /alert.html
-Disallow: /going-to-gumroad.html
-Disallow: /going-to-gumroad-breakout.html
-Disallow: /going-to-gumroad-options.html
-Disallow: /alert-publisher-mockup.html
-Disallow: /index-publisher-mockup.html
 Disallow: /zelos-site/
 Disallow: /icons/games/
 Disallow: /icons/docs/

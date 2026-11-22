@@ -5317,6 +5317,7 @@ def xp_award(req: https_fn.CallableRequest):
 
 
 import learn as LEARN  # Trading 101 chapters: lesson ids, chapter quiz answers (functions/learn.py)
+import learnloop as LOOP  # the learning loop: streak, daily goal, review, league (functions/learnloop.py)
 import achievements as ACH  # server-granted achievements (functions/achievements.py)
 import minds as MINDS  # Hall of Minds: lessons, quotes, daily-quote subscriptions (functions/minds.py)
 
@@ -5345,6 +5346,9 @@ def learn_quiz_run(db, uid, data, now_ms):
         charged = LEARN.RETAKE_COST
     right, total, passed, results = graded
     out = {"right": right, "total": total, "passed": passed, "need": LEARN.CHAPTERS[chapter]["pass"], "results": results, "xp": 0, "charged": charged}
+    misses = ["q:%s:%d" % (chapter, i) for i, r in enumerate(results) if not r["ok"]]
+    if misses:  # missed questions come back for review (learning loop, 2026-11-22)
+        learn_misses(db, uid, misses, now_ms)
     if not passed:
         db.collection("users").document(uid).set({"learnFailed": {chapter: now_ms}}, merge=True)
         out["retakeAt"] = now_ms + LEARN.RETAKE_WAIT_MS
@@ -5355,7 +5359,130 @@ def learn_quiz_run(db, uid, data, now_ms):
             out["xp"] = LEARN.CHAPTER_XP
             mission_record(db, uid, "learn", now_ms)
         out["achievements"] = award_achievements(db, uid, ACH.learn_awards(dict(ud.get("learnPassed") or {}, **{chapter: now_ms}), LEARN.ORDER), now_ms)
+    if not out["xp"]:
+        learn_progress(db, uid, 0, now_ms)  # taking a quiz is learning: it keeps the streak
     return out
+
+
+# ---------------------------------------------------------------- the learning loop (2026-11-22)
+#   learn_check {lesson, pick}      -> {ok, answer}: grades a lesson's quick check; a miss goes to review
+#   learn_review {id, pick}         -> {ok, answer, xp, due, review}: answers one due review question
+#   learnLoop / review are server-only on users/{uid}; learnLeague/{week}/rows/{uid} is public.
+# Rules in functions/learnloop.py. Learning XP (lessons, chapters, Hall of Minds, review) feeds the
+# streak, the daily goal and the league from xp_grant; nothing here pays for trading.
+
+
+def learn_progress(db, uid, xp, now_ms):
+    """A learning action worth xp (0 keeps the streak only): learnLoop and this week's league row."""
+    today = _ny_day(now_ms)
+    uref = db.collection("users").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        u = uref.get(transaction=t)
+        loop = LOOP.progress(((u.to_dict() or {}) if u.exists else {}).get("learnLoop"), xp, today)
+        t.set(uref, {"learnLoop": loop}, merge=True)
+        return loop
+
+    try:
+        loop = txn(db.transaction())
+        if loop["week"]["xp"] > 0:
+            tr = db.collection("traders").document(uid).get()
+            d = (tr.to_dict() or {}) if tr.exists else {}
+            name = str(d.get("name") or d.get("username") or "Trader")[:40]
+            db.collection("learnLeague").document(loop["week"]["key"]).collection("rows").document(uid).set(
+                {"name": name, "xp": loop["week"]["xp"], "updatedAt": now_ms})
+        return loop
+    except Exception as e:
+        print("[learn] progress failed:", type(e).__name__)
+        return None
+
+
+def learn_misses(db, uid, qids, now_ms):
+    """Put missed questions in the review queue (first misses only)."""
+    today = _ny_day(now_ms)
+    uref = db.collection("users").document(uid)
+
+    @firestore.transactional
+    def txn(t):
+        u = uref.get(transaction=t)
+        before = ((u.to_dict() or {}) if u.exists else {}).get("review") or {}
+        review = before
+        for q in qids:
+            review = LOOP.miss(review, q, today)
+        if review != before:
+            t.set(uref, {"review": review}, merge=True)
+
+    try:
+        txn(db.transaction())
+    except Exception as e:
+        print("[learn] review queue failed:", type(e).__name__)
+
+
+@https_fn.on_call()
+def learn_check(req: https_fn.CallableRequest):
+    """{lesson, pick} -> {ok, answer}. Graded here so review can't be filled or skipped from a page."""
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to save your answers.")
+    data = req.data if isinstance(req.data, dict) else {}
+    qid = "c:" + str(data.get("lesson") or "")[:40]
+    pick = data.get("pick")
+    right = LOOP.answer_of(qid)
+    if right is None or isinstance(pick, bool) or not isinstance(pick, int):
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Unknown question.")
+    ok = pick == right
+    if not ok:
+        learn_misses(firestore.client(), a.uid, [qid], int(_time.time() * 1000))
+    return {"ok": ok, "answer": right}
+
+
+def learn_review_run(db, uid, data, now_ms):
+    data = data if isinstance(data, dict) else {}
+    qid, pick = str(data.get("id") or "")[:80], data.get("pick")
+    right = LOOP.answer_of(qid)
+    if right is None or isinstance(pick, bool) or not isinstance(pick, int):
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Unknown question.")
+    today = _ny_day(now_ms)
+    uref = db.collection("users").document(uid)
+    ok = pick == right
+
+    @firestore.transactional
+    def txn(t):
+        u = uref.get(transaction=t)
+        review = ((u.to_dict() or {}) if u.exists else {}).get("review") or {}
+        if qid not in LOOP.due(review, today):
+            return None
+        review = LOOP.answer(review, qid, ok, today)
+        t.update(uref, {"review": review}) if u.exists else t.set(uref, {"review": review}, merge=True)
+        return review
+
+    review = txn(db.transaction())
+    if review is None:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.FAILED_PRECONDITION, "That question isn't due for review.")
+    xp = 0
+    if ok:
+        g = xp_grant(db, uid, "review", "%s:%s" % (today, qid), now_ms)  # also moves the loop forward
+        xp = g["xp"] - g["before"] if g.get("awarded") else 0
+    if not xp:
+        learn_progress(db, uid, 0, now_ms)  # a wrong answer (or past today's paid limit) still keeps the streak
+    nxt = review.get(qid)
+    return {"ok": ok, "answer": right, "xp": xp, "due": nxt["due"] if nxt else None, "left": len(LOOP.due(review, today))}
+
+
+@https_fn.on_call()
+def learn_review(req: https_fn.CallableRequest):
+    """{id, pick} -> {ok, answer, xp, due, left}. Review is free; a right answer pays REVIEW_XP (up to REVIEW_DAILY a day)."""
+    a = req.auth
+    if not a or not a.uid:
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to review.")
+    try:
+        return learn_review_run(firestore.client(), a.uid, req.data, int(_time.time() * 1000))
+    except https_fn.HttpsError:
+        raise
+    except Exception as e:
+        print("[learn] review failed: %s" % type(e).__name__)
+        raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INTERNAL, "Something went wrong. Try again.")
 
 
 def learn_retake_charge(db, uid, chapter, now_ms):
@@ -5434,6 +5561,8 @@ def xp_grant(db, uid, kind, ref_id, now_ms, counted=False):
     out = txn(db.transaction())
     if out.get("awarded") and out["xp"] > out["before"]:
         mission_record(db, uid, "xp", now_ms, n=out["xp"] - out["before"])
+    if out.get("awarded") and kind in LOOP.LEARN_KINDS:
+        learn_progress(db, uid, out["xp"] - out["before"], now_ms)
     return out
 
 
@@ -5605,6 +5734,8 @@ def account_delete(req: https_fn.CallableRequest):
             snap.reference.delete()
         for snap in db.collection("feedback").where("uid", "==", uid).stream():  # Help & feedback messages
             snap.reference.delete()
+        for wk in db.collection("learnLeague").list_documents():  # your rows in the weekly learning league
+            wk.collection("rows").document(uid).delete()
         for col in ACCOUNT_DOCS:
             ref = db.collection(col).document(uid)
             for sub in ACCOUNT_SUBCOLLECTIONS.get(col, ()):

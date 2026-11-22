@@ -48,6 +48,8 @@ for (const theme of ['black', 'blue', 'white']) {
     for (const path of ['dashboard', 'settings', 'missions', 'news', 'trade-war']) {
       await page.goto(path);
       await expect(page.locator('h1')).toBeAttached();
+      // page transitions fade in: a half-faded button reads as low contrast
+      await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
       const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       expect(results.violations.map((v) => `${path} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
     }

@@ -57,7 +57,7 @@ function AlertList() {
     <div className={s.stack}>
       <div className={s.filters}>
         <Tabs label={t('al.filter')} value={filter} onChange={setFilter} items={[{ value: 'all', label: t('markets.all') }, ...shown.map((x) => ({ value: x.id, label: x.name }))]} />
-        <Link to="/alerts/declined" className={s.declinedLink}>
+        <Link to="/alerts/declined" className={`${s.declinedLink} hit`}>
           {t('al.declined.link')} →
         </Link>
       </div>

@@ -9,13 +9,14 @@ import type { DocumentData } from 'firebase/firestore';
 import { parseProgress, parseServerMissions, type Progress } from '../features/dashboard/progress';
 import { parsePrefs, type Prefs } from '../features/alerts/alerts';
 import { parseSkill, type Skill } from '../features/learn/quiz';
+import { parseGoal, parseLoop, parseReview, type LearnLoop, type ReviewItem } from '../features/learn/loop';
 import { useLiveDoc } from './liveDoc';
 import { SYMBOL_RE } from './markets';
 
 export type Experience = 'new' | 'some' | 'pro';
 /** First steps checklist flags (users/{uid}.onboard), shared with the website (zelos-profile.js). */
 export type Onboard = { profile: boolean; trade: boolean; invited: boolean };
-export type UserDoc = { watchlist: string[]; xp: number; progress: Progress | null; missions: Progress | null; onboard: Onboard; experience: Experience | null; prefs: Prefs; friends: string[]; blocked: string[]; termsAt: number | null; skill: Skill | null; learnDone: string[]; learnPassed: Record<string, number>; learnFailed: Record<string, number>; mindsDone: string[]; xpBoostUntil: number | null };
+export type UserDoc = { watchlist: string[]; xp: number; progress: Progress | null; missions: Progress | null; onboard: Onboard; experience: Experience | null; prefs: Prefs; friends: string[]; blocked: string[]; termsAt: number | null; skill: Skill | null; learnDone: string[]; learnPassed: Record<string, number>; learnFailed: Record<string, number>; mindsDone: string[]; xpBoostUntil: number | null; learnLoop: LearnLoop | null; review: Record<string, ReviewItem>; learnGoal: number };
 
 const uids = (v: unknown, max: number) => (Array.isArray(v) ? (v as unknown[]).filter((x): x is string => typeof x === 'string' && /^[A-Za-z0-9]{10,40}$/.test(x)).slice(0, max) : []);
 
@@ -40,6 +41,10 @@ export function parseUserDoc(d: DocumentData): UserDoc {
     // when each chapter quiz was last failed (server's learn_quiz): a free retake opens 12 hours later
     learnFailed: d.learnFailed && typeof d.learnFailed === 'object' ? Object.fromEntries(Object.entries(d.learnFailed as Record<string, unknown>).filter(([k, v]) => /^[a-z-]{2,20}$/.test(k) && typeof v === 'number')) as Record<string, number> : {},
     learnPassed: d.learnPassed && typeof d.learnPassed === 'object' ? Object.fromEntries(Object.entries(d.learnPassed as Record<string, unknown>).filter(([k, v]) => /^[a-z-]{2,20}$/.test(k) && typeof v === 'number')) as Record<string, number> : {},
+    // the learning loop (server-written, features/learn/loop.ts): streak, today's learning XP, review queue; and your daily goal
+    learnLoop: parseLoop(d.learnLoop),
+    review: parseReview(d.review),
+    learnGoal: parseGoal(d.learnGoal),
   };
 }
 

@@ -26,7 +26,7 @@ def game_ld(name, path, desc):
         'genre': ['Educational', 'Simulation'], 'gamePlatform': 'Web browser', 'applicationCategory': 'Game',
         'isAccessibleForFree': True, 'learningResourceType': 'Interactive exercise',
         'teaches': 'Trade planning, stop placement and risk management on real historical stock charts',
-        'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
+        'publisher': {'@type': 'Organization', 'name': 'Zelos Trade War', 'url': SITE + '/'},
         'offers': {'@type': 'Offer', 'price': 0, 'priceCurrency': 'USD'},
     }
 
@@ -81,7 +81,7 @@ def drill_page(path, game_id, title, h1, kicker, lede, rounds, howto, seo_title,
 }})();'''
     scripts = '<script src="../zelos-progress.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n'
     render(path, seo_title, desc, body, HEAD, scripts,
-           jsonld=[game_ld(title, path, desc), breadcrumbs([('Zelos', ''), ("Training Ground", "arcade.html"), (title, None)])])
+           jsonld=[game_ld(title, path, desc), breadcrumbs([('Zelos Trade War', ''), ("Training Ground", "arcade.html"), (title, None)])])
 
 
 def main():
@@ -99,7 +99,7 @@ def main():
         'average after a real pullback; lighter volume on the last three days; and room to the recent high of at least twice the stop distance.</p>'
         '<p>Want the background? Read <a href="../learn/what-is-a-pullback-trading-strategy.html">what a pullback strategy is</a> '
         'and <a href="../learn/what-is-reward-to-risk-ratio.html">how reward-to-risk works</a>.</p>',
-        'Grade the Setup: Swing Trading Checklist Practice on Real Charts | Zelos',
+        'Grade the Setup: Swing Trading Checklist Practice on Real Charts | Zelos Trade War',
         'Free swing trading drill: grade real historical stock charts against a trend, support, volume and reward-to-risk checklist, then see what happened next.')
 
     drill_page(
@@ -112,7 +112,7 @@ def main():
         'The outcome part pays 30 if price reaches a 2R target first, 15 if the stop simply survives.</p>'
         '<p>More on this: <a href="../learn/how-to-use-stop-losses-in-swing-trading.html">how to use stop-losses in swing trading</a> '
         'and <a href="../learn/how-to-find-stocks-near-support.html">how to find support</a>.</p>',
-        "Where's the Stop? Stop-Loss Placement Practice on Real Charts | Zelos",
+        "Where's the Stop? Stop-Loss Placement Practice on Real Charts | Zelos Trade War",
         'Free stop-loss placement game: tap where your stop goes on real historical stock charts, get graded on structure, then see what happened.')
 
     # ---------------- Daily Challenge
@@ -172,10 +172,10 @@ def main():
   }).catch(function(){ document.getElementById('zgRound').innerHTML = '<p class="zg-prompt">Couldn\\'t load chart data. Refresh to try again.</p>'; });
 })();'''
     desc = 'A free daily trading puzzle: five real historical stock charts, the same for everyone. Grade three setups, place two stops, share your score grid.'
-    render('games/daily-challenge.html', 'Zelos Daily Challenge: A Daily Trading Chart Puzzle', desc, body, HEAD,
+    render('games/daily-challenge.html', 'Daily Challenge: A Daily Trading Chart Puzzle | Zelos Trade War', desc, body, HEAD,
            '<script src="../zelos-progress.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + js + '\n</script>\n',
            jsonld=[game_ld('Zelos Daily Challenge', 'games/daily-challenge.html', desc),
-                   breadcrumbs([('Zelos', ''), ("Training Ground", "arcade.html"), ('Daily Challenge', None)])])
+                   breadcrumbs([('Zelos Trade War', ''), ("Training Ground", "arcade.html"), ('Daily Challenge', None)])])
 
     # ---------------- Chart Replay (flagship)
     body = f'''<main class="zg-shell" id="zgTop">
@@ -244,10 +244,10 @@ def main():
   {NOTE}
 </main>'''
     desc = 'Free stock trading simulator: replay a hidden real chart bar by bar with a $10,000 practice account. Every trade needs a stop; scored on R-multiples and discipline.'
-    render('games/chart-replay.html', 'Chart Replay: Free Stock Trading Simulator on Real Charts | Zelos', desc, body, HEAD,
+    render('games/chart-replay.html', 'Chart Replay: Free Stock Trading Simulator on Real Charts | Zelos Trade War', desc, body, HEAD,
            '<script src="../zelos-progress.js"></script>\n<script src="../zelos-mdata.js"></script>\n<script src="zelos-chart-engine.js"></script>\n<script>\n' + src('drill-common.js') + '\n' + src('chart-replay.js') + '\n</script>\n',
            jsonld=[game_ld('Zelos Chart Replay', 'games/chart-replay.html', desc),
-                   breadcrumbs([('Zelos', ''), ("Training Ground", "arcade.html"), ('Chart Replay', None)])])
+                   breadcrumbs([('Zelos Trade War', ''), ("Training Ground", "arcade.html"), ('Chart Replay', None)])])
     print('built games')
 
 

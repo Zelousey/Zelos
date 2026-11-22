@@ -5,7 +5,7 @@ ARTICLES = [
 {
  'slug': 'what-is-a-pullback-trading-strategy',
  'title': 'What Is a Pullback Trading Strategy?',
- 'seo_title': 'What Is a Pullback Trading Strategy? Rules, Examples & Mistakes | Zelos',
+ 'seo_title': 'What Is a Pullback Trading Strategy? Rules, Examples & Mistakes | Zelos Trade War',
  'desc': 'A pullback strategy buys a stock that is already trending up after a short, orderly dip. Here are the rules that separate a healthy pullback from a breakdown.',
  'strategy': 'swing',
  'game': ('grade-the-setup', 'Grade real pullback setups against the checklist'),
@@ -65,7 +65,7 @@ ARTICLES = [
 {
  'slug': 'how-to-trade-breakouts',
  'title': 'How to Trade Breakouts',
- 'seo_title': 'How to Trade Breakouts: Entry, Stop & Volume Rules That Filter Fakeouts | Zelos',
+ 'seo_title': 'How to Trade Breakouts: Entry, Stop & Volume Rules That Filter Fakeouts | Zelos Trade War',
  'desc': 'A step-by-step guide to trading stock breakouts: finding a real base, confirming the break with volume, where to put the stop, and how to avoid false breakouts.',
  'strategy': 'breakout',
  'game': ('chart-replay', 'Practice breakout entries bar by bar in Chart Replay'),
@@ -119,7 +119,7 @@ ARTICLES = [
 {
  'slug': 'how-to-identify-a-bull-flag',
  'title': 'How to Identify a Bull Flag',
- 'seo_title': 'How to Identify a Bull Flag Pattern (and When Not to Trade One) | Zelos',
+ 'seo_title': 'How to Identify a Bull Flag Pattern (and When Not to Trade One) | Zelos Trade War',
  'desc': 'A bull flag is a sharp rally followed by a short, orderly drift lower. Learn the pole, the flag, the volume signature, and how to set entries and stops.',
  'strategy': 'swing',
  'game': ('grade-the-setup', 'Spot flags and pullbacks on real charts'),
@@ -174,7 +174,7 @@ ARTICLES = [
 {
  'slug': 'what-is-a-breakout-retest',
  'title': 'What Is a Breakout Retest?',
- 'seo_title': 'What Is a Breakout Retest? How Old Resistance Becomes Support | Zelos',
+ 'seo_title': 'What Is a Breakout Retest? How Old Resistance Becomes Support | Zelos Trade War',
  'desc': 'A breakout retest is when price breaks above resistance, pulls back to that level, and holds it as support. Here is how to trade it and what failure looks like.',
  'strategy': 'swing',
  'game': ('stop-drill', 'Practice stop placement under a retest level'),
@@ -224,7 +224,7 @@ ARTICLES = [
 {
  'slug': 'how-to-find-stocks-near-support',
  'title': 'How to Find Stocks Near Support',
- 'seo_title': 'How to Find Stocks Near Support: 4 Methods and a Screener Recipe | Zelos',
+ 'seo_title': 'How to Find Stocks Near Support: 4 Methods and a Screener Recipe | Zelos Trade War',
  'desc': 'Support is a price zone where buyers have repeatedly stepped in. Learn four practical ways to find it, how to screen for stocks near it, and how to tell if it will hold.',
  'strategy': 'swing',
  'game': ('stop-drill', 'Practice finding the swing low on real charts'),
@@ -277,7 +277,7 @@ ARTICLES = [
 {
  'slug': 'how-to-scan-stocks-for-momentum',
  'title': 'How to Scan Stocks for Momentum',
- 'seo_title': 'How to Scan Stocks for Momentum: Filters, Relative Strength & Pitfalls | Zelos',
+ 'seo_title': 'How to Scan Stocks for Momentum: Filters, Relative Strength & Pitfalls | Zelos Trade War',
  'desc': 'Momentum scanning finds stocks that are outperforming. Here are the filters that work (relative strength, trend, volume), a sample scan, and the traps to avoid.',
  'strategy': 'breakout',
  'game': ('chart-replay', 'Trade momentum names bar by bar in Chart Replay'),
@@ -331,7 +331,7 @@ ARTICLES = [
 {
  'slug': 'best-indicators-for-swing-trading',
  'title': 'The Best Indicators for Swing Trading',
- 'seo_title': 'Best Indicators for Swing Trading (and the Ones You Can Skip) | Zelos',
+ 'seo_title': 'Best Indicators for Swing Trading (and the Ones You Can Skip) | Zelos Trade War',
  'desc': 'A practical shortlist of swing trading indicators: moving averages, volume, ATR, relative strength and RSI. What each measures, how to use it, and why fewer is better.',
  'strategy': 'swing',
  'game': ('grade-the-setup', 'Use these indicators on real charts'),

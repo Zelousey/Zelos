@@ -24,6 +24,7 @@ from datetime import date, timedelta
 
 import learn as LEARN  # Trading 101 lessons and chapters (functions/learn.py)
 import minds as MINDS  # Hall of Minds lessons and pairs (functions/minds.py)
+import learnloop as LOOP  # the learning loop: review questions (functions/learnloop.py)
 
 FIXED = {
     "alert-open": 5, "daily-checkin": 3, "arcade-play": 5,
@@ -42,6 +43,7 @@ SOURCES = {
     "coach-task": ("coaching", "Coach task done"), "coach-bonus": ("coaching", "Your student finished a task"),
     "lesson": ("learn", "Trading 101 lesson"), "chapter": ("learn", "Trading 101 chapter quiz"),
     "mind": ("learn", "Hall of Minds lesson"), "mind-step": ("learn", "Hall of Minds lesson step"),
+    "review": ("learn", "Reviewed a question"),
 }
 
 # learning, not trading (2026-11-22): "trade" -> "learn", "trades10" -> "learn5", "wins3" -> "plan3"
@@ -69,7 +71,7 @@ DAILY_LIMIT = {
     "alert-open": 50, "practice-trade": 10, "practice-win": 10, "grade-setup": 5,
     "real-trade": 3, "referral": 10, "mission": 12, "achievement": 30, "onboard": 4,
     "coach-task": 3, "coach-bonus": 6, "lesson": 40, "chapter": 10,
-    "mind": MINDS.DAILY_LIMIT, "mind-step": MINDS.STEP_DAILY_LIMIT,
+    "mind": MINDS.DAILY_LIMIT, "mind-step": MINDS.STEP_DAILY_LIMIT, "review": LOOP.REVIEW_DAILY,
 }
 # Coaching (functions/coaching.py), paid only by the server: refId "<task kind>:<task id>".
 # A student earns from at most 3 coach tasks a day; a coach from at most 6 student tasks a day.
@@ -77,7 +79,7 @@ COACH_TASK_XP = {"trade": 10, "win": 15, "analyze": 10, "grade": 10, "news": 5, 
 COACH_BONUS_XP = {"trade": 5, "win": 8, "analyze": 5, "grade": 5, "news": 3}
 _COACH_REF = re.compile(r"^([a-z]+):[A-Za-z0-9]{6,40}$")
 # chapter: paid by learn_quiz only after the server grades the quiz (functions/learn.py)
-SERVER_ONLY = ("mission", "coach-task", "coach-bonus", "chapter")
+SERVER_ONLY = ("mission", "coach-task", "coach-bonus", "chapter", "review")
 DAILY_XP_CEILING = 2500
 # XP booster (owner 2026-10-23): 25 tokens doubles the XP from lessons, missions and battles for
 # 24 hours (users/{uid}.xpBoostUntil, server-only). Battle token rewards are not changed.
@@ -191,6 +193,12 @@ def decide(kind, ref_id, today, counts=None, xp_today=0, boosted=False):
         if ref_id not in LEARN.CHAPTERS:
             return 0, ref_id, "bad-ref"
         amount = LEARN.CHAPTER_XP
+    elif kind == "review":
+        # "<day>:<question id>", paid by learn_review for a right answer to a due question
+        day, _, qid = ref_id.partition(":")
+        if day not in days_ok or qid not in LOOP.QIDS:
+            return 0, ref_id, "bad-ref"
+        amount = LOOP.REVIEW_XP
     elif kind in ("coach-task", "coach-bonus"):
         m = _COACH_REF.match(ref_id)
         table = COACH_TASK_XP if kind == "coach-task" else COACH_BONUS_XP

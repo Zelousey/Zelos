@@ -27,7 +27,7 @@ export function StrategyBoard({ list, strategies }: { list: Alert[]; strategies:
           const done = rec.wins + rec.losses;
           return (
             <li key={st.id}>
-              <Link to={`/strategies/${st.id}`} className={s.boardName}>
+              <Link to={`/strategies/${st.id}`} className={`${s.boardName} hit`}>
                 {st.name}
                 {leader && leader.st.id === st.id && <Badge tone="up">{t('al.board.best')}</Badge>}
               </Link>

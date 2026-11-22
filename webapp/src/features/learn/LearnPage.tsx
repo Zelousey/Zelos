@@ -15,6 +15,7 @@ import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { Badge, buttonClass, Icon, PageHeader, useToast } from '../../ui';
 import { CHAPTER_XP, CHAPTERS, chapterState, LESSON_XP, lessonOpen, OLD_LESSON, type Chapter } from './chapters';
+import { LoopCard } from './LoopCard';
 import { levelLabel } from './Quiz';
 import { useSkill } from './useSkill';
 import { Candles, Cover } from './T101Art';
@@ -51,6 +52,7 @@ export function LearnPage() {
             </button>
           </section>
         )}
+        {isReal && <LoopCard />}
         <ul className={s.shelf} aria-label={t('ln.books')}>
           {CHAPTERS.map((c) => {
             const st = chapterState(c, learnDone, learnPassed);

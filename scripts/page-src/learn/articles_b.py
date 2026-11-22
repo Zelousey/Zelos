@@ -4,7 +4,7 @@ ARTICLES = [
 {
  'slug': 'how-to-find-stocks-before-a-breakout',
  'title': 'How to Find Stocks Before a Breakout',
- 'seo_title': 'How to Find Stocks Before They Break Out: Bases, Tightening & Volume Dry-Up | Zelos',
+ 'seo_title': 'How to Find Stocks Before They Break Out: Bases, Tightening & Volume Dry-Up | Zelos Trade War',
  'desc': 'Stocks usually telegraph breakouts with a tightening base, higher lows, and volume drying up under resistance. Here is how to spot those signs and build a watchlist.',
  'strategy': 'breakout',
  'game': ('grade-the-setup', 'Train your eye on real chart structure'),
@@ -55,7 +55,7 @@ ARTICLES = [
 {
  'slug': 'how-does-an-ai-stock-scanner-work',
  'title': 'How Does an AI Stock Scanner Work?',
- 'seo_title': 'How Does an AI Stock Scanner Work? Rules, Scoring & What AI Actually Adds | Zelos',
+ 'seo_title': 'How Does an AI Stock Scanner Work? Rules, Scoring & What AI Actually Adds | Zelos Trade War',
  'desc': 'An AI stock scanner pulls market data, applies screening rules, scores setups and explains the result. Here is what each step does, where AI helps, and what it cannot do.',
  'strategy': 'swing',
  'game': ('grade-the-setup', 'Run the same checklist yourself on real charts'),
@@ -107,7 +107,7 @@ ARTICLES = [
 {
  'slug': 'ai-stock-screener-vs-traditional-screener',
  'title': 'AI Stock Screener vs. Traditional Stock Screener',
- 'seo_title': 'AI Stock Screener vs Traditional Stock Screener: Real Differences | Zelos',
+ 'seo_title': 'AI Stock Screener vs Traditional Stock Screener: Real Differences | Zelos Trade War',
  'desc': 'A side-by-side comparison of AI stock screeners and traditional filter-based screeners: how each works, what each is good at, and how to pick.',
  'strategy': 'swing',
  'game': ('chart-replay', 'Test your own judgment in Chart Replay'),
@@ -159,7 +159,7 @@ ARTICLES = [
 {
  'slug': 'what-is-reward-to-risk-ratio',
  'title': 'What Is the Reward-to-Risk Ratio?',
- 'seo_title': 'What Is the Reward-to-Risk Ratio? Formula, Examples & Win-Rate Math | Zelos',
+ 'seo_title': 'What Is the Reward-to-Risk Ratio? Formula, Examples & Win-Rate Math | Zelos Trade War',
  'desc': 'The reward-to-risk ratio compares what a trade could make with what it could lose. Learn the formula, why 2:1 is a common minimum, and how it connects to win rate.',
  'strategy': 'swing',
  'game': ('chart-replay', 'Practice planning R:R in Chart Replay'),
@@ -208,7 +208,7 @@ ARTICLES = [
 {
  'slug': 'how-to-use-stop-losses-in-swing-trading',
  'title': 'How to Use Stop-Losses in Swing Trading',
- 'seo_title': 'How to Use Stop-Losses in Swing Trading: Placement, Sizing & Gaps | Zelos',
+ 'seo_title': 'How to Use Stop-Losses in Swing Trading: Placement, Sizing & Gaps | Zelos Trade War',
  'desc': 'Where to put a stop-loss on a swing trade, how to size around it, why stops get hit by noise, and how gaps and trailing stops change the picture.',
  'strategy': 'swing',
  'game': ('stop-drill', 'Place stops on real charts in Where\'s the Stop?'),
@@ -262,7 +262,7 @@ ARTICLES = [
 {
  'slug': 'how-to-find-options-with-30-45-dte',
  'title': 'How to Find Options With 30–45 DTE',
- 'seo_title': 'How to Find Options With 30–45 DTE (and Why Swing Traders Use That Window) | Zelos',
+ 'seo_title': 'How to Find Options With 30–45 DTE (and Why Swing Traders Use That Window) | Zelos Trade War',
  'desc': 'DTE means days to expiration. Here is why many swing traders buy calls and puts 30 to 45 days out, how to find those contracts in an option chain, and what to check.',
  'strategy': 'options',
  'game': None,
@@ -312,7 +312,7 @@ ARTICLES = [
 {
  'slug': 'what-is-an-options-scanner',
  'title': 'What Is an Options Scanner?',
- 'seo_title': 'What Is an Options Scanner? Types, Filters & How to Use One | Zelos',
+ 'seo_title': 'What Is an Options Scanner? Types, Filters & How to Use One | Zelos Trade War',
  'desc': 'An options scanner filters thousands of option contracts or underlying setups to find trade candidates. Learn the main types, useful filters, and common traps.',
  'strategy': 'options',
  'game': None,

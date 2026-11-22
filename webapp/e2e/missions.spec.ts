@@ -31,7 +31,7 @@ test('level, streak, missions, achievements, recent XP and invites', async ({ pa
   const now = Date.now();
   await put(`users/${uid}`, {
     xp: 275,
-    progress: { v: 1, updatedAt: now, day: { date: nyDay(), counts: { trade: 1, analyze: 2 }, analyzed: [], done: { trade: true } }, week: { key: '', counts: {}, done: {} }, streak: { days: 4, best: 6, lastDate: nyDay(-1), start: '' }, totals: {}, achievements: { 'first-trade': now } },
+    progress: { v: 1, updatedAt: now, day: { date: nyDay(), counts: { learn: 1, analyze: 2 }, analyzed: [], done: { learn: true } }, week: { key: '', counts: {}, done: {} }, streak: { days: 4, best: 6, lastDate: nyDay(-1), start: '' }, totals: {}, achievements: { 'first-trade': now } },
   });
   await put(`users/${uid}/activity/practice-trade:x1`, { type: 'practice-trade', label: 'Trade War trade', xp: 5, source: 'trade-war', createdAt: new Date(now - 60_000) });
   await put(`referrals/msRefFriend${info.project.name}`.slice(0, 40), { referrer: uid, createdAt: now });

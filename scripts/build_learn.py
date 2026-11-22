@@ -21,7 +21,7 @@ from articles_b import ARTICLES as B  # noqa: E402
 ARTICLES = A + B
 BY_SLUG = {a['slug']: a for a in ARTICLES}
 UPDATED = '2026-09-24'
-AUTHOR = {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'}
+AUTHOR = {'@type': 'Organization', 'name': 'Zelos Trade War', 'url': SITE + '/'}
 
 STRATEGIES = {
     'swing': ('Swing Trader', '../swing-trader.html', 'pullbacks, bull flags and breakout retests'),
@@ -80,7 +80,7 @@ def article_page(a):
          'about': a['title'], 'isAccessibleForFree': True},
         {'@context': 'https://schema.org', '@type': 'FAQPage', 'mainEntity': [
             {'@type': 'Question', 'name': q, 'acceptedAnswer': {'@type': 'Answer', 'text': ans}} for q, ans in a['faq']]},
-        breadcrumbs([('Zelos', ''), ('Learn', 'learn/index.html'), (a['title'], None)]),
+        breadcrumbs([('Zelos Trade War', ''), ('Learn', 'learn/index.html'), (a['title'], None)]),
     ]
     render(path, a['seo_title'], a['desc'], body, HEAD, '', jsonld=ld, og_type='article')
 
@@ -119,8 +119,8 @@ def hub():
     ld = [{'@context': 'https://schema.org', '@type': 'CollectionPage', 'name': 'Zelos Learn', 'url': SITE + '/learn/index.html',
            'description': 'Free guides to swing trading setups, breakouts, stop-losses, reward-to-risk and options scanning.',
            'mainEntity': {'@type': 'ItemList', 'itemListElement': items}},
-          breadcrumbs([('Zelos', ''), ('Learn', None)])]
-    render('learn/index.html', 'Learn Swing Trading: Free Guides to Setups, Stops & Scanners | Zelos',
+          breadcrumbs([('Zelos Trade War', ''), ('Learn', None)])]
+    render('learn/index.html', 'Learn Swing Trading: Free Guides to Setups, Stops & Scanners | Zelos Trade War',
            'Free, plain-English guides to pullbacks, breakouts, bull flags, support, stop-losses, reward-to-risk, options DTE and AI stock scanners.',
            body, HEAD, '', jsonld=ld)
 
