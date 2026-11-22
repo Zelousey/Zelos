@@ -5,6 +5,9 @@
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+// wait for page transitions and fades to finish: a half-faded line reads as low contrast
+const settled = (page: Page) =>
+  page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
 
 test.describe.configure({ timeout: 90_000 });
 
@@ -55,6 +58,7 @@ test('the list, the track record and a finished alert', async ({ page }) => {
   await expect(list.getByRole('link', { name: /🔒 Live Swing Trader Bull flag/ })).toBeVisible(); // live: ticker hidden
   await expect(list.getByText('MSFT')).toHaveCount(0);
   await expect(list.getByRole('link', { name: /No setup/ })).toBeVisible();
+  await settled(page);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   // filter
   await page.getByRole('tab', { name: 'Breakout Rider' }).click();
@@ -71,6 +75,7 @@ test('the list, the track record and a finished alert', async ({ page }) => {
   await expect(page.getByText('Pulled back to the 20-day average on falling volume.')).toBeVisible();
   // one tap to the ticket, with the alert's stop and first target already filled in
   await expect(page.getByRole('link', { name: 'Trade this setup' })).toHaveAttribute('href', /\/practice\/trade\/NVDA\?sl=95&tp=110$/);
+  await settled(page);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   // a 3-Leg Options alert: the three positions, cost, most it can make and lose
   await page.goto('alerts/three-leg-2026-10-09');
@@ -86,6 +91,7 @@ test('the list, the track record and a finished alert', async ({ page }) => {
   // drawn like the other strategy charts: dollar labels, the three strikes, today's price
   await expect(chart.locator('text')).toContainText(['+$820', '$0', '−$180', '$180', '$190', '$200', 'NOW $188.50']);
   if (process.env.SHOTS) await card.screenshot({ path: process.env.SHOTS + '/alert-' + test.info().project.name + '.png' });
+  await settled(page);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   // an Options Scanner idea: the contract it points at, and one tap to that contract on the ticket
   await page.goto('alerts/options-scanner-2026-10-06');
@@ -138,6 +144,7 @@ test.describe('signed in', () => {
     await expect
       .poll(async () => ((await get(`users/${uid}`)).fields?.notificationPrefs?.mapValue?.fields?.strategies?.arrayValue?.values ?? []).map((x: { stringValue: string }) => x.stringValue))
       .toEqual(['momentum-trader', 'momentum-max', 'swing-trader', 'options-scanner', 'three-leg']);
+    await settled(page);
     expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
   });
 });

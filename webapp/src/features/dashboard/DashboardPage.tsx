@@ -109,7 +109,7 @@ export default function DashboardPage() {
           {uid && name ? t(isNew ? 'dash.helloNew' : 'dash.hello', { name }) : t('dash.helloGuest')}
           <Badge tone="accent">{t('practice.virtual')}</Badge>
           {uid && (
-            <Link to="/practice/calendar" className={s.calLink}>
+            <Link to="/practice/calendar" className={`${s.calLink} hit`}>
               <Icon name="calendar" size={16} /> {t('cal.link')}
             </Link>
           )}
