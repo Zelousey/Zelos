@@ -199,10 +199,10 @@ def day_page(day, alerts, prev_day, next_day):
     path = 'scan/%s.html' % iso
     ld = [{'@context': 'https://schema.org', '@type': 'Article', 'headline': title, 'description': desc,
            'url': SITE + '/' + path, 'datePublished': iso, 'dateModified': dt.date.today().isoformat(),
-           'author': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
-           'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
+           'author': {'@type': 'Organization', 'name': 'Zelos Trade War', 'url': SITE + '/'},
+           'publisher': {'@type': 'Organization', 'name': 'Zelos Trade War', 'url': SITE + '/'},
            'image': SITE + '/og-image.png', 'about': ['Stock market', 'Swing trading'] + tickers},
-          breadcrumbs([('Zelos', ''), ('Market scans', 'scan/index.html'), (long_date(day), None)])]
+          breadcrumbs([('Zelos Trade War', ''), ('Market scans', 'scan/index.html'), (long_date(day), None)])]
     render(path, title, desc, body, HEAD, '', jsonld=ld, og_type='article', include_shared_scripts=True, robots=None if SCAN_ARCHIVE_PUBLIC else 'noindex, follow')
     return {'date': iso, 'title': title, 'tickers': tickers,
             'none': not tickers}
@@ -223,7 +223,7 @@ def index_page(days):
 </main>'''
     render('scan/index.html', 'Daily Market Scan Archive: Every Zelos Scan, Day by Day',
            'Archive of every Zelos daily market scan: conditions, scanned and rejected stocks, and qualified swing, breakout and options setups.',
-           body, HEAD, '', jsonld=[breadcrumbs([('Zelos', ''), ('Market scans', None)])], robots=None if SCAN_ARCHIVE_PUBLIC else 'noindex, follow')
+           body, HEAD, '', jsonld=[breadcrumbs([('Zelos Trade War', ''), ('Market scans', None)])], robots=None if SCAN_ARCHIVE_PUBLIC else 'noindex, follow')
 
 
 def update_sitemap(days):

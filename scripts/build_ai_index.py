@@ -67,7 +67,7 @@ def main():
 </article></main>'''
     # root-level page: reuse the shell but with root-relative links
     head, nav, footer, shared, tail = site_shell._parts()
-    head = site_shell._set_meta(head, 'Zelos Site Index for AI Agents and Search Engines',
+    head = site_shell._set_meta(head, 'Zelos Trade War Site Index for AI Agents and Search Engines',
                                 'A plain index of every Zelos page: strategies, daily scans, alert history, learning guides and practice games.',
                                 SITE + '/ai-index.html')
     fix = lambda t: t.replace('../', '')  # noqa: E731
@@ -75,7 +75,7 @@ def main():
     import json
     ld = '<script type="application/ld+json">\n%s\n</script>\n' % json.dumps({
         '@context': 'https://schema.org', '@type': 'WebPage', 'name': 'Zelos site index', 'url': SITE + '/ai-index.html',
-        'isPartOf': {'@type': 'WebSite', 'name': 'Zelos', 'url': SITE + '/'}}, indent=1)
+        'isPartOf': {'@type': 'WebSite', 'name': 'Zelos Trade War', 'url': SITE + '/'}}, indent=1)
     out = fix(head) + '<link rel="stylesheet" href="learn/learn.css">\n' + base + ld + '</head>\n' + fix(site_shell.set_active_nav(site_shell.add_learn_nav(nav), 'ai-index.html')) + body + fix(footer) + fix(shared) + fix(tail)
     open(os.path.join(ROOT, 'ai-index.html'), 'w', encoding='utf-8').write(out)
 

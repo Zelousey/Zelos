@@ -275,7 +275,7 @@ CRUMBS = ('<nav class="pf-crumbs"><a href="./">&larr; Trade War</a> &middot; '
 
 
 def build_social_pages():
-    render('practice/squads.html', 'Join my Trading Squad: Private Trade War Leaderboard | Zelos',
+    render('practice/squads.html', 'Join my Trading Squad: Private Trade War Leaderboard | Zelos Trade War',
            'You\'re invited to a private Trading Squad: compete with friends on your own leaderboard of $10,000 Trade War accounts (virtual money).',
            '<main class="pt-shell ch-shell">' + CRUMBS + '<div id="sqBody"><p class="pt-empty">Loading…</p></div>'
            '<p class="pt-fine pf-fine">Squads are private: only people with the invite link or room code can find one. Members see each other\'s public Trade War (virtual) stats, and only members can read the squad chat.</p></main>',
@@ -284,7 +284,7 @@ def build_social_pages():
 
 
 def build_invite():
-    render('practice/invite.html', 'You\'re invited to trade with $10,000 | AgenticTrading',
+    render('practice/invite.html', 'You\'re invited to trade with $10,000 | Zelos Trade War',
            'A friend invited you to AgenticTrading: a free $10,000 virtual trading account with real, live prices. Battle them, join their squad, or just start trading.',
            '<main class="pt-shell iv-shell"><div id="ivBody"><p class="pt-empty">Loading your invite…</p></div>'
            '<p class="pt-fine pf-fine">Virtual money only: no cash value, no deposits, no prizes. Not investment advice.</p></main>',
@@ -293,7 +293,7 @@ def build_invite():
 
 
 def build_strategies():
-    render('practice/strategies.html', 'Three-Leg Options Strategies: Butterfly and Jade Lizard Scanner | Zelos',
+    render('practice/strategies.html', 'Three-Leg Options Strategies: Butterfly and Jade Lizard Scanner | Zelos Trade War',
            'A scanner that finds the stock and builds the whole three-leg options trade: bullish and bearish butterflies and jade lizards, with cost, max profit and loss, breakevens and a payoff chart. Virtual money only.',
            '<main class="pt-shell st-shell">' + CRUMBS + '<section class="st-card"><div class="st-hd"><h2>Three-Leg Strategies</h2><span class="st-tabs" id="stTabs"></span><span class="st-when" id="stWhen"></span></div>'
            '<div class="st-g"><div class="st-res" id="stList"></div><div class="st-det" id="stDetail"><p class="st-empty">Scanning the stock list…</p></div></div></section>'
@@ -306,7 +306,7 @@ def build_strategies():
 
 
 def build_war():
-    render('practice/war.html', 'Trade War Matches: Equal Buy-In Trading Competitions | Zelos',
+    render('practice/war.html', 'Trade War Matches: Equal Buy-In Trading Competitions | Zelos Trade War',
            'Create a Trade War: pick a virtual buy-in, invite friends, and everyone starts with the same money. Best % gain wins. Virtual money only.',
            '<main class="pt-shell ch-shell"><div id="twTop" class="twh-wrap"></div>' + CRUMBS + '<div id="twBody"><p class="pt-empty">Loading…</p></div>'
            '<p class="pt-fine pf-fine">Trade War matches use virtual money only: no cash value, no deposits, no prizes. Separate from your Main account and from real trading.</p></main>',
@@ -318,7 +318,7 @@ def build_profile():
     desc = 'A Zelos trader profile: level, XP and streak, Real Trading activity, and Trade War (virtual $10,000 account) stats kept separately.'
     scripts = ('<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
                '<script src="../zelos-profile.js"></script>\n<script src="profile.js"></script>\n')
-    render('practice/profile.html', 'Trader Profile | Zelos', desc, PROFILE_BODY, HEAD, scripts, robots='noindex')
+    render('practice/profile.html', 'Trader Profile | Zelos Trade War', desc, PROFILE_BODY, HEAD, scripts, robots='noindex')
     print('built practice/profile.html')
 
 
@@ -330,12 +330,12 @@ def main():
         'url': SITE + '/practice/', 'description': desc, 'applicationCategory': 'FinanceApplication',
         'operatingSystem': 'Web browser', 'isAccessibleForFree': True,
         'offers': {'@type': 'Offer', 'price': 0, 'priceCurrency': 'USD'},
-        'publisher': {'@type': 'Organization', 'name': 'Zelos', 'url': SITE + '/'},
+        'publisher': {'@type': 'Organization', 'name': 'Zelos Trade War', 'url': SITE + '/'},
     }
     scripts = ('<script src="../zelos-signin.js"></script>\n<script src="../zelos-modes.js"></script>\n<script src="../zelos-levels.js"></script>\n<script src="../zelos-progress.js"></script>\n<script src="../zelos-social.js"></script>\n'
                '<script src="../zelos-profile.js"></script>\n<script src="../zelos-practice-acct.js"></script>\n<script src="tw-home.js"></script>\n')
-    render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos', desc, HOME_BODY, HEAD, scripts,
-           jsonld=[ld, breadcrumbs([('Zelos', ''), ('Trade War', None)])])
+    render('practice/index.html', 'Trade War: $10,000 Virtual Trading Account, Compete with Friends | Zelos Trade War', desc, HOME_BODY, HEAD, scripts,
+           jsonld=[ld, breadcrumbs([('Zelos Trade War', ''), ('Trade War', None)])])
     print('built practice/index.html')
     build_profile()
     build_social_pages()

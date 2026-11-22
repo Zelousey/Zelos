@@ -218,6 +218,9 @@ body.zt-body{
   font-family:var(--mono); font-weight:700; font-size:1.05rem; color:var(--ink);
   flex-shrink:0;
 }
+/* "Zelos Trade War" (owner 2026-11-22); the tail drops where the nav would wrap */
+.nav-brand-tail{ white-space:pre; margin-left:-10px; } /* cancels the logo gap; the space stays */
+@media (max-width:1399px){ .nav-brand-tail{ display:none; } }
 .nav-brand .mark-dot{
   width:9px; height:9px; border-radius:50%; background:var(--danger);
   box-shadow:0 0 0 3px var(--danger-soft);
