@@ -244,6 +244,7 @@ export const NOTIFY_GROUPS: { title: string; items: { key: string; label: string
   },
   { title: 'War zone (simulated)', items: [{ key: 'war', label: 'War zone', hint: 'Chaos events, attacks and invites in the simulated War zone. Off until you turn it on' }] },
   { title: 'Hall of Minds', items: [{ key: 'minds', label: 'Daily quotes', hint: 'Your daily quote from the greats you follow' }] },
+  { title: 'Learning', items: [{ key: 'learn', label: 'Learning streak', hint: 'One reminder at 7 pm New York time, only on a day your streak is about to break' }] },
 ];
 export type Prefs = { strategies: string[] | null; types: Record<string, boolean> };
 export function parsePrefs(d: DocumentData | null | undefined): Prefs {

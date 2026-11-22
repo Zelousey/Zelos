@@ -92,5 +92,23 @@ class ReviewXp(unittest.TestCase):
             self.assertNotIn(k, L.LEARN_KINDS)
 
 
+class Reminder(unittest.TestCase):
+    def test_only_a_streak_about_to_break(self):
+        kept_yesterday = L.progress(None, 10, "2026-11-22")
+        self.assertTrue(L.reminder_due(kept_yesterday, T, None))
+        self.assertFalse(L.reminder_due(kept_yesterday, T, T))  # once a day
+        self.assertFalse(L.reminder_due(L.progress(kept_yesterday, 10, T), T, None))  # already learned today
+        self.assertFalse(L.reminder_due(L.progress(None, 10, "2026-11-21"), T, None))  # already broken (missed the 22nd)
+        self.assertFalse(L.reminder_due(None, T, None))
+
+    def test_text(self):
+        self.assertEqual(L.reminder_text(5, 0), ("Keep your 5-day learning streak", "One short Trading 101 lesson keeps it going."))
+        self.assertEqual(L.reminder_text(1, 3)[0], "Keep your learning streak going")
+        self.assertIn("3 questions from your review are waiting. Reviewing is free", L.reminder_text(2, 3)[1])
+        for days in (1, 9):
+            for due in (0, 1, 4):
+                self.assertNotRegex(" ".join(L.reminder_text(days, due)).lower(), r"trade now|profit|buy|sell")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
