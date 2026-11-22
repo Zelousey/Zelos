@@ -15,8 +15,23 @@ T = "2026-11-23"  # a Monday
 
 class Questions(unittest.TestCase):
     def test_every_lesson_has_a_check_answer(self):
-        self.assertEqual(set(L.CHECKS), LEARN.LESSON_IDS)
-        self.assertEqual(len(L.QIDS), len(LEARN.LESSON_IDS) + sum(len(c["answers"]) for c in LEARN.CHAPTERS.values()))
+        self.assertEqual({k.split(":")[0] for k in L.CHECKS}, LEARN.LESSON_IDS)
+        self.assertTrue(all(":" not in k or k.endswith(":2") for k in L.CHECKS))  # a second check is "<lesson>:2"
+        self.assertEqual(len(L.QIDS), len(L.CHECKS) + sum(len(c["answers"]) for c in LEARN.CHAPTERS.values()))
+
+    def test_new_question_types(self):
+        # a put-in-order question's answer is the steps in order; a tap-the-level answer is a number
+        self.assertEqual(L.answer_of("c:exit-plan:2"), [0, 1, 2, 3, 4])
+        self.assertIsInstance(L.answer_of("c:stops:2"), int)
+        self.assertEqual(L.check_qid("stops", 2), "c:stops:2")
+        self.assertEqual(L.check_qid("stops", None), "c:stops")
+        self.assertEqual(L.check_qid("stops", 7), "c:stops")
+        for good in (0, 9, [0], [3, 1, 2, 0, 4]):
+            self.assertTrue(L.valid_pick(good), good)
+        for bad in (True, -1, 10, "1", [], [0] * 9, [0, "1"], [True], None, 1.5):
+            self.assertFalse(L.valid_pick(bad), bad)
+        r = L.miss({}, "c:exit-plan:2", T)
+        self.assertIn("c:exit-plan:2", r)
 
     def test_answers(self):
         self.assertEqual(L.answer_of("c:stocks"), L.CHECKS["stocks"])

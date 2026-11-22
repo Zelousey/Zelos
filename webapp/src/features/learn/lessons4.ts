@@ -4,7 +4,7 @@
  * always open.
  */
 import type { Lesson } from './chapters';
-import { big, chart, check, lesson } from './kit';
+import { big, chart, check, lesson, order } from './kit';
 
 // ------------------------------------------------------------------ 8. Advanced stock trading
 export const AS_ENTRIES: Lesson = lesson(
@@ -189,6 +189,11 @@ export const MG_REVENGE: Lesson = lesson(
   ],
   check('You lost $500 yesterday. A healthy approach today is…', ['Trade double size to recover it fast', 'Trade your normal plan and size', 'Take every setup you see'], 1, 'Trying to win it back quickly is revenge trading. Normal size and the plan protect you.'),
   { label: 'See your plan', to: '/learn/risk' },
+  order(
+    'After a big loss, put these in a healthy order.',
+    ['Stop trading for now', 'Step away from the screen', 'Review what happened', 'Come back with your normal plan and size'],
+    'Stop first so the loss can’t grow, take a break to cool off, learn from it, and only then trade again, at your normal size.',
+  ),
 );
 
 export const MG_FOMO: Lesson = lesson(

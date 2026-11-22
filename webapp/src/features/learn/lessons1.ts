@@ -4,7 +4,7 @@
  * lessons (stocks, prices, buy-sell, stops…) are reused in their new chapters, not rewritten.
  */
 import type { Lesson } from './chapters';
-import { big, chart, check, lesson } from './kit';
+import { big, chart, check, lesson, level, order } from './kit';
 
 // ------------------------------------------------------------------ 1. Stock trading fundamentals
 export const MARKET_WORKS: Lesson = lesson(
@@ -112,6 +112,14 @@ export const ENTRY: Lesson = lesson(
   ],
   check('Which is the best reason to enter a trade?', ['It went up a lot today, so it must keep going', 'It bounced off a support level you were watching, and you know where you’d get out', 'A friend said so'], 1, 'A planned level plus a known exit is a real reason. The others are hopes.'),
   { label: 'Practice on a chart', to: '/markets/SPY' },
+  level(
+    'You trade breakouts. Where does your buy go?',
+    [40, 56, 70, 58, 52, 63, 70, 64, 69],
+    [{ y: 76, label: 'A · $176' }, { y: 58, label: 'B · $158' }, { y: 34, label: 'C · $134' }],
+    0,
+    'A breakout entry goes just above the ceiling the price has hit three times (about $170), so you only buy once buyers have pushed through it. B is in the middle of the range, with no signal yet; C is below the range, which would be a breakdown.',
+    'STUCK UNDER A CEILING',
+  ),
 );
 
 export const EXIT_PLAN: Lesson = lesson(
@@ -125,6 +133,11 @@ export const EXIT_PLAN: Lesson = lesson(
   ],
   check('Your trade hits your planned target. What does a disciplined trader usually do?', ['Sell as planned, or at least some of it', 'Move the target higher and hope', 'Remove the stop-loss'], 0, 'Following the plan locks in the result. Hoping for more is how winners turn into losers.'),
   { label: 'Set a target on a ticket', to: '/practice/trade/AAPL' },
+  order(
+    'Put a trade plan in order.',
+    ['Find a setup with a reason', 'Choose your entry price', 'Set your stop-loss', 'Work out how many shares from the stop', 'Place the order with its stop and target'],
+    'The reason comes first, then the entry and the stop. Only then can you size the trade, because how many shares you can buy depends on how far away the stop is.',
+  ),
 );
 
 export const STOP_LIMITS: Lesson = lesson(

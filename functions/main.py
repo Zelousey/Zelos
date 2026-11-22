@@ -5421,15 +5421,16 @@ def learn_misses(db, uid, qids, now_ms):
 
 @https_fn.on_call()
 def learn_check(req: https_fn.CallableRequest):
-    """{lesson, pick} -> {ok, answer}. Graded here so review can't be filled or skipped from a page."""
+    """{lesson, pick, n?} -> {ok, answer}. n=2 is the lesson's second quick check; pick is a list for a
+    put-in-order question. Graded here so review can't be filled or skipped from a page."""
     a = req.auth
     if not a or not a.uid:
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to save your answers.")
     data = req.data if isinstance(req.data, dict) else {}
-    qid = "c:" + str(data.get("lesson") or "")[:40]
+    qid = LOOP.check_qid(data.get("lesson"), data.get("n"))
     pick = data.get("pick")
     right = LOOP.answer_of(qid)
-    if right is None or isinstance(pick, bool) or not isinstance(pick, int):
+    if right is None or not LOOP.valid_pick(pick):
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Unknown question.")
     ok = pick == right
     if not ok:
@@ -5441,7 +5442,7 @@ def learn_review_run(db, uid, data, now_ms):
     data = data if isinstance(data, dict) else {}
     qid, pick = str(data.get("id") or "")[:80], data.get("pick")
     right = LOOP.answer_of(qid)
-    if right is None or isinstance(pick, bool) or not isinstance(pick, int):
+    if right is None or not LOOP.valid_pick(pick):
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.INVALID_ARGUMENT, "Unknown question.")
     today = _ny_day(now_ms)
     uref = db.collection("users").document(uid)
@@ -5472,7 +5473,8 @@ def learn_review_run(db, uid, data, now_ms):
 
 @https_fn.on_call()
 def learn_review(req: https_fn.CallableRequest):
-    """{id, pick} -> {ok, answer, xp, due, left}. Review is free; a right answer pays REVIEW_XP (up to REVIEW_DAILY a day)."""
+    """{id, pick} -> {ok, answer, xp, due, left}. pick is a list for a put-in-order question. Review is
+    free; a right answer pays REVIEW_XP (up to REVIEW_DAILY a day)."""
     a = req.auth
     if not a or not a.uid:
         raise https_fn.HttpsError(https_fn.FunctionsErrorCode.UNAUTHENTICATED, "Sign in to review.")

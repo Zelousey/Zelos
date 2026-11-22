@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_LESSONS, CHAPTERS, chapterState, lessonOpen, OLD_LESSON } from './chapters';
+import { ALL_LESSONS, CHAPTERS, lessonChecks, chapterState, lessonOpen, OLD_LESSON } from './chapters';
 import { CHECKS, levelFromExperience, parseSkill, QUESTIONS, score, type Answers } from './quiz';
 
 const a = (experience: Answers['experience'], checks: (number | null)[]): Answers => ({ experience, goal: 'learn', checks });
@@ -55,8 +55,23 @@ describe('Trading 101 chapters', () => {
     for (const l of ALL_LESSONS) {
       expect(l.id).toMatch(/^[a-z-]{2,20}$/); // the shape users/{uid}.learnDone keeps
       expect(l.steps.length).toBeGreaterThanOrEqual(3);
-      expect(l.check.right).toBeLessThan(l.check.opts.length);
-      expect(l.check.why).toHaveLength(l.check.opts.length);
+      for (const c of lessonChecks(l)) {
+        if (c.kind === 'order') {
+          expect(c.steps.length).toBeGreaterThanOrEqual(3);
+          expect(c.steps.length).toBeLessThanOrEqual(6);
+          expect(new Set(c.steps).size).toBe(c.steps.length);
+        } else if (c.kind === 'level') {
+          expect(c.right).toBeLessThan(c.levels.length);
+          expect(c.why).toHaveLength(c.levels.length);
+          for (const v of [...c.pts, ...c.levels.map((x) => x.y)]) expect(v >= 0 && v <= 100).toBe(true); // on the chart
+          // levels far enough apart to tap the right one on a phone
+          const ys = c.levels.map((x) => x.y).sort((a, b) => a - b);
+          for (let i = 1; i < ys.length; i++) expect(ys[i]! - ys[i - 1]!).toBeGreaterThanOrEqual(12);
+        } else {
+          expect(c.right).toBeLessThan(c.opts.length);
+          expect(c.why).toHaveLength(c.opts.length);
+        }
+      }
       expect(l.tryIt.to).toMatch(/^\/[a-z]/);
     }
   });

@@ -16,7 +16,8 @@ Pure functions; functions/main.py does the reads and writes:
   users/{uid}.learnRemindedOn  the New York day the streak reminder last went out (server-only)
   learnLeague/{week}/rows/{uid}  {name, xp, updatedAt}  public, server-written
 
-Question ids: "c:<lesson id>" (a lesson's quick check), "q:<chapter id>:<n>" (chapter quiz question n).
+Question ids: "c:<lesson id>" (a lesson's quick check), "c:<lesson id>:2" (its second one),
+"q:<chapter id>:<n>" (chapter quiz question n). Answers are a number, or a list for put-in-order.
 """
 import json
 import os
@@ -34,7 +35,10 @@ REVIEW_BATCH = 10
 REVIEW_MAX = 300  # questions kept in your queue
 
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "learn_checks.json"), encoding="utf-8") as _f:
-    CHECKS = json.load(_f)  # {lesson id: right option of its quick check}; webapp checks.test.ts keeps it in step
+    # {"<lesson>": answer of its quick check, "<lesson>:2": its second one}. An answer is the right
+    # option (or level) number, or for a put-in-order question the steps in order ([0, 1, 2, ...]).
+    # webapp checks.test.ts keeps it in step with the lessons.
+    CHECKS = json.load(_f)
 
 
 def qids():
@@ -49,13 +53,25 @@ QIDS = frozenset(qids())
 
 
 def answer_of(qid):
-    """The right option of a question, or None for an unknown id."""
+    """The right answer to a question (a number, or a list for put-in-order), or None for an unknown id."""
     if qid not in QIDS:
         return None
     if qid.startswith("c:"):
         return CHECKS[qid[2:]]
     _, ch, n = qid.split(":")
     return LEARN.CHAPTERS[ch]["answers"][int(n)]
+
+
+def valid_pick(p):
+    """An answer from a page: a choice 0-9, or a list of up to 8 choices (put-in-order)."""
+    def one(x):
+        return isinstance(x, int) and not isinstance(x, bool) and 0 <= x <= 9
+    return one(p) or (isinstance(p, list) and 1 <= len(p) <= 8 and all(one(x) for x in p))
+
+
+def check_qid(lesson, n):
+    """The review id for a lesson's quick check n (1 or 2)."""
+    return "c:%s%s" % (str(lesson or "")[:40], ":2" if n == 2 else "")
 
 
 def add_day(day, n):
