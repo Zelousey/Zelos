@@ -14,14 +14,27 @@ import { arrayUnion, doc, setDoc } from 'firebase/firestore';
 import { callFunction, db } from '../../lib/firebase';
 import quizzes from './quizzes.json';
 import type { Art } from './Scene';
+import { check, level, order } from './kit';
 import * as L1 from './lessons1';
 import * as L2 from './lessons2';
 import * as L3 from './lessons3';
 import * as L4 from './lessons4';
 
 export type Step = { art: Art; title: string; text: string; tip?: string };
-export type Check = { q: string; opts: string[]; right: number; why: string[]; art?: Art };
-export type Lesson = { id: string; title: string; sub: string; minutes: number; steps: Step[]; check: Check; tryIt: { label: string; to: string } };
+/**
+ * Quick-check question types (research review 2026-11-22: vary the practice):
+ *   pick   choose one answer (a "spot the pattern" question is a pick with an unlabelled chart)
+ *   level  tap the level on a chart: where the stop, target, entry or neckline goes
+ *   order  tap the steps in the right order (steps are written in the right order; shown shuffled)
+ */
+export type PickCheck = { kind?: 'pick'; q: string; opts: string[]; right: number; why: string[]; art?: Art };
+export type LevelCheck = { kind: 'level'; q: string; pts: number[]; levels: { y: number; label: string }[]; right: number; why: string[]; title?: string };
+export type OrderCheck = { kind: 'order'; q: string; steps: string[]; why: string };
+export type Check = PickCheck | LevelCheck | OrderCheck;
+/** An answer: the option or level picked, or the steps in the order you put them. */
+export type Answer = number | number[];
+/** more: a second quick check after the first (a level, order or spot-the-pattern question). */
+export type Lesson = { id: string; title: string; sub: string; minutes: number; steps: Step[]; check: Check; more?: Check; tryIt: { label: string; to: string } };
 export type QuizQuestion = { q: string; opts: string[]; why: string };
 /** advanced: labelled Advanced, near the end. open: always unlocked (The mental game). */
 export type Chapter = { id: string; n: number; title: string; sub: string; lessons: Lesson[]; quiz: QuizQuestion[]; pass: number; advanced?: boolean; open?: boolean };
@@ -139,6 +152,7 @@ const BASICS: Lesson[] = [
       right: 0,
       why: ['Right. Each share is down $5, and you have 10: 10 × $5 = $50 down.', 'Not quite. $5 is the drop for one share. You have 10, so you’re down $50.', 'Not quite. The price fell, so you’re down: 10 × $5 = $50.'],
     },
+    more: order('Put buying a stock in order.', ['Pick the stock', 'Tap Buy', 'Choose how many shares', 'Pick the order type', 'Review it, then place the order'], 'You choose what and how much first, then how the order should fill, and you always check the ticket before you place it.'),
     tryIt: { label: 'Make your first trade', to: '/markets/AAPL' },
   },
   {
@@ -158,6 +172,14 @@ const BASICS: Lesson[] = [
       right: 1,
       why: ['Not quite. The price went through your stop at $95, so it sold.', 'Right. When it hit $95 your stop sold the shares, so you didn’t ride it down to $90.', 'Not quite. A stop-loss sells; it never buys more.'],
     },
+    more: level(
+      'You bought on a bounce off support. Where does your stop-loss go?',
+      [72, 58, 46, 40, 50, 43, 40, 49, 56],
+      [{ y: 62, label: 'A · $162' }, { y: 34, label: 'B · $134' }, { y: 8, label: 'C · $108' }],
+      1,
+      'B sits just under the floor the price bounced off twice. If that floor breaks you were wrong, and you’re out with a small loss. A is above the price, so it would sell straight away; C risks far more than the trade needs.',
+      'BOUNCED OFF SUPPORT',
+    ),
     tryIt: { label: 'Try it on a trade', to: '/markets/NVDA' },
   },
   {
@@ -177,6 +199,14 @@ const BASICS: Lesson[] = [
       right: 1,
       why: ['Not quite. The reward ($10) is twice the risk ($5): 2 to 1.', 'Right. $10 of reward for $5 of risk is 2 to 1.', 'Not quite. $10 ÷ $5 = 2, so it’s 2 to 1.'],
     },
+    more: level(
+      'You bought after a pullback. Where is a sensible take-profit?',
+      [62, 84, 72, 58, 48, 52, 57, 61],
+      [{ y: 81, label: 'A · $181' }, { y: 61, label: 'B · $161' }, { y: 42, label: 'C · $142' }],
+      0,
+      'A is just under the old high, where sellers stepped in last time, so it’s a natural target. B is about where you bought, so there’s little to gain; C is below your entry, which is a loss, not a profit.',
+      'PULLBACK, THEN BACK UP',
+    ),
     tryIt: { label: 'Set a stop and a target', to: '/markets/MSFT' },
   },
   {
@@ -237,6 +267,7 @@ const CHARTS: Lesson[] = [
       right: 1,
       why: ['Not quite. An uptrend makes higher highs and higher lows.', 'Right. Each bounce tops out lower and each dip goes lower: sellers are winning.', 'Not quite. It’s one of the clearest signs on a chart: a downtrend.'],
     },
+    more: check('Spot it: which trend is this?', ['Uptrend', 'Downtrend', 'Sideways'], 0, 'Each low is higher than the one before, and each high is higher too. That’s an uptrend.', { k: 'chart', pts: [18, 34, 26, 46, 38, 58, 50, 72] }),
     tryIt: { label: 'Spot the trend', to: '/markets/AAPL' },
   },
   {
@@ -256,6 +287,13 @@ const CHARTS: Lesson[] = [
       right: 2,
       why: ['Not quite. Resistance is the ceiling it keeps getting stuck under.', 'Not quite. Volume is how many shares traded.', 'Right. Support is the floor where buyers keep stepping in.'],
     },
+    more: level(
+      'Tap the support level on this chart.',
+      [62, 41, 58, 40, 60, 41, 55, 63],
+      [{ y: 62, label: 'A · $162' }, { y: 40, label: 'B · $140' }, { y: 18, label: 'C · $118' }],
+      1,
+      'B is the floor: the price dropped to about $140 three times and bounced each time. A is the ceiling it keeps stalling under (resistance); C is a price it never reached.',
+    ),
     tryIt: { label: 'Find support on a chart', to: '/markets/MSFT' },
   },
   {
@@ -417,6 +455,18 @@ export const CHAPTERS: Chapter[] = [
     quiz: quizzes.mind, pass: 4,
   },
 ];
+
+/** A lesson's quick checks, in order: the first, then the optional second. */
+export const lessonChecks = (l: Lesson): Check[] => (l.more ? [l.check, l.more] : [l.check]);
+/** The right answer to a check. */
+export const rightAnswer = (c: Check): Answer => (c.kind === 'order' ? c.steps.map((_, i) => i) : c.right);
+export const sameAnswer = (a: Answer, b: Answer) => (Array.isArray(a) && Array.isArray(b) ? a.length === b.length && a.every((x, i) => x === b[i]) : a === b);
+/** The order an order question's steps are shown in: never already right (reverse, then swap the first two). */
+export const shownOrder = (n: number): number[] => {
+  const r = Array.from({ length: n }, (_, i) => n - 1 - i);
+  if (n > 2) [r[0], r[1]] = [r[1]!, r[0]!];
+  return r;
+};
 
 export const chapterById = (id: string) => CHAPTERS.find((c) => c.id === id) ?? null;
 export const ALL_LESSONS = CHAPTERS.flatMap((c) => c.lessons);

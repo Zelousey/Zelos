@@ -24,8 +24,11 @@ describe('learning loop', () => {
   });
   it('every review id points at a real question', () => {
     const l = ALL_LESSONS[0]!;
-    expect(reviewQuestion(`c:${l.id}`)).toMatchObject({ q: l.check.q, opts: l.check.opts });
-    expect(reviewQuestion('q:basics:0')?.opts.length).toBeGreaterThan(1);
+    expect(reviewQuestion(`c:${l.id}`)?.check).toBe(l.check);
+    const quiz = reviewQuestion('q:basics:0')?.check;
+    expect(quiz && quiz.kind !== 'order' && quiz.kind !== 'level' ? quiz.opts.length : 0).toBeGreaterThan(1);
+    const two = ALL_LESSONS.find((x) => x.more)!;
+    expect(reviewQuestion(`c:${two.id}:2`)?.check).toBe(two.more);
     expect(reviewQuestion('q:basics:9')).toBeNull();
     expect(reviewQuestion('c:nope')).toBeNull();
   });

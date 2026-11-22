@@ -13,7 +13,7 @@ import { useLiveQuery } from '../../data/liveQuery';
 import { callFunction, db } from '../../lib/firebase';
 import { nyDate } from '../dashboard/progress';
 import quizzes from './quizzes.json';
-import { ALL_LESSONS, CHAPTERS } from './chapters';
+import { ALL_LESSONS, CHAPTERS, lessonChecks, type Answer, type Check } from './chapters';
 
 export const GOALS = [10, 20, 30, 50] as const;
 export const DEFAULT_GOAL = 20;
@@ -42,7 +42,7 @@ export function parseReview(v: unknown): Record<string, ReviewItem> {
   const out: Record<string, ReviewItem> = {};
   for (const [k, x] of Object.entries(v as Record<string, unknown>).slice(0, 400)) {
     const due = s((x as { due?: unknown } | null)?.due, DAY);
-    if (/^(c:[a-z-]{2,30}|q:[a-z-]{2,30}:\d)$/.test(k) && due) out[k] = { box: n((x as { box?: unknown }).box), due };
+    if (/^(c:[a-z-]{2,30}(:2)?|q:[a-z-]{2,30}:\d)$/.test(k) && due) out[k] = { box: n((x as { box?: unknown }).box), due };
   }
   return out;
 }
@@ -75,29 +75,33 @@ export function dueIds(review: Record<string, ReviewItem>, today: string): strin
     .map(([k]) => k);
 }
 
-export type ReviewQuestion = { id: string; from: string; q: string; opts: string[]; why: (pick: number, right: number) => string };
+export type ReviewQuestion = { id: string; from: string; check: Check };
 
-/** The question behind a review id: a lesson's quick check or a chapter quiz question. */
+/** The question behind a review id: a lesson's quick check ("c:<lesson>", "c:<lesson>:2" for its
+ *  second one) or a chapter quiz question ("q:<chapter>:<n>"). */
 export function reviewQuestion(id: string): ReviewQuestion | null {
   if (id.startsWith('c:')) {
-    const l = ALL_LESSONS.find((x) => x.id === id.slice(2));
-    if (!l) return null;
-    return { id, from: l.title, q: l.check.q, opts: l.check.opts, why: (pick) => l.check.why[pick] ?? '' };
+    const [, lid, n] = id.split(':');
+    const l = ALL_LESSONS.find((x) => x.id === lid);
+    const c = l ? lessonChecks(l)[n ? Number(n) - 1 : 0] : undefined;
+    return l && c ? { id, from: l.title, check: c } : null;
   }
   const [, ch, k] = id.split(':');
   const c = CHAPTERS.find((x) => x.id === ch);
   const qq = (quizzes as unknown as Record<string, { q: string; opts: string[]; why: string }[] | undefined>)[ch ?? '']?.[Number(k)];
   if (!c || !qq) return null;
-  return { id, from: c.title, q: qq.q, opts: qq.opts, why: () => qq.why };
+  // the quiz's answers live only on the server, so the right answer comes from learn_review's reply
+  return { id, from: c.title, check: { q: qq.q, opts: qq.opts, right: -1, why: qq.opts.map(() => qq.why) } };
 }
 
 export const today = (now = Date.now()) => nyDate(now);
 
 export const setGoal = (uid: string, goal: number) => setDoc(doc(db(), 'users', uid), { learnGoal: goal }, { merge: true });
 /** A lesson's quick check, graded on the server; a miss goes to your review. */
-export const learnCheck = (lesson: string, pick: number) => callFunction<{ lesson: string; pick: number }, { ok: boolean; answer: number }>('learn_check', { lesson, pick });
-export type ReviewResult = { ok: boolean; answer: number; xp: number; due: string | null; left: number };
-export const learnReview = (id: string, pick: number) => callFunction<{ id: string; pick: number }, ReviewResult>('learn_review', { id, pick });
+export const learnCheck = (lesson: string, pick: Answer, n = 1) =>
+  callFunction<{ lesson: string; pick: Answer; n?: number }, { ok: boolean; answer: Answer }>('learn_check', n > 1 ? { lesson, pick, n } : { lesson, pick });
+export type ReviewResult = { ok: boolean; answer: Answer; xp: number; due: string | null; left: number };
+export const learnReview = (id: string, pick: Answer) => callFunction<{ id: string; pick: Answer }, ReviewResult>('learn_review', { id, pick });
 
 export type LeagueRow = { uid: string; name: string; xp: number };
 /** This week's learning league, top 30 by learning XP. */

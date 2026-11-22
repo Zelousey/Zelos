@@ -3,7 +3,7 @@
  * alerts; chart patterns, each drawn as a price path with its levels, the breakout and how it fails.
  */
 import type { Lesson } from './chapters';
-import { big, chart, check, lesson } from './kit';
+import { big, chart, check, lesson, level } from './kit';
 
 // ------------------------------------------------------------------ 4. Indicators, forecasts & alerts
 export const INDICATORS_WHAT: Lesson = lesson(
@@ -111,6 +111,13 @@ export const PAT_HS: Lesson = lesson(
   ],
   check('In a head and shoulders, what usually confirms it?', ['The head forming', 'A close below the neckline', 'Any red candle'], 1, 'The break of the neckline is the confirmation. Before that it’s only a possible pattern.'),
   { label: 'Draw a pattern on a chart', to: '/markets/SPY' },
+  level(
+    'Where would this pattern be confirmed?',
+    [22, 46, 35, 72, 35, 52, 36, 40],
+    [{ y: 72, label: 'A · $172' }, { y: 35, label: 'B · $135' }, { y: 12, label: 'C · $112' }],
+    1,
+    'B is the neckline under the two shoulders. A close below it confirms the head and shoulders. A is the top of the head, and C is far below where any signal would come.',
+  ),
 );
 
 export const PAT_IHS: Lesson = lesson(
@@ -137,6 +144,7 @@ export const PAT_DOUBLE: Lesson = lesson(
   ],
   check('A double bottom is confirmed when price…', ['Touches the low a second time', 'Rises above the high between the two lows', 'Goes sideways'], 1, 'The confirmation is the break above the middle high; the second touch alone isn’t enough.'),
   { label: 'Look for one on a chart', to: '/markets/AAPL' },
+  check('Spot it: what pattern is this?', ['Double top', 'Double bottom', 'Bull flag'], 0, 'Two peaks at the same high, then a drop below the low between them: a double top.', chart([25, 50, 75, 55, 74, 52, 30])),
 );
 
 export const PAT_TRIPLE: Lesson = lesson(
@@ -163,6 +171,7 @@ export const PAT_TRIANGLES: Lesson = lesson(
   ],
   check('Which triangle has a flat top and rising lows?', ['Ascending', 'Descending', 'Symmetrical'], 0, 'An ascending triangle has a flat ceiling and higher lows, and is often read as bullish.'),
   { label: 'Spot one on a chart', to: '/markets/NVDA' },
+  check('Spot it: what pattern is this?', ['Ascending triangle', 'Descending triangle', 'Cup and handle'], 1, 'A flat floor with lower and lower highs, then a break down: a descending triangle.', chart([70, 30, 58, 30, 48, 30, 40, 30, 14])),
 );
 
 export const PAT_FLAGS: Lesson = lesson(
@@ -176,6 +185,7 @@ export const PAT_FLAGS: Lesson = lesson(
   ],
   check('A bull flag is a…', ['Pause after a sharp rise that often continues upward', 'Sign of a crash', 'Pattern that only forms on weekends'], 0, 'A bull flag is a brief pause in a strong uptrend; a break above it often continues the move.'),
   { label: 'Find a flag on a chart', to: '/markets/AMD' },
+  check('Spot it: what pattern is this?', ['Bull flag', 'Bear flag', 'Double top'], 0, 'A sharp rise, a short gentle drift down, then the move carries on up: a bull flag.', chart([20, 40, 62, 80, 76, 72, 74, 70, 72, 92])),
 );
 
 export const PAT_WEDGES: Lesson = lesson(

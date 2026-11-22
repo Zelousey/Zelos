@@ -13,7 +13,8 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { Button, buttonClass, EmptyState, useToast } from '../../ui';
-import { chapterById, chapterState, LESSON_XP, lessonOpen, lessonXp, markLesson } from './chapters';
+import { chapterById, chapterState, lessonChecks, LESSON_XP, lessonOpen, lessonXp, markLesson, rightAnswer, type Answer } from './chapters';
+import { CheckView } from './CheckView';
 import { noteLearnPlace } from './learnReturn';
 import { learnCheck } from './loop';
 import { Scene } from './Scene';
@@ -41,13 +42,14 @@ function Player({ chapterId, idx }: { chapterId: string; idx: number }) {
   const { user, isReal, openSignIn } = useAuth();
   const { learnDone } = useSkill();
   const toast = useToast();
-  const total = lesson.steps.length + 1; // the scenes, then the quick check
+  const checks = lessonChecks(lesson);
+  const total = lesson.steps.length + checks.length; // the scenes, then the quick check(s)
   const [params, setParams] = useSearchParams();
   const [at, setAt] = useState(() => {
     const n = Number(params.get('step'));
     return Number.isInteger(n) && n > 0 && n < total ? n : 0; // never straight to the finish (no XP from a link)
   });
-  const [picked, setPicked] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<(Answer | null)[]>(() => checks.map(() => null));
   const [xpState, setEarned] = useState<'pending' | 'xp' | 'already' | 'none'>('pending');
   const earned = isReal && user ? xpState : 'none'; // signed out: nothing to save
   const finished = at === total;
@@ -78,15 +80,15 @@ function Player({ chapterId, idx }: { chapterId: string; idx: number }) {
       .catch(() => setEarned(wasDone.current ? 'already' : 'none'));
   }, [finished, isReal, user, lesson.id, toast]);
 
-  // the server grades the quick check too: a miss comes back later for review (learning loop)
-  const pickAnswer = (i: number) => {
-    setPicked(i);
-    if (isReal && user) void learnCheck(lesson.id, i).catch(() => undefined);
-  };
-
   const step = !finished && at < lesson.steps.length ? lesson.steps[at]! : null;
-  const check = !finished && !step ? lesson.check : null;
-  const ok = check && picked != null ? picked === check.right : null;
+  const ci = !finished && !step ? at - lesson.steps.length : -1;
+  const check = ci >= 0 ? checks[ci]! : null;
+  const picked = ci >= 0 ? answers[ci]! : null;
+  // the server grades the quick check too: a miss comes back later for review (learning loop)
+  const answer = (a: Answer) => {
+    setAnswers((xs) => xs.map((x, k) => (k === ci ? a : x)));
+    if (isReal && user) void learnCheck(lesson.id, a, ci + 1).catch(() => undefined);
+  };
 
   return (
     <div className={s.player}>
@@ -105,40 +107,33 @@ function Player({ chapterId, idx }: { chapterId: string; idx: number }) {
         {t('ln.chapter', { n: c.n })} · {t('ln.lessonN', { n: idx + 1 })} · {lesson.title}
       </p>
 
-      <div className={s.stage} key={at}>
-        <Scene art={finished ? { k: 'done', label: t('ln.lessonDoneArt', { n: idx + 1 }) } : step ? step.art : (check!.art ?? { k: 'big', top: '?', bottom: t('ln.quickCheck').toUpperCase() })} />
-      </div>
+      {!check && (
+        <div className={s.stage} key={at}>
+          <Scene art={finished ? { k: 'done', label: t('ln.lessonDoneArt', { n: idx + 1 }) } : step!.art} />
+        </div>
+      )}
 
-      <div className={s.say} aria-live="polite">
-        {step && (
-          <>
-            <h2 ref={headRef} tabIndex={-1}>
-              {step.title}
-            </h2>
-            <p>{step.text}</p>
-            {step.tip && <p className={s.tip}>{step.tip}</p>}
-          </>
-        )}
-        {check && (
-          <>
-            <span className={s.kicker}>{t('ln.quickCheck')}</span>
-            <h2 ref={headRef} tabIndex={-1}>
-              {check.q}
-            </h2>
-            <div className={s.opts} role="group" aria-label={t('ln.answers')}>
-              {check.opts.map((o, i) => {
-                const cls = picked == null ? '' : i === check.right ? s.optRight : i === picked ? s.optWrong : '';
-                return (
-                  <button key={i} type="button" className={[s.opt, cls].join(' ')} disabled={picked != null} aria-pressed={picked === i} onClick={() => pickAnswer(i)}>
-                    <span>{o}</span>
-                    <span aria-hidden="true">{picked == null ? '' : i === check.right ? '✓' : i === picked ? '✗' : ''}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {picked != null && <p className={[s.why, ok ? s.whyOk : s.whyNo].join(' ')}>{check.why[picked]}</p>}
-          </>
-        )}
+      {step && (
+        <div className={s.say} aria-live="polite">
+          <h2 ref={headRef} tabIndex={-1}>
+            {step.title}
+          </h2>
+          <p>{step.text}</p>
+          {step.tip && <p className={s.tip}>{step.tip}</p>}
+        </div>
+      )}
+      {check && (
+        <CheckView
+          key={at}
+          check={check}
+          answer={picked}
+          right={picked == null ? null : rightAnswer(check)}
+          onAnswer={answer}
+          headRef={headRef}
+          kicker={checks.length > 1 ? t('ck.n', { n: ci + 1, of: checks.length }) : undefined}
+        />
+      )}
+      <div className={s.say}>
         {finished && (
           <div className={s.finish}>
             <h2 ref={headRef} tabIndex={-1}>

@@ -1708,6 +1708,17 @@ const en = {
   'ns.options.body': 'Calls and puts in your practice account.',
   'ns.title': 'Your next steps',
   'ln.sub': 'Short lessons for anyone new to trading. Everything uses virtual money.',
+  // quick-check question types (2026-11-22): pick, tap the level, put in order
+  'ck.n': 'Quick check {n} of {of}',
+  'ck.level': 'Tap the level',
+  'ck.levelHint': 'Tap the line on the chart.',
+  'ck.levels': 'Levels on the chart',
+  'ck.order': 'Put it in order',
+  'ck.yourOrder': 'Your order',
+  'ck.steps': 'Steps to place',
+  'ck.takeBack': 'Step {n}: {step}. Tap to take it back',
+  'ck.checkOrder': 'Check my order',
+  'ck.rightOrder': 'The right order',
   // the learning loop (2026-11-22): rewards learning, never trading
   'lp.title': 'Your learning',
   'lp.streak': 'Learning streak',

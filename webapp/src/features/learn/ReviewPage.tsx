@@ -8,6 +8,8 @@ import { Link } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { t } from '../../lib/i18n';
 import { Button, buttonClass, EmptyState, LoadingState, useToast } from '../../ui';
+import type { Answer } from './chapters';
+import { CheckView } from './CheckView';
 import { dueIds, learnReview, reviewQuestion, today, type ReviewResult } from './loop';
 import { useSkill } from './useSkill';
 import s from './Learn.module.css';
@@ -41,14 +43,14 @@ export function ReviewPage() {
 function Session({ ids }: { ids: string[] }) {
   const toast = useToast();
   const [at, setAt] = useState(0);
-  const [picked, setPicked] = useState<number | null>(null);
+  const [picked, setPicked] = useState<Answer | null>(null);
   const [res, setRes] = useState<ReviewResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [score, setScore] = useState({ right: 0, xp: 0 });
   const done = at >= ids.length;
   const q = done ? null : reviewQuestion(ids[at]!);
 
-  const choose = (i: number) => {
+  const choose = (i: Answer) => {
     if (picked != null || busy || !q) return;
     setPicked(i);
     setBusy(true);
@@ -94,7 +96,6 @@ function Session({ ids }: { ids: string[] }) {
       </div>
     );
   }
-  const right = res?.answer ?? null;
   return (
     <div className={s.player}>
       <div className={s.playerTop}>
@@ -108,29 +109,16 @@ function Session({ ids }: { ids: string[] }) {
           {at + 1}/{ids.length}
         </span>
       </div>
-      <p className={s.kicker}>
-        {t('rv.title')} · {t('rv.free')} · {q.from}
-      </p>
-      <div className={s.say} aria-live="polite">
-        <h2>{q.q}</h2>
-        <div className={s.opts} role="group" aria-label={t('ln.answers')}>
-          {q.opts.map((o, i) => {
-            const cls = right == null ? '' : i === right ? s.optRight : i === picked ? s.optWrong : '';
-            return (
-              <button key={i} type="button" className={[s.opt, cls].join(' ')} disabled={picked != null} aria-pressed={picked === i} onClick={() => choose(i)}>
-                <span>{o}</span>
-                <span aria-hidden="true">{right == null ? '' : i === right ? '✓' : i === picked ? '✗' : ''}</span>
-              </button>
-            );
-          })}
-        </div>
-        {res && picked != null && (
-          <>
-            <p className={[s.why, res.ok ? s.whyOk : s.whyNo].join(' ')}>{q.why(picked, res.answer)}</p>
-            <p className={l.when}>{res.ok ? (res.due ? t('rv.nextOn', { day: shortDay(res.due) }) : t('rv.mastered')) : t('rv.tomorrow')}</p>
-          </>
-        )}
-      </div>
+      <CheckView
+        key={q.id}
+        check={q.check}
+        answer={res ? picked : null}
+        right={res ? res.answer : null}
+        onAnswer={choose}
+        busy={busy}
+        kicker={`${t('rv.title')} · ${t('rv.free')} · ${q.from}`}
+      />
+      {res && <p className={l.when}>{res.ok ? (res.due ? t('rv.nextOn', { day: shortDay(res.due) }) : t('rv.mastered')) : t('rv.tomorrow')}</p>}
       <Button variant="primary" size="lg" block disabled={!res} onClick={next}>
         {res ? t('ln.continue') : t('ln.pickAnswer')}
       </Button>

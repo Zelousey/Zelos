@@ -244,3 +244,25 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
 .t101 .stage { background: #111114; }
 .t101 .opt { background: #131316; }
 .t101 .tip, .t101 .guide { background: rgba(229, 48, 46, 0.08); border-color: var(--t-red-line); }
+
+/* Quick-check types (2026-11-22): tap the level on a chart, put steps in order */
+.levelWrap { position: relative; width: 100%; height: 100%; }
+.level { position: absolute; left: 0; right: 0; height: 44px; transform: translateY(-50%); display: flex; align-items: center; padding: 0 3%; border: 0; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+.level::before { content: ''; position: absolute; left: 7.5%; right: 7.5%; top: 50%; border-top: 2px dashed var(--muted); }
+.level:hover:not(:disabled)::before, .level:focus-visible::before { border-top-color: var(--accent); border-top-style: solid; }
+.level:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.level:disabled { cursor: default; }
+.levelTag { position: relative; margin-left: auto; padding: 3px 8px; border: 1px solid var(--border); background: var(--surface); font: 700 var(--text-xs) var(--mono); white-space: nowrap; }
+.level:hover:not(:disabled) .levelTag { border-color: var(--accent); }
+.levelRight::before { border-top: 3px solid var(--bull); }
+.levelRight .levelTag { border-color: var(--bull); background: color-mix(in srgb, var(--bull) 18%, var(--surface)); }
+.levelWrong::before { border-top: 3px solid var(--danger); }
+.levelWrong .levelTag { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 16%, var(--surface)); }
+.levelDim { opacity: 0.45; }
+.order { display: grid; gap: var(--space-3); margin-top: var(--space-2); }
+.orderList { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.orderEmpty { display: flex; align-items: center; min-height: 52px; padding: 0 var(--space-4); border: 2px dashed var(--border); color: var(--muted); font: 700 var(--text-sm) var(--mono); }
+.orderItem { justify-content: flex-start; width: 100%; }
+.orderItem b { font-family: var(--mono); color: var(--muted); min-width: 1.2em; }
+.orderRight { display: grid; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--border-soft); }
+.orderRight ol { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; color: var(--ink-2); font-size: var(--text-sm); }
