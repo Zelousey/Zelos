@@ -43,7 +43,7 @@ test('signed out: welcome on Trading; missions and the public leaderboard on Pro
   await expect(page.getByText(/Challenge friends to a Trade War/)).toBeVisible();
   await openPage(page, 'Profile');
   await expect(page.getByRole('heading', { name: 'Daily missions' })).toBeVisible();
-  await expect(page.getByText('Make 1 Trade War trade')).toBeVisible();
+  await expect(page.getByText('Finish a Trading 101 lesson')).toBeVisible(); // missions reward learning (2026-11-22)
   const board = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Leaderboard' }) });
   await expect(board.getByRole('listitem').first()).toContainText('Ada');
   await expect(board.getByRole('listitem').first()).toContainText('$91,000');
@@ -66,7 +66,7 @@ test('signed in: the Solo account and battles on Trading; trader card, missions 
   await put(`users/${uid}`, {
     xp: 275,
     watchlist: ['AAPL', 'NVDA'],
-    progress: { v: 1, updatedAt: now, day: { date: nyDay(), counts: { trade: 1, analyze: 2 }, analyzed: [], done: { trade: true } }, week: { key: '', counts: {}, done: {} }, streak: { days: 4, best: 6, lastDate: nyDay(-1), start: '' }, totals: {}, achievements: { 'first-trade': now } },
+    progress: { v: 1, updatedAt: now, day: { date: nyDay(), counts: { learn: 1, analyze: 2 }, analyzed: [], done: { learn: true } }, week: { key: '', counts: {}, done: {} }, streak: { days: 4, best: 6, lastDate: nyDay(-1), start: '' }, totals: {}, achievements: { 'first-trade': now } },
   });
   await put(`traders/${uid}`, { name: 'Casey', username: 'casey_t' });
   await put('markets/earnings', { updatedAt: new Date().toISOString(), bySymbol: { NVDA: { date: nyDay(3), eps: 1.21 }, AAPL: { date: nyDay(9), eps: 2.4 }, MSFT: { date: nyDay(1), eps: 3.1 } } });

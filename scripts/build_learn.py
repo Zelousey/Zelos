@@ -111,7 +111,6 @@ def hub():
   {secs}
   <section class="lr-group"><h2>Reference</h2><div class="lr-grid">
     <a class="lr-card" href="../ai-knowledge-catalog.html"><b>Knowledge catalog &amp; glossary</b><span>Definitions of every term used in Zelos alerts, the scoring engine, and a strategy comparison.</span></a>
-    <a class="lr-card" href="../scan/index.html"><b>Daily market scans</b><span>Each trading day's scan: conditions, what was scanned, what was rejected and why, and the alert that qualified.</span></a>
     <a class="lr-card" href="../alert-history.html"><b>Alert history</b><span>Every published alert and its outcome, winners and losers.</span></a>
   </div></section>
   <p class="lr-disclaimer">General education only. Not personalized investment advice.</p>

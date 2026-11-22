@@ -261,7 +261,7 @@ gcloud run services add-iam-policy-binding mission-event --region=us-central1 --
 **3. Merge the PR**, then go back to main: `git checkout main && git pull origin main`.
 
 **4. Check:** in the app, open three different stock charts, then the Dashboard: "Analyze 3 stocks"
-shows 3/3 with a check and you got +10 XP. A practice trade that fills ticks "Make 1 Trade War trade".
+shows 3/3 with a check and you got +10 XP. Finishing a Trading 101 lesson ticks "Finish a Trading 101 lesson" (missions reward learning, not trading, since 2026-11-22).
 
 **Undo:** `git checkout main` (before merging) and run the deploy line again.
 

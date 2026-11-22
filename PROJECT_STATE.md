@@ -5,23 +5,22 @@
 > (that is `MASTER_PLAN.md` plus `AGENTICTRADING_MASTER_SPEC.md`).
 > A new Claude session should be able to continue from this file alone. Start with `docs/HANDOFF.md` (latest handoff).
 >
-> **Last verified against the repository:** 2026-10-08 (after PRs #37 and #38; News v2 on `claude/news-v2`).
+> **Last verified against the repository:** 2026-11-22 (after PR #221; section 1 refreshed. Sections 2 onward are a history log and may name older numbers; the newest entries win).
 
 ## 1. Product
 AgenticTrading.info ("Zelos") is a trading education, scanning and simulated-competition site for retail traders.
 
-Live areas:
-- Marketing home page, Learn articles, AI index, daily scan pages
-- Scan alerts: Swing Trader, Breakout Rider, Options Scanner (published by Claude skills, stored in Firestore)
-- Alert history with checked outcomes (did it hit target / stop?)
-- Dashboard (drag/resize widgets, Real/War presets)
-- Trade War: a $10,000 virtual account plus server-run multiplayer matches, challenges, squads, communities, Last Man Standing modes
-- Real Trade Journal: trades a person logs from their own broker (no broker connection)
-- Training Ground (was Arcade): chart drills on real historical charts, with leaderboards
-- XP, levels, missions, achievements, seasons, Founder program, invite-a-friend
-- Z tokens (on-site credits) bought with Square; used to unlock alerts, passes and cosmetics
-- Web push notifications and an in-app inbox (bell)
-- Owner-only sales page (`sales.html`, `admin_sales`)
+Live areas (2026-11-22):
+- Marketing home page (with a "How tokens work" section), Learn articles, AI index. The daily scan archive (`scan/`) is hidden from search and links (`SCAN_ARCHIVE_PUBLIC = False` in `scripts/build_scan_pages.py`) until it has a page for every market day.
+- **Trading 101** (`/app/learn`): 10 chapters, 92 lessons, a quiz per chapter graded by `learn_quiz` (each quiz opens the next chapter; The mental game is always open).
+- **Six strategies, all run by the server** (`SERVER_SCANNERS` in `functions/main.py`): Swing Trader, Breakout Rider, Momentum Trader, Momentum Max, Options Scanner, 3-Leg Options. `morning_alerts` publishes them at about 10 am New York time on market days (retries 10:10 to 10:30); the evening `run_scanners` only grades open alerts. Rules and backtests: `docs/SERVER_SCANNERS.md`.
+- Alert history with checked outcomes, one-click Take this trade (bracket with stop, target and time exit), decline and take back (2 tokens), strategy board.
+- Dashboard, practice account ($10,000, server engine `functions/practice.py`) with the profit calendar (`/app/practice/calendar`).
+- Trade War battles, challenges, squads, communities; Real Trade Journal; Training Ground.
+- XP, levels, achievements, seasons, Founder program, invites. **Missions reward learning, not trading** (research review 2026-11-22): daily = finish a lesson, analyze 3 charts, grade 1 trade, read 1 news item, earn 100 XP; weekly = 5 lessons, set a stop-loss before 3 practice trades, grade 10 trades, 5 active days, 300 XP. No mission counts trades or wins (`functions/missions.py`, checked by `scripts/missions_test.py`).
+- Z tokens (Square on the website): prices live only in `TOKENS` in `functions/main.py` and are listed in `docs/tokens.md`; `scripts/site_copy_test.py` fails if a page or doc quotes a different price.
+- Web push notifications and the in-app bell.
+- Owner-only sales page (`sales.html`, `admin_sales`).
 
 ## 2. Actual architecture (verified)
 | Layer | What it really is |

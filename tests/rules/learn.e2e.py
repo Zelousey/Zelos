@@ -49,7 +49,7 @@ except https_fn.HttpsError as e:
 db.collection("wallets").document(uid).set({"balance": 15})
 r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key), "retakeNow": True}, now + 1000)
 u = db.collection("users").document(uid).get().to_dict()
-ok(r["passed"] and r["xp"] == 50 and u["xp"] == 50 and r["charged"] == 10, "a passed quiz pays 50 XP")
+ok(r["passed"] and r["xp"] == 50 and u["xp"] == 50 + 10 and r["charged"] == 10 and (u.get("missions") or {}).get("day", {}).get("done", {}).get("learn"), "a passed quiz pays 50 XP and completes the daily learning mission (+10)")
 ok(db.collection("wallets").document(uid).get().to_dict()["balance"] == 5, "the retake now cost 10 tokens")
 other = "learn-wait-%d" % now
 main.learn_quiz_run(db, other, {"chapter": "basics", "answers": wrong}, now)
@@ -59,7 +59,7 @@ ok(u["learnPassed"]["basics"] == now + 1000 and u["learnDone"] == ["stocks"], "a
 
 r = main.learn_quiz_run(db, uid, {"chapter": "basics", "answers": list(key)}, now + 2000)
 u = db.collection("users").document(uid).get().to_dict()
-ok(r["passed"] and r["xp"] == 0 and u["xp"] == 50, "passing again pays nothing more")
+ok(r["passed"] and r["xp"] == 0 and u["xp"] == 60, "passing again pays nothing more (the daily mission was already done)")
 
 fresh = "learn-fresh-%d" % now
 try:

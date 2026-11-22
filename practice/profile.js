@@ -128,7 +128,7 @@
       el.innerHTML = '<div class="pf-tk-top"><div><small>Your tokens <span class="pf-tk-private">only you can see this</span></small><b><i class="twh-coin" aria-hidden="true"></i>' + (w ? w.balance : '…') + '</b></div>' +
         '<div class="pf-tk-acts"><button class="pt-mini pt-soc" type="button" id="pfTkWallet">Wallet &amp; history</button><button class="pt-mini pt-soc" type="button" id="pfTkLooks">Profile looks</button><a class="pt-mini" href="../tokens.html">Get tokens &amp; passes</a></div></div>' +
         '<p class="pt-fine">' + (passes.length ? 'Active passes: ' + passes.map(function (k) { return '<b>' + esc(SCAN[k] || k) + '</b> until ' + new Date(w.passes[k]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }).join(' · ')
-          : 'No active scanner pass. Live alerts unlock with tokens; after the 4:00 pm ET close they\'re 3 tokens, then free once the trade finishes.') + '</p>';
+          : 'No active scanner pass. Live alerts unlock with tokens; after the 4:00 pm ET close they\'re 8 tokens, then free once the trade finishes.') + '</p>';
       el.querySelector('#pfTkWallet').onclick = function () { T.open(); };
       el.querySelector('#pfTkLooks').onclick = function () { T.shop(); };
     };

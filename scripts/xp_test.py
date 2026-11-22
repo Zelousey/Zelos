@@ -42,8 +42,8 @@ class Decide(unittest.TestCase):
         self.no("mission", "d:%s:made-up" % T)
         self.no("mission", "d:2026-09-01:trade")
         self.ok("mission", "w:w2026_41:days5", 75)
-        self.ok("mission", "w:w2026_40:wins3", 50)
-        self.no("mission", "w:w2026_30:wins3")
+        self.ok("mission", "w:w2026_40:plan3", 50)
+        self.no("mission", "w:w2026_30:plan3")
         # a 7-day streak that started 2026-10-01 ends today
         self.ok("mission", "streak:2026-10-01:7", 75)
         self.no("mission", "streak:2026-09-01:7")
@@ -90,7 +90,7 @@ class Booster(unittest.TestCase):
 
     def test_doubles_lessons_missions_and_battles(self):
         self.assertEqual(XP.decide("lesson", "stocks", self.DAY, boosted=True)[0], 20)
-        self.assertEqual(XP.decide("mission", "d:%s:trade" % self.DAY, self.DAY, boosted=True)[0], 20)
+        self.assertEqual(XP.decide("mission", "d:%s:learn" % self.DAY, self.DAY, boosted=True)[0], 20)
         self.assertEqual(XP.decide("practice-win", "%s:1" % self.DAY, self.DAY, boosted=True)[0], 20)
         self.assertEqual(XP.decide("lesson", "stocks", self.DAY)[0], 10)
 
