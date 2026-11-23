@@ -89,7 +89,7 @@
   --gold-glow:rgba(232,178,61,0.5);
 
   /* -- ambient green ("bullish" shadow/glow, used decoratively — not a UI accent) -- */
-  --bull:#3ecb7c;
+  --bull:#33b86e;
   --bull-glow:rgba(62,203,124,0.28);
 
   /* -- status / bear-red (matrix rain, dots, down-moves, alerts, ambient glow) -- */
@@ -163,7 +163,7 @@
   --violet-soft:#ece8ff;
   --gold:#b98110;
   --gold-soft:#fbefd2;
-  --bull:#1f9d5a;
+  --bull:#1a8a4f;
   --amber-soft:#fcefd6;
   --danger:#d23a31;
   --danger-soft:#fbe2df;

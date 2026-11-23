@@ -13,7 +13,7 @@ async function signIn(page: Page, who: string): Promise<string> {
 }
 const axe = async (page: Page) => expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map((x) => x.id)).toEqual([]);
 
-test('the opening book flips through every great mind each time you come in, and can be skipped', async ({ page }) => {
+test('the opening book flips through every great mind once per app visit, and can be skipped', async ({ page }) => {
   await page.goto('minds');
   const book = page.getByTestId('book-intro');
   await expect(book).toBeVisible();
@@ -33,7 +33,12 @@ test('the opening book flips through every great mind each time you come in, and
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Hall of Minds', level: 1 })).toBeVisible();
   await expect(book).toHaveCount(0);
-  // coming in again plays it again, and Skip closes it
+  // owner 2026-11-23: once per app visit. Coming in again, even after a reload, doesn't play it...
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Hall of Minds', level: 1 })).toBeVisible();
+  await expect(book).toHaveCount(0);
+  // ...a new visit (the app closed and opened again) plays it, and Skip closes it
+  await page.evaluate(() => sessionStorage.clear());
   await page.reload();
   const skip = page.getByRole('button', { name: 'Skip' });
   await expect(skip).toBeVisible();

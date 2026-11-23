@@ -16,7 +16,7 @@ export function Portrait({ figure, className }: { figure: Figure; className?: st
       </span>
     );
   }
-  return <img className={[s.portrait, className].filter(Boolean).join(' ')} src={portraitUrl(figure)} alt="" decoding="async" onError={() => setBroken(true)} />;
+  return <img className={[s.portrait, className].filter(Boolean).join(' ')} data-id={figure.id} src={portraitUrl(figure)} alt="" decoding="async" onError={() => setBroken(true)} />;
 }
 
 export function FigureCard({ figure, pill, big, to }: { figure: Figure; pill: string; big?: boolean; to?: string }) {

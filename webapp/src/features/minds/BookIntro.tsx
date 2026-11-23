@@ -1,7 +1,7 @@
 /**
  * The Hall of Minds opening (owner 2026-10-23/24): a book opens and flips through every great mind,
- * each a page on red with a quote on the back, then fades into the grid. Plays every time you come
- * into the Hall of Minds (not again when you go back to the grid from a figure), skippable, and not
+ * each a page on red with a quote on the back, then fades into the grid. Plays when you come
+ * into the Hall of Minds, once per app visit (owner 2026-11-23; MindsModule), skippable, and not
  * shown with reduced motion.
  *
  * Each page's stacking order changes as it flips, so the newest page is always on top: with a fixed

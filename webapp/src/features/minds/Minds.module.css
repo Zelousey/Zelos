@@ -129,3 +129,24 @@ a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 @keyframes hm-in-right { from { opacity: 0; transform: translateX(48px); } }
 @keyframes hm-in-left { from { opacity: 0; transform: translateX(-48px); } }
 @media (max-width: 760px) { .tileQuote { -webkit-line-clamp: 3; max-height: calc(1.35em * 3); font-size: var(--text-xs); } }
+
+
+/* ================================================================ the Trading 101 feel (owner 2026-11-23)
+   Cards lift and glow red when you point at them, the portrait leans in a little, and the page
+   settles on each row as you scroll. */
+.card { box-shadow: 0 1px 0 rgb(0 0 0 / 0.2), 0 10px 30px -18px rgba(229, 48, 46, 0.55); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+a.card:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(255, 120, 110, 0.35), 0 16px 38px -14px rgba(229, 48, 46, 0.75); }
+.card .portrait { transition: transform 0.3s ease; transform-origin: 50% 100%; }
+a.card:hover .portrait { transform: translateX(-50%) scale(1.04); }
+@media (prefers-reduced-motion: reduce) { a.card:hover { transform: none; } a.card:hover .portrait { transform: translateX(-50%); } }
+
+/* portraits that are cut off (a bust ends at the neck, a photo at the chest) fade into the red at the
+   bottom instead of ending on a hard edge (owner 2026-11-23: "they look cropped out") */
+.card::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 26%; z-index: 1; pointer-events: none; background: linear-gradient(to top, var(--hm-red) 8%, transparent); }
+/* Caesar is a head only, so it's drawn smaller and lifted, like a bust on the red */
+.portrait[data-id='caesar'] { height: 62%; bottom: 6%; }
+.cardBig .portrait[data-id='caesar'] { height: 66%; }
+
+:global(html):has(.grid) { scroll-snap-type: y proximity; scroll-padding-top: 76px; }
+:global(html):has(.grid) :global(main) { scroll-snap-align: start; scroll-margin-top: 400px; } /* the page opens at its top */
+.grid > li { scroll-snap-align: start; }
