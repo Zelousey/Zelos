@@ -79,3 +79,6 @@
 .status { display: flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: var(--text-xs); margin-bottom: var(--space-3); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-2); flex: none; }
 .open .dot { background: var(--bull); }
+/* the data provider isn't answering (owner 2026-11-23): a clear warning box, not small grey text */
+.outage { padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in srgb, var(--amber) 55%, transparent); border-radius: var(--radius); background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--ink); font-size: var(--text-sm); line-height: 1.4; }
+.outage .dot { background: var(--amber); }
