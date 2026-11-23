@@ -28,19 +28,34 @@ const PAD = { l: 4, r: 4, t: 10, b: 10 };
 const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest holdings)
 
 type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number; /** the line fills all the height the card gets (computer Dashboard) */ grow?: boolean; /** false until today's fills have loaded: 1D waits instead of drawing the day without your trades */ fillsReady?: boolean };
-type Opts = { table: boolean; fill: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
+type Opts = { table: boolean; fill: boolean; glow: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean; line: LineColor; bg: ChartBg };
 const OPTS_KEY = 'zelosAcctChart';
-const DEFAULT_OPTS: Opts = { table: false, fill: false, markers: true, wins: true, losses: true, drawdown: true }; // owner 2026-11-23: no shading under the line unless you turn it on
+// owner 2026-11-23: no shading and no glow unless you turn them on; line and background colours are yours to pick
+const DEFAULT_OPTS: Opts = { table: false, fill: false, glow: false, markers: true, wins: true, losses: true, drawdown: true, line: 'auto', bg: 'card' };
+/** Line colours: auto = green when up, red when down. */
+export const LINE_COLORS = { auto: '', green: '#33b86e', blue: '#4a86ff', white: '#e6e8ec', purple: '#a78bfa' } as const;
+/** Chart backgrounds: card = the card's own colour. */
+export const CHART_BGS = { card: '', black: '#000000', navy: '#0b1730', charcoal: '#1b1e24', forest: '#0c1f15' } as const;
+type LineColor = keyof typeof LINE_COLORS;
+type ChartBg = keyof typeof CHART_BGS;
+const isLine = (v: unknown): v is LineColor => typeof v === 'string' && v in LINE_COLORS;
+const isBg = (v: unknown): v is ChartBg => typeof v === 'string' && v in CHART_BGS;
+function readOpts(): Opts {
+  const saved = readJSON<Partial<Opts>>(OPTS_KEY, {});
+  const o = { ...DEFAULT_OPTS, ...saved };
+  return { ...o, line: isLine(o.line) ? o.line : 'auto', bg: isBg(o.bg) ? o.bg : 'card' };
+}
 
 export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight, grow = false, fillsReady = true }: Props) {
   const [range, setRange] = useState<Range>('1D');
-  const [opts, setOptsState] = useState<Opts>(() => ({ ...DEFAULT_OPTS, ...readJSON<Partial<Opts>>(OPTS_KEY, {}) }));
-  const setOpt = (k: keyof Opts) =>
+  const [opts, setOptsState] = useState<Opts>(readOpts);
+  const save = (f: (o: Opts) => Opts) =>
     setOptsState((o) => {
-      const n = { ...o, [k]: !o[k] };
+      const n = f(o);
       writeString(OPTS_KEY, JSON.stringify(n));
       return n;
     });
+  const setOpt = (k: 'table' | 'fill' | 'glow' | 'markers' | 'wins' | 'losses' | 'drawdown') => save((o) => ({ ...o, [k]: !o[k] }));
   const [menu, setMenu] = useState(false);
   const [picked, setPicked] = useState<Mark | null>(null);
   const [bars, setBars] = useState<Record<string, Bar[]>>(() => Object.fromEntries(barsCache));
@@ -86,7 +101,11 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
   const menuId = useId();
 
   return (
-    <div className={[s.wrap, grow && s.wrapGrow].filter(Boolean).join(' ')} data-dir={dir}>
+    <div
+      className={[s.wrap, grow && s.wrapGrow, opts.glow && s.glow].filter(Boolean).join(' ')}
+      data-dir={dir}
+      style={{ ...(LINE_COLORS[opts.line] ? { ['--acct-up' as string]: LINE_COLORS[opts.line], ['--acct-down' as string]: LINE_COLORS[opts.line] } : {}), ...(CHART_BGS[opts.bg] ? { ['--acct-bg' as string]: CHART_BGS[opts.bg] } : {}) }}
+    >
       {feeds.map((sym) => (
         <Feed key={sym} sym={sym} onBars={(b) => (barsCache.set(sym, b), setBars((x) => (x[sym] === b ? x : { ...x, [sym]: b })))} />
       ))}
@@ -124,18 +143,21 @@ export function AccountChart({ acct, equity, quotes, vols, today, history = [], 
                 [
                   ['table', 'cho.table'],
                   ['fill', 'cho.fill'],
+                  ['glow', 'cho.glow'],
                   ['markers', 'cho.markers'],
                   ['wins', 'cho.wins'],
                   ['losses', 'cho.losses'],
                   ['drawdown', 'cho.drawdown'],
                 ] as const
               ).map(([k, label]) => (
-                <label key={k} className={[s.opt, k !== 'table' && k !== 'fill' && k !== 'markers' && s.sub, k !== 'table' && k !== 'fill' && k !== 'markers' && !opts.markers && s.off].filter(Boolean).join(' ')}>
-                  <input type="checkbox" checked={opts[k]} disabled={k !== 'table' && k !== 'fill' && k !== 'markers' && !opts.markers} onChange={() => setOpt(k)} />
+                <label key={k} className={[s.opt, SUB.has(k) && s.sub, SUB.has(k) && !opts.markers && s.off].filter(Boolean).join(' ')}>
+                  <input type="checkbox" checked={opts[k]} disabled={SUB.has(k) && !opts.markers} onChange={() => setOpt(k)} />
                   {t(label)}
                 </label>
               ))}
               {opts.markers && !marks.some((m) => m.kind !== 'drawdown') && <p className={s.menuNote}>{t('cho.none')}</p>}
+              <Swatches label={t('cho.lineColor')} value={opts.line} colors={LINE_COLORS} names={LINE_NAMES} onPick={(v) => save((o) => ({ ...o, line: v }))} />
+              <Swatches label={t('cho.bg')} value={opts.bg} colors={CHART_BGS} names={BG_NAMES} onPick={(v) => save((o) => ({ ...o, bg: v }))} />
             </div>
           )}
         </span>
@@ -194,6 +216,34 @@ function thin(points: ValuePoint[], n: number): ValuePoint[] {
   const out: ValuePoint[] = [];
   for (let i = 0; i < n; i++) out.push(points[Math.round((i * (points.length - 1)) / (n - 1))]!);
   return out;
+}
+
+const SUB = new Set(['wins', 'losses', 'drawdown']);
+const LINE_NAMES: Record<LineColor, Parameters<typeof t>[0]> = { auto: 'cho.c.auto', green: 'cho.c.green', blue: 'cho.c.blue', white: 'cho.c.white', purple: 'cho.c.purple' };
+const BG_NAMES: Record<ChartBg, Parameters<typeof t>[0]> = { card: 'cho.c.card', black: 'cho.c.black', navy: 'cho.c.navy', charcoal: 'cho.c.charcoal', forest: 'cho.c.forest' };
+
+/** A row of colour swatches in the chart menu (one is chosen). */
+function Swatches<K extends string>({ label, value, colors, names, onPick }: { label: string; value: K; colors: Record<K, string>; names: Record<K, Parameters<typeof t>[0]>; onPick: (k: K) => void }) {
+  return (
+    <div className={s.swatchRow} role="radiogroup" aria-label={label}>
+      <span className={s.swatchLabel}>{label}</span>
+      <span className={s.swatches}>
+        {(Object.keys(colors) as K[]).map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={value === k}
+            aria-label={t(names[k])}
+            title={t(names[k])}
+            className={[s.swatch, value === k && s.swatchOn, !colors[k] && s.swatchAuto].filter(Boolean).join(' ')}
+            style={colors[k] ? { background: colors[k] } : undefined}
+            onClick={() => onPick(k)}
+          />
+        ))}
+      </span>
+    </div>
+  );
 }
 
 function Plot({ points, base, range, dir, onHover, marks = [], picked, onPick, H: fixedH = PLOT_H, fill = true, grow = false }: { points: ValuePoint[]; base: number; range: Range; dir: 'up' | 'down'; onHover: (p: ValuePoint | null) => void; marks?: Mark[]; picked?: Mark | null; onPick?: (m: Mark | null) => void; H?: number; fill?: boolean; grow?: boolean }) {

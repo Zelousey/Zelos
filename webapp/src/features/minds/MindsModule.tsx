@@ -7,12 +7,32 @@ import { MindsPage } from './MindsPage';
 import { markMindsSeen } from './QuoteCard';
 import { ScrollLessonPage } from './ScrollLesson';
 
+const INTRO_KEY = 'zelosMindsIntro';
+/** sessionStorage lasts while the app (or tab) is open, so a fresh launch plays the book again. */
+function introPlayed(): boolean {
+  try {
+    return sessionStorage.getItem(INTRO_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function markIntroPlayed() {
+  try {
+    sessionStorage.setItem(INTRO_KEY, '1');
+  } catch {
+    /* private mode: it just plays again */
+  }
+}
+
 export default function MindsModule() {
-  // the book plays each time you come into the Hall of Minds at the grid, and not again while you
-  // move between the grid and the figures (this module stays mounted); a link straight into a
-  // figure or a lesson opens without it
+  // the book plays when you come into the Hall of Minds at the grid; a link straight into a figure
+  // or a lesson opens without it
+  // owner 2026-11-23: only once per app visit; it plays again after the app is closed and reopened
   const { pathname } = useLocation();
-  const [intro] = useState(() => /\/minds\/?$/.test(pathname));
+  const [intro] = useState(() => /\/minds\/?$/.test(pathname) && !introPlayed());
+  useEffect(() => {
+    if (intro) markIntroPlayed();
+  }, [intro]);
   // the quote card waits until you've been away from the Hall of Minds a few days
   useEffect(() => markMindsSeen(), []);
   return (
