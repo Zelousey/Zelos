@@ -65,6 +65,16 @@ describe('market status line', () => {
   });
   it('a feed error is said plainly', () => {
     expect(marketStatus({ ...base, marketOpen: true, updatedAt: null, error: 'auth' }).text).toMatch(/paused/);
+    expect(marketStatus({ ...base, marketOpen: true, updatedAt: null, error: 'auth' }).outage).toBeFalsy();
+  });
+  it('the data provider not answering: says so, shows which prices are on screen, and that it retries', () => {
+    const st = marketStatus({ ...base, marketOpen: true, updatedAt: '2026-11-20T21:06:14Z', error: 'TimeoutError' }, Date.parse('2026-11-23T14:50:00Z'));
+    expect(st.outage).toBe(true);
+    expect(st.stale).toBe(true);
+    expect(st.text).toBe("Prices delayed: Marketstack isn't responding right now. Showing prices from Fri 4:06 PM EST. We retry every minute and they'll update on their own.");
+    expect(marketStatus({ ...base, marketOpen: true, updatedAt: '2026-11-23T14:31:00Z', error: 'URLError' }, Date.parse('2026-11-23T14:50:00Z')).text).toMatch(/from 9:31 AM EST\. /);
+    // a good update clears the error (functions/main.py writes error: null), and the line is normal again
+    expect(marketStatus({ ...base, marketOpen: true, updatedAt: '2026-11-23T15:00:00Z', error: null }, Date.parse('2026-11-23T15:01:00Z')).outage).toBeFalsy();
   });
 });
 
