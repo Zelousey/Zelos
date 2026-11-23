@@ -30,7 +30,7 @@ const MAX_FEEDS = 12; // 1-minute price docs read for the 1D line (the biggest h
 type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vols: Vols | null; today: string; history?: HistoryItem[]; trades?: HistoryItem[]; fills?: HistoryItem[]; /** the line's height in px (the computer Dashboard makes it taller) */ plotHeight?: number; /** the line fills all the height the card gets (computer Dashboard) */ grow?: boolean; /** false until today's fills have loaded: 1D waits instead of drawing the day without your trades */ fillsReady?: boolean };
 type Opts = { table: boolean; fill: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean };
 const OPTS_KEY = 'zelosAcctChart';
-const DEFAULT_OPTS: Opts = { table: false, fill: true, markers: true, wins: true, losses: true, drawdown: true };
+const DEFAULT_OPTS: Opts = { table: false, fill: false, markers: true, wins: true, losses: true, drawdown: true }; // owner 2026-11-23: no shading under the line unless you turn it on
 
 export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight, grow = false, fillsReady = true }: Props) {
   const [range, setRange] = useState<Range>('1D');

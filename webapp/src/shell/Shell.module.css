@@ -97,7 +97,7 @@
 
 /* ===================================================== screen */
 .main { grid-area: main; min-width: 0; padding: var(--space-5); outline: none;
-  background: radial-gradient(70% 560px at 20% 0%, color-mix(in srgb, var(--accent-soft) 55%, transparent), transparent 72%) no-repeat; }
+  background: radial-gradient(70% 560px at 20% 0%, color-mix(in srgb, var(--accent-soft) 30%, transparent), transparent 72%) no-repeat; } /* owner 2026-11-23: softer (was 55%) */
 /* owner 2026-11-12: one blue glow from the sidebar's edge across every page (each page used to draw
    its own inside its padding, which left a dark strip next to the sidebar). A background, not a
    layer: a stacking layer here would trap full-screen overlays under the phone tab bar. */

@@ -50,7 +50,7 @@
   --violet-soft: #241f3f;
   --gold: #e8b23d;
   --gold-soft: #3a2a0c;
-  --bull: #3ecb7c;
+  --bull: #22c55e; /* owner 2026-11-23: a cleaner green (was #3ecb7c, a minty green) */
   --amber: #f2b33d;
   --amber-soft: #3a2a10;
   --danger: #e0483f;
@@ -104,7 +104,7 @@
   --buy-fill: #15803d;
   --sell-fill: #c62828;
   --link: #6c9dff;
-  --up-ink: #3ecb7c;
+  --up-ink: #2fd36b;
   --down-ink: #ff6b61;
 
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -159,7 +159,7 @@
   --violet-soft: #ece8ff;
   --gold: #b98110;
   --gold-soft: #fbefd2;
-  --bull: #1f9d5a;
+  --bull: #16a34a;
   --amber-soft: #fcefd6;
   --danger: #d23a31;
   --danger-soft: #fbe2df;
@@ -172,6 +172,6 @@
   --chart-label-ink: #ffffff;
   --shadow-pop: 0 12px 32px rgba(18, 21, 27, 0.16);
   --link: #1d4ed8;
-  --up-ink: #166534;
+  --up-ink: #15803d;
   --down-ink: #b91c1c;
 }

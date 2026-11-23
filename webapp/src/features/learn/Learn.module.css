@@ -183,14 +183,6 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
   --accent-line: rgba(229, 48, 46, 0.5);
   --link: #ff6b68;
   --on-fill: #fff;
-  --surface: #0c0c0e;
-  --surface-2: #17171a;
-  --surface-hover: #1e1e22;
-  --border: #2a2a2f;
-  --border-soft: #202024;
-  --ink: #f4f5f7;
-  --ink-2: #b9bcc4;
-  --muted: #8b8f99;
   color: var(--ink);
 }
 .t101 .book, .t101 .chapter, .t101 .bookHero, .t101 .player, .t101 :global(section[class*='card']), .lvl {
@@ -266,3 +258,33 @@ a.pathLink:hover .stepBody b { color: var(--accent); }
 .orderItem b { font-family: var(--mono); color: var(--muted); min-width: 1.2em; }
 .orderRight { display: grid; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--border-soft); }
 .orderRight ol { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; color: var(--ink-2); font-size: var(--text-sm); }
+
+
+/* ================================================================ Trading 101 like Hall of Minds (owner 2026-11-23)
+   "Instead of all the black, use red": red covers like the Hall of Minds cards (the same red), white
+   art and type on them, and the app's own cards (no red glow) so Trading 101 sits with the other pages. */
+.t101 .book, .t101 .chapter, .t101 .bookHero, .t101 .player, .t101 :global(section[class*='card']), .t101 .lvl, .lvl {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg, 0);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.2);
+}
+.t101 .book:hover { border-color: var(--border); box-shadow: 0 8px 24px rgb(0 0 0 / 0.35); transform: translateY(-2px); }
+.t101 .cover {
+  --c1: #d32014; --c2: #b0180e;
+  background: linear-gradient(160deg, var(--c1), var(--c2));
+  border: 0;
+  box-shadow: inset 6px 0 0 rgb(0 0 0 / 0.22), inset 7px 0 0 rgb(255 255 255 / 0.1), 0 6px 16px rgb(0 0 0 / 0.3);
+}
+.t101 .coverRed { color: #1c0403; text-shadow: none; }
+.t101 .coverArt { filter: brightness(0) invert(1); opacity: 0.85; }
+.t101 .bookLocked .cover { filter: grayscale(0.6) brightness(0.75); }
+.t101 .bookBar, .t101 .pathBar { background: var(--surface-2); }
+.t101 .bookBar i, .t101 .pathBar i { background: #d32014; box-shadow: none; }
+.t101 .stage { background: var(--surface-2); }
+.t101 .opt { background: var(--surface-2); }
+.t101 .tip, .t101 .guide { background: color-mix(in srgb, #d32014 8%, transparent); border-color: color-mix(in srgb, #d32014 40%, transparent); }
+.lvlBtn { border-color: var(--border); background: transparent; }
+.lvlBtn:hover { border-color: #d32014; }
+/* the bookshelf uses the page's full width, like the Hall of Minds grid */
+.stackWide { max-width: none; }

@@ -31,7 +31,7 @@ export function LearnPage() {
   return (
     <>
       <PageHeader title={t('nav.learn')} subtitle={t('ln.sub')} />
-      <div className={s.stack}>
+      <div className={[s.stack, s.stackWide].join(' ')}>
         {isReal ? (
           <section className={s.lvl} aria-label={t('qz.yourLevel')}>
             <Candles seed={11} n={26} className={s.lvlArt} />
