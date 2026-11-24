@@ -5,6 +5,7 @@ exercised too:
 - then one end-of-day request per 100 symbols, from each stock's newest stored day;
 - history, daily bars, the globe and the removed stocks' prices are written;
 - a removed stock can be sold (it fills at the close) but not bought;
+- when the live feed missed the day, the stocks it missed get today's close (and accounts are revalued);
 - a job without calls left makes none.
 Started by run-functions-e2e.sh inside `firebase emulators:exec`."""
 import io
@@ -89,8 +90,18 @@ ok(main.ms_budget_start(db, NOW, "essential", 1) == 98000, "the daily close gets
 # today's 1-minute bars for AAPL (what refresh_quotes stores); the close folds them into the 5-minute history
 db.collection("markets").document("intraday_AAPL").set({"interval": "1m", "bars": ["%s 09:30,10,11,9,10.5,100" % TODAY, "%s 09:31,10.5,12,10,11,50" % TODAY]})
 db.collection("markets").document("intradayHist_AAPL").set({"interval": "5m", "bars": ["2020-01-02 09:30,1,1,1,1,1"]})
+# live prices: MSFT ran live to the close, NVDA stopped on an earlier day (the live feed missed today)
+close_t = int(datetime(2026, 10, 21, 16, 0, tzinfo=NY).timestamp())
+db.collection("markets").document("quotes").set({"updatedAt": "2026-10-20T16:06:00-04:00", "quotes": {
+    "MSFT": {"c": 999.0, "t": close_t - 60}, "NVDA": {"c": 1.0, "t": close_t - 86400}}})
 h = main.ms_daily_close(db, "k", NOW)
 MD.BUDGET[0] = None
+qd = db.collection("markets").document("quotes").get().to_dict()
+nv_close = float(db.collection("markets").document("dailyBars").get().to_dict()["bars"]["NVDA"][-1].split(",")[4])
+ok(qd["quotes"]["NVDA"]["eod"] is True and qd["quotes"]["NVDA"]["c"] == nv_close and qd["quotes"]["NVDA"]["t"] == close_t,
+   "a stock the live feed missed today gets today's close (owner 2026-11-24)")
+ok(qd["quotes"]["MSFT"]["c"] == 999.0, "a stock that ran live to the close keeps its live price")
+ok(qd["updatedAt"].startswith(TODAY + "T16:00") and qd["marketOpen"] is False and qd["error"] is None, "the prices say they're from today's close")
 ih = db.collection("markets").document("intradayHist_AAPL").get().to_dict()["bars"]
 ok(ih == ["2020-01-02 09:30,1,1,1,1,1", "%s 09:30,10.0,12.0,9.0,11.0,150" % TODAY], "the close keeps older sessions and adds today as 5-minute bars (no extra calls)")
 everything = set(hist_syms) | set(globe_syms)
@@ -110,7 +121,10 @@ q = db.collection("markets").document("quotes").get().to_dict()["quotes"]
 ok(q["AVGO"]["eod"] is True and q["AVGO"]["c"] == float(db_bars["AVGO"][-1].split(",")[4]), "a removed stock's price is today's close")
 
 asked.clear()
+# deployed after the day's close already ran: a later run still sets the missed closes, without calls
+db.collection("markets").document("quotes").set({"quotes": {"NVDA": {"c": 1.0, "t": close_t - 86400}}}, merge=True)
 ok(main.ms_daily_close(db, "k", NOW + timedelta(minutes=30)) is not None and asked == [], "a second run the same day makes no calls")
+ok(db.collection("markets").document("quotes").get().to_dict()["quotes"]["NVDA"]["c"] == nv_close, "and it still sets a missed stock to today's close")
 
 # a removed stock: buying is refused, selling what you hold works and fills at the next close
 data, uni = main._pr_order_universe({"sym": "AVGO", "side": "buy", "qty": 1})

@@ -547,6 +547,20 @@ def prev_close(daily_rows, today):
     return None
 
 
+def eod_quote(rows, today):
+    """A day's closing bar -> the quote the pages use (rows: history_rows, oldest first), or None
+    when there's no bar for `today`. Used for removed stocks, and for every stock when the live
+    feed missed the day (2026-11-24)."""
+    if not rows or rows[-1][0] != today:
+        return None
+    last, prev = rows[-1], rows[-2] if len(rows) > 1 else None
+    close_t = int(datetime.strptime(today, "%Y-%m-%d").replace(tzinfo=NY).timestamp()) + session_close_min(today) * 60
+    q = {"c": last[4], "o": last[1], "h": last[2], "l": last[3], "pc": prev[4] if prev else None, "v": last[5], "t": close_t, "eod": True}
+    if prev and prev[4]:
+        q["chPct"] = round((last[4] / prev[4] - 1) * 100, 2)
+    return q
+
+
 def ms_quote(today_bars, pc, bar_minutes):
     """Today's intraday bars for one symbol -> the c/o/h/l/pc/t/v quote the pages use."""
     if not today_bars:

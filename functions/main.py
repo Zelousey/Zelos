@@ -7408,6 +7408,12 @@ def ms_daily_close(db, key, now):
     today = now.strftime("%Y-%m-%d")
     hist = _read_history(db)
     if hist.get("SPY") and hist["SPY"][-1][:10] == today:
+        # already done today; a later run still sets the closes if the live prices missed the day (no calls)
+        try:
+            dsnap = db.collection("markets").document("dailyBars").get()
+            quotes_from_close(db, ((dsnap.to_dict() or {}).get("bars") or {}) if dsnap.exists else {}, today, now)
+        except Exception as e:
+            print("[market] closing prices for missed live prices failed:", type(e).__name__, e)
         return hist
     probe = MD.ms_daily_bars(MD.ms_rows("eod", {"symbols": "SPY", "date_from": today, "sort": "ASC"}, key, max_pages=1))
     if not (probe.get("SPY") and probe["SPY"][-1][:10] == today):
@@ -7462,13 +7468,8 @@ def ms_daily_close(db, key, now):
     # removed stocks: today's close becomes their price (sell orders fill at it)
     rq = {}
     for s in RETIRED_SYMBOLS:
-        rows = MD.history_rows(bars.get(s))
-        if rows and rows[-1][0] == today:
-            last, prev = rows[-1], rows[-2] if len(rows) > 1 else None
-            q = {"c": last[4], "o": last[1], "h": last[2], "l": last[3], "pc": prev[4] if prev else None, "v": last[5],
-                 "t": int(datetime.strptime(today, "%Y-%m-%d").replace(hour=16, tzinfo=NY).timestamp()), "eod": True}
-            if prev and prev[4]:
-                q["chPct"] = round((last[4] / prev[4] - 1) * 100, 2)
+        q = MD.eod_quote(MD.history_rows(bars.get(s)), today)
+        if q:
             rq[s] = q
     if rq:
         db.collection("markets").document("quotes").set({"quotes": rq}, merge=True)
@@ -7476,7 +7477,42 @@ def ms_daily_close(db, key, now):
             print("[practice] removed stocks' orders:", practice_pass(db, rq, {}, int(now.timestamp() * 1000)))
         except Exception as e:
             print("[practice] removed stocks' orders failed:", type(e).__name__, e)
+    # the live feed missed the day (Marketstack, 2026-11-23/24): every stock whose live price stopped
+    # before today's close gets the close, and the practice accounts are marked at it (owner 2026-11-24)
+    try:
+        n = quotes_from_close(db, bars, today, now)
+        if n:
+            print("[market] live prices missed today: %d stocks set to the close, accounts revalued" % n)
+    except Exception as e:
+        print("[market] closing prices for missed live prices failed:", type(e).__name__, e)
     return hist
+
+
+def quotes_from_close(db, bars, today, now):
+    """markets/quotes from today's closing bars for the stocks whose live price stopped more than
+    30 minutes before the close (or never came), then revalue every practice account at them.
+    Stocks the live feed carried to the close keep their live price. No fills: practice orders only
+    fill on live prices. Returns how many stocks were set."""
+    qref = db.collection("markets").document("quotes")
+    qs = qref.get()
+    d = (qs.to_dict() or {}) if qs.exists else {}
+    have = d.get("quotes") or {}
+    close_t = int(datetime.strptime(today, "%Y-%m-%d").replace(tzinfo=NY).timestamp()) + MD.session_close_min(today) * 60
+    fill = {}
+    for s in PRACTICE_SYMBOLS:
+        if ((have.get(s) or {}).get("t") or 0) >= close_t - 30 * 60:
+            continue
+        q = MD.eod_quote(MD.history_rows(bars.get(s)), today)
+        if q:
+            fill[s] = q
+    if not fill:
+        return 0
+    upd = {"quotes": fill, "checkedAt": now.isoformat(), "error": None, "marketOpen": False}
+    if str(d.get("updatedAt") or "") < today:
+        upd["updatedAt"] = datetime.fromtimestamp(close_t, NY).isoformat()
+    qref.set(upd, merge=True)
+    practice_revalue_all(db, int(now.timestamp() * 1000))
+    return len(fill)
 
 
 def grade_alerts(db, rows, summary):

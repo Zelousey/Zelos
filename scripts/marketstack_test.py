@@ -236,5 +236,11 @@ h = MD.intraday_history(stored, one)
 ok(len({r[:10] for r in h}) == 20 and h[-2:] == MD.to_5min(one), "today's live bars replace the stored copy; the last 20 sessions are kept")
 ok(MD.intraday_history([], []) == [], "nothing in, nothing out")
 
+# a day's closing bar as a quote (removed stocks; every stock when the live feed missed the day, 2026-11-24)
+_rows = [["2026-11-23", 10.0, 11.0, 9.0, 10.0, 100], ["2026-11-24", 10.0, 12.0, 9.5, 11.0, 200]]
+_q = MD.eod_quote(_rows, "2026-11-24")
+ok(_q["c"] == 11.0 and _q["pc"] == 10.0 and _q["chPct"] == 10.0 and _q["eod"] is True, "the close is the price, against yesterday's close")
+ok(datetime.fromtimestamp(_q["t"], MD.NY).strftime("%H:%M") == "16:00", "stamped at the close")
+ok(MD.eod_quote(_rows[:1], "2026-11-24") is None, "no bar for today: no quote")
 print("ALL CHECKS PASSED" if not fails else "%d FAILED" % fails)
 sys.exit(1 if fails else 0)
