@@ -31,7 +31,7 @@ type Props = { acct: Account; equity: number; quotes: Record<string, Quote>; vol
 type Opts = { table: boolean; fill: boolean; glow: boolean; markers: boolean; wins: boolean; losses: boolean; drawdown: boolean; line: LineColor; bg: ChartBg };
 const OPTS_KEY = 'zelosAcctChart';
 // owner 2026-11-23: no shading and no glow unless you turn them on; line and background colours are yours to pick
-const DEFAULT_OPTS: Opts = { table: false, fill: false, glow: false, markers: true, wins: true, losses: true, drawdown: true, line: 'auto', bg: 'card' };
+const DEFAULT_OPTS: Opts = { table: false, fill: false, glow: false, markers: true, wins: true, losses: true, drawdown: true, line: 'green', bg: 'black' }; // owner 2026-11-24: black background, green line
 /** Line colours: auto = green when up, red when down. */
 export const LINE_COLORS = { auto: '', green: '#33b86e', blue: '#4a86ff', white: '#e6e8ec', purple: '#a78bfa' } as const;
 /** Chart backgrounds: card = the card's own colour. */
@@ -43,7 +43,7 @@ const isBg = (v: unknown): v is ChartBg => typeof v === 'string' && v in CHART_B
 function readOpts(): Opts {
   const saved = readJSON<Partial<Opts>>(OPTS_KEY, {});
   const o = { ...DEFAULT_OPTS, ...saved };
-  return { ...o, line: isLine(o.line) ? o.line : 'auto', bg: isBg(o.bg) ? o.bg : 'card' };
+  return { ...o, line: isLine(o.line) ? o.line : DEFAULT_OPTS.line, bg: isBg(o.bg) ? o.bg : DEFAULT_OPTS.bg };
 }
 
 export function AccountChart({ acct, equity, quotes, vols, today, history = [], trades = [], fills: allFills = [], plotHeight, grow = false, fillsReady = true }: Props) {
