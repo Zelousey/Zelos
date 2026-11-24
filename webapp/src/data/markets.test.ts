@@ -73,10 +73,6 @@ describe('market status line', () => {
     expect(st.stale).toBe(true);
     expect(st.text).toBe("Prices delayed: Marketstack isn't responding right now. Showing prices from Fri 4:06 PM EST. We retry every minute and they'll update on their own.");
     expect(marketStatus({ ...base, marketOpen: true, updatedAt: '2026-11-23T14:31:00Z', error: 'URLError' }, Date.parse('2026-11-23T14:50:00Z')).text).toMatch(/from 9:31 AM EST\. /);
-    // the provider answers but has nothing new this far into the session (functions/mdata.py feed_stuck)
-    expect(marketStatus({ ...base, marketOpen: false, updatedAt: '2026-11-20T21:06:14Z', error: 'stale-feed' }, Date.parse('2026-11-23T15:15:00Z')).text).toBe(
-      "Prices delayed: Marketstack isn't sending new prices right now. Showing prices from Fri 4:06 PM EST. We retry every minute and they'll update on their own.",
-    );
     // a good update clears the error (functions/main.py writes error: null), and the line is normal again
     expect(marketStatus({ ...base, marketOpen: true, updatedAt: '2026-11-23T15:00:00Z', error: null }, Date.parse('2026-11-23T15:01:00Z')).outage).toBeFalsy();
   });

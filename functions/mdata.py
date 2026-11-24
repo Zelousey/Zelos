@@ -753,15 +753,3 @@ def sec_research(sym, sub, facts, insiders, bars, price=None):
     if bars:
         doc["bars"] = list(bars)[-60:]
     return doc
-
-
-# ---------------------------------------------------------------- a feed with no new prices (2026-11-23)
-STUCK_AFTER_MIN = 15  # minutes into the session with no fresh price before the app says "delayed"
-
-
-def feed_stuck(now):
-    """True when Marketstack answers but has no fresh price this far into a normal session (on
-    2026-11-23 it came back from an outage with nothing new for the day). Before then it's just
-    "before the first bar"; on a holiday refresh_quotes never asks."""
-    mins = now.hour * 60 + now.minute
-    return SESSION_OPEN + STUCK_AFTER_MIN <= mins <= session_close_min(now.strftime("%Y-%m-%d"))

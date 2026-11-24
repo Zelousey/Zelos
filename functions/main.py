@@ -1529,9 +1529,7 @@ def ms_run_quotes(db, key, now, every=None, iv=None, symbols=None):
     qref = db.collection("markets").document("quotes")
     live = {s: q for s, q in quotes.items() if s not in stale}
     if not live:
-        # before the first bar it's normal; well into the session it means the feed is stuck, and the
-        # app says prices are delayed (owner 2026-11-23) instead of "Market closed" with Friday's prices
-        qref.set({"checkedAt": now.isoformat(), "error": "stale-feed" if MD.feed_stuck(now) else None, "paused": None}, merge=True)
+        qref.set({"checkedAt": now.isoformat(), "error": None, "paused": None}, merge=True)  # holiday, before the first bar, or the whole feed stuck
         return 0, {}, today_bars, step
     # a stock asked for with no fresh price keeps its last good one, marked stale (the app says
     # "delayed"); a stock not asked for this run keeps its last quote as it was. Removed stocks

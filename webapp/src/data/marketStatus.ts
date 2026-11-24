@@ -32,7 +32,7 @@ export function marketStatus(q: QuotesDoc | null, now = Date.now()): { open: boo
   if (q.error && q.error !== 'null')
     return {
       open: false,
-      text: `Prices delayed: ${src} ${q.error === 'stale-feed' ? "isn't sending new prices" : "isn't responding"} right now. ${Number.isFinite(at) ? `Showing prices from ${whenShown(at, now)}. ` : ''}We retry every minute and they'll update on their own.`,
+      text: `Prices delayed: ${src} isn't responding right now. ${Number.isFinite(at) ? `Showing prices from ${whenShown(at, now)}. ` : ''}We retry every minute and they'll update on their own.`,
       stale: true,
       outage: true,
     };

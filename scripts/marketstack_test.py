@@ -236,10 +236,5 @@ h = MD.intraday_history(stored, one)
 ok(len({r[:10] for r in h}) == 20 and h[-2:] == MD.to_5min(one), "today's live bars replace the stored copy; the last 20 sessions are kept")
 ok(MD.intraday_history([], []) == [], "nothing in, nothing out")
 
-# a feed that answers with nothing new (2026-11-23): "delayed" only well into a normal session
-ok(not MD.feed_stuck(datetime(2026, 11, 23, 9, 40, tzinfo=MD.NY)), "10 minutes after the open: not stuck yet (no first bar is normal)")
-ok(MD.feed_stuck(datetime(2026, 11, 23, 9, 45, tzinfo=MD.NY)), "15 minutes after the open with no fresh price: stuck")
-ok(MD.feed_stuck(datetime(2026, 11, 23, 15, 59, tzinfo=MD.NY)), "late in the session: stuck")
-ok(not MD.feed_stuck(datetime(2026, 11, 23, 16, 30, tzinfo=MD.NY)), "after the close: not stuck")
 print("ALL CHECKS PASSED" if not fails else "%d FAILED" % fails)
 sys.exit(1 if fails else 0)
